@@ -1,0 +1,18 @@
+{
+  String id=session.id;
+  if (lsSessionListeners.size() > 0) {
+    executor.execute(new Runnable(){
+      public void run(){
+        HttpSessionEvent event=new HttpSessionEvent(session);
+        for (        HttpSessionListener listener : lsSessionListeners) {
+          listener.sessionDestroyed(event);
+        }
+      }
+    }
+);
+  }
+  session.destroy();
+  mapSessions.remove(id);
+  getClusterMap().remove(id);
+  getSnapshot().destroyedSessions.incrementAndGet();
+}

@@ -1,0 +1,38 @@
+{
+  try {
+    if (key != null) {
+      Address owner=ConcurrentMapManager.get().getKeyOwner(name,key);
+      if (owner.equals(thisAddress)) {
+        handleListenerRegisterations(add,name,key,thisAddress,includeValue);
+      }
+ else {
+        Invocation inv=obtainServiceInvocation();
+        inv.set(name,invocationProcess,key,null);
+        inv.longValue=(includeValue) ? 1 : 0;
+        boolean sent=send(inv,owner);
+        if (!sent) {
+          inv.returnToContainer();
+        }
+      }
+    }
+ else {
+      for (      MemberImpl member : lsMembers) {
+        if (member.localMember()) {
+          handleListenerRegisterations(add,name,key,thisAddress,includeValue);
+        }
+ else {
+          Invocation inv=obtainServiceInvocation();
+          inv.set(name,invocationProcess,key,null);
+          inv.longValue=(includeValue) ? 1 : 0;
+          boolean sent=send(inv,member.getAddress());
+          if (!sent) {
+            inv.returnToContainer();
+          }
+        }
+      }
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}

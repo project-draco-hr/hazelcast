@@ -1,0 +1,38 @@
+{
+  setCurrentTake();
+  Data value=blCurrentTake.remove();
+  if (request.txnId != -1) {
+    MemberImpl backup=null;
+    if (request.caller.equals(thisAddress)) {
+      backup=getNextMember();
+    }
+ else {
+      backup=getNextMemberAfter(request.caller);
+    }
+    if (backup != null) {
+      if (backup.getAddress().equals(thisAddress)) {
+        doTxnBackupPoll(request.txnId,value);
+      }
+ else {
+        sendTxnBackup(backup.getAddress(),value,request.txnId);
+      }
+    }
+  }
+  size--;
+  doFireEntryEvent(false,value);
+  runScheduledOffer:   while (lsScheduledOfferActions.size() > 0) {
+    ScheduledOfferAction offerAction=lsScheduledOfferActions.remove(0);
+    if (!offerAction.expired()) {
+      boolean consumed=offerAction.consume();
+      if (consumed) {
+        break runScheduledOffer;
+      }
+    }
+  }
+  sendBackup(false,request.caller,null,blCurrentTake.blockId,0);
+  if (blCurrentTake.size() == 0 && blCurrentTake.isFull()) {
+    fireBlockRemoveEvent(blCurrentTake);
+    blCurrentTake=null;
+  }
+  return value;
+}

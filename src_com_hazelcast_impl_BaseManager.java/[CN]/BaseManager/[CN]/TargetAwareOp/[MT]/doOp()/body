@@ -1,0 +1,30 @@
+{
+  responses.clear();
+  long timeout=request.timeout;
+  try {
+    enqueueAndReturn(TargetAwareOp.this);
+    Object result=null;
+    if (timeout >= 0 && timeout < 100) {
+      timeout=0;
+      result=responses.poll(1,TimeUnit.SECONDS);
+    }
+ else     if (timeout == -1) {
+      result=responses.take();
+    }
+ else {
+      result=responses.poll(timeout + 10,TimeUnit.MILLISECONDS);
+    }
+    if (result == OBJECT_REDO) {
+      Thread.sleep(2000);
+      if (DEBUG) {
+        log("Redoing..");
+      }
+      return doOp();
+    }
+    return result;
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  return null;
+}

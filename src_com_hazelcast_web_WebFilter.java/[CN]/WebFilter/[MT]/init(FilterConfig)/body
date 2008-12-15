@@ -1,0 +1,41 @@
+{
+  int maxInactiveInterval=30;
+  String sessionTimeoutValue=config.getInitParameter("session-timeout");
+  if (sessionTimeoutValue != null) {
+    maxInactiveInterval=Integer.parseInt(sessionTimeoutValue.trim());
+  }
+  app=ensureServletContext(config.getServletContext());
+  app.init(maxInactiveInterval);
+  int listenerCount=Integer.parseInt(config.getInitParameter("listener-count"));
+  for (int i=0; i < listenerCount; i++) {
+    String listenerClass=config.getInitParameter("listener" + i);
+    if (DEBUG) {
+      log("Found listener " + listenerClass);
+    }
+    try {
+      Object listener=Class.forName(listenerClass).newInstance();
+      if (listener instanceof HttpSessionListener) {
+        app.lsSessionListeners.add((HttpSessionListener)listener);
+      }
+      if (listener instanceof HttpSessionAttributeListener) {
+        app.lsSessionAttListeners.add((HttpSessionAttributeListener)listener);
+      }
+      if (listener instanceof ServletContextListener) {
+        app.lsContextListeners.add((ServletContextListener)listener);
+      }
+      if (listener instanceof ServletContextAttributeListener) {
+        app.lsContextAttListeners.add((ServletContextAttributeListener)listener);
+      }
+      if (listener instanceof ServletRequestListener) {
+        app.lsRequestListeners.add((ServletRequestListener)listener);
+      }
+      if (listener instanceof ServletRequestAttributeListener) {
+        app.lsRequestAttListeners.add((ServletRequestAttributeListener)listener);
+      }
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+  app.setReady();
+}

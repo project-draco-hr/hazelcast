@@ -1,0 +1,66 @@
+{
+  CMap cmap=maps.get(name);
+  if (cmap == null) {
+    done=true;
+    return;
+  }
+  Record rec=null;
+  while (rec == null && !done) {
+    if (recordId <= maxRecordId) {
+      rec=cmap.getRecord(recordId++);
+    }
+ else {
+      done=true;
+    }
+  }
+  if (rec == null) {
+    done=true;
+    return;
+  }
+  Block block=mapBlocks.get(rec.getBlockId());
+  if (block.owner.equals(thisAddress)) {
+    if (block.isMigrating()) {
+      sendOwnMessage(rec,block.migrationAddress);
+      cmap.removeRecord(rec.getKey());
+      syncMonitor.sendOwn++;
+      syncMonitor.removed++;
+    }
+ else {
+      rec.setOwner(thisAddress);
+      sendBackupAdd(rec,true);
+      syncMonitor.sendBackup++;
+    }
+  }
+ else   if (block.isMigrating() && block.migrationAddress.equals(thisAddress)) {
+    rec.owner=thisAddress;
+    syncMonitor.migrationOwner++;
+  }
+ else {
+    if (!block.isMigrating()) {
+      MemberImpl nextAfterOwner=getNextMemberAfter(block.owner);
+      if (nextAfterOwner != null && nextAfterOwner.getAddress().equals(thisAddress)) {
+        rec.owner=block.owner;
+        syncMonitor.ownerBackup++;
+      }
+ else {
+        cmap.removeRecord(rec.getKey());
+        syncMonitor.removed++;
+      }
+    }
+ else     if (block.isMigrating()) {
+      MemberImpl nextAfterMigration=getNextMemberAfter(block.migrationAddress);
+      if (nextAfterMigration != null && nextAfterMigration.getAddress().equals(thisAddress)) {
+        rec.owner=block.migrationAddress;
+        syncMonitor.migrationBackup++;
+      }
+ else {
+        cmap.removeRecord(rec.getKey());
+        syncMonitor.removed++;
+      }
+    }
+ else {
+      cmap.removeRecord(rec.getKey());
+      syncMonitor.removed++;
+    }
+  }
+}

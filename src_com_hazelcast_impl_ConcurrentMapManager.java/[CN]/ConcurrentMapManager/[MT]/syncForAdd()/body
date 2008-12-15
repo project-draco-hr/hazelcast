@@ -1,0 +1,66 @@
+{
+  if (isMaster()) {
+    for (int i=0; i < BLOCK_COUNT; i++) {
+      Block block=mapBlocks.get(i);
+      if (block == null) {
+        getOrCreateBlock(i);
+      }
+    }
+    List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
+    Map<Address,Integer> addressBlocks=new HashMap<Address,Integer>();
+    for (    MemberImpl member : lsMembers) {
+      addressBlocks.put(member.getAddress(),0);
+    }
+    int aveBlockOwnCount=mapBlocks.size() / (lsMembers.size());
+    Collection<Block> blocks=mapBlocks.values();
+    for (    Block block : blocks) {
+      if (!block.isMigrating()) {
+        Integer countInt=addressBlocks.get(block.owner);
+        int count=(countInt == null) ? 0 : countInt.intValue();
+        if (count >= aveBlockOwnCount) {
+          lsBlocksToRedistribute.add(block);
+        }
+ else {
+          count++;
+          addressBlocks.put(block.owner,count);
+        }
+      }
+    }
+    Set<Address> allAddress=addressBlocks.keySet();
+    setNewMembers:     for (    Address address : allAddress) {
+      Integer countInt=addressBlocks.get(address);
+      int count=(countInt == null) ? 0 : countInt.intValue();
+      while (count <= aveBlockOwnCount) {
+        if (lsBlocksToRedistribute.size() > 0) {
+          Block blockToMigrate=lsBlocksToRedistribute.remove(0);
+          blockToMigrate.migrationAddress=address;
+          if (blockToMigrate.owner.equals(blockToMigrate.migrationAddress)) {
+            blockToMigrate.migrationAddress=null;
+          }
+          count++;
+        }
+ else {
+          break setNewMembers;
+        }
+      }
+    }
+    Data dataAllBlocks=null;
+    for (    MemberImpl member : lsMembers) {
+      if (!member.localMember()) {
+        if (dataAllBlocks == null) {
+          Blocks allBlocks=new Blocks();
+          blocks=mapBlocks.values();
+          for (          Block block : blocks) {
+            allBlocks.addBlock(block);
+          }
+          dataAllBlocks=ThreadContext.get().toData(allBlocks);
+        }
+        send("blocks",OP_CMAP_BLOCKS,dataAllBlocks,member.getAddress());
+      }
+    }
+    doResetRecordOwners();
+    if (DEBUG) {
+      printBlocks();
+    }
+  }
+}

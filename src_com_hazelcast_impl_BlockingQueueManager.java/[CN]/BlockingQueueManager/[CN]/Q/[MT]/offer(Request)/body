@@ -1,0 +1,19 @@
+{
+  int addIndex=blCurrentPut.add(req.value);
+  doFireEntryEvent(true,req.value);
+  size++;
+  while (lsScheduledPollActions.size() > 0) {
+    ScheduledAction pollAction=lsScheduledPollActions.remove(0);
+    if (!pollAction.expired()) {
+      boolean consumed=pollAction.consume();
+      if (consumed)       return -1;
+    }
+  }
+  sendBackup(true,req.caller,req.value,blCurrentPut.blockId,addIndex);
+  if (blCurrentPut.isFull()) {
+    fireBlockFullEvent(blCurrentPut);
+    blCurrentPut=null;
+    setCurrentPut();
+  }
+  return addIndex;
+}

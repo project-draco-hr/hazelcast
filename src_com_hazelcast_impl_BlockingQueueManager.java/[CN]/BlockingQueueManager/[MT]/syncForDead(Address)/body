@@ -1,0 +1,51 @@
+{
+  MemberImpl member=getNextMemberBeforeSync(addressDead);
+  if (DEBUG) {
+    log(addressDead + " is dead and its backup was " + member);
+  }
+  Address addressNewOwner=(member == null) ? thisAddress : member.getAddress();
+  Collection<Q> queues=mapBlockingQueues.values();
+  for (  Q q : queues) {
+    List<Block> lsBlocks=q.lsBlocks;
+    for (    Block block : lsBlocks) {
+      if (block.address.equals(addressDead)) {
+        block.address=addressNewOwner;
+        if (lsMembers.size() > 1) {
+          if (addressNewOwner.equals(thisAddress)) {
+            int indexUpto=block.size() - 1;
+            if (DEBUG) {
+              log("IndexUpto " + indexUpto);
+            }
+            if (indexUpto > -1) {
+              new Thread(new BlockBackupSyncRunner(new BlockBackupSync(q,block,indexUpto))).start();
+            }
+          }
+        }
+      }
+ else       if (block.address.equals(thisAddress)) {
+        if (lsMembers.size() > 1) {
+          MemberImpl memberBackupWas=getNextMemberBeforeSync(thisAddress);
+          if (memberBackupWas == null || memberBackupWas.getAddress().equals(addressDead)) {
+            int indexUpto=block.size() - 1;
+            if (indexUpto > -1) {
+              new Thread(new BlockBackupSyncRunner(new BlockBackupSync(q,block,indexUpto))).start();
+            }
+          }
+        }
+      }
+    }
+    List<ScheduledPollAction> scheduledPollActions=q.lsScheduledPollActions;
+    for (    ScheduledPollAction scheduledAction : scheduledPollActions) {
+      if (addressDead.equals(scheduledAction.request.caller)) {
+        scheduledAction.setValid(false);
+      }
+    }
+    List<ScheduledOfferAction> scheduledOfferActions=q.lsScheduledOfferActions;
+    for (    ScheduledOfferAction scheduledAction : scheduledOfferActions) {
+      if (addressDead.equals(scheduledAction.request.caller)) {
+        scheduledAction.setValid(false);
+      }
+    }
+  }
+  doResetBlockSizes();
+}

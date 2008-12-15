@@ -1,0 +1,23 @@
+{
+  firstMainThread=Thread.currentThread();
+  clusterImpl=new ClusterImpl();
+  boolean inited=init();
+  if (!inited)   return;
+  Thread inThread=new Thread(InSelector.get(),"InThread");
+  inThread.start();
+  inThread.setPriority(8);
+  lsThreads.add(inThread);
+  Thread outThread=new Thread(OutSelector.get(),"OutThread");
+  outThread.start();
+  outThread.setPriority(8);
+  lsThreads.add(outThread);
+  Thread clusterServiceThread=new Thread(ClusterService.get(),"ClusterService");
+  clusterServiceThread.start();
+  clusterServiceThread.setPriority(7);
+  lsThreads.add(clusterServiceThread);
+  join();
+  if (Config.get().join.multicastConfig.enabled) {
+    startMulticastService();
+  }
+  firstMainThread=null;
+}

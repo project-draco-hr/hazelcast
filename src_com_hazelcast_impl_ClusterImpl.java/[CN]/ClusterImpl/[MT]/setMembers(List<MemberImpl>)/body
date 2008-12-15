@@ -1,0 +1,47 @@
+{
+  final Set<MembershipListener> setListeners=refListeners.get();
+  Set<ClusterMember> setNew=new LinkedHashSet<ClusterMember>(lsMembers.size());
+  for (  MemberImpl member : lsMembers) {
+    final ClusterMember dummy=new ClusterMember(member.getAddress(),member.localMember());
+    ClusterMember clusterMember=mapClusterMembers.get(dummy);
+    if (clusterMember == null) {
+      clusterMember=dummy;
+      if (setListeners != null && setListeners.size() > 0) {
+        new Thread(new Runnable(){
+          public void run(){
+            MembershipEvent membershipEvent=new MembershipEvent(ClusterImpl.this,dummy,MembershipEvent.MEMBER_ADDED);
+            for (            MembershipListener listener : setListeners) {
+              listener.memberAdded(membershipEvent);
+            }
+          }
+        }
+).start();
+      }
+    }
+    if (clusterMember.localMember()) {
+      refLocalMember.set(clusterMember);
+    }
+    setNew.add(clusterMember);
+  }
+  if (setListeners != null && setListeners.size() > 0) {
+    Set<ClusterMember> it=mapClusterMembers.keySet();
+    for (    final ClusterMember cm : it) {
+      if (!setNew.contains(cm)) {
+        new Thread(new Runnable(){
+          public void run(){
+            MembershipEvent membershipEvent=new MembershipEvent(ClusterImpl.this,cm,MembershipEvent.MEMBER_REMOVED);
+            for (            MembershipListener listener : setListeners) {
+              listener.memberRemoved(membershipEvent);
+            }
+          }
+        }
+).start();
+      }
+    }
+  }
+  mapClusterMembers.clear();
+  for (  ClusterMember cm : setNew) {
+    mapClusterMembers.put(cm,cm);
+  }
+  refMembers.set(setNew);
+}

@@ -1,0 +1,34 @@
+{
+  int blockId=getBlockId(key);
+  Block block=mapBlocks.get(blockId);
+  if (block == null) {
+    if (isMaster()) {
+      block=getOrCreateBlock(blockId);
+    }
+ else     return getMasterAddress();
+  }
+  if (block.owner.equals(thisAddress)) {
+    if (block.isMigrating()) {
+      if (name == null)       return block.migrationAddress;
+      CMap map=getMap(name);
+      Record record=map.getRecord(key);
+      if (record == null)       return block.migrationAddress;
+ else {
+        Address recordOwner=record.getOwner();
+        if (recordOwner == null)         return thisAddress;
+        if ((!recordOwner.equals(thisAddress)) && (!recordOwner.equals(block.migrationAddress))) {
+          record.setOwner(thisAddress);
+        }
+        return record.getOwner();
+      }
+    }
+  }
+ else   if (thisAddress.equals(block.migrationAddress)) {
+    if (name == null)     return thisAddress;
+    CMap map=getMap(name);
+    Record record=map.getRecord(key);
+    if (record == null)     return thisAddress;
+ else     return record.getOwner();
+  }
+  return block.owner;
+}

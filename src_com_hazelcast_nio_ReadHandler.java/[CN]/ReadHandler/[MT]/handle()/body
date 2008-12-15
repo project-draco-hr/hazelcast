@@ -1,0 +1,62 @@
+{
+  try {
+    int readBytes=socketChannel.read(inBuffer);
+    if (readBytes == -1) {
+      connection.close();
+      return;
+    }
+    if (readBytes <= 0) {
+      return;
+    }
+    length+=readBytes;
+    inBuffer.flip();
+    while (true) {
+      int remaining=inBuffer.remaining();
+      if (remaining <= 0) {
+        inBuffer.clear();
+        return;
+      }
+      if (inv == null) {
+        if (remaining >= 24) {
+          inv=obtainReadable(inBuffer);
+          if (inv == null) {
+            throw new RuntimeException(messageRead + " Unknown message type  from " + connection.getEndPoint());
+          }
+        }
+ else {
+          inBuffer.compact();
+          return;
+        }
+      }
+      boolean full=inv.read(inBuffer);
+      if (DEBUG)       System.out.println("READING " + full);
+      if (full) {
+        messageRead++;
+        inv.flipBuffers();
+        inv.read();
+        inv.local=false;
+        inv.setFromConnection(connection);
+        ClusterService.get().enqueueAndReturn(inv);
+        inv=null;
+      }
+ else {
+        if (inBuffer.hasRemaining()) {
+          if (DEBUG) {
+            throw new RuntimeException("inbuffer has remaining " + inBuffer.remaining());
+          }
+        }
+      }
+    }
+  }
+ catch (  Exception e) {
+    handleSocketException(e);
+  }
+ finally {
+    try {
+      if (connection.live())       registerRead();
+    }
+ catch (    Exception e) {
+      handleSocketException(e);
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  try {
+    StringBuffer sb=new StringBuffer();
+    if (ex != null) {
+      exceptionToStringBuffer(ex,sb);
+    }
+    sb.append("Hazelcast.version : " + Build.get().version + "\n");
+    sb.append("Hazelcast.build   : " + Build.get().build + "\n");
+    sb.append("Hazelcast.address   : " + address + "\n");
+    sb.append("joined : " + joined + "\n");
+    sb.append(AddressPicker.createCoreDump());
+    coreDump.getPrintWriter().write(sb.toString());
+    coreDump.getPrintWriter().write("\n");
+    coreDump.getPrintWriter().write("\n");
+    for (    Thread thread : lsThreads) {
+      thread.interrupt();
+    }
+    if (!joined) {
+      if (firstMainThread != null) {
+        try {
+          firstMainThread.interrupt();
+        }
+ catch (        Exception e) {
+        }
+      }
+    }
+    String fileName="hz-core";
+    if (address != null)     fileName+="-" + address.getHost() + "_"+ address.getPort();
+    fileName+=".txt";
+    FileOutputStream fos=new FileOutputStream(fileName);
+    Util.writeText(coreDump.toString(),fos);
+    fos.flush();
+    fos.close();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}

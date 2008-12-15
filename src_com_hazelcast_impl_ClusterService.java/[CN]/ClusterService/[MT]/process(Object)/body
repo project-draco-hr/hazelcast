@@ -1,0 +1,34 @@
+{
+  if (obj instanceof Invocation) {
+    Invocation inv=(Invocation)obj;
+    int operation=inv.operation;
+    if (operation < 50) {
+      ClusterManager.get().handle(inv);
+    }
+ else     if (operation < 300) {
+      ListenerManager.get().handle(inv);
+    }
+ else     if (operation < 400) {
+      ExecutorManager.get().handle(inv);
+    }
+ else     if (operation < 500) {
+      BlockingQueueManager.get().handle(inv);
+    }
+ else     if (operation < 600) {
+      ConcurrentMapManager.get().handle(inv);
+    }
+ else     throw new RuntimeException("Unknown operation " + operation);
+    return;
+  }
+ else   if (obj instanceof Processable) {
+    ((Processable)obj).process();
+  }
+ else   if (obj instanceof Runnable) {
+synchronized (obj) {
+      ((Runnable)obj).run();
+      obj.notify();
+    }
+    return;
+  }
+ else   throw new RuntimeException("Unkown obj " + obj);
+}

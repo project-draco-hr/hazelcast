@@ -1,0 +1,28 @@
+{
+  addCall(this);
+  Q q=getQ(name);
+  Address target=q.getBlockOwner(blockId);
+  if (target == null) {
+    responses.add(OBJECT_NULL);
+  }
+  if (target.equals(thisAddress)) {
+    q.remove(this);
+  }
+ else {
+    Invocation inv=obtainServiceInvocation();
+    inv.name=name;
+    inv.operation=getOperation();
+    inv.eventId=getId();
+    inv.blockId=blockId;
+    inv.timeout=0;
+    inv.longValue=index;
+    boolean sent=false;
+    if (target != null) {
+      sent=send(inv,target);
+    }
+    if (target == null || !sent) {
+      inv.returnToContainer();
+      responses.add(OBJECT_NULL);
+    }
+  }
+}

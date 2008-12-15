@@ -1,0 +1,37 @@
+{
+  Config config=Config.get();
+  List<Address> lsPossibleAddresses=new ArrayList<Address>();
+  List<String> lsJoinMembers=config.join.joinMembers.lsMembers;
+  for (  String host : lsJoinMembers) {
+    boolean ip=isIP(host);
+    try {
+      if (ip) {
+        for (int i=0; i < 3; i++) {
+          Address address=new Address(host,config.port + i,true);
+          lsPossibleAddresses.add(address);
+        }
+      }
+ else {
+        InetAddress[] allAddresses=InetAddress.getAllByName(host);
+        for (        InetAddress inetAddress : allAddresses) {
+          boolean shouldCheck=true;
+          Address address=null;
+          if (config.interfaces.enabled) {
+            address=new Address(inetAddress.getAddress(),config.port);
+            shouldCheck=AddressPicker.matchAddress(address.getHost());
+          }
+          if (shouldCheck) {
+            for (int i=0; i < 3; i++) {
+              Address addressProper=new Address(inetAddress.getAddress(),config.port + i);
+              lsPossibleAddresses.add(addressProper);
+            }
+          }
+        }
+      }
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+  return lsPossibleAddresses;
+}

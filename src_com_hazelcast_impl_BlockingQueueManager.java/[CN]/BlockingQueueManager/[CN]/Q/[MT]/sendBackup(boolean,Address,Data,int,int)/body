@@ -1,0 +1,21 @@
+{
+  if (lsMembers.size() > 1) {
+    if (getNextMember().getAddress().equals(invoker)) {
+      return;
+    }
+    int operation=OP_B_BACKUP_REMOVE;
+    if (add) {
+      operation=OP_B_BACKUP_ADD;
+      if (data != null && data.size() > 0) {
+        data=ThreadContext.get().hardCopy(data);
+      }
+    }
+    Invocation inv=obtainServiceInvocation(name,null,data,operation,0);
+    inv.blockId=blockId;
+    inv.longValue=addIndex;
+    boolean sent=send(inv,getNextMember().getAddress());
+    if (!sent) {
+      inv.returnToContainer();
+    }
+  }
+}

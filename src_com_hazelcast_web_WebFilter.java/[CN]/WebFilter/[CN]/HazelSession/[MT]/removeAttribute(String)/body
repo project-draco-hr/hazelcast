@@ -1,0 +1,28 @@
+{
+  checkState();
+  final Object oldValue=atts.remove(name);
+  if (oldValue != null) {
+    if (oldValue instanceof HttpSessionBindingListener) {
+      executor.execute(new Runnable(){
+        public void run(){
+          HttpSessionBindingEvent bindingEvent=null;
+          bindingEvent=new HttpSessionBindingEvent(HazelSession.this,name,oldValue);
+          ((HttpSessionBindingListener)oldValue).valueUnbound(bindingEvent);
+        }
+      }
+);
+    }
+    final List<HttpSessionAttributeListener> lsSessionAttributeListeners=context.lsSessionAttListeners;
+    if (lsSessionAttributeListeners.size() > 0) {
+      executor.execute(new Runnable(){
+        public void run(){
+          HttpSessionBindingEvent event=new HttpSessionBindingEvent(HazelSession.this,name,oldValue);
+          for (          HttpSessionAttributeListener listener : lsSessionAttributeListeners) {
+            listener.attributeRemoved(event);
+          }
+        }
+      }
+);
+    }
+  }
+}

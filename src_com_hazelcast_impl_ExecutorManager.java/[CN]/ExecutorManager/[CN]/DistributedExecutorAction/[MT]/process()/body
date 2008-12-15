@@ -1,0 +1,40 @@
+{
+  mapExecutions.put(executionId,this);
+  mapStreams.put(executionId,this);
+  if (innerFutureTask.getMembers() == null) {
+    MemberImpl memberTarget=getTargetMember();
+    if (memberTarget.localMember()) {
+      executeLocal();
+    }
+ else {
+      localOnly=false;
+      Invocation inv=obtainServiceInvocation("m:exe",null,task,OP_EXE_REMOTE_EXECUTION,DEFAULT_TIMEOUT);
+      inv.timeout=DEFAULT_TIMEOUT;
+      inv.longValue=executionId.longValue();
+      boolean sent=send(inv,memberTarget.getAddress());
+      if (!sent) {
+        inv.returnToContainer();
+        handleMemberLeft(memberTarget);
+      }
+    }
+  }
+ else {
+    Set<Member> members=innerFutureTask.getMembers();
+    for (    Member member : members) {
+      if (member.localMember()) {
+        executeLocal();
+      }
+ else {
+        localOnly=false;
+        Invocation inv=obtainServiceInvocation("m:exe",null,task,OP_EXE_REMOTE_EXECUTION,DEFAULT_TIMEOUT);
+        inv.timeout=DEFAULT_TIMEOUT;
+        inv.longValue=executionId.longValue();
+        boolean sent=send(inv,((ClusterMember)member).getAddress());
+        if (!sent) {
+          inv.returnToContainer();
+          handleMemberLeft(member);
+        }
+      }
+    }
+  }
+}

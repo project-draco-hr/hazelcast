@@ -1,0 +1,80 @@
+{
+  Config config=Config.get();
+  try {
+    List<Address> lsPossibleAddresses=getPossibleMembers();
+    lsPossibleAddresses.remove(address);
+    for (    Address adrs : lsPossibleAddresses) {
+      if (DEBUG)       System.out.println("connecting to " + adrs);
+      ConnectionManager.get().getOrConnect(adrs);
+    }
+    boolean found=false;
+    int numberOfSeconds=0;
+    connectionTimeout:     while (!found && numberOfSeconds < config.join.joinMembers.connectionTimeoutSeconds) {
+      Address addressFailed=null;
+      while ((addressFailed=qFailedConnections.poll()) != null) {
+        lsPossibleAddresses.remove(addressFailed);
+      }
+      if (lsPossibleAddresses.size() == 0)       break connectionTimeout;
+      Thread.sleep(1000);
+      numberOfSeconds++;
+      int numberOfJoinReq=0;
+      for (      Address adrs : lsPossibleAddresses) {
+        Connection conn=ConnectionManager.get().getOrConnect(adrs);
+        if (DEBUG)         System.out.println("conn " + conn);
+        if (conn != null && numberOfJoinReq < 5) {
+          found=true;
+          ClusterManager.get().sendJoinRequest(adrs);
+          numberOfJoinReq++;
+        }
+      }
+    }
+    if (DEBUG)     System.out.println("FOUND " + found);
+    if (!found) {
+      masterAddress=address;
+      if (DEBUG)       System.out.println("adding member myself");
+      ClusterService.get().addMember(address);
+      clusterImpl.setMembers(ClusterService.get().lsMembers);
+      unlock();
+    }
+ else {
+      while (!joined) {
+        int numberOfJoinReq=0;
+        for (        Address adrs : lsPossibleAddresses) {
+          Connection conn=ConnectionManager.get().getOrConnect(adrs);
+          if (conn != null && numberOfJoinReq < 5) {
+            found=true;
+            ClusterManager.get().sendJoinRequest(adrs);
+            numberOfJoinReq++;
+          }
+        }
+        Thread.sleep(2000);
+        if (DEBUG) {
+          System.out.println(masterAddress);
+        }
+        if (masterAddress == null) {
+          boolean masterCandidate=true;
+          for (          Address address : lsPossibleAddresses) {
+            if (this.address.hashCode() > address.hashCode())             masterCandidate=false;
+          }
+          if (masterCandidate) {
+            masterAddress=address;
+            if (DEBUG)             System.out.println("adding member myself");
+            ClusterService.get().addMember(address);
+            clusterImpl.setMembers(ClusterService.get().lsMembers);
+            unlock();
+          }
+        }
+      }
+    }
+    lsPossibleAddresses.clear();
+    qFailedConnections.clear();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  if (DEBUG)   System.out.println("DONE TCP");
+  StringBuilder sb=new StringBuilder();
+  sb.append("\n");
+  if (ClusterService.get().getMemberCount() == 1)   sb.append(ClusterManager.get());
+  System.out.println(sb.toString());
+}

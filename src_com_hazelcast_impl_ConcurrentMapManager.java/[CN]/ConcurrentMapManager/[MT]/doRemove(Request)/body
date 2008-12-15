@@ -1,0 +1,34 @@
+{
+  if (request.operation == OP_CMAP_REMOVE_IF_SAME) {
+    Record record=recordExist(request);
+    if (record == null || record.getValue() == null || !record.getValue().equals(request.value)) {
+      request.response=null;
+      return;
+    }
+  }
+  if (!testLock(request)) {
+    if (request.hasEnoughTimeToSchedule()) {
+      Record record=ensureRecord(request);
+      request.scheduled=true;
+      final Request reqScheduled=(request.local) ? request : request.softCopy();
+      record.addScheduledAction(new ScheduledAction(request){
+        @Override public boolean consume(){
+          CMap cmap=getMap(reqScheduled.name);
+          Data oldValue=cmap.remove(reqScheduled);
+          reqScheduled.response=oldValue;
+          returnScheduledAsSuccess(reqScheduled);
+          return true;
+        }
+      }
+);
+    }
+ else {
+      request.response=null;
+    }
+  }
+ else {
+    CMap cmap=getMap(request.name);
+    Data oldValue=cmap.remove(request);
+    request.response=oldValue;
+  }
+}

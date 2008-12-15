@@ -1,0 +1,30 @@
+{
+  String warFilename=file.getName();
+  String destDirName=warFilename.substring(0,warFilename.lastIndexOf('.'));
+  Enumeration entries;
+  ZipFile zipFile;
+  File destDir=new File(destDirName);
+  destDir.mkdirs();
+  try {
+    zipFile=new ZipFile(file);
+    entries=zipFile.entries();
+    while (entries.hasMoreElements()) {
+      ZipEntry entry=(ZipEntry)entries.nextElement();
+      if (entry.isDirectory()) {
+        (new File(destDir,entry.getName())).mkdir();
+        continue;
+      }
+      File entryFile=new File(destDir,entry.getName());
+      InputStream in=zipFile.getInputStream(entry);
+      OutputStream out=new BufferedOutputStream(new FileOutputStream(entryFile));
+      Util.copyStream(in,out);
+      in.close();
+      out.close();
+    }
+    zipFile.close();
+  }
+ catch (  IOException ioe) {
+    ioe.printStackTrace();
+    return;
+  }
+}

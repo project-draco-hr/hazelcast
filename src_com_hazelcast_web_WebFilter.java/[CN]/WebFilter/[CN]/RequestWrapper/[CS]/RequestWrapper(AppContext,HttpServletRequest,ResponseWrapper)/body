@@ -1,0 +1,36 @@
+{
+  super(req);
+  this.res=res;
+  this.context=context;
+  this.original=req;
+  this.original.setAttribute(HAZELCAST_REQUEST,this);
+  creationTime=System.nanoTime();
+  Cookie[] cookies=req.getCookies();
+  if (cookies != null) {
+    for (int i=0; i < cookies.length; i++) {
+      Cookie cookie=cookies[i];
+      if (cookie.getName().equals("JSESSIONID")) {
+        requestedSessionId=cookie.getValue();
+        requestedSessionIdFromCookie=true;
+        if (DEBUG) {
+          log("Extracted sessionId from cookie " + requestedSessionId);
+        }
+      }
+    }
+  }
+  if (requestedSessionId == null) {
+    if (DEBUG) {
+      System.out.println("contextPath : " + getContextPath());
+      System.out.println("queryString : " + getQueryString());
+      System.out.println("requestURI : " + getRequestURI());
+      System.out.println("requestURL : " + getRequestURL());
+    }
+    requestedSessionId=res.extractSessionId(getRequestURL().toString());
+    if (DEBUG) {
+      log("Extracted sessionId from URL " + requestedSessionId);
+    }
+    if (requestedSessionId != null) {
+      requestedSessionIdFromURL=true;
+    }
+  }
+}

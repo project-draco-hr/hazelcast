@@ -1,0 +1,56 @@
+{
+  if (hazelSession != null)   return hazelSession;
+  String requestedSessionId=getRequestedSessionId();
+  HazelSession session=null;
+  if (requestedSessionId != null) {
+    session=context.getSession(requestedSessionId,false);
+  }
+  if (DEBUG) {
+    log(requestedSessionId + " is requestedSessionId and  getSession : " + session);
+    log("Request AppContext " + context);
+  }
+  if (session == null) {
+    if (create) {
+      session=context.createNewSession();
+      hazelSession=session;
+      if (requestedSessionId != null) {
+        Map mapSession=(Map)context.getClusterMap().remove(requestedSessionId);
+        if (DEBUG) {
+          log(session + " Reloading from map.. " + mapSession);
+          log("ContextPath " + getContextPath());
+          log("pathInfo " + getPathInfo());
+          log("pathtranslated " + getPathTranslated());
+          log("requesturi " + getRequestURI());
+        }
+        if (mapSession != null) {
+          Set<Map.Entry> entries=mapSession.entrySet();
+          for (          Map.Entry entry : entries) {
+            session.setAttribute((String)entry.getKey(),entry.getValue());
+          }
+        }
+        removeCookieForSession(this,requestedSessionId);
+        Cookie[] cookies=getCookies();
+        if (cookies != null) {
+          removeCookies:           for (int i=0; i < cookies.length; i++) {
+            Cookie cookie=cookies[i];
+            String name=cookie.getName();
+            String value=cookie.getValue();
+            String path=cookie.getPath();
+            if (getContextPath().equals(path)) {
+              if (name.equals("JSESSIONID") && value.equals(requestedSessionId)) {
+                if (DEBUG) {
+                  log("Found old sessionId cookie DELETING " + value);
+                }
+                cookie.setMaxAge(0);
+                res.addCookie(cookie);
+                break removeCookies;
+              }
+            }
+          }
+        }
+      }
+      addCookieForSession(this,session.getId());
+    }
+  }
+  return session;
+}

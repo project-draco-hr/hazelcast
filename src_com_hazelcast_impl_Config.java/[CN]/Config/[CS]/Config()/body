@@ -1,0 +1,92 @@
+{
+  boolean usingSystemConfig=false;
+  String configFile=System.getProperty("hazelcast.config");
+  try {
+    InputStream in=null;
+    if (configFile != null) {
+      File fileConfig=new File(configFile);
+      if (!fileConfig.exists()) {
+        String msg="Config file at '" + configFile + "' doesn't exist.";
+        msg+="\nHazelcast will try to use the hazelcast.xml config file in the classpath.";
+        Util.logWarning(msg);
+      }
+ else {
+        try {
+          in=new FileInputStream(fileConfig);
+          urlConfig=fileConfig.toURL();
+          usingSystemConfig=true;
+        }
+ catch (        Exception e) {
+          String msg="Having problem reading config file at '" + configFile + "'.";
+          msg+="\nException message: " + e.getMessage();
+          msg+="\nHazelcast will try to use the hazelcast.xml config file in the jar.";
+          Util.logWarning(msg);
+          in=null;
+        }
+      }
+    }
+    if (in == null) {
+      urlConfig=Config.class.getClassLoader().getResource("hazelcast.xml");
+      if (urlConfig == null)       return;
+      in=Config.class.getClassLoader().getResourceAsStream("hazelcast.xml");
+      if (in == null) {
+        String msg="Having problem reading config file hazelcast.xml in the classpath.";
+        msg+="\nHazelcast will start with default configuration.";
+        Util.logWarning(msg);
+      }
+    }
+    if (in == null)     return;
+    DocumentBuilder builder=DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    Document doc=null;
+    try {
+      doc=builder.parse(in);
+      ByteArrayOutputStream baos=new ByteArrayOutputStream();
+      Util.streamXML(doc,baos);
+      byte[] bytes=baos.toByteArray();
+      ByteArrayInputStream bais=new ByteArrayInputStream(bytes);
+      xmlConfig=Util.inputStreamToString(bais);
+      if ("true".equals(System.getProperty("hazelcast.config.print"))) {
+        System.out.println("Hazelcast config URL : " + urlConfig);
+        System.out.println("=== Hazelcast config xml ===");
+        System.out.println(xmlConfig);
+        System.out.println("==============================");
+        System.out.println("");
+      }
+    }
+ catch (    Exception e) {
+      String msgPart="config file '" + configFile + "' set as a system property.";
+      if (!usingSystemConfig)       msgPart="hazelcast.xml config file in the classpath.";
+      String msg="Having problem parsing the " + msgPart;
+      msg+="\nException: " + e.getMessage();
+      msg+="\nHazelcast will start with default configuration.";
+      Util.logWarning(msg);
+      return;
+    }
+    Element docElement=doc.getDocumentElement();
+    try {
+      docElement.getTextContent();
+    }
+ catch (    Throwable e) {
+      domLevel3=false;
+    }
+    NodeList nodelist=docElement.getChildNodes();
+    for (int i=0; i < nodelist.getLength(); i++) {
+      org.w3c.dom.Node node=nodelist.item(i);
+      if (node.getNodeName().equals("network")) {
+        handleNetwork(node);
+      }
+ else       if (node.getNodeName().equals("group")) {
+        handleGroup(node);
+      }
+ else       if (node.getNodeName().equals("executor-service")) {
+        handleExecutor(node);
+      }
+ else       if (node.getNodeName().equals("queue")) {
+        handleQueue(node);
+      }
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}

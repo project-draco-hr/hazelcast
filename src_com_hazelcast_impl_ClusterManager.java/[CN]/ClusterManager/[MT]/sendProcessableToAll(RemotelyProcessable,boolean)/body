@@ -1,0 +1,21 @@
+{
+  if (processLocally) {
+    rp.process();
+  }
+  Data value=ThreadContext.get().toData(rp);
+  for (  MemberImpl member : lsMembers) {
+    if (!member.localMember()) {
+      Invocation inv=obtainServiceInvocation();
+      try {
+        inv.set("remotelyProcess",OP_REMOTELY_PROCESS,null,value);
+        boolean sent=send(inv,member.getAddress());
+        if (!sent) {
+          inv.returnToContainer();
+        }
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+}

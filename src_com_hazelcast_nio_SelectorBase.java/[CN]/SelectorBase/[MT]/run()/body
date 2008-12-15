@@ -1,0 +1,49 @@
+{
+  int loopCount=100;
+  select:   while (live) {
+    if (loopCount > 50) {
+      processSelectionQueue();
+      loopCount=0;
+      continue select;
+    }
+    int selectedKeys=0;
+    try {
+      selectedKeys=selector.select(waitTime);
+      if (Thread.interrupted()) {
+        Node.get().handleInterruptedException(Thread.currentThread(),new RuntimeException());
+      }
+    }
+ catch (    IOException ioe) {
+      ioe.printStackTrace();
+      continue select;
+    }
+    if (selectedKeys == 0) {
+      processSelectionQueue();
+      loopCount=0;
+      continue select;
+    }
+    loopCount++;
+    Set<SelectionKey> setSelectedKeys=selector.selectedKeys();
+    int selectedKeyCount=setSelectedKeys.size();
+    setSelectedKeys.toArray(selectionKeyArray);
+    for (int i=0; i < selectedKeyCount; i++) {
+      SelectionKey sk=selectionKeyArray[i];
+      setSelectedKeys.remove(sk);
+      selectionKeyArray[i]=null;
+      try {
+        sk.interestOps(sk.interestOps() & ~sk.readyOps());
+        SelectionHandler selectionHandler=null;
+        try {
+          selectionHandler=(SelectionHandler)sk.attachment();
+          selectionHandler.handle();
+        }
+ catch (        Exception e) {
+          handleSocketException(e);
+        }
+      }
+ catch (      Exception e) {
+        handleSocketException(e);
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  if (mapListeners != null) {
+    InvocationQueue sq=InvocationQueue.instance();
+    Set<Map.Entry<Address,Boolean>> entries=mapListeners.entrySet();
+    for (    Map.Entry<Address,Boolean> entry : entries) {
+      Address address=entry.getKey();
+      boolean includeValue=entry.getValue();
+      if (address.isThisAddress()) {
+        try {
+          Data eventKey=(key != null) ? ThreadContext.get().hardCopy(key) : null;
+          Data eventValue=null;
+          if (includeValue)           eventValue=ThreadContext.get().hardCopy(value);
+          enqueueEvent(eventType,name,eventKey,eventValue,address);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+ else {
+        Invocation inv=sq.obtainInvocation();
+        inv.reset();
+        try {
+          Data eventKey=key;
+          Data eventValue=null;
+          if (includeValue)           eventValue=value;
+          inv.set(name,OP_EVENT,eventKey,eventValue);
+          inv.longValue=eventType;
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+        boolean sent=clusterService.send(inv,address);
+        if (!sent)         inv.returnToContainer();
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  Config config=Config.get();
+  if (!config.join.multicastConfig.enabled) {
+    joinWithTCP();
+    return;
+  }
+  masterAddress=findMaster();
+  if (DEBUG)   System.out.println(address + " master: " + masterAddress);
+  if (masterAddress == null || masterAddress.equals(address)) {
+    ClusterService.get().addMember(address);
+    masterAddress=address;
+    clusterImpl.setMembers(ClusterService.get().lsMembers);
+    unlock();
+  }
+ else {
+    while (!joined) {
+      try {
+        if (DEBUG)         System.out.println("joining... " + masterAddress);
+synchronized (joinLock) {
+          joinExisting(masterAddress);
+          joinLock.wait(2000);
+        }
+        if (masterAddress == null) {
+          join();
+        }
+ else         if (masterAddress.equals(address)) {
+          ClusterService.get().addMember(address);
+          masterAddress=address;
+          unlock();
+        }
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+  if (DEBUG)   System.out.println("Join DONE");
+  StringBuilder sb=new StringBuilder();
+  sb.append("\n");
+  if (ClusterService.get().getMemberCount() == 1)   sb.append(ClusterManager.get());
+  System.out.println(sb.toString());
+}

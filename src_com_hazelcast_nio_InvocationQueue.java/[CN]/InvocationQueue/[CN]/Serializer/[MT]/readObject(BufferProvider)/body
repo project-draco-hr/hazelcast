@@ -1,0 +1,47 @@
+{
+  try {
+    bbis.setBufferProvider(bufferProvider);
+    bbis.reset();
+    Object result=null;
+    byte type=(byte)bbis.read();
+    if (type == 40) {
+      int size=bbis.readInt();
+      byte[] bytes=new byte[size];
+      bbis.read(bytes);
+      result=bytes;
+    }
+ else     if (type == 41) {
+      result=Long.valueOf(bbis.readLong());
+    }
+ else     if (type == 42) {
+      result=Integer.valueOf(bbis.readInt());
+    }
+ else     if (type == 66) {
+      ObjectInputStream in=new ObjectInputStream(bbis);
+      result=in.readUnshared();
+    }
+ else     if (type == 45) {
+      String className=bbis.readUTF();
+      DataSerializable ds=(DataSerializable)Class.forName(className).newInstance();
+      ds.readData(bbis);
+      if (bbis.readInt() != STREAM_END)       throw new RuntimeException("Unproper stream-end!");
+      result=ds;
+    }
+ else     if (type == 46) {
+      int utfCount=bbis.readShort();
+      StringBuilder sb=new StringBuilder();
+      for (int i=0; i < utfCount; i++) {
+        sb.append(bbis.readUTF());
+      }
+      result=sb.toString();
+    }
+ else {
+      throw new RuntimeException("Unknown readObject type " + type);
+    }
+    return result;
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    return null;
+  }
+}

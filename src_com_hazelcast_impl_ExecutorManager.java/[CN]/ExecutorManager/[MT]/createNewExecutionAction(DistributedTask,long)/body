@@ -1,0 +1,17 @@
+{
+  if (task == null)   throw new RuntimeException("task cannot be null");
+  try {
+    Long executionId=executionIds.take();
+    DistributedTask dtask=task;
+    InnerFutureTask inner=(InnerFutureTask)dtask.getInner();
+    Callable callable=inner.getCallable();
+    Data callableData=ThreadContext.get().toData(callable);
+    DistributedExecutorAction action=new DistributedExecutorAction(executionId,dtask,callableData,callable,timeout);
+    inner.setExecutionManagerCallback(action);
+    return action;
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  return null;
+}

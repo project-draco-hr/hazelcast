@@ -1,0 +1,127 @@
+{
+  if (DEBUG) {
+    log("FILTERING %%55555.. " + req.getClass().getName());
+  }
+  if (!(req instanceof HttpServletRequest)) {
+    chain.doFilter(req,res);
+  }
+ else {
+    if (req instanceof RequestWrapper) {
+      chain.doFilter(req,res);
+      return;
+    }
+ else {
+      if (req.getAttribute(HAZELCAST_REQUEST) != null) {
+        chain.doFilter(req,res);
+        return;
+      }
+    }
+    HttpServletRequest httpReq=(HttpServletRequest)req;
+    if (DEBUG) {
+      Cookie[] cookies=httpReq.getCookies();
+      if (cookies != null) {
+        for (int i=0; i < cookies.length; i++) {
+          Cookie cookie=cookies[i];
+          String name=cookie.getName();
+          String value=cookie.getValue();
+          String path=cookie.getPath();
+          if (name.equals("JSESSIONID")) {
+            log(path + " Request has JSESSIONID cookie " + value);
+          }
+        }
+      }
+    }
+    final ResponseWrapper resWrapper=new ResponseWrapper(app,(HttpServletResponse)res);
+    final RequestWrapper reqWrapper=new RequestWrapper(app,httpReq,resWrapper);
+    resWrapper.setRequest(reqWrapper);
+    final ServletRequestEvent event=(app.lsRequestListeners.size() == 0) ? null : new ServletRequestEvent(app.getOriginalServletContext(),reqWrapper);
+    if (event != null) {
+      executor.execute(new Runnable(){
+        public void run(){
+          for (          ServletRequestListener listener : app.lsRequestListeners) {
+            listener.requestInitialized(event);
+          }
+        }
+      }
+);
+    }
+    req=null;
+    res=null;
+    httpReq=null;
+    HazelSession session=null;
+    String sessionId=null;
+    session=reqWrapper.getSession(false);
+    if (session != null)     sessionId=session.getId();
+    if (session != null) {
+      if (session.expired(System.currentTimeMillis())) {
+        if (DEBUG) {
+          log("doFilter got session expiration for " + session.getId());
+        }
+        app.destroySession(session);
+      }
+    }
+    chain.doFilter(reqWrapper,resWrapper);
+    req=null;
+    session=reqWrapper.getSession(false);
+    if (session != null)     sessionId=session.getId();
+    if (session != null) {
+      if (!session.valid.get()) {
+        if (DEBUG) {
+          log("Session is not valid. removing cookie for " + sessionId);
+        }
+        removeCookieForSession(reqWrapper,sessionId);
+        return;
+      }
+      Enumeration<String> attsNames=session.getAttributeNames();
+      Map mapData=null;
+      while (attsNames.hasMoreElements()) {
+        String attName=attsNames.nextElement();
+        Object value=session.getAttribute(attName);
+        if (value instanceof Serializable) {
+          if (mapData == null) {
+            mapData=new HashMap<String,Object>();
+          }
+          mapData.put(attName,value);
+        }
+      }
+      boolean sessionChanged=false;
+      Data data=session.writeObject(mapData);
+      sessionChanged=session.sessionChanged(data);
+      if (sessionChanged) {
+        if (data == null) {
+          mapData=new HashMap<String,Object>();
+          data=session.writeObject(mapData);
+        }
+        if (DEBUG) {
+          log("PUTTING SESSION " + sessionId);
+        }
+        if (session.knownToCluster()) {
+          app.getClusterMap().put(sessionId,data);
+        }
+ else {
+          Object old=app.getClusterMap().putIfAbsent(sessionId,data);
+          int tryCount=1;
+          while (old != null) {
+            app.changeSessionId(session);
+            old=app.getClusterMap().putIfAbsent(sessionId,data);
+            if (tryCount++ >= 3)             throw new RuntimeException("SessinId Generator is no good!");
+          }
+          session.setKnownToCluster(true);
+        }
+      }
+      session.setLastAccessed();
+      session.setNew(false);
+    }
+    app.getSnapshot().requestTime((System.nanoTime() - reqWrapper.creationTime) / 1000);
+    if (event != null) {
+      executor.execute(new Runnable(){
+        public void run(){
+          for (          ServletRequestListener listener : app.lsRequestListeners) {
+            listener.requestDestroyed(event);
+          }
+        }
+      }
+);
+    }
+  }
+}

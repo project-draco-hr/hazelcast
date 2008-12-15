@@ -1,0 +1,48 @@
+{
+  if (DEBUG) {
+    log("Handling  " + joinRequest);
+  }
+  Connection conn=joinRequest.getConnection();
+  if (isMaster()) {
+    if (DEBUG)     log(" request object " + joinRequest);
+    Address newAddress=conn.getEndPoint();
+    if (newAddress == null) {
+      newAddress=joinRequest.address;
+      bind(newAddress,conn);
+    }
+    boolean newOne=false;
+    if (!lsJoins.contains(newAddress)) {
+      sendAddRemoveToAllConns(newAddress);
+      lsJoins.add(newAddress);
+      newOne=true;
+    }
+    if (DEBUG)     log(joinInProgress + "  " + newOne);
+    if (joinInProgress) {
+      if (newOne) {
+        if (!lsJoinsScheduled.contains(newAddress)) {
+          lsJoinsScheduled.add(newAddress);
+          sendAddRemoveToAllConns(newAddress);
+        }
+      }
+ else {
+      }
+    }
+ else {
+      if (newOne) {
+        timeToStartJoin=System.currentTimeMillis() + 1000;
+      }
+ else {
+        if (System.currentTimeMillis() > timeToStartJoin) {
+          startJoin();
+        }
+      }
+    }
+  }
+ else {
+    if (!Config.get().join.multicastConfig.enabled) {
+      if (Node.get().getMasterAddress() != null) {
+        sendProcessableTo(new Master(Node.get().getMasterAddress()),conn);
+      }
+    }
+  }
+}

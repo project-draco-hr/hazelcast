@@ -1,0 +1,27 @@
+{
+  this.context=context;
+  try {
+    md=MessageDigest.getInstance("md5");
+  }
+ catch (  NoSuchAlgorithmException e) {
+  }
+  this.id=sessionId;
+  creationTime.set(System.currentTimeMillis());
+  lastAccessedTime.set(System.currentTimeMillis());
+  final List<HttpSessionListener> lsSessionListeners=context.lsSessionListeners;
+  if (DEBUG) {
+    log("Creating session " + lsSessionListeners.size());
+  }
+  if (lsSessionListeners.size() > 0) {
+    executor.execute(new Runnable(){
+      public void run(){
+        HttpSessionEvent event=new HttpSessionEvent(HazelSession.this);
+        for (        HttpSessionListener listener : lsSessionListeners) {
+          listener.sessionCreated(event);
+        }
+      }
+    }
+);
+  }
+  context.getSnapshot().createdSessions.incrementAndGet();
+}

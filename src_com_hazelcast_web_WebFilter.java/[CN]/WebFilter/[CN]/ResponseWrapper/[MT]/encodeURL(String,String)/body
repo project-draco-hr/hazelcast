@@ -1,0 +1,27 @@
+{
+  if (url == null || req == null || req.isRequestedSessionIdFromCookie()) {
+    int prefix=url.indexOf(sessionURLPhrase);
+    if (prefix != -1) {
+      int suffix=url.indexOf("?",prefix);
+      if (suffix < 0)       suffix=url.indexOf("#",prefix);
+      if (suffix <= prefix)       return url.substring(0,prefix);
+      return url.substring(0,prefix) + url.substring(suffix);
+    }
+    return url;
+  }
+  HazelSession session=req.getSession(false);
+  if (session == null)   return url;
+  if (!session.valid.get())   return url;
+  String id=session.getId();
+  int prefix=url.indexOf(sessionURLPhrase);
+  if (prefix != -1) {
+    int suffix=url.indexOf("?",prefix);
+    if (suffix < 0)     suffix=url.indexOf("#",prefix);
+    if (suffix <= prefix)     return url.substring(0,prefix + sessionURLPhrase.length()) + id;
+    return url.substring(0,prefix + sessionURLPhrase.length()) + id + url.substring(suffix);
+  }
+  int suffix=url.indexOf('?');
+  if (suffix < 0)   suffix=url.indexOf('#');
+  if (suffix < 0)   return url + sessionURLPhrase + id;
+  return url.substring(0,suffix) + sessionURLPhrase + id+ url.substring(suffix);
+}

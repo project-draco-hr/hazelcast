@@ -1,0 +1,21 @@
+{
+  try {
+    SocketChannel channel=serverSocketChannel.accept();
+    if (DEBUG)     System.out.println(channel.socket().getLocalPort() + " this socket is connected to " + channel.socket().getRemoteSocketAddress());
+    if (channel != null) {
+      Connection connection=initChannel(channel,true);
+      channel.register(selector,SelectionKey.OP_READ,connection.getReadHandler());
+    }
+    serverSocketChannel.register(selector,SelectionKey.OP_ACCEPT,Acceptor.this);
+    selector.wakeup();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    try {
+      serverSocketChannel.close();
+    }
+ catch (    Exception e1) {
+    }
+    ConnectionManager.get().shutdown();
+  }
+}

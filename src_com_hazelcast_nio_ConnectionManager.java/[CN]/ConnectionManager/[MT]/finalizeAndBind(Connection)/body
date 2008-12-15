@@ -1,0 +1,17 @@
+{
+  try {
+    Address address=connection.getEndPoint();
+    setConnectionInProgress.remove(address);
+    if (!address.equals(Node.get().getThisAddress())) {
+      mapConnections.put(address,connection);
+      lsConnections.add(connection);
+      ClusterService.get().enqueueAndReturn(new AddRemoveConnection(address,true));
+    }
+    Invocation invBind=InvocationQueue.instance().obtainInvocation();
+    invBind.set("bind",Constants.ClusterOperations.OP_BIND,null,Node.get().getThisAddress());
+    connection.getWriteHandler().writeInvocation(invBind);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}

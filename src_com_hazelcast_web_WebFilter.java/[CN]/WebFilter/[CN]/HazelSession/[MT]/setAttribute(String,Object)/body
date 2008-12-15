@@ -1,0 +1,51 @@
+{
+  checkState();
+  if (DEBUG) {
+    log(name + " Setting attribute !!! " + context.lsSessionAttListeners.size());
+  }
+  if (value == null) {
+    removeAttribute(name);
+  }
+ else {
+    final Object oldValue=atts.put(name,value);
+    if (value instanceof HttpSessionBindingListener) {
+      executor.execute(new Runnable(){
+        public void run(){
+          HttpSessionBindingEvent event=new HttpSessionBindingEvent(HazelSession.this,name,value);
+          HttpSessionBindingListener listener=(HttpSessionBindingListener)value;
+          listener.valueBound(event);
+        }
+      }
+);
+    }
+    if (oldValue != null && oldValue instanceof HttpSessionBindingListener) {
+      executor.execute(new Runnable(){
+        public void run(){
+          HttpSessionBindingEvent event=new HttpSessionBindingEvent(HazelSession.this,name,oldValue);
+          HttpSessionBindingListener listener=(HttpSessionBindingListener)value;
+          listener.valueUnbound(event);
+        }
+      }
+);
+    }
+    final List<HttpSessionAttributeListener> lsSessionAttributeListeners=context.lsSessionAttListeners;
+    if (lsSessionAttributeListeners.size() > 0) {
+      executor.execute(new Runnable(){
+        public void run(){
+          Object eventValue=value;
+          if (oldValue != null)           eventValue=oldValue;
+          HttpSessionBindingEvent event=new HttpSessionBindingEvent(HazelSession.this,name,eventValue);
+          for (          HttpSessionAttributeListener listener : lsSessionAttributeListeners) {
+            if (oldValue != null) {
+              listener.attributeReplaced(event);
+            }
+ else {
+              listener.attributeAdded(event);
+            }
+          }
+        }
+      }
+);
+    }
+  }
+}

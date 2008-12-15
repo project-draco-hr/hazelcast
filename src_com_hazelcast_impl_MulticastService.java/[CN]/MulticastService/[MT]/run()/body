@@ -1,0 +1,31 @@
+{
+  while (running) {
+    try {
+      final JoinInfo joinInfo=receive();
+      if (joinInfo != null) {
+        if (!Node.get().address.equals(joinInfo.address)) {
+          if (Config.get().groupName.equals(joinInfo.groupName)) {
+            if (Config.get().groupPassword.equals(joinInfo.groupPassword)) {
+              if (Node.get().master()) {
+                if (joinInfo.request) {
+                  send(joinInfo.copy(false,Node.get().address));
+                }
+ else {
+                  if (Node.get().address.hashCode() < joinInfo.address.hashCode()) {
+                    send(joinInfo.copy(true,Node.get().address));
+                  }
+ else {
+                    Node.get().reJoin();
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+}

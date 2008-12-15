@@ -1,0 +1,37 @@
+{
+  if (isMaster()) {
+    Collection<Q> queues=mapBlockingQueues.values();
+    for (    Q q : queues) {
+      List<Block> lsBlocks=q.lsBlocks;
+      for (      Block block : lsBlocks) {
+        int fullBlockId=-1;
+        if (block.isFull()) {
+          fullBlockId=block.blockId;
+        }
+        sendAddBlockMessageToOthers(block,fullBlockId,null,true);
+      }
+    }
+  }
+  Collection<Q> queues=mapBlockingQueues.values();
+  for (  Q q : queues) {
+    List<Block> lsBlocks=q.lsBlocks;
+    for (    Block block : lsBlocks) {
+      if (block.address.equals(thisAddress)) {
+        if (lsMembers.size() > 1) {
+          MemberImpl memberBackupWas=getNextMemberBeforeSync(thisAddress);
+          MemberImpl memberBackupIs=getNextMemberAfter(thisAddress);
+          if (memberBackupWas == null || !memberBackupWas.equals(memberBackupIs)) {
+            if (DEBUG) {
+              log("Backup changed!!! so backing up to " + memberBackupIs);
+            }
+            int indexUpto=block.size() - 1;
+            if (indexUpto > -1) {
+              new Thread(new BlockBackupSyncRunner(new BlockBackupSync(q,block,indexUpto))).start();
+            }
+          }
+        }
+      }
+    }
+  }
+  doResetBlockSizes();
+}

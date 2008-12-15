@@ -1,0 +1,61 @@
+{
+  boolean lock=(request.operation == OP_CMAP_LOCK) ? true : false;
+  if (!lock) {
+    boolean unlocked=true;
+    Record record=recordExist(request);
+    if (DEBUG) {
+      log(request.operation + " unlocking " + record);
+    }
+    if (record != null) {
+      unlocked=record.unlock(request.lockThreadId,request.lockAddress);
+      if (unlocked) {
+        sendLockBackup(record);
+      }
+    }
+    if (request.local) {
+      if (unlocked)       request.response=Boolean.TRUE;
+ else       request.response=Boolean.FALSE;
+    }
+  }
+ else   if (!testLock(request)) {
+    if (request.hasEnoughTimeToSchedule()) {
+      final Record record=ensureRecord(request);
+      final Request reqScheduled=(request.local) ? request : request.softCopy();
+      if (request.operation == OP_CMAP_LOCK_RETURN_OLD) {
+        reqScheduled.value=ThreadContext.get().hardCopy(record.getValue());
+      }
+      if (DEBUG) {
+        log("scheduling lock");
+      }
+      record.addScheduledAction(new ScheduledAction(reqScheduled){
+        @Override public boolean consume(){
+          if (DEBUG) {
+            log("consuming scheduled lock ");
+          }
+          record.lock(reqScheduled.lockThreadId,reqScheduled.lockAddress);
+          sendLockBackup(record);
+          reqScheduled.response=Boolean.TRUE;
+          returnScheduledAsBoolean(reqScheduled);
+          return true;
+        }
+      }
+);
+      request.scheduled=true;
+    }
+ else {
+      request.response=Boolean.FALSE;
+    }
+  }
+ else {
+    if (DEBUG) {
+      log("Locking...");
+    }
+    Record rec=ensureRecord(request);
+    if (request.operation == OP_CMAP_LOCK_RETURN_OLD) {
+      request.value=ThreadContext.get().hardCopy(rec.getValue());
+    }
+    rec.lock(request.lockThreadId,request.lockAddress);
+    sendLockBackup(rec);
+    request.response=Boolean.TRUE;
+  }
+}

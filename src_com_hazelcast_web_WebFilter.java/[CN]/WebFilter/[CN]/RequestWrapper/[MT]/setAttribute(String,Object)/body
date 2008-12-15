@@ -1,0 +1,22 @@
+{
+  if (HAZELCAST_REQUEST.equals(name))   return;
+  if (value == null) {
+    removeAttribute(name);
+  }
+ else {
+    final Object oldValue=atts.put(name,value);
+    if (context.lsRequestAttListeners.size() > 0) {
+      executor.execute(new Runnable(){
+        public void run(){
+          Object eventValue=(oldValue == null) ? value : oldValue;
+          ServletRequestAttributeEvent event=new ServletRequestAttributeEvent(context.getOriginalServletContext(),RequestWrapper.this,name,eventValue);
+          for (          ServletRequestAttributeListener listener : context.lsRequestAttListeners) {
+            if (oldValue == null)             listener.attributeAdded(event);
+ else             listener.attributeReplaced(event);
+          }
+        }
+      }
+);
+    }
+  }
+}

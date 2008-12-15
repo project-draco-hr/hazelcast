@@ -1,0 +1,40 @@
+{
+  boolean found=false;
+  ClusterMember clusterMember=(ClusterMember)member;
+  if (innerFutureTask.getKey() != null) {
+    Data keyData=ThreadContext.get().toData(innerFutureTask.getKey());
+    MemberImpl target=getKeyOwner(keyData);
+    if (clusterMember.getAddress().equals(target.getAddress())) {
+      found=true;
+    }
+  }
+ else   if (innerFutureTask.getMember() != null) {
+    Member target=innerFutureTask.getMember();
+    if (target instanceof ClusterMember) {
+      if (target.equals(member)) {
+        found=true;
+      }
+    }
+ else {
+      if (((MemberImpl)target).getAddress().equals(clusterMember.getAddress())) {
+        found=true;
+      }
+    }
+  }
+ else   if (innerFutureTask.getMembers() != null) {
+    Set<Member> members=innerFutureTask.getMembers();
+    for (    Member targetMember : members) {
+      if (member.equals(targetMember)) {
+        found=true;
+      }
+    }
+  }
+ else {
+    if (clusterMember.getAddress().equals(randomTarget.getAddress())) {
+      found=true;
+    }
+  }
+  if (!found)   return;
+  innerFutureTask.innerSetMemberLeft(member);
+  handleStreamResponse(OBJECT_DONE);
+}

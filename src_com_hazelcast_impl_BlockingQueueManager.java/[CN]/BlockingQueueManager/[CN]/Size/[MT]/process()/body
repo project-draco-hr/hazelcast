@@ -1,0 +1,32 @@
+{
+  reset();
+  Q q=getQ(name);
+  if (DEBUG) {
+    q.printStack();
+  }
+  total+=q.size;
+  numberOfResponses=1;
+  if (lsMembers.size() > 1) {
+    addCall(this);
+    numberOfExpectedResponses=lsMembers.size();
+    for (    MemberImpl member : lsMembers) {
+      if (!member.localMember()) {
+        Invocation inv=obtainServiceInvocation();
+        inv.name=name;
+        inv.operation=getOperation();
+        inv.eventId=getId();
+        inv.timeout=0;
+        boolean sent=send(inv,member.getAddress());
+        if (!sent) {
+          inv.returnToContainer();
+          redo();
+        }
+      }
+    }
+  }
+ else {
+synchronized (this) {
+      this.notify();
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  if (cancelled)   return;
+  Object executionResult=null;
+  if (callable == null) {
+    callable=ThreadContext.get().toObject(value);
+    executor.execute(this);
+  }
+ else {
+    runningThread=Thread.currentThread();
+    running=true;
+    try {
+      executionResult=call(remoteExecutionId,local,callable);
+    }
+ catch (    InterruptedException e) {
+      cancelled=true;
+    }
+    if (cancelled)     return;
+    running=false;
+    done=true;
+    if (!local) {
+      try {
+        ExecutorServiceProxy executorServiceProxy=(ExecutorServiceProxy)FactoryImpl.getExecutorService();
+        executorServiceProxy.sendStreamItem(remoteExecutionId.address,executionResult,remoteExecutionId.executionId);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+ else {
+      action.handleStreamResponse(executionResult);
+    }
+  }
+}

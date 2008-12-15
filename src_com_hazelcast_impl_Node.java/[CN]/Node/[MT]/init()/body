@@ -1,0 +1,34 @@
+{
+  try {
+    String preferIPv4Stack=System.getProperty("java.net.preferIPv4Stack");
+    String preferIPv6Address=System.getProperty("java.net.preferIPv6Addresses");
+    if (preferIPv6Address == null && preferIPv4Stack == null) {
+      System.setProperty("java.net.preferIPv4Stack","true");
+    }
+    Config config=Config.get();
+    ServerSocketChannel serverSocketChannel=ServerSocketChannel.open();
+    address=AddressPicker.pickAddress(serverSocketChannel);
+    InSelector.get().init(serverSocketChannel);
+    if (address == null)     return false;
+    System.out.println("Hazelcast " + Build.get().version + " ("+ Build.get().build+ ") starting at "+ address);
+    System.out.println("Copyright (C) 2008 Hazelcast.com");
+    if (config.join.multicastConfig.enabled) {
+      MulticastSocket multicastSocket=new MulticastSocket(null);
+      multicastSocket.setReuseAddress(true);
+      multicastSocket.bind(new InetSocketAddress(config.join.multicastConfig.multicastPort));
+      multicastSocket.setTimeToLive(32);
+      multicastSocket.setInterface(address.getInetAddress());
+      multicastSocket.setReceiveBufferSize(1 * 1024);
+      multicastSocket.setSendBufferSize(1 * 1024);
+      multicastSocket.joinGroup(InetAddress.getByName(config.join.multicastConfig.multicastGroup));
+      multicastSocket.setSoTimeout(1000);
+      MulticastService.get().init(multicastSocket);
+    }
+  }
+ catch (  Exception e) {
+    dumpCore(e);
+    e.printStackTrace();
+    return false;
+  }
+  return true;
+}

@@ -1,0 +1,47 @@
+{
+  try {
+    bbOut.clear();
+    lsWrittenLocals.clear();
+    int totalC=0;
+    copyLoop:     while (bbOut.position() < (32 * 1024)) {
+      Invocation inv=(Invocation)take();
+      if (inv == null)       break copyLoop;
+      inv.write(bbOut);
+      if (inv.local) {
+        lsWrittenLocals.add(inv);
+      }
+      doPostWrite(inv);
+      totalC++;
+    }
+    if (bbOut.position() == 0)     return;
+    bbOut.flip();
+    int remaining=bbOut.remaining();
+    int loopCount=0;
+    while (remaining > 0) {
+      try {
+        int written=socketChannel.write(bbOut);
+        remaining-=written;
+        loopCount++;
+        if (DEBUG) {
+          if (loopCount > 1) {
+            System.out.println("loopcount " + loopCount);
+          }
+        }
+      }
+ catch (      Exception e) {
+        while (lsWrittenLocals.size() > 0) {
+          writeHandlerQueue.add(lsWrittenLocals.remove(0));
+        }
+        handleSocketException(e);
+      }
+    }
+  }
+  finally {
+    if (hasMore()) {
+      registerWrite();
+    }
+ else {
+      alreadyRegistered.set(false);
+    }
+  }
+}

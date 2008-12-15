@@ -1,0 +1,25 @@
+{
+  Collection<Block> blocks=mapBlocks.values();
+  for (  Block block : blocks) {
+    if (deadAddress.equals(block.owner)) {
+      MemberImpl member=getNextMemberBeforeSync(block.owner);
+      Address addressNewOwner=(member == null) ? thisAddress : member.getAddress();
+      block.owner=addressNewOwner;
+    }
+    if (block.migrationAddress != null) {
+      if (deadAddress.equals(block.migrationAddress)) {
+        MemberImpl member=getNextMemberBeforeSync(block.migrationAddress);
+        Address addressNewMigrationAddress=(member == null) ? thisAddress : member.getAddress();
+        block.migrationAddress=addressNewMigrationAddress;
+      }
+    }
+  }
+  Collection<CMap> cmaps=maps.values();
+  for (  CMap map : cmaps) {
+    Collection<Record> records=map.mapRecords.values();
+    for (    Record record : records) {
+      record.onDisconnect(deadAddress);
+    }
+  }
+  doResetRecordOwners();
+}

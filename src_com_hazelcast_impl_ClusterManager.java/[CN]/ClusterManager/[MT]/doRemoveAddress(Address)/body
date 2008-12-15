@@ -1,0 +1,24 @@
+{
+  lsMembersBefore.clear();
+  for (  MemberImpl member : lsMembers) {
+    lsMembersBefore.add(member);
+  }
+  Connection conn=ConnectionManager.get().getConnection(deadAddress);
+  if (conn != null) {
+    ConnectionManager.get().remove(conn);
+  }
+  MemberImpl member=getMember(deadAddress);
+  if (member != null) {
+    clusterService.removeMember(deadAddress);
+  }
+  BlockingQueueManager.get().syncForDead(deadAddress);
+  ConcurrentMapManager.get().syncForDead(deadAddress);
+  ListenerManager.get().syncForDead(deadAddress);
+  TopicManager.get().syncForDead(deadAddress);
+  Node.get().getClusterImpl().setMembers(lsMembers);
+  Collection<Call> calls=mapCalls.values();
+  for (  Call call : calls) {
+    call.onDisconnect(deadAddress);
+  }
+  System.out.println(this);
+}

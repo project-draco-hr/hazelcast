@@ -1,0 +1,27 @@
+{
+  try {
+    ExecutorService executorService=Hazelcast.getExecutorService();
+    Echo callable=new Echo(args[1]);
+    FutureTask<String> task=null;
+    if (onKey) {
+      String key=args[2];
+      task=new DistributedTask<String>(callable,key);
+    }
+ else     if (onMember) {
+      int memberIndex=Integer.parseInt(args[2]);
+      Member member=(Member)Hazelcast.getCluster().getMembers().toArray()[memberIndex];
+      task=new DistributedTask<String>(callable,member);
+    }
+ else {
+      task=new DistributedTask<String>(callable);
+    }
+    executorService.execute(task);
+    System.out.println("Result: " + task.get());
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+  }
+catch (  ExecutionException e) {
+    e.printStackTrace();
+  }
+}

@@ -1,0 +1,27 @@
+{
+  doLocalOp();
+  if (setAddresses.size() == 0) {
+    for (    MemberImpl member : lsMembers) {
+      setAddresses.add(member.getAddress());
+    }
+  }
+  numberOfResponses++;
+  if (setAddresses.size() > 1) {
+    addCall(AllOp.this);
+    numberOfExpectedResponses=setAddresses.size();
+    for (    Address address : setAddresses) {
+      if (!address.equals(thisAddress)) {
+        Invocation inv=request.toInvocation();
+        inv.eventId=getId();
+        boolean sent=send(inv,address);
+        if (!sent) {
+          inv.returnToContainer();
+          redo();
+        }
+      }
+    }
+  }
+ else {
+    complete(false);
+  }
+}

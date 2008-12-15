@@ -1,0 +1,30 @@
+{
+  while (!sizeRead && bbSizes.hasRemaining()) {
+    BufferUtil.copy(bb,bbSizes);
+  }
+  if (!sizeRead && !bbSizes.hasRemaining()) {
+    sizeRead=true;
+    bbSizes.flip();
+    bbHeader.limit(bbSizes.getInt());
+    key.size=bbSizes.getInt();
+    data.size=bbSizes.getInt();
+  }
+  if (sizeRead) {
+    while (bb.hasRemaining() && bbHeader.hasRemaining()) {
+      BufferUtil.copy(bb,bbHeader);
+    }
+    while (bb.hasRemaining() && key.shouldRead()) {
+      key.read(bb);
+    }
+    while (bb.hasRemaining() && data.shouldRead()) {
+      data.read(bb);
+    }
+  }
+  if (sizeRead && !bbHeader.hasRemaining() && !key.shouldRead()&& !data.shouldRead()) {
+    sizeRead=false;
+    key.postRead();
+    data.postRead();
+    return true;
+  }
+  return false;
+}
