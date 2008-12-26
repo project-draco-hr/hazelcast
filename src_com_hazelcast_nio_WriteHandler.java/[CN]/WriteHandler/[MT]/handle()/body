@@ -1,17 +1,12 @@
 {
+  if (!connection.live())   return;
   try {
     bbOut.clear();
-    lsWrittenLocals.clear();
-    int totalC=0;
     copyLoop:     while (bbOut.position() < (32 * 1024)) {
-      Invocation inv=(Invocation)take();
+      Invocation inv=(Invocation)writeHandlerQueue.poll();
       if (inv == null)       break copyLoop;
       inv.write(bbOut);
-      if (inv.local) {
-        lsWrittenLocals.add(inv);
-      }
       doPostWrite(inv);
-      totalC++;
     }
     if (bbOut.position() == 0)     return;
     bbOut.flip();
@@ -29,9 +24,6 @@
         }
       }
  catch (      Exception e) {
-        while (lsWrittenLocals.size() > 0) {
-          writeHandlerQueue.add(lsWrittenLocals.remove(0));
-        }
         handleSocketException(e);
       }
     }
