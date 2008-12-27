@@ -24,22 +24,14 @@
     }
     loopCount++;
     Set<SelectionKey> setSelectedKeys=selector.selectedKeys();
-    int selectedKeyCount=setSelectedKeys.size();
-    setSelectedKeys.toArray(selectionKeyArray);
-    for (int i=0; i < selectedKeyCount; i++) {
-      SelectionKey sk=selectionKeyArray[i];
-      setSelectedKeys.remove(sk);
-      selectionKeyArray[i]=null;
+    Iterator<SelectionKey> it=setSelectedKeys.iterator();
+    while (it.hasNext()) {
+      SelectionKey sk=(SelectionKey)it.next();
+      it.remove();
       try {
         sk.interestOps(sk.interestOps() & ~sk.readyOps());
-        SelectionHandler selectionHandler=null;
-        try {
-          selectionHandler=(SelectionHandler)sk.attachment();
-          selectionHandler.handle();
-        }
- catch (        Exception e) {
-          handleSocketException(e);
-        }
+        SelectionHandler selectionHandler=(SelectionHandler)sk.attachment();
+        selectionHandler.handle();
       }
  catch (      Exception e) {
         handleSocketException(e);
