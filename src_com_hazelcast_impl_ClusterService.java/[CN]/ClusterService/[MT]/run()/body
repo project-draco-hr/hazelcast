@@ -1,16 +1,31 @@
 {
-  Object obj=null;
   while (running) {
+    Object obj=null;
     try {
-      obj=queue.take();
-      process(obj);
+      lsBuffer.clear();
+      queue.drainTo(lsBuffer);
+      int size=lsBuffer.size();
+      if (size > 0) {
+        for (int i=0; i < size; i++) {
+          obj=lsBuffer.get(i);
+          if (obj == null) {
+            System.out.println(size + " Object is null!" + i);
+          }
+          process(obj);
+        }
+        lsBuffer.clear();
+      }
+ else {
+        obj=queue.take();
+        process(obj);
+      }
     }
  catch (    InterruptedException e) {
       Node.get().handleInterruptedException(Thread.currentThread(),e);
     }
 catch (    Exception e) {
       if (DEBUG) {
-        System.out.println(e + ",  message: " + e.getMessage()+ "  obj="+ obj);
+        System.out.println(e + ",  message: " + e.getMessage()+ ", obj="+ obj);
       }
       e.printStackTrace();
     }
