@@ -1,19 +1,42 @@
 {
   joinInProgress=true;
-  final MembersUpdate membersUpdate=new MembersUpdate(lsMembers);
+  final MembersUpdateCall membersUpdate=new MembersUpdateCall(lsMembers);
   if (setJoins != null && setJoins.size() > 0) {
     for (    Address addressJoined : setJoins) {
       membersUpdate.addAddress(addressJoined);
     }
   }
-  final MultiRemotelyProcessable mrp=new MultiRemotelyProcessable();
-  mrp.add(membersUpdate);
   executeLocally(new Runnable(){
     public void run(){
-      ProcessEverywhere pe=new ProcessEverywhere();
-      pe.process(membersUpdate.lsAddresses,mrp);
-      pe=new ProcessEverywhere();
-      pe.process(membersUpdate.lsAddresses,new SyncProcess());
+      List<Address> lsAddresses=membersUpdate.lsAddresses;
+      List<AsyncRemotelyBooleanCallable> calls=new ArrayList<AsyncRemotelyBooleanCallable>();
+      for (      final Address address : lsAddresses) {
+        AsyncRemotelyBooleanCallable rrp=new AsyncRemotelyBooleanCallable();
+        rrp.executeProcess(address,membersUpdate);
+        calls.add(rrp);
+      }
+      for (      AsyncRemotelyBooleanCallable call : calls) {
+        System.out.println("AsyncResult " + call.getResultAsBoolean());
+      }
+      calls.clear();
+      for (      final Address address : lsAddresses) {
+        AsyncRemotelyBooleanCallable call=new AsyncRemotelyBooleanCallable();
+        call.executeProcess(address,new SyncProcess());
+        calls.add(call);
+      }
+      for (      AsyncRemotelyBooleanCallable call : calls) {
+        System.out.println("AsyncResult2 " + call.getResultAsBoolean());
+      }
+      calls.clear();
+      AbstractRemotelyCallable<Boolean> connCheckcallable=new ConnectionCheckCall();
+      for (      final Address address : lsAddresses) {
+        AsyncRemotelyBooleanCallable call=new AsyncRemotelyBooleanCallable();
+        call.executeProcess(address,connCheckcallable);
+        calls.add(call);
+      }
+      for (      AsyncRemotelyBooleanCallable call : calls) {
+        System.out.println("AsyncResult3 " + call.getResultAsBoolean());
+      }
     }
   }
 );

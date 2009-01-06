@@ -1,0 +1,27 @@
+{
+  long now=System.currentTimeMillis();
+  List<MemberImpl> lsMembers=ClusterManager.lsMembers;
+  for (  MemberImpl memberImpl : lsMembers) {
+    Address address=memberImpl.getAddress();
+    try {
+      Connection conn=ConnectionManager.get().getConnection(address);
+      if (Node.get().joined()) {
+        if (conn != null && conn.live()) {
+          if ((now - conn.getLastRead()) >= 3000) {
+            ConnectionManager.get().remove(conn);
+            conn=null;
+          }
+        }
+      }
+      if (conn != null && conn.live()) {
+        if ((now - conn.getLastWrite()) > 500) {
+          Invocation inv=obtainServiceInvocation("heartbeat",null,null,OP_HEARTBEAT,0);
+          send(inv,address);
+        }
+      }
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+}

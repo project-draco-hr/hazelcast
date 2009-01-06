@@ -3,13 +3,22 @@
     socketChannel=SocketChannel.open();
     Address thisAddress=Node.get().getThisAddress();
     int addition=(thisAddress.getPort() - Config.get().port);
-    int portToBind=10000 + addition;
+    localPort=10000 + addition;
     boolean bindOk=false;
     while (!bindOk) {
       try {
-        portToBind+=49;
-        socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),portToBind));
-        bindOk=true;
+        localPort+=20;
+        if (boundPorts.size() > 1000 || localPort > 60000) {
+          boundPorts.clear();
+          Connection[] conns=ConnectionManager.get().getConnections();
+          for (          Connection conn : conns) {
+            boundPorts.add(conn.localPort);
+          }
+        }
+        if (boundPorts.add(localPort)) {
+          socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),localPort));
+          bindOk=true;
+        }
       }
  catch (      Exception e) {
       }
