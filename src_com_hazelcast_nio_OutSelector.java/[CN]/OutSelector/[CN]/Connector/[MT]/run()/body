@@ -18,17 +18,30 @@
         if (boundPorts.add(localPort)) {
           socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),localPort));
           bindOk=true;
+          socketChannel.configureBlocking(false);
+          if (DEBUG)           System.out.println("connecting to " + address);
+          socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
         }
       }
  catch (      Exception e) {
       }
     }
-    socketChannel.configureBlocking(false);
-    if (DEBUG)     System.out.println("connecting to " + address);
-    socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
     socketChannel.register(selector,SelectionKey.OP_CONNECT,Connector.this);
   }
  catch (  Exception e) {
-    e.printStackTrace();
+    try {
+      socketChannel.close();
+    }
+ catch (    IOException ignored) {
+    }
+    if (numberOfConnectionError++ < 5) {
+      if (DEBUG) {
+        System.out.println("Couldn't register connect! will trying again. cause: " + e.getMessage());
+      }
+      run();
+    }
+ else {
+      ConnectionManager.get().failedConnection(address);
+    }
   }
 }
