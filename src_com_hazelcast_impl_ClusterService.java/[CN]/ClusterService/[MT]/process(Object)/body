@@ -1,4 +1,5 @@
 {
+  long processStart=System.nanoTime();
   if (obj instanceof Invocation) {
     Invocation inv=(Invocation)obj;
     MemberImpl memberFrom=getMember(inv.conn.getEndPoint());
@@ -33,4 +34,15 @@ synchronized (obj) {
     }
   }
  else   throw new RuntimeException("Unkown obj " + obj);
+  long processEnd=System.nanoTime();
+  long elipsedTime=processEnd - processStart;
+  totalProcessTime+=elipsedTime;
+  long duration=(processEnd - start);
+  if (duration > TimeUnit.SECONDS.toNanos(10)) {
+    if (DEBUG) {
+      System.out.println("ServiceProcessUtilization: " + ((totalProcessTime * 100) / duration) + " %");
+    }
+    start=processEnd;
+    totalProcessTime=0;
+  }
 }

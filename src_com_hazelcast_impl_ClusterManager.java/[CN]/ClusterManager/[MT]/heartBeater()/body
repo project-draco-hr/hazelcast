@@ -15,7 +15,6 @@
                 if (lsDeadAddresses == null) {
                   lsDeadAddresses=new ArrayList<Address>();
                 }
-                lsDeadAddresses.add(address);
               }
             }
           }
@@ -44,13 +43,24 @@
       boolean removed=false;
       if (masterMember != null) {
         if ((now - masterMember.getLastRead()) >= 8000) {
-          doRemoveAddress(getMasterAddress());
           removed=true;
         }
       }
       if (!removed) {
         Invocation inv=obtainServiceInvocation("heartbeat",null,null,OP_HEARTBEAT,0);
         send(inv,getMasterAddress());
+      }
+    }
+    for (    MemberImpl member : lsMembers) {
+      if (!member.localMember()) {
+        Address address=member.getAddress();
+        if (shouldConnectTo(address)) {
+          Connection conn=ConnectionManager.get().getOrConnect(address);
+          if (conn != null) {
+            Invocation inv=obtainServiceInvocation("heartbeat",null,null,OP_HEARTBEAT,0);
+            send(inv,conn);
+          }
+        }
       }
     }
   }
