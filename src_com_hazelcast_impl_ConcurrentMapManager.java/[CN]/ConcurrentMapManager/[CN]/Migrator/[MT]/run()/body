@@ -1,8 +1,32 @@
 {
-  while (mapNames.hasNext()) {
-    String mapName=mapNames.next();
-    for (int i=0; i < BLOCK_COUNT; i++) {
-      migrateBlock(mapName,i);
+  for (  final Long recordId : recordsToMigrate) {
+    MMigrate mmigrate=new MMigrate();
+    mmigrate.migrate(recordId);
+  }
+  for (  final Long recordId : recordsToBackup) {
+    Processable backupProcess=new Processable(){
+      public void process(){
+        Record record=getRecordById(recordId);
+        if (record != null) {
+          sendBackupAdd(record,true);
+        }
+      }
+    }
+;
+    enqueueAndReturn(backupProcess);
+    try {
+      Thread.sleep(1);
+    }
+ catch (    InterruptedException e) {
+      e.printStackTrace();
     }
   }
+  Processable processCompletion=new Processable(){
+    public void process(){
+      doMigrationComplete(thisAddress);
+      sendMigrationComplete();
+    }
+  }
+;
+  enqueueAndReturn(processCompletion);
 }
