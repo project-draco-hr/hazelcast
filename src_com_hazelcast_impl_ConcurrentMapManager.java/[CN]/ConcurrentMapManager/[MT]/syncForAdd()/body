@@ -8,21 +8,31 @@
     }
     List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
     Map<Address,Integer> addressBlocks=new HashMap<Address,Integer>();
+    int storageEnabledMemberCount=0;
     for (    MemberImpl member : lsMembers) {
-      addressBlocks.put(member.getAddress(),0);
+      if (!member.superClient()) {
+        addressBlocks.put(member.getAddress(),0);
+        storageEnabledMemberCount++;
+      }
     }
-    int aveBlockOwnCount=mapBlocks.size() / (lsMembers.size());
+    if (storageEnabledMemberCount == 0)     return;
+    int aveBlockOwnCount=mapBlocks.size() / (storageEnabledMemberCount);
     Collection<Block> blocks=mapBlocks.values();
     for (    Block block : blocks) {
-      if (!block.isMigrating()) {
-        Integer countInt=addressBlocks.get(block.owner);
-        int count=(countInt == null) ? 0 : countInt.intValue();
-        if (count >= aveBlockOwnCount) {
-          lsBlocksToRedistribute.add(block);
-        }
+      if (block.owner == null) {
+        lsBlocksToRedistribute.add(block);
+      }
  else {
-          count++;
-          addressBlocks.put(block.owner,count);
+        if (!block.isMigrating()) {
+          Integer countInt=addressBlocks.get(block.owner);
+          int count=(countInt == null) ? 0 : countInt.intValue();
+          if (count >= aveBlockOwnCount) {
+            lsBlocksToRedistribute.add(block);
+          }
+ else {
+            count++;
+            addressBlocks.put(block.owner,count);
+          }
         }
       }
     }
@@ -33,9 +43,14 @@
       while (count < aveBlockOwnCount) {
         if (lsBlocksToRedistribute.size() > 0) {
           Block blockToMigrate=lsBlocksToRedistribute.remove(0);
-          blockToMigrate.migrationAddress=address;
-          if (blockToMigrate.owner.equals(blockToMigrate.migrationAddress)) {
-            blockToMigrate.migrationAddress=null;
+          if (blockToMigrate.owner == null) {
+            blockToMigrate.owner=address;
+          }
+ else {
+            blockToMigrate.migrationAddress=address;
+            if (blockToMigrate.owner.equals(blockToMigrate.migrationAddress)) {
+              blockToMigrate.migrationAddress=null;
+            }
           }
           count++;
         }
@@ -60,6 +75,7 @@
     }
     doResetRecords();
     if (DEBUG) {
+      printBlocks();
     }
   }
 }

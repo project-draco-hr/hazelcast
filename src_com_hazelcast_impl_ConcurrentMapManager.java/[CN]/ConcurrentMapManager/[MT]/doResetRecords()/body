@@ -1,4 +1,5 @@
 {
+  if (isSuperClient())   return;
   Set<Long> recordsToMigrate=new HashSet<Long>(1000);
   Set<Long> recordsToBackup=new HashSet<Long>(1000);
   Set<Long> recordsToRemove=new HashSet<Long>(1000);
@@ -27,17 +28,7 @@
       migrationOwner++;
     }
  else {
-      if (!block.isMigrating()) {
-        MemberImpl nextAfterOwner=getNextMemberAfter(block.owner);
-        if (nextAfterOwner != null && nextAfterOwner.getAddress().equals(thisAddress)) {
-          rec.owner=block.owner;
-          ownerBackup++;
-        }
- else {
-          recordsToRemove.add(rec.getId());
-        }
-      }
- else       if (block.isMigrating()) {
+      if (block.isMigrating()) {
         MemberImpl nextAfterMigration=getNextMemberAfter(block.migrationAddress);
         if (nextAfterMigration != null && nextAfterMigration.getAddress().equals(thisAddress)) {
           rec.owner=block.migrationAddress;
@@ -48,7 +39,14 @@
         }
       }
  else {
-        recordsToRemove.add(rec.getId());
+        MemberImpl nextAfterOwner=getNextMemberAfter(block.owner);
+        if (nextAfterOwner != null && nextAfterOwner.getAddress().equals(thisAddress)) {
+          rec.owner=block.owner;
+          ownerBackup++;
+        }
+ else {
+          recordsToRemove.add(rec.getId());
+        }
       }
     }
   }

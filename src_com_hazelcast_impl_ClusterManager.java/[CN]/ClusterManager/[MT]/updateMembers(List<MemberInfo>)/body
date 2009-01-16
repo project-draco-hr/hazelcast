@@ -1,0 +1,23 @@
+{
+  if (DEBUG) {
+    log("MEMBERS UPDATE!!");
+  }
+  lsMembersBefore.clear();
+  for (  MemberImpl member : lsMembers) {
+    lsMembersBefore.add(member);
+  }
+  for (  MemberInfo memberInfo : lsMemberInfos) {
+    MemberImpl member=ClusterService.get().getMember(memberInfo.address);
+    if (member == null) {
+      member=clusterService.addMember(memberInfo.address,memberInfo.nodeType);
+    }
+    member.didRead();
+  }
+  heartBeater();
+  Node.get().getClusterImpl().setMembers(lsMembers);
+  Node.get().unlock();
+  System.out.println(this);
+  if (DEBUG) {
+    publishLog("Join complete");
+  }
+}
