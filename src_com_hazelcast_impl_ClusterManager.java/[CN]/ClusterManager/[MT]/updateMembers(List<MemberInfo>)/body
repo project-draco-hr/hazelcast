@@ -3,15 +3,25 @@
     log("MEMBERS UPDATE!!");
   }
   lsMembersBefore.clear();
+  Map<Address,MemberImpl> mapOldMembers=new HashMap<Address,MemberImpl>();
   for (  MemberImpl member : lsMembers) {
     lsMembersBefore.add(member);
+    mapOldMembers.put(member.getAddress(),member);
   }
+  lsMembers.clear();
   for (  MemberInfo memberInfo : lsMemberInfos) {
-    MemberImpl member=ClusterService.get().getMember(memberInfo.address);
+    MemberImpl member=mapOldMembers.get(memberInfo.address);
     if (member == null) {
-      member=clusterService.addMember(memberInfo.address,memberInfo.nodeType);
+      member=addMember(memberInfo.address,memberInfo.nodeType);
+    }
+ else {
+      addMember(member);
     }
     member.didRead();
+  }
+  mapOldMembers.clear();
+  if (!lsMembers.contains(thisMember)) {
+    throw new RuntimeException("Member list doesn't contain local member!");
   }
   heartBeater();
   Node.get().getClusterImpl().setMembers(lsMembers);
