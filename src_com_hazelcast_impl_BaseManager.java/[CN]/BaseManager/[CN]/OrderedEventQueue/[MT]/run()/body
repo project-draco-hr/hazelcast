@@ -1,0 +1,24 @@
+{
+  EventTask eventTask=poll();
+  if (eventTask == null)   return;
+  receivedMessageCount++;
+  if (receivedMessageCount < 10) {
+    expectedRecordId=Math.max(expectedRecordId,eventTask.recordId);
+  }
+ else {
+    if (expectedRecordId == eventTask.recordId) {
+      eventTask.run();
+      expectedRecordId++;
+      while (eventTask != null && mapDelayedEventTasks.size() > 0) {
+        eventTask=mapDelayedEventTasks.remove(expectedRecordId);
+        if (eventTask != null) {
+          eventTask.run();
+          expectedRecordId++;
+        }
+      }
+    }
+ else     if (eventTask.recordId > expectedRecordId) {
+      mapDelayedEventTasks.put(eventTask.recordId,eventTask);
+    }
+  }
+}

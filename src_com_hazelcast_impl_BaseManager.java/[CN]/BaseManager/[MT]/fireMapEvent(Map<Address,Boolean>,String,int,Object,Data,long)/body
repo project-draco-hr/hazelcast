@@ -1,0 +1,43 @@
+{
+  try {
+    Map<Address,Boolean> mapTargetListeners=null;
+    Data dataRecordKey=null;
+    Data dataRecordValue=null;
+    if (record instanceof Record) {
+      Record rec=(Record)record;
+      dataRecordKey=rec.getKey();
+      dataRecordValue=rec.getValue();
+      if (rec.hasListener()) {
+        mapTargetListeners=new HashMap<Address,Boolean>(rec.getMapListeners());
+      }
+    }
+ else {
+      dataRecordValue=(Data)record;
+    }
+    if (mapListeners != null && mapListeners.size() > 0) {
+      if (mapTargetListeners == null) {
+        mapTargetListeners=new HashMap<Address,Boolean>(mapListeners);
+      }
+ else {
+        Set<Map.Entry<Address,Boolean>> entries=mapListeners.entrySet();
+        for (        Map.Entry<Address,Boolean> entry : entries) {
+          if (mapTargetListeners.containsKey(entry.getKey())) {
+            if (entry.getValue().booleanValue()) {
+              mapTargetListeners.put(entry.getKey(),entry.getValue());
+            }
+          }
+ else           mapTargetListeners.put(entry.getKey(),entry.getValue());
+        }
+      }
+    }
+    if (mapTargetListeners == null || mapTargetListeners.size() == 0)     return;
+    Data key=(dataRecordKey != null) ? ThreadContext.get().hardCopy(dataRecordKey) : null;
+    Data value=null;
+    if (dataRecordValue != null)     value=ThreadContext.get().hardCopy(dataRecordValue);
+    EventFireTask eventFireTask=new EventFireTask(eventType,name,key,value,mapTargetListeners,recordId);
+    ExecutorManager.get().executeEventFireTask(eventFireTask);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}
