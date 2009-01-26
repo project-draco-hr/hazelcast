@@ -1,24 +1,25 @@
 {
   EventTask eventTask=poll();
   if (eventTask == null)   return;
-  receivedMessageCount++;
-  if (receivedMessageCount < 10) {
-    expectedRecordId=Math.max(expectedRecordId,eventTask.recordId);
-  }
- else {
-    if (expectedRecordId == eventTask.recordId) {
+  System.out.println(expectedRecordId + "  running event " + eventTask.recordId);
+  if (expectedRecordId == eventTask.recordId) {
+    try {
       eventTask.run();
-      expectedRecordId++;
-      while (eventTask != null && mapDelayedEventTasks.size() > 0) {
-        eventTask=mapDelayedEventTasks.remove(expectedRecordId);
-        if (eventTask != null) {
-          eventTask.run();
-          expectedRecordId++;
-        }
+    }
+ catch (    Throwable e) {
+      e.printStackTrace();
+    }
+    expectedRecordId++;
+    while (eventTask != null && mapDelayedEventTasks.size() > 0) {
+      eventTask=mapDelayedEventTasks.remove(expectedRecordId);
+      if (eventTask != null) {
+        eventTask.run();
+        expectedRecordId++;
       }
     }
- else     if (eventTask.recordId > expectedRecordId) {
-      mapDelayedEventTasks.put(eventTask.recordId,eventTask);
-    }
+  }
+ else   if (eventTask.recordId > expectedRecordId) {
+    System.out.println(expectedRecordId + " delaying " + eventTask.recordId);
+    mapDelayedEventTasks.put(eventTask.recordId,eventTask);
   }
 }
