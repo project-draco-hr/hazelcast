@@ -1,11 +1,11 @@
 {
-  Config config=Config.get();
+  final Config config=Config.get();
   if (!config.join.multicastConfig.enabled) {
     joinWithTCP();
     return;
   }
   masterAddress=findMaster();
-  if (DEBUG)   System.out.println(address + " master: " + masterAddress);
+  if (DEBUG)   logger.log(Level.FINEST,address + " master: " + masterAddress);
   if (masterAddress == null || masterAddress.equals(address)) {
     ClusterManager.get().addMember(address,getLocalNodeType());
     masterAddress=address;
@@ -15,7 +15,7 @@
  else {
     while (!joined) {
       try {
-        if (DEBUG)         System.out.println("joining... " + masterAddress);
+        if (DEBUG)         logger.log(Level.FINEST,"joining... " + masterAddress);
 synchronized (joinLock) {
           joinExisting(masterAddress);
           joinLock.wait(2000);
@@ -27,14 +27,16 @@ synchronized (joinLock) {
           setAsMaster();
         }
       }
- catch (      Exception e) {
+ catch (      final Exception e) {
         e.printStackTrace();
       }
     }
   }
-  if (DEBUG)   System.out.println("Join DONE");
-  StringBuilder sb=new StringBuilder();
-  sb.append("\n");
-  if (ClusterManager.get().lsMembers.size() == 1)   sb.append(ClusterManager.get());
-  System.out.println(sb.toString());
+  if (DEBUG)   logger.log(Level.FINEST,"Join DONE");
+  if (ClusterManager.get().lsMembers.size() == 1) {
+    final StringBuilder sb=new StringBuilder();
+    sb.append("\n");
+    sb.append(ClusterManager.get());
+    logger.log(Level.INFO,sb.toString());
+  }
 }

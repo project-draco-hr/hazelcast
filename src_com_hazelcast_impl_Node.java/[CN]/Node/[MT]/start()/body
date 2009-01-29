@@ -1,7 +1,7 @@
 {
   firstMainThread=Thread.currentThread();
   clusterImpl=new ClusterImpl();
-  boolean inited=init();
+  final boolean inited=init();
   if (!inited)   return;
   final Thread inThread=new Thread(InSelector.get(),"InThread");
   inThread.start();
@@ -21,10 +21,9 @@
   }
   firstMainThread=null;
   Runtime.getRuntime().addShutdownHook(new Thread(){
-    public void run(){
-      System.out.println("ShutdownHook is shutting down!");
-      ConnectionManager.get().shutdown();
-      ClusterService.get().running=false;
+    @Override public void run(){
+      logger.log(Level.FINEST,"Hazelcast ShutdownHook is shutting down!");
+      shutdown();
     }
   }
 );

@@ -1,10 +1,10 @@
 {
-  Config config=Config.get();
+  final Config config=Config.get();
   try {
-    List<Address> lsPossibleAddresses=getPossibleMembers(config.join.joinMembers.lsMembers);
+    final List<Address> lsPossibleAddresses=getPossibleMembers(config.join.joinMembers.lsMembers);
     lsPossibleAddresses.remove(address);
-    for (    Address adrs : lsPossibleAddresses) {
-      if (DEBUG)       System.out.println("connecting to " + adrs);
+    for (    final Address adrs : lsPossibleAddresses) {
+      if (DEBUG)       logger.log(Level.FINEST,"connecting to " + adrs);
       ConnectionManager.get().getOrConnect(adrs);
     }
     boolean found=false;
@@ -18,9 +18,9 @@
       Thread.sleep(1000);
       numberOfSeconds++;
       int numberOfJoinReq=0;
-      for (      Address adrs : lsPossibleAddresses) {
-        Connection conn=ConnectionManager.get().getOrConnect(adrs);
-        if (DEBUG)         System.out.println("conn " + conn);
+      for (      final Address adrs : lsPossibleAddresses) {
+        final Connection conn=ConnectionManager.get().getOrConnect(adrs);
+        if (DEBUG)         logger.log(Level.FINEST,"conn " + conn);
         if (conn != null && numberOfJoinReq < 5) {
           found=true;
           ClusterManager.get().sendJoinRequest(adrs);
@@ -28,15 +28,15 @@
         }
       }
     }
-    if (DEBUG)     System.out.println("FOUND " + found);
+    if (DEBUG)     logger.log(Level.FINEST,"FOUND " + found);
     if (!found) {
       setAsMaster();
     }
  else {
       while (!joined) {
         int numberOfJoinReq=0;
-        for (        Address adrs : lsPossibleAddresses) {
-          Connection conn=ConnectionManager.get().getOrConnect(adrs);
+        for (        final Address adrs : lsPossibleAddresses) {
+          final Connection conn=ConnectionManager.get().getOrConnect(adrs);
           if (conn != null && numberOfJoinReq < 5) {
             found=true;
             ClusterManager.get().sendJoinRequest(adrs);
@@ -45,11 +45,11 @@
         }
         Thread.sleep(2000);
         if (DEBUG) {
-          System.out.println(masterAddress);
+          logger.log(Level.FINEST,masterAddress.toString());
         }
         if (masterAddress == null) {
           boolean masterCandidate=true;
-          for (          Address address : lsPossibleAddresses) {
+          for (          final Address address : lsPossibleAddresses) {
             if (this.address.hashCode() > address.hashCode())             masterCandidate=false;
           }
           if (masterCandidate) {
@@ -61,12 +61,12 @@
     lsPossibleAddresses.clear();
     qFailedConnections.clear();
   }
- catch (  Exception e) {
+ catch (  final Exception e) {
     e.printStackTrace();
   }
-  if (DEBUG)   System.out.println("DONE TCP");
-  StringBuilder sb=new StringBuilder();
+  if (DEBUG)   logger.log(Level.FINEST,"DONE TCP");
+  final StringBuilder sb=new StringBuilder();
   sb.append("\n");
   if (ClusterManager.get().lsMembers.size() == 1)   sb.append(ClusterManager.get());
-  System.out.println(sb.toString());
+  logger.log(Level.FINEST,sb.toString());
 }

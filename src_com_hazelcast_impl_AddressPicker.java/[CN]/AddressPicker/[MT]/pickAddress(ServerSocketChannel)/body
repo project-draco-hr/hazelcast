@@ -1,22 +1,22 @@
 {
   String currentAddress=null;
   try {
-    Config config=Config.get();
-    String localAddress=System.getProperty("the.local.address");
+    final Config config=Config.get();
+    final String localAddress=System.getProperty("the.local.address");
     currentAddress=InetAddress.getByName(localAddress).getHostAddress().trim();
     if (currentAddress == null || currentAddress.length() == 0 || currentAddress.equalsIgnoreCase("localhost") || currentAddress.equals("127.0.0.1")) {
       boolean matchFound=false;
-      Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
+      final Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
       interfaces:       while (enums.hasMoreElements()) {
-        NetworkInterface ni=enums.nextElement();
-        Enumeration<InetAddress> e=ni.getInetAddresses();
-        boolean isUp=invoke(true,1.6,ni,"isUp");
-        boolean supportsMulticast=invoke(true,1.6,ni,"supportsMulticast");
+        final NetworkInterface ni=enums.nextElement();
+        final Enumeration<InetAddress> e=ni.getInetAddresses();
+        final boolean isUp=invoke(true,1.6,ni,"isUp");
+        final boolean supportsMulticast=invoke(true,1.6,ni,"supportsMulticast");
         while (e.hasMoreElements()) {
-          InetAddress inetAddress=e.nextElement();
+          final InetAddress inetAddress=e.nextElement();
           if (inetAddress instanceof Inet4Address) {
-            byte[] ip=inetAddress.getAddress();
-            String address=inetAddress.getHostAddress();
+            final byte[] ip=inetAddress.getAddress();
+            final String address=inetAddress.getHostAddress();
             if (!inetAddress.isLoopbackAddress()) {
               currentAddress=address;
               if (config.interfaces.enabled) {
@@ -35,12 +35,12 @@
       if (config.interfaces.enabled && !matchFound) {
         String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
         msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
-        Util.logFatal(msg);
+        logger.log(Level.SEVERE,msg);
         Node.get().dumpCore(null);
         return null;
       }
     }
-    InetAddress inetAddress=InetAddress.getByName(currentAddress);
+    final InetAddress inetAddress=InetAddress.getByName(currentAddress);
     ServerSocket serverSocket=serverSocketChannel.socket();
     serverSocket.setReuseAddress(false);
     InetSocketAddress isa=null;
@@ -51,7 +51,7 @@
         serverSocket.bind(isa,100);
         break socket;
       }
- catch (      Exception e) {
+ catch (      final Exception e) {
         serverSocket=serverSocketChannel.socket();
         serverSocket.setReuseAddress(false);
         port++;
@@ -59,10 +59,10 @@
       }
     }
     serverSocketChannel.configureBlocking(false);
-    Address selectedAddress=new Address(currentAddress,port);
+    final Address selectedAddress=new Address(currentAddress,port);
     return selectedAddress;
   }
- catch (  Exception e) {
+ catch (  final Exception e) {
     Node.get().dumpCore(e);
     e.printStackTrace();
     throw e;

@@ -3,7 +3,7 @@
   try {
     bbOut.clear();
     copyLoop:     while (bbOut.position() < (32 * 1024)) {
-      Invocation inv=(Invocation)writeHandlerQueue.poll();
+      final Invocation inv=(Invocation)writeHandlerQueue.poll();
       if (inv == null)       break copyLoop;
       inv.write(bbOut);
       doPostWrite(inv);
@@ -15,23 +15,23 @@
     connection.didWrite();
     while (remaining > 0) {
       try {
-        int written=socketChannel.write(bbOut);
+        final int written=socketChannel.write(bbOut);
         remaining-=written;
         loopCount++;
         if (DEBUG) {
           if (loopCount > 1) {
-            System.out.println("loopcount " + loopCount);
+            logger.log(Level.INFO,"loopcount " + loopCount);
           }
         }
       }
- catch (      Exception e) {
+ catch (      final Exception e) {
         handleSocketException(e);
         return;
       }
     }
   }
- catch (  Throwable t) {
-    System.out.println("Fatal Error: WriteHandler " + t);
+ catch (  final Throwable t) {
+    logger.log(Level.INFO,"Fatal Error: WriteHandler " + t);
   }
  finally {
     if (hasMore()) {

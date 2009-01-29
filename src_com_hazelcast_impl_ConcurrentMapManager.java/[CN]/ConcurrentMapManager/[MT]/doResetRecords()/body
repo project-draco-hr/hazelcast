@@ -9,54 +9,66 @@
   int migrationOwner=0;
   int ownerBackup=0;
   int migrationBackup=0;
-  Collection<Record> colRecords=mapRecordsById.values();
-  for (  Record rec : colRecords) {
-    Block block=mapBlocks.get(rec.getBlockId());
-    if (block.owner.equals(thisAddress)) {
-      if (block.isMigrating()) {
-        recordsToMigrate.add(rec.getId());
-        sendOwn++;
+  try {
+    Collection<Record> colRecords=mapRecordsById.values();
+    for (    Record rec : colRecords) {
+      Block block=mapBlocks.get(rec.getBlockId());
+      if (rec.getId() == 972) {
+        System.out.println("972 block " + block);
+        System.out.println("972 record " + rec);
+      }
+      if (block.owner.equals(thisAddress)) {
+        if (block.isMigrating()) {
+          recordsToMigrate.add(rec.getId());
+          sendOwn++;
+        }
+ else {
+          rec.setOwner(thisAddress);
+          recordsToBackup.add(rec.getId());
+          sendBackup++;
+        }
+      }
+ else       if (block.isMigrating() && block.migrationAddress.equals(thisAddress)) {
+        rec.owner=thisAddress;
+        migrationOwner++;
       }
  else {
-        rec.setOwner(thisAddress);
-        recordsToBackup.add(rec.getId());
-        sendBackup++;
+        if (block.isMigrating()) {
+          MemberImpl nextAfterMigration=getNextMemberAfter(block.migrationAddress,true,1);
+          if (nextAfterMigration != null && nextAfterMigration.getAddress().equals(thisAddress)) {
+            rec.owner=block.migrationAddress;
+            migrationBackup++;
+          }
+ else {
+            recordsToRemove.add(rec.getId());
+          }
+        }
+ else {
+          MemberImpl nextAfterOwner=getNextMemberAfter(block.owner,true,1);
+          if (nextAfterOwner != null && nextAfterOwner.getAddress().equals(thisAddress)) {
+            rec.owner=block.owner;
+            ownerBackup++;
+          }
+ else {
+            recordsToRemove.add(rec.getId());
+          }
+        }
       }
     }
- else     if (block.isMigrating() && block.migrationAddress.equals(thisAddress)) {
-      rec.owner=thisAddress;
-      migrationOwner++;
-    }
- else {
-      if (block.isMigrating()) {
-        MemberImpl nextAfterMigration=getNextMemberAfter(block.migrationAddress,true,1);
-        if (nextAfterMigration != null && nextAfterMigration.getAddress().equals(thisAddress)) {
-          rec.owner=block.migrationAddress;
-          migrationBackup++;
+    for (    Long recordId : recordsToRemove) {
+      Record rec=getRecordById(recordId);
+      if (rec != null) {
+        if (rec.getId() == 972) {
+          System.out.println("972 removing " + rec);
         }
- else {
-          recordsToRemove.add(rec.getId());
-        }
-      }
- else {
-        MemberImpl nextAfterOwner=getNextMemberAfter(block.owner,true,1);
-        if (nextAfterOwner != null && nextAfterOwner.getAddress().equals(thisAddress)) {
-          rec.owner=block.owner;
-          ownerBackup++;
-        }
- else {
-          recordsToRemove.add(rec.getId());
-        }
+        CMap cmap=getMap(rec.name);
+        cmap.removeRecord(rec.key);
+        removed++;
       }
     }
   }
-  for (  Long recordId : recordsToRemove) {
-    Record rec=getRecordById(recordId);
-    if (rec != null) {
-      CMap cmap=getMap(rec.name);
-      cmap.removeRecord(rec.key);
-      removed++;
-    }
+ catch (  Throwable e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
   }
   if (DEBUG) {
     log("SendOwn:        " + sendOwn);

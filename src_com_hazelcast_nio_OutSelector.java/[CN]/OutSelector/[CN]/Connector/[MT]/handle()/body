@@ -1,29 +1,29 @@
 {
   try {
-    boolean finished=socketChannel.finishConnect();
+    final boolean finished=socketChannel.finishConnect();
     if (!finished) {
       socketChannel.register(selector,SelectionKey.OP_CONNECT,Connector.this);
       return;
     }
     if (DEBUG) {
-      System.out.println("connected to " + address);
+      logger.log(Level.FINEST,"connected to " + address);
     }
-    Connection connection=initChannel(socketChannel,false);
+    final Connection connection=initChannel(socketChannel,false);
     connection.localPort=localPort;
     ConnectionManager.get().bind(address,connection,false);
   }
- catch (  Exception e) {
+ catch (  final Exception e) {
     try {
       if (DEBUG) {
-        String msg="Couldn't connect to " + address + ", cause: "+ e.getMessage();
-        System.out.println(msg);
+        final String msg="Couldn't connect to " + address + ", cause: "+ e.getMessage();
+        logger.log(Level.FINEST,msg);
         ClusterManager.get().publishLog(msg);
         e.printStackTrace();
       }
       socketChannel.close();
       if (numberOfConnectionError++ < 5) {
         if (DEBUG) {
-          System.out.println("Couldn't finish connecting, will try again. cause: " + e.getMessage());
+          logger.log(Level.FINEST,"Couldn't finish connecting, will try again. cause: " + e.getMessage());
         }
         addTask(Connector.this);
       }
@@ -31,7 +31,7 @@
         ConnectionManager.get().failedConnection(address);
       }
     }
- catch (    Exception ignored) {
+ catch (    final Exception ignored) {
     }
   }
 }

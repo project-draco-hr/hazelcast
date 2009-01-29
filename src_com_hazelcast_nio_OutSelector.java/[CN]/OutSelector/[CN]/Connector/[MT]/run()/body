@@ -1,8 +1,8 @@
 {
   try {
     socketChannel=SocketChannel.open();
-    Address thisAddress=Node.get().getThisAddress();
-    int addition=(thisAddress.getPort() - Config.get().port);
+    final Address thisAddress=Node.get().getThisAddress();
+    final int addition=(thisAddress.getPort() - Config.get().port);
     localPort=10000 + addition;
     boolean bindOk=false;
     while (!bindOk) {
@@ -10,8 +10,8 @@
         localPort+=20;
         if (boundPorts.size() > 2000 || localPort > 60000) {
           boundPorts.clear();
-          Connection[] conns=ConnectionManager.get().getConnections();
-          for (          Connection conn : conns) {
+          final Connection[] conns=ConnectionManager.get().getConnections();
+          for (          final Connection conn : conns) {
             boundPorts.add(conn.localPort);
           }
         }
@@ -19,24 +19,24 @@
           socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),localPort));
           bindOk=true;
           socketChannel.configureBlocking(false);
-          if (DEBUG)           System.out.println("connecting to " + address);
+          if (DEBUG)           logger.log(Level.INFO,"connecting to " + address);
           socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
         }
       }
- catch (      Exception e) {
+ catch (      final Exception e) {
       }
     }
     socketChannel.register(selector,SelectionKey.OP_CONNECT,Connector.this);
   }
- catch (  Exception e) {
+ catch (  final Exception e) {
     try {
       socketChannel.close();
     }
- catch (    IOException ignored) {
+ catch (    final IOException ignored) {
     }
     if (numberOfConnectionError++ < 5) {
       if (DEBUG) {
-        System.out.println("Couldn't register connect! will trying again. cause: " + e.getMessage());
+        logger.log(Level.INFO,"Couldn't register connect! will trying again. cause: " + e.getMessage());
       }
       run();
     }

@@ -1,24 +1,24 @@
 {
-  Element docElement=doc.getDocumentElement();
-  NodeList nodelist=docElement.getChildNodes();
-  List<String> lsListeners=new ArrayList<String>();
+  final Element docElement=doc.getDocumentElement();
+  final NodeList nodelist=docElement.getChildNodes();
+  final List<String> lsListeners=new ArrayList<String>();
   Node firstFilter=null;
   Node displayElement=null;
   Node afterDisplayElement=null;
-  int sessionTimeoutDefault=-23490375;
+  final int sessionTimeoutDefault=-23490375;
   int sessionTimeout=sessionTimeoutDefault;
   for (int i=0; i < nodelist.getLength(); i++) {
-    Node node=nodelist.item(i);
-    String name=node.getNodeName();
+    final Node node=nodelist.item(i);
+    final String name=node.getNodeName();
     if ("display-name".equals(name)) {
       displayElement=node;
     }
  else {
       if ("listener".equals(name)) {
         String className=null;
-        NodeList nl=node.getChildNodes();
+        final NodeList nl=node.getChildNodes();
         for (int a=0; a < nl.getLength(); a++) {
-          Node n=nl.item(a);
+          final Node n=nl.item(a);
           if (n.getNodeName().equals("listener-class")) {
             className=n.getTextContent();
           }
@@ -32,13 +32,13 @@
         }
       }
  else       if ("servlet".equals(name)) {
-        NodeList nl=node.getChildNodes();
+        final NodeList nl=node.getChildNodes();
         for (int a=0; a < nl.getLength(); a++) {
-          Node n=nl.item(a);
+          final Node n=nl.item(a);
           if (n.getNodeName().equals("servlet-class")) {
-            String className=n.getTextContent();
-            String wrapperClass="com.hazelcast.web.ServletWrapper";
-            String hazelParam="*hazelcast-base-servlet-class";
+            final String className=n.getTextContent();
+            final String wrapperClass="com.hazelcast.web.ServletWrapper";
+            final String hazelParam="*hazelcast-base-servlet-class";
             n.setTextContent(wrapperClass);
             Node initParam=null;
             initParam=append(doc,node,"init-param",null);
@@ -49,14 +49,14 @@
         }
       }
  else       if ("session-config".equals(name)) {
-        NodeList nl=node.getChildNodes();
+        final NodeList nl=node.getChildNodes();
         for (int a=0; a < nl.getLength(); a++) {
-          Node n=nl.item(a);
+          final Node n=nl.item(a);
           if (n.getNodeName().equals("session-timeout")) {
             try {
               sessionTimeout=Integer.parseInt(n.getTextContent().trim());
             }
- catch (            Exception e) {
+ catch (            final Exception e) {
               e.printStackTrace();
             }
           }
@@ -67,7 +67,7 @@
       }
     }
   }
-  Element filter=doc.createElement("filter");
+  final Element filter=doc.createElement("filter");
   append(doc,filter,"filter-name","hazel-filter");
   append(doc,filter,"filter-class","com.hazelcast.web.WebFilter");
   Node initParam=append(doc,filter,"init-param",null);
@@ -82,7 +82,7 @@
     append(doc,initParam,"param-value","" + sessionTimeout);
   }
   int counter=0;
-  for (  String listener : lsListeners) {
+  for (  final String listener : lsListeners) {
     initParam=append(doc,filter,"init-param",null);
     append(doc,initParam,"param-name","listener" + counter++);
     append(doc,initParam,"param-value",listener);
@@ -97,10 +97,10 @@
     first=docElement.getFirstChild();
   }
   docElement.insertBefore(filter,first);
-  Element filterMapping=doc.createElement("filter-mapping");
+  final Element filterMapping=doc.createElement("filter-mapping");
   append(doc,filterMapping,"filter-name","hazel-filter");
   append(doc,filterMapping,"url-pattern","/*");
-  Element contextListener=doc.createElement("listener");
+  final Element contextListener=doc.createElement("listener");
   append(doc,contextListener,"listener-class","com.hazelcast.web.WebFilter$ContextListener");
   docElement.insertBefore(filterMapping,after(docElement,"filter"));
   docElement.insertBefore(contextListener,after(docElement,"filter-mapping"));
