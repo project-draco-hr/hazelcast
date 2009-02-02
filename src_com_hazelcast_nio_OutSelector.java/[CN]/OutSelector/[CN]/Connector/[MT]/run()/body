@@ -19,11 +19,17 @@
           socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),localPort));
           bindOk=true;
           socketChannel.configureBlocking(false);
-          if (DEBUG)           logger.log(Level.INFO,"connecting to " + address);
-          socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
+          if (DEBUG)           logger.log(Level.FINEST,"connecting to " + address + ", localPort: "+ localPort);
+          boolean connected=socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
+          if (DEBUG)           logger.log(Level.FINEST,"connection check. connected: " + connected + ", "+ address+ ", localPort: "+ localPort);
+          if (connected) {
+            handle();
+            return;
+          }
         }
       }
- catch (      final Exception e) {
+ catch (      final Throwable e) {
+        if (DEBUG)         logger.log(Level.FINEST,"ConnectionFailed. localPort: " + localPort,e);
       }
     }
     socketChannel.register(selector,SelectionKey.OP_CONNECT,Connector.this);
@@ -36,7 +42,7 @@
     }
     if (numberOfConnectionError++ < 5) {
       if (DEBUG) {
-        logger.log(Level.INFO,"Couldn't register connect! will trying again. cause: " + e.getMessage());
+        logger.log(Level.FINEST,"Couldn't register connect! will trying again. cause: " + e.getMessage());
       }
       run();
     }
