@@ -2,37 +2,12 @@
   final Config config=Config.get();
   if (!config.join.multicastConfig.enabled) {
     joinWithTCP();
-    return;
-  }
-  masterAddress=findMaster();
-  if (DEBUG)   logger.log(Level.FINEST,address + " master: " + masterAddress);
-  if (masterAddress == null || masterAddress.equals(address)) {
-    ClusterManager.get().addMember(address,getLocalNodeType());
-    masterAddress=address;
-    clusterImpl.setMembers(ClusterManager.get().lsMembers);
-    unlock();
   }
  else {
-    while (!joined) {
-      try {
-        if (DEBUG)         logger.log(Level.FINEST,"joining... " + masterAddress);
-synchronized (joinLock) {
-          joinExisting(masterAddress);
-          joinLock.wait(2000);
-        }
-        if (masterAddress == null) {
-          join();
-        }
- else         if (masterAddress.equals(address)) {
-          setAsMaster();
-        }
-      }
- catch (      final Exception e) {
-        e.printStackTrace();
-      }
-    }
+    joinWithMulticast();
   }
   if (DEBUG)   logger.log(Level.FINEST,"Join DONE");
+  ClusterManager.get().finalizeJoin();
   if (ClusterManager.get().lsMembers.size() == 1) {
     final StringBuilder sb=new StringBuilder();
     sb.append("\n");

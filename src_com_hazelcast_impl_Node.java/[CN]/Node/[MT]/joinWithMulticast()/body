@@ -1,0 +1,30 @@
+{
+  masterAddress=findMaster();
+  if (DEBUG)   logger.log(Level.FINEST,address + " master: " + masterAddress);
+  if (masterAddress == null || masterAddress.equals(address)) {
+    ClusterManager.get().addMember(address,getLocalNodeType());
+    masterAddress=address;
+    clusterImpl.setMembers(ClusterManager.get().lsMembers);
+    unlock();
+  }
+ else {
+    while (!joined) {
+      try {
+        if (DEBUG)         logger.log(Level.FINEST,"joining... " + masterAddress);
+synchronized (joinLock) {
+          joinExisting(masterAddress);
+          joinLock.wait(2000);
+        }
+        if (masterAddress == null) {
+          joinWithMulticast();
+        }
+ else         if (masterAddress.equals(address)) {
+          setAsMaster();
+        }
+      }
+ catch (      final Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+}
