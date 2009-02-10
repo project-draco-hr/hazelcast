@@ -11,14 +11,8 @@
   }
   if (isMaster() && !from.equals(thisAddress)) {
     for (    MemberImpl member : lsMembers) {
-      if (!member.localMember() || !from.equals(member.getAddress())) {
-        Invocation inv=obtainServiceInvocation();
-        inv.name="cmap";
-        inv.operation=OP_CMAP_MIGRATION_COMPLETE;
-        boolean sent=send(inv,member.getAddress());
-        if (!sent) {
-          inv.returnToContainer();
-        }
+      if (!member.localMember() && !from.equals(member.getAddress())) {
+        sendProcessableTo(new MigrationComplete(from),member.getAddress());
       }
     }
   }
