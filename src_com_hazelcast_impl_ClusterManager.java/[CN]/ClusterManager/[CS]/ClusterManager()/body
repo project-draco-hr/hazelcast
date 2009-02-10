@@ -1,3 +1,83 @@
 {
   ConnectionManager.get().addConnectionListener(this);
+  ClusterService.get().registerInvocationProcessor(OP_RESPONSE,new InvocationProcessor(){
+    public void process(    Invocation inv){
+      handleResponse(inv);
+    }
+  }
+);
+  ClusterService.get().registerInvocationProcessor(OP_HEARTBEAT,new InvocationProcessor(){
+    public void process(    Invocation inv){
+    }
+  }
+);
+  ClusterService.get().registerInvocationProcessor(OP_REMOTELY_PROCESS_AND_RESPOND,new InvocationProcessor(){
+    public void process(    Invocation inv){
+      Data data=inv.doTake(inv.data);
+      RemotelyProcessable rp=(RemotelyProcessable)ThreadContext.get().toObject(data);
+      rp.setConnection(inv.conn);
+      rp.process();
+      sendResponse(inv);
+    }
+  }
+);
+  ClusterService.get().registerInvocationProcessor(OP_REMOTELY_PROCESS,new InvocationProcessor(){
+    public void process(    Invocation inv){
+      Data data=inv.doTake(inv.data);
+      RemotelyProcessable rp=(RemotelyProcessable)ThreadContext.get().toObject(data);
+      rp.setConnection(inv.conn);
+      rp.process();
+      inv.returnToContainer();
+    }
+  }
+);
+  ClusterService.get().registerInvocationProcessor(OP_REMOTELY_BOOLEAN_CALLABLE,new InvocationProcessor(){
+    public void process(    Invocation inv){
+      Boolean result=null;
+      try {
+        Data data=inv.doTake(inv.data);
+        AbstractRemotelyCallable<Boolean> callable=(AbstractRemotelyCallable<Boolean>)ThreadContext.get().toObject(data);
+        callable.setConnection(inv.conn);
+        result=callable.call();
+      }
+ catch (      Exception e) {
+        e.printStackTrace(System.out);
+        result=Boolean.FALSE;
+      }
+      if (result == Boolean.TRUE) {
+        sendResponse(inv);
+      }
+ else {
+        sendResponseFailure(inv);
+      }
+    }
+  }
+);
+  ClusterService.get().registerInvocationProcessor(OP_REMOTELY_OBJECT_CALLABLE,new InvocationProcessor(){
+    public void process(    Invocation inv){
+      Object result=null;
+      try {
+        Data data=inv.doTake(inv.data);
+        AbstractRemotelyCallable callable=(AbstractRemotelyCallable)ThreadContext.get().toObject(data);
+        callable.setConnection(inv.conn);
+        result=callable.call();
+      }
+ catch (      Exception e) {
+        e.printStackTrace(System.out);
+        result=null;
+      }
+      if (result != null) {
+        Data value=null;
+        if (result instanceof Data) {
+          value=(Data)result;
+        }
+ else {
+          value=ThreadContext.get().toData(result);
+        }
+        inv.doSet(value,inv.data);
+      }
+      sendResponse(inv);
+    }
+  }
+);
 }

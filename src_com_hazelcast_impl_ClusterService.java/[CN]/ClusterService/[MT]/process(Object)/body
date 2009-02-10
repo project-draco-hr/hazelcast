@@ -6,37 +6,18 @@
     if (memberFrom != null) {
       memberFrom.didRead();
     }
-    final int operation=inv.operation;
-    if (operation == OP_RESPONSE) {
-      ClusterManager.get().handleResponse(inv);
+    InvocationProcessor invocationProcessor=invProcessors[inv.operation];
+    if (invocationProcessor == null) {
+      logger.log(Level.SEVERE,"No Invocation processor found for operation : " + inv.operation);
     }
- else     if (operation > 500) {
-      ConcurrentMapManager.get().handle(inv);
-    }
- else     if (operation > 400) {
-      BlockingQueueManager.get().handle(inv);
-    }
- else     if (operation > 300) {
-      ExecutorManager.get().handle(inv);
-    }
- else     if (operation > 200) {
-      ListenerManager.get().handle(inv);
-    }
- else     if (operation > 0) {
-      ClusterManager.get().handle(inv);
-    }
- else     throw new RuntimeException("Unknown operation " + operation);
+    invocationProcessor.process(inv);
   }
  else   if (obj instanceof Processable) {
     ((Processable)obj).process();
   }
- else   if (obj instanceof Runnable) {
-synchronized (obj) {
-      ((Runnable)obj).run();
-      obj.notify();
-    }
+ else {
+    logger.log(Level.SEVERE,"Cannot process. Unknown object: " + obj);
   }
- else   throw new RuntimeException("Unkown obj " + obj);
   final long processEnd=System.nanoTime();
   final long elipsedTime=processEnd - processStart;
   totalProcessTime+=elipsedTime;
