@@ -1,2 +1,34 @@
 {
+  int bufferCacheSize=12;
+  int invocationCacheSize=0;
+  String threadName=Thread.currentThread().getName();
+  if (threadName.startsWith("hz.")) {
+    if ("hz.InThread".equals(threadName)) {
+      bufferCacheSize=100;
+      invocationCacheSize=100;
+    }
+ else     if ("hz.OutThread".equals(threadName)) {
+      bufferCacheSize=0;
+      invocationCacheSize=0;
+    }
+ else     if ("hz.ServiceThread".equals(threadName)) {
+      bufferCacheSize=100;
+      invocationCacheSize=100;
+    }
+  }
+  logger.log(Level.FINEST,threadName + " is starting with cacheSize " + bufferCacheSize);
+  ObjectFactory<ByteBuffer> byteBufferCacheFactory=new ObjectFactory<ByteBuffer>(){
+    public ByteBuffer createNew(){
+      return ByteBuffer.allocate(1024);
+    }
+  }
+;
+  bufferCache=new ObjectPool<ByteBuffer>("BufferCache",byteBufferCacheFactory,bufferCacheSize,bufferq);
+  ObjectFactory<Invocation> invCacheFactory=new ObjectFactory<Invocation>(){
+    public Invocation createNew(){
+      return InvocationQueue.get().createNewInvocation();
+    }
+  }
+;
+  invocationCache=new ObjectPool<Invocation>("InvocationCache",invCacheFactory,invocationCacheSize,InvocationQueue.get().qinvocations);
 }
