@@ -1,0 +1,46 @@
+{
+  int threadCount=30;
+  final Stats stats=new Stats();
+  ExecutorService es=Executors.newFixedThreadPool(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    es.submit(new Runnable(){
+      public void run(){
+        Map<String,byte[]> map=Hazelcast.getMap("default");
+        while (true) {
+          int key=(int)(Math.random() * (Hazelcast.getCluster().getMembers().size() * ENTRY_COUNT));
+          int operation=((int)(Math.random() * 100)) % 10;
+          if (operation < 4) {
+            map.put(String.valueOf(key),new byte[VALUE_SIZE]);
+            stats.mapPuts.incrementAndGet();
+          }
+ else           if (operation < 8) {
+            map.get(String.valueOf(key));
+            stats.mapGets.incrementAndGet();
+          }
+ else {
+            map.remove(String.valueOf(key));
+            stats.mapRemoves.incrementAndGet();
+          }
+        }
+      }
+    }
+);
+  }
+  Executors.newSingleThreadExecutor().submit(new Runnable(){
+    public void run(){
+      while (true) {
+        try {
+          Thread.sleep(STATS_SECONDS * 1000);
+          System.out.println("cluster size:" + Hazelcast.getCluster().getMembers().size());
+          Stats currentStats=stats.getAndReset();
+          System.out.println(currentStats);
+          System.out.println("Operations per Second : " + currentStats.total() / STATS_SECONDS);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+);
+}
