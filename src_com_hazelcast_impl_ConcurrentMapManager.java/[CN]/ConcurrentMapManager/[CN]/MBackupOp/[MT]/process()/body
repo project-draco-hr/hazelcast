@@ -1,19 +1,25 @@
 {
-  MemberImpl nextMember=getNextMemberAfter(thisAddress,true,1);
-  if (nextMember == null) {
-    setResult(Boolean.TRUE);
+  Record record=getRecordById(recordId);
+  if (record == null) {
+    setResult(Boolean.FALSE);
   }
  else {
-    Connection conn=ConnectionManager.get().getConnection(nextMember.getAddress());
-    if (conn == null || !conn.live()) {
-      setResult(OBJECT_REDO);
+    MemberImpl nextMember=getNextMemberAfter(thisAddress,true,1);
+    if (nextMember == null) {
+      setResult(Boolean.TRUE);
     }
  else {
-      if (sendBackupAdd(record,true)) {
-        setResult(Boolean.TRUE);
+      Connection conn=ConnectionManager.get().getConnection(nextMember.getAddress());
+      if (conn == null || !conn.live()) {
+        setResult(OBJECT_REDO);
       }
  else {
-        setResult(OBJECT_REDO);
+        if (sendBackupAdd(record,true)) {
+          setResult(Boolean.TRUE);
+        }
+ else {
+          setResult(OBJECT_REDO);
+        }
       }
     }
   }
