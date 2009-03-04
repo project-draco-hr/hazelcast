@@ -1,0 +1,30 @@
+{
+  ThreadContext threadContext=ThreadContext.get();
+  TransactionImpl txn=threadContext.txn;
+  if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+    try {
+      boolean locked=false;
+      if (!txn.has(name,key)) {
+        MLock mlock=threadContext.getMLock();
+        locked=mlock.lock(name,key,DEFAULT_TXN_TIMEOUT,txn.getId());
+        if (!locked)         throwCME(key);
+        Object oldObject=null;
+        Data oldValue=mlock.oldValue;
+        if (oldValue != null) {
+          oldObject=threadContext.toObject(oldValue);
+        }
+        txn.attachRemoveOp(name,key,value,(oldObject == null));
+      }
+ else {
+        txn.attachRemoveOp(name,key,value,false);
+      }
+    }
+ catch (    Exception e1) {
+      e1.printStackTrace();
+    }
+    return true;
+  }
+ else {
+    return booleanCall(OP_CMAP_REMOVE_MULTI,name,key,value,timeout,txnId,-1);
+  }
+}

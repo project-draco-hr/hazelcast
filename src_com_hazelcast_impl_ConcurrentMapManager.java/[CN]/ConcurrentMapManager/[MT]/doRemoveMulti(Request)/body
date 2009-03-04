@@ -1,0 +1,29 @@
+{
+  if (!testLock(request)) {
+    if (request.hasEnoughTimeToSchedule()) {
+      Record record=ensureRecord(request);
+      request.scheduled=true;
+      final Request reqScheduled=(request.local) ? request : request.hardCopy();
+      record.addScheduledAction(new ScheduledAction(request){
+        @Override public boolean consume(){
+          CMap cmap=getMap(reqScheduled.name);
+          boolean removed=cmap.removeMulti(reqScheduled);
+          reqScheduled.response=Boolean.valueOf(removed);
+          reqScheduled.key=null;
+          reqScheduled.value=null;
+          returnScheduledAsBoolean(reqScheduled);
+          return true;
+        }
+      }
+);
+    }
+ else {
+      request.response=Boolean.FALSE;
+    }
+  }
+ else {
+    CMap cmap=getMap(request.name);
+    boolean removed=cmap.removeMulti(request);
+    request.response=Boolean.valueOf(removed);
+  }
+}
