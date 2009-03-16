@@ -1,23 +1,28 @@
 {
-  target=thisAddress;
-  Record record=getRecordById(request.recordId);
-  if (record == null) {
-    logger.log(Level.FINEST,"record is null " + request.recordId);
-    return;
-  }
- else {
-    Block block=mapBlocks.get(record.blockId);
-    if (block.migrationAddress == null) {
-      logger.log(Level.FINEST,"not migrating " + request.recordId);
+  Record record=null;
+  try {
+    target=thisAddress;
+    record=getRecordById(request.recordId);
+    if (record == null) {
+      logger.log(Level.FINEST,"record is null " + request.recordId);
       return;
     }
  else {
-      target=block.migrationAddress;
+      Block block=mapBlocks.get(record.blockId);
+      if (block.migrationAddress == null) {
+        logger.log(Level.FINEST,"not migrating " + request.recordId);
+        return;
+      }
+ else {
+        target=block.migrationAddress;
+      }
+      copyRecordToRequest(record,request,true);
+      request.operation=OP_CMAP_MIGRATE_RECORD;
     }
-    setLocal(OP_CMAP_MIGRATE_RECORD,record.name,record.key,record.value,0,-1,record.id);
-    request.blockId=record.blockId;
-    request.lockAddress=record.lockAddress;
-    request.lockCount=record.lockCount;
-    request.lockThreadId=record.lockThreadId;
+  }
+  finally {
+    CMap cmap=getMap(record.name);
+    cmap.removeRecord(record.key);
+    backupInfo.owner=target;
   }
 }

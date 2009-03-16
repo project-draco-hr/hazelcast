@@ -1,19 +1,17 @@
 {
   if (isSuperClient())   return;
   Set<Long> recordsToMigrate=new HashSet<Long>(1000);
-  Set<Long> recordsToBackup=new HashSet<Long>(1000);
   Set<Long> recordsToRemove=new HashSet<Long>(1000);
-  List<Request> recordsToBackupAsRequest=new ArrayList<Request>(1000);
+  List<RecordBackupInfo> recordsToBackup=new ArrayList<RecordBackupInfo>(1000);
   int sendOwn=0;
   int removed=0;
   int sendBackup=0;
   int migrationOwner=0;
-  int ownerBackup=0;
-  int migrationBackup=0;
   try {
     Collection<Record> colRecords=mapRecordsById.values();
     for (    Record rec : colRecords) {
       Block block=mapBlocks.get(rec.getBlockId());
+      CMap cmap=getMap(rec.name);
       if (block.owner.equals(thisAddress)) {
         if (block.isMigrating()) {
           recordsToMigrate.add(rec.getId());
@@ -21,8 +19,8 @@
         }
  else {
           rec.setOwner(thisAddress);
-          recordsToBackup.add(rec.getId());
-          recordsToBackupAsRequest.add(toRequest(rec,false));
+          int backupCount=Math.min(lsMembers.size(),cmap.getNumberOfBackups());
+          recordsToBackup.add(new RecordBackupInfo(rec.getId(),backupCount));
           sendBackup++;
         }
       }
@@ -31,26 +29,7 @@
         migrationOwner++;
       }
  else {
-        if (block.isMigrating()) {
-          MemberImpl nextAfterMigration=getNextMemberAfter(block.migrationAddress,true,1);
-          if (nextAfterMigration != null && nextAfterMigration.getAddress().equals(thisAddress)) {
-            rec.owner=block.migrationAddress;
-            migrationBackup++;
-          }
- else {
-            recordsToRemove.add(rec.getId());
-          }
-        }
- else {
-          MemberImpl nextAfterOwner=getNextMemberAfter(block.owner,true,1);
-          if (nextAfterOwner != null && nextAfterOwner.getAddress().equals(thisAddress)) {
-            rec.owner=block.owner;
-            ownerBackup++;
-          }
- else {
-            recordsToRemove.add(rec.getId());
-          }
-        }
+        recordsToRemove.add(rec.getId());
       }
     }
     for (    Long recordId : recordsToRemove) {
@@ -69,9 +48,7 @@
     log("SendOwn:        " + sendOwn);
     log("SendBackup:     " + sendBackup);
     log("MigrationOwner: " + migrationOwner);
-    log("OwnerBackup:    " + ownerBackup);
-    log("MigrationBackup:" + migrationBackup);
     log("Removed:        " + removed);
   }
-  executeLocally(new Migrator(recordsToBackup,recordsToMigrate,recordsToBackupAsRequest));
+  executeLocally(new Migrator(recordsToMigrate,recordsToBackup));
 }

@@ -9,37 +9,18 @@
       logger.log(Level.FINEST,"couldn't migrate " + recordId);
     }
   }
-  Processable removeMigratedRecordsProcess=new Processable(){
-    public void process(){
-      for (      final Long recordId : recordsToMigrate) {
-        Record record=getRecordById(recordId);
-        if (record != null) {
-          Block block=getBlock(record.key);
-          if (!backupMemberFor(block)) {
-            CMap cmap=getMap(record.name);
-            cmap.removeRecord(record.key);
-          }
-        }
+  List<MBackupSync> lsMBackupSyncs=new ArrayList<MBackupSync>();
+  if (backups != null) {
+    for (    RecordBackupInfo bi : backups) {
+      for (int i=0; i < bi.backupCount; i++) {
+        MBackupSync mbackup=new MBackupSync();
+        mbackup.sendBackupAdd(bi.recordId,i + 1);
       }
     }
   }
-;
-  enqueueAndReturn(removeMigratedRecordsProcess);
-  if (recordsToBackup != null) {
-    int count=0;
-    MBackupOp mbackupOp=new MBackupOp();
-    for (    final long recordId : recordsToBackup) {
-      mbackupOp.backup(recordId);
-      if (count++ > 10) {
-        count=0;
-        try {
-          Thread.sleep(1);
-        }
- catch (        InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-    }
+  int backupOpSize=lsMBackupSyncs.size();
+  for (int i=0; i < backupOpSize; i++) {
+    lsMBackupSyncs.get(i).getResultAsBoolean();
   }
   Processable processCompletion=new Processable(){
     public void process(){
