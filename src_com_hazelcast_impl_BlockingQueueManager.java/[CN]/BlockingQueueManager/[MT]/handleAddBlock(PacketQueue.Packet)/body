@@ -1,0 +1,29 @@
+{
+  try {
+    BlockUpdate addRemove=(BlockUpdate)ThreadContext.get().toObject(packet.value);
+    String name=packet.name;
+    int blockId=addRemove.addBlockId;
+    Address addressOwner=addRemove.addAddress;
+    Q q=getQ(name);
+    List<Block> lsBlocks=q.lsBlocks;
+    boolean exist=false;
+    for (    Block block : lsBlocks) {
+      if (block.blockId == blockId) {
+        exist=true;
+      }
+    }
+    if (!exist) {
+      Block newBlock=q.createBlock(addressOwner,blockId);
+      q.addBlock(newBlock);
+    }
+    if (addRemove.fullBlockId != -1) {
+      q.setBlockFull(addRemove.fullBlockId);
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+ finally {
+    packet.returnToContainer();
+  }
+}

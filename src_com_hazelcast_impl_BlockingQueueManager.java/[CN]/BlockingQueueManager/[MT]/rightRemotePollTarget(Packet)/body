@@ -1,0 +1,30 @@
+{
+  Q q=getQ(packet.name);
+  if (q.blCurrentTake == null) {
+    q.setCurrentTake();
+  }
+  boolean packetalid=false;
+  if (packet.blockId != q.blCurrentTake.blockId) {
+    if (packet.blockId > q.blCurrentTake.blockId) {
+      int size=q.lsBlocks.size();
+      for (int i=0; i < size; i++) {
+        Block block=q.lsBlocks.get(i);
+        if (block.blockId == packet.blockId) {
+          if (thisAddress.equals(block.address)) {
+            q.blCurrentTake=block;
+          }
+        }
+      }
+    }
+ else {
+      packetalid=true;
+    }
+  }
+  if ((q.blCurrentTake.size() == 0 && q.blCurrentTake.isFull()) || !thisAddress.equals(q.blCurrentTake.address)) {
+    packetalid=true;
+  }
+  if (packetalid) {
+    sendRedoResponse(packet);
+  }
+  return (!packetalid);
+}

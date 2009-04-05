@@ -5,7 +5,7 @@
  else {
     boolean cancelled=false;
     try {
-      final Callable<Boolean> callCancel=new CancelationTask(executionId.longValue(),thisAddress,mayInterruptIfRunning);
+      final Callable<Boolean> callCancel=new CancelationTask(executionId,thisAddress,mayInterruptIfRunning);
       if (innerFutureTask.getMembers() == null) {
         DistributedTask<Boolean> task=null;
         if (innerFutureTask.getKey() != null) {
@@ -18,14 +18,14 @@
           task=new DistributedTask<Boolean>(callCancel,randomTarget);
         }
         Hazelcast.getExecutorService().execute(task);
-        cancelled=task.get().booleanValue();
+        cancelled=task.get();
       }
  else {
         final MultiTask<Boolean> task=new MultiTask<Boolean>(callCancel,innerFutureTask.getMembers());
         Hazelcast.getExecutorService().execute(task);
         final Collection<Boolean> results=task.get();
         for (        final Boolean result : results) {
-          if (result.booleanValue())           cancelled=true;
+          if (result)           cancelled=true;
         }
       }
     }
