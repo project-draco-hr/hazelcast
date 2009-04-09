@@ -1,28 +1,9 @@
 {
-  Record record=null;
-  try {
-    target=thisAddress;
-    record=getRecordById(request.recordId);
-    if (record == null) {
-      logger.log(Level.FINEST,"record is null " + request.recordId);
-      return;
+  target=getTarget(request.name,request.key);
+  if (target == null) {
+    Block block=mapBlocks.get(request.blockId);
+    if (block != null) {
+      target=block.migrationAddress;
     }
- else {
-      Block block=mapBlocks.get(record.blockId);
-      if (block.migrationAddress == null) {
-        logger.log(Level.FINEST,"not migrating " + request.recordId);
-        return;
-      }
- else {
-        target=block.migrationAddress;
-      }
-      copyRecordToRequest(record,request,true);
-      request.operation=OP_CMAP_MIGRATE_RECORD;
-    }
-  }
-  finally {
-    CMap cmap=getMap(record.name);
-    cmap.removeRecord(record.key);
-    backupInfo.owner=target;
   }
 }

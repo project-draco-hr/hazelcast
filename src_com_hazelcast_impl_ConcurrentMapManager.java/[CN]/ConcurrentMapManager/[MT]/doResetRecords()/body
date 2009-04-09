@@ -1,54 +1,33 @@
 {
   if (isSuperClient())   return;
-  Set<Long> recordsToMigrate=new HashSet<Long>(1000);
-  Set<Long> recordsToRemove=new HashSet<Long>(1000);
-  List<RecordBackupInfo> recordsToBackup=new ArrayList<RecordBackupInfo>(1000);
-  int sendOwn=0;
-  int removed=0;
-  int sendBackup=0;
-  int migrationOwner=0;
-  try {
-    Collection<Record> colRecords=mapRecordsById.values();
-    for (    Record rec : colRecords) {
-      Block block=mapBlocks.get(rec.getBlockId());
-      CMap cmap=getMap(rec.name);
-      if (block.owner.equals(thisAddress)) {
-        if (block.isMigrating()) {
-          recordsToMigrate.add(rec.getId());
-          sendOwn++;
-        }
- else {
-          rec.setOwner(thisAddress);
-          int backupCount=Math.min(lsMembers.size(),cmap.getNumberOfBackups());
-          recordsToBackup.add(new RecordBackupInfo(rec.getId(),backupCount));
-          sendBackup++;
-        }
-      }
- else       if (block.isMigrating() && block.migrationAddress.equals(thisAddress)) {
-        rec.owner=thisAddress;
-        migrationOwner++;
-      }
- else {
-        recordsToRemove.add(rec.getId());
+  final Object[] records=mapRecordsById.values().toArray();
+  for (  Object recObj : records) {
+    final Record rec=(Record)recObj;
+    CMap cmap=getMap(rec.name);
+    cmap.removeRecord(rec.key);
+    executeLocally(new Runnable(){
+      public void run(){
+        MMigrate mmigrate=new MMigrate();
+        mmigrate.migrate(rec);
       }
     }
-    for (    Long recordId : recordsToRemove) {
-      Record rec=getRecordById(recordId);
-      if (rec != null) {
-        CMap cmap=getMap(rec.name);
-        cmap.removeRecord(rec.key);
-        removed++;
+);
+  }
+  executeLocally(new Runnable(){
+    public void run(){
+      Processable processCompletion=new Processable(){
+        public void process(){
+          doMigrationComplete(thisAddress);
+          sendMigrationComplete();
+          if (DEBUG) {
+            printBlocks();
+            logger.log(Level.FINEST,"Migration ended!");
+          }
+        }
       }
+;
+      enqueueAndReturn(processCompletion);
     }
   }
- catch (  Throwable e) {
-    logger.log(Level.SEVERE,e.getMessage(),e);
-  }
-  if (DEBUG) {
-    log("SendOwn:        " + sendOwn);
-    log("SendBackup:     " + sendBackup);
-    log("MigrationOwner: " + migrationOwner);
-    log("Removed:        " + removed);
-  }
-  executeLocally(new Migrator(recordsToMigrate,recordsToBackup));
+);
 }
