@@ -2,10 +2,11 @@
   String currentAddress=null;
   try {
     final Config config=Config.get();
-    final String localAddress=System.getProperty("the.local.address");
-    currentAddress=InetAddress.getByName(localAddress).getHostAddress().trim();
-    if (currentAddress == null || currentAddress.length() == 0 || currentAddress.equalsIgnoreCase("localhost") || currentAddress.equals("127.0.0.1")) {
-      boolean matchFound=false;
+    final String localAddress=System.getProperty("hazelcast.local.address");
+    if (localAddress != null) {
+      currentAddress=InetAddress.getByName(localAddress.trim()).getHostAddress();
+    }
+    if (currentAddress == null) {
       final Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
       interfaces:       while (enums.hasMoreElements()) {
         final NetworkInterface ni=enums.nextElement();
@@ -14,28 +15,31 @@
           final InetAddress inetAddress=e.nextElement();
           if (inetAddress instanceof Inet4Address) {
             final String address=inetAddress.getHostAddress();
-            if (!inetAddress.isLoopbackAddress()) {
-              currentAddress=address;
-              if (config.interfaces.enabled) {
-                if (matchAddress(address)) {
-                  matchFound=true;
-                  break interfaces;
-                }
+            if (config.interfaces.enabled) {
+              if (matchAddress(address)) {
+                currentAddress=address;
+                break interfaces;
               }
+            }
  else {
+              if (!inetAddress.isLoopbackAddress()) {
+                currentAddress=address;
                 break interfaces;
               }
             }
           }
         }
       }
-      if (config.interfaces.enabled && !matchFound) {
+      if (config.interfaces.enabled && currentAddress == null) {
         String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
         msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
         logger.log(Level.SEVERE,msg);
         Node.get().dumpCore(null);
         return null;
       }
+    }
+    if (currentAddress == null) {
+      currentAddress="127.0.0.1";
     }
     final InetAddress inetAddress=InetAddress.getByName(currentAddress);
     ServerSocket serverSocket=serverSocketChannel.socket();
