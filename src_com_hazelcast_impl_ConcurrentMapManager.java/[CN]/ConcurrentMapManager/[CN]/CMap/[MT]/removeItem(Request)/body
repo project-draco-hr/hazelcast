@@ -3,13 +3,22 @@
   req.key.setNoData();
   req.key=null;
   if (record == null) {
-    return null;
+    return false;
   }
-  Data oldValue=record.getValue();
-  if (record.value != null) {
+  boolean removed=false;
+  if (record.getCopyCount() > 0) {
+    record.decrementCopyCount();
+  }
+ else   if (record.value != null) {
+    removed=true;
+  }
+  if (removed) {
     fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record,null);
     record.version++;
-    record.value=null;
+    if (record.value != null) {
+      record.value.setNoData();
+      record.value=null;
+    }
   }
   req.version=record.version;
   req.longValue=record.copyCount;
@@ -18,5 +27,5 @@
     record.key.setNoData();
     record.key=null;
   }
-  return oldValue;
+  return true;
 }
