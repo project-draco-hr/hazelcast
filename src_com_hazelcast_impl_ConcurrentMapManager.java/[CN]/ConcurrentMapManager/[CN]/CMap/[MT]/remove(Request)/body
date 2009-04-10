@@ -5,23 +5,26 @@
   if (record == null) {
     return null;
   }
+  Data oldValue=record.getValue();
   boolean removed=false;
   if (record.getCopyCount() > 0) {
     record.decrementCopyCount();
-  }
- else {
-    record=removeRecord(record.key);
     removed=true;
   }
-  if (record.getValue() != null) {
-    fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record,null);
+ else   if (record.value != null) {
+    removed=true;
+    record.value=null;
   }
   if (removed) {
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record,null);
+    record.version++;
+  }
+  req.version=record.version;
+  req.longValue=record.copyCount;
+  if (record.isRemovable()) {
+    removeRecord(record.key);
     record.key.setNoData();
     record.key=null;
   }
-  record.version++;
-  req.version=record.version;
-  req.longValue=record.copyCount;
-  return record.getValue();
+  return oldValue;
 }
