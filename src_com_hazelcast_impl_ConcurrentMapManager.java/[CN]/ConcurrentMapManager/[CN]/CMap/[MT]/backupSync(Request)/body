@@ -1,8 +1,29 @@
 {
   Record record=getRecord(req.key);
   if (record != null) {
-    if (req.version <= record.version) {
-      logger.log(Level.FINEST,req.version + " backupSync! oldVersion " + record.version);
+    if (req.version > record.version + 1) {
+      Request reqCopy=new Request();
+      reqCopy.setFromRequest(req,false);
+      req.key=null;
+      req.value=null;
+      VersionedBackupOp bo=null;
+      if (req.operation == OP_CMAP_BACKUP_PUT_SYNC) {
+        bo=new VersionedPutBackupOp(record,reqCopy);
+      }
+ else       if (req.operation == OP_CMAP_BACKUP_REMOVE_SYNC) {
+        bo=new VersionedRemoveBackupOp(record,reqCopy);
+      }
+ else       if (req.operation == OP_CMAP_BACKUP_LOCK_SYNC) {
+        bo=new VersionedLockBackupOp(record,reqCopy);
+      }
+ else {
+        logger.log(Level.SEVERE,"Unknown backupSync operation " + req.operation);
+        return false;
+      }
+      record.addBackupOp(bo);
+      return true;
+    }
+ else     if (req.version <= record.version) {
       return false;
     }
   }
@@ -18,6 +39,7 @@
   }
   if (record != null) {
     record.version=req.version;
+    record.runBackupOps();
   }
   return true;
 }
