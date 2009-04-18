@@ -1,3 +1,31 @@
 {
-  return true;
+  Record record=getRecord(req.key);
+  if (record == null)   return false;
+  boolean removed=false;
+  if (req.value == null) {
+    removed=true;
+    removeRecord(req.key);
+  }
+ else {
+    if (record.containsValue(req.value)) {
+      if (record.lsValues != null) {
+        Iterator<Data> itValues=record.lsValues.iterator();
+        while (itValues.hasNext()) {
+          Data value=itValues.next();
+          if (req.value.equals(value)) {
+            itValues.remove();
+            value.setNoData();
+            removed=true;
+          }
+        }
+      }
+    }
+  }
+  if (removed) {
+    record.version++;
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record,null);
+    logger.log(Level.FINEST,record.value + " PutRemove " + record.lsValues);
+  }
+  req.version=record.version;
+  return removed;
 }
