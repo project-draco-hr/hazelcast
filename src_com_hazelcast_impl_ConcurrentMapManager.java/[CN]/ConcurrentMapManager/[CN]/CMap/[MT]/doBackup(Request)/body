@@ -1,12 +1,6 @@
 {
   if (req.operation == OP_CMAP_BACKUP_PUT) {
-    Record record=toRecord(req);
-    if (record.value != null) {
-      record.value.setNoData();
-    }
-    record.value=req.value;
-    record.copyCount=(int)req.longValue;
-    req.value=null;
+    toRecord(req);
   }
  else   if (req.operation == OP_CMAP_BACKUP_REMOVE) {
     Record record=getRecord(req.key);
@@ -19,8 +13,13 @@
           value.setNoData();
         }
       }
-      record.copyCount--;
+      if (record.copyCount > 0) {
+        record.decrementCopyCount();
+      }
       record.value=null;
+      if (record.isRemovable()) {
+        removeRecord(record.key);
+      }
     }
   }
  else   if (req.operation == OP_CMAP_BACKUP_LOCK) {
@@ -53,6 +52,9 @@
             }
           }
         }
+      }
+      if (record.isRemovable()) {
+        removeRecord(record.key);
       }
     }
   }

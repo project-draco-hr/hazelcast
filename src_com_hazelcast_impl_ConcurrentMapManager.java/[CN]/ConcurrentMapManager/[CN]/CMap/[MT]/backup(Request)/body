@@ -1,12 +1,13 @@
 {
   Record record=getRecord(req.key);
   if (record != null) {
+    record.version=req.version;
     if (req.version > record.version + 1) {
       Request reqCopy=new Request();
       reqCopy.setFromRequest(req,false);
       req.key=null;
       req.value=null;
-      record.addBackupOp(new VersionedBackupOp(req));
+      record.addBackupOp(new VersionedBackupOp(reqCopy));
       return true;
     }
  else     if (req.version <= record.version) {
@@ -14,7 +15,6 @@
     }
   }
   doBackup(req);
-  record=getRecord(req.key);
   if (record != null) {
     record.version=req.version;
     record.runBackupOps();
