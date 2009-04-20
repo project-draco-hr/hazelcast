@@ -6,43 +6,15 @@
       reqCopy.setFromRequest(req,false);
       req.key=null;
       req.value=null;
-      VersionedBackupOp bo=null;
-      if (req.operation == OP_CMAP_BACKUP_PUT) {
-        bo=new VersionedPutBackupOp(record,reqCopy);
-      }
- else       if (req.operation == OP_CMAP_BACKUP_REMOVE) {
-        bo=new VersionedRemoveBackupOp(record,reqCopy);
-      }
- else       if (req.operation == OP_CMAP_BACKUP_LOCK) {
-        bo=new VersionedLockBackupOp(record,reqCopy);
-      }
- else       if (req.operation == OP_CMAP_BACKUP_PUT_MULTI) {
-        bo=new VersionedPutMultiBackupOp(record,reqCopy);
-      }
- else       if (req.operation == OP_CMAP_BACKUP_REMOVE_MULTI) {
-        bo=new VersionedRemoveMultiBackupOp(record,reqCopy);
-      }
- else {
-        logger.log(Level.SEVERE,"Unknown backup operation " + req.operation);
-        return false;
-      }
-      record.addBackupOp(bo);
+      record.addBackupOp(new VersionedBackupOp(req));
       return true;
     }
  else     if (req.version <= record.version) {
       return false;
     }
   }
-  if (req.operation == OP_CMAP_BACKUP_PUT) {
-    record=toRecord(req);
-    record.owner=req.caller;
-  }
- else   if (req.operation == OP_CMAP_BACKUP_REMOVE) {
-    removeRecord(req.key);
-  }
- else   if (req.operation == OP_CMAP_BACKUP_LOCK) {
-    record=toRecord(req);
-  }
+  doBackup(req);
+  record=getRecord(req.key);
   if (record != null) {
     record.version=req.version;
     record.runBackupOps();
