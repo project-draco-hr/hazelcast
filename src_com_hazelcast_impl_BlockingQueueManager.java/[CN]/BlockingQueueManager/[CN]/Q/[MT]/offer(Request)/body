@@ -1,25 +1,29 @@
 {
   int addIndex=blCurrentPut.add(req.value);
-  long recordId=getRecordId(blCurrentPut.blockId,addIndex);
-  req.recordId=recordId;
-  doFireEntryEvent(true,req.value,recordId);
-  size++;
-  while (lsScheduledPollActions.size() > 0) {
-    ScheduledAction pollAction=lsScheduledPollActions.remove(0);
-    ClusterManager.get().deregisterScheduledAction(pollAction);
-    if (pollAction.expired()) {
-      pollAction.onExpire();
-    }
+  try {
+    long recordId=getRecordId(blCurrentPut.blockId,addIndex);
+    req.recordId=recordId;
+    doFireEntryEvent(true,req.value,recordId);
+    size++;
+    while (lsScheduledPollActions.size() > 0) {
+      ScheduledAction pollAction=lsScheduledPollActions.remove(0);
+      ClusterManager.get().deregisterScheduledAction(pollAction);
+      if (pollAction.expired()) {
+        pollAction.onExpire();
+      }
  else {
-      boolean consumed=pollAction.consume();
-      if (consumed)       return -1;
+        boolean consumed=pollAction.consume();
+        if (consumed)         return -1;
+      }
     }
+    sendBackup(true,req.caller,req.value,blCurrentPut.blockId,addIndex);
   }
-  sendBackup(true,req.caller,req.value,blCurrentPut.blockId,addIndex);
-  if (blCurrentPut.isFull()) {
-    fireBlockFullEvent(blCurrentPut);
-    blCurrentPut=null;
-    setCurrentPut();
+  finally {
+    if (blCurrentPut.isFull()) {
+      fireBlockFullEvent(blCurrentPut);
+      blCurrentPut=null;
+      setCurrentPut();
+    }
   }
   return addIndex;
 }
