@@ -1,0 +1,34 @@
+{
+  if (checkIfMigrating && migrating()) {
+    packet.responseType=RESPONSE_REDO;
+    sendResponse(packet);
+  }
+ else   if (targetAware && !rightRemoteTarget(packet)) {
+    packet.returnToContainer();
+  }
+ else {
+    remoteReq.setFromPacket(packet);
+    handle(remoteReq);
+    if (schedulable && remoteReq.scheduled) {
+      packet.returnToContainer();
+    }
+ else {
+      if (returnsObject) {
+        Data oldValue=(Data)remoteReq.response;
+        if (oldValue != null && oldValue.size() > 0) {
+          doSet(oldValue,packet.value);
+        }
+        sendResponse(packet);
+      }
+ else {
+        if (remoteReq.response == Boolean.TRUE) {
+          sendResponse(packet);
+        }
+ else {
+          sendResponseFailure(packet);
+        }
+      }
+    }
+    remoteReq.reset();
+  }
+}

@@ -1,0 +1,42 @@
+{
+  if (!testLock(request)) {
+    if (request.hasEnoughTimeToSchedule()) {
+      Record record=ensureRecord(request);
+      request.scheduled=true;
+      final Request reqScheduled=(request.local) ? request : request.hardCopy();
+      record.addScheduledAction(new ScheduledAction(reqScheduled){
+        @Override public boolean consume(){
+          CMap cmap=getMap(reqScheduled.name);
+          if (returnsValue) {
+            Data oldValue=cmap.remove(reqScheduled);
+            reqScheduled.response=oldValue;
+            returnScheduledAsSuccess(reqScheduled);
+          }
+ else {
+            boolean isRemoved=cmap.removeItem(reqScheduled);
+            reqScheduled.response=isRemoved;
+            reqScheduled.key=null;
+            reqScheduled.value=null;
+            returnScheduledAsBoolean(reqScheduled);
+          }
+          return true;
+        }
+      }
+);
+    }
+ else {
+      request.response=null;
+    }
+  }
+ else {
+    CMap cmap=getMap(request.name);
+    if (returnsValue) {
+      Data oldValue=cmap.remove(request);
+      request.response=oldValue;
+    }
+ else {
+      boolean isRemoved=cmap.removeItem(request);
+      request.response=isRemoved;
+    }
+  }
+}

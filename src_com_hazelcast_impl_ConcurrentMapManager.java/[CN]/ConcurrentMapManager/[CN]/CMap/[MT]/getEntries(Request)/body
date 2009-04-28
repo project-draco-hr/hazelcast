@@ -1,0 +1,34 @@
+{
+  Collection<Record> colRecords=mapRecords.values();
+  Pairs pairs=new Pairs();
+  for (  Record record : colRecords) {
+    Block block=mapBlocks.get(record.blockId);
+    if (thisAddress.equals(block.owner)) {
+      if (record.value != null) {
+        pairs.addKeyValue(new KeyValue(doHardCopy(record.key),doHardCopy(record.value)));
+      }
+ else       if (record.copyCount > 0) {
+        for (int i=0; i < record.copyCount; i++) {
+          pairs.addKeyValue(new KeyValue(doHardCopy(record.key),null));
+        }
+      }
+ else       if (record.lsValues != null) {
+        int size=record.lsValues.size();
+        if (size > 0) {
+          if (request.operation == OP_CMAP_ITERATE_KEYS) {
+            pairs.addKeyValue(new KeyValue(doHardCopy(record.key),null));
+          }
+ else {
+            for (int i=0; i < size; i++) {
+              Data value=record.lsValues.get(i);
+              pairs.addKeyValue(new KeyValue(doHardCopy(record.key),doHardCopy(value)));
+            }
+          }
+        }
+      }
+    }
+  }
+  Data dataEntries=ThreadContext.get().toData(pairs);
+  request.longValue=pairs.size();
+  request.response=dataEntries;
+}

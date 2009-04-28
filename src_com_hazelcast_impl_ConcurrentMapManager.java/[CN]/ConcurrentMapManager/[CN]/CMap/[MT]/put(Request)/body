@@ -1,4 +1,16 @@
 {
+  if (req.operation == OP_CMAP_PUT_IF_ABSENT) {
+    Record record=recordExist(req);
+    if (record != null && record.getValue() != null) {
+      return doHardCopy(record.getValue());
+    }
+  }
+ else   if (req.operation == OP_CMAP_REPLACE_IF_NOT_NULL) {
+    Record record=recordExist(req);
+    if (record == null || record.getValue() == null) {
+      return null;
+    }
+  }
   Record record=getRecord(req.key);
   Data oldValue=null;
   if (record == null) {
@@ -15,10 +27,10 @@
   req.key=null;
   req.value=null;
   if (oldValue == null) {
-    fireMapEvent(mapListeners,name,EntryEvent.TYPE_ADDED,record,null);
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_ADDED,record);
   }
  else {
-    fireMapEvent(mapListeners,name,EntryEvent.TYPE_UPDATED,record,null);
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_UPDATED,record);
   }
   return oldValue;
 }
