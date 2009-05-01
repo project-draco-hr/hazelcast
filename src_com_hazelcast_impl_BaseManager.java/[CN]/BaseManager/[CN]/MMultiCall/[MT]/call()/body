@@ -1,0 +1,36 @@
+{
+  onCall();
+  TargetAwareOp localCall=createNewTargetAwareOp(thisAddress);
+  localCall.doOp();
+  Object result=localCall.getResultAsObject();
+  if (result == OBJECT_REDO) {
+    onRedo();
+    return call();
+  }
+  if (onResponse(result)) {
+    Set<Member> members=Node.get().getClusterImpl().getMembers();
+    List<TargetAwareOp> lsCalls=new ArrayList<TargetAwareOp>();
+    for (    Member member : members) {
+      if (!member.localMember()) {
+        ClusterImpl.ClusterMember cMember=(ClusterImpl.ClusterMember)member;
+        TargetAwareOp targetAwareOp=createNewTargetAwareOp(cMember.getAddress());
+        targetAwareOp.doOp();
+        lsCalls.add(targetAwareOp);
+      }
+    }
+    getResults:     for (    TargetAwareOp call : lsCalls) {
+      result=call.getResultAsObject();
+      if (result == OBJECT_REDO) {
+        onRedo();
+        return call();
+      }
+ else {
+        if (!onResponse(result)) {
+          break getResults;
+        }
+      }
+    }
+    onComplete();
+  }
+  return returnResult();
+}
