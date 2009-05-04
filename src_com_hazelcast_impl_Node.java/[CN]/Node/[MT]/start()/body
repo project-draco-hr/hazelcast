@@ -1,4 +1,5 @@
 {
+  if (completelyShutdown)   return;
   firstMainThread=Thread.currentThread();
   clusterImpl=new ClusterImpl();
   final boolean inited=init();
@@ -20,11 +21,14 @@
   }
   join();
   firstMainThread=null;
-  Runtime.getRuntime().addShutdownHook(new Thread(){
-    @Override public void run(){
-      logger.log(Level.FINEST,"Hazelcast ShutdownHook is shutting down!");
-      shutdown();
+  if (!completelyShutdown) {
+    Runtime.getRuntime().addShutdownHook(new Thread(){
+      @Override public void run(){
+        completelyShutdown=true;
+        logger.log(Level.FINEST,"Hazelcast ShutdownHook is shutting down!");
+        shutdown();
+      }
     }
-  }
 );
+  }
 }
