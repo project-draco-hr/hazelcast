@@ -8,16 +8,25 @@
   }
   for (  Object recObj : records) {
     final Record rec=(Record)recObj;
-    rec.forceBackupOps();
     CMap cmap=getMap(rec.name);
     cmap.removeRecord(rec.key);
-    executeLocally(new Runnable(){
-      public void run(){
-        MMigrate mmigrate=new MMigrate();
-        mmigrate.migrate(rec);
-      }
+    boolean shouldMigrate=false;
+    if (thisAddress.equals(rec.owner)) {
+      shouldMigrate=true;
     }
+ else     if (deadAddress != null && deadAddress.equals(rec.owner)) {
+      rec.forceBackupOps();
+      shouldMigrate=true;
+    }
+    if (shouldMigrate) {
+      executeLocally(new Runnable(){
+        public void run(){
+          MMigrate mmigrate=new MMigrate();
+          mmigrate.migrate(rec);
+        }
+      }
 );
+    }
   }
   executeLocally(new Runnable(){
     public void run(){
