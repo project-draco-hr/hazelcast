@@ -1,0 +1,54 @@
+{
+  if (evicting)   return;
+  if (evictionPolicy == OrderingType.NONE)   return;
+  Collection<Record> values=mapRecords.values();
+  int numberOfRecordsToEvict=(int)(ownedEntryCount * evictionRate);
+  int evictedCount=0;
+  List<Data> lsKeysToEvict=new ArrayList<Data>(numberOfRecordsToEvict);
+  recordsLoop:   for (  Record record : values) {
+    if (record.isEvictable()) {
+      lsKeysToEvict.add(doHardCopy(record.key));
+      if (++evictedCount >= numberOfRecordsToEvict) {
+        break recordsLoop;
+      }
+    }
+  }
+  if (lsKeysToEvict.size() > 1) {
+    evicting=true;
+    int latchCount=lsKeysToEvict.size();
+    final CountDownLatch countDownLatchEvictionStart=new CountDownLatch(1);
+    final CountDownLatch countDownLatchEvictionEnd=new CountDownLatch(latchCount);
+    executeLocally(new Runnable(){
+      public void run(){
+        try {
+          countDownLatchEvictionStart.countDown();
+          countDownLatchEvictionEnd.await(60,TimeUnit.SECONDS);
+          enqueueAndReturn(new Processable(){
+            public void process(){
+              evicting=false;
+            }
+          }
+);
+        }
+ catch (        Exception ignored) {
+        }
+      }
+    }
+);
+    for (    final Data key : lsKeysToEvict) {
+      executeLocally(new Runnable(){
+        public void run(){
+          try {
+            countDownLatchEvictionStart.await();
+            MEvict mEvict=new MEvict();
+            mEvict.evict(name,key);
+            countDownLatchEvictionEnd.countDown();
+          }
+ catch (          Exception ignored) {
+          }
+        }
+      }
+);
+    }
+  }
+}
