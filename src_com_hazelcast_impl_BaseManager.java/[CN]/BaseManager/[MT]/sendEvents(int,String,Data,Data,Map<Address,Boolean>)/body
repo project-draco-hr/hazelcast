@@ -1,16 +1,13 @@
 {
   if (mapListeners != null) {
     final PacketQueue sq=PacketQueue.get();
-    final Set<Map.Entry<Address,Boolean>> entries=mapListeners.entrySet();
-    for (    final Map.Entry<Address,Boolean> entry : entries) {
-      final Address address=entry.getKey();
-      final boolean includeValue=entry.getValue();
+    final Set<Map.Entry<Address,Boolean>> listeners=mapListeners.entrySet();
+    for (    final Map.Entry<Address,Boolean> listener : listeners) {
+      final Address address=listener.getKey();
+      final boolean includeValue=listener.getValue();
       if (address.isThisAddress()) {
         try {
-          final Data eventKey=(key != null) ? ThreadContext.get().hardCopy(key) : null;
-          Data eventValue=null;
-          if (includeValue)           eventValue=ThreadContext.get().hardCopy(value);
-          enqueueEvent(eventType,name,eventKey,eventValue,address);
+          enqueueEvent(eventType,name,doHardCopy(key),(includeValue) ? doHardCopy(value) : null,address);
         }
  catch (        final Exception e) {
           e.printStackTrace();
@@ -20,10 +17,7 @@
         final PacketQueue.Packet packet=sq.obtainPacket();
         packet.reset();
         try {
-          final Data eventKey=key;
-          Data eventValue=null;
-          if (includeValue)           eventValue=value;
-          packet.set(name,OP_EVENT,eventKey,eventValue);
+          packet.set(name,OP_EVENT,key,(includeValue) ? value : null);
           packet.longValue=eventType;
         }
  catch (        final Exception e) {
