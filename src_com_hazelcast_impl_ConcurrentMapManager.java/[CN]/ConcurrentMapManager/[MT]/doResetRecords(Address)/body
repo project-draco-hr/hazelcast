@@ -1,7 +1,7 @@
 {
   if (isSuperClient())   return;
   Collection<CMap> cmaps=maps.values();
-  for (  CMap cmap : cmaps) {
+  for (  final CMap cmap : cmaps) {
     final Object[] records=cmap.mapRecords.values().toArray();
     cmap.reset();
     for (    Object recObj : records) {
@@ -18,7 +18,20 @@
         executeLocally(new Runnable(){
           public void run(){
             MMigrate mmigrate=new MMigrate();
-            mmigrate.migrate(rec);
+            if (cmap.isMultiMap()) {
+              List<Data> values=rec.lsValues;
+              if (values == null || values.size() == 0) {
+                mmigrate.migrateMulti(rec,null);
+              }
+ else {
+                for (                Data value : values) {
+                  mmigrate.migrateMulti(rec,value);
+                }
+              }
+            }
+ else {
+              mmigrate.migrate(rec);
+            }
           }
         }
 );
