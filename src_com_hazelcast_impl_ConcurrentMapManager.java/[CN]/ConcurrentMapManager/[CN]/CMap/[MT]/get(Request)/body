@@ -1,18 +1,22 @@
 {
   Record record=getRecord(req.key);
-  req.key.setNoData();
-  req.key=null;
   if (record == null)   return null;
   touch(record);
   Data data=record.getValue();
+  Data returnValue=null;
   if (data != null) {
-    return doHardCopy(data);
+    returnValue=doHardCopy(data);
   }
  else {
     if (record.lsValues != null) {
       Values values=new Values(record.lsValues);
-      return toData(values);
+      returnValue=toData(values);
     }
   }
-  return null;
+  if (returnValue != null) {
+    req.key.setNoData();
+    ThreadContext.get().releaseData(req.key);
+    req.key=null;
+  }
+  return returnValue;
 }
