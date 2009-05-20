@@ -1,30 +1,38 @@
 {
   Collection<Record> colRecords=mapRecords.values();
   Pairs pairs=new Pairs();
+  long now=System.currentTimeMillis();
   for (  Record record : colRecords) {
-    Block block=blocks[record.blockId];
-    if (thisAddress.equals(block.owner)) {
-      if (record.value != null) {
-        pairs.addKeyValue(new KeyValue(record.key,null));
-      }
- else       if (record.copyCount > 0) {
-        for (int i=0; i < record.copyCount; i++) {
+    if (record.isValid(now)) {
+      Block block=blocks[record.blockId];
+      if (thisAddress.equals(block.owner)) {
+        if (record.value != null) {
           pairs.addKeyValue(new KeyValue(record.key,null));
         }
-      }
- else       if (record.lsValues != null) {
-        int size=record.lsValues.size();
-        if (size > 0) {
-          if (request.operation == OP_CMAP_ITERATE_KEYS) {
+ else         if (record.copyCount > 0) {
+          for (int i=0; i < record.copyCount; i++) {
             pairs.addKeyValue(new KeyValue(record.key,null));
           }
- else {
-            for (int i=0; i < size; i++) {
-              Data value=record.lsValues.get(i);
+        }
+ else         if (record.lsValues != null) {
+          int size=record.lsValues.size();
+          if (size > 0) {
+            if (request.operation == OP_CMAP_ITERATE_KEYS) {
               pairs.addKeyValue(new KeyValue(record.key,null));
+            }
+ else {
+              for (int i=0; i < size; i++) {
+                Data value=record.lsValues.get(i);
+                pairs.addKeyValue(new KeyValue(record.key,null));
+              }
             }
           }
         }
+      }
+    }
+ else {
+      if (!record.isEvictable()) {
+        scheduleForEviction(record);
       }
     }
   }

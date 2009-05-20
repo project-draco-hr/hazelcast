@@ -3,6 +3,12 @@
   if (record == null) {
     return null;
   }
+  if (!record.isValid()) {
+    if (record.isEvictable()) {
+      scheduleForEviction(record);
+      return null;
+    }
+  }
   if (req.value != null) {
     if (record.value != null) {
       if (!record.value.equals(req.value)) {
@@ -20,6 +26,7 @@
     fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record.key,oldValue,record.mapListeners);
     record.version++;
     record.value=null;
+    record.lsValues=null;
   }
   req.version=record.version;
   req.longValue=record.copyCount;

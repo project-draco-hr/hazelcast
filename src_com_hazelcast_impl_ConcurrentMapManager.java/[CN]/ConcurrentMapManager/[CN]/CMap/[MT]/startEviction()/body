@@ -1,19 +1,42 @@
 {
   if (evicting)   return;
-  if (evictionPolicy == OrderingType.NONE)   return;
-  Collection<Record> values=mapRecords.values();
-  int numberOfRecordsToEvict=(int)(ownedEntryCount * evictionRate);
-  int evictedCount=0;
-  List<Data> lsKeysToEvict=new ArrayList<Data>(numberOfRecordsToEvict);
-  recordsLoop:   for (  Record record : values) {
-    if (record.isEvictable()) {
-      lsKeysToEvict.add(doHardCopy(record.key));
-      if (++evictedCount >= numberOfRecordsToEvict) {
-        break recordsLoop;
+  List<Data> lsKeysToEvict=null;
+  if (evictionPolicy == OrderingType.NONE) {
+    if (ttl != 0) {
+      long now=System.currentTimeMillis();
+      Collection<Record> values=mapRecords.values();
+      recordsLoop:       for (      Record record : values) {
+        if (!record.isValid(now)) {
+          if (record.isEvictable()) {
+            if (lsKeysToEvict == null) {
+              lsKeysToEvict=new ArrayList<Data>(100);
+            }
+            lsKeysToEvict.add(doHardCopy(record.key));
+          }
+        }
+ else {
+          break recordsLoop;
+        }
       }
     }
   }
-  if (lsKeysToEvict.size() > 1) {
+ else {
+    Collection<Record> values=mapRecords.values();
+    int numberOfRecordsToEvict=(int)(ownedEntryCount * evictionRate);
+    int evictedCount=0;
+    recordsLoop:     for (    Record record : values) {
+      if (record.isEvictable()) {
+        if (lsKeysToEvict == null) {
+          lsKeysToEvict=new ArrayList<Data>(numberOfRecordsToEvict);
+        }
+        lsKeysToEvict.add(doHardCopy(record.key));
+        if (++evictedCount >= numberOfRecordsToEvict) {
+          break recordsLoop;
+        }
+      }
+    }
+  }
+  if (lsKeysToEvict != null && lsKeysToEvict.size() > 1) {
     evicting=true;
     int latchCount=lsKeysToEvict.size();
     final CountDownLatch countDownLatchEvictionStart=new CountDownLatch(1);
