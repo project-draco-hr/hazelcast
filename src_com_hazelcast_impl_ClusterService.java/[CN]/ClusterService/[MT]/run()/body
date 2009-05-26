@@ -2,15 +2,14 @@
   while (running) {
     Object obj=null;
     try {
-      queue.drainTo(lsBuffer,64);
-      final int size=lsBuffer.size();
+      queue.drainTo(bulk,BULK_SIZE);
+      final int size=bulk.size();
       if (size > 0) {
         for (int i=0; i < size; i++) {
-          obj=lsBuffer.get(i);
+          obj=bulk.remove();
           checkPeriodics();
           process(obj);
         }
-        lsBuffer.clear();
       }
  else {
         obj=queue.poll(100,TimeUnit.MILLISECONDS);
@@ -29,6 +28,6 @@ catch (    final Throwable e) {
       System.out.println("Exception when handling " + obj);
     }
   }
-  lsBuffer.clear();
+  bulk.clear();
   queue.clear();
 }

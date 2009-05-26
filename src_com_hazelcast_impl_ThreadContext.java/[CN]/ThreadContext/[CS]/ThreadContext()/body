@@ -17,18 +17,30 @@
     }
   }
   logger.log(Level.FINEST,threadName + " is starting with cacheSize " + bufferCacheSize);
-  ObjectFactory<ByteBuffer> byteBufferCacheFactory=new ObjectFactory<ByteBuffer>(){
+  bufferCache=new ObjectPool<ByteBuffer>("BufferCache",bufferCacheSize){
     public ByteBuffer createNew(){
       return ByteBuffer.allocate(1024);
     }
-  }
-;
-  bufferCache=new ObjectPool<ByteBuffer>("BufferCache",byteBufferCacheFactory,bufferCacheSize,bufferq);
-  ObjectFactory<Packet> packetCacheFactory=new ObjectFactory<Packet>(){
-    public Packet createNew(){
-      return PacketQueue.get().createNewPacket();
+    public void onRelease(    ByteBuffer byteBuffer){
+      byteBuffer.clear();
+    }
+    public void onObtain(    ByteBuffer byteBuffer){
+      byteBuffer.clear();
     }
   }
 ;
-  packetCache=new ObjectPool<Packet>("PacketCache",packetCacheFactory,packetCacheSize,PacketQueue.get().qPackets);
+  packetCache=new ObjectPool<Packet>("PacketCache",packetCacheSize){
+    public Packet createNew(){
+      return new Packet();
+    }
+    public void onRelease(    Packet packet){
+      packet.reset();
+      packet.released=true;
+    }
+    public void onObtain(    Packet packet){
+      packet.reset();
+      packet.released=false;
+    }
+  }
+;
 }
