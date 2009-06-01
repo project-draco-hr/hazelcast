@@ -1,30 +1,28 @@
 {
-  boolean usingSystemConfig=false;
   String configFile=System.getProperty("hazelcast.config");
-  File fileConfig=null;
   InputStream in=null;
   try {
     if (configFile != null) {
-      fileConfig=new File(configFile);
-      if (!fileConfig.exists()) {
+      configurationFile=new File(configFile);
+      if (!configurationFile.exists()) {
         String msg="Config file at '" + configFile + "' doesn't exist.";
         msg+="\nHazelcast will try to use the hazelcast.xml config file in the classpath.";
         logger.log(Level.WARNING,msg);
-        fileConfig=null;
+        configurationFile=null;
       }
     }
-    if (fileConfig == null) {
+    if (configurationFile == null) {
       configFile="hazelcast.xml";
-      fileConfig=new File("hazelcast.xml");
-      if (!fileConfig.exists()) {
-        fileConfig=null;
+      configurationFile=new File("hazelcast.xml");
+      if (!configurationFile.exists()) {
+        configurationFile=null;
       }
     }
-    if (fileConfig != null) {
-      logger.log(Level.INFO,"Using configuration file at " + fileConfig.getAbsolutePath());
+    if (configurationFile != null) {
+      logger.log(Level.INFO,"Using configuration file at " + configurationFile.getAbsolutePath());
       try {
-        in=new FileInputStream(fileConfig);
-        urlConfig=fileConfig.toURI().toURL();
+        in=new FileInputStream(configurationFile);
+        configurationUrl=configurationFile.toURI().toURL();
         usingSystemConfig=true;
       }
  catch (      final Exception e) {
@@ -36,8 +34,8 @@
       }
     }
     if (in == null) {
-      urlConfig=Config.class.getClassLoader().getResource("hazelcast.xml");
-      if (urlConfig == null)       return;
+      configurationUrl=Config.class.getClassLoader().getResource("hazelcast.xml");
+      if (configurationUrl == null)       return;
       in=Config.class.getClassLoader().getResourceAsStream("hazelcast.xml");
       if (in == null) {
         String msg="Having problem reading config file hazelcast.xml in the classpath.";
@@ -48,64 +46,7 @@
     if (in == null) {
       return;
     }
-    final DocumentBuilder builder=DocumentBuilderFactory.newInstance().newDocumentBuilder();
-    Document doc=null;
-    try {
-      doc=builder.parse(in);
-      final ByteArrayOutputStream baos=new ByteArrayOutputStream();
-      Util.streamXML(doc,baos);
-      final byte[] bytes=baos.toByteArray();
-      final ByteArrayInputStream bais=new ByteArrayInputStream(bytes);
-      xmlConfig=Util.inputStreamToString(bais);
-      if ("true".equals(System.getProperty("hazelcast.config.print"))) {
-        logger.log(Level.INFO,"Hazelcast config URL : " + urlConfig);
-        logger.log(Level.INFO,"=== Hazelcast config xml ===");
-        logger.log(Level.INFO,xmlConfig);
-        logger.log(Level.INFO,"==============================");
-        logger.log(Level.INFO,"");
-      }
-    }
- catch (    final Exception e) {
-      String msgPart="config file '" + configFile + "' set as a system property.";
-      if (!usingSystemConfig) {
-        msgPart="hazelcast.xml config file in the classpath.";
-      }
-      String msg="Having problem parsing the " + msgPart;
-      msg+="\nException: " + e.getMessage();
-      msg+="\nHazelcast will start with default configuration.";
-      logger.log(Level.WARNING,msg);
-      return;
-    }
-    final Element docElement=doc.getDocumentElement();
-    try {
-      docElement.getTextContent();
-    }
- catch (    final Throwable e) {
-      domLevel3=false;
-    }
-    final NodeList nodelist=docElement.getChildNodes();
-    for (int i=0; i < nodelist.getLength(); i++) {
-      final org.w3c.dom.Node node=nodelist.item(i);
-      final String nodeName=node.getNodeName();
-      if ("network".equals(nodeName)) {
-        handleNetwork(node);
-      }
- else       if ("group".equals(nodeName)) {
-        handleGroup(node);
-      }
- else       if ("executor-service".equals(nodeName)) {
-        handleExecutor(node);
-      }
- else       if ("queue".equals(nodeName)) {
-        handleQueue(node);
-      }
- else       if ("map".equals(nodeName)) {
-        handleMap(node);
-      }
- else       if ("topic".equals(nodeName)) {
-        handleTopic(node);
-      }
-    }
+    new ConfigBuilder().parse(in,this);
   }
  catch (  final Exception e) {
     logger.log(Level.SEVERE,"Error while creating configuration",e);
