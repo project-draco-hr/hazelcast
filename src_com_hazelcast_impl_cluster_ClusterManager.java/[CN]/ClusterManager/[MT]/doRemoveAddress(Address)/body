@@ -1,0 +1,44 @@
+{
+  if (DEBUG) {
+    log("Removing Address " + deadAddress);
+  }
+  if (deadAddress.equals(thisAddress))   return;
+  if (deadAddress.equals(getMasterAddress())) {
+    if (Node.get().joined()) {
+      MemberImpl newMaster=getNextMemberAfter(deadAddress,false,1);
+      if (newMaster != null)       Node.get().setMasterAddress(newMaster.getAddress());
+ else       Node.get().setMasterAddress(null);
+    }
+ else {
+      Node.get().setMasterAddress(null);
+    }
+    if (DEBUG) {
+      log("Now Master " + Node.get().getMasterAddress());
+    }
+  }
+  if (isMaster()) {
+    setJoins.remove(new MemberInfo(deadAddress,0));
+  }
+  lsMembersBefore.clear();
+  for (  MemberImpl member : lsMembers) {
+    lsMembersBefore.add(member);
+  }
+  Connection conn=ConnectionManager.get().getConnection(deadAddress);
+  if (conn != null) {
+    ConnectionManager.get().remove(conn);
+  }
+  MemberImpl member=getMember(deadAddress);
+  if (member != null) {
+    removeMember(deadAddress);
+  }
+  BlockingQueueManager.get().syncForDead(deadAddress);
+  ConcurrentMapManager.get().syncForDead(deadAddress);
+  ListenerManager.get().syncForDead(deadAddress);
+  TopicManager.get().syncForDead(deadAddress);
+  Node.get().getClusterImpl().setMembers(lsMembers);
+  Object[] calls=mapCalls.values().toArray();
+  for (  Object call : calls) {
+    ((Call)call).onDisconnect(deadAddress);
+  }
+  System.out.println(this);
+}

@@ -1,0 +1,96 @@
+{
+  ClusterService.get().registerPeriodicRunnable(new Runnable(){
+    public void run(){
+      heartBeater();
+    }
+  }
+);
+  ClusterService.get().registerPeriodicRunnable(new Runnable(){
+    public void run(){
+      checkScheduledActions();
+    }
+  }
+);
+  ConnectionManager.get().addConnectionListener(this);
+  ClusterService.get().registerPacketProcessor(OP_RESPONSE,new PacketProcessor(){
+    public void process(    Packet packet){
+      handleResponse(packet);
+    }
+  }
+);
+  ClusterService.get().registerPacketProcessor(OP_HEARTBEAT,new PacketProcessor(){
+    public void process(    Packet packet){
+      packet.returnToContainer();
+    }
+  }
+);
+  ClusterService.get().registerPacketProcessor(OP_REMOTELY_PROCESS_AND_RESPOND,new PacketProcessor(){
+    public void process(    Packet packet){
+      Data data=BufferUtil.doTake(packet.value);
+      RemotelyProcessable rp=(RemotelyProcessable)ThreadContext.get().toObject(data);
+      rp.setConnection(packet.conn);
+      rp.process();
+      sendResponse(packet);
+    }
+  }
+);
+  ClusterService.get().registerPacketProcessor(OP_REMOTELY_PROCESS,new PacketProcessor(){
+    public void process(    Packet packet){
+      Data data=BufferUtil.doTake(packet.value);
+      RemotelyProcessable rp=(RemotelyProcessable)ThreadContext.get().toObject(data);
+      rp.setConnection(packet.conn);
+      rp.process();
+      packet.returnToContainer();
+    }
+  }
+);
+  ClusterService.get().registerPacketProcessor(OP_REMOTELY_BOOLEAN_CALLABLE,new PacketProcessor(){
+    public void process(    Packet packet){
+      Boolean result=null;
+      try {
+        Data data=BufferUtil.doTake(packet.value);
+        AbstractRemotelyCallable<Boolean> callable=(AbstractRemotelyCallable<Boolean>)ThreadContext.get().toObject(data);
+        callable.setConnection(packet.conn);
+        result=callable.call();
+      }
+ catch (      Exception e) {
+        e.printStackTrace(System.out);
+        result=Boolean.FALSE;
+      }
+      if (result == Boolean.TRUE) {
+        sendResponse(packet);
+      }
+ else {
+        sendResponseFailure(packet);
+      }
+    }
+  }
+);
+  ClusterService.get().registerPacketProcessor(OP_REMOTELY_OBJECT_CALLABLE,new PacketProcessor(){
+    public void process(    Packet packet){
+      Object result=null;
+      try {
+        Data data=BufferUtil.doTake(packet.value);
+        AbstractRemotelyCallable callable=(AbstractRemotelyCallable)ThreadContext.get().toObject(data);
+        callable.setConnection(packet.conn);
+        result=callable.call();
+      }
+ catch (      Exception e) {
+        e.printStackTrace(System.out);
+        result=null;
+      }
+      if (result != null) {
+        Data value=null;
+        if (result instanceof Data) {
+          value=(Data)result;
+        }
+ else {
+          value=ThreadContext.get().toData(result);
+        }
+        BufferUtil.doSet(value,packet.value);
+      }
+      sendResponse(packet);
+    }
+  }
+);
+}
