@@ -1,5 +1,5 @@
 {
-  boolean lock=(request.operation == OP_CMAP_LOCK || request.operation == OP_CMAP_LOCK_RETURN_OLD);
+  boolean lock=(request.operation == ClusterOperation.CONCURRENT_MAP_LOCK || request.operation == ClusterOperation.CONCURRENT_MAP_LOCK_RETURN_OLD);
   if (!lock) {
     boolean unlocked=true;
     Record record=recordExist(request);
@@ -21,7 +21,7 @@
     if (request.hasEnoughTimeToSchedule()) {
       final Record record=ensureRecord(request);
       final Request reqScheduled=(request.local) ? request : request.hardCopy();
-      if (request.operation == OP_CMAP_LOCK_RETURN_OLD) {
+      if (request.operation == ClusterOperation.CONCURRENT_MAP_LOCK_RETURN_OLD) {
         reqScheduled.value=doHardCopy(record.getValue());
       }
       if (DEBUG) {
@@ -39,7 +39,7 @@
       log("Locking...");
     }
     Record rec=ensureRecord(request);
-    if (request.operation == OP_CMAP_LOCK_RETURN_OLD) {
+    if (request.operation == ClusterOperation.CONCURRENT_MAP_LOCK_RETURN_OLD) {
       request.value=doHardCopy(rec.getValue());
     }
     rec.lock(request.lockThreadId,request.lockAddress);
