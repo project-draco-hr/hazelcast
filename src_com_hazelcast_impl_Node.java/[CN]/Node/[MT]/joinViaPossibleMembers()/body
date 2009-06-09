@@ -9,12 +9,12 @@
     }
     boolean found=false;
     int numberOfSeconds=0;
-    connectionTimeout:     while (!found && numberOfSeconds < config.getJoin().getJoinMembers().getConnectionTimeoutSeconds()) {
-      Address addressFailed=null;
-      while ((addressFailed=qFailedConnections.poll()) != null) {
+    while (!found && numberOfSeconds < config.getJoin().getJoinMembers().getConnectionTimeoutSeconds()) {
+      Address addressFailed;
+      while ((addressFailed=failedConnections.poll()) != null) {
         lsPossibleAddresses.remove(addressFailed);
       }
-      if (lsPossibleAddresses.size() == 0)       break connectionTimeout;
+      if (lsPossibleAddresses.size() == 0)       break;
       Thread.sleep(1000);
       numberOfSeconds++;
       int numberOfJoinReq=0;
@@ -38,7 +38,6 @@
         for (        final Address adrs : lsPossibleAddresses) {
           final Connection conn=ConnectionManager.get().getOrConnect(adrs);
           if (conn != null && numberOfJoinReq < 5) {
-            found=true;
             ClusterManager.get().sendJoinRequest(adrs);
             numberOfJoinReq++;
           }
@@ -59,7 +58,7 @@
       }
     }
     lsPossibleAddresses.clear();
-    qFailedConnections.clear();
+    failedConnections.clear();
   }
  catch (  final Exception e) {
     e.printStackTrace();
