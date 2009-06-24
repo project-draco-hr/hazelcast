@@ -1,0 +1,34 @@
+{
+  if (!testLock(request)) {
+    if (request.hasEnoughTimeToSchedule()) {
+      Record record=ensureRecord(request);
+      request.scheduled=true;
+      final Request reqScheduled=(request.local) ? request : request.hardCopy();
+      record.addScheduledAction(new ScheduledAction(reqScheduled){
+        @Override public boolean consume(){
+          putAsync(reqScheduled,returnsValue);
+          return true;
+        }
+      }
+);
+    }
+ else {
+      request.response=null;
+    }
+  }
+ else {
+    CMap cmap=getMap(request.name);
+    if (cmap.writeThrough) {
+      request.scheduled=true;
+      final Request reqScheduled=(request.local) ? request : request.hardCopy();
+      LoadStoreFork loadStoreFork=loadStoreForks[getBlockId(request.key)];
+      int size=loadStoreFork.offer(reqScheduled);
+      if (size == 1) {
+        executeLocally(loadStoreFork);
+      }
+    }
+ else {
+      request.response=(returnsValue) ? cmap.put(request) : cmap.putMulti(request);
+    }
+  }
+}

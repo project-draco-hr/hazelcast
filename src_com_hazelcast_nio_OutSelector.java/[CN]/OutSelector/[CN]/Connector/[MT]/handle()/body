@@ -9,8 +9,8 @@
       logger.log(Level.FINEST,"connected to " + address);
     }
     final Connection connection=initChannel(socketChannel,false);
-    connection.localPort=localPort;
     ConnectionManager.get().bind(address,connection,false);
+    ClusterManager.get().sendBindRequest(connection);
   }
  catch (  final Exception e) {
     try {
@@ -20,11 +20,10 @@
         e.printStackTrace();
       }
       socketChannel.close();
-      if (numberOfConnectionError++ < 5) {
+      if (numberOfConnectionError++ < 2) {
         if (DEBUG) {
           logger.log(Level.FINEST,"Couldn't finish connecting, will try again. cause: " + e.getMessage());
         }
-        addTask(Connector.this);
       }
  else {
         ConnectionManager.get().failedConnection(address);

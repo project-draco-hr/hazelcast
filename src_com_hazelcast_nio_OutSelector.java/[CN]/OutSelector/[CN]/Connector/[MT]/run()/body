@@ -2,45 +2,31 @@
   try {
     socketChannel=SocketChannel.open();
     final Address thisAddress=Node.get().getThisAddress();
-    final int addition=(thisAddress.getPort() - Config.get().getPort());
-    localPort=10000 + addition;
-    boolean bindOk=false;
-    while (!bindOk) {
-      try {
-        localPort+=20;
-        if (boundPorts.size() > 2000 || localPort > 60000) {
-          boundPorts.clear();
-          final Connection[] conns=ConnectionManager.get().getConnections();
-          for (          final Connection conn : conns) {
-            boundPorts.add(conn.localPort);
-          }
-        }
-        if (boundPorts.add(localPort)) {
-          socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),localPort));
-          bindOk=true;
-          socketChannel.configureBlocking(false);
-          if (DEBUG)           logger.log(Level.FINEST,"connecting to " + address + ", localPort: "+ localPort);
-          boolean connected=socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
-          if (DEBUG)           logger.log(Level.FINEST,"connection check. connected: " + connected + ", "+ address+ ", localPort: "+ localPort);
-          if (connected) {
-            handle();
-            return;
-          }
-        }
+    try {
+      socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),0));
+      socketChannel.configureBlocking(false);
+      if (DEBUG)       logger.log(Level.FINEST,"connecting to " + address);
+      boolean connected=socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
+      if (DEBUG)       logger.log(Level.FINEST,"connection check. connected: " + connected + ", "+ address);
+      if (connected) {
+        handle();
+        return;
       }
- catch (      final Throwable e) {
-        if (DEBUG)         logger.log(Level.FINEST,"ConnectionFailed. localPort: " + localPort,e);
-      }
+    }
+ catch (    final Throwable e) {
+      logger.log(Level.FINEST,address + " ConnectionFailed.",e);
     }
     socketChannel.register(selector,SelectionKey.OP_CONNECT,Connector.this);
   }
  catch (  final Exception e) {
-    try {
-      socketChannel.close();
+    if (socketChannel != null) {
+      try {
+        socketChannel.close();
+      }
+ catch (      final IOException ignored) {
+      }
     }
- catch (    final IOException ignored) {
-    }
-    if (numberOfConnectionError++ < 5) {
+    if (numberOfConnectionError++ < 2) {
       if (DEBUG) {
         logger.log(Level.FINEST,"Couldn't register connect! will trying again. cause: " + e.getMessage());
       }
