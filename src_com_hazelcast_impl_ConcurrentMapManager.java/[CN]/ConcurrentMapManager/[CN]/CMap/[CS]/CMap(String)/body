@@ -14,14 +14,31 @@
  else {
     evictionPolicy=OrderingType.NONE;
   }
-  evictionRate=mapConfig.getEvictionPercentage() / 100f;
   if (evictionPolicy == OrderingType.NONE) {
     maxSize=Integer.MAX_VALUE;
   }
  else {
     maxSize=(mapConfig.getMaxSize() == 0) ? MapConfig.DEFAULT_MAX_SIZE : mapConfig.getMaxSize();
   }
+  evictionRate=mapConfig.getEvictionPercentage() / 100f;
   instanceType=getInstanceType(name);
-  loader=null;
-  store=null;
+  MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+  if (mapStoreConfig != null) {
+    if (mapStoreConfig.isEnabled()) {
+      String mapStoreClassName=mapStoreConfig.getClassName();
+      try {
+        Object storeInstance=Class.forName(mapStoreClassName,true,Thread.currentThread().getContextClassLoader()).newInstance();
+        if (storeInstance instanceof MapLoader) {
+          loader=(MapLoader)storeInstance;
+        }
+        if (storeInstance instanceof MapStore) {
+          store=(MapStore)storeInstance;
+        }
+        writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
 }

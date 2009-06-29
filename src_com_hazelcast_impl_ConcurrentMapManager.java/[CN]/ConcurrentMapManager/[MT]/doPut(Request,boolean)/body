@@ -6,11 +6,12 @@
       final Request reqScheduled=(request.local) ? request : request.hardCopy();
       record.addScheduledAction(new ScheduledAction(reqScheduled){
         @Override public boolean consume(){
-          CMap cmap=getMap(reqScheduled.name);
-          reqScheduled.response=(returnsValue) ? cmap.put(reqScheduled) : cmap.putMulti(reqScheduled);
-          reqScheduled.key=null;
-          reqScheduled.value=null;
-          returnScheduledAsSuccess(reqScheduled);
+          boolean completed=doPutSafely(reqScheduled,returnsValue);
+          if (completed) {
+            reqScheduled.key=null;
+            reqScheduled.value=null;
+            returnScheduledAsSuccess(reqScheduled);
+          }
           return true;
         }
       }
@@ -21,7 +22,6 @@
     }
   }
  else {
-    CMap cmap=getMap(request.name);
-    request.response=(returnsValue) ? cmap.put(request) : cmap.putMulti(request);
+    doPutSafely(request,returnsValue);
   }
 }
