@@ -19,41 +19,11 @@
     return;
   }
   try {
+    if (inBuffer.position() == 0)     return;
     inBuffer.flip();
-    while (true) {
-      final int remaining=inBuffer.remaining();
-      if (remaining <= 0) {
-        inBuffer.clear();
-        return;
-      }
-      if (packet == null) {
-        if (remaining >= 12) {
-          packet=obtainReadable();
-          if (packet == null) {
-            throw new RuntimeException("Unknown message type  from " + connection.getEndPoint());
-          }
-        }
- else {
-          inBuffer.compact();
-          return;
-        }
-      }
-      final boolean full=packet.read(inBuffer);
-      if (full) {
-        packet.flipBuffers();
-        packet.read();
-        packet.setFromConnection(connection);
-        ClusterService.get().enqueueAndReturn(packet);
-        packet=null;
-      }
- else {
-        if (inBuffer.hasRemaining()) {
-          if (DEBUG) {
-            throw new RuntimeException("inbuffer has remaining " + inBuffer.remaining());
-          }
-        }
-      }
-    }
+    readFromSocket();
+    if (inBuffer.hasRemaining())     throw new RuntimeException("InBuffer cannot have remaining : " + inBuffer.remaining());
+    inBuffer.clear();
   }
  catch (  final Throwable t) {
     logger.log(Level.SEVERE,"Fatal Error at ReadHandler for endPoint: " + connection.getEndPoint(),t);

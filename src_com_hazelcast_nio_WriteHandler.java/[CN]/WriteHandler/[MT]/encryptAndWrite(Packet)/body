@@ -1,0 +1,44 @@
+{
+  if (cipherBuffer.position() > 0 && socketBB.hasRemaining()) {
+    cipherBuffer.flip();
+    BufferUtil.copyToDirectBuffer(cipherBuffer,socketBB);
+    if (cipherBuffer.hasRemaining()) {
+      cipherBuffer.compact();
+    }
+ else {
+      cipherBuffer.clear();
+    }
+  }
+  if (!sizeWritten) {
+    int cipherSize=cipher.getOutputSize(packet.totalSize);
+    socketBB.putInt(cipherSize);
+    sizeWritten=true;
+  }
+  packet.totalWritten+=encryptAndWriteToSocket(packet.bbSizes);
+  packet.totalWritten+=encryptAndWriteToSocket(packet.bbHeader);
+  if (packet.key.size() > 0) {
+    int len=packet.key.lsData.size();
+    for (int i=0; i < len && socketBB.hasRemaining(); i++) {
+      ByteBuffer bb=packet.key.lsData.get(i);
+      packet.totalWritten+=encryptAndWriteToSocket(bb);
+    }
+  }
+  if (packet.value.size() > 0) {
+    int len=packet.value.lsData.size();
+    for (int i=0; i < len && socketBB.hasRemaining(); i++) {
+      ByteBuffer bb=packet.value.lsData.get(i);
+      packet.totalWritten+=encryptAndWriteToSocket(bb);
+    }
+  }
+  boolean complete=packet.totalWritten >= packet.totalSize;
+  if (complete) {
+    if (socketBB.remaining() >= cipher.getOutputSize(0)) {
+      sizeWritten=false;
+      socketBB.put(cipher.doFinal());
+    }
+ else {
+      return false;
+    }
+  }
+  return complete;
+}

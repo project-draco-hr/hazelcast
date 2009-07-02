@@ -1,0 +1,18 @@
+{
+  CMap cmap=getMap(request.name);
+  if (cmap.writeDelaySeconds == 0) {
+    request.scheduled=true;
+    final Request reqScheduled=(request.local) ? request : request.hardCopy();
+    LoadStoreFork loadStoreFork=loadStoreForks[getBlockId(request.key)];
+    int size=loadStoreFork.offer(reqScheduled);
+    if (size == 1) {
+      executeLocally(loadStoreFork);
+    }
+    return false;
+  }
+ else {
+    boolean returnsValue=(request.operation != ClusterOperation.CONCURRENT_MAP_PUT_MULTI);
+    request.response=(returnsValue) ? cmap.put(request) : cmap.putMulti(request);
+  }
+  return true;
+}
