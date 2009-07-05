@@ -1,0 +1,42 @@
+{
+  while (inBuffer.hasRemaining()) {
+    try {
+      if (size == -1) {
+        if (inBuffer.remaining() < 4)         return;
+        size=inBuffer.getInt();
+      }
+      int remaining=inBuffer.remaining();
+      if (remaining < size) {
+        cipher.update(inBuffer,cipherBuffer);
+        size-=remaining;
+      }
+ else       if (remaining == size) {
+        cipher.doFinal(inBuffer,cipherBuffer);
+        size=-1;
+      }
+ else {
+        int oldLimit=inBuffer.limit();
+        int newLimit=inBuffer.position() + size;
+        inBuffer.limit(newLimit);
+        cipher.doFinal(inBuffer,cipherBuffer);
+        inBuffer.limit(oldLimit);
+        size=-1;
+      }
+    }
+ catch (    ShortBufferException e) {
+      e.printStackTrace();
+    }
+    cipherBuffer.flip();
+    while (cipherBuffer.hasRemaining()) {
+      if (packet == null) {
+        packet=obtainReadable();
+      }
+      boolean complete=packet.read(cipherBuffer);
+      if (complete) {
+        enqueueFullPacket(packet);
+        packet=null;
+      }
+    }
+    cipherBuffer.clear();
+  }
+}
