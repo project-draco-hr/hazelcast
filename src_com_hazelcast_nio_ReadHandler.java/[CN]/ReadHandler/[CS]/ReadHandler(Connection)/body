@@ -1,15 +1,19 @@
 {
   super(connection,false);
-  if (cipherBuilder != null) {
-    if (cipherBuilder.isAsymmetric()) {
-      packetReader=new AsymmetricCipherPacketReader();
+  boolean symmetricEncryptionEnabled=CipherHelper.isSymmetricEncryptionEnabled();
+  boolean asymmetricEncryptionEnabled=CipherHelper.isAsymmetricEncryptionEnabled();
+  if (asymmetricEncryptionEnabled || symmetricEncryptionEnabled) {
+    if (asymmetricEncryptionEnabled && symmetricEncryptionEnabled) {
+      packetReader=new ComplexCipherPacketReader();
+    }
+ else     if (symmetricEncryptionEnabled) {
+      packetReader=new SymmetricCipherPacketReader();
     }
  else {
-      packetReader=new SymmetricCipherPacketReader();
+      packetReader=new AsymmetricCipherPacketReader();
     }
   }
  else {
     packetReader=new DefaultPacketReader();
   }
-  System.out.println("READHandler " + packetReader);
 }

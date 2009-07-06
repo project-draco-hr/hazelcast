@@ -1,4 +1,22 @@
 {
+  if (cipher == null) {
+    if (!aliasSizeSet) {
+      if (inBuffer.remaining() < 4) {
+        return;
+      }
+ else {
+        int aliasSize=inBuffer.getInt();
+        bbAlias=ByteBuffer.allocate(aliasSize);
+      }
+    }
+    copyToHeapBuffer(inBuffer,bbAlias);
+    if (!bbAlias.hasRemaining()) {
+      bbAlias.flip();
+      String remoteAlias=new String(bbAlias.array(),0,bbAlias.limit());
+      cipher=CipherHelper.createAsymmetricReaderCipher(remoteAlias);
+      System.out.println("READ BLOCK SIZE " + cipher.getBlockSize());
+    }
+  }
   while (inBuffer.remaining() >= 128) {
     if (cipherBuffer.position() > 0)     throw new RuntimeException();
     int oldLimit=inBuffer.limit();
