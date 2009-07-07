@@ -11,12 +11,11 @@
     bbPass.put(md.digest(passPhrase.getBytes()));
     md.reset();
     bbPass.put(md.digest(salt));
+    boolean isCBC=algorithm.indexOf("/CBC/") != -1;
     SecretKey key=null;
-    AlgorithmParameterSpec paramSpec=null;
+    AlgorithmParameterSpec paramSpec=(isCBC) ? new IvParameterSpec(salt) : null;
     if (algorithm.startsWith("Blowfish")) {
-      SecretKeySpec keySpec=new SecretKeySpec(bbPass.array(),"Blowfish");
-      cipher.init(mode,keySpec);
-      return cipher;
+      key=new SecretKeySpec(bbPass.array(),"Blowfish");
     }
  else     if (algorithm.startsWith("DESede")) {
       KeySpec keySpec=new DESedeKeySpec(bbPass.array());
