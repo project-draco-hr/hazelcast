@@ -1,0 +1,28 @@
+{
+  if (!testLock(request)) {
+    if (request.hasEnoughTimeToSchedule()) {
+      Record record=ensureRecord(request);
+      request.scheduled=true;
+      record.addScheduledAction(new ScheduledAction(request){
+        @Override public boolean consume(){
+          handle(request);
+          return true;
+        }
+      }
+);
+      return;
+    }
+ else {
+      request.response=null;
+    }
+  }
+ else {
+    CMap cmap=getMap(request.name);
+    if (cmap.writeDelaySeconds == 0) {
+      executeLoadStore(request);
+      return;
+    }
+  }
+  doOperation(request);
+  returnResponse(request);
+}
