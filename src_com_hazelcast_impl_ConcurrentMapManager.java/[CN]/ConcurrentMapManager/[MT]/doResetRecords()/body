@@ -9,36 +9,29 @@
       if (rec.key == null || rec.key.size() == 0) {
         logger.log(Level.SEVERE,"Record.key is null or empty " + rec.key);
       }
-      boolean shouldMigrate=false;
-      if (thisAddress.equals(rec.owner)) {
-        shouldMigrate=true;
-      }
- else       if (deadAddress != null && deadAddress.equals(rec.owner)) {
-        rec.forceBackupOps();
-        shouldMigrate=true;
-      }
-      if (shouldMigrate) {
-        executeLocally(new Runnable(){
-          public void run(){
-            MMigrate mmigrate=new MMigrate();
-            if (cmap.isMultiMap()) {
-              List<Data> values=rec.lsValues;
-              if (values == null || values.size() == 0) {
-                mmigrate.migrateMulti(rec,null);
-              }
- else {
-                for (                Data value : values) {
-                  mmigrate.migrateMulti(rec,value);
-                }
-              }
+      executeLocally(new Runnable(){
+        public void run(){
+          MMigrate mmigrate=new MMigrate();
+          if (cmap.isMultiMap()) {
+            List<Data> values=rec.lsValues;
+            if (values == null || values.size() == 0) {
+              mmigrate.migrateMulti(rec,null);
             }
  else {
-              mmigrate.migrate(rec);
+              for (              Data value : values) {
+                mmigrate.migrateMulti(rec,value);
+              }
+            }
+          }
+ else {
+            boolean migrated=mmigrate.migrate(rec);
+            if (!migrated) {
+              logger.log(Level.FINEST,"Migration failed " + rec.key);
             }
           }
         }
-);
       }
+);
     }
   }
   executeLocally(new Runnable(){
