@@ -1,0 +1,29 @@
+{
+  if (cipherBuffer.position() > 0 && socketBB.hasRemaining()) {
+    cipherBuffer.flip();
+    copyToDirectBuffer(cipherBuffer,socketBB);
+    if (cipherBuffer.hasRemaining()) {
+      cipherBuffer.compact();
+    }
+ else {
+      cipherBuffer.clear();
+    }
+  }
+  packet.totalWritten+=encryptAndWriteToSocket(packet.bbSizes);
+  packet.totalWritten+=encryptAndWriteToSocket(packet.bbHeader);
+  if (packet.key.size() > 0) {
+    int len=packet.key.lsData.size();
+    for (int i=0; i < len && socketBB.hasRemaining(); i++) {
+      ByteBuffer bb=packet.key.lsData.get(i);
+      packet.totalWritten+=encryptAndWriteToSocket(bb);
+    }
+  }
+  if (packet.value.size() > 0) {
+    int len=packet.value.lsData.size();
+    for (int i=0; i < len && socketBB.hasRemaining(); i++) {
+      ByteBuffer bb=packet.value.lsData.get(i);
+      packet.totalWritten+=encryptAndWriteToSocket(bb);
+    }
+  }
+  return packet.totalWritten >= packet.totalSize;
+}

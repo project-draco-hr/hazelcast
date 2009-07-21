@@ -1,0 +1,21 @@
+{
+  QueueConfig qconfig=Config.get().getQueueConfig(name.substring(2));
+  maxSizePerJVM=(qconfig.getMaxSizePerJVM() == 0) ? QueueConfig.DEFAULT_MAX_SIZE_PER_JVM : qconfig.getMaxSizePerJVM();
+  maxAge=(qconfig.getTimeToLiveSeconds() == 0) ? QueueConfig.DEFAULT_TTL_SECONDS : qconfig.getTimeToLiveSeconds() * 1000l;
+  log(name + ".maxSizePerJVM=" + maxSizePerJVM);
+  log(name + ".maxAge=" + maxAge);
+  this.name=name;
+  Address master=getMasterAddress();
+  if (master.isThisAddress()) {
+    Block block=createBlock(master,0);
+    addBlock(block);
+    sendAddBlockMessageToOthers(block,-1,null,true);
+    for (int i=0; i < 9; i++) {
+      int blockId=i + 1;
+      Address target=nextTarget();
+      block=createBlock(target,blockId);
+      addBlock(block);
+      sendAddBlockMessageToOthers(block,-1,null,true);
+    }
+  }
+}

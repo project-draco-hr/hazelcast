@@ -1,0 +1,45 @@
+{
+  operation=packet.operation;
+  if (checkIfMigrating && isMigrating()) {
+    packet.responseType=RESPONSE_REDO;
+    sendResponse(packet);
+  }
+ else   if (targetAware && !rightRemoteTarget(packet)) {
+  }
+ else {
+    Request remoteReq=new Request();
+    remoteReq.setFromPacket(packet);
+    process(remoteReq);
+    if (schedulable && remoteReq.scheduled) {
+      packet.returnToContainer();
+    }
+ else {
+      packet.version=remoteReq.version;
+      packet.longValue=remoteReq.longValue;
+      if (returnsObject) {
+        if (remoteReq != null) {
+          Data data=null;
+          if (remoteReq.response instanceof Data) {
+            data=(Data)remoteReq.response;
+          }
+ else {
+            data=toData(remoteReq.response);
+          }
+          if (data != null && data.size() > 0) {
+            doSet(data,packet.value);
+          }
+        }
+        sendResponse(packet);
+      }
+ else {
+        if (remoteReq.response == Boolean.TRUE) {
+          sendResponse(packet);
+        }
+ else {
+          sendResponseFailure(packet);
+        }
+      }
+    }
+    remoteReq.reset();
+  }
+}

@@ -1,0 +1,17 @@
+{
+  if (request.operation == ClusterOperation.BLOCKING_QUEUE_OFFER && packet.responseType == Constants.ResponseTypes.RESPONSE_SUCCESS) {
+    if (!zeroBackup) {
+      if (getPreviousMemberBefore(thisAddress,true,1).getAddress().equals(packet.conn.getEndPoint())) {
+        int itemIndex=(int)packet.longValue;
+        if (itemIndex != -1) {
+          Q q=getQ(request.name);
+          if (request.value == null || request.value.size() == 0) {
+            throw new RuntimeException("Invalid data " + request.value);
+          }
+          q.doBackup(true,request.value,request.blockId,(int)packet.longValue);
+        }
+      }
+    }
+  }
+  super.handleNoneRedoResponse(packet);
+}

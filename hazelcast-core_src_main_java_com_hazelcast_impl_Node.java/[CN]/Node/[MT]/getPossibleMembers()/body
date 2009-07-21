@@ -1,0 +1,43 @@
+{
+  final Config config=Config.get();
+  Join join=config.getNetworkConfig().getJoin();
+  final List<String> lsJoinMembers=join.getJoinMembers().getMembers();
+  final List<Address> lsPossibleAddresses=new ArrayList<Address>();
+  for (  final String host : lsJoinMembers) {
+    final boolean ip=isIP(host);
+    try {
+      if (ip) {
+        for (int i=0; i < 3; i++) {
+          final Address addrs=new Address(host,config.getPort() + i,true);
+          if (!addrs.equals(getThisAddress())) {
+            lsPossibleAddresses.add(addrs);
+          }
+        }
+      }
+ else {
+        final InetAddress[] allAddresses=InetAddress.getAllByName(host);
+        for (        final InetAddress inetAddress : allAddresses) {
+          boolean shouldCheck=true;
+          Address addrs;
+          if (config.getNetworkConfig().getInterfaces().isEnabled()) {
+            addrs=new Address(inetAddress.getAddress(),config.getPort());
+            shouldCheck=AddressPicker.matchAddress(addrs.getHost());
+          }
+          if (shouldCheck) {
+            for (int i=0; i < 3; i++) {
+              final Address addressProper=new Address(inetAddress.getAddress(),config.getPort() + i);
+              if (!addressProper.equals(getThisAddress())) {
+                lsPossibleAddresses.add(addressProper);
+              }
+            }
+          }
+        }
+      }
+    }
+ catch (    final Exception e) {
+      e.printStackTrace();
+    }
+  }
+  lsPossibleAddresses.addAll(config.getNetworkConfig().getJoin().getJoinMembers().getAddresses());
+  return lsPossibleAddresses;
+}

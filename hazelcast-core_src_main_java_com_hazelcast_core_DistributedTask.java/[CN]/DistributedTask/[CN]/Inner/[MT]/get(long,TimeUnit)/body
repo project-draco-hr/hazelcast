@@ -1,0 +1,31 @@
+{
+  long timeoutMillis=unit.toMillis(timeout);
+  long start=System.currentTimeMillis();
+  long timeLeft=timeoutMillis;
+  Object r=null;
+  while ((r=executionManagerCallback.get(timeLeft,TimeUnit.MILLISECONDS)) != OBJECT_DONE) {
+    if (r == null) {
+      throw new TimeoutException();
+    }
+ else     if (r == OBJECT_DONE) {
+      return null;
+    }
+ else     if (r == OBJECT_CANCELLED) {
+      cancelled=true;
+      return null;
+    }
+ else     if (r instanceof Throwable) {
+      innerSetException((Throwable)r);
+    }
+ else {
+      if (r == OBJECT_NULL) {
+        innerSet(null);
+      }
+ else {
+        innerSet((V)r);
+      }
+    }
+    timeLeft=timeoutMillis - (System.currentTimeMillis() - start);
+  }
+  return null;
+}

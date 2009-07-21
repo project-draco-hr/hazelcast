@@ -1,0 +1,77 @@
+{
+  if (evicting)   return;
+  List<Data> lsKeysToEvict=null;
+  if (evictionPolicy == OrderingType.NONE) {
+    if (ttl != 0) {
+      long now=System.currentTimeMillis();
+      Collection<Record> values=mapRecords.values();
+      for (      Record record : values) {
+        if (!record.isValid(now)) {
+          if (record.isEvictable()) {
+            if (lsKeysToEvict == null) {
+              lsKeysToEvict=new ArrayList<Data>(100);
+            }
+            lsKeysToEvict.add(doHardCopy(record.key));
+          }
+        }
+ else {
+          break;
+        }
+      }
+    }
+  }
+ else {
+    Collection<Record> values=mapRecords.values();
+    int numberOfRecordsToEvict=(int)(ownedEntryCount * evictionRate);
+    int evictedCount=0;
+    for (    Record record : values) {
+      if (record.isEvictable()) {
+        if (lsKeysToEvict == null) {
+          lsKeysToEvict=new ArrayList<Data>(numberOfRecordsToEvict);
+        }
+        lsKeysToEvict.add(doHardCopy(record.key));
+        if (++evictedCount >= numberOfRecordsToEvict) {
+          break;
+        }
+      }
+    }
+  }
+  if (lsKeysToEvict != null && lsKeysToEvict.size() > 1) {
+    evicting=true;
+    int latchCount=lsKeysToEvict.size();
+    final CountDownLatch countDownLatchEvictionStart=new CountDownLatch(1);
+    final CountDownLatch countDownLatchEvictionEnd=new CountDownLatch(latchCount);
+    executeLocally(new Runnable(){
+      public void run(){
+        try {
+          countDownLatchEvictionStart.countDown();
+          countDownLatchEvictionEnd.await(60,TimeUnit.SECONDS);
+          enqueueAndReturn(new Processable(){
+            public void process(){
+              evicting=false;
+            }
+          }
+);
+        }
+ catch (        Exception ignored) {
+        }
+      }
+    }
+);
+    for (    final Data key : lsKeysToEvict) {
+      executeLocally(new Runnable(){
+        public void run(){
+          try {
+            countDownLatchEvictionStart.await();
+            MEvict mEvict=new MEvict();
+            mEvict.evict(name,key);
+            countDownLatchEvictionEnd.countDown();
+          }
+ catch (          Exception ignored) {
+          }
+        }
+      }
+);
+    }
+  }
+}

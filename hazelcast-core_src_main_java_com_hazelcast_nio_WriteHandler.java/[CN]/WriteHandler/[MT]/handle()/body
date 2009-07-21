@@ -1,0 +1,59 @@
+{
+  if (lastPacket == null) {
+    lastPacket=(Packet)writeQueue.poll();
+    if (lastPacket == null) {
+      ready=true;
+      return;
+    }
+  }
+  if (!connection.live())   return;
+  try {
+    while (socketBB.hasRemaining()) {
+      if (lastPacket == null) {
+        lastPacket=(Packet)writeQueue.poll();
+      }
+      if (lastPacket != null) {
+        boolean packetDone=packetWriter.writePacket(lastPacket);
+        if (packetDone) {
+          lastPacket.returnToContainer();
+          lastPacket=null;
+        }
+ else {
+          if (socketBB.hasRemaining()) {
+            break;
+          }
+        }
+      }
+ else {
+        break;
+      }
+    }
+    socketBB.flip();
+    try {
+      int written=socketChannel.write(socketBB);
+    }
+ catch (    final Exception e) {
+      if (lastPacket != null) {
+        lastPacket.returnToContainer();
+        lastPacket=null;
+      }
+      handleSocketException(e);
+      return;
+    }
+    if (socketBB.hasRemaining()) {
+      socketBB.compact();
+    }
+ else {
+      socketBB.clear();
+    }
+  }
+ catch (  final Throwable t) {
+    logger.log(Level.SEVERE,"Fatal Error at WriteHandler for endPoint: " + connection.getEndPoint(),t);
+    t.printStackTrace();
+    System.exit(0);
+  }
+ finally {
+    ready=false;
+    registerWrite();
+  }
+}

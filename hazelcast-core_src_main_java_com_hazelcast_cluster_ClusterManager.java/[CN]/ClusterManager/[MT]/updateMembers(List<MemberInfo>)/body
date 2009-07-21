@@ -1,0 +1,32 @@
+{
+  logger.log(Level.FINEST,"MEMBERS UPDATE!!");
+  lsMembersBefore.clear();
+  Map<Address,MemberImpl> mapOldMembers=new HashMap<Address,MemberImpl>();
+  for (  MemberImpl member : lsMembers) {
+    lsMembersBefore.add(member);
+    mapOldMembers.put(member.getAddress(),member);
+  }
+  lsMembers.clear();
+  for (  MemberInfo memberInfo : lsMemberInfos) {
+    MemberImpl member=mapOldMembers.get(memberInfo.address);
+    if (member == null) {
+      member=addMember(memberInfo.address,memberInfo.nodeType);
+    }
+ else {
+      addMember(member);
+    }
+    member.didRead();
+  }
+  mapOldMembers.clear();
+  if (!lsMembers.contains(thisMember)) {
+    throw new RuntimeException("Member list doesn't contain local member!");
+  }
+  mapMembers.clear();
+  for (  MemberImpl member : lsMembers) {
+    mapMembers.put(member.getAddress(),member);
+  }
+  heartBeater();
+  Node.get().getClusterImpl().setMembers(lsMembers);
+  Node.get().unlock();
+  logger.log(Level.INFO,this.toString());
+}

@@ -1,0 +1,41 @@
+{
+  try {
+    setCurrentTake();
+    Data value=blCurrentTake.remove();
+    if (request.txnId != -1) {
+      MemberImpl backup=null;
+      if (request.caller.equals(thisAddress)) {
+        backup=getNextMemberAfter(thisAddress,true,1);
+      }
+ else {
+        backup=getNextMemberAfter(request.caller,true,1);
+      }
+      if (backup != null) {
+        if (backup.getAddress().equals(thisAddress)) {
+          doTxnBackupPoll(request.txnId,value);
+        }
+ else {
+          sendTxnBackup(backup.getAddress(),value,request.txnId);
+        }
+      }
+    }
+    request.recordId=getRecordId(blCurrentTake.blockId,blCurrentTake.removeIndex);
+    doFireEntryEvent(false,value);
+    sendBackup(false,request.caller,null,blCurrentTake.blockId,0);
+    if (!blCurrentTake.containsValidItem() && blCurrentTake.isFull()) {
+      fireBlockRemoveEvent(blCurrentTake);
+      blCurrentTake=null;
+    }
+    return value;
+  }
+  finally {
+    boolean consumed=false;
+    while (!consumed && lsScheduledOfferActions.size() > 0) {
+      ScheduledOfferAction offerAction=lsScheduledOfferActions.remove(0);
+      ClusterManager.get().deregisterScheduledAction(offerAction);
+      if (!offerAction.expired()) {
+        consumed=offerAction.consume();
+      }
+    }
+  }
+}

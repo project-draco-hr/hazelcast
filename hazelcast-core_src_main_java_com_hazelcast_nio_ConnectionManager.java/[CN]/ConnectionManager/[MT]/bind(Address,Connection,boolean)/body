@@ -1,0 +1,23 @@
+{
+  connection.setEndPoint(endPoint);
+  final Connection connExisting=mapConnections.get(endPoint);
+  if (connExisting != null && connExisting != connection) {
+    if (Build.DEBUG) {
+      final String msg="Two connections from the same endpoint " + endPoint + ", acceptTypeConnection="+ acceptTypeConnection+ ",  now accept="+ accept;
+      logger.log(Level.INFO,msg);
+    }
+    return true;
+  }
+  if (!endPoint.equals(Node.get().getThisAddress())) {
+    acceptTypeConnection=accept;
+    mapConnections.put(endPoint,connection);
+    setConnectionInProgress.remove(endPoint);
+    for (    final ConnectionListener listener : setConnectionListeners) {
+      listener.connectionAdded(connection);
+    }
+  }
+ else {
+    return false;
+  }
+  return true;
+}

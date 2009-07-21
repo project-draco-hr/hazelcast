@@ -1,0 +1,23 @@
+{
+  Record record=getRecord(req.key);
+  boolean added=true;
+  if (record == null) {
+    record=createNewRecord(req.key,null);
+    req.key=null;
+  }
+ else {
+    if (record.containsValue(req.value)) {
+      added=false;
+    }
+  }
+  if (added) {
+    record.addValue(req.value);
+    req.value=null;
+    record.version++;
+    touch(record);
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_ADDED,record.key,req.value,record.mapListeners);
+  }
+  logger.log(Level.FINEST,record.value + " PutMulti " + record.lsValues);
+  req.version=record.version;
+  return added;
+}

@@ -1,0 +1,25 @@
+{
+  Q q=getQ(req.name);
+  if (q.blCurrentPut == null) {
+    q.setCurrentPut();
+  }
+  if (q.quickSize() >= q.maxSizePerJVM) {
+    if (req.hasEnoughTimeToSchedule()) {
+      req.scheduled=true;
+      final Request reqScheduled=(req.local) ? req : req.hardCopy();
+      if (reqScheduled.local) {
+        if (reqScheduled.attachment == null) {
+          throw new RuntimeException("Scheduled local but attachement is null");
+        }
+      }
+      q.scheduleOffer(reqScheduled);
+    }
+ else {
+      req.response=Boolean.FALSE;
+    }
+    return;
+  }
+  q.offer(req);
+  req.value=null;
+  req.response=Boolean.TRUE;
+}

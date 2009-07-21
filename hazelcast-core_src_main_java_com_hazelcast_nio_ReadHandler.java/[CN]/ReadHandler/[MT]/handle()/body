@@ -1,0 +1,38 @@
+{
+  if (!connection.live())   return;
+  try {
+    final int readBytes=socketChannel.read(inBuffer);
+    if (readBytes == -1) {
+      connection.close();
+      return;
+    }
+    if (readBytes <= 0) {
+      return;
+    }
+  }
+ catch (  final Exception e) {
+    if (packet != null) {
+      packet.returnToContainer();
+      packet=null;
+    }
+    handleSocketException(e);
+    return;
+  }
+  try {
+    if (inBuffer.position() == 0)     return;
+    inBuffer.flip();
+    packetReader.readPacket();
+    if (inBuffer.hasRemaining()) {
+      inBuffer.compact();
+    }
+ else {
+      inBuffer.clear();
+    }
+  }
+ catch (  final Throwable t) {
+    logger.log(Level.SEVERE,"Fatal Error at ReadHandler for endPoint: " + connection.getEndPoint(),t);
+  }
+ finally {
+    registerOp(inSelector.selector,SelectionKey.OP_READ);
+  }
+}

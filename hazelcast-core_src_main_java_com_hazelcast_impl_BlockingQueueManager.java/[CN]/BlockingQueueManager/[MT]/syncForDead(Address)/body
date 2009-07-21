@@ -1,0 +1,55 @@
+{
+  if (deadAddress.equals(thisAddress))   return;
+  MemberImpl member=getNextMemberBeforeSync(deadAddress,true,1);
+  if (DEBUG) {
+    log(deadAddress + " is dead and its backup was " + member);
+  }
+  Address addressNewOwner=(member == null) ? thisAddress : member.getAddress();
+  Collection<Q> queues=mapQueues.values();
+  for (  Q q : queues) {
+    List<Block> lsBlocks=q.lsBlocks;
+    for (    Block block : lsBlocks) {
+      if (block.address.equals(deadAddress)) {
+        block.address=addressNewOwner;
+        block.resetAddIndex();
+        if (lsMembers.size() > 1) {
+          if (addressNewOwner.equals(thisAddress)) {
+            int indexUpto=block.size() - 1;
+            if (DEBUG) {
+              log("IndexUpto " + indexUpto);
+            }
+            if (indexUpto > -1) {
+              executeLocally(new BlockBackupSyncRunner(new BlockBackupSync(q,block,indexUpto)));
+            }
+          }
+        }
+      }
+ else       if (block.address.equals(thisAddress)) {
+        if (lsMembers.size() > 1) {
+          MemberImpl memberBackupWas=getNextMemberBeforeSync(thisAddress,true,1);
+          if (memberBackupWas == null || memberBackupWas.getAddress().equals(deadAddress)) {
+            int indexUpto=block.size() - 1;
+            if (indexUpto > -1) {
+              executeLocally(new BlockBackupSyncRunner(new BlockBackupSync(q,block,indexUpto)));
+            }
+          }
+        }
+      }
+    }
+    List<ScheduledPollAction> scheduledPollActions=q.lsScheduledPollActions;
+    for (    ScheduledPollAction scheduledAction : scheduledPollActions) {
+      if (deadAddress.equals(scheduledAction.request.caller)) {
+        scheduledAction.setValid(false);
+        ClusterManager.get().deregisterScheduledAction(scheduledAction);
+      }
+    }
+    List<ScheduledOfferAction> scheduledOfferActions=q.lsScheduledOfferActions;
+    for (    ScheduledOfferAction scheduledAction : scheduledOfferActions) {
+      if (deadAddress.equals(scheduledAction.request.caller)) {
+        scheduledAction.setValid(false);
+        ClusterManager.get().deregisterScheduledAction(scheduledAction);
+      }
+    }
+  }
+  doResetBlockSizes();
+}

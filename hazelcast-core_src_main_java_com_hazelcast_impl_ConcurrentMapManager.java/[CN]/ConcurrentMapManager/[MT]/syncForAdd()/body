@@ -1,0 +1,87 @@
+{
+  if (isMaster()) {
+    for (int i=0; i < BLOCK_COUNT; i++) {
+      Block block=blocks[i];
+      if (block == null) {
+        getOrCreateBlock(i);
+      }
+    }
+    List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
+    Map<Address,Integer> addressBlocks=new HashMap<Address,Integer>();
+    int storageEnabledMemberCount=0;
+    for (    MemberImpl member : lsMembers) {
+      if (!member.isSuperClient()) {
+        addressBlocks.put(member.getAddress(),0);
+        storageEnabledMemberCount++;
+      }
+    }
+    if (storageEnabledMemberCount == 0)     return;
+    int aveBlockOwnCount=BLOCK_COUNT / (storageEnabledMemberCount);
+    for (    Block block : blocks) {
+      if (block.owner == null) {
+        lsBlocksToRedistribute.add(block);
+      }
+ else {
+        if (!block.isMigrating()) {
+          Integer countInt=addressBlocks.get(block.owner);
+          int count=(countInt == null) ? 0 : countInt;
+          if (count >= aveBlockOwnCount) {
+            lsBlocksToRedistribute.add(block);
+          }
+ else {
+            count++;
+            addressBlocks.put(block.owner,count);
+          }
+        }
+      }
+    }
+    Set<Address> allAddress=addressBlocks.keySet();
+    setNewMembers:     for (    Address address : allAddress) {
+      Integer countInt=addressBlocks.get(address);
+      int count=(countInt == null) ? 0 : countInt.intValue();
+      while (count < aveBlockOwnCount) {
+        if (lsBlocksToRedistribute.size() > 0) {
+          Block blockToMigrate=lsBlocksToRedistribute.remove(0);
+          if (blockToMigrate.owner == null) {
+            blockToMigrate.owner=address;
+          }
+ else {
+            blockToMigrate.migrationAddress=address;
+            if (blockToMigrate.owner.equals(blockToMigrate.migrationAddress)) {
+              blockToMigrate.migrationAddress=null;
+            }
+          }
+          count++;
+        }
+ else {
+          break setNewMembers;
+        }
+      }
+    }
+    int addressIndex=0;
+    for (int i=0; i < BLOCK_COUNT; i++) {
+      Block block=blocks[i];
+      if (block.owner == null) {
+        int index=addressIndex++ % addressBlocks.size();
+        block.owner=(Address)addressBlocks.keySet().toArray()[index];
+      }
+    }
+    Data dataAllBlocks=null;
+    for (    MemberImpl member : lsMembers) {
+      if (!member.localMember()) {
+        if (dataAllBlocks == null) {
+          Blocks allBlocks=new Blocks();
+          for (          Block block : blocks) {
+            allBlocks.addBlock(block);
+          }
+          dataAllBlocks=ThreadContext.get().toData(allBlocks);
+        }
+        send("blocks",CONCURRENT_MAP_BLOCKS,dataAllBlocks,member.getAddress());
+      }
+    }
+    doResetRecords();
+    if (DEBUG) {
+      printBlocks();
+    }
+  }
+}

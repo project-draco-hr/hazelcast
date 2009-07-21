@@ -1,0 +1,142 @@
+{
+  ClusterService.get().registerPeriodicRunnable(new Runnable(){
+    public void run(){
+      Collection<CMap> cmaps=maps.values();
+      for (      CMap cmap : cmaps) {
+        if (cmap.ttl != 0) {
+          cmap.startEviction();
+        }
+        if (cmap.writeDelaySeconds > 0) {
+          cmap.startAsyncStoreWrite();
+        }
+      }
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_GET_MAP_ENTRY,new DefaultPacketProcessor(false,true,false,true){
+    void process(    Request request){
+      doGetMapEntry(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_GET,new GetOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_PUT,new PutOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_PUT_IF_ABSENT,new PutOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_REPLACE_IF_NOT_NULL,new PutOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_PUT_MULTI,new PutMultiOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_REMOVE,new RemoveOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_REMOVE_IF_SAME,new RemoveOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_REMOVE_ITEM,new RemoveItemOperationHandler());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_PUT,new BackupPacketProcessor());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_ADD,new BackupPacketProcessor());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_REMOVE_MULTI,new BackupPacketProcessor());
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_REMOVE,new BackupPacketProcessor());
+  registerPacketProcessor(CONCURRENT_MAP_BACKUP_LOCK,new DefaultPacketProcessor(false,false,false,false){
+    void process(    Request request){
+      doLock(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_REMOVE_MULTI,new DefaultPacketProcessor(false,true,true,true){
+    void process(    Request request){
+      doRemoveMulti(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_LOCK,new DefaultPacketProcessor(false,true,true,false){
+    void process(    Request request){
+      doLock(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_LOCK_RETURN_OLD,new DefaultPacketProcessor(false,true,true,false){
+    void process(    Request request){
+      doLock(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_UNLOCK,new DefaultPacketProcessor(false,true,true,false){
+    void process(    Request request){
+      doLock(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_SIZE,new PacketProcessor(){
+    public void process(    Packet packet){
+      handleSize(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ITERATE_ENTRIES,new DefaultPacketProcessor(true,false,false,true){
+    void process(    Request request){
+      CMap cmap=getMap(request.name);
+      cmap.getEntries(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ITERATE_VALUES,new DefaultPacketProcessor(true,false,false,true){
+    void process(    Request request){
+      CMap cmap=getMap(request.name);
+      cmap.getEntries(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ITERATE_KEYS,new DefaultPacketProcessor(true,false,false,true){
+    void process(    Request request){
+      CMap cmap=getMap(request.name);
+      cmap.getEntries(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ADD_TO_LIST,new DefaultPacketProcessor(false,true,false,false){
+    void process(    Request request){
+      doAdd(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ADD_TO_SET,new DefaultPacketProcessor(false,true,false,false){
+    void process(    Request request){
+      doAdd(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_CONTAINS,new DefaultPacketProcessor(true,false,false,false){
+    void process(    Request request){
+      doContains(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BLOCK_INFO,new PacketProcessor(){
+    public void process(    Packet packet){
+      handleBlockInfo(packet);
+    }
+  }
+);
+  registerPacketProcessor(CONCURRENT_MAP_BLOCKS,new PacketProcessor(){
+    public void process(    Packet packet){
+      handleBlocks(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_MIGRATION_COMPLETE,new PacketProcessor(){
+    public void process(    Packet packet){
+      doMigrationComplete(packet.conn.getEndPoint());
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_MIGRATE_RECORD,new PacketProcessor(){
+    public void process(    Packet packet){
+      handleMigrateRecord(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_VALUE_COUNT,new DefaultPacketProcessor(false,true,false,true){
+    void process(    Request request){
+      doValueCount(request);
+    }
+  }
+);
+  for (int i=0; i < BLOCK_COUNT; i++) {
+    loadStoreForks[i]=new LoadStoreFork();
+  }
+}

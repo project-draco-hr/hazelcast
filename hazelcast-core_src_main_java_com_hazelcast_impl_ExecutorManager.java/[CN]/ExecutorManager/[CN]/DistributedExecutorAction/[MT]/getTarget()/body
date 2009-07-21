@@ -1,0 +1,34 @@
+{
+  Address target=null;
+  if (innerFutureTask.getKey() != null) {
+    Data keyData=null;
+    try {
+      keyData=ThreadContext.get().toData(innerFutureTask.getKey());
+    }
+ catch (    final Exception e) {
+      e.printStackTrace();
+    }
+    target=getKeyOwner(keyData);
+  }
+ else   if (innerFutureTask.getMember() != null) {
+    final Object mem=innerFutureTask.getMember();
+    if (mem instanceof ClusterMember) {
+      final ClusterMember clusterMember=(ClusterMember)mem;
+      target=clusterMember.getAddress();
+    }
+ else     if (mem instanceof MemberImpl) {
+      target=((MemberImpl)mem).getAddress();
+    }
+    if (DEBUG)     log(" Target " + target);
+  }
+ else {
+    Set<Member> members=Node.get().getClusterImpl().getMembers();
+    final int random=(int)(Math.random() * 1000);
+    final int randomIndex=random % members.size();
+    ClusterMember randomClusterMember=(ClusterMember)members.toArray()[randomIndex];
+    target=randomClusterMember.getAddress();
+    randomTarget=target;
+  }
+  if (target == null)   return thisAddress;
+ else   return target;
+}

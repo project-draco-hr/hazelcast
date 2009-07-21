@@ -1,0 +1,19 @@
+{
+  int blockId=getBlockId(key);
+  Record rec=new Record(name,blockId,key,value,ttl);
+  Block ownerBlock=getOrCreateBlock(blockId);
+  if (thisAddress.equals(ownerBlock.getRealOwner())) {
+    ownedEntryCount++;
+  }
+  rec.owner=ownerBlock.owner;
+  mapRecords.put(key,rec);
+  if (evictionPolicy != OrderingType.NONE) {
+    if (maxSize != Integer.MAX_VALUE) {
+      int limitSize=(maxSize / lsMembers.size());
+      if (ownedEntryCount > limitSize) {
+        startEviction();
+      }
+    }
+  }
+  return rec;
+}

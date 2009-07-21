@@ -1,0 +1,27 @@
+{
+  if ((off < 0) || (len < 0) || ((off + len) < 0)) {
+    throw new IndexOutOfBoundsException();
+  }
+ else   if (len == 0) {
+    return;
+  }
+  if (bb == null) {
+    bb=bufferProvider.takeEmptyBuffer();
+  }
+  if (!bb.hasRemaining()) {
+    bufferProvider.addBuffer(bb);
+    bb=bufferProvider.takeEmptyBuffer();
+  }
+  if (bb.remaining() < len) {
+    final int remaining=bb.remaining();
+    bb.put(b,off,remaining);
+    if (debug)     logger.log(Level.INFO,"writing byte[] " + remaining);
+    bufferProvider.addBuffer(bb);
+    bb=bufferProvider.takeEmptyBuffer();
+    write(b,off + remaining,len - remaining);
+  }
+ else {
+    bb.put(b,off,len);
+    if (debug)     logger.log(Level.INFO,"writing byte[] " + len);
+  }
+}

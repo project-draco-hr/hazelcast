@@ -1,0 +1,25 @@
+{
+  if (deadAddress.equals(thisAddress))   return;
+  for (  Block block : blocks) {
+    if (block != null) {
+      if (deadAddress.equals(block.owner)) {
+        MemberImpl member=getNextMemberBeforeSync(block.owner,true,1);
+        block.owner=(member == null) ? thisAddress : member.getAddress();
+      }
+      if (block.migrationAddress != null) {
+        if (deadAddress.equals(block.migrationAddress)) {
+          MemberImpl member=getNextMemberBeforeSync(block.migrationAddress,true,1);
+          block.migrationAddress=(member == null) ? thisAddress : member.getAddress();
+        }
+      }
+    }
+  }
+  Collection<CMap> cmaps=maps.values();
+  for (  CMap map : cmaps) {
+    Collection<Record> records=map.mapRecords.values();
+    for (    Record record : records) {
+      record.onDisconnect(deadAddress);
+    }
+  }
+  doResetRecords();
+}

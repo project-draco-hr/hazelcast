@@ -1,0 +1,46 @@
+{
+  int bufferCacheSize=12;
+  int packetCacheSize=0;
+  String threadName=Thread.currentThread().getName();
+  if (threadName.startsWith("hz.")) {
+    if ("hz.InThread".equals(threadName)) {
+      bufferCacheSize=100;
+      packetCacheSize=100;
+    }
+ else     if ("hz.OutThread".equals(threadName)) {
+      bufferCacheSize=0;
+      packetCacheSize=0;
+    }
+ else     if ("hz.ServiceThread".equals(threadName)) {
+      bufferCacheSize=100;
+      packetCacheSize=100;
+    }
+  }
+  logger.log(Level.FINEST,threadName + " is starting with cacheSize " + bufferCacheSize);
+  bufferCache=new ObjectPool<ByteBuffer>("BufferCache",bufferCacheSize){
+    public ByteBuffer createNew(){
+      return ByteBuffer.allocate(BYTE_BUFFER_SIZE);
+    }
+    public void onRelease(    ByteBuffer byteBuffer){
+      byteBuffer.clear();
+    }
+    public void onObtain(    ByteBuffer byteBuffer){
+      byteBuffer.clear();
+    }
+  }
+;
+  packetCache=new ObjectPool<Packet>("PacketCache",packetCacheSize){
+    public Packet createNew(){
+      return new Packet();
+    }
+    public void onRelease(    Packet packet){
+      packet.reset();
+      packet.released=true;
+    }
+    public void onObtain(    Packet packet){
+      packet.reset();
+      packet.released=false;
+    }
+  }
+;
+}

@@ -1,0 +1,35 @@
+{
+  ThreadContext threadContext=ThreadContext.get();
+  TransactionImpl txn=threadContext.txn;
+  if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+    try {
+      boolean locked;
+      if (!txn.has(name,key)) {
+        MLock mlock=threadContext.getMLock();
+        locked=mlock.lockAndReturnOld(name,key,DEFAULT_TXN_TIMEOUT,txn.getId());
+        if (!locked)         throwCME(key);
+        Object oldObject=null;
+        Data oldValue=mlock.oldValue;
+        if (oldValue != null) {
+          oldObject=threadContext.toObject(oldValue);
+        }
+        txn.attachRemoveOp(name,key,null,(oldObject == null));
+        return (oldObject != null);
+      }
+ else {
+        return (txn.attachRemoveOp(name,key,null,false) != null);
+      }
+    }
+ catch (    Exception e1) {
+      e1.printStackTrace();
+    }
+    return false;
+  }
+ else {
+    boolean removed=booleanCall(ClusterOperation.CONCURRENT_MAP_REMOVE_ITEM,name,key,value,0,-1);
+    if (removed) {
+      backup(ClusterOperation.CONCURRENT_MAP_BACKUP_REMOVE);
+    }
+    return removed;
+  }
+}

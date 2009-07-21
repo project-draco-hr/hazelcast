@@ -1,0 +1,26 @@
+{
+  ClusterOperation operation=ClusterOperation.BLOCKING_QUEUE_ADD_BLOCK;
+  if (!add) {
+    operation=ClusterOperation.BLOCKING_QUEUE_REMOVE_BLOCK;
+  }
+  if (lsMembers.size() > 1) {
+    int addBlockId=-1;
+    int removeBlockId=-1;
+    if (add) {
+      addBlockId=blockId;
+      except=null;
+    }
+ else {
+      removeBlockId=blockId;
+    }
+    BlockUpdate addRemove=new BlockUpdate(addAddress,addBlockId,fullBlockId,removeBlockId);
+    for (    MemberImpl member : lsMembers) {
+      if (!member.localMember()) {
+        Address dest=member.getAddress();
+        if (!dest.equals(except)) {
+          send(name,operation,addRemove,dest);
+        }
+      }
+    }
+  }
+}

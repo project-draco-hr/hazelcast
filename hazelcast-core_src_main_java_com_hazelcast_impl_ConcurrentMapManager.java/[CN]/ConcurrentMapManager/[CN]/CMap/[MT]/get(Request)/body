@@ -1,0 +1,28 @@
+{
+  Record record=getRecord(req.key);
+  if (record == null)   return null;
+  if (!record.isValid()) {
+    if (record.isEvictable()) {
+      scheduleForEviction(record);
+      return null;
+    }
+  }
+  record.setLastAccessed();
+  touch(record);
+  Data data=record.getValue();
+  Data returnValue=null;
+  if (data != null) {
+    returnValue=doHardCopy(data);
+  }
+ else {
+    if (record.lsValues != null) {
+      Values values=new Values(record.lsValues);
+      returnValue=toData(values);
+    }
+  }
+  if (returnValue != null) {
+    req.key.setNoData();
+    req.key=null;
+  }
+  return returnValue;
+}

@@ -1,0 +1,43 @@
+{
+  if (completelyShutdown)   return;
+  firstMainThread=Thread.currentThread();
+  clusterImpl=new ClusterImpl();
+  final boolean inited=init();
+  if (!inited)   return;
+  final Thread inThread=new Thread(InSelector.get(),"hz.InThread");
+  inThread.start();
+  inThread.setPriority(8);
+  threads.add(inThread);
+  final Thread outThread=new Thread(OutSelector.get(),"hz.OutThread");
+  outThread.start();
+  outThread.setPriority(8);
+  threads.add(outThread);
+  final Thread clusterServiceThread=new Thread(ClusterService.get(),"hz.ServiceThread");
+  clusterServiceThread.start();
+  clusterServiceThread.setPriority(7);
+  threads.add(clusterServiceThread);
+  if (Config.get().getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
+    startMulticastService();
+  }
+  join();
+  firstMainThread=null;
+  if (!completelyShutdown) {
+    Runtime.getRuntime().addShutdownHook(new Thread(){
+      @Override public void run(){
+        try {
+          completelyShutdown=true;
+          if (logger != null) {
+            logger.log(Level.INFO,"Hazelcast ShutdownHook is shutting down!");
+          }
+          shutdown();
+        }
+ catch (        Exception e) {
+          if (logger != null) {
+            logger.log(Level.WARNING,"Hazelcast shutdownhook exception:",e);
+          }
+        }
+      }
+    }
+);
+  }
+}

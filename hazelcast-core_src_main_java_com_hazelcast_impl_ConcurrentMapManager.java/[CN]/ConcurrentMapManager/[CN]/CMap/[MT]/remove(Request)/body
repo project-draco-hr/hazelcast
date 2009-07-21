@@ -1,0 +1,43 @@
+{
+  Record record=mapRecords.get(req.key);
+  if (record == null) {
+    return null;
+  }
+  if (!record.isValid()) {
+    if (record.isEvictable()) {
+      scheduleForEviction(record);
+      return null;
+    }
+  }
+  if (req.value != null) {
+    if (record.value != null) {
+      if (!record.value.equals(req.value)) {
+        return null;
+      }
+    }
+  }
+  Data oldValue=record.getValue();
+  if (oldValue == null && record.lsValues != null && record.lsValues.size() > 0) {
+    Values values=new Values(record.lsValues);
+    oldValue=toData(values);
+    record.lsValues=null;
+  }
+  if (oldValue != null) {
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record.key,oldValue,record.mapListeners);
+    record.version++;
+    record.value=null;
+    record.lsValues=null;
+  }
+  req.version=record.version;
+  req.longValue=record.copyCount;
+  if (record.isRemovable()) {
+    removeRecord(record.key);
+    record.key.setNoData();
+    record.key=null;
+  }
+  if (oldValue != null) {
+    req.key.setNoData();
+    req.key=null;
+  }
+  return oldValue;
+}

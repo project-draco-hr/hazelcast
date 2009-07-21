@@ -1,0 +1,36 @@
+{
+  if (request.local) {
+    final TargetAwareOp targetAwareOp=(TargetAwareOp)request.attachment;
+    targetAwareOp.setResult(request.response);
+  }
+ else {
+    Packet packet=obtainPacket();
+    request.setPacket(packet);
+    packet.operation=ClusterOperation.RESPONSE;
+    packet.responseType=RESPONSE_SUCCESS;
+    if (request.response == OBJECT_REDO) {
+      packet.responseType=RESPONSE_REDO;
+    }
+ else     if (request.response != null) {
+      if (request.response instanceof Boolean) {
+        if (request.response == Boolean.FALSE) {
+          packet.responseType=RESPONSE_FAILURE;
+        }
+      }
+ else {
+        Data data=null;
+        if (request.response instanceof Data) {
+          data=(Data)request.response;
+        }
+ else {
+          data=toData(request.response);
+        }
+        if (data != null && data.size() > 0) {
+          doSet(data,packet.value);
+        }
+      }
+    }
+    sendResponse(packet,request.caller);
+    request.reset();
+  }
+}
