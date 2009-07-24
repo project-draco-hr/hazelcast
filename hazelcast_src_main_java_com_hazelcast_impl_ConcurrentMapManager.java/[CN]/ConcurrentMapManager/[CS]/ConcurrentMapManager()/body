@@ -31,12 +31,7 @@
   registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_ADD,new BackupPacketProcessor());
   registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_REMOVE_MULTI,new BackupPacketProcessor());
   registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_REMOVE,new BackupPacketProcessor());
-  registerPacketProcessor(CONCURRENT_MAP_BACKUP_LOCK,new DefaultPacketProcessor(false,false,false,false){
-    void process(    Request request){
-      doLock(request);
-    }
-  }
-);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_BACKUP_LOCK,new BackupPacketProcessor());
   registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_REMOVE_MULTI,new DefaultPacketProcessor(false,true,true,true){
     void process(    Request request){
       doRemoveMulti(request);
@@ -82,6 +77,13 @@
   }
 );
   registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ITERATE_KEYS,new DefaultPacketProcessor(true,false,false,true){
+    void process(    Request request){
+      CMap cmap=getMap(request.name);
+      cmap.getEntries(request);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.CONCURRENT_MAP_ITERATE_KEYS_ALL,new DefaultPacketProcessor(true,false,false,true){
     void process(    Request request){
       CMap cmap=getMap(request.name);
       cmap.getEntries(request);
