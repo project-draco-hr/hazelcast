@@ -1,9 +1,29 @@
 {
-  if (name.equals("lock")) {
-    locksMapProxy.remove(key);
+  final ProxyKey proxyKey=new ProxyKey(name,key);
+  if (proxies.containsKey(proxyKey)) {
+    if (name.equals("lock")) {
+      locksMapProxy.remove(key);
+    }
+ else     if (name.startsWith("i:")) {
+      idGeneratorMapProxy.remove(name);
+    }
+    globalProxies.remove(proxyKey);
+    final BlockingQueue result=new ArrayBlockingQueue(1);
+    ClusterService.get().enqueueAndReturn(new Processable(){
+      public void process(){
+        try {
+          destroyProxy(proxyKey);
+          result.put(Boolean.TRUE);
+        }
+ catch (        Exception e) {
+        }
+      }
+    }
+);
+    try {
+      result.take();
+    }
+ catch (    InterruptedException e) {
+    }
   }
- else   if (name.startsWith("i:")) {
-    idGeneratorMapProxy.remove(name);
-  }
-  globalProxies.remove(new ProxyKey(name,key));
 }

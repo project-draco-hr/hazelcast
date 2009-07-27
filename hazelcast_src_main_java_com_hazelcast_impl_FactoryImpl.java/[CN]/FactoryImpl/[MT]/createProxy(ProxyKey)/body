@@ -1,0 +1,39 @@
+{
+  boolean created=false;
+  ICommon proxy=proxies.get(proxyKey);
+  if (proxy == null) {
+    created=true;
+    String name=proxyKey.name;
+    if (name.startsWith("q:")) {
+      proxy=new QProxyImpl(name);
+    }
+ else     if (name.startsWith("t:")) {
+      proxy=new TopicProxyImpl(name);
+    }
+ else     if (name.startsWith("c:")) {
+      proxy=new MProxyImpl(name);
+    }
+ else     if (name.startsWith("m:")) {
+      if (BaseManager.getInstanceType(name) == ICommon.InstanceType.MULTIMAP) {
+        proxy=new MultiMapProxy(name);
+      }
+ else {
+        proxy=new CollectionProxyImpl(name);
+      }
+    }
+ else     if (name.startsWith("i:")) {
+      proxy=new IdGeneratorProxy(name);
+    }
+ else     if (name.equals("lock")) {
+      proxy=new LockProxy(proxyKey.key);
+    }
+    proxies.put(proxyKey,proxy);
+    if (proxyKey.key == null) {
+      proxiesByName.put(proxyKey.name,proxy);
+    }
+  }
+  if (created) {
+    fireInstanceCreateEvent(proxy);
+  }
+  return proxy;
+}

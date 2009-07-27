@@ -7,9 +7,46 @@ synchronized (Node.class) {
         inited=true;
         ManagementService.register(node.getClusterImpl());
         try {
+          globalProxies.addEntryListener(new EntryListener(){
+            public void entryAdded(            EntryEvent event){
+              final ProxyKey proxyKey=(ProxyKey)event.getKey();
+              if (!proxies.containsKey(proxyKey)) {
+                logger.log(Level.FINEST,"Instance created " + proxyKey);
+                ClusterService.get().enqueueAndReturn(new Processable(){
+                  public void process(){
+                    createProxy(proxyKey);
+                  }
+                }
+);
+              }
+            }
+            public void entryRemoved(            EntryEvent event){
+              final ProxyKey proxyKey=(ProxyKey)event.getKey();
+              if (proxies.containsKey(proxyKey)) {
+                logger.log(Level.FINEST,"Instance removed " + proxyKey);
+                ClusterService.get().enqueueAndReturn(new Processable(){
+                  public void process(){
+                    destroyProxy(proxyKey);
+                  }
+                }
+);
+              }
+            }
+            public void entryUpdated(            EntryEvent event){
+              logger.log(Level.FINEST,"Instance updated " + event.getKey());
+            }
+          }
+,false);
           Set<ProxyKey> proxyKeys=globalProxies.allKeys();
-          for (          ProxyKey proxyKey : proxyKeys) {
-            createProxy(proxyKey.name,proxyKey.key);
+          for (          final ProxyKey proxyKey : proxyKeys) {
+            if (!proxies.containsKey(proxyKey)) {
+              ClusterService.get().enqueueAndReturn(new Processable(){
+                public void process(){
+                  createProxy(proxyKey);
+                }
+              }
+);
+            }
           }
         }
  catch (        Exception e) {
