@@ -37,15 +37,17 @@ synchronized (Node.class) {
             }
           }
 ,false);
-          Set<ProxyKey> proxyKeys=globalProxies.allKeys();
-          for (          final ProxyKey proxyKey : proxyKeys) {
-            if (!proxies.containsKey(proxyKey)) {
-              ClusterService.get().enqueueAndReturn(new Processable(){
-                public void process(){
-                  createProxy(proxyKey);
+          if (Hazelcast.getCluster().getMembers().size() > 1) {
+            Set<ProxyKey> proxyKeys=globalProxies.allKeys();
+            for (            final ProxyKey proxyKey : proxyKeys) {
+              if (!proxies.containsKey(proxyKey)) {
+                ClusterService.get().enqueueAndReturn(new Processable(){
+                  public void process(){
+                    createProxy(proxyKey);
+                  }
                 }
-              }
 );
+              }
             }
           }
         }
