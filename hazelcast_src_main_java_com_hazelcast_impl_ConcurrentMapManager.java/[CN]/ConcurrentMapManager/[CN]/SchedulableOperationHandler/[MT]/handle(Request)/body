@@ -1,5 +1,5 @@
 {
-  if (!testLock(request)) {
+  if (shouldSchedule(request)) {
     if (request.hasEnoughTimeToSchedule()) {
       Record record=ensureRecord(request);
       request.scheduled=true;
@@ -10,19 +10,14 @@
         }
       }
 );
-      return;
     }
  else {
-      request.response=null;
+      onNoTimeToSchedule(request);
     }
+    return;
   }
  else {
-    CMap cmap=getMap(request.name);
-    if (cmap.writeDelaySeconds == 0) {
-      executeLoadStore(request);
-      return;
-    }
+    doOperation(request);
+    returnResponse(request);
   }
-  doOperation(request);
-  returnResponse(request);
 }

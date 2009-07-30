@@ -1,0 +1,57 @@
+{
+  final String name=method.getName();
+  final BlockingQueue resultQ=new ArrayBlockingQueue(1);
+  if (name.equals("begin") || name.equals("commit") || name.equals("rollback")) {
+    es.execute(new Runnable(){
+      public void run(){
+        try {
+          Transaction txn=Hazelcast.getTransaction();
+          if (name.equals("begin")) {
+            txn.begin();
+          }
+ else           if (name.equals("commit")) {
+            txn.commit();
+          }
+ else           if (name.equals("rollback")) {
+            txn.rollback();
+          }
+          resultQ.put(NULL_OBJECT);
+        }
+ catch (        Exception e) {
+          try {
+            resultQ.put(e);
+          }
+ catch (          InterruptedException ignored) {
+          }
+        }
+      }
+    }
+);
+  }
+ else {
+    es.execute(new Runnable(){
+      public void run(){
+        try {
+          Object result=method.invoke(target,objects);
+          resultQ.put((result == null) ? NULL_OBJECT : result);
+        }
+ catch (        Exception e) {
+          try {
+            resultQ.put(e);
+          }
+ catch (          InterruptedException ignored) {
+          }
+        }
+      }
+    }
+);
+  }
+  Object result=resultQ.take();
+  if (name.equals("destroy")) {
+    es.shutdown();
+  }
+  if (result instanceof Throwable) {
+    throw ((Throwable)result);
+  }
+  return (result == NULL_OBJECT) ? null : result;
+}

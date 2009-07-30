@@ -1,0 +1,18 @@
+{
+  Hazelcast.getMap("testMap").put("1","value");
+  TransactionalMap txnMap=newTransactionalMapProxy("testMap");
+  TransactionalMap txnMap2=newTransactionalMapProxy("testMap");
+  txnMap.begin();
+  assertEquals(1,txnMap.size());
+  txnMap.remove("1");
+  assertEquals(0,txnMap.size());
+  assertEquals(1,txnMap2.size());
+  txnMap.rollback();
+  assertEquals(1,txnMap.size());
+  assertEquals(1,txnMap2.size());
+  txnMap2.begin();
+  txnMap2.remove("1");
+  txnMap2.commit();
+  assertEquals(0,txnMap.size());
+  assertEquals(0,txnMap2.size());
+}
