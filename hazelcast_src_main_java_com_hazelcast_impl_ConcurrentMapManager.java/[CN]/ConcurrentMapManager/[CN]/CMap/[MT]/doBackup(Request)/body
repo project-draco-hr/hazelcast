@@ -1,4 +1,7 @@
 {
+  if (req.key == null || req.key.size() == 0) {
+    throw new RuntimeException("Backup key size cannot be zero! " + req.key);
+  }
   if (req.operation == CONCURRENT_MAP_BACKUP_PUT) {
     toRecord(req);
   }
@@ -18,8 +21,11 @@
       }
       record.value=null;
       if (record.isRemovable()) {
-        removeRecord(record.key);
+        if (removeRecord(record.key) == null) {
+          throw new RuntimeException("Remove not removing record!");
+        }
         record.key.setNoData();
+        record.key=null;
       }
     }
   }
