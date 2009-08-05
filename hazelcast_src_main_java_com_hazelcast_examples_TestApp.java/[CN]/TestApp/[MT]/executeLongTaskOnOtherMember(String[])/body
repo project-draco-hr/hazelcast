@@ -1,0 +1,30 @@
+{
+  try {
+    ExecutorService executorService=Hazelcast.getExecutorService();
+    Member otherMember=null;
+    Set<Member> members=Hazelcast.getCluster().getMembers();
+    for (    Member member : members) {
+      if (!member.localMember()) {
+        otherMember=member;
+      }
+    }
+    if (otherMember == null) {
+      otherMember=Hazelcast.getCluster().getLocalMember();
+    }
+    DistributedTask<String> echoTask=new DistributedTask(new LongTask(args[1]),otherMember){
+      @Override public void setMemberLeft(      Member member){
+        System.out.println("Member Left " + member);
+      }
+      @Override public void done(){
+        System.out.println("Done!");
+      }
+    }
+;
+    executorService.execute(echoTask);
+    Object result=echoTask.get();
+    System.out.println(result);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}

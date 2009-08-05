@@ -1,40 +1,32 @@
 {
   boolean found=false;
-  final ClusterMember clusterMember=(ClusterMember)member;
+  final MemberImpl deadMember=(MemberImpl)dead;
   if (innerFutureTask.getKey() != null) {
     final Data keyData=toData(innerFutureTask.getKey());
     final Address target=getKeyOwner(keyData);
-    if (clusterMember.getAddress().equals(target)) {
-      found=true;
-    }
+    found=(deadMember.getAddress().equals(target));
   }
  else   if (innerFutureTask.getMember() != null) {
-    final Member target=innerFutureTask.getMember();
-    if (target instanceof ClusterMember) {
-      if (target.equals(member)) {
-        found=true;
-      }
-    }
- else {
-      if (((MemberImpl)target).getAddress().equals(clusterMember.getAddress())) {
-        found=true;
-      }
-    }
+    final MemberImpl targetMember=(MemberImpl)innerFutureTask.getMember();
+    found=(targetMember.getAddress().equals(deadMember.getAddress()));
   }
  else   if (innerFutureTask.getMembers() != null) {
     final Set<Member> members=innerFutureTask.getMembers();
-    for (    final Member targetMember : members) {
-      if (member.equals(targetMember)) {
+    for (    final Member m : members) {
+      MemberImpl targetMember=(MemberImpl)m;
+      if (targetMember.getAddress().equals(deadMember.getAddress())) {
         found=true;
+        break;
       }
     }
   }
  else {
-    if (clusterMember.getAddress().equals(randomTarget)) {
-      found=true;
-    }
+    found=(deadMember.getAddress().equals(randomTarget));
   }
-  if (!found)   return;
-  innerFutureTask.innerSetMemberLeft(member);
-  handleStreamResponse(OBJECT_DONE);
+  if (found) {
+    logger.log(Level.FINEST,"Terminating task. Member left " + dead);
+    innerFutureTask.innerSetMemberLeft(dead);
+    handleStreamResponse(OBJECT_MEMBER_LEFT);
+    finalizeTask();
+  }
 }
