@@ -1,32 +1,27 @@
 {
-  try {
-    if (key != null) {
-      Address owner=ConcurrentMapManager.get().getKeyOwner(key);
-      if (owner.equals(thisAddress)) {
-        handleListenerRegisterations(add,name,key,thisAddress,includeValue);
-      }
- else {
-        Packet packet=obtainPacket();
-        packet.set(name,packetProcess,key,null);
-        packet.longValue=(includeValue) ? 1 : 0;
-        boolean sent=send(packet,owner);
-        if (!sent) {
-          packet.returnToContainer();
-        }
-      }
+  if (key != null) {
+    Address owner=ConcurrentMapManager.get().getKeyOwner(key);
+    if (owner.equals(thisAddress)) {
+      handleListenerRegisterations(add,name,key,thisAddress,includeValue);
     }
  else {
-      for (      MemberImpl member : lsMembers) {
-        if (member.localMember()) {
-          handleListenerRegisterations(add,name,key,thisAddress,includeValue);
-        }
- else {
-          sendAddRemoveListener(member.getAddress(),add,name,key,includeValue);
-        }
+      Packet packet=obtainPacket();
+      packet.set(name,packetProcess,key,null);
+      packet.longValue=(includeValue) ? 1 : 0;
+      boolean sent=send(packet,owner);
+      if (!sent) {
+        packet.returnToContainer();
       }
     }
   }
- catch (  Exception e) {
-    e.printStackTrace();
+ else {
+    for (    MemberImpl member : lsMembers) {
+      if (member.localMember()) {
+        handleListenerRegisterations(add,name,key,thisAddress,includeValue);
+      }
+ else {
+        sendAddRemoveListener(member.getAddress(),add,name,key,includeValue);
+      }
+    }
   }
 }
