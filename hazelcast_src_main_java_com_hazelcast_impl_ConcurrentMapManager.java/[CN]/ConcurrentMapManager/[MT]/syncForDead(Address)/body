@@ -4,12 +4,42 @@
     if (block != null) {
       if (deadAddress.equals(block.owner)) {
         MemberImpl member=getNextMemberBeforeSync(block.owner,true,1);
-        block.owner=(member == null) ? thisAddress : member.getAddress();
+        if (member == null) {
+          if (!isSuperClient()) {
+            block.owner=thisAddress;
+          }
+ else {
+            block.owner=null;
+          }
+        }
+ else {
+          if (!deadAddress.equals(member.getAddress())) {
+            block.owner=member.getAddress();
+          }
+ else {
+            block.owner=null;
+          }
+        }
       }
       if (block.migrationAddress != null) {
         if (deadAddress.equals(block.migrationAddress)) {
           MemberImpl member=getNextMemberBeforeSync(block.migrationAddress,true,1);
-          block.migrationAddress=(member == null) ? thisAddress : member.getAddress();
+          if (member == null) {
+            if (!isSuperClient()) {
+              block.migrationAddress=thisAddress;
+            }
+ else {
+              block.migrationAddress=null;
+            }
+          }
+ else {
+            if (!deadAddress.equals(member.getAddress())) {
+              block.migrationAddress=member.getAddress();
+            }
+ else {
+              block.migrationAddress=null;
+            }
+          }
         }
       }
     }
@@ -21,5 +51,10 @@
       record.onDisconnect(deadAddress);
     }
   }
-  doResetRecords();
+  if (isMaster() && isSuperClient()) {
+    syncForAdd();
+  }
+ else {
+    doResetRecords();
+  }
 }
