@@ -10,8 +10,8 @@
         throw new RuntimeException("Record.key is null or empty " + rec.key);
       }
       executeLocally(new Runnable(){
-        MMigrate mmigrate=new MMigrate();
         public void run(){
+          MMigrate mmigrate=new MMigrate();
           if (cmap.isMultiMap()) {
             List<Data> values=rec.lsValues;
             if (values == null || values.size() == 0) {
@@ -36,16 +36,9 @@
   }
   executeLocally(new Runnable(){
     public void run(){
-      Processable processCompletion=new Processable(){
-        public void process(){
-          MigrationCompleteOperationHandler h=(MigrationCompleteOperationHandler)getPacketProcessor(CONCURRENT_MAP_MIGRATION_COMPLETE);
-          h.doMigrationComplete(thisAddress);
-          h.sendMigrationCompleteToAll();
-          logger.log(Level.FINEST,"Migration ended!");
-        }
-      }
-;
-      enqueueAndReturn(processCompletion);
+      MultiMigrationComplete mmc=new MultiMigrationComplete();
+      mmc.call();
+      logger.log(Level.FINEST,"Migration ended!");
     }
   }
 );

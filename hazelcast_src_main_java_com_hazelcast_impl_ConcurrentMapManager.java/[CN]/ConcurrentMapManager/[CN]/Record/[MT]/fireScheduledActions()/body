@@ -1,14 +1,15 @@
 {
-  if (lsScheduledActions != null) {
-    while (lsScheduledActions.size() > 0) {
-      ScheduledAction sa=lsScheduledActions.remove(0);
-      ClusterManager.get().deregisterScheduledAction(sa);
-      if (DEBUG) {
-        log("sa.expired " + sa.expired());
-      }
-      if (!sa.expired()) {
-        sa.consume();
-        return;
+  if (lockCount == 0) {
+    lockThreadId=-1;
+    lockAddress=null;
+    if (lsScheduledActions != null) {
+      while (lsScheduledActions.size() > 0) {
+        ScheduledAction sa=lsScheduledActions.remove(0);
+        ClusterManager.get().deregisterScheduledAction(sa);
+        if (!sa.expired()) {
+          sa.consume();
+          return;
+        }
       }
     }
   }
