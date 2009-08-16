@@ -6,32 +6,34 @@
     cmap.reset();
     for (    Object recObj : records) {
       final Record rec=(Record)recObj;
-      if (rec.key == null || rec.key.size() == 0) {
-        throw new RuntimeException("Record.key is null or empty " + rec.key);
-      }
-      executeLocally(new Runnable(){
-        public void run(){
-          MMigrate mmigrate=new MMigrate();
-          if (cmap.isMultiMap()) {
-            List<Data> values=rec.lsValues;
-            if (values == null || values.size() == 0) {
-              mmigrate.migrateMulti(rec,null);
+      if (rec.active) {
+        if (rec.key == null || rec.key.size() == 0) {
+          throw new RuntimeException("Record.key is null or empty " + rec.key);
+        }
+        executeLocally(new Runnable(){
+          public void run(){
+            MMigrate mmigrate=new MMigrate();
+            if (cmap.isMultiMap()) {
+              List<Data> values=rec.lsValues;
+              if (values == null || values.size() == 0) {
+                mmigrate.migrateMulti(rec,null);
+              }
+ else {
+                for (                Data value : values) {
+                  mmigrate.migrateMulti(rec,value);
+                }
+              }
             }
  else {
-              for (              Data value : values) {
-                mmigrate.migrateMulti(rec,value);
+              boolean migrated=mmigrate.migrate(rec);
+              if (!migrated) {
+                logger.log(Level.FINEST,"Migration failed " + rec.key);
               }
             }
           }
- else {
-            boolean migrated=mmigrate.migrate(rec);
-            if (!migrated) {
-              logger.log(Level.FINEST,"Migration failed " + rec.key);
-            }
-          }
         }
-      }
 );
+      }
     }
   }
   executeLocally(new Runnable(){
