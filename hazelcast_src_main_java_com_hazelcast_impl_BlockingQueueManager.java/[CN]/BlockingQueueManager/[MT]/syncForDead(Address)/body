@@ -1,9 +1,6 @@
 {
   if (deadAddress.equals(thisAddress))   return;
   MemberImpl member=getNextMemberBeforeSync(deadAddress,true,1);
-  if (DEBUG) {
-    log(deadAddress + " is dead and its backup was " + member);
-  }
   Address addressNewOwner=(member == null) ? thisAddress : member.getAddress();
   Collection<Q> queues=mapQueues.values();
   for (  Q q : queues) {
@@ -15,9 +12,6 @@
         if (lsMembers.size() > 1) {
           if (addressNewOwner.equals(thisAddress)) {
             int indexUpto=block.size() - 1;
-            if (DEBUG) {
-              log("IndexUpto " + indexUpto);
-            }
             if (indexUpto > -1) {
               executeLocally(new BlockBackupSyncRunner(new BlockBackupSync(q,block,indexUpto)));
             }
@@ -40,14 +34,14 @@
     for (    ScheduledPollAction scheduledAction : scheduledPollActions) {
       if (deadAddress.equals(scheduledAction.request.caller)) {
         scheduledAction.setValid(false);
-        ClusterManager.get().deregisterScheduledAction(scheduledAction);
+        node.clusterManager.deregisterScheduledAction(scheduledAction);
       }
     }
     List<ScheduledOfferAction> scheduledOfferActions=q.lsScheduledOfferActions;
     for (    ScheduledOfferAction scheduledAction : scheduledOfferActions) {
       if (deadAddress.equals(scheduledAction.request.caller)) {
         scheduledAction.setValid(false);
-        ClusterManager.get().deregisterScheduledAction(scheduledAction);
+        node.clusterManager.deregisterScheduledAction(scheduledAction);
       }
     }
   }

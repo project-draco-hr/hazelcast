@@ -1,23 +1,19 @@
 {
-  if (DEBUG) {
-    log("Removing Address " + deadAddress);
-  }
-  if (!Node.get().joined()) {
+  log("Removing Address " + deadAddress);
+  if (!node.joined()) {
     return;
   }
   if (deadAddress.equals(thisAddress))   return;
   if (deadAddress.equals(getMasterAddress())) {
-    if (Node.get().joined()) {
+    if (node.joined()) {
       MemberImpl newMaster=getNextMemberAfter(deadAddress,false,1);
-      if (newMaster != null)       Node.get().setMasterAddress(newMaster.getAddress());
- else       Node.get().setMasterAddress(null);
+      if (newMaster != null)       node.setMasterAddress(newMaster.getAddress());
+ else       node.setMasterAddress(null);
     }
  else {
-      Node.get().setMasterAddress(null);
+      node.setMasterAddress(null);
     }
-    if (DEBUG) {
-      log("Now Master " + Node.get().getMasterAddress());
-    }
+    log("Now Master " + node.getMasterAddress());
   }
   if (isMaster()) {
     setJoins.remove(new MemberInfo(deadAddress));
@@ -26,19 +22,19 @@
   for (  MemberImpl member : lsMembers) {
     lsMembersBefore.add(member);
   }
-  Connection conn=ConnectionManager.get().getConnection(deadAddress);
+  Connection conn=node.connectionManager.getConnection(deadAddress);
   if (conn != null) {
-    ConnectionManager.get().remove(conn);
+    node.connectionManager.remove(conn);
   }
   MemberImpl member=getMember(deadAddress);
   if (member != null) {
     removeMember(deadAddress);
   }
-  BlockingQueueManager.get().syncForDead(deadAddress);
-  ConcurrentMapManager.get().syncForDead(deadAddress);
-  ListenerManager.get().syncForDead(deadAddress);
-  TopicManager.get().syncForDead(deadAddress);
-  Node.get().getClusterImpl().setMembers(lsMembers);
+  node.blockingQueueManager.syncForDead(deadAddress);
+  node.concurrentMapManager.syncForDead(deadAddress);
+  node.listenerManager.syncForDead(deadAddress);
+  node.topicManager.syncForDead(deadAddress);
+  node.getClusterImpl().setMembers(lsMembers);
   Object[] calls=mapCalls.values().toArray();
   for (  Object call : calls) {
     ((Call)call).onDisconnect(deadAddress);
