@@ -23,16 +23,18 @@
   evictionRate=mapConfig.getEvictionPercentage() / 100f;
   instanceType=getInstanceType(name);
   MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+  MapStore storeTemp=null;
+  MapLoader loaderTemp=null;
   if (mapStoreConfig != null) {
     if (mapStoreConfig.isEnabled()) {
       String mapStoreClassName=mapStoreConfig.getClassName();
       try {
         Object storeInstance=Class.forName(mapStoreClassName,true,Thread.currentThread().getContextClassLoader()).newInstance();
         if (storeInstance instanceof MapLoader) {
-          loader=(MapLoader)storeInstance;
+          loaderTemp=(MapLoader)storeInstance;
         }
         if (storeInstance instanceof MapStore) {
-          store=(MapStore)storeInstance;
+          storeTemp=(MapStore)storeInstance;
         }
         writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
         if (writeDelaySeconds > 0) {
@@ -44,6 +46,8 @@
       }
     }
   }
+  loader=loaderTemp;
+  store=storeTemp;
   if (writeDelaySeconds > 0) {
     removeDelayMillis=GLOBAL_REMOVE_DELAY_MILLIS + (writeDelaySeconds * 1000L);
   }

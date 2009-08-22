@@ -1,0 +1,21 @@
+{
+  while (true) {
+    final Request request=qRequests.poll();
+    if (request != null) {
+      try {
+        AsynchronousExecution ae=(AsynchronousExecution)getPacketProcessor(request.operation);
+        ae.execute(request);
+      }
+ catch (      Exception e) {
+        logger.log(Level.FINEST,"Store throwed exception for " + request.operation,e);
+        request.response=toData(new AddressAwareException(e,thisAddress));
+      }
+      offerSize.decrementAndGet();
+      qResponses.offer(request);
+      enqueueAndReturn(OrderedExecutionTask.this);
+    }
+ else {
+      return;
+    }
+  }
+}

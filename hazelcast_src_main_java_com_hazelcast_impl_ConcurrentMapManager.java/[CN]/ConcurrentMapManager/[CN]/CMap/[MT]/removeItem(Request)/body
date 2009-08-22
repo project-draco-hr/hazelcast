@@ -6,14 +6,14 @@
     return false;
   }
   if (req.txnId != -1) {
-    record.unlock();
+    unlock(record);
   }
   boolean removed=false;
   if (record.getCopyCount() > 0) {
     record.decrementCopyCount();
     removed=true;
   }
- else   if (record.value != null) {
+ else   if (record.getValue() != null) {
     removed=true;
   }
  else   if (record.lsValues != null) {
@@ -21,10 +21,10 @@
   }
   if (removed) {
     fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record);
-    record.version++;
-    if (record.value != null) {
-      record.value.setNoData();
-      record.value=null;
+    record.setVersion(record.getVersion() + 1);
+    if (record.getValue() != null) {
+      record.getValue().setNoData();
+      record.setValue(null);
     }
  else     if (record.lsValues != null) {
       for (      Data v : record.lsValues) {
@@ -33,7 +33,7 @@
       record.lsValues=null;
     }
   }
-  req.version=record.version;
+  req.version=record.getVersion();
   req.longValue=record.copyCount;
   if (record.isRemovable()) {
     markAsRemoved(record);

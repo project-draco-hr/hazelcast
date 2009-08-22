@@ -4,7 +4,7 @@
     return null;
   }
   if (req.txnId != -1) {
-    record.unlock();
+    unlock(record);
   }
   if (!record.isValid()) {
     if (record.isEvictable()) {
@@ -13,8 +13,8 @@
     }
   }
   if (req.value != null) {
-    if (record.value != null) {
-      if (!record.value.equals(req.value)) {
+    if (record.getValue() != null) {
+      if (!record.getValue().equals(req.value)) {
         return null;
       }
     }
@@ -26,12 +26,13 @@
     record.lsValues=null;
   }
   if (oldValue != null) {
-    fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record.key,oldValue,record.mapListeners);
-    record.version++;
-    record.value=null;
+    removeValueIndex(oldValue,record);
+    fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record.getKey(),oldValue,record.mapListeners);
+    record.setVersion(record.getVersion() + 1);
+    record.setValue(null);
     record.lsValues=null;
   }
-  req.version=record.version;
+  req.version=record.getVersion();
   req.longValue=record.copyCount;
   if (record.isRemovable()) {
     markAsRemoved(record);
