@@ -1,7 +1,7 @@
 {
   String currentAddress=null;
   try {
-    final Config config=Config.get();
+    final Config config=node.getConfig();
     final String localAddress=System.getProperty("hazelcast.local.address");
     if (localAddress != null) {
       currentAddress=InetAddress.getByName(localAddress.trim()).getHostAddress();
@@ -15,8 +15,9 @@
           final InetAddress inetAddress=e.nextElement();
           if (inetAddress instanceof Inet4Address) {
             final String address=inetAddress.getHostAddress();
+            final List<String> interfaces=config.getNetworkConfig().getInterfaces().getLsInterfaces();
             if (config.getNetworkConfig().getInterfaces().isEnabled()) {
-              if (matchAddress(address)) {
+              if (matchAddress(address,interfaces)) {
                 currentAddress=address;
                 break interfaces;
               }
@@ -34,7 +35,6 @@
         String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
         msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
         logger.log(Level.SEVERE,msg);
-        node.dumpCore(null);
         return null;
       }
     }
@@ -61,8 +61,7 @@
     serverSocketChannel.configureBlocking(false);
     return new Address(currentAddress,port);
   }
- catch (  final Exception e) {
-    node.dumpCore(e);
+ catch (  Exception e) {
     e.printStackTrace();
     throw e;
   }

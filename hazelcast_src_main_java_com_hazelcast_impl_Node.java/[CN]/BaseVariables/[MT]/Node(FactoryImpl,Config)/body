@@ -1,14 +1,7 @@
 {
   this.factory=factory;
   this.config=config;
-  boolean sClient=false;
-  final String superClientProp=System.getProperty("hazelcast.super.client");
-  if (superClientProp != null) {
-    if ("true".equalsIgnoreCase(superClientProp)) {
-      sClient=true;
-    }
-  }
-  superClient=sClient;
+  superClient=config.isSuperClient();
   localNodeType=(superClient) ? NodeType.SUPER_CLIENT : NodeType.MEMBER;
   String versionTemp="unknown";
   String buildTemp="unknown";
@@ -32,13 +25,13 @@
     if (preferIPv6Address == null && preferIPv4Stack == null) {
       System.setProperty("java.net.preferIPv4Stack","true");
     }
+    AddressPicker addressPicker=new AddressPicker(this);
     serverSocketChannel=ServerSocketChannel.open();
-    address=AddressPicker.pickAddress(this,serverSocketChannel);
+    address=addressPicker.pickAddress(this,serverSocketChannel);
     address.setThisAddress(true);
     localMember=new MemberImpl(address,true,localNodeType);
   }
  catch (  final Exception e) {
-    dumpCore(e);
     e.printStackTrace();
   }
   clusterImpl=new ClusterImpl(this);
@@ -75,7 +68,6 @@
     }
   }
  catch (  Exception e) {
-    dumpCore(e);
     e.printStackTrace();
   }
   this.multicastService=mcService;
