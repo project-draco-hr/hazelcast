@@ -1,4 +1,20 @@
 {
-  ensure();
-  return mproxyReal.get(key);
+  beforeCall();
+  try {
+    return mproxyReal.get(key);
+  }
+ catch (  Throwable e) {
+    if (e instanceof InterruptedCallException && factory.restarted) {
+      return get(key);
+    }
+ else     if (e instanceof RuntimeException) {
+      return e;
+    }
+ else {
+      throw new RuntimeException(e);
+    }
+  }
+ finally {
+    afterCall();
+  }
 }
