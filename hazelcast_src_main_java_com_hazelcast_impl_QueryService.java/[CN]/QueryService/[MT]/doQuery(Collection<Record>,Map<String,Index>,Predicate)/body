@@ -1,0 +1,48 @@
+{
+  Collection<Record> records=null;
+  if (predicate != null && predicate instanceof IndexAwarePredicate) {
+    List<IndexedPredicate> lsIndexPredicates=new ArrayList();
+    IndexAwarePredicate iap=(IndexAwarePredicate)predicate;
+    iap.collectIndexedPredicates(lsIndexPredicates);
+    for (    IndexedPredicate indexedPredicate : lsIndexPredicates) {
+      Index index=namedIndexes.get(indexedPredicate.getIndexName());
+      if (index != null) {
+        Collection<Record> sub=null;
+        if (!(indexedPredicate instanceof RangedPredicate)) {
+          sub=index.getRecords(getLongValue(indexedPredicate.getValue()));
+        }
+ else {
+          RangedPredicate rangedPredicate=(RangedPredicate)indexedPredicate;
+          RangedPredicate.RangeType type=rangedPredicate.getRangeType();
+          if (rangedPredicate.getRangeType() == RangedPredicate.RangeType.BETWEEN) {
+            sub=index.getSubRecords(getLongValue(rangedPredicate.getFrom()),getLongValue(rangedPredicate.getTo()));
+          }
+ else {
+            boolean equal=(type == LESS_EQUAL || type == GREATER_EQUAL);
+            if (type == LESS || type == LESS_EQUAL) {
+              sub=index.getSubRecords(equal,true,getLongValue(indexedPredicate.getValue()));
+            }
+ else {
+              sub=index.getSubRecords(equal,false,getLongValue(indexedPredicate.getValue()));
+            }
+          }
+        }
+        if (records == null) {
+          records=sub;
+        }
+ else {
+          Iterator itCurrentEntries=records.iterator();
+          while (itCurrentEntries.hasNext()) {
+            if (!sub.contains(itCurrentEntries.next())) {
+              itCurrentEntries.remove();
+            }
+          }
+        }
+      }
+    }
+  }
+  if (records == null) {
+    records=allRecords;
+  }
+  return records;
+}
