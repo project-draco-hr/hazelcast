@@ -1,19 +1,12 @@
 {
-  int indexCount=request.indexCount;
-  if (mapNamedIndexes.size() > indexCount) {
-    throw new RuntimeException(indexCount + " but expected " + mapNamedIndexes.size());
-  }
-  for (int i=0; i < indexCount; i++) {
-    Index index=indexes[i];
-    long newValue=request.indexes[i];
-    long oldValue=record.getAndSetIndex(i,newValue);
-    if (oldValue == Long.MIN_VALUE) {
-      node.queryService.addNewIndex(index,newValue,record);
+  if (request.indexes != null) {
+    int indexCount=request.indexes.length;
+    if (indexCount == 0)     throw new RuntimeException(node.getName() + " request countains no index " + request.indexes);
+    if (mapNamedIndexes.size() > indexCount) {
+      throw new RuntimeException(node.getName() + ": indexCount=" + indexCount+ " but expected "+ mapNamedIndexes.size());
     }
- else {
-      if (oldValue != newValue) {
-        node.queryService.updateIndex(index,oldValue,newValue,record);
-      }
-    }
+    long[] newIndexes=request.indexes;
+    request.indexes=null;
+    node.queryService.updateIndex(indexes,newIndexes,record);
   }
 }

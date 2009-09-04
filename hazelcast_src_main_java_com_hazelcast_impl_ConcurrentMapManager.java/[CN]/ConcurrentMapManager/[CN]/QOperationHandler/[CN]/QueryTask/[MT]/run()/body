@@ -1,20 +1,18 @@
 {
   Predicate predicate=(Predicate)toObject(request.value);
-  Collection<Record> lsResults=new ArrayList();
-  Collection<Record> records=node.queryService.query(cmap.mapRecords.values(),cmap.mapNamedIndexes,predicate);
-  System.out.println(node.getName() + " after index REcords size " + records.size());
-  if (true) {
-    for (    Record record : records) {
+  Set<MapEntry> results=new HashSet<MapEntry>();
+  boolean strong=node.queryService.query(results,cmap.mapNamedIndexes,predicate);
+  System.out.println(node.getName() + " after index REcords size " + results.size());
+  if (!strong) {
+    for (    MapEntry entry : results) {
+      Record record=(Record)entry;
       if (predicate == null || predicate.apply(record.getRecordEntry())) {
-        System.out.println(node.getName() + " FOUND " + record.getRecordEntry().getValue());
-        lsResults.add(record);
+        System.out.println(node.getName() + " FOUND " + entry.getValue());
+        results.add(entry);
       }
     }
   }
- else {
-    lsResults.addAll(records);
-  }
-  createEntries(request,lsResults);
+  createEntries(request,results);
   enqueueAndReturn(new Processable(){
     public void process(){
       returnResponse(request);
