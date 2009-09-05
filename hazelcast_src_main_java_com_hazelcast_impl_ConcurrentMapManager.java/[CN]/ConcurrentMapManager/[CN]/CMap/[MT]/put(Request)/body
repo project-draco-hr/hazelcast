@@ -16,11 +16,13 @@
   }
   Record record=getRecord(req.key);
   Data oldValue=null;
+  boolean created=true;
   if (record == null) {
     record=createNewRecord(req.key,req.value);
     req.key=null;
   }
  else {
+    created=!record.isActive();
     markAsActive(record);
     if (!record.isValid()) {
       record.setExpirationTime(ttl);
@@ -30,7 +32,6 @@
     record.incrementVersion();
     touch(record);
     record.setLastUpdated();
-    updateValueIndex(oldValue,record);
   }
   req.version=record.getVersion();
   req.longValue=record.copyCount;
@@ -44,7 +45,7 @@
   if (req.txnId != -1) {
     unlock(record);
   }
-  updateIndexes(req,record);
+  updateIndexes(created,req,record);
   markAsDirty(record);
   return oldValue;
 }

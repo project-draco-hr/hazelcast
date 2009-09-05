@@ -1,16 +1,27 @@
 {
   Predicate predicate=(Predicate)toObject(request.value);
   AtomicBoolean strongRef=new AtomicBoolean(false);
-  Set<MapEntry> results=node.queryService.query(strongRef,cmap.mapIndexes,predicate);
+  Set<MapEntry> results=node.queryService.query(cmap.name,strongRef,cmap.mapIndexes,predicate);
+  System.out.println(node.getName() + " after index REcords size " + results.size()+ " strong: "+ strongRef.get());
   if (predicate != null) {
     if (!strongRef.get()) {
       Iterator<MapEntry> it=results.iterator();
       while (it.hasNext()) {
         Record record=(Record)it.next();
-        if (!predicate.apply(record.getRecordEntry())) {
-          it.remove();
+        if (record.isActive()) {
+          try {
+            if (!predicate.apply(record.getRecordEntry())) {
+              it.remove();
+            }
+ else {
+            }
+          }
+ catch (          Exception e) {
+            it.remove();
+          }
         }
  else {
+          it.remove();
         }
       }
     }
