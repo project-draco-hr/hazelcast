@@ -4,15 +4,31 @@
   }
   if (obj == null)   return null;
   try {
-    if (method == null) {
-      if (input instanceof Method) {
-        this.method=(Method)input;
+    if (getter == null) {
+      List<String> possibleMethodNames=new ArrayList<String>(3);
+      possibleMethodNames.add(input);
+      possibleMethodNames.add("get" + input.substring(0,1).toUpperCase() + input.substring(1));
+      possibleMethodNames.add("is" + input.substring(0,1).toUpperCase() + input.substring(1));
+      getter:       for (      String methodName : possibleMethodNames) {
+        try {
+          getter=new MethodGetter(obj.getClass().getMethod(methodName,null));
+          break getter;
+        }
+ catch (        NoSuchMethodException ignored) {
+        }
       }
- else {
-        this.method=obj.getClass().getMethod((String)input,null);
+      if (getter == null) {
+        try {
+          getter=new FieldGetter(obj.getClass().getField(input));
+        }
+ catch (        NoSuchFieldException ignored) {
+        }
+      }
+      if (getter == null) {
+        throw new RuntimeException("There is no method of field matching " + input);
       }
     }
-    return method.invoke(obj);
+    return getter.getValue(obj);
   }
  catch (  Throwable e) {
     e.printStackTrace();
