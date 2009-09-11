@@ -1,0 +1,43 @@
+{
+  ByteArrayInputStream bis=new ByteArrayInputStream(bytes);
+  DataInputStream dis=new DataInputStream(bis);
+  int type=bis.read();
+  try {
+    if (type == SERIALIZER_TYPE_DATA) {
+      String className=dis.readUTF();
+      DataSerializable data=(DataSerializable)Class.forName(className).newInstance();
+      data.readData(dis);
+      return data;
+    }
+ else     if (type == SERIALIZER_TYPE_STRING) {
+      StringBuilder result=new StringBuilder();
+      while (dis.available() > 0) {
+        result.append(dis.readUTF());
+      }
+      return result.toString();
+    }
+ else     if (type == SERIALIZER_TYPE_BYTE_ARRAY) {
+      int size=dis.readInt();
+      byte[] b=new byte[size];
+      bis.read(b);
+      return b;
+    }
+ else     if (type == SERIALIZER_TYPE_INTEGER) {
+      return dis.readInt();
+    }
+ else     if (type == SERIALIZER_TYPE_LONG) {
+      return dis.readLong();
+    }
+ else     if (type == SERIALIZER_TYPE_CLASS) {
+      return Class.forName(dis.readUTF());
+    }
+ else     if (type == SERIALIZER_TYPE_OBJECT) {
+      ObjectInputStream os=new ObjectInputStream(dis);
+      return os.readObject();
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  return null;
+}

@@ -1,0 +1,50 @@
+{
+  ByteArrayOutputStream bos=new ByteArrayOutputStream();
+  DataOutputStream dos=new DataOutputStream(bos);
+  if (object == null)   return new byte[0];
+  try {
+    if (object instanceof DataSerializable) {
+      dos.writeByte(SERIALIZER_TYPE_DATA);
+      dos.writeUTF(object.getClass().getName());
+      ((DataSerializable)object).writeData(dos);
+    }
+ else     if (object instanceof String) {
+      String string=(String)object;
+      dos.writeByte(SERIALIZER_TYPE_STRING);
+      int length=string.length();
+      int chunkSize=length / STRING_CHUNK_SIZE + 1;
+      for (int i=0; i < chunkSize; i++) {
+        int beginIndex=Math.max(0,i * STRING_CHUNK_SIZE - 1);
+        int endIndex=Math.min((i + 1) * STRING_CHUNK_SIZE - 1,length);
+        dos.writeUTF(string.substring(beginIndex,endIndex));
+      }
+    }
+ else     if (object instanceof byte[]) {
+      byte[] bytes=(byte[])object;
+      dos.writeByte(SERIALIZER_TYPE_BYTE_ARRAY);
+      bos.write(bytes.length);
+      bos.write(bytes);
+    }
+ else     if (object instanceof Integer) {
+      dos.writeByte(SERIALIZER_TYPE_INTEGER);
+      dos.writeInt((Integer)object);
+    }
+ else     if (object instanceof Long) {
+      dos.writeByte(SERIALIZER_TYPE_LONG);
+      dos.writeLong((Long)object);
+    }
+ else     if (object instanceof Class) {
+      dos.writeByte(SERIALIZER_TYPE_CLASS);
+      dos.writeUTF(((Class<?>)object).getName());
+    }
+ else {
+      dos.writeByte(SERIALIZER_TYPE_OBJECT);
+      ObjectOutputStream os=new ObjectOutputStream(dos);
+      os.writeObject(object);
+    }
+  }
+ catch (  IOException e) {
+    e.printStackTrace();
+  }
+  return bos.toByteArray();
+}
