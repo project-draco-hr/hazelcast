@@ -13,6 +13,12 @@
           Predicate p=equal(get((String)first),second);
           removeThreeAddOne(tokens,i,p);
         }
+ else         if ("!=".equals(token)) {
+          Object first=tokens.get(i - 2);
+          Object second=tokens.get(i - 1);
+          Predicate p=notEqual(get((String)first),second);
+          removeThreeAddOne(tokens,i,p);
+        }
  else         if (">".equals(token)) {
           Object first=tokens.get(i - 2);
           Object second=tokens.get(i - 1);
@@ -37,18 +43,27 @@
           Predicate p=lessThan(get((String)first),(Comparable)second);
           removeThreeAddOne(tokens,i,p);
         }
+ else         if ("BETWEEN".equalsIgnoreCase(token)) {
+          Object expression=tokens.remove(i - 2);
+          Object from=tokens.remove(i - 2);
+          Object between=tokens.remove(i - 2);
+          Object and=tokens.remove(i - 2);
+          Object to=tokens.remove(i - 2);
+          tokens.add((i - 2),between(get((String)expression),(Comparable)from,(Comparable)to));
+        }
  else         if ("AND".equalsIgnoreCase(token)) {
           Object first=tokens.get(i - 2);
           Object second=tokens.get(i - 1);
-          Predicate p=Predicates.and((Predicate)first,(Predicate)second);
+          Predicate p=Predicates.and(eval(first),eval(second));
           removeThreeAddOne(tokens,i,p);
         }
  else         if ("OR".equalsIgnoreCase(token)) {
           Object first=tokens.get(i - 2);
           Object second=tokens.get(i - 1);
-          Predicate p=Predicates.or((Predicate)first,(Predicate)second);
+          Predicate p=Predicates.or(eval(first),eval(second));
           removeThreeAddOne(tokens,i,p);
         }
+ else         throw new RuntimeException("Unknown token " + token);
         continue root;
       }
     }
