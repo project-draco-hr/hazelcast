@@ -1,4 +1,5 @@
 {
+  if (!node.active || node.factory.restarted)   return;
   if (migrating) {
     throw new RuntimeException("Migration is already in progress");
   }
@@ -22,9 +23,10 @@
           throw new RuntimeException("Record.key is null or empty " + rec.getKey());
         }
         count.incrementAndGet();
-        executeLocally(new Runnable(){
-          public void run(){
+        executeLocally(new FallThroughRunnable(){
+          public void doRun(){
             try {
+              if (!node.active || node.factory.restarted)               return;
               MMigrate mmigrate=new MMigrate();
               if (cmap.isMultiMap()) {
                 List<Data> values=rec.getMultiValues();
@@ -53,9 +55,9 @@
       }
     }
   }
-  executeLocally(new Runnable(){
-    public void run(){
-      while (count.get() != 0) {
+  executeLocally(new FallThroughRunnable(){
+    public void doRun(){
+      while (count.get() != 0 && node.active) {
         try {
           Thread.sleep(1000);
         }
