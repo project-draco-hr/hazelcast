@@ -1,0 +1,41 @@
+{
+  Config configNormal=new XmlConfigBuilder().build();
+  Config configSuper=new XmlConfigBuilder().build();
+  configSuper.setSuperClient(true);
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(configNormal);
+  HazelcastInstance s=Hazelcast.newHazelcastInstance(configSuper);
+  assertEquals(2,h.getCluster().getMembers().size());
+  assertEquals(2,s.getCluster().getMembers().size());
+  assertFalse(h.getCluster().getLocalMember().isSuperClient());
+  assertTrue(s.getCluster().getLocalMember().isSuperClient());
+  IMap map=h.getMap("default");
+  final IMap maps=s.getMap("default");
+  assertNull(map.put("1","value1"));
+  assertEquals("value1",map.get("1"));
+  assertEquals("value1",maps.get("1"));
+  assertEquals(1,map.size());
+  assertEquals(1,maps.size());
+  h.shutdown();
+  Thread.sleep(500);
+  assertEquals(1,s.getCluster().getMembers().size());
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      assertNull(maps.get("1"));
+      maps.put("1","value3");
+      latch.countDown();
+    }
+  }
+).start();
+  h=Hazelcast.newHazelcastInstance(configNormal);
+  latch.await();
+  assertEquals(2,h.getCluster().getMembers().size());
+  assertEquals(2,s.getCluster().getMembers().size());
+  assertFalse(h.getCluster().getLocalMember().isSuperClient());
+  assertTrue(s.getCluster().getLocalMember().isSuperClient());
+  map=h.getMap("default");
+  assertEquals("value3",map.put("1","value2"));
+  assertEquals("value2",map.get("1"));
+  assertEquals(1,map.size());
+  assertEquals(1,maps.size());
+}

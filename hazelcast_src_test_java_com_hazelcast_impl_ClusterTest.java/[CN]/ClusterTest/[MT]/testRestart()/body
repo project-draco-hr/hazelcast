@@ -1,0 +1,22 @@
+{
+  final HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  IMap map=h.getMap("default");
+  map.put("1","value");
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread interrupter=new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(1000);
+        h.restart();
+        latch.countDown();
+      }
+ catch (      Throwable e) {
+        e.printStackTrace();
+      }
+    }
+  }
+);
+  interrupter.start();
+  map.put("1","value");
+  latch.await();
+}
