@@ -7,18 +7,27 @@
     if (rec.getVersion() == 0) {
       rec.setVersion(req.version);
     }
+    if (req.indexes != null) {
+      if (req.indexTypes == null) {
+        throw new RuntimeException("index types cannot be null!");
+      }
+      if (req.indexes.length != req.indexTypes.length) {
+        throw new RuntimeException("index and type lenghts do not match");
+      }
+      rec.setIndexes(req.indexes);
+      if (indexTypes == null) {
+        indexTypes=req.indexTypes;
+      }
+ else {
+        if (indexTypes.length != req.indexTypes.length) {
+          throw new RuntimeException("Index types do not match.");
+        }
+      }
+    }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_REMOVE) {
     Record record=getRecord(req.key);
     if (record != null) {
-      if (record.getValue() != null) {
-        record.getValue().setNoData();
-      }
-      if (record.getMultiValues() != null) {
-        for (        Data value : record.getMultiValues()) {
-          value.setNoData();
-        }
-      }
       if (record.getCopyCount() > 0) {
         record.decrementCopyCount();
       }
@@ -51,7 +60,6 @@
               Data value=itValues.next();
               if (req.value.equals(value)) {
                 itValues.remove();
-                value.setNoData();
               }
             }
           }
