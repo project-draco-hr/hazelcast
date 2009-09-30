@@ -1,18 +1,13 @@
 {
-  this.clusterMembers.addAll(Arrays.asList(clusterMembers));
-  Collections.shuffle(this.clusterMembers);
-  writer=new PacketWriter();
-  reader=new PacketReader();
-  connection=searchForAvailableConnection();
-  writer.setConnection(connection);
-  reader.setConnection(connection);
-  out=new OutRunnable();
+  connectionManager=new ConnectionManager(clusterMembers);
+  out=new OutRunnable(new PacketWriter());
   out.setCallMap(calls);
-  out.setPacketWriter(writer);
+  out.setConnectionManager(connectionManager);
   new Thread(out).start();
-  in=new InRunnable(this,reader);
+  in=new InRunnable(listenerManager,new PacketReader());
   in.setCallMap(calls);
+  in.setConnectionManager(connectionManager);
   new Thread(in).start();
-  sendBindRequest(connection.getAddress(),connection);
+  connectionManager.setOutRunnable(out);
   new Thread(listenerManager).start();
 }

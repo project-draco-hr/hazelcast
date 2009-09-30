@@ -1,27 +1,29 @@
 {
-  int counter=0;
   while (true) {
-    counter++;
-    Packet packet=null;
-    try {
-      packet=reader.readPacket();
-    }
- catch (    IOException e) {
-      e.printStackTrace();
-      hazelcastClient.attachedClusterMemeberConnectionLost();
+    Connection connection=connectionManager.getConnection();
+    if (connection == null) {
+      notifyWaitingCalls();
       continue;
     }
-    Call c=callMap.remove(packet.getCallId());
-    if (c != null) {
+    Packet packet=null;
+    try {
+      packet=reader.readPacket(connection);
+      Call c=callMap.remove(packet.getCallId());
+      if (c != null) {
 synchronized (c) {
-        c.setResponse(packet);
-        c.notify();
+          c.setResponse(packet);
+          c.notify();
+        }
+      }
+ else {
+        if (packet.getOperation().equals(ClusterOperation.EVENT)) {
+          listenerManager.enqueue(packet);
+        }
       }
     }
- else {
-      if (packet.getOperation().equals(ClusterOperation.EVENT)) {
-        hazelcastClient.listenerManager.enqueue(packet);
-      }
+ catch (    IOException e) {
+      connectionManager.destroyConnection(connection);
+      continue;
     }
   }
 }

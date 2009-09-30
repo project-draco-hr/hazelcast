@@ -1,12 +1,22 @@
 {
   while (true) {
+    Connection connection=null;
+    Call c=null;
     try {
-      Call c=queue.take();
-      callMap.put(c.getId(),c);
-      writer.write(c.getRequest());
+      try {
+        c=queue.take();
+        callMap.put(c.getId(),c);
+        connection=connectionManager.getConnection();
+        writer.write(connection,c.getRequest());
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
     }
- catch (    InterruptedException e) {
-      e.printStackTrace();
+ catch (    IOException io) {
+      io.printStackTrace();
+      connectionManager.destroyConnection(connection);
+      continue;
     }
   }
 }
