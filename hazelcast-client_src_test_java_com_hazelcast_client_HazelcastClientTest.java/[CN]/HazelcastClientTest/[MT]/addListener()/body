@@ -1,25 +1,33 @@
 {
   IMap<String,String> map=hClient.getMap("default");
-  final Map<String,Boolean> m=new HashMap<String,Boolean>();
+  realMap.clear();
   final CountDownLatch entryAddLatch=new CountDownLatch(1);
   final CountDownLatch entryUpdatedLatch=new CountDownLatch(1);
   final CountDownLatch entryRemovedLatch=new CountDownLatch(1);
   map.addEntryListener(new EntryListener(){
     public void entryAdded(    EntryEvent event){
+      assertEquals("hello",event.getKey());
       entryAddLatch.countDown();
-      System.out.println("Added" + event);
     }
     public void entryRemoved(    EntryEvent event){
       entryRemovedLatch.countDown();
-      System.out.println("Removed" + event);
+      assertEquals("hello",event.getKey());
+      assertEquals("new world",event.getValue());
     }
     public void entryUpdated(    EntryEvent event){
+      assertEquals("new world",event.getValue());
+      assertEquals("hello",event.getKey());
       entryUpdatedLatch.countDown();
-      System.out.println("Updated" + event);
     }
     public void entryEvicted(    EntryEvent event){
-      System.out.println("Evicted" + event);
+      entryRemoved(event);
     }
   }
 ,true);
+  map.put("hello","world");
+  System.out.println("PUT");
+  map.put("hello","new world");
+  map.remove("hello");
+  assertTrue(entryAddLatch.await(10,TimeUnit.MILLISECONDS));
+  assertTrue(entryUpdatedLatch.await(10,TimeUnit.MILLISECONDS));
 }

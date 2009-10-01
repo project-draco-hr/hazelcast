@@ -1,0 +1,17 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  Map<Integer,HazelcastInstance> memberMap=new HashMap<Integer,HazelcastInstance>();
+  memberMap.put(h1.getCluster().getLocalMember().getPort(),h1);
+  memberMap.put(h2.getCluster().getLocalMember().getPort(),h2);
+  HazelcastClient client=HazelcastClient.getHazelcastClient(new InetSocketAddress(h1.getCluster().getLocalMember().getInetAddress(),h1.getCluster().getLocalMember().getPort()),new InetSocketAddress(h2.getCluster().getLocalMember().getInetAddress(),h2.getCluster().getLocalMember().getPort()));
+  Map<String,Integer> map=client.getMap("default");
+  int counter=0;
+  while (counter < 3) {
+    map.put("key",counter);
+    assertEquals(counter,realMap.get("key"));
+    assertEquals(counter,map.get("key"));
+    memberMap.get(client.getConnectionManager().getConnection().getAddress().getPort()).shutdown();
+    counter++;
+  }
+}
