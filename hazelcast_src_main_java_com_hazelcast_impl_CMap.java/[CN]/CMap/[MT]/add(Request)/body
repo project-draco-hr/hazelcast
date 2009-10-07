@@ -1,0 +1,17 @@
+{
+  Record record=getRecord(req.key);
+  if (record == null) {
+    record=createNewRecord(req.key,null);
+    req.key=null;
+  }
+ else {
+    if (req.operation == CONCURRENT_MAP_ADD_TO_SET) {
+      return false;
+    }
+  }
+  node.queryService.updateIndex(name,null,null,record,Integer.MIN_VALUE);
+  record.setVersion(record.getVersion() + 1);
+  record.incrementCopyCount();
+  concurrentMapManager.fireMapEvent(mapListeners,name,EntryEvent.TYPE_ADDED,record);
+  return true;
+}

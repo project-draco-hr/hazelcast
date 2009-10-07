@@ -1,0 +1,30 @@
+{
+  if (!concurrentMapManager.isMaster()) {
+    return;
+  }
+  if (concurrentMapManager.lsMembers.size() < 2) {
+    for (int i=0; i < BLOCK_COUNT; i++) {
+      Block block=blocks[i];
+      if (block == null) {
+        block=concurrentMapManager.getOrCreateBlock(i);
+        block.setOwner(thisAddress);
+      }
+    }
+    return;
+  }
+  if (blockMigrating != null) {
+    Block blockReal=blocks[blockMigrating.getBlockId()];
+    if (blockReal.getOwner() != null && !blockReal.isMigrating()) {
+      blockMigrating=null;
+      completeMigration();
+    }
+  }
+  if (blockMigrating != null) {
+    return;
+  }
+  if (System.currentTimeMillis() > nextMigrationMillis) {
+    for (int i=0; i < 1; i++) {
+      initiateMigration();
+    }
+  }
+}

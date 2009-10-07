@@ -1,0 +1,55 @@
+{
+  if (deadAddress.equals(thisAddress))   return;
+  for (  Block block : blocks) {
+    if (block != null) {
+      if (deadAddress.equals(block.getOwner())) {
+        MemberImpl member=concurrentMapManager.getNextMemberBeforeSync(block.getOwner(),true,1);
+        if (member == null) {
+          if (!concurrentMapManager.isSuperClient()) {
+            block.setOwner(thisAddress);
+          }
+ else {
+            block.setOwner(null);
+          }
+        }
+ else {
+          if (!deadAddress.equals(member.getAddress())) {
+            block.setOwner(member.getAddress());
+          }
+ else {
+            block.setOwner(null);
+          }
+        }
+      }
+      if (block.getMigrationAddress() != null) {
+        if (deadAddress.equals(block.getMigrationAddress())) {
+          MemberImpl member=concurrentMapManager.getNextMemberBeforeSync(block.getMigrationAddress(),true,1);
+          if (member == null) {
+            if (!concurrentMapManager.isSuperClient()) {
+              block.setMigrationAddress(thisAddress);
+            }
+ else {
+              block.setMigrationAddress(null);
+            }
+          }
+ else {
+            if (!deadAddress.equals(member.getAddress())) {
+              block.setMigrationAddress(member.getAddress());
+            }
+ else {
+              block.setMigrationAddress(null);
+            }
+          }
+        }
+      }
+    }
+  }
+  Collection<CMap> cmaps=concurrentMapManager.maps.values();
+  for (  CMap map : cmaps) {
+    Collection<Record> records=map.mapRecords.values();
+    for (    Record record : records) {
+      concurrentMapManager.onDisconnect(record,deadAddress);
+    }
+  }
+  onMembershipChange();
+}

@@ -1,0 +1,68 @@
+{
+  this.concurrentMapManager=concurrentMapManager;
+  this.BLOCK_COUNT=concurrentMapManager.BLOCK_COUNT;
+  this.blocks=concurrentMapManager.blocks;
+  this.node=concurrentMapManager.node;
+  this.thisAddress=concurrentMapManager.thisAddress;
+  this.name=name;
+  mapRecords=new SortedHashMap<Data,Record>(10000);
+  MapConfig mapConfig=node.getConfig().getMapConfig(name.substring(2));
+  this.backupCount=mapConfig.getBackupCount();
+  ttl=mapConfig.getTimeToLiveSeconds() * 1000L;
+  if ("LFU".equalsIgnoreCase(mapConfig.getEvictionPolicy())) {
+    evictionPolicy=SortedHashMap.OrderingType.LFU;
+  }
+ else   if ("LRU".equalsIgnoreCase(mapConfig.getEvictionPolicy())) {
+    evictionPolicy=SortedHashMap.OrderingType.LRU;
+  }
+ else {
+    evictionPolicy=SortedHashMap.OrderingType.NONE;
+  }
+  if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
+    maxSize=Integer.MAX_VALUE;
+  }
+ else {
+    maxSize=(mapConfig.getMaxSize() == 0) ? MapConfig.DEFAULT_MAX_SIZE : mapConfig.getMaxSize();
+  }
+  evictionRate=mapConfig.getEvictionPercentage() / 100f;
+  instanceType=concurrentMapManager.getInstanceType(name);
+  MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+  MapStore storeTemp=null;
+  MapLoader loaderTemp=null;
+  if (mapStoreConfig != null) {
+    if (mapStoreConfig.isEnabled()) {
+      String mapStoreClassName=mapStoreConfig.getClassName();
+      try {
+        Object storeInstance=Class.forName(mapStoreClassName,true,node.getConfig().getClassLoader()).newInstance();
+        if (storeInstance instanceof MapLoader) {
+          loaderTemp=(MapLoader)storeInstance;
+        }
+        if (storeInstance instanceof MapStore) {
+          storeTemp=(MapStore)storeInstance;
+        }
+        writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
+        if (writeDelaySeconds > 0) {
+          setDirtyRecords=new HashSet<Record>(5000);
+        }
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+  loader=loaderTemp;
+  store=storeTemp;
+  if (writeDelaySeconds > 0) {
+    removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS + (writeDelaySeconds * 1000L);
+  }
+ else {
+    removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS;
+  }
+  if (evictionPolicy == SortedHashMap.OrderingType.NONE && instanceType == Instance.InstanceType.MAP) {
+    locallyOwnedMap=new LocallyOwnedMap();
+    concurrentMapManager.mapLocallyOwnedMaps.put(name,locallyOwnedMap);
+  }
+ else {
+    locallyOwnedMap=null;
+  }
+}

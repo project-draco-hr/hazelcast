@@ -1,0 +1,30 @@
+{
+  Record record=getRecord(req.key);
+  if (record == null)   return false;
+  boolean removed=false;
+  if (req.value == null) {
+    removed=true;
+    markAsRemoved(record);
+  }
+ else {
+    if (record.containsValue(req.value)) {
+      if (record.getMultiValues() != null) {
+        Iterator<Data> itValues=record.getMultiValues().iterator();
+        while (itValues.hasNext()) {
+          Data value=itValues.next();
+          if (req.value.equals(value)) {
+            itValues.remove();
+            removed=true;
+          }
+        }
+      }
+    }
+  }
+  if (removed) {
+    record.setVersion(record.getVersion() + 1);
+    concurrentMapManager.fireMapEvent(mapListeners,name,EntryEvent.TYPE_REMOVED,record.getKey(),req.value,record.getMapListeners());
+    logger.log(Level.FINEST,record.getValue() + " RemoveMulti " + record.getMultiValues());
+  }
+  req.version=record.getVersion();
+  return removed;
+}

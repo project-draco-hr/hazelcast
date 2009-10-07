@@ -1,0 +1,45 @@
+{
+  List<Data> lsKeysToEvict=null;
+  if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
+    if (ttl != 0) {
+      long now=System.currentTimeMillis();
+      Collection<Record> values=mapRecords.values();
+      for (      Record record : values) {
+        if (record.isActive() && !record.isValid(now)) {
+          if (record.isEvictable()) {
+            if (lsKeysToEvict == null) {
+              lsKeysToEvict=new ArrayList<Data>(100);
+            }
+            markAsRemoved(record);
+            lsKeysToEvict.add(doHardCopy(record.getKey()));
+          }
+        }
+ else {
+          break;
+        }
+      }
+    }
+  }
+ else {
+    Collection<Record> values=mapRecords.values();
+    int numberOfRecordsToEvict=(int)(ownedRecords.size() * evictionRate);
+    int evictedCount=0;
+    for (    Record record : values) {
+      if (record.isActive() && record.isEvictable()) {
+        if (lsKeysToEvict == null) {
+          lsKeysToEvict=new ArrayList<Data>(numberOfRecordsToEvict);
+        }
+        markAsRemoved(record);
+        lsKeysToEvict.add(doHardCopy(record.getKey()));
+        if (++evictedCount >= numberOfRecordsToEvict) {
+          break;
+        }
+      }
+    }
+  }
+  if (lsKeysToEvict != null && lsKeysToEvict.size() > 0) {
+    for (    final Data key : lsKeysToEvict) {
+      concurrentMapManager.evictAsync(name,key);
+    }
+  }
+}

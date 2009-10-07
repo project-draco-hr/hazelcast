@@ -1,0 +1,49 @@
+{
+  if (concurrentMapManager.isMaster()) {
+    if (concurrentMapManager.isSuperClient()) {
+      MemberImpl nonSuperMember=null;
+      for (      MemberImpl member : concurrentMapManager.lsMembers) {
+        if (!member.isSuperClient()) {
+          nonSuperMember=member;
+        }
+      }
+      if (nonSuperMember != null) {
+        for (int i=0; i < BLOCK_COUNT; i++) {
+          Block block=blocks[i];
+          if (block == null) {
+            block=concurrentMapManager.getOrCreateBlock(i);
+          }
+          if (block.getOwner() == null) {
+            block.setOwner(nonSuperMember.getAddress());
+          }
+        }
+      }
+    }
+    for (int i=0; i < BLOCK_COUNT; i++) {
+      Block block=blocks[i];
+      if (block == null) {
+        concurrentMapManager.getOrCreateBlock(i);
+      }
+    }
+    Data dataAllBlocks=null;
+    for (    MemberImpl member : concurrentMapManager.lsMembers) {
+      if (!member.localMember()) {
+        if (dataAllBlocks == null) {
+          ConcurrentMapManager.Blocks allBlocks=new ConcurrentMapManager.Blocks();
+          for (          Block block : blocks) {
+            allBlocks.addBlock(block);
+          }
+          dataAllBlocks=ThreadContext.get().toData(allBlocks);
+        }
+        concurrentMapManager.send("blocks",CONCURRENT_MAP_BLOCKS,dataAllBlocks,member.getAddress());
+      }
+    }
+  }
+  ConcurrentMapManager.InitialState initialState=new ConcurrentMapManager.InitialState();
+  Collection<CMap> cmaps=concurrentMapManager.maps.values();
+  for (  final CMap cmap : cmaps) {
+    initialState.createAndAddMapState(cmap);
+  }
+  concurrentMapManager.sendProcessableToAll(initialState,false);
+  onMembershipChange();
+}

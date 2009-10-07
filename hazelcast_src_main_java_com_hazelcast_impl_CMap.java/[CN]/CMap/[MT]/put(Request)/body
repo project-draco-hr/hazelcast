@@ -1,0 +1,54 @@
+{
+  if (ownedRecords.size() >= maxSize) {
+    startEviction();
+  }
+  if (req.value == null) {
+    req.value=new Data();
+  }
+  if (req.operation == CONCURRENT_MAP_PUT_IF_ABSENT) {
+    Record record=getRecord(req.key);
+    if (record != null && record.isActive() && record.getValue() != null) {
+      return record.getValue();
+    }
+  }
+ else   if (req.operation == CONCURRENT_MAP_REPLACE_IF_NOT_NULL) {
+    Record record=getRecord(req.key);
+    if (record == null || !record.isActive() || record.getValue() == null) {
+      return null;
+    }
+  }
+  Record record=getRecord(req.key);
+  Data oldValue=null;
+  boolean created=true;
+  if (record == null) {
+    record=createNewRecord(req.key,req.value);
+    req.key=null;
+  }
+ else {
+    markAsActive(record);
+    if (!record.isValid()) {
+      record.setExpirationTime(ttl);
+    }
+    oldValue=record.getValue();
+    record.setValue(req.value);
+    record.incrementVersion();
+    touch(record);
+    record.setLastUpdated();
+  }
+  markAsOwned(record);
+  req.version=record.getVersion();
+  req.longValue=record.getCopyCount();
+  req.value=null;
+  if (oldValue == null) {
+    concurrentMapManager.fireMapEvent(mapListeners,name,EntryEvent.TYPE_ADDED,record);
+  }
+ else {
+    concurrentMapManager.fireMapEvent(mapListeners,name,EntryEvent.TYPE_UPDATED,record);
+  }
+  if (req.txnId != -1) {
+    concurrentMapManager.unlock(record);
+  }
+  updateIndexes(created,req,record);
+  markAsDirty(record);
+  return oldValue;
+}

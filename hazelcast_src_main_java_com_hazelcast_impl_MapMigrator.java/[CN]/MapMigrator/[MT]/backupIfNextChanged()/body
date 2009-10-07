@@ -1,0 +1,27 @@
+{
+  boolean nextChanged=node.clusterManager.isNextChanged();
+  if (nextChanged) {
+    List<Record> lsOwnedRecords=new ArrayList<Record>(1000);
+    Collection<CMap> cmaps=concurrentMapManager.maps.values();
+    for (    final CMap cmap : cmaps) {
+      final Object[] records=cmap.ownedRecords.toArray();
+      for (      Object recObj : records) {
+        final Record rec=(Record)recObj;
+        if (rec.isActive()) {
+          if (rec.getKey() == null || rec.getKey().size() == 0) {
+            throw new RuntimeException("Record.key is null or empty " + rec.getKey());
+          }
+          lsOwnedRecords.add(rec);
+        }
+      }
+    }
+    for (    final Record rec : lsOwnedRecords) {
+      concurrentMapManager.executeLocally(new FallThroughRunnable(){
+        public void doRun(){
+          concurrentMapManager.backupRecord(rec);
+        }
+      }
+);
+    }
+  }
+}
