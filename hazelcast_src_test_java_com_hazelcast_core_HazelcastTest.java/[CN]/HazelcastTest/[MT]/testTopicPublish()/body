@@ -1,5 +1,17 @@
 {
   ITopic<String> topic=Hazelcast.getTopic("testTopicPublish");
-  topic.addMessageListener(new TopicListener());
+  final CountDownLatch latch=new CountDownLatch(1);
+  topic.addMessageListener(new MessageListener(){
+    public void onMessage(    Object msg){
+      assertEquals("Hello World",msg);
+      latch.countDown();
+    }
+  }
+);
   topic.publish("Hello World");
+  try {
+    assertTrue(latch.await(5,TimeUnit.SECONDS));
+  }
+ catch (  InterruptedException ignored) {
+  }
 }

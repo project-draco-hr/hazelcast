@@ -1,0 +1,21 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  String topicName="TestMessages";
+  ITopic<String> topic1=h1.getTopic(topicName);
+  ITopic<String> topic2=h2.getTopic(topicName);
+  final CountDownLatch latch=new CountDownLatch(1);
+  topic2.addMessageListener(new MessageListener(){
+    public void onMessage(    Object msg){
+      assertEquals("Test1",msg);
+      latch.countDown();
+    }
+  }
+);
+  topic1.publish("Test1");
+  try {
+    assertTrue(latch.await(5,TimeUnit.SECONDS));
+  }
+ catch (  InterruptedException ignored) {
+  }
+}
