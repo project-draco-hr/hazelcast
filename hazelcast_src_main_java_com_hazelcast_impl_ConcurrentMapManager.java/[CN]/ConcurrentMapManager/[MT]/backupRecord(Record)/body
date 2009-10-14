@@ -1,4 +1,19 @@
 {
-  MBackupOp backupOp=new MBackupOp();
-  backupOp.backup(rec);
+  if (rec.getMultiValues() != null) {
+    List<Data> values=rec.getMultiValues();
+    int initialVersion=((int)rec.getVersion() - values.size());
+    int version=(initialVersion < 0) ? 0 : initialVersion;
+    for (int i=0; i < values.size(); i++) {
+      Data value=values.get(i);
+      Record record=rec.copy();
+      record.setValue(value);
+      record.setVersion(version++);
+      MBackupOp backupOp=new MBackupOp();
+      backupOp.backup(record);
+    }
+  }
+ else {
+    MBackupOp backupOp=new MBackupOp();
+    backupOp.backup(rec);
+  }
 }

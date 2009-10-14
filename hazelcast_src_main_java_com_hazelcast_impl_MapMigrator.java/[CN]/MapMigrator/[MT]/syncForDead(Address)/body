@@ -1,5 +1,6 @@
 {
   if (deadAddress.equals(thisAddress))   return;
+  Set<Integer> blocksOwnedAfterDead=new HashSet<Integer>();
   for (  Block block : blocks) {
     if (block != null) {
       if (deadAddress.equals(block.getOwner())) {
@@ -19,6 +20,9 @@
  else {
             block.setOwner(null);
           }
+        }
+        if (thisAddress.equals(block.getOwner())) {
+          blocksOwnedAfterDead.add(block.getBlockId());
         }
       }
       if (block.getMigrationAddress() != null) {
@@ -49,6 +53,11 @@
     Collection<Record> records=map.mapRecords.values();
     for (    Record record : records) {
       concurrentMapManager.onDisconnect(record,deadAddress);
+      if (record.isActive()) {
+        if (blocksOwnedAfterDead.contains(record.getBlockId())) {
+          node.queryService.updateIndex(map.name,null,null,record,record.getValueHash());
+        }
+      }
     }
   }
   onMembershipChange();
