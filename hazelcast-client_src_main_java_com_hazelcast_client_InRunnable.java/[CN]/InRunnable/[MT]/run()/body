@@ -3,19 +3,14 @@
     Connection connection=null;
     Packet packet=null;
     try {
-      connection=connectionManager.getConnection();
+      connection=client.connectionManager.getConnection();
       if (connection == null) {
-        notifyWaitingCalls();
+        interruptWaitingCalls();
         continue;
       }
       packet=reader.readPacket(connection);
       Call c=null;
-      if (packet.isRedoOnDisConnect()) {
-        c=callMap.get(packet.getCallId());
-      }
- else {
-        c=callMap.remove(packet.getCallId());
-      }
+      c=callMap.remove(packet.getCallId());
       if (c != null) {
 synchronized (c) {
           c.setResponse(packet);
@@ -24,12 +19,15 @@ synchronized (c) {
       }
  else {
         if (packet.getOperation().equals(ClusterOperation.EVENT)) {
-          listenerManager.enqueue(packet);
+          client.listenerManager.enqueue(packet);
+        }
+ else {
+          throw new RuntimeException("In Thread can not handle: " + packet.getOperation() + " : "+ packet.getCallId());
         }
       }
     }
  catch (    IOException e) {
-      connectionManager.destroyConnection(connection);
+      client.connectionManager.destroyConnection(connection);
       continue;
     }
   }

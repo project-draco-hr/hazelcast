@@ -1,0 +1,44 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  Map realMap=Hazelcast.getMap("default");
+  Map<Integer,HazelcastInstance> memberMap=getMapOfClustorMembers(h1,h2);
+  HazelcastClient client=getHazelcastClient(h1,h2);
+  IMap<String,String> map=client.getMap("default");
+  final CountDownLatch entryAddLatch=new CountDownLatch(2);
+  final CountDownLatch entryUpdatedLatch=new CountDownLatch(2);
+  final CountDownLatch entryRemovedLatch=new CountDownLatch(2);
+  map.addEntryListener(new EntryListener(){
+    public void entryAdded(    EntryEvent event){
+      System.out.println("Added " + event.getValue());
+      assertEquals("hello",event.getKey());
+      entryAddLatch.countDown();
+    }
+    public void entryRemoved(    EntryEvent event){
+      System.out.println("removed " + event.getValue());
+      entryRemovedLatch.countDown();
+      assertEquals("hello",event.getKey());
+      assertEquals("new world",event.getValue());
+    }
+    public void entryUpdated(    EntryEvent event){
+      System.out.println("Updated " + event.getValue());
+      assertEquals("new world",event.getValue());
+      assertEquals("hello",event.getKey());
+      entryUpdatedLatch.countDown();
+    }
+    public void entryEvicted(    EntryEvent event){
+      entryRemoved(event);
+    }
+  }
+,true);
+  map.put("hello","world");
+  map.put("hello","new world");
+  realMap.remove("hello");
+  memberMap.remove(client.getConnectionManager().getConnection().getAddress().getPort()).shutdown();
+  map.put("hello","world");
+  map.put("hello","new world");
+  realMap.remove("hello");
+  assertTrue(entryAddLatch.await(10,TimeUnit.MILLISECONDS));
+  assertTrue(entryUpdatedLatch.await(10,TimeUnit.MILLISECONDS));
+  assertTrue(entryRemovedLatch.await(10,TimeUnit.MILLISECONDS));
+}
