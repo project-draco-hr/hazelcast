@@ -1,0 +1,37 @@
+{
+  Call c=null;
+  try {
+    c=queue.poll(100,TimeUnit.MILLISECONDS);
+    if (c == null) {
+      return;
+    }
+    callMap.put(c.getId(),c);
+    boolean oldConnectionIsNotNull=(connection != null);
+    long oldConnectionId=-1;
+    if (oldConnectionIsNotNull) {
+      oldConnectionId=connection.getVersion();
+    }
+    connection=client.connectionManager.getConnection();
+    if (oldConnectionIsNotNull && connection.getVersion() != oldConnectionId) {
+      temp.add(c);
+      queue.drainTo(temp);
+      client.listenerManager.getListenerCalls().drainTo(queue);
+      temp.drainTo(queue);
+    }
+ else {
+      if (connection != null) {
+        writer.write(connection,c.getRequest());
+      }
+ else {
+        interruptWaitingCalls();
+      }
+    }
+  }
+ catch (  InterruptedException e) {
+    throw e;
+  }
+catch (  Throwable io) {
+    enQueue(c);
+    client.connectionManager.destroyConnection(connection);
+  }
+}

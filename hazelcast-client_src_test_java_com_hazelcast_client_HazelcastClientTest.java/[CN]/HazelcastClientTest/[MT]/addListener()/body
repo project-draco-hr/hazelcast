@@ -1,7 +1,8 @@
 {
-  HazelcastClient client=HazelcastClient.getHazelcastClient(new InetSocketAddress(Hazelcast.getCluster().getLocalMember().getInetAddress(),Hazelcast.getCluster().getLocalMember().getPort()));
-  final IMap<String,String> map=client.getMap("default");
-  System.out.println("size " + realMap.size());
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  com.hazelcast.core.IMap<Object,Object> realMap=h.getMap("default");
+  hClient=getHazelcastClient(h);
+  final IMap<String,String> map=hClient.getMap("default");
   realMap.clear();
   assertEquals(0,realMap.size());
   final CountDownLatch entryAddLatch=new CountDownLatch(1);
@@ -27,13 +28,12 @@
     }
   }
 ,true);
-  System.out.println(realMap.get("hello"));
   assertNull(realMap.get("hello"));
   map.put("hello","world");
-  System.out.println("PUT");
   map.put("hello","new world");
   assertEquals("new world",map.get("hello"));
-  map.remove("hello");
+  realMap.remove("hello");
   assertTrue(entryAddLatch.await(10,TimeUnit.MILLISECONDS));
   assertTrue(entryUpdatedLatch.await(10,TimeUnit.MILLISECONDS));
+  assertTrue(entryRemovedLatch.await(10,TimeUnit.MILLISECONDS));
 }

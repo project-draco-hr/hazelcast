@@ -1,8 +1,14 @@
 {
   connectionManager=new ConnectionManager(this,clusterMembers);
   out=new OutRunnable(this,calls,new PacketWriter());
-  new Thread(out).start();
+  new Thread(out,"hz.client.OutThread").start();
   in=new InRunnable(this,calls,new PacketReader());
-  new Thread(in).start();
-  new Thread(listenerManager).start();
+  new Thread(in,"hz.client.InThread").start();
+  listenerManager=new ListenerManager();
+  new Thread(listenerManager,"hz.client.Listener").start();
+  try {
+    connectionManager.getConnection();
+  }
+ catch (  IOException ignored) {
+  }
 }
