@@ -2,28 +2,34 @@
   logger.log(Level.FINEST,joinInProgress + " Handling " + joinRequest);
   if (getMember(joinRequest.address) != null)   return;
   Connection conn=joinRequest.getConnection();
-  if (!node.getConfig().getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
-    if (node.getMasterAddress() != null && !isMaster()) {
-      sendProcessableTo(new Master(node.getMasterAddress()),conn);
-    }
-  }
-  if (isMaster()) {
-    if (joinRequest.to != null && !joinRequest.to.equals(thisAddress)) {
-      sendProcessableTo(new Master(node.getMasterAddress()),conn);
-      return;
-    }
-    Address newAddress=joinRequest.address;
-    if (!joinInProgress) {
-      MemberInfo newMemberInfo=new MemberInfo(newAddress,joinRequest.nodeType);
-      if (setJoins.add(newMemberInfo)) {
+  Config config=node.getConfig();
+  if (config.getGroupName().equals(joinRequest.groupName) && config.getGroupPassword().equals(joinRequest.groupPassword)) {
+    if (!node.getConfig().getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
+      if (node.getMasterAddress() != null && !isMaster()) {
         sendProcessableTo(new Master(node.getMasterAddress()),conn);
-        timeToStartJoin=System.currentTimeMillis() + WAIT_MILLIS_BEFORE_JOIN;
       }
+    }
+    if (isMaster()) {
+      if (joinRequest.to != null && !joinRequest.to.equals(thisAddress)) {
+        sendProcessableTo(new Master(node.getMasterAddress()),conn);
+        return;
+      }
+      Address newAddress=joinRequest.address;
+      if (!joinInProgress) {
+        MemberInfo newMemberInfo=new MemberInfo(newAddress,joinRequest.nodeType);
+        if (setJoins.add(newMemberInfo)) {
+          sendProcessableTo(new Master(node.getMasterAddress()),conn);
+          timeToStartJoin=System.currentTimeMillis() + WAIT_MILLIS_BEFORE_JOIN;
+        }
  else {
-        if (System.currentTimeMillis() > timeToStartJoin) {
-          startJoin();
+          if (System.currentTimeMillis() > timeToStartJoin) {
+            startJoin();
+          }
         }
       }
     }
+  }
+ else {
+    conn.close();
   }
 }

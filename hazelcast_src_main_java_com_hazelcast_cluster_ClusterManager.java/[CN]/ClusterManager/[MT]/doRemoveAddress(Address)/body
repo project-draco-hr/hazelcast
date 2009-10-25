@@ -1,6 +1,7 @@
 {
   log("Removing Address " + deadAddress);
   if (!node.joined()) {
+    node.failedConnection(deadAddress);
     return;
   }
   if (deadAddress.equals(thisAddress))   return;
@@ -18,26 +19,26 @@
   if (isMaster()) {
     setJoins.remove(new MemberInfo(deadAddress));
   }
-  lsMembersBefore.clear();
-  for (  MemberImpl member : lsMembers) {
-    lsMembersBefore.add(member);
-  }
   Connection conn=node.connectionManager.getConnection(deadAddress);
   if (conn != null) {
     node.connectionManager.remove(conn);
   }
   MemberImpl member=getMember(deadAddress);
   if (member != null) {
+    lsMembersBefore.clear();
+    for (    MemberImpl memberBefore : lsMembers) {
+      lsMembersBefore.add(memberBefore);
+    }
     removeMember(deadAddress);
+    node.blockingQueueManager.syncForDead(deadAddress);
+    node.concurrentMapManager.syncForDead(deadAddress);
+    node.listenerManager.syncForDead(deadAddress);
+    node.topicManager.syncForDead(deadAddress);
+    node.getClusterImpl().setMembers(lsMembers);
+    Object[] calls=mapCalls.values().toArray();
+    for (    Object call : calls) {
+      ((Call)call).onDisconnect(deadAddress);
+    }
+    logger.log(Level.INFO,this.toString());
   }
-  node.blockingQueueManager.syncForDead(deadAddress);
-  node.concurrentMapManager.syncForDead(deadAddress);
-  node.listenerManager.syncForDead(deadAddress);
-  node.topicManager.syncForDead(deadAddress);
-  node.getClusterImpl().setMembers(lsMembers);
-  Object[] calls=mapCalls.values().toArray();
-  for (  Object call : calls) {
-    ((Call)call).onDisconnect(deadAddress);
-  }
-  logger.log(Level.INFO,this.toString());
 }

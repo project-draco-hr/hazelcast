@@ -1,5 +1,6 @@
 {
   try {
+    failedConnections.clear();
     final List<Address> lsPossibleAddresses=getPossibleMembers();
     lsPossibleAddresses.remove(address);
     for (    final Address adrs : lsPossibleAddresses) {
@@ -9,10 +10,7 @@
     boolean found=false;
     int numberOfSeconds=0;
     while (!found && numberOfSeconds < config.getNetworkConfig().getJoin().getJoinMembers().getConnectionTimeoutSeconds()) {
-      Address addressFailed;
-      while ((addressFailed=failedConnections.poll()) != null) {
-        lsPossibleAddresses.remove(addressFailed);
-      }
+      lsPossibleAddresses.removeAll(failedConnections);
       if (lsPossibleAddresses.size() == 0)       break;
       Thread.sleep(1000);
       numberOfSeconds++;
@@ -34,6 +32,7 @@
  else {
       while (!joined) {
         int numberOfJoinReq=0;
+        lsPossibleAddresses.removeAll(failedConnections);
         for (        final Address adrs : lsPossibleAddresses) {
           final Connection conn=connectionManager.getOrConnect(adrs);
           if (conn != null && numberOfJoinReq < 5) {
