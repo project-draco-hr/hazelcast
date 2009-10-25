@@ -1,0 +1,53 @@
+{
+  ThreadContext threadContext=ThreadContext.get();
+  TransactionImpl txn=threadContext.getCallContext().getCurrentTxn();
+  if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+    if (!txn.has(name,key)) {
+      MLock mlock=new MLock();
+      boolean locked=mlock.lockAndReturnOld(name,key,DEFAULT_TXN_TIMEOUT,txn.getId());
+      if (!locked)       throwCME(key);
+      Object oldObject=null;
+      Data oldValue=mlock.oldValue;
+      if (oldValue != null) {
+        oldObject=toObject(oldValue);
+      }
+      if (oldObject == null) {
+        return Boolean.FALSE;
+      }
+ else {
+        if (expectedValue.equals(oldValue)) {
+          txn.attachPutOp(name,key,value,false);
+          return Boolean.TRUE;
+        }
+ else {
+          return Boolean.FALSE;
+        }
+      }
+    }
+ else {
+      if (expectedValue.equals(txn.get(name,key))) {
+        txn.attachPutOp(name,key,value,false);
+        return Boolean.TRUE;
+      }
+ else {
+        return Boolean.FALSE;
+      }
+    }
+  }
+ else {
+    Data dataExpected=toData(expectedValue);
+    Data dataNew=toData(value);
+    setLocal(operation,name,key,new MultiData(dataExpected,dataNew),timeout,-1);
+    request.longValue=(request.value == null) ? Integer.MIN_VALUE : dataNew.hashCode();
+    setIndexValues(request,value);
+    doOp();
+    Object returnObject=getResultAsBoolean();
+    if (returnObject instanceof AddressAwareException) {
+      rethrowException(operation,(AddressAwareException)returnObject);
+    }
+    if (returnObject != Boolean.FALSE) {
+      backup(CONCURRENT_MAP_BACKUP_PUT);
+    }
+    return returnObject;
+  }
+}
