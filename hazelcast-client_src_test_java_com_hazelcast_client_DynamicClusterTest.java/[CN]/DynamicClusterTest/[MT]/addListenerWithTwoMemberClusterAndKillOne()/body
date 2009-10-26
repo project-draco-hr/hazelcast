@@ -2,32 +2,32 @@
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
   HazelcastInstance h3=Hazelcast.newHazelcastInstance(null);
-  Map realMap=h3.getMap("default");
+  Map<String,String> realMap=h3.getMap("default");
   Map<Integer,HazelcastInstance> memberMap=getMapOfClusterMembers(h1,h2);
   client=getHazelcastClient(h1,h2);
   IMap<String,String> map=client.getMap("default");
   final CountDownLatch entryAddLatch=new CountDownLatch(2);
   final CountDownLatch entryUpdatedLatch=new CountDownLatch(2);
   final CountDownLatch entryRemovedLatch=new CountDownLatch(2);
-  map.addEntryListener(new EntryListener(){
-    public void entryAdded(    EntryEvent event){
+  map.addEntryListener(new EntryListener<String,String>(){
+    public void entryAdded(    EntryEvent<String,String> event){
       System.out.println("Added " + event.getValue());
       assertEquals("hello",event.getKey());
       entryAddLatch.countDown();
     }
-    public void entryRemoved(    EntryEvent event){
+    public void entryRemoved(    EntryEvent<String,String> event){
       System.out.println("removed " + event.getValue());
       entryRemovedLatch.countDown();
       assertEquals("hello",event.getKey());
       assertEquals("new world",event.getValue());
     }
-    public void entryUpdated(    EntryEvent event){
+    public void entryUpdated(    EntryEvent<String,String> event){
       System.out.println("Updated " + event.getValue());
       assertEquals("new world",event.getValue());
       assertEquals("hello",event.getKey());
       entryUpdatedLatch.countDown();
     }
-    public void entryEvicted(    EntryEvent event){
+    public void entryEvicted(    EntryEvent<String,String> event){
       entryRemoved(event);
     }
   }
