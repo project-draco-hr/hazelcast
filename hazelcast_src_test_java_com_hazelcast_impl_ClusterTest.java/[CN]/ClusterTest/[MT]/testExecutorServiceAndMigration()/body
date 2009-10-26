@@ -1,0 +1,17 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  List<DistributedTask> tasks=new ArrayList<DistributedTask>(10000);
+  List<ExecutorServiceAndMigrationCallable> callables=new ArrayList<ExecutorServiceAndMigrationCallable>(10000);
+  for (int i=0; i < 10000; i++) {
+    ExecutorServiceAndMigrationCallable callable=new ExecutorServiceAndMigrationCallable(i);
+    DistributedTask task=new DistributedTask(callable,"T1");
+    Hazelcast.getExecutorService().execute(task);
+    tasks.add(task);
+    callables.add(callable);
+  }
+  for (int i=0; i < 10000; i++) {
+    ExecutorServiceAndMigrationCallable callable=callables.get(i);
+    DistributedTask task=tasks.get(i);
+    assertEquals(callable.getInput(),task.get(20,TimeUnit.SECONDS));
+  }
+}
