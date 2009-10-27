@@ -1,62 +1,11 @@
 {
   ThreadContext.get().setCallContext(callContext);
-  if (packet.operation.equals(ClusterOperation.CONCURRENT_MAP_PUT)) {
-    IMap<Object,Object> map=node.factory.getMap(packet.name.substring(2));
-    Object oldValue=map.put(packet.key,packet.value);
-    packet.value=(Data)oldValue;
-    sendResponse(packet);
+  ClientOperationHandler clientOperationHandler=clientOperationHandlers[packet.operation.getValue()];
+  if (clientOperationHandler != null) {
+    clientOperationHandler.handle(node,packet);
+    return;
   }
- else   if (packet.operation.equals(ClusterOperation.CONCURRENT_MAP_GET)) {
-    IMap<Object,Object> map=node.factory.getMap(packet.name.substring(2));
-    Object value=map.get(packet.key);
-    Data data=(Data)value;
-    if (callContext.getCurrentTxn() != null && callContext.getCurrentTxn().getStatus() == TXN_STATUS_ACTIVE) {
-      data=data;
-    }
-    packet.value=data;
-    sendResponse(packet);
-  }
- else   if (packet.operation.equals(ClusterOperation.TRANSACTION_BEGIN)) {
-    Transaction transaction=node.factory.getTransaction();
-    transaction.begin();
-    sendResponse(packet);
-  }
- else   if (packet.operation.equals(ClusterOperation.TRANSACTION_COMMIT)) {
-    Transaction transaction=node.factory.getTransaction();
-    transaction.commit();
-    sendResponse(packet);
-  }
- else   if (packet.operation.equals(ClusterOperation.TRANSACTION_ROLLBACK)) {
-    Transaction transaction=node.factory.getTransaction();
-    transaction.rollback();
-    sendResponse(packet);
-  }
- else   if (packet.operation.equals(ClusterOperation.CONCURRENT_MAP_ITERATE_KEYS)) {
-    IMap<Object,Object> map=node.factory.getMap(packet.name.substring(2));
-    ConcurrentMapManager.Entries entries=(Entries)map.keySet();
-    List list=entries.getLsKeyValues();
-    Keys keys=new Keys();
-    for (    Object obj : list) {
-      KeyValue entry=(KeyValue)obj;
-      keys.addKey(entry.key);
-    }
-    packet.value=toData(keys);
-    sendResponse(packet);
-  }
- else   if (packet.operation.equals(ClusterOperation.REMOTELY_PROCESS)) {
-    node.clusterService.enqueueAndReturn(packet);
-  }
- else   if (packet.operation.equals(ClusterOperation.ADD_LISTENER)) {
-    ClientEndpoint clientEndpoint=node.clientService.getClientEndpoint(packet.conn);
-    IMap<Object,Object> map=node.factory.getMap(packet.name.substring(2));
-    Object key=toObject(packet.key);
-    boolean includeValue=(int)packet.longValue == 1;
-    if (key == null) {
-      map.addEntryListener(clientEndpoint,includeValue);
-    }
  else {
-      map.addEntryListener(clientEndpoint,key,includeValue);
-    }
-    sendResponse(packet);
+    throw new RuntimeException("Unknown Client Operation, can not handle " + packet.operation);
   }
 }
