@@ -1,16 +1,19 @@
 {
   HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
   hClient=getHazelcastClient(h);
-  Map<String,String> map=hClient.getMap("default");
+  IMap<String,String> map=hClient.getMap("default");
   map.put("1","A");
   map.put("2","B");
   map.put("3","C");
+  Set<Entry<String,String>> entrySet=map.entrySet();
+  assertEquals(3,entrySet.size());
   Set<String> keySet=map.keySet();
-  assertEquals(3,keySet.size());
-  Set<String> s=new HashSet<String>();
-  for (  String string : keySet) {
-    s.add(string);
-    assertTrue(Arrays.asList("1","2","3").contains(string));
+  for (  Entry<String,String> entry : entrySet) {
+    assertTrue(keySet.contains(entry.getKey()));
+    assertEquals(entry.getValue(),map.get(entry.getKey()));
   }
-  assertEquals(3,s.size());
+  for (  String key : keySet) {
+    MapEntry mapEntry=map.getMapEntry(key);
+    assertEquals(2,mapEntry.getHits());
+  }
 }

@@ -1,0 +1,26 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  hClient=getHazelcastClient(h);
+  final IMap<String,String> map=hClient.getMap("default");
+  final CountDownLatch entryAddLatch=new CountDownLatch(5);
+  final CountDownLatch entryUpdatedLatch=new CountDownLatch(5);
+  final CountDownLatch entryRemovedLatch=new CountDownLatch(5);
+  CountDownLatchEntryListener<String,String> listener1=new CountDownLatchEntryListener<String,String>(entryAddLatch,entryUpdatedLatch,entryRemovedLatch);
+  CountDownLatchEntryListener<String,String> listener2=new CountDownLatchEntryListener<String,String>(entryAddLatch,entryUpdatedLatch,entryRemovedLatch);
+  map.addEntryListener(listener1,true);
+  map.put("hello","world");
+  map.put("hello","new world");
+  map.remove("hello");
+  Thread.sleep(100);
+  assertEquals(4,entryAddLatch.getCount());
+  assertEquals(4,entryRemovedLatch.getCount());
+  assertEquals(4,entryUpdatedLatch.getCount());
+  map.removeEntryListener(listener1);
+  map.put("hello","world");
+  map.put("hello","new world");
+  map.remove("hello");
+  Thread.sleep(100);
+  assertEquals(4,entryAddLatch.getCount());
+  assertEquals(4,entryRemovedLatch.getCount());
+  assertEquals(4,entryUpdatedLatch.getCount());
+}

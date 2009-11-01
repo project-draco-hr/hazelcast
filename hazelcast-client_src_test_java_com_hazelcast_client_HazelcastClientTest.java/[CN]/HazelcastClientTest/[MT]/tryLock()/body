@@ -1,0 +1,23 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  hClient=getHazelcastClient(h);
+  final IMap<String,String> map=hClient.getMap("default");
+  final CountDownLatch latch=new CountDownLatch(3);
+  map.put("1","A");
+  map.lock("1");
+  new Thread(new Runnable(){
+    public void run(){
+      if (!map.tryLock("1",100,TimeUnit.MILLISECONDS)) {
+        latch.countDown();
+      }
+      if (!map.tryLock("1")) {
+        latch.countDown();
+      }
+      if (map.tryLock("2")) {
+        latch.countDown();
+      }
+    }
+  }
+).start();
+  assertTrue(latch.await(100,TimeUnit.MILLISECONDS));
+}
