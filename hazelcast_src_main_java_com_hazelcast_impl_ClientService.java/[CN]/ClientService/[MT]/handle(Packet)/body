@@ -2,5 +2,10 @@
   ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
   CallContext callContext=clientEndpoint.getCallContext(packet.threadId);
   ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandlers);
-  node.clusterManager.enqueueEvent(clientEndpoint.hashCode(),clientRequestHandler);
+  if (!packet.operation.equals(ClusterOperation.CONCURRENT_MAP_UNLOCK)) {
+    node.clusterManager.enqueueEvent(clientEndpoint.hashCode(),clientRequestHandler);
+  }
+ else {
+    node.executorManager.executeMigrationTask(clientRequestHandler);
+  }
 }
