@@ -1,0 +1,28 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  hClient=getHazelcastClient(h);
+  IMap map=hClient.getMap("employees");
+  int size=1000;
+  for (int i=0; i < size; i++) {
+    map.put(String.valueOf(i),new Employee("name" + i,i,true,0));
+  }
+  EntryObject e=new PredicateBuilder().getEntryObject();
+  Predicate predicate=e.get("age").equal(23);
+  long begin=System.currentTimeMillis();
+  Set<Entry<Object,Object>> set=map.entrySet(predicate);
+  long timeWithoutIndex=System.currentTimeMillis() - begin;
+  assertEquals(1,set.size());
+  assertEquals(size,map.size());
+  map.destroy();
+  map=hClient.getMap("employees");
+  map.addIndex("age",true);
+  for (int i=0; i < size; i++) {
+    map.put(String.valueOf(i),new Employee("name" + i,i,true,0));
+  }
+  begin=System.currentTimeMillis();
+  set=map.entrySet(predicate);
+  long timeWithIndex=System.currentTimeMillis() - begin;
+  assertEquals(1,set.size());
+  assertEquals(size,map.size());
+  assertTrue(timeWithoutIndex > 2 * timeWithIndex);
+}
