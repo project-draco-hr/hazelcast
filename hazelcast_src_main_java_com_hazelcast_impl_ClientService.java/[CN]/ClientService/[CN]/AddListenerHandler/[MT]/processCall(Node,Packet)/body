@@ -1,7 +1,13 @@
 {
   ClientEndpoint clientEndpoint=node.clientService.getClientEndpoint(packet.conn);
-  IMap<Object,Object> map=node.factory.getMap(packet.name);
-  Object key=toObject(packet.key);
   boolean includeValue=(int)packet.longValue == 1;
-  clientEndpoint.addThisAsListener(map,key,includeValue);
+  if (getInstanceType(packet.name).equals(InstanceType.MAP)) {
+    IMap<Object,Object> map=(IMap)node.factory.getOrCreateProxyByName(packet.name);
+    clientEndpoint.addThisAsListener(map,packet.key,includeValue);
+  }
+ else   if (getInstanceType(packet.name).equals(InstanceType.LIST)) {
+    CollectionProxyImpl collectionProxy=(CollectionProxyImpl)node.factory.getOrCreateProxyByName(packet.name);
+    MProxy mapProxy=((CollectionProxyReal)collectionProxy.getBase()).mapProxy;
+    mapProxy.addEntryListener(clientEndpoint,includeValue);
+  }
 }
