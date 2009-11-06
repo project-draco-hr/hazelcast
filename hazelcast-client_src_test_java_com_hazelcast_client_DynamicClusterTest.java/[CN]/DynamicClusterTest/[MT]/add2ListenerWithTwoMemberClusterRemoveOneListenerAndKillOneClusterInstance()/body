@@ -1,0 +1,25 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  Map<Integer,HazelcastInstance> memberMap=getMapOfClusterMembers(h1,h2);
+  client=getHazelcastClient(h1,h2);
+  IMap<String,String> map=client.getMap("default");
+  final CountDownLatch entryAddLatch=new CountDownLatch(4);
+  final CountDownLatch entryUpdatedLatch=new CountDownLatch(4);
+  final CountDownLatch entryRemovedLatch=new CountDownLatch(4);
+  CountDownLatchEntryListener<String,String> listener=new CountDownLatchEntryListener<String,String>(entryAddLatch,entryUpdatedLatch,entryRemovedLatch);
+  CountDownLatchEntryListener<String,String> listener2=new CountDownLatchEntryListener<String,String>(entryAddLatch,entryUpdatedLatch,entryRemovedLatch);
+  map.addEntryListener(listener,true);
+  map.addEntryListener(listener2,"hello",true);
+  map.put("hello","world");
+  map.put("hello","new world");
+  map.remove("hello");
+  map.removeEntryListener(listener2,"hello");
+  memberMap.remove(client.getConnectionManager().getConnection().getAddress().getPort()).shutdown();
+  map.put("hello","world");
+  map.put("hello","new world");
+  map.remove("hello");
+  assertEquals(1,entryAddLatch.getCount());
+  assertEquals(1,entryUpdatedLatch.getCount());
+  assertEquals(1,entryRemovedLatch.getCount());
+}

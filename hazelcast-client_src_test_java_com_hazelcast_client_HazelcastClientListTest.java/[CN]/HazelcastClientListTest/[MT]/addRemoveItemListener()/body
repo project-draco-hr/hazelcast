@@ -1,0 +1,20 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  hClient=getHazelcastClient(h);
+  final IList list=hClient.getList("default");
+  final CountDownLatch addLatch=new CountDownLatch(4);
+  final CountDownLatch removeLatch=new CountDownLatch(4);
+  ItemListener<String> listener=new CountDownItemListener<String>(addLatch,removeLatch);
+  list.addItemListener(listener,true);
+  list.add("hello");
+  list.add("hello");
+  list.remove("hello");
+  list.remove("hello");
+  list.removeItemListener(listener);
+  list.add("hello");
+  list.add("hello");
+  list.remove("hello");
+  list.remove("hello");
+  assertEquals(2,addLatch.getCount());
+  assertEquals(2,removeLatch.getCount());
+}

@@ -1,8 +1,6 @@
 {
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
-  HazelcastInstance h3=Hazelcast.newHazelcastInstance(null);
-  Map<String,String> realMap=h3.getMap("default");
   Map<Integer,HazelcastInstance> memberMap=getMapOfClusterMembers(h1,h2);
   client=getHazelcastClient(h1,h2);
   IMap<String,String> map=client.getMap("default");
@@ -13,11 +11,11 @@
   map.addEntryListener(listener,true);
   map.put("hello","world");
   map.put("hello","new world");
-  realMap.remove("hello");
+  map.remove("hello");
   memberMap.remove(client.getConnectionManager().getConnection().getAddress().getPort()).shutdown();
   map.put("hello","world");
   map.put("hello","new world");
-  realMap.remove("hello");
+  map.remove("hello");
   assertTrue(entryAddLatch.await(10,TimeUnit.MILLISECONDS));
   assertTrue(entryUpdatedLatch.await(10,TimeUnit.MILLISECONDS));
   assertTrue(entryRemovedLatch.await(10,TimeUnit.MILLISECONDS));
