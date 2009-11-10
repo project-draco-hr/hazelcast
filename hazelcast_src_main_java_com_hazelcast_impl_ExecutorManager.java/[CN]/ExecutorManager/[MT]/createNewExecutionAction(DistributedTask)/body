@@ -1,16 +1,16 @@
 {
   if (task == null)   throw new RuntimeException("task cannot be null");
+  Long executionId=null;
   try {
-    final Long executionId=executionIds.take();
-    final InnerFutureTask inner=(InnerFutureTask)task.getInner();
-    final Callable callable=inner.getCallable();
-    final Data callableData=toData(callable);
-    final DistributedExecutorAction action=new DistributedExecutorAction(executionId,task,callableData,callable);
-    inner.setExecutionManagerCallback(action);
-    return action;
+    executionId=executionIds.take();
   }
- catch (  final Exception e) {
-    e.printStackTrace();
+ catch (  InterruptedException e) {
+    throw new RuntimeException(e);
   }
-  return null;
+  final InnerFutureTask inner=(InnerFutureTask)task.getInner();
+  final Callable callable=inner.getCallable();
+  final Data callableData=toData(callable);
+  final DistributedExecutorAction action=new DistributedExecutorAction(executionId,task,callableData,callable);
+  inner.setExecutionManagerCallback(action);
+  return action;
 }

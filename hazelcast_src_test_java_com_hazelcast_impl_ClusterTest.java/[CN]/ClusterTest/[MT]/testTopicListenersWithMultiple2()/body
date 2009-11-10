@@ -1,0 +1,20 @@
+{
+  final CountDownLatch latch=new CountDownLatch(4);
+  MessageListener ml=new MessageListener(){
+    public void onMessage(    Object msg){
+      assertEquals("message",msg);
+      latch.countDown();
+    }
+  }
+;
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  h1.getTopic("default").addMessageListener(ml);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  h2.getTopic("default").addMessageListener(ml);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(null);
+  h3.getTopic("default").addMessageListener(ml);
+  HazelcastInstance h4=Hazelcast.newHazelcastInstance(null);
+  h4.getTopic("default").addMessageListener(ml);
+  h1.getTopic("default").publish("message");
+  assertTrue(latch.await(5,TimeUnit.SECONDS));
+}
