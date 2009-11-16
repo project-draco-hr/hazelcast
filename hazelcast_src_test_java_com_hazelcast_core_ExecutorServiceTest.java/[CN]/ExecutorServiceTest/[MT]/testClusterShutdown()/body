@@ -1,0 +1,20 @@
+{
+  ExecutorService executor=Hazelcast.getExecutorService();
+  Hazelcast.shutdown();
+  assertNotNull(executor);
+  assertTrue(executor.isShutdown());
+  assertTrue(executor.isTerminated());
+  Callable<String> task=new BasicTestTask();
+  try {
+    Future future=executor.submit(task);
+    fail("Should not be here!");
+  }
+ catch (  RejectedExecutionException ree) {
+    ;
+  }
+  Hazelcast.restart();
+  executor=Hazelcast.getExecutorService();
+  assertFalse(executor.isShutdown());
+  assertFalse(executor.isTerminated());
+  Future future=executor.submit(task);
+}
