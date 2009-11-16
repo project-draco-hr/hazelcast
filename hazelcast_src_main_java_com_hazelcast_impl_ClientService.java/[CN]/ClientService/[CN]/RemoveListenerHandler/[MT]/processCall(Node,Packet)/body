@@ -1,10 +1,16 @@
 {
   ClientEndpoint clientEndpoint=node.clientService.getClientEndpoint(packet.conn);
-  IMap<Object,Object> map=(IMap)node.factory.getOrCreateProxyByName(packet.name);
-  if (packet.key == null) {
-    map.removeEntryListener(clientEndpoint);
-  }
+  if (getInstanceType(packet.name).equals(InstanceType.MAP)) {
+    IMap<Object,Object> map=(IMap)node.factory.getOrCreateProxyByName(packet.name);
+    if (packet.key == null) {
+      map.removeEntryListener(clientEndpoint);
+    }
  else {
-    map.removeEntryListener(clientEndpoint,packet.key);
+      map.removeEntryListener(clientEndpoint,packet.key);
+    }
+  }
+ else   if (getInstanceType(packet.name).equals(InstanceType.TOPIC)) {
+    ITopic<Object> topic=(ITopic)node.factory.getOrCreateProxyByName(packet.name);
+    topic.removeMessageListener(clientEndpoint.messageListeners.remove(packet.name));
   }
 }

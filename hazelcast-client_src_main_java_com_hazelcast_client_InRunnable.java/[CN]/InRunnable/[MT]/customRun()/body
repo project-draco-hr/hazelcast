@@ -8,8 +8,7 @@
     }
  else {
       packet=reader.readPacket(connection);
-      Call c=null;
-      c=callMap.remove(packet.getCallId());
+      Call c=callMap.remove(packet.getCallId());
       if (c != null) {
 synchronized (c) {
           c.setResponse(packet);
@@ -20,13 +19,15 @@ synchronized (c) {
         if (packet.getOperation().equals(ClusterOperation.EVENT)) {
           client.listenerManager.enqueue(packet);
         }
+        if (packet.getCallId() == -1) {
+        }
  else {
           throw new RuntimeException("In Thread can not handle: " + packet.getOperation() + " : "+ packet.getCallId());
         }
       }
     }
   }
- catch (  IOException e) {
+ catch (  Exception e) {
     client.connectionManager.destroyConnection(connection);
   }
 }
