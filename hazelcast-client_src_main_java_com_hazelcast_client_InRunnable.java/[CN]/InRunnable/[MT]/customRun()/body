@@ -8,11 +8,16 @@
     }
  else {
       packet=reader.readPacket(connection);
-      Call c=callMap.remove(packet.getCallId());
-      if (c != null) {
-synchronized (c) {
-          c.setResponse(packet);
-          c.notify();
+      Call call=callMap.remove(packet.getCallId());
+      if (call != null) {
+        if (call.getRequest().getOperation().equals(ClusterOperation.REMOTELY_EXECUTE)) {
+          client.executorServiceManager.enqueue(packet);
+        }
+ else {
+synchronized (call) {
+            call.setResponse(packet);
+            call.notify();
+          }
         }
       }
  else {
