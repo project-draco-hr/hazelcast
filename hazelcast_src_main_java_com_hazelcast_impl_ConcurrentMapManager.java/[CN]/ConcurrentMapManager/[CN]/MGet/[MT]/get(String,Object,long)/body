@@ -1,4 +1,5 @@
 {
+  this.key=key;
   final ThreadContext tc=ThreadContext.get();
   TransactionImpl txn=tc.getCallContext().getTransaction();
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
@@ -6,11 +7,18 @@
       return txn.get(name,key);
     }
   }
-  LocallyOwnedMap locallyOwnedMap=getLocallyOwnedMap(name);
+  MapCache cache=mapCaches.get(name);
+  if (cache != null) {
+    Object value=cache.get(key);
+    if (value != null) {
+      return value;
+    }
+  }
+  LocallyOwnedMap locallyOwnedMap=mapLocallyOwnedMaps.get(name);
   if (locallyOwnedMap != null) {
-    Object result=locallyOwnedMap.get(key);
-    if (result != OBJECT_REDO) {
-      return result;
+    Object value=locallyOwnedMap.get(key);
+    if (value != OBJECT_REDO) {
+      return value;
     }
   }
   Object value=objectCall(CONCURRENT_MAP_GET,name,key,null,timeout,-1);

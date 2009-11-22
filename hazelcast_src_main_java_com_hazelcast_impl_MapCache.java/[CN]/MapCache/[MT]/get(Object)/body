@@ -1,0 +1,36 @@
+{
+  if (ttl != 0 || maxIdleTime != 0) {
+    long callCountNow=callCount.incrementAndGet();
+    if (callCountNow == 5000) {
+      callCount.addAndGet(-5000);
+      cmap.concurrentMapManager.enqueueAndReturn(new Processable(){
+        public void process(){
+          Collection<CacheEntry> entries=cache.values();
+          long now=System.currentTimeMillis();
+          for (          CacheEntry entry : entries) {
+            if (!entry.isValid(now)) {
+              invalidate(entry.keyData);
+            }
+          }
+        }
+      }
+);
+    }
+  }
+  CacheEntry entry=cache.get(key);
+  if (entry == null) {
+    return null;
+  }
+ else {
+    long now=System.currentTimeMillis();
+    if (entry.isValid(now)) {
+      Object value=entry.getValue();
+      cmap.concurrentMapManager.enqueueAndReturn(entry);
+      entry.touch(now);
+      return value;
+    }
+ else {
+      return null;
+    }
+  }
+}

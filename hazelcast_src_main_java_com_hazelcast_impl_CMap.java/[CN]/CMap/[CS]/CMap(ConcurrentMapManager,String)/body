@@ -9,15 +9,7 @@
   MapConfig mapConfig=node.getConfig().getMapConfig(name.substring(2));
   this.backupCount=mapConfig.getBackupCount();
   ttl=mapConfig.getTimeToLiveSeconds() * 1000L;
-  if ("LFU".equalsIgnoreCase(mapConfig.getEvictionPolicy())) {
-    evictionPolicy=SortedHashMap.OrderingType.LFU;
-  }
- else   if ("LRU".equalsIgnoreCase(mapConfig.getEvictionPolicy())) {
-    evictionPolicy=SortedHashMap.OrderingType.LRU;
-  }
- else {
-    evictionPolicy=SortedHashMap.OrderingType.NONE;
-  }
+  evictionPolicy=SortedHashMap.getOrderingTypeByName(mapConfig.getEvictionPolicy());
   if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
     maxSize=Integer.MAX_VALUE;
   }
@@ -64,5 +56,13 @@
   }
  else {
     locallyOwnedMap=null;
+  }
+  NearCacheConfig nearCacheConfig=mapConfig.getNearCacheConfig();
+  if (nearCacheConfig == null) {
+    mapCache=null;
+  }
+ else {
+    mapCache=new MapCache(this,SortedHashMap.getOrderingTypeByName(mapConfig.getEvictionPolicy()),nearCacheConfig.getMaxSize(),nearCacheConfig.getTimeToLiveSeconds() * 1000L,nearCacheConfig.getMaxIdleSeconds() * 1000L);
+    concurrentMapManager.mapCaches.put(name,mapCache);
   }
 }
