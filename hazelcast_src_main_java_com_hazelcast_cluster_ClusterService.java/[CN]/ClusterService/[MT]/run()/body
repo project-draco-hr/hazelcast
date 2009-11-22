@@ -1,33 +1,25 @@
 {
+  boolean readPackets=false;
+  boolean readProcessables=false;
   while (running) {
-    Object obj=null;
-    try {
-      queue.drainTo(bulk,BULK_SIZE);
-      final int size=bulk.size();
-      if (size > 0) {
-        for (int i=0; i < size; i++) {
-          obj=bulk.remove();
-          checkPeriodics();
-          process(obj);
-        }
-      }
- else {
-        obj=queue.poll(100,TimeUnit.MILLISECONDS);
+    readPackets=(dequeuePackets() != 0);
+    readProcessables=(dequeueProcessables() != 0);
+    if (!readPackets && !readProcessables) {
+      enqueueLock.lock();
+      try {
+        notEmpty.await(100,TimeUnit.MILLISECONDS);
         checkPeriodics();
-        if (obj != null) {
-          process(obj);
-        }
       }
-    }
- catch (    final InterruptedException e) {
-      node.handleInterruptedException(Thread.currentThread(),e);
-    }
-catch (    final Throwable e) {
-      logger.log(Level.FINEST,e + ",  message: " + e+ ", obj="+ obj,e);
-      e.printStackTrace();
-      System.out.println(node + ". Exception when handling " + obj);
+ catch (      InterruptedException e) {
+        node.handleInterruptedException(Thread.currentThread(),e);
+      }
+ finally {
+        enqueueLock.unlock();
+      }
     }
   }
-  bulk.clear();
-  queue.clear();
+  processableBulk.clear();
+  packetBulk.clear();
+  packetQueue.clear();
+  processableQueue.clear();
 }
