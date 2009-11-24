@@ -1,0 +1,27 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  hClient=getHazelcastClient(h);
+  final ILock lock=hClient.getLock("Fuad");
+  assertTrue(lock.tryLock());
+  lock.lock();
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      assertFalse(lock.tryLock());
+      try {
+        assertTrue(lock.tryLock(200,TimeUnit.MILLISECONDS));
+      }
+ catch (      InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      latch.countDown();
+    }
+  }
+).start();
+  Thread.sleep(100);
+  assertEquals(1,latch.getCount());
+  lock.unlock();
+  lock.unlock();
+  Thread.sleep(100);
+  assertTrue(latch.await(100,TimeUnit.MILLISECONDS));
+}

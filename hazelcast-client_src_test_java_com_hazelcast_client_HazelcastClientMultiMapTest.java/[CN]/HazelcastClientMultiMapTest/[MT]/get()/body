@@ -1,0 +1,18 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  hClient=getHazelcastClient(h);
+  MultiMap multiMap=hClient.getMultiMap("default");
+  assertTrue(multiMap.put("a",1));
+  assertTrue(multiMap.put("a",2));
+  Map<Integer,CountDownLatch> map=new HashMap<Integer,CountDownLatch>();
+  map.put(1,new CountDownLatch(1));
+  map.put(2,new CountDownLatch(1));
+  Collection collection=multiMap.get("a");
+  assertEquals(2,collection.size());
+  for (Iterator it=collection.iterator(); it.hasNext(); ) {
+    Object o=it.next();
+    map.get((Integer)o).countDown();
+  }
+  assertTrue(map.get(1).await(10,TimeUnit.MILLISECONDS));
+  assertTrue(map.get(2).await(10,TimeUnit.MILLISECONDS));
+}
