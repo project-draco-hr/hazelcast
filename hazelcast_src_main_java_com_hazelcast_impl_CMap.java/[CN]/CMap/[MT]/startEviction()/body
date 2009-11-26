@@ -1,7 +1,7 @@
 {
   List<Data> lsKeysToEvict=null;
   if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
-    if (ttl != 0) {
+    if (ttl != 0 || ttlPerRecord) {
       long now=System.currentTimeMillis();
       Collection<Record> values=mapRecords.values();
       for (      Record record : values) {
@@ -21,10 +21,10 @@
     }
   }
  else {
-    Collection<Record> values=mapRecords.values();
+    Collection<Record> records=mapRecords.values();
     int numberOfRecordsToEvict=(int)(ownedRecords.size() * evictionRate);
     int evictedCount=0;
-    for (    Record record : values) {
+    loopRecords:     for (    Record record : records) {
       if (record.isActive() && record.isEvictable()) {
         if (lsKeysToEvict == null) {
           lsKeysToEvict=new ArrayList<Data>(numberOfRecordsToEvict);
@@ -32,7 +32,7 @@
         markAsRemoved(record);
         lsKeysToEvict.add(record.getKey());
         if (++evictedCount >= numberOfRecordsToEvict) {
-          break;
+          break loopRecords;
         }
       }
     }

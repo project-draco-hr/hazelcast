@@ -9,12 +9,14 @@
  else {
       Block block=blocks[record.getBlockId()];
       if (thisAddress.equals(block.getOwner())) {
-        touch(record);
-        if (value == null) {
-          return record.valueCount() > 0;
-        }
+        if (record.isActive() && record.isValid()) {
+          touch(record);
+          if (value == null) {
+            return record.valueCount() > 0;
+          }
  else {
-          return record.containsValue(value);
+            return record.containsValue(value);
+          }
         }
       }
     }
@@ -22,10 +24,13 @@
  else {
     Collection<Record> records=mapRecords.values();
     for (    Record record : records) {
-      Block block=blocks[record.getBlockId()];
-      if (thisAddress.equals(block.getOwner())) {
-        if (record.containsValue(value)) {
-          return true;
+      long now=System.currentTimeMillis();
+      if (record.isActive() && record.isValid(now)) {
+        Block block=blocks[record.getBlockId()];
+        if (thisAddress.equals(block.getOwner())) {
+          if (record.containsValue(value)) {
+            return true;
+          }
         }
       }
     }
