@@ -1,0 +1,28 @@
+{
+  final HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  final AtomicInteger counter=new AtomicInteger(0);
+class Putter implements Runnable {
+    volatile Boolean run=true;
+    public void run(){
+      HazelcastClient hClient=getHazelcastClient(h);
+      while (run) {
+        Map<String,String> clientMap=hClient.getMap("putFromMultipleThreads");
+        clientMap.put(String.valueOf(counter.incrementAndGet()),String.valueOf(counter.get()));
+      }
+    }
+  }
+  ;
+  List<Putter> list=new ArrayList<Putter>();
+  for (int i=0; i < 10; i++) {
+    Putter p=new Putter();
+    list.add(p);
+    new Thread(p).start();
+  }
+  Thread.sleep(5000);
+  for (Iterator<Putter> it=list.iterator(); it.hasNext(); ) {
+    Putter p=it.next();
+    p.run=false;
+  }
+  Thread.sleep(100);
+  assertEquals(counter.get(),h.getMap("putFromMultipleThreads").size());
+}

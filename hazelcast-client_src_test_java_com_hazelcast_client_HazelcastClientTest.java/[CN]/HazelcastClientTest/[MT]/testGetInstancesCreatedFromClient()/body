@@ -1,0 +1,35 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  List list=getHazelcastClient(h).getList("testGetInstancesCreatedFromClient");
+  Map map=getHazelcastClient(h).getMap("testGetInstancesCreatedFromClient");
+  MultiMap mmap=getHazelcastClient(h).getMultiMap("testGetInstancesCreatedFromClient");
+  Queue q=getHazelcastClient(h).getQueue("testGetInstancesCreatedFromClient");
+  Set set=getHazelcastClient(h).getSet("testGetInstancesCreatedFromClient");
+  ITopic topic=getHazelcastClient(h).getTopic("testGetInstancesCreatedFromClient");
+  Collection<Instance> caches=getHazelcastClient(h).getInstances();
+  assertEquals(0,caches.size());
+  List listOfInstances=new ArrayList();
+  listOfInstances.add(list);
+  listOfInstances.add(map);
+  listOfInstances.add(mmap);
+  listOfInstances.add(q);
+  listOfInstances.add(set);
+  listOfInstances.add(topic);
+  list.add("List");
+  map.put("key","value");
+  assertEquals(2,getHazelcastClient(h).getInstances().size());
+  mmap.put("key","value1");
+  q.offer("Element");
+  assertEquals(4,getHazelcastClient(h).getInstances().size());
+  set.add("element");
+  topic.publish("Message");
+  assertEquals(6,getHazelcastClient(h).getInstances().size());
+  caches=getHazelcastClient(h).getInstances();
+  for (Iterator<Instance> instanceIterator=caches.iterator(); instanceIterator.hasNext(); ) {
+    Instance instance=instanceIterator.next();
+    assertTrue(instance.getId().toString().endsWith("testGetInstancesCreatedFromClient"));
+    assertTrue(listOfInstances.contains(instance));
+    instance.destroy();
+  }
+  h.shutdown();
+}

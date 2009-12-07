@@ -1,0 +1,28 @@
+{
+  HazelcastClient hClient=getHazelcastClient();
+  MultiMap multiMap=Hazelcast.getMultiMap("entrySet");
+  Map<String,List<String>> valueKeyListMap=new HashMap<String,List<String>>();
+  int count=100;
+  for (int i=0; i < count; i++) {
+    for (int j=0; j <= i; j++) {
+      String key="" + i;
+      String value="" + j;
+      multiMap.put(key,value);
+      if (valueKeyListMap.get(value) == null) {
+        valueKeyListMap.put(value,new ArrayList<String>());
+      }
+      valueKeyListMap.get(value).add(key);
+    }
+  }
+  assertEquals(count * (count + 1) / 2,multiMap.size());
+  Collection collection=multiMap.values();
+  assertEquals(count * (count + 1) / 2,collection.size());
+  for (Iterator<String> iterator=collection.iterator(); iterator.hasNext(); ) {
+    String value=iterator.next();
+    assertNotNull(valueKeyListMap.get(value).remove(0));
+    if (valueKeyListMap.get(value).size() == 0) {
+      valueKeyListMap.remove(value);
+    }
+  }
+  assertTrue(valueKeyListMap.isEmpty());
+}
