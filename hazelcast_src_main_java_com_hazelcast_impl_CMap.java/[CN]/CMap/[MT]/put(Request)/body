@@ -8,6 +8,7 @@
   Record record=getRecord(req.key);
   if (req.operation == CONCURRENT_MAP_PUT_IF_ABSENT) {
     if (record != null && record.isActive() && record.isValid() && record.getValue() != null) {
+      req.clearForResponse();
       req.response=record.getValue();
       return;
     }
@@ -20,8 +21,6 @@
  else   if (req.operation == CONCURRENT_MAP_REPLACE_IF_SAME) {
     if (record == null || !record.isActive() || !record.isValid()) {
       req.response=Boolean.FALSE;
-      req.value=null;
-      req.key=null;
       return;
     }
     ConcurrentMapManager.MultiData multiData=(ConcurrentMapManager.MultiData)toObject(req.value);
@@ -41,7 +40,6 @@
   boolean created=false;
   if (record == null) {
     record=createNewRecord(req.key,req.value);
-    req.key=null;
     created=true;
   }
  else {
@@ -57,9 +55,6 @@
     ttlPerRecord=true;
   }
   markAsOwned(record);
-  req.version=record.getVersion();
-  req.longValue=record.getCopyCount();
-  req.value=null;
   if (oldValue == null) {
     concurrentMapManager.fireMapEvent(mapListeners,name,EntryEvent.TYPE_ADDED,record);
   }
@@ -74,6 +69,9 @@
   }
   updateIndexes(created,req,record);
   markAsDirty(record);
+  req.clearForResponse();
+  req.version=record.getVersion();
+  req.longValue=record.getCopyCount();
   if (req.operation == CONCURRENT_MAP_REPLACE_IF_SAME) {
     req.response=Boolean.TRUE;
   }

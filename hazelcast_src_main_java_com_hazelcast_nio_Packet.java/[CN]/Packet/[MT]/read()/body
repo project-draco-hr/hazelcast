@@ -1,22 +1,35 @@
 {
-  operation=ClusterOperation.create(bbHeader.getInt());
+  operation=ClusterOperation.create(bbHeader.get());
   blockId=bbHeader.getInt();
   threadId=bbHeader.getInt();
-  lockCount=bbHeader.getInt();
-  timeout=bbHeader.getLong();
-  ttl=bbHeader.getLong();
-  txnId=bbHeader.getLong();
-  longValue=bbHeader.getLong();
-  version=bbHeader.getLong();
-  callId=bbHeader.getLong();
-  client=(bbHeader.get() == 1);
-  responseType=bbHeader.get();
-  name=getString(bbHeader);
-  boolean lockAddressNull=readBoolean(bbHeader);
+  byte booleans=bbHeader.get();
+  if (ByteUtil.isTrue(booleans,0)) {
+    lockCount=bbHeader.getInt();
+  }
+  if (ByteUtil.isTrue(booleans,1)) {
+    timeout=bbHeader.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,2)) {
+    ttl=bbHeader.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,3)) {
+    txnId=bbHeader.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,4)) {
+    longValue=bbHeader.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,5)) {
+    version=bbHeader.getLong();
+  }
+  client=ByteUtil.isTrue(booleans,6);
+  boolean lockAddressNull=ByteUtil.isTrue(booleans,7);
   if (!lockAddressNull) {
     lockAddress=new Address();
     lockAddress.readObject(bbHeader);
   }
+  callId=bbHeader.getLong();
+  responseType=bbHeader.get();
+  name=getString(bbHeader);
   indexCount=bbHeader.get();
   for (int i=0; i < indexCount; i++) {
     indexes[i]=bbHeader.getLong();

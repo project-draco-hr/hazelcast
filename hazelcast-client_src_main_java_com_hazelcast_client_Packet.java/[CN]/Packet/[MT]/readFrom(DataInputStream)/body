@@ -6,26 +6,38 @@
   dis.read(headerInBytes);
   ByteArrayInputStream bis=new ByteArrayInputStream(headerInBytes);
   DataInputStream dis2=new DataInputStream(bis);
-  this.operation=ClusterOperation.create(dis2.readInt());
+  this.operation=ClusterOperation.create(dis2.readByte());
   this.blockId=dis2.readInt();
   this.threadId=dis2.readInt();
-  this.lockCount=dis2.readInt();
-  this.timeout=dis2.readLong();
-  this.ttl=dis2.readLong();
-  this.txnId=dis2.readLong();
-  this.longValue=dis2.readLong();
-  this.version=dis2.readLong();
-  this.callId=(int)dis2.readLong();
-  this.client=dis2.readByte() == 1;
+  byte booleans=dis2.readByte();
+  if (ByteUtil.isTrue(booleans,0)) {
+    lockCount=dis2.readInt();
+  }
+  if (ByteUtil.isTrue(booleans,1)) {
+    timeout=dis2.readLong();
+  }
+  if (ByteUtil.isTrue(booleans,2)) {
+    ttl=dis2.readLong();
+  }
+  if (ByteUtil.isTrue(booleans,3)) {
+    txnId=dis2.readLong();
+  }
+  if (ByteUtil.isTrue(booleans,4)) {
+    longValue=dis2.readLong();
+  }
+  if (ByteUtil.isTrue(booleans,5)) {
+    version=dis2.readLong();
+  }
+  if (!ByteUtil.isTrue(booleans,7)) {
+    throw new RuntimeException("LockAddress cannot be sent to the client!" + operation);
+  }
+  this.callId=dis2.readLong();
   this.responseType=dis2.readByte();
   int nameLength=dis2.readInt();
-  byte[] b=new byte[nameLength];
-  dis2.read(b);
-  this.name=new String(b);
-  this.lockAddressIsNull=dis2.readBoolean();
-  if (!lockAddressIsNull) {
-    lockAddress=new Address();
-    lockAddress.readData(dis2);
+  if (nameLength > 0) {
+    byte[] b=new byte[nameLength];
+    dis2.read(b);
+    this.name=new String(b);
   }
   indexCount=dis2.readByte();
   for (int i=0; i < indexCount; i++) {
