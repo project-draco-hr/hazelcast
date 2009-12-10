@@ -1,7 +1,11 @@
 {
   check(messageListener);
-  if (!client.listenerManager.allreadyRegisteredAMessageListener(name)) {
-    proxyHelper.doOp(ClusterOperation.ADD_LISTENER,null,null);
+  if (client.listenerManager.noMessageListenerRegistered(name)) {
+    Packet request=proxyHelper.prepareRequest(ClusterOperation.ADD_LISTENER,null,null);
+    proxyHelper.callAndGetResult(request);
+    Call c=proxyHelper.createCall(request);
+    client.listenerManager.addListenerCall(c,name,null);
+    proxyHelper.doCall(c);
   }
   client.listenerManager.registerMessageListener(name,messageListener);
 }
