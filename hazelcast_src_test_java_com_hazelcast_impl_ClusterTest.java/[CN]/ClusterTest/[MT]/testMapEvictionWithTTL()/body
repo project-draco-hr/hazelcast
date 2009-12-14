@@ -1,0 +1,29 @@
+{
+  Config cfg=new Config();
+  Map<String,MapConfig> mapConfigs=new HashMap<String,MapConfig>();
+  MapConfig mCfg=new MapConfig();
+  mCfg.setTimeToLiveSeconds(3);
+  mapConfigs.put("testMapEvictionWithTTL",mCfg);
+  cfg.setMapMapConfigs(mapConfigs);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(cfg);
+  IMap map1=h1.getMap("testMapEvictionWithTTL");
+  final CountDownLatch latch=new CountDownLatch(1);
+  map1.addEntryListener(new EntryListener(){
+    public void entryAdded(    EntryEvent entryEvent){
+    }
+    public void entryRemoved(    EntryEvent entryEvent){
+    }
+    public void entryUpdated(    EntryEvent entryEvent){
+    }
+    public void entryEvicted(    EntryEvent entryEvent){
+      assertEquals("1",entryEvent.getKey());
+      assertEquals("v1",entryEvent.getValue());
+      latch.countDown();
+    }
+  }
+,true);
+  map1.put("1","v1");
+  Assert.assertTrue(map1.get("1").equals("v1"));
+  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
+  Assert.assertTrue(map1.get("1") == null);
+}
