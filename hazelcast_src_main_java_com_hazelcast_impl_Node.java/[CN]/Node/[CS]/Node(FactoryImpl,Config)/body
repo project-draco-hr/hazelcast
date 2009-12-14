@@ -17,7 +17,18 @@
   }
  catch (  Exception ignored) {
   }
+  int tmpBuildNumber=0;
+  try {
+    tmpBuildNumber=Integer.getInteger("hazelcast.build",-1);
+    if (tmpBuildNumber == -1) {
+      tmpBuildNumber=Integer.parseInt(build);
+    }
+  }
+ catch (  Exception ignored) {
+  }
+  buildNumber=tmpBuildNumber;
   ServerSocketChannel serverSocketChannel;
+  Address localAddress=null;
   try {
     final String preferIPv4Stack=System.getProperty("java.net.preferIPv4Stack");
     final String preferIPv6Address=System.getProperty("java.net.preferIPv6Addresses");
@@ -26,13 +37,14 @@
     }
     AddressPicker addressPicker=new AddressPicker();
     serverSocketChannel=ServerSocketChannel.open();
-    address=addressPicker.pickAddress(this,serverSocketChannel);
-    address.setThisAddress(true);
-    localMember=new MemberImpl(getName(),address,true,localNodeType);
+    localAddress=addressPicker.pickAddress(this,serverSocketChannel);
+    localAddress.setThisAddress(true);
   }
  catch (  final Throwable e) {
     throw new RuntimeException(e);
   }
+  address=localAddress;
+  localMember=new MemberImpl(getName(),address,true,localNodeType);
   clusterImpl=new ClusterImpl(this);
   baseVariables=new NodeBaseVariables(address,localMember);
   clusterService=new ClusterService(this);
