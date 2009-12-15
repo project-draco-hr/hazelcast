@@ -1,6 +1,38 @@
 {
+  Map<String,String> mapPhrases=new HashMap<String,String>(1);
+  int apoIndex=getApostropheIndex(sql,0);
+  if (apoIndex != -1) {
+    int phraseId=0;
+    StringBuilder newSql=new StringBuilder();
+    while (apoIndex != -1) {
+      phraseId++;
+      int start=apoIndex + 1;
+      int end=getApostropheIndex(sql,apoIndex + 1);
+      if (end == -1) {
+        throw new RuntimeException("Missing ' in sql");
+      }
+      String phrase=sql.substring(start,end);
+      String key="$" + phraseId;
+      mapPhrases.put(key,phrase);
+      String before=sql.substring(0,apoIndex);
+      sql=sql.substring(end + 1);
+      newSql.append(before);
+      newSql.append(key);
+      apoIndex=getApostropheIndex(sql,0);
+    }
+    sql=newSql.toString();
+  }
   Parser parser=new Parser();
-  List<Object> tokens=new ArrayList<Object>(parser.toPrefix(sql));
+  List<String> sqlTokens=parser.toPrefix(sql);
+  List<Object> tokens=new ArrayList<Object>(sqlTokens.size());
+  for (  String token : sqlTokens) {
+    String finalToken=token;
+    String value=mapPhrases.get(token);
+    if (value != null) {
+      finalToken=value;
+    }
+    tokens.add(finalToken);
+  }
   if (tokens.size() == 0)   throw new RuntimeException("Invalid SQL :" + sql);
   if (tokens.size() == 1) {
     return eval(tokens.get(0));
