@@ -1,0 +1,21 @@
+{
+  try {
+    final BlockingQueue<QueryContext> resultQ=new ArrayBlockingQueue<QueryContext>(1);
+    queryQ.put(new Runnable(){
+      public void run(){
+        IndexRegion indexRegion=getIndexRegion(queryContext.getMapName());
+        Set<MapEntry> results=indexRegion.doQuery(queryContext);
+        if (results == null) {
+          results=new HashSet(0);
+        }
+        queryContext.setResults(results);
+        resultQ.offer(queryContext);
+      }
+    }
+);
+    return resultQ.take();
+  }
+ catch (  InterruptedException ignore) {
+  }
+  return null;
+}

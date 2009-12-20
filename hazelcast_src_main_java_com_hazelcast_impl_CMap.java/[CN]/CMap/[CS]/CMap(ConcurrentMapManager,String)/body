@@ -16,6 +16,8 @@
   }
   this.backupCount=mapConfig.getBackupCount();
   ttl=mapConfig.getTimeToLiveSeconds() * 1000L;
+  evictionDelayMillis=mapConfig.getEvictionDelaySeconds() * 1000L;
+  maxIdle=mapConfig.getMaxIdleSeconds() * 1000L;
   evictionPolicy=SortedHashMap.getOrderingTypeByName(mapConfig.getEvictionPolicy());
   if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
     maxSize=Integer.MAX_VALUE;
@@ -28,6 +30,7 @@
   MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
   MapStore storeTemp=null;
   MapLoader loaderTemp=null;
+  int writeDelaySeconds=-1;
   if (mapStoreConfig != null) {
     if (mapStoreConfig.isEnabled()) {
       String mapStoreClassName=mapStoreConfig.getClassName();
@@ -40,9 +43,6 @@
           storeTemp=(MapStore)storeInstance;
         }
         writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
-        if (writeDelaySeconds > 0) {
-          setDirtyRecords=new HashSet<Record>(5000);
-        }
       }
  catch (      Exception e) {
         e.printStackTrace();
@@ -51,8 +51,10 @@
   }
   loader=loaderTemp;
   store=storeTemp;
+  writeDelayMillis=(writeDelaySeconds == -1) ? -1L : writeDelaySeconds * 1000L;
+  setDirtyRecords=(writeDelayMillis == -1) ? null : new HashSet<Record>(5000);
   if (writeDelaySeconds > 0) {
-    removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS + (writeDelaySeconds * 1000L);
+    removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS + writeDelaySeconds;
   }
  else {
     removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS;
