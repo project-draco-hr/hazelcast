@@ -1,6 +1,23 @@
 {
-  for (Iterator<? extends K> it=arg0.keySet().iterator(); it.hasNext(); ) {
-    K key=(K)it.next();
-    put((K)key,arg0.get(key));
+  ExecutorService es=Executors.newFixedThreadPool(50);
+  List<Future> lsFutures=new ArrayList(map.size());
+  for (Iterator<? extends K> it=map.keySet().iterator(); it.hasNext(); ) {
+    final K key=(K)it.next();
+    final V value=map.get(key);
+    lsFutures.add(es.submit(new Runnable(){
+      public void run(){
+        put(key,value);
+      }
+    }
+));
   }
+  for (  Future future : lsFutures) {
+    try {
+      future.get();
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+  es.shutdown();
 }
