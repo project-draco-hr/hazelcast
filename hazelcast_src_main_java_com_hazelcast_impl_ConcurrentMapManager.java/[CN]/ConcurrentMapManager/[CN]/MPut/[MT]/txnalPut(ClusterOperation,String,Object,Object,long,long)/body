@@ -22,13 +22,24 @@
     setLocal(operation,name,key,value,timeout,ttl);
     request.longValue=(request.value == null) ? Integer.MIN_VALUE : request.value.hashCode();
     setIndexValues(request,value);
-    request.setObjectRequest();
-    doOp();
-    Object returnObject=getResultAsObject();
-    if (returnObject instanceof AddressAwareException) {
-      rethrowException(operation,(AddressAwareException)returnObject);
+    if (operation == CONCURRENT_MAP_TRY_PUT) {
+      request.setBooleanRequest();
+      doOp();
+      Boolean returnObject=getResultAsBoolean();
+      if (returnObject) {
+        backup(CONCURRENT_MAP_BACKUP_PUT);
+      }
+      return returnObject;
     }
-    backup(CONCURRENT_MAP_BACKUP_PUT);
-    return returnObject;
+ else {
+      request.setObjectRequest();
+      doOp();
+      Object returnObject=getResultAsObject();
+      if (returnObject instanceof AddressAwareException) {
+        rethrowException(operation,(AddressAwareException)returnObject);
+      }
+      backup(CONCURRENT_MAP_BACKUP_PUT);
+      return returnObject;
+    }
   }
 }
