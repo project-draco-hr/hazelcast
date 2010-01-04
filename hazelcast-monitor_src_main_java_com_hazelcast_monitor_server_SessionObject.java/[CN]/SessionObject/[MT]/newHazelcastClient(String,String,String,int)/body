@@ -1,0 +1,25 @@
+{
+  HazelcastClient client;
+  try {
+    client=HazelcastClient.newHazelcastClient(name,pass,ips);
+  }
+ catch (  RuntimeException e) {
+    throw new ConnectionExceptoin(e.getMessage());
+  }
+  client.addInstanceListener(new InstanceListener(){
+    public void instanceCreated(    com.hazelcast.core.InstanceEvent event){
+      Instance instance=event.getInstance();
+      String name=getName(instance);
+      InstanceEvent changeEvent=new InstanceCreated(id,instanceTypeMatchMap.get(event.getInstanceType()),name);
+      queue.offer(changeEvent);
+    }
+    public void instanceDestroyed(    com.hazelcast.core.InstanceEvent event){
+      Instance instance=event.getInstance();
+      InstanceEvent changeEvent=new InstanceDestroyed(id,instanceTypeMatchMap.get(event.getInstanceType()),getName(instance));
+      queue.offer(changeEvent);
+    }
+  }
+);
+  eventGenerators.add(new MembershipEventGenerator(client,id));
+  return client;
+}

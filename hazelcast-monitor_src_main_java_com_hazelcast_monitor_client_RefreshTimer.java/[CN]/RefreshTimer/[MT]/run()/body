@@ -1,0 +1,28 @@
+{
+  hazelcastService.getChange(new AsyncCallback<ArrayList<ChangeEvent>>(){
+    public void onFailure(    Throwable caught){
+    }
+    public void onSuccess(    ArrayList<ChangeEvent> result){
+      for (Iterator<ChangeEvent> iterator=result.iterator(); iterator.hasNext(); ) {
+        ChangeEvent changeEvent=iterator.next();
+        int clusterId=changeEvent.getClusterId();
+        System.out.println("Received an event for cluster id: " + clusterId);
+        ClusterWidgets clusterWidgets=hazelcastMonitor.mapClusterWidgets.get(clusterId);
+        if (clusterWidgets == null) {
+          Integer[] arr=new Integer[hazelcastMonitor.mapClusterWidgets.keySet().size()];
+          arr=hazelcastMonitor.mapClusterWidgets.keySet().toArray(arr);
+          String str="[";
+          for (int i=0; i < arr.length; i++) {
+            str+=arr[i] + ",";
+          }
+          str=str.substring(0,str.length() - 1);
+          str+="]";
+          System.out.println("Event for Cluster id:" + clusterId + ". Only following clusters are active on browser:"+ str);
+          return;
+        }
+        clusterWidgets.handle(changeEvent);
+      }
+    }
+  }
+);
+}
