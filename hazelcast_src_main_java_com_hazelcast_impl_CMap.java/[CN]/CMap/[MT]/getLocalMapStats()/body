@@ -1,0 +1,51 @@
+{
+  long now=System.currentTimeMillis();
+  int ownedEntryCount=0;
+  int backupEntryCount=0;
+  int markedAsRemovedEntryCount=0;
+  int ownedEntryMemoryCost=0;
+  int backupEntryMemoryCost=0;
+  int markedAsRemovedMemoryCost=0;
+  int hits=0;
+  int lockedEntryCount=0;
+  int lockWaitCount=0;
+  LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
+  Collection<Record> records=mapRecords.values();
+  for (  Record record : records) {
+    if (record.isActive() && record.isValid(now)) {
+      Block block=blocks[record.getBlockId()];
+      if (thisAddress.equals(block.getOwner())) {
+        ownedEntryCount+=record.valueCount();
+        ownedEntryMemoryCost+=record.getCost();
+        localMapStats.setLastAccessTime(record.getLastAccessTime());
+        localMapStats.setLastUpdateTime(record.getLastUpdateTime());
+        hits+=record.getHits();
+        if (record.isLocked()) {
+          lockedEntryCount++;
+          lockWaitCount+=record.getScheduledActionCount();
+        }
+      }
+ else {
+        backupEntryCount+=record.valueCount();
+        backupEntryMemoryCost+=record.getCost();
+      }
+    }
+  }
+  for (  Record removedRecord : setRemovedRecords) {
+    markedAsRemovedMemoryCost+=removedRecord.getCost();
+  }
+  localMapStats.setMarkedAsRemovedEntryCount(setRemovedRecords.size());
+  localMapStats.setMarkedAsRemovedMemoryCost(markedAsRemovedMemoryCost);
+  localMapStats.setLockWaitCount(lockWaitCount);
+  localMapStats.setLockedEntryCount(lockedEntryCount);
+  localMapStats.setHits(hits);
+  localMapStats.setOwnedEntryCount(ownedEntryCount);
+  localMapStats.setBackupEntryCount(backupEntryCount);
+  localMapStats.setMarkedAsRemovedEntryCount(markedAsRemovedEntryCount);
+  localMapStats.setOwnedEntryMemoryCost(ownedEntryMemoryCost);
+  localMapStats.setBackupEntryMemoryCost(backupEntryMemoryCost);
+  localMapStats.setMarkedAsRemovedMemoryCost(markedAsRemovedMemoryCost);
+  localMapStats.setLastEvictionTime(this.lastEvictionTime);
+  localMapStats.setCreationTime(this.creationTime);
+  return localMapStats;
+}
