@@ -1,5 +1,32 @@
 {
-  check(runnable);
-  DistributedTask.DistributedRunnableAdapterImpl<T> adapter=new DistributedTask.DistributedRunnableAdapterImpl(runnable,t);
-  return submit(adapter);
+  Callable adapter=null;
+  ClientExecutionManagerCallback callback=null;
+  if (runnable instanceof DistributedTask) {
+    DistributedTask dt=(DistributedTask)runnable;
+    InnerFutureTask inner=(InnerFutureTask)dt.getInner();
+    check(inner.getCallable());
+    if (runnable instanceof MultiTask) {
+      if (inner.getMembers() == null) {
+        Set<Member> set=new HashSet<Member>();
+        set.add(inner.getMember());
+        adapter=new ClientDistributedTask(inner.getCallable(),null,set,null);
+      }
+      callback=new ClientExecutionManagerCallback.MultipleResultClientExecutionManagerCallBack();
+    }
+ else {
+      callback=new ClientExecutionManagerCallback.SingleResultClientExecutionManagerCallBack();
+    }
+    if (adapter == null) {
+      adapter=new ClientDistributedTask(inner.getCallable(),inner.getMember(),inner.getMembers(),inner.getKey());
+    }
+    inner.setExecutionManagerCallback(callback);
+  }
+ else {
+    check(runnable);
+    adapter=new DistributedTask.DistributedRunnableAdapterImpl(runnable,t);
+  }
+  if (callback == null) {
+    callback=new ClientExecutionManagerCallback.SingleResultClientExecutionManagerCallBack();
+  }
+  return innerExecute(adapter,callback);
 }
