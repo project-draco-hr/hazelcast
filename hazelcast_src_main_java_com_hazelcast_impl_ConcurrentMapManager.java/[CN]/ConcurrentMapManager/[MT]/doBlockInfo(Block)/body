@@ -1,0 +1,35 @@
+{
+  if (!isBlockInfoValid(blockInfo)) {
+    logger.log(Level.FINEST,"blockInfo invalid " + blockInfo);
+    return;
+  }
+  Block block=blocks[blockInfo.getBlockId()];
+  if (block == null) {
+    logger.log(Level.FINEST,"Real Block is null, BlockInfo is: " + blockInfo);
+    block=new Block(blockInfo);
+    blocks[block.getBlockId()]=block;
+    block.setMigrationAddress(null);
+  }
+  if (thisAddress.equals(block.getOwner())) {
+    if (block.isMigrating()) {
+      if (!block.getMigrationAddress().equals(blockInfo.getMigrationAddress())) {
+        logger.log(Level.SEVERE,block.getMigrationAddress() + " existing block migration address are not the same as the new." + blockInfo.getMigrationAddress());
+      }
+    }
+ else     if (blockInfo.isMigrating()) {
+      logger.log(Level.FINEST,"now migrate " + blockInfo);
+      mapMigrator.migrateBlock(blockInfo);
+    }
+  }
+ else {
+    if (blockInfo.isMigrating()) {
+      logger.log(Level.SEVERE,"not the block owner but has migration info " + blockInfo);
+    }
+    block.setOwner(blockInfo.getOwner());
+    block.setMigrationAddress(blockInfo.getMigrationAddress());
+  }
+  if (block.getOwner() != null && block.getOwner().equals(block.getMigrationAddress())) {
+    block.setMigrationAddress(null);
+    logger.log(Level.SEVERE,"block owner cannot be same as the migration address!");
+  }
+}
