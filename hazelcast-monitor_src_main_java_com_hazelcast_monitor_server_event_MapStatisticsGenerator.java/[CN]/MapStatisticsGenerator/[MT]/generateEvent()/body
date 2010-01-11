@@ -1,10 +1,10 @@
 {
   ExecutorService esService=client.getExecutorService();
   Set<Member> members=client.getCluster().getMembers();
-  System.out.println("Members: " + members.size());
+  final List<Member> lsMembers=new ArrayList<Member>(members);
   MultiTask<DistributedMapStatsCallable.MemberMapStat> task=new MultiTask<DistributedMapStatsCallable.MemberMapStat>(new DistributedMapStatsCallable(mapName),members);
   esService.execute(task);
-  Collection<DistributedMapStatsCallable.MemberMapStat> mapStats=null;
+  Collection<DistributedMapStatsCallable.MemberMapStat> mapStats;
   try {
     mapStats=task.get();
   }
@@ -17,9 +17,17 @@ catch (  ExecutionException e) {
   if (mapStats == null) {
     return null;
   }
+  List<DistributedMapStatsCallable.MemberMapStat> lsMapStats=new ArrayList(mapStats);
+  Collections.sort(lsMapStats,new Comparator<DistributedMapStatsCallable.MemberMapStat>(){
+    public int compare(    DistributedMapStatsCallable.MemberMapStat o1,    DistributedMapStatsCallable.MemberMapStat o2){
+      int i1=lsMembers.indexOf(o1.getMember());
+      int i2=lsMembers.indexOf(o2.getMember());
+      return i1 - i2;
+    }
+  }
+);
   List<MapStatistics.LocalMapStatistics> listOfStats=new ArrayList<MapStatistics.LocalMapStatistics>();
-  System.out.println("Size of list returned from exs : " + mapStats.size());
-  for (  DistributedMapStatsCallable.MemberMapStat memberMapStat : mapStats) {
+  for (  DistributedMapStatsCallable.MemberMapStat memberMapStat : lsMapStats) {
     MapStatistics.LocalMapStatistics stat=new MapStatistics.LocalMapStatistics();
     stat.backupEntryCount=memberMapStat.getLocalMapStats().getBackupEntryCount();
     stat.backupEntryMemoryCost=memberMapStat.getLocalMapStats().getBackupEntryMemoryCost();
@@ -37,7 +45,6 @@ catch (  ExecutionException e) {
     stat.memberName=memberMapStat.getMember().getInetSocketAddress().getHostName() + ":" + memberMapStat.getMember().getInetSocketAddress().getPort();
     listOfStats.add(stat);
   }
-  System.out.println("Returning List of Stats: " + listOfStats.size());
   MapStatistics event=new MapStatistics(clusterId);
   event.setSize(map.size());
   event.setListOfLocalStats(listOfStats);

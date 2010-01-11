@@ -25,7 +25,10 @@
  else     if (type == SERIALIZER_TYPE_BYTE_ARRAY) {
       int size=dis.readInt();
       byte[] b=new byte[size];
-      bis.read(b);
+      int redSize=bis.read(b);
+      if (size != redSize) {
+        throw new RuntimeException("Couldn't read all of the data");
+      }
       return b;
     }
  else     if (type == SERIALIZER_TYPE_INTEGER) {
@@ -47,8 +50,11 @@
     }
  else     if (type == SERIALIZER_TYPE_OBJECT) {
       ObjectInputStream os=new ObjectInputStream(dis);
-      return os.readObject();
+      Object o=os.readObject();
+      os.close();
+      return o;
     }
+    dis.close();
   }
  catch (  Exception e) {
     e.printStackTrace();
