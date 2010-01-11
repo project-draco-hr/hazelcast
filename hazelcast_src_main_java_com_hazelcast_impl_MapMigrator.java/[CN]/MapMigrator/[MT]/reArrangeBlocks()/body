@@ -1,78 +1,41 @@
 {
   if (concurrentMapManager.isMaster()) {
-    if (blockMigrating != null) {
-      logger.log(Level.SEVERE,"Cannot migrate when there is already a block migrating: " + blockMigrating);
-    }
-    List<MemberImpl> lsMembers=concurrentMapManager.lsMembers;
-    for (int i=0; i < BLOCK_COUNT; i++) {
-      Block block=blocks[i];
-      if (block == null) {
-        concurrentMapManager.getOrCreateBlock(i);
-      }
-    }
-    List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
-    Map<Address,Integer> addressBlocks=new HashMap<Address,Integer>();
-    int storageEnabledMemberCount=0;
-    for (    MemberImpl member : lsMembers) {
-      if (!member.isSuperClient()) {
-        addressBlocks.put(member.getAddress(),0);
-        storageEnabledMemberCount++;
-      }
-    }
-    if (storageEnabledMemberCount == 0) {
+    Map<Address,Integer> addressBlocks=getCurrentMemberBlocks();
+    if (addressBlocks.size() == 0) {
       return;
     }
-    int aveBlockOwnCount=BLOCK_COUNT / (storageEnabledMemberCount);
+    List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
+    int aveBlockOwnCount=BLOCK_COUNT / (addressBlocks.size());
     for (    Block blockReal : blocks) {
       if (blockReal.getOwner() == null) {
+        logger.log(Level.SEVERE,"Master cannot have null block owner " + blockReal);
+        return;
+      }
+      if (blockReal.isMigrating()) {
+        logger.log(Level.SEVERE,"Cannot have migrating block " + blockReal);
+        return;
+      }
+      Integer countInt=addressBlocks.get(blockReal.getOwner());
+      int count=(countInt == null) ? 0 : countInt;
+      if (count >= aveBlockOwnCount) {
         lsBlocksToRedistribute.add(new Block(blockReal));
       }
- else       if (!blockReal.isMigrating()) {
-        Integer countInt=addressBlocks.get(blockReal.getOwner());
-        int count=(countInt == null) ? 0 : countInt;
-        if (count >= aveBlockOwnCount) {
-          lsBlocksToRedistribute.add(new Block(blockReal));
-        }
  else {
-          count++;
-          addressBlocks.put(blockReal.getOwner(),count);
-        }
+        addressBlocks.put(blockReal.getOwner(),++count);
       }
     }
-    Set<Address> allAddress=addressBlocks.keySet();
+    Collection<Address> allAddress=addressBlocks.keySet();
     lsBlocksToMigrate.clear();
-    setNewMembers:     for (    Address address : allAddress) {
+    for (    Address address : allAddress) {
       Integer countInt=addressBlocks.get(address);
       int count=(countInt == null) ? 0 : countInt;
-      while (count < aveBlockOwnCount) {
-        if (lsBlocksToRedistribute.size() > 0) {
-          Block blockToMigrate=lsBlocksToRedistribute.remove(0);
-          if (blockToMigrate.getOwner() == null) {
-            blockToMigrate.setOwner(address);
-          }
- else {
-            blockToMigrate.setMigrationAddress(address);
-            if (blockToMigrate.getOwner().equals(blockToMigrate.getMigrationAddress())) {
-              blockToMigrate.setMigrationAddress(null);
-            }
-          }
+      while (count < aveBlockOwnCount && lsBlocksToRedistribute.size() > 0) {
+        Block blockToMigrate=lsBlocksToRedistribute.remove(0);
+        if (!blockToMigrate.getOwner().equals(address)) {
+          blockToMigrate.setMigrationAddress(address);
           lsBlocksToMigrate.add(blockToMigrate);
-          count++;
         }
- else {
-          break setNewMembers;
-        }
-      }
-    }
-    int addressIndex=0;
-    final Address[] addresses=addressBlocks.keySet().toArray(new Address[]{});
-    final int addressLength=addresses.length;
-    for (    Block blockReal : blocks) {
-      if (blockReal.getOwner() == null) {
-        Block block=new Block(blockReal);
-        int index=addressIndex++ % addressLength;
-        block.setOwner(addresses[index]);
-        lsBlocksToRedistribute.add(block);
+        count++;
       }
     }
   }

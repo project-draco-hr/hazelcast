@@ -1,9 +1,18 @@
 {
   List<Block> lsBlocks=blockOwners.lsBlocks;
   for (  Block block : lsBlocks) {
-    if (block.isMigrating()) {
-      logger.log(Level.WARNING,"handleBlock should not receive migrating block: " + block);
+    if (getNumberOfStorageMembers() == 0) {
+      Block blockReal=getOrCreateBlock(block.getBlockId());
+      blockReal.setOwner(block.getOwner());
     }
-    doBlockInfo(block);
+ else {
+      if (block.getOwner() == null) {
+        logger.log(Level.SEVERE,"Blocks cannot have block with null owner: " + block);
+      }
+      if (block.isMigrating()) {
+        logger.log(Level.SEVERE,"handleBlock should not receive migrating block: " + block);
+      }
+      doBlockInfo(block);
+    }
   }
 }

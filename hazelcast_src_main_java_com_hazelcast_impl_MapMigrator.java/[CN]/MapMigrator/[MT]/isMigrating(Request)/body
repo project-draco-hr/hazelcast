@@ -3,17 +3,13 @@
     logger.log(Level.FINEST,thisAddress + " blockHashes aren't the same:" + concurrentMapManager.hashBlocks()+ ", request.blockId:"+ req.blockId+ " caller: "+ req.caller);
     return true;
   }
-  if (blockMigrating != null) {
-    if (!blocks[blockMigrating.getBlockId()].isMigrating()) {
-      completeMigration();
-    }
+  if (req.key != null) {
+    Block block=concurrentMapManager.getOrCreateBlock(req.key);
+    return block.isMigrating();
+  }
  else {
-      if (req.key == null) {
-        return true;
-      }
- else       if (blockMigrating.getBlockId() == concurrentMapManager.getBlockId(req.key)) {
-        return true;
-      }
+    for (    Block block : blocks) {
+      if (block != null && block.isMigrating())       return true;
     }
   }
   return false;

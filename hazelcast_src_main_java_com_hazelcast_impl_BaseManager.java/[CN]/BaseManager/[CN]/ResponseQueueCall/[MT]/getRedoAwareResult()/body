@@ -2,38 +2,33 @@
   Object result=waitAndGetResult();
   if (result == OBJECT_REDO) {
     request.redoCount++;
-    try {
-      Thread.sleep(1000);
-    }
- catch (    InterruptedException e) {
-      throw new RuntimeException(e);
-    }
     if (request.redoCount > 19 && (request.redoCount % 10 == 0)) {
       final CountDownLatch l=new CountDownLatch(1);
+      final Request reqCopy=request.hardCopy();
+      final Address targetCopy=getTarget();
       enqueueAndReturn(new Processable(){
         public void process(){
           StringBuffer sb=new StringBuffer();
-          Address target=getTarget();
           Connection targetConnection=null;
           MemberImpl targetMember=null;
-          Object key=toObject(request.key);
-          Block block=node.concurrentMapManager.getOrCreateBlock(request.key);
-          if (target != null) {
-            targetMember=getMember(target);
-            targetConnection=node.connectionManager.getConnection(target);
+          Object key=toObject(reqCopy.key);
+          Block block=node.concurrentMapManager.getOrCreateBlock(reqCopy.key);
+          if (targetCopy != null) {
+            targetMember=getMember(targetCopy);
+            targetConnection=node.connectionManager.getConnection(targetCopy);
             if (targetMember != null) {
               if (!lsMembers.contains(targetMember)) {
                 logger.log(Level.SEVERE,targetMember + " is not in member list!");
               }
             }
           }
-          sb.append("======= " + request.callId + ": "+ request.operation+ " ======== ");
+          sb.append("======= " + reqCopy.callId + ": "+ reqCopy.operation+ " ======== ");
           sb.append("\n\t");
-          sb.append("thisAddress= " + thisAddress + ", target= "+ getTarget());
+          sb.append("thisAddress= " + thisAddress + ", target= "+ targetCopy);
           sb.append("\n\t");
           sb.append("targetMember= " + targetMember + ", targetConn="+ targetConnection+ ", targetBlock="+ block);
           sb.append("\n\t");
-          sb.append(key + " Re-doing [" + request.redoCount+ "] times! "+ request.name);
+          sb.append(key + " Re-doing [" + reqCopy.redoCount+ "] times! "+ reqCopy.name);
           logger.log(Level.INFO,sb.toString());
           l.countDown();
         }
@@ -44,6 +39,12 @@
       }
  catch (      InterruptedException e) {
       }
+    }
+    try {
+      Thread.sleep(1000);
+    }
+ catch (    InterruptedException e) {
+      throw new RuntimeException(e);
     }
     beforeRedo();
     doOp();

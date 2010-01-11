@@ -1,29 +1,11 @@
 {
-  if (!concurrentMapManager.isMaster()) {
-    return;
-  }
-  if (concurrentMapManager.getMembers().size() < 2) {
-    for (int i=0; i < BLOCK_COUNT; i++) {
-      Block block=blocks[i];
-      if (block == null) {
-        block=concurrentMapManager.getOrCreateBlock(i);
-        block.setOwner(thisAddress);
-      }
-    }
-    return;
-  }
-  if (blockMigrating != null) {
-    Block blockReal=blocks[blockMigrating.getBlockId()];
-    if (blockReal.getOwner() != null && !blockReal.isMigrating()) {
-      completeMigration();
-    }
-  }
-  if (blockMigrating != null) {
-    return;
-  }
-  if (System.currentTimeMillis() > nextMigrationMillis) {
-    for (int i=0; i < 1; i++) {
-      initiateMigration();
-    }
+  if (!concurrentMapManager.isMaster())   return;
+  if (concurrentMapManager.getMembers().size() < 2)   return;
+  long now=System.currentTimeMillis();
+  if (now > nextMigrationMillis) {
+    final MasterMigratorTask task=new MasterMigratorTask();
+    qMasterMigratorTasks.offer(task);
+    node.executorManager.executeMigrationTask(task);
+    nextMigrationMillis=now + MIGRATION_INTERVAL_MILLIS;
   }
 }

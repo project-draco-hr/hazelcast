@@ -1,0 +1,17 @@
+{
+  if (qMasterMigratorTasks.poll() != null) {
+    ConcurrentMapManager.MBlockMigrationCheck check=concurrentMapManager.new MBlockMigrationCheck();
+    boolean isMigrating=check.call();
+    if (!isMigrating) {
+      concurrentMapManager.enqueueAndReturn(new Processable(){
+        public void process(){
+          if (concurrentMapManager.isMaster()) {
+            initiateMigration();
+          }
+        }
+      }
+);
+    }
+    qMasterMigratorTasks.clear();
+  }
+}

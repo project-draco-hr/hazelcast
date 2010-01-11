@@ -1,0 +1,23 @@
+{
+  Record record=getRecord(req.key);
+  if (record != null) {
+    record.setActive();
+    if (req.version > record.getVersion() + 1) {
+      Request reqCopy=new Request();
+      reqCopy.setFromRequest(req,true);
+      req.key=null;
+      req.value=null;
+      record.addBackupOp(new VersionedBackupOp(this,reqCopy));
+      return true;
+    }
+ else     if (req.version <= record.getVersion()) {
+      return false;
+    }
+  }
+  doBackup(req);
+  if (record != null) {
+    record.setVersion(req.version);
+    record.runBackupOps();
+  }
+  return true;
+}

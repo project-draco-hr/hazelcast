@@ -1,0 +1,40 @@
+{
+  for (int i=0; i < BLOCK_COUNT; i++) {
+    Block block=blocks[i];
+    if (block == null) {
+      block=concurrentMapManager.getOrCreateBlock(i);
+    }
+    if (block.getOwner() == null) {
+      block.setOwner(thisAddress);
+    }
+  }
+  Map<Address,Integer> addressBlocks=getCurrentMemberBlocks();
+  if (addressBlocks.size() == 0) {
+    return;
+  }
+  List<Block> ownableBlocks=new ArrayList<Block>();
+  for (  Block blockReal : blocks) {
+    if (blockReal.getOwner() == null) {
+      logger.log(Level.SEVERE,"QBR cannot have block with null owner: " + blockReal);
+    }
+ else     if (!blockReal.isMigrating() && thisAddress.equals(blockReal.getOwner())) {
+      if (isBlockEmpty(blockReal.getBlockId())) {
+        ownableBlocks.add(blockReal);
+      }
+    }
+    Integer countInt=addressBlocks.get(blockReal.getOwner());
+    int count=(countInt == null) ? 0 : countInt;
+    addressBlocks.put(blockReal.getOwner(),++count);
+  }
+  int aveBlockOwnCount=BLOCK_COUNT / (addressBlocks.size());
+  Set<Address> allAddress=addressBlocks.keySet();
+  for (  Address address : allAddress) {
+    Integer countInt=addressBlocks.get(address);
+    int count=(countInt == null) ? 0 : countInt;
+    while (count < aveBlockOwnCount && ownableBlocks.size() > 0) {
+      Block ownableBlock=ownableBlocks.remove(0);
+      ownableBlock.setOwner(address);
+      count++;
+    }
+  }
+}

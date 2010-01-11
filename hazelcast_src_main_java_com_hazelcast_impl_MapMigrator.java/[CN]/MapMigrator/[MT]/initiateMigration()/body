@@ -1,4 +1,17 @@
 {
+  for (int i=0; i < BLOCK_COUNT; i++) {
+    Block block=blocks[i];
+    if (block == null) {
+      block=concurrentMapManager.getOrCreateBlock(i);
+      block.setOwner(thisAddress);
+    }
+  }
+  if (concurrentMapManager.getMembers().size() < 2) {
+    return;
+  }
+  if (lsBlocksToMigrate.size() == 0) {
+    reArrangeBlocks();
+  }
   if (lsBlocksToMigrate.size() > 0) {
     Block block=lsBlocksToMigrate.remove(0);
     if (concurrentMapManager.isBlockInfoValid(block)) {
@@ -9,9 +22,5 @@
         concurrentMapManager.sendBlockInfo(block,block.getOwner());
       }
     }
-  }
-  if (blockMigrating == null) {
-    lsBlocksToMigrate.clear();
-    reArrangeBlocks();
   }
 }
