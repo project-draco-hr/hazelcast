@@ -1,0 +1,22 @@
+{
+  mapLocker.lock(key);
+  final int count=10;
+  final CountDownLatch latchStart=new CountDownLatch(count);
+  final CountDownLatch latchEnd=new CountDownLatch(count);
+  ExecutorService es=Executors.newFixedThreadPool(count);
+  for (int i=0; i < count; i++) {
+    es.execute(new Runnable(){
+      public void run(){
+        latchStart.countDown();
+        mapWaiter.put(key,"value");
+        latchEnd.countDown();
+      }
+    }
+);
+  }
+  assertTrue(latchStart.await(1,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  mapLocker.unlock(key);
+  assertTrue(latchEnd.await(10,TimeUnit.SECONDS));
+  es.shutdown();
+}
