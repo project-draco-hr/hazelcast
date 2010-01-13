@@ -1,17 +1,26 @@
 {
   int threadCount=40;
+  final boolean testLocks=false;
   final Stats stats=new Stats();
   ExecutorService es=Executors.newFixedThreadPool(threadCount);
   for (int i=0; i < threadCount; i++) {
     es.submit(new Runnable(){
       public void run(){
-        Map<String,byte[]> map=Hazelcast.getMap("default");
+        IMap<String,byte[]> map=Hazelcast.getMap("default");
         while (true) {
           int key=(int)(Math.random() * ENTRY_COUNT);
           int operation=((int)(Math.random() * 100)) % 10;
           if (operation < 4) {
             map.put(String.valueOf(key),new byte[VALUE_SIZE]);
             stats.mapPuts.incrementAndGet();
+          }
+ else           if (testLocks && operation < 7) {
+            map.lock(String.valueOf(key));
+            stats.mapLocks.incrementAndGet();
+            map.put(String.valueOf(key),new byte[VALUE_SIZE]);
+            stats.mapPuts.incrementAndGet();
+            map.unlock(String.valueOf(key));
+            stats.mapUnlocks.incrementAndGet();
           }
  else           if (operation < 8) {
             map.get(String.valueOf(key));
