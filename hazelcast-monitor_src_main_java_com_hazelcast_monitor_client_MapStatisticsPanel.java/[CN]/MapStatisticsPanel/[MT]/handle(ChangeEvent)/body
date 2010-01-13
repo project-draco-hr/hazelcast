@@ -3,11 +3,12 @@
   int size=event.getSize();
   VerticalPanel vPanel=(VerticalPanel)dsp.getContent();
   Label label=(Label)vPanel.getWidget(0);
-  label.setText("Size:" + size);
+  label.setText("Current Map Size: " + size);
   FlexTable table=(FlexTable)vPanel.getWidget(1);
   int row=1;
   Collection<MapStatistics.LocalMapStatistics> collection=event.getListOfLocalStats();
-  DateTimeFormat dtf=DateTimeFormat.getFormat("yyyy.MM.dd HH:mm:ss");
+  DateTimeFormat ttipFormat=DateTimeFormat.getFormat("yyyy.MM.dd HH:mm:ss");
+  DateTimeFormat displayFormat=DateTimeFormat.getFormat("HH:mm:ss");
   for (  MapStatistics.LocalMapStatistics localMapStatistics : collection) {
     table.setText(row,0,localMapStatistics.memberName);
     table.setText(row,1,"" + localMapStatistics.ownedEntryCount);
@@ -16,13 +17,30 @@
     table.setText(row,4,"" + formatMemorySize(localMapStatistics.backupEntryMemoryCost));
     table.setText(row,5,"" + localMapStatistics.markedAsRemovedEntryCount);
     table.setText(row,6,"" + formatMemorySize(localMapStatistics.markedAsRemovedMemoryCost));
-    table.setText(row,7,"" + localMapStatistics.lockWaitCount);
-    table.setText(row,8,"" + localMapStatistics.lockedEntryCount);
+    table.setText(row,7,"" + localMapStatistics.lockedEntryCount);
+    table.setText(row,8,"" + localMapStatistics.lockWaitCount);
     table.setText(row,9,"" + localMapStatistics.hits);
-    table.setText(row,10,dtf.format(new Date(localMapStatistics.lastAccessTime)));
-    table.setText(row,11,dtf.format(new Date(localMapStatistics.lastEvictionTime)));
-    table.setText(row,12,dtf.format(new Date(localMapStatistics.lastUpdateTime)));
-    table.setText(row,13,dtf.format(new Date(localMapStatistics.creationTime)));
+    addDateToTable(table,row,10,new Date(localMapStatistics.lastAccessTime),ttipFormat,displayFormat);
+    addDateToTable(table,row,11,new Date(localMapStatistics.lastEvictionTime),ttipFormat,displayFormat);
+    addDateToTable(table,row,12,new Date(localMapStatistics.lastUpdateTime),ttipFormat,displayFormat);
+    addDateToTable(table,row,13,new Date(localMapStatistics.creationTime),ttipFormat,displayFormat);
+    table.getColumnFormatter().addStyleName(0,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,1,"mapstatsNumericColumn");
+    table.getCellFormatter().addStyleName(row,3,"mapstatsNumericColumn");
+    table.getCellFormatter().addStyleName(row,5,"mapstatsNumericColumn");
+    table.getCellFormatter().addStyleName(row,7,"mapstatsNumericColumn");
+    table.getCellFormatter().addStyleName(row,8,"mapstatsNumericColumn");
+    table.getCellFormatter().addStyleName(row,9,"mapstatsNumericColumn");
+    table.getCellFormatter().addStyleName(row,2,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,4,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,6,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,10,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,11,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,12,"mapstatsStringColumn");
+    table.getCellFormatter().addStyleName(row,13,"mapstatsStringColumn");
+    if (row % 2 == 0) {
+      table.getRowFormatter().addStyleName(row,"mapstatsEvenRow");
+    }
     row++;
   }
   while (table.getRowCount() > row) {
