@@ -1,7 +1,4 @@
 {
-  if (!concurrentMapManager.isBlockInfoValid(blockInfo)) {
-    return;
-  }
   if (!thisAddress.equals(blockInfo.getOwner())) {
     throw new RuntimeException();
   }
@@ -12,15 +9,10 @@
     throw new RuntimeException();
   }
   Block blockReal=blocks[blockInfo.getBlockId()];
-  if (blockReal.isMigrating()) {
-    if (!blockInfo.getMigrationAddress().equals(blockReal.getMigrationAddress())) {
-      logger.log(Level.WARNING,blockReal + ". Already migrating blockInfo is migrating again to " + blockInfo);
-    }
- else {
-      logger.log(Level.WARNING,blockInfo + " migration unknown " + blockReal);
-    }
+  if (blockReal.isMigrationStarted()) {
     return;
   }
+  blockReal.setMigrationStarted(true);
   blockReal.setOwner(blockInfo.getOwner());
   blockReal.setMigrationAddress(blockInfo.getMigrationAddress());
   logger.log(Level.FINEST,"migrate blockInfo " + blockInfo);
@@ -72,14 +64,12 @@
         latch.await(10,TimeUnit.SECONDS);
         concurrentMapManager.enqueueAndReturn(new Processable(){
           public void process(){
-            Block blockReal=blocks[blockInfo.getBlockId()];
-            logger.log(Level.FINEST,"migrate completing [" + blockInfo + "] realBlock "+ blockReal);
-            blockReal.setOwner(blockReal.getMigrationAddress());
-            blockReal.setMigrationAddress(null);
-            logger.log(Level.FINEST,"migrate complete [" + blockInfo.getMigrationAddress() + "] now realBlock "+ blockReal);
+            blockInfo.setOwner(blockInfo.getMigrationAddress());
+            blockInfo.setMigrationAddress(null);
+            concurrentMapManager.doBlockInfo(blockInfo);
             for (            MemberImpl member : concurrentMapManager.lsMembers) {
               if (!member.localMember()) {
-                concurrentMapManager.sendBlockInfo(new Block(blockReal),member.getAddress());
+                concurrentMapManager.sendBlockInfo(new Block(blockInfo),member.getAddress());
               }
             }
           }

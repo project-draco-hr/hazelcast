@@ -1,45 +1,11 @@
 {
-  if (!isBlockInfoValid(blockInfo)) {
-    logger.log(Level.FINEST,"blockInfo invalid " + blockInfo);
-    return;
+  if (blockInfo.isMigrating()) {
+    logger.log(Level.WARNING,"block info cannot be migrating " + blockInfo);
   }
   Block blockReal=blocks[blockInfo.getBlockId()];
-  if (blockReal == null) {
-    blockReal=new Block(blockInfo);
-    blocks[blockReal.getBlockId()]=blockReal;
-    blockReal.setMigrationAddress(null);
-  }
- else   if (blockReal.getOwner() == null) {
+  if (blockReal.isMigrating()) {
     blockReal.setOwner(blockInfo.getOwner());
-    if (blockReal.isMigrating()) {
-      logger.log(Level.WARNING,"has no block owner but migrating! " + blockInfo + " realBlock:"+ blockReal);
-    }
     blockReal.setMigrationAddress(null);
-  }
-  if (thisAddress.equals(blockReal.getOwner())) {
-    if (blockReal.isMigrating()) {
-      if (!blockInfo.isMigrating()) {
-        return;
-      }
- else       if (!blockReal.getMigrationAddress().equals(blockInfo.getMigrationAddress())) {
-        logger.log(Level.WARNING,blockReal.getMigrationAddress() + " existing blockReal migration address are not the same as the new." + blockInfo.getMigrationAddress());
-      }
-    }
- else     if (blockInfo.isMigrating()) {
-      logger.log(Level.FINEST,"now migrate " + blockInfo);
-      mapMigrator.migrateBlock(blockInfo);
-    }
-  }
- else {
-    if (blockInfo.isMigrating()) {
-      logger.log(Level.WARNING,thisAddress + " not the blockReal owner but has migration info " + blockInfo+ " realBlock:"+ blockReal);
-      return;
-    }
-    blockReal.setOwner(blockInfo.getOwner());
-    blockReal.setMigrationAddress(blockInfo.getMigrationAddress());
-  }
-  if (blockReal.getOwner() != null && blockReal.getOwner().equals(blockReal.getMigrationAddress())) {
-    blockReal.setMigrationAddress(null);
-    logger.log(Level.WARNING,"blockReal owner cannot be same as the migration address!");
+    logger.log(Level.INFO,"Migration complete info : " + blockInfo);
   }
 }

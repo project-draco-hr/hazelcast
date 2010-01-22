@@ -1,18 +1,44 @@
 {
   List<Block> lsBlocks=blockOwners.lsBlocks;
   for (  Block block : lsBlocks) {
-    if (getNumberOfStorageMembers() == 0) {
-      Block blockReal=getOrCreateBlock(block.getBlockId());
-      blockReal.setOwner(block.getOwner());
-    }
+    Block blockReal=getOrCreateBlock(block.getBlockId());
+    if (!sameBlocks(block,blockReal)) {
+      if (blockReal.getOwner() == null) {
+        blockReal.setOwner(block.getOwner());
+      }
+      if (block.getOwner().equals(thisAddress)) {
+        if (!blockReal.getOwner().equals(thisAddress)) {
+          logger.log(Level.WARNING,blockReal + " not owner. wrong block info " + block);
+        }
  else {
-      if (block.getOwner() == null) {
-        logger.log(Level.SEVERE,"Blocks cannot have block with null owner: " + block);
+          if (block.isMigrating()) {
+            if (!blockReal.isMigrating()) {
+              logger.log(Level.FINEST,"Migration Started " + block);
+              mapMigrator.migrateBlock(block);
+            }
+ else {
+              if (!block.getMigrationAddress().equals(blockReal.getMigrationAddress())) {
+                logger.log(Level.WARNING,blockReal + " invalid migration address " + block);
+              }
+ else {
+              }
+            }
+          }
+        }
       }
-      if (block.isMigrating()) {
-        logger.log(Level.SEVERE,"handleBlock should not receive migrating block: " + block);
+ else       if (blockReal.getOwner().equals(thisAddress)) {
+        logger.log(Level.WARNING,blockReal + " owner. wrong block info " + block);
       }
-      doBlockInfo(block);
+ else {
+        blockReal.setOwner(block.getOwner());
+        if (blockReal.isMigrating() && !block.isMigrating()) {
+          logger.log(Level.FINEST,"Migration Complete " + block);
+        }
+ else         if (!blockReal.isMigrating() && block.isMigrating()) {
+          logger.log(Level.FINEST,"Migration Started " + block);
+        }
+        blockReal.setMigrationAddress(block.getMigrationAddress());
+      }
     }
   }
 }
