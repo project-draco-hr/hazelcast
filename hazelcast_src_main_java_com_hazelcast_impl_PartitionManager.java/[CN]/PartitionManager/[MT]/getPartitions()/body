@@ -1,0 +1,32 @@
+{
+  final BlockingQueue<Set<Partition>> responseQ=new ArrayBlockingQueue<Set<Partition>>(1);
+  concurrentMapManager.enqueueAndReturn(new Processable(){
+    public void process(){
+      Set<Partition> partitions=new HashSet<Partition>(BLOCK_COUNT);
+      for (int i=0; i < BLOCK_COUNT; i++) {
+        Block block=blocks[i];
+        if (block == null) {
+          block=concurrentMapManager.getOrCreateBlock(i);
+        }
+        MemberImpl memberOwner=null;
+        if (block.getOwner() != null) {
+          if (thisAddress.equals(block.getOwner())) {
+            memberOwner=concurrentMapManager.thisMember;
+          }
+ else {
+            memberOwner=concurrentMapManager.getMember(block.getOwner());
+          }
+        }
+        partitions.add(new PartitionImpl(block.getBlockId(),memberOwner));
+      }
+      responseQ.offer(partitions);
+    }
+  }
+);
+  try {
+    return responseQ.take();
+  }
+ catch (  InterruptedException ignored) {
+  }
+  return null;
+}

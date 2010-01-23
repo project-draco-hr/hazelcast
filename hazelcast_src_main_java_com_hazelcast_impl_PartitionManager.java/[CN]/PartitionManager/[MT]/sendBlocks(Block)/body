@@ -1,0 +1,30 @@
+{
+  for (int i=0; i < BLOCK_COUNT; i++) {
+    Block block=blocks[i];
+    if (block == null) {
+      block=concurrentMapManager.getOrCreateBlock(i);
+    }
+    if (block.getOwner() == null) {
+      block.setOwner(thisAddress);
+    }
+  }
+  Blocks allBlockOwners=new Blocks();
+  for (  Block block : blocks) {
+    if (blockInfo != null && block.getBlockId() == blockInfo.getBlockId()) {
+      allBlockOwners.addBlock(blockInfo);
+    }
+ else {
+      allBlockOwners.addBlock(block);
+    }
+  }
+  allBlockOwners.setNode(node);
+  Data dataAllBlocks=ThreadContext.get().toData(allBlockOwners);
+  for (  MemberImpl member : concurrentMapManager.getMembers()) {
+    if (!member.localMember()) {
+      concurrentMapManager.send("blocks",CONCURRENT_MAP_BLOCKS,dataAllBlocks,member.getAddress());
+    }
+ else {
+      allBlockOwners.process();
+    }
+  }
+}

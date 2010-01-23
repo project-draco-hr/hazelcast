@@ -1,0 +1,18 @@
+{
+  final BlockingQueue<Partition> responseQ=new ArrayBlockingQueue<Partition>(1);
+  final Data keyData=toData(key);
+  concurrentMapManager.enqueueAndReturn(new Processable(){
+    public void process(){
+      Block block=blocks[concurrentMapManager.getBlockId(keyData)];
+      MemberImpl memberOwner=(block.getOwner() == null) ? null : concurrentMapManager.getMember(block.getOwner());
+      responseQ.offer(new PartitionImpl(block.getBlockId(),memberOwner));
+    }
+  }
+);
+  try {
+    return responseQ.take();
+  }
+ catch (  InterruptedException ignored) {
+  }
+  return null;
+}
