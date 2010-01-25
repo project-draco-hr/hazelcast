@@ -8,4 +8,25 @@
   conf.setGroupConfig(gc);
   HazelcastInstance h=Hazelcast.newHazelcastInstance(conf);
   HazelcastClient client=HazelcastClient.newHazelcastClient(grName,grPass,true,h.getCluster().getLocalMember().getInetSocketAddress().getAddress().getCanonicalHostName() + ":" + h.getCluster().getLocalMember().getInetSocketAddress().getPort());
+  final CountDownLatch added=new CountDownLatch(1);
+  final CountDownLatch removed=new CountDownLatch(1);
+  final Map<String,Member> map=new HashMap<String,Member>();
+  client.getCluster().addMembershipListener(new MembershipListener(){
+    public void memberAdded(    MembershipEvent membershipEvent){
+      added.countDown();
+      map.put("Added",membershipEvent.getMember());
+    }
+    public void memberRemoved(    MembershipEvent membershipEvent){
+      removed.countDown();
+      map.put("Removed",membershipEvent.getMember());
+    }
+  }
+);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(conf);
+  Member member=h2.getCluster().getLocalMember();
+  h2.shutdown();
+  assertTrue(added.await(10,TimeUnit.SECONDS));
+  assertEquals(member.getInetSocketAddress(),map.get("Added").getInetSocketAddress());
+  assertTrue(removed.await(10,TimeUnit.SECONDS));
+  assertEquals(member.getInetSocketAddress(),map.get("Removed").getInetSocketAddress());
 }
