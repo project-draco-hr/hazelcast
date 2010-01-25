@@ -1,0 +1,39 @@
+{
+  Config conf=new Config();
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(conf);
+  HazelcastClient client=HazelcastClient.newHazelcastClient(conf.getGroupConfig().getName(),conf.getGroupConfig().getPassword(),false,h.getCluster().getLocalMember().getInetSocketAddress());
+  IMap<Integer,DataSerializableUser> clientMap=client.getMap("retreiveDataSerializableClass");
+  final DataSerializableUser user=new DataSerializableUser();
+  user.setName("name");
+  user.setFamilyName("fName");
+  user.setAge(30);
+  user.setAddress(new DataSerializableUser.Address());
+  final CountDownLatch cdl=new CountDownLatch(2);
+  EntryListener<Integer,DataSerializableUser> listener=new EntryListener<Integer,DataSerializableUser>(){
+    public void entryAdded(    EntryEvent<Integer,DataSerializableUser> entryEvent){
+      DataSerializableUser u=entryEvent.getValue();
+      assertEquals(user.getName(),u.getName());
+      assertEquals(user.getFamilyName(),u.getFamilyName());
+      assertEquals(user.getAge(),u.getAge());
+      assertEquals(user.getAddress().getAddress(),u.getAddress().getAddress());
+      cdl.countDown();
+    }
+    public void entryRemoved(    EntryEvent entryEvent){
+    }
+    public void entryUpdated(    EntryEvent entryEvent){
+    }
+    public void entryEvicted(    EntryEvent entryEvent){
+    }
+  }
+;
+  clientMap.addEntryListener(listener,true);
+  IMap<Integer,DataSerializableUser> clusterMap=h.getMap("retreiveDataSerializableClass");
+  clusterMap.addEntryListener(listener,true);
+  clientMap.put(1,user);
+  DataSerializableUser dsu=clientMap.get(1);
+  assertEquals(user.getName(),dsu.getName());
+  assertEquals(user.getFamilyName(),dsu.getFamilyName());
+  assertEquals(user.getAge(),dsu.getAge());
+  assertEquals(user.getAddress().getAddress(),dsu.getAddress().getAddress());
+  assertTrue(cdl.await(2,TimeUnit.SECONDS));
+}

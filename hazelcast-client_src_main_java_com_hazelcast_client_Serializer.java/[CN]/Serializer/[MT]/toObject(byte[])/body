@@ -1,7 +1,6 @@
 {
-  ByteArrayInputStream bis=new ByteArrayInputStream(bytes);
-  DataInputStream dis=new DataInputStream(bis);
-  int type=bis.read();
+  FastByteArrayInputStream dis=new FastByteArrayInputStream(bytes);
+  int type=dis.read();
   try {
     if (type == SERIALIZER_TYPE_DATA) {
       String className=dis.readUTF();
@@ -16,18 +15,14 @@
       return data;
     }
  else     if (type == SERIALIZER_TYPE_STRING) {
-      StringBuilder result=new StringBuilder();
-      while (dis.available() > 0) {
-        result.append(dis.readUTF());
-      }
-      return result.toString();
+      return dis.readUTF();
     }
  else     if (type == SERIALIZER_TYPE_BYTE_ARRAY) {
       int size=dis.readInt();
       byte[] b=new byte[size];
-      int redSize=bis.read(b);
-      if (size != redSize) {
-        throw new RuntimeException("Couldn't read all of the data");
+      int redSize=dis.read(b);
+      if (size != 0 && size != redSize) {
+        throw new RuntimeException("Couldn't read all of the data Size: " + size + ", But I red:"+ redSize);
       }
       return b;
     }
