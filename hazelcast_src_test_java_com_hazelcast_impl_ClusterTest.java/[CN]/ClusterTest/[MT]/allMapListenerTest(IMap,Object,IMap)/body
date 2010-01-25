@@ -1,0 +1,32 @@
+{
+  final CountDownLatch latchAdded=new CountDownLatch(2);
+  final CountDownLatch latchUpdated=new CountDownLatch(1);
+  final CountDownLatch latchRemoved=new CountDownLatch(1);
+  final CountDownLatch latchEvicted=new CountDownLatch(1);
+  EntryListener listener=new EntryListener(){
+    public void entryAdded(    EntryEvent entryEvent){
+      latchAdded.countDown();
+    }
+    public void entryRemoved(    EntryEvent entryEvent){
+      latchRemoved.countDown();
+    }
+    public void entryUpdated(    EntryEvent entryEvent){
+      latchUpdated.countDown();
+    }
+    public void entryEvicted(    EntryEvent entryEvent){
+      latchEvicted.countDown();
+    }
+  }
+;
+  map.addEntryListener(listener,true);
+  assertNull(mapSource.put(keyToUpdate,"value5"));
+  assertEquals("value5",mapSource.put(keyToUpdate,"value55"));
+  assertTrue(mapSource.evict(keyToUpdate));
+  assertNull(mapSource.put(keyToUpdate,"value5"));
+  assertEquals("value5",mapSource.remove(keyToUpdate));
+  assertTrue(latchAdded.await(5,TimeUnit.SECONDS));
+  assertTrue(latchUpdated.await(5,TimeUnit.SECONDS));
+  assertTrue(latchRemoved.await(5,TimeUnit.SECONDS));
+  assertTrue(latchEvicted.await(5,TimeUnit.SECONDS));
+  map.removeEntryListener(listener);
+}
