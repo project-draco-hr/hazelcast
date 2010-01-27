@@ -6,55 +6,19 @@
       if (blockReal.getOwner() == null) {
         blockReal.setOwner(block.getOwner());
       }
-      if (block.getOwner().equals(thisAddress)) {
-        if (!blockReal.getOwner().equals(thisAddress)) {
-          if (blockReal.getOwner().equals(block.getMigrationAddress()) && !blockReal.isMigrating()) {
-            sendCompletionInfo(new Block(blockReal));
-          }
- else {
-            logger.log(Level.SEVERE,blockReal + " block info is inconsistent! " + block);
-          }
-        }
- else {
-          if (block.isMigrating()) {
-            if (!blockReal.isMigrating()) {
-              logger.log(Level.FINEST,"Migration Started " + block);
-              fireMigrationEvent(true,new Block(block));
-              migrateBlock(block);
-            }
- else {
-              if (!block.getMigrationAddress().equals(blockReal.getMigrationAddress())) {
-                logger.log(Level.SEVERE,blockReal + " invalid migration address " + block);
-              }
- else {
-                if (!blockReal.isMigrationStarted()) {
-                  logger.log(Level.SEVERE,blockReal + " must be migrating but migration didn't even start " + block);
-                }
-              }
-            }
-          }
-        }
-      }
- else       if (blockReal.getOwner().equals(thisAddress)) {
-        logger.log(Level.WARNING,blockReal + " owner. wrong block info " + block);
+      if (block.getOwner().equals(thisAddress) && block.isMigrating()) {
+        startMigration(new Block(block));
       }
  else {
         blockReal.setOwner(block.getOwner());
-        if (blockReal.isMigrating() && !block.isMigrating()) {
-          logger.log(Level.FINEST,"Migration Complete " + block);
-        }
- else         if (!blockReal.isMigrating() && block.isMigrating()) {
-          logger.log(Level.FINEST,"Migration Started " + block);
+        blockReal.setMigrationAddress(block.getMigrationAddress());
+        if (block.isMigrating()) {
           fireMigrationEvent(true,new Block(block));
         }
-        blockReal.setMigrationAddress(block.getMigrationAddress());
       }
     }
- else     if (blockReal.isMigrating() && thisAddress.equals(blockReal.getOwner())) {
-      if (!blockReal.isMigrationStarted()) {
-        fireMigrationEvent(true,new Block(block));
-        migrateBlock(block);
-      }
+    if (!sameBlocks(block,blockReal)) {
+      logger.log(Level.SEVERE,blockReal + " Still blocks don't match " + block);
     }
   }
 }

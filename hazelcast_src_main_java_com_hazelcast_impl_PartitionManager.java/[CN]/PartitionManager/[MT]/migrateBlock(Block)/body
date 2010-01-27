@@ -1,27 +1,24 @@
 {
+  Block blockReal=blocks[blockInfo.getBlockId()];
   if (!thisAddress.equals(blockInfo.getOwner())) {
-    throw new RuntimeException();
+    throw new RuntimeException("migrateBlock should be called from owner: " + blockInfo);
   }
   if (!blockInfo.isMigrating()) {
-    throw new RuntimeException();
+    throw new RuntimeException("migrateBlock cannot have non-migrating block: " + blockInfo);
   }
   if (blockInfo.getOwner().equals(blockInfo.getMigrationAddress())) {
-    throw new RuntimeException();
+    throw new RuntimeException("migrateBlock cannot have same owner and migrationAddress:" + blockInfo);
   }
-  Block blockReal=blocks[blockInfo.getBlockId()];
-  if (blockReal.isMigrationStarted()) {
-    return;
-  }
-  blockReal.setMigrationStarted(true);
-  blockReal.setOwner(blockInfo.getOwner());
-  blockReal.setMigrationAddress(blockInfo.getMigrationAddress());
-  logger.log(Level.FINEST,"migrate blockInfo " + blockInfo);
   if (!node.isActive() || node.factory.restarted) {
     return;
   }
   if (concurrentMapManager.isSuperClient()) {
     return;
   }
+  blockReal.setMigrationStarted(true);
+  blockReal.setOwner(blockInfo.getOwner());
+  blockReal.setMigrationAddress(blockInfo.getMigrationAddress());
+  logger.log(Level.FINEST,"migrate blockInfo " + blockInfo);
   List<Record> lsRecordsToMigrate=new ArrayList<Record>(1000);
   Collection<CMap> cmaps=concurrentMapManager.maps.values();
   for (  final CMap cmap : cmaps) {
@@ -66,7 +63,7 @@
           public void process(){
             blockInfo.setOwner(blockInfo.getMigrationAddress());
             blockInfo.setMigrationAddress(null);
-            completeMigration(blockInfo);
+            completeMigration(blockInfo.getBlockId());
             sendCompletionInfo(blockInfo);
           }
         }
