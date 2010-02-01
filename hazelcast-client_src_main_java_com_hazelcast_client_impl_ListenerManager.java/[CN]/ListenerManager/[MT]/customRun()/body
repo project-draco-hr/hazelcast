@@ -1,21 +1,28 @@
 {
-  Packet packet=queue.poll(100,TimeUnit.MILLISECONDS);
-  if (packet == null) {
-    return;
-  }
-  if (packet.getName() == null) {
-    Object eventType=toObject(packet.getValue());
-    if (eventType instanceof InstanceEventType) {
-      notifyInstanceListeners(packet);
+  try {
+    Packet packet=queue.poll(100,TimeUnit.MILLISECONDS);
+    if (packet == null) {
+      return;
+    }
+    if (packet.getName() == null) {
+      Object eventType=toObject(packet.getValue());
+      if (eventType instanceof InstanceEventType) {
+        instanceListenerManager.notifyInstanceListeners(packet);
+      }
+ else {
+        membershipListenerManager.notifyMembershipListeners(packet);
+      }
+    }
+ else     if (getInstanceType(packet.getName()).equals(Instance.InstanceType.TOPIC)) {
+      messageListenerManager.notifyMessageListeners(packet);
     }
  else {
-      notifyMembershipListeners(packet);
+      entryListenerManager.notifyEntryListeners(packet);
     }
   }
- else   if (getInstanceType(packet.getName()).equals(Instance.InstanceType.TOPIC)) {
-    notifyMessageListeners(packet);
+ catch (  InterruptedException ine) {
+    throw ine;
   }
- else {
-    notifyEventListeners(packet);
+catch (  Exception ignored) {
   }
 }
