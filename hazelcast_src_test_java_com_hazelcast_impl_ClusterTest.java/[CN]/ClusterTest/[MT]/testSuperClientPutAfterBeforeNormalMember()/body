@@ -1,0 +1,20 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  final CountDownLatch latchSuperPut=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      Config config=new XmlConfigBuilder().build();
+      config.setSuperClient(true);
+      final HazelcastInstance hSuper=Hazelcast.newHazelcastInstance(config);
+      latch.countDown();
+      Map map=hSuper.getMap("default");
+      map.put("1","value");
+      latchSuperPut.countDown();
+    }
+  }
+).start();
+  latch.await(10,TimeUnit.SECONDS);
+  HazelcastInstance hNormal=Hazelcast.newHazelcastInstance(null);
+  assertTrue(latchSuperPut.await(10,TimeUnit.SECONDS));
+  assertEquals("value",hNormal.getMap("default").get("1"));
+}
