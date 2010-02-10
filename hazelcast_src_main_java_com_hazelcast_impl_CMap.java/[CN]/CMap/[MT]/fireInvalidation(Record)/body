@@ -1,0 +1,19 @@
+{
+  if (mapNearCache != null && mapNearCache.shouldInvalidateOnChange()) {
+    for (    MemberImpl member : concurrentMapManager.lsMembers) {
+      if (!member.localMember()) {
+        if (member.getAddress() != null) {
+          Packet packet=concurrentMapManager.obtainPacket();
+          packet.name=getName();
+          packet.key=record.getKey();
+          packet.operation=ClusterOperation.CONCURRENT_MAP_INVALIDATE;
+          boolean sent=concurrentMapManager.send(packet,member.getAddress());
+          if (!sent) {
+            packet.returnToContainer();
+          }
+        }
+      }
+    }
+    mapNearCache.invalidate(record.getKey());
+  }
+}

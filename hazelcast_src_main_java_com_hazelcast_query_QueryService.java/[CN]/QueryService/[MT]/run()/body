@@ -1,9 +1,14 @@
 {
   while (running) {
-    Runnable run;
+    Runnable runnable;
     try {
-      run=queryQ.take();
-      run.run();
+      runnable=queryQ.poll(1,TimeUnit.SECONDS);
+      long now=System.currentTimeMillis();
+      if (now - lastStatePublishTime > 1000) {
+        publishState();
+        lastStatePublishTime=now;
+      }
+      if (runnable != null)       runnable.run();
     }
  catch (    Throwable e) {
       e.printStackTrace();

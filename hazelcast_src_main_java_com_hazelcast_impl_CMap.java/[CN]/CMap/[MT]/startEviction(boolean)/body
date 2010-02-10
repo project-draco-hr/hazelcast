@@ -3,18 +3,35 @@
   if (!force && ((now - lastEvictionTime) < evictionDelayMillis)) {
     return;
   }
+  if (name.startsWith("c:__hz")) {
+    return;
+  }
+  if (locallyOwnedMap != null) {
+    locallyOwnedMap.evict(now);
+  }
+  if (mapNearCache != null) {
+    mapNearCache.evict(now,true);
+  }
   lastEvictionTime=now;
+  if (evictionCount.get() != 0)   return;
   List<Record> lsRecordsToEvict=null;
   if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
     if (ttl != 0 || maxIdle != 0 || ttlPerRecord) {
       Collection<Record> values=mapRecords.values();
-      for (      Record record : values) {
+      int evictedCount=0;
+      loopRecords:       for (      Record record : values) {
         if (ownedRecords.contains(record) && record.isActive() && !record.isValid(now)) {
           if (record.isEvictable()) {
             if (lsRecordsToEvict == null) {
               lsRecordsToEvict=new ArrayList<Record>(100);
             }
-            lsRecordsToEvict.add(record);
+            Block block=blocks[record.getBlockId()];
+            if (block != null && !block.isMigrating()) {
+              lsRecordsToEvict.add(record);
+              if (++evictedCount >= 10000) {
+                break loopRecords;
+              }
+            }
           }
         }
       }
@@ -37,9 +54,10 @@
     }
   }
   if (lsRecordsToEvict != null && lsRecordsToEvict.size() > 0) {
+    logger.log(Level.INFO,lsRecordsToEvict.size() + " evicting");
+    evictionCount.set(lsRecordsToEvict.size());
     for (    final Record recordToEvict : lsRecordsToEvict) {
-      markAsRemoved(recordToEvict);
-      concurrentMapManager.evictAsync(recordToEvict.getName(),recordToEvict.getKey());
+      concurrentMapManager.evictAsync(this,recordToEvict.getName(),recordToEvict.getKey());
     }
   }
 }

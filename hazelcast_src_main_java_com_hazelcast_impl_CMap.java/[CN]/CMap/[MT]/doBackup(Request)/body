@@ -3,11 +3,13 @@
     throw new RuntimeException("Backup key size cannot be zero! " + req.key);
   }
   if (req.operation == CONCURRENT_MAP_BACKUP_PUT) {
-    Record rec=toRecord(req);
-    rec.setActive();
-    if (rec.getVersion() == 0) {
-      rec.setVersion(req.version);
+    Record record=toRecord(req);
+    if (!record.isActive()) {
+      record.setActive();
+      setRemovedRecords.remove(record);
+      record.setCreationTime(System.currentTimeMillis());
     }
+    record.setVersion(req.version);
     if (req.indexes != null) {
       if (req.indexTypes == null) {
         throw new RuntimeException("index types cannot be null!");
@@ -15,7 +17,7 @@
       if (req.indexes.length != req.indexTypes.length) {
         throw new RuntimeException("index and type lengths do not match");
       }
-      rec.setIndexes(req.indexes,req.indexTypes);
+      record.setIndexes(req.indexes,req.indexTypes);
       if (indexTypes == null) {
         indexTypes=req.indexTypes;
       }
@@ -32,7 +34,6 @@
       if (record.getCopyCount() > 0) {
         record.decrementCopyCount();
       }
-      record.setValue(null);
       markAsRemoved(record);
     }
   }

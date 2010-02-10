@@ -15,6 +15,7 @@
   if (concurrentMapManager.isSuperClient()) {
     return;
   }
+  if (blockReal.isMigrationStarted())   return;
   blockReal.setMigrationStarted(true);
   blockReal.setOwner(blockInfo.getOwner());
   blockReal.setMigrationAddress(blockInfo.getMigrationAddress());
@@ -33,12 +34,14 @@
           throw new RuntimeException("Record.key is null or empty " + rec.getKey());
         }
         if (rec.getBlockId() == blockInfo.getBlockId()) {
-          lsRecordsToMigrate.add(rec);
+          Record recordCopy=rec.copy();
+          lsRecordsToMigrate.add(recordCopy);
           cmap.markAsRemoved(rec);
         }
       }
     }
   }
+  logger.log(Level.INFO,"Migrating [" + lsRecordsToMigrate.size() + "] "+ blockInfo);
   final CountDownLatch latch=new CountDownLatch(lsRecordsToMigrate.size());
   for (  final Record rec : lsRecordsToMigrate) {
     final CMap cmap=concurrentMapManager.getMap(rec.getName());

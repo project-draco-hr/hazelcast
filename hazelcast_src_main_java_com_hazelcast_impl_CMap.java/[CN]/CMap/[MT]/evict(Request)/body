@@ -1,12 +1,14 @@
 {
   Record record=getRecord(req.key);
   if (record != null && record.isEvictable()) {
-    if (ownerForSure(record)) {
-      concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_EVICTED,record.getKey(),record.getValue(),record.getMapListeners());
-      record.setValue(null);
-      markAsRemoved(record);
-      return true;
-    }
+    fireInvalidation(record);
+    concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_EVICTED,record.getKey(),record.getValue(),record.getMapListeners());
+    record.incrementVersion();
+    markAsRemoved(record);
+    req.clearForResponse();
+    req.version=record.getVersion();
+    req.longValue=record.getCopyCount();
+    return true;
   }
   return false;
 }

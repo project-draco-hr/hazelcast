@@ -1,0 +1,18 @@
+{
+  QueryServiceState queryServiceState=new QueryServiceState(node.concurrentMapManager);
+  Collection<IndexRegion> colRegions=regions.values();
+  for (  IndexRegion region : colRegions) {
+    QueryServiceState.IndexState[] indexStates=null;
+    if (region.indexes != null) {
+      int size=region.indexes.length;
+      indexStates=new QueryServiceState.IndexState[size];
+      for (int i=0; i < size; i++) {
+        Index index=region.indexes[i];
+        indexStates[i]=new QueryServiceState.IndexState(index.mapIndex.size());
+      }
+    }
+    QueryServiceState.IndexRegionState state=new QueryServiceState.IndexRegionState(region.name,region.ownedRecords.size(),region.mapValueIndex.size(),indexStates);
+    queryServiceState.addIndexRegionState(state);
+  }
+  node.concurrentMapManager.enqueueAndReturn(queryServiceState);
+}
