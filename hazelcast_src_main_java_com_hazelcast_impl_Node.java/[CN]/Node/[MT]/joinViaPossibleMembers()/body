@@ -18,18 +18,24 @@
       Thread.sleep(1000);
       numberOfSeconds++;
       int numberOfJoinReq=0;
+      logger.log(Level.FINE,"we are going to try to connect to each address, but no more than five times");
       for (      final Address possibleAddress : lsPossibleAddresses) {
+        logger.log(Level.FINEST,"connection attempt " + numberOfJoinReq + " to "+ possibleAddress);
         final Connection conn=connectionManager.getOrConnect(possibleAddress);
-        logger.log(Level.FINEST,"conn " + conn);
         if (conn != null && numberOfJoinReq < 5) {
           found=true;
+          logger.log(Level.FINEST,"found and sending join request for " + possibleAddress);
           clusterManager.sendJoinRequest(possibleAddress);
           numberOfJoinReq++;
+        }
+ else {
+          logger.log(Level.FINEST,"number of join reqests is greater than 5, no join request will be sent for " + possibleAddress);
         }
       }
     }
     logger.log(Level.FINEST,"FOUND " + found);
     if (!found) {
+      logger.log(Level.FINEST,"This node will assume master role since no possible member where connected to");
       setAsMaster();
     }
  else {
@@ -39,8 +45,12 @@
         for (        final Address possibleAddress : lsPossibleAddresses) {
           final Connection conn=connectionManager.getOrConnect(possibleAddress);
           if (conn != null && numberOfJoinReq < 5) {
+            logger.log(Level.FINEST,"sending join request for " + possibleAddress);
             clusterManager.sendJoinRequest(possibleAddress);
             numberOfJoinReq++;
+          }
+ else {
+            logger.log(Level.FINEST,"number of join request is greater than 5, no join request will be sent for " + possibleAddress + " the second time");
           }
         }
         Thread.sleep(2000);
@@ -50,6 +60,7 @@
             if (this.address.hashCode() > address.hashCode())             masterCandidate=false;
           }
           if (masterCandidate) {
+            logger.log(Level.FINEST,"I am the master candidate, setting as master");
             setAsMaster();
           }
         }
@@ -60,5 +71,6 @@
   }
  catch (  final Exception e) {
     e.printStackTrace();
+    logger.log(Level.SEVERE,e.getMessage(),e);
   }
 }
