@@ -1,0 +1,26 @@
+{
+  TestMapStore testMapStore=new TestMapStore(1,1,1);
+  testMapStore.insert("1","value1");
+  Config config=new XmlConfigBuilder().build();
+  MapConfig mapConfig=config.getMapConfig("default");
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setImplementation(testMapStore);
+  mapStoreConfig.setWriteDelaySeconds(0);
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  IMap map=h1.getMap("default");
+  assertEquals(0,map.size());
+  assertEquals("value1",map.get("1"));
+  assertEquals("value1",map.put("1","value2"));
+  assertEquals("value2",map.get("1"));
+  assertEquals(1,map.size());
+  map.evict("1");
+  assertEquals(0,map.size());
+  assertEquals(1,testMapStore.getStore().size());
+  assertEquals("value2",map.get("1"));
+  assertEquals(1,map.size());
+  map.remove("1");
+  assertEquals(0,map.size());
+  assertEquals(0,testMapStore.getStore().size());
+  testMapStore.assertAwait(1);
+}
