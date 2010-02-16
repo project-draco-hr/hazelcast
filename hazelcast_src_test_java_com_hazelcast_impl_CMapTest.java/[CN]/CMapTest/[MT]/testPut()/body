@@ -1,0 +1,17 @@
+{
+  Config config=new XmlConfigBuilder().build();
+  FactoryImpl mockFactory=mock(FactoryImpl.class);
+  Node node=new Node(mockFactory,config);
+  node.serviceThread=Thread.currentThread();
+  Object key="1";
+  Object value="istanbul";
+  CMap cmap=new CMap(node.concurrentMapManager,"c:myMap");
+  Request putRequest=new Request();
+  putRequest.setLocal(ClusterOperation.CONCURRENT_MAP_PUT,null,toData(key),toData(value),-1,-1,-1,null);
+  cmap.put(putRequest);
+  assertTrue(cmap.mapRecords.containsKey(toData(key)));
+  Request getRequest=new Request();
+  getRequest.setLocal(ClusterOperation.CONCURRENT_MAP_GET,null,toData(key),null,-1,-1,-1,null);
+  Data actualValue=cmap.get(getRequest);
+  assertThat(toObject(actualValue),equalTo(value));
+}
