@@ -1,0 +1,11 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  Set<Member> members=h2.getCluster().getMembers();
+  MultiTask<Integer> task=new MultiTask<Integer>(new WaitingCallable(10000),members);
+  h2.getExecutorService().submit(task);
+  Thread.sleep(1000);
+  h1.shutdown();
+  Collection<Integer> result=task.get();
+  assertEquals(members.size(),result.size());
+}
