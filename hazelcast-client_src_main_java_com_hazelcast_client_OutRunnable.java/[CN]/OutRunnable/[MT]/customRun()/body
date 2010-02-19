@@ -6,25 +6,16 @@
       return;
     }
     callMap.put(call.getId(),call);
-    boolean oldConnectionIsNotNull=(connection != null);
-    long oldConnectionId=-1;
-    if (oldConnectionIsNotNull) {
-      oldConnectionId=connection.getVersion();
-    }
+    Connection oldConnection=connection;
     connection=client.connectionManager.getConnection();
-    if (restoredConnection(connection,oldConnectionIsNotNull,oldConnectionId)) {
-      temp.add(call);
-      queue.drainTo(temp);
-      client.listenerManager.getListenerCalls().drainTo(queue);
-      temp.drainTo(queue);
+    if (restoredConnection(oldConnection,connection)) {
+      redoUnfinishedCalls(call);
+    }
+ else     if (connection != null) {
+      writer.write(connection,call.getRequest());
     }
  else {
-      if (connection != null) {
-        writer.write(connection,call.getRequest());
-      }
- else {
-        interruptWaitingCalls();
-      }
+      interruptWaitingCalls();
     }
   }
  catch (  InterruptedException e) {

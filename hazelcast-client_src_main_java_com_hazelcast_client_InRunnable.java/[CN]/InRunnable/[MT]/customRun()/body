@@ -1,8 +1,11 @@
 {
-  Connection connection=null;
-  Packet packet=null;
+  Packet packet;
   try {
+    Connection oldConnection=connection;
     connection=client.connectionManager.getConnection();
+    if (restoredConnection(oldConnection,connection)) {
+      client.executorServiceManager.interruptExecutingTasks(new MemberLeftException());
+    }
     if (connection == null) {
       interruptWaitingCalls();
     }
@@ -36,6 +39,7 @@ synchronized (call) {
     throw re;
   }
 catch (  Exception e) {
+    logger.info("InRunnable got an exception:" + e.getMessage());
     client.connectionManager.destroyConnection(connection);
   }
 }

@@ -5,7 +5,10 @@
   for (Iterator<Call> iterator=waitingCalls.iterator(); iterator.hasNext(); ) {
     Call call=iterator.next();
 synchronized (call) {
-      call.setException(new RuntimeException("No cluster member available to connect"));
+      if (call.getRequest().getOperation().equals(ClusterOperation.REMOTELY_EXECUTE)) {
+        client.executorServiceManager.endFutureWithException(call,new ExecutionException(new NoClusterMemberAvailableException()));
+        iterator.remove();
+      }
       call.notify();
     }
   }

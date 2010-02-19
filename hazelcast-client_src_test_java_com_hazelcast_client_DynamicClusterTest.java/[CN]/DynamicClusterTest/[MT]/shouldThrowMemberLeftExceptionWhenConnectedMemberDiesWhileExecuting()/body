@@ -1,0 +1,17 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  HazelcastClient client=getHazelcastClient(h1,h2);
+  Set<Member> members=client.getCluster().getMembers();
+  MultiTask<Integer> task=new MultiTask<Integer>(new SleepCallable(10000),members);
+  client.getExecutorService().submit(task);
+  Thread.sleep(2000);
+  int port=client.getConnectionManager().getConnection().getAddress().getPort();
+  if (h1.getCluster().getLocalMember().getInetSocketAddress().getPort() == port) {
+    h1.shutdown();
+  }
+ else {
+    h2.shutdown();
+  }
+  task.get();
+}
