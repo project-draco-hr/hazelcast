@@ -3,8 +3,8 @@
   this.factory=factory;
   this.config=config;
   this.groupProperties=new GroupProperties(config);
-  superClient=config.isSuperClient();
-  localNodeType=(superClient) ? NodeType.SUPER_CLIENT : NodeType.MEMBER;
+  this.superClient=config.isSuperClient();
+  this.localNodeType=(superClient) ? NodeType.SUPER_CLIENT : NodeType.MEMBER;
   String version="unknown";
   String build="unknown";
   try {
@@ -36,18 +36,20 @@
     if (preferIPv6Address == null && preferIPv4Stack == null) {
       System.setProperty("java.net.preferIPv4Stack","true");
     }
-    AddressPicker addressPicker=new AddressPicker();
     serverSocketChannel=ServerSocketChannel.open();
-    localAddress=addressPicker.pickAddress(this,serverSocketChannel);
+    AddressPicker addressPicker=new AddressPicker(this,serverSocketChannel);
+    localAddress=addressPicker.pickAddress();
     localAddress.setThisAddress(true);
   }
- catch (  final Throwable e) {
+ catch (  Throwable e) {
     throw new RuntimeException(e);
   }
   address=localAddress;
   localMember=new MemberImpl(address,true,localNodeType);
   clusterImpl=new ClusterImpl(this);
   baseVariables=new NodeBaseVariables(address,localMember);
+  this.loggingService=new LoggingServiceImpl(config.getGroupConfig().getName(),localMember);
+  this.logger=loggingService.getLogger(Node.class.getName());
   clusterService=new ClusterService(this);
   clusterService.start();
   inSelector=new InSelector(this,serverSocketChannel);
@@ -62,7 +64,7 @@
   topicManager=new TopicManager(this);
   clusterManager.addMember(localMember);
   executorManager=new ExecutorManager(this);
-  Logger systemLogger=Logger.getLogger("com.hazelcast.system");
+  ILogger systemLogger=getLogger("com.hazelcast.system");
   systemLogger.log(Level.INFO,"Hazelcast " + version + " ("+ build+ ") starting at "+ address);
   systemLogger.log(Level.INFO,"Copyright (C) 2008-2010 Hazelcast.com");
   Join join=config.getNetworkConfig().getJoin();
