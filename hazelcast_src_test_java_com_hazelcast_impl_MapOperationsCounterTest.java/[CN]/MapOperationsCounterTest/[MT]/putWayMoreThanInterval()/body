@@ -1,0 +1,22 @@
+{
+  MapOperationsCounter mapOperationStats=new MapOperationsCounter(100);
+  long start=System.currentTimeMillis();
+  long counter=0;
+  boolean run=true;
+  while (run) {
+    counter++;
+    mapOperationStats.incrementPuts();
+    if (System.currentTimeMillis() - start > 205) {
+      run=false;
+    }
+    Thread.sleep(1);
+  }
+  mapOperationStats.incrementPuts();
+  counter++;
+  MapOperationStats stats=mapOperationStats.getPublishedStats();
+  long interval=stats.getPeriodEnd() - stats.getPeriodStart();
+  double statTps=stats.getNumberOfPuts() / interval;
+  double totalTps=counter / (System.currentTimeMillis() - start);
+  assertTrue(statTps < totalTps + 5);
+  assertTrue(statTps > totalTps - 5);
+}
