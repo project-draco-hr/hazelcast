@@ -4,24 +4,17 @@
     Connection oldConnection=connection;
     connection=client.connectionManager.getConnection();
     if (restoredConnection(oldConnection,connection)) {
-      client.executorServiceManager.interruptExecutingTasks(new MemberLeftException());
+      onDisconnect(oldConnection);
     }
     if (connection == null) {
       interruptWaitingCalls();
+      Thread.sleep(1000);
     }
  else {
       packet=reader.readPacket(connection);
       Call call=callMap.remove(packet.getCallId());
       if (call != null) {
-        if (call.getRequest().getOperation().equals(ClusterOperation.REMOTELY_EXECUTE)) {
-          client.executorServiceManager.handleExecutionResponse(packet);
-        }
- else {
-synchronized (call) {
-            call.setResponse(packet);
-            call.notify();
-          }
-        }
+        call.setResponse(packet);
       }
  else {
         if (packet.getOperation().equals(ClusterOperation.EVENT)) {

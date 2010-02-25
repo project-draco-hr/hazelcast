@@ -1,28 +1,24 @@
 {
-  Future<?> future;
   ExecutorService executorService=node.factory.getExecutorService();
-  Callable<Object> callable=(Callable<Object>)toObject(packet.key);
-  Object result;
   try {
-    if (callable instanceof ClientDistributedTask) {
-      DistributedTask task=null;
-      ClientDistributedTask cdt=(ClientDistributedTask)callable;
-      if (cdt.getKey() != null) {
-        task=new DistributedTask(cdt.getCallable(),cdt.getKey());
-      }
- else       if (cdt.getMember() != null) {
-        task=new DistributedTask(cdt.getCallable(),cdt.getMember());
-      }
- else       if (cdt.getMembers() != null) {
-        task=new MultiTask(cdt.getCallable(),cdt.getMembers());
-      }
-      executorService.submit(task);
-      result=task.get();
+    ClientDistributedTask cdt=(ClientDistributedTask)toObject(packet.key);
+    Object result;
+    DistributedTask task=null;
+    if (cdt.getKey() != null) {
+      task=new DistributedTask(cdt.getCallable(),cdt.getKey());
+    }
+ else     if (cdt.getMember() != null) {
+      task=new DistributedTask(cdt.getCallable(),cdt.getMember());
+    }
+ else     if (cdt.getMembers() != null) {
+      task=new MultiTask(cdt.getCallable(),cdt.getMembers());
     }
  else {
-      future=executorService.submit(callable);
-      result=future.get();
+      task=new DistributedTask(cdt.getCallable());
     }
+    InnerFutureTask inner=(InnerFutureTask)task.getInner();
+    executorService.execute(task);
+    result=task.get();
     packet.value=toData(result);
   }
  catch (  InterruptedException e) {

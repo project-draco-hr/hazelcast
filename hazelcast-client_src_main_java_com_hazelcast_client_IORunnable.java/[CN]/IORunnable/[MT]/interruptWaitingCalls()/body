@@ -1,17 +1,7 @@
 {
-  Collection<Call> cc=callMap.values();
-  List<Call> waitingCalls=new ArrayList<Call>();
-  waitingCalls.addAll(cc);
-  for (Iterator<Call> iterator=waitingCalls.iterator(); iterator.hasNext(); ) {
-    Call call=iterator.next();
-synchronized (call) {
-      RuntimeException exception=new NoMemberAvailableException();
-      if (call.getRequest().getOperation().equals(ClusterOperation.REMOTELY_EXECUTE)) {
-        client.executorServiceManager.endFutureWithException(call,new ExecutionException(exception));
-        iterator.remove();
-      }
-      call.setRuntimeException(exception);
-      call.notify();
-    }
+  Collection<Call> calls=callMap.values();
+  for (  Call call : calls) {
+    call.setResponse(new NoMemberAvailableException());
   }
+  calls.clear();
 }

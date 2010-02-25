@@ -1,0 +1,29 @@
+{
+  long remainingMillis=timeoutMillis;
+  try {
+    for (    MemberCall memberCall : lsMemberCalls) {
+      long now=System.currentTimeMillis();
+      if (timeoutMillis == -1) {
+        memberCall.get();
+      }
+ else {
+        if (remainingMillis < 0) {
+          innerFutureTask.innerSetException(new TimeoutException());
+          return;
+        }
+        memberCall.get(remainingMillis,TimeUnit.MILLISECONDS);
+      }
+      remainingMillis-=(System.currentTimeMillis() - now);
+      if (innerFutureTask.isDone()) {
+        return;
+      }
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    innerFutureTask.innerSetException(e);
+  }
+ finally {
+    innerFutureTask.innerDone();
+  }
+}

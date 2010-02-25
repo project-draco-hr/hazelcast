@@ -1,0 +1,19 @@
+{
+  ThreadPoolExecutor threadPoolExecutor=new ThreadPoolExecutor(executorConfig.getCorePoolSize(),executorConfig.getMaxPoolSize(),executorConfig.getKeepAliveSeconds(),TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),new ExecutorThreadFactory(node.threadGroup,node.getName() + "." + executorConfig.getName(),classLoader),new RejectionHandler()){
+    protected void beforeExecute(    Thread t,    Runnable r){
+      ThreadContext threadContext=ThreadContext.get();
+      CallContext callContext=mapThreadCallContexts.get(t);
+      if (callContext == null) {
+        callContext=new CallContext(threadContext.createNewThreadId(),false);
+        mapThreadCallContexts.put(t,callContext);
+      }
+      threadContext.setCurrentFactory(node.factory);
+      threadContext.setCallContext(callContext);
+    }
+  }
+;
+  String name=executorConfig.getName();
+  NamedExecutorService es=new NamedExecutorService(classLoader,executorConfig,threadPoolExecutor);
+  mapExecutors.put(name,es);
+  return es;
+}

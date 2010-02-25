@@ -1,52 +1,13 @@
 {
   super(node);
-  registerPacketProcessor(ClusterOperation.REMOTELY_EXECUTE,new PacketProcessor(){
-    public void process(    Packet packet){
-      handleRemoteExecution(packet);
-    }
-  }
-);
-  registerPacketProcessor(ClusterOperation.STREAM,new PacketProcessor(){
-    public void process(    Packet packet){
-      handleStream(packet);
-    }
-  }
-);
   logger.log(Level.FINEST,"Starting ExecutorManager");
   Config config=node.getConfig();
-  final int corePoolSize=config.getExecutorConfig().getCorePoolSize();
-  final int maxPoolSize=config.getExecutorConfig().getMaxPoolSize();
-  final long keepAliveSeconds=config.getExecutorConfig().getKeepAliveSeconds();
-  logger.log(Level.FINEST,"Executor core:" + corePoolSize + ", max:"+ maxPoolSize+ ", keepAlive:"+ keepAliveSeconds);
-  executor=new ThreadPoolExecutor(corePoolSize,maxPoolSize,keepAliveSeconds,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),new ExecutorThreadFactory(node.threadGroup,node.getName(),config.getClassLoader()),new RejectionHandler()){
-    protected void beforeExecute(    Thread t,    Runnable r){
-      ThreadContext threadContext=ThreadContext.get();
-      CallContext callContext=mapThreadCallContexts.get(t);
-      if (callContext == null) {
-        callContext=new CallContext(threadContext.createNewThreadId(),false);
-        mapThreadCallContexts.put(t,callContext);
-      }
-      threadContext.setCurrentFactory(node.factory);
-      threadContext.setCallContext(callContext);
-    }
-  }
-;
-  executorForMigrations=new ThreadPoolExecutor(16,16,60,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),new ExecutorThreadFactory(node.threadGroup,node.getName() + ".internal",config.getClassLoader()),new RejectionHandler()){
-    protected void beforeExecute(    Thread t,    Runnable r){
-      ThreadContext threadContext=ThreadContext.get();
-      CallContext callContext=mapThreadCallContexts.get(t);
-      if (callContext == null) {
-        callContext=new CallContext(threadContext.createNewThreadId(),false);
-        mapThreadCallContexts.put(t,callContext);
-      }
-      threadContext.setCurrentFactory(node.factory);
-      threadContext.setCallContext(callContext);
-    }
-  }
-;
-  node.getClusterImpl().addMembershipListener(this);
-  for (int i=0; i < 100; i++) {
-    executionIds.add((long)i);
-  }
+  ClassLoader classLoader=config.getClassLoader();
+  defaultExecutorService=newNamedExecutorService(classLoader,config.getExecutorConfig());
+  migrationExecutorService=newNamedExecutorService(classLoader,new ExecutorConfig(MIGRATION_EXECUTOR_SERVICE,10,10,600));
+  queryExecutorService=newNamedExecutorService(classLoader,new ExecutorConfig(QUERY_EXECUTOR_SERVICE,10,10,600));
+  storeExecutorService=newNamedExecutorService(classLoader,new ExecutorConfig(STORE_EXECUTOR_SERVICE,10,10,600));
+  eventExecutorService=newNamedExecutorService(classLoader,new ExecutorConfig(EVENT_EXECUTOR_SERVICE,10,10,600));
+  registerPacketProcessor(EXECUTE,new ExecutionOperationHandler());
   started=true;
 }
