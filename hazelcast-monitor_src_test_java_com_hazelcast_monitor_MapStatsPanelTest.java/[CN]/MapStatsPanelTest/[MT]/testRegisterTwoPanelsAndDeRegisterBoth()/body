@@ -1,0 +1,25 @@
+{
+  AsyncCallback<ChangeEvent> mockCallBack=mock(AsyncCallback.class);
+  String name="myMap";
+  HazelcastServiceAsync mockHazelcastServiceAsync=mock(HazelcastServiceAsync.class);
+  ServicesFactory servicesFactory=mock(ServicesFactory.class);
+  when(servicesFactory.getHazelcastService()).thenReturn(mockHazelcastServiceAsync);
+  MonitoringPanel monitoringPanel1=new MapTimesPanel(name,mockCallBack,servicesFactory);
+  HazelcastMonitor hazelcastMonitor=mock(HazelcastMonitor.class);
+  ClusterView clusterView=new ClusterView();
+  clusterView.setId(1);
+  ClusterWidgets clusterWidgets=new ClusterWidgets(hazelcastMonitor,clusterView);
+  MonitoringPanel monitoringPanel2=new MapTimesPanel(name,mockCallBack,servicesFactory);
+  monitoringPanel2.register(clusterWidgets);
+  List<MonitoringPanel> list=new ArrayList<MonitoringPanel>();
+  list.add(monitoringPanel1);
+  list.add(monitoringPanel2);
+  clusterWidgets.getPanels().put(ChangeEventType.MAP_STATISTICS,list);
+  monitoringPanel1.deRegister(clusterWidgets);
+  assertTrue(list.size() == 1);
+  assertTrue(list.contains(monitoringPanel2));
+  verify(mockHazelcastServiceAsync,times(0)).deRegisterEvent(eq(ChangeEventType.MAP_STATISTICS),eq(1),eq(name),Matchers.<AsyncCallback<Void>>any());
+  monitoringPanel2.deRegister(clusterWidgets);
+  assertTrue(list.size() == 0);
+  verify(mockHazelcastServiceAsync,times(1)).deRegisterEvent(eq(ChangeEventType.MAP_STATISTICS),eq(1),eq(name),Matchers.<AsyncCallback<Void>>any());
+}

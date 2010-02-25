@@ -1,0 +1,20 @@
+{
+  TimeSeries ts=new TimeSeries("operations per second",Second.class);
+  for (int i=0; i < list.size(); i++) {
+    MapStatistics mapStatistics=list.get(i);
+    double totalTps=0;
+    for (    MapStatistics.LocalMapStatistics stats : mapStatistics.getListOfLocalStats()) {
+      if (stats.periodEnd - stats.periodStart == 0) {
+        continue;
+      }
+      totalTps+=(stats.numberOfGetsInSec + stats.numberOfPutsInSec + stats.numberOfRemovesInSec);
+    }
+    ts.addOrUpdate(new Second(list.get(i).getCreatedDate()),totalTps / 1000);
+  }
+  TimeSeriesCollection timeDataset=new TimeSeriesCollection();
+  timeDataset.addSeries(ts);
+  JFreeChart chart=ChartFactory.createTimeSeriesChart(null,"time","throughput (x1000)",timeDataset,true,true,true);
+  XYPlot plot=(XYPlot)chart.getPlot();
+  increaseRange((NumberAxis)plot.getRangeAxis(0));
+  return chart;
+}

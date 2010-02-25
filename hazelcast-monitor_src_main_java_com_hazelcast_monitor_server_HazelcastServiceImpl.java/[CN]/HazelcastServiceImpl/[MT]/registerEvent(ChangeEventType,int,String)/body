@@ -1,18 +1,14 @@
 {
   SessionObject sessionObject=getSessionObject();
-  ChangeEventGenerator eventGenerator=null;
-  HazelcastClient client=sessionObject.mapOfHz.get(clusterId);
+  HazelcastClient client=sessionObject.getHazelcastClientMap().get(clusterId);
   if (client == null) {
     System.err.println("Client is null: Cluster id: " + clusterId + ", client map size: "+ sessionObject.mapOfHz.size());
   }
-  if (eventType.equals(ChangeEventType.MAP_STATISTICS)) {
-    eventGenerator=new MapStatisticsGenerator(client,instanceName,clusterId);
+  ChangeEventGenerator eventGenerator=changeEventGeneratorFactory.createEventGenerator(eventType,clusterId,instanceName,client);
+  if (!sessionObject.getEventGenerators().contains(eventGenerator)) {
+    sessionObject.getEventGenerators().add(eventGenerator);
   }
- else   if (eventType.equals(ChangeEventType.PARTITIONS)) {
-    eventGenerator=new PartitionsEventGenerator(client,clusterId);
-  }
-  sessionObject.eventGenerators.add(eventGenerator);
-  ChangeEvent changeEvent=null;
+  ChangeEvent changeEvent;
   try {
     changeEvent=eventGenerator.generateEvent();
   }

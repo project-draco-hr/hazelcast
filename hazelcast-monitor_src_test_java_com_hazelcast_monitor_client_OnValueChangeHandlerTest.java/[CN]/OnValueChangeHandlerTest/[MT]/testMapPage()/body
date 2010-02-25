@@ -1,0 +1,18 @@
+{
+  HazelcastServiceAsync hazelcastService=mock(HazelcastServiceAsync.class);
+  ServicesFactory servicesFactory=mock(ServicesFactory.class);
+  when(servicesFactory.getHazelcastService()).thenReturn(hazelcastService);
+  HazelcastMonitor hazelcastMonitor=mock(HazelcastMonitor.class);
+  Map<Integer,ClusterWidgets> mapOfCLusterWidgets=new HashMap<Integer,ClusterWidgets>();
+  ClusterWidgets clusterWidgets=mock(ClusterWidgets.class);
+  mapOfCLusterWidgets.put(0,clusterWidgets);
+  when(hazelcastMonitor.getMapClusterWidgets()).thenReturn(mapOfCLusterWidgets);
+  OnValueChangeHandler handler=new OnValueChangeHandler(servicesFactory,hazelcastMonitor);
+  String token="clusterId=0&type=MAP&name=MyMAP";
+  handler.mapPageBuilders.clear();
+  PageBuilder pageBuilder=mock(PageBuilder.class);
+  handler.mapPageBuilders.put("MAP",pageBuilder);
+  handler.handle(token);
+  verify(pageBuilder,times(1)).buildPage(eq(clusterWidgets),eq("MyMAP"),any(AsyncCallback.class),eq(servicesFactory));
+  verify(clusterWidgets,times(1)).deRegisterAll();
+}

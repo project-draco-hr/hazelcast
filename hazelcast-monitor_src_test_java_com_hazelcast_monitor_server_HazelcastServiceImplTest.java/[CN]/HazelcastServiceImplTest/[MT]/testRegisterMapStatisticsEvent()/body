@@ -1,0 +1,20 @@
+{
+  HazelcastServiceImpl hazelcastService=new HazelcastServiceImpl();
+  SessionObject sessionObject=mock(SessionObject.class);
+  HazelcastClient hazelcastClient=mock(HazelcastClient.class);
+  ChangeEventGeneratorFactory changeEventGeneratorFactory=mock(ChangeEventGeneratorFactory.class);
+  ConcurrentHashMap<Integer,HazelcastClient> hazelcastClientMap=new ConcurrentHashMap<Integer,HazelcastClient>();
+  hazelcastClientMap.put(0,hazelcastClient);
+  List<ChangeEventGenerator> eventGenerators=new CopyOnWriteArrayList<ChangeEventGenerator>();
+  hazelcastService.sessionObject=sessionObject;
+  hazelcastService.changeEventGeneratorFactory=changeEventGeneratorFactory;
+  when(sessionObject.getHazelcastClientMap()).thenReturn(hazelcastClientMap);
+  when(sessionObject.getEventGenerators()).thenReturn(eventGenerators);
+  MapStatisticsGenerator mapStatisticsGenerator=mock(MapStatisticsGenerator.class);
+  MapStatistics mapStatistics=mock(MapStatistics.class);
+  when(mapStatisticsGenerator.generateEvent()).thenReturn(mapStatistics);
+  when(changeEventGeneratorFactory.createEventGenerator(ChangeEventType.MAP_STATISTICS,0,"myMap",hazelcastClient)).thenReturn(mapStatisticsGenerator);
+  ChangeEvent changeEvent=hazelcastService.registerEvent(ChangeEventType.MAP_STATISTICS,0,"myMap");
+  assertEquals(mapStatistics,changeEvent);
+  assertTrue(eventGenerators.contains(mapStatisticsGenerator));
+}
