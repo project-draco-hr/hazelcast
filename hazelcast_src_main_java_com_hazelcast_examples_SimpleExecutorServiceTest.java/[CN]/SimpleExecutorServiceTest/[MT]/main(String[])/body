@@ -1,0 +1,30 @@
+{
+  int threadCount=100;
+  ExecutorService es=Executors.newFixedThreadPool(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    es.submit(new Runnable(){
+      public void run(){
+      }
+    }
+);
+  }
+  Executors.newSingleThreadExecutor().submit(new Runnable(){
+    public void run(){
+      while (true) {
+        try {
+          Thread.sleep(STATS_SECONDS * 1000);
+          System.out.println("cluster size:" + Hazelcast.getCluster().getMembers().size());
+          IMap<String,byte[]> map=Hazelcast.getMap("default");
+          MapOperationStats mapOpStats=map.getLocalMapStats().getOperationStats();
+          System.out.println(mapOpStats);
+          long period=((mapOpStats.getPeriodEnd() - mapOpStats.getPeriodStart()) / 1000);
+          System.out.println("Operations per Second : " + mapOpStats.total() / period);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+);
+}
