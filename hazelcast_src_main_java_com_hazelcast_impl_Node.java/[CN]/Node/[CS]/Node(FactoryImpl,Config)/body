@@ -46,6 +46,19 @@
   }
   address=localAddress;
   localMember=new MemberImpl(address,true,localNodeType);
+  packetPool=new NoneStrictObjectPool<Packet>(2000){
+    @Override public void onRelease(    Packet packet){
+      packet.reset();
+      packet.released=true;
+    }
+    @Override public void onObtain(    Packet packet){
+      packet.released=false;
+    }
+    public Packet createNew(){
+      return new Packet();
+    }
+  }
+;
   clusterImpl=new ClusterImpl(this);
   baseVariables=new NodeBaseVariables(address,localMember);
   this.loggingService=new LoggingServiceImpl(config.getGroupConfig().getName(),localMember);
