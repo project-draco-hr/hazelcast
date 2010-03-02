@@ -1,0 +1,15 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  final IMap map1=h1.getMap("default");
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  final IMap map2=h2.getMap("default");
+  testMapLockWaiters(map1,map2,1);
+  testMapLockWaiters(map2,map2,2);
+  testMapLockWaiters(map1,map1,3);
+  testMapLockWaiters(map2,map1,4);
+  assertTrue(map1.lockMap(10,TimeUnit.SECONDS));
+  assertNull(map1.put(5,"value5"));
+  assertEquals("value5",map1.put(5,"value55"));
+  assertEquals("value55",map1.get(5));
+  map1.unlockMap();
+}

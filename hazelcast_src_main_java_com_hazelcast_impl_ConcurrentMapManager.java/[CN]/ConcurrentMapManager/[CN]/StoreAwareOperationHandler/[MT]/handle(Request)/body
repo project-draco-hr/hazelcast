@@ -1,17 +1,23 @@
 {
-  if (shouldSchedule(request)) {
-    if (request.hasEnoughTimeToSchedule()) {
-      schedule(request);
-    }
+  if (checkMapLock(request)) {
+    if (shouldSchedule(request)) {
+      if (request.hasEnoughTimeToSchedule()) {
+        schedule(request);
+      }
  else {
-      onNoTimeToSchedule(request);
+        onNoTimeToSchedule(request);
+      }
+      return;
     }
-    return;
+    if (shouldExecuteAsync(request)) {
+      executeAsync(request);
+      return;
+    }
+    doOperation(request);
+    returnResponse(request);
   }
-  if (shouldExecuteAsync(request)) {
-    executeAsync(request);
-    return;
+ else {
+    request.response=OBJECT_REDO;
+    returnResponse(request);
   }
-  doOperation(request);
-  returnResponse(request);
 }

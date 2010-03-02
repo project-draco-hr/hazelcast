@@ -1,0 +1,28 @@
+{
+  if (request.operation == CONCURRENT_MAP_LOCK_MAP) {
+    if (lockEntireMap == null) {
+      lockEntireMap=new Lock();
+    }
+    boolean locked=lockEntireMap.lock(request.lockAddress,request.lockThreadId);
+    request.clearForResponse();
+    if (!locked) {
+      if (request.timeout == 0) {
+        request.response=Boolean.FALSE;
+      }
+ else {
+        request.response=OBJECT_REDO;
+      }
+    }
+ else {
+      request.response=Boolean.TRUE;
+    }
+  }
+ else   if (request.operation == CONCURRENT_MAP_UNLOCK_MAP) {
+    if (lockEntireMap != null) {
+      request.response=lockEntireMap.unlock(request.lockAddress,request.lockThreadId);
+    }
+ else {
+      request.response=Boolean.TRUE;
+    }
+  }
+}

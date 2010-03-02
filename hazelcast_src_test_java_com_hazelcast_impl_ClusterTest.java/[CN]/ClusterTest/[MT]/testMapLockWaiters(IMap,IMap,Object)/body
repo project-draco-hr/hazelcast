@@ -1,0 +1,24 @@
+{
+  assertTrue(mapLocker.lockMap(10,TimeUnit.SECONDS));
+  final int count=10;
+  final CountDownLatch latchStart=new CountDownLatch(count);
+  final CountDownLatch latchEnd=new CountDownLatch(count);
+  ExecutorService es=Executors.newFixedThreadPool(count);
+  for (int i=0; i < count; i++) {
+    es.execute(new Runnable(){
+      public void run(){
+        latchStart.countDown();
+        long start=System.currentTimeMillis();
+        mapWaiter.put(key,"value");
+        assertTrue((System.currentTimeMillis() - start) >= 1000);
+        latchEnd.countDown();
+      }
+    }
+);
+  }
+  assertTrue(latchStart.await(1,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  mapLocker.unlockMap();
+  assertTrue(latchEnd.await(10,TimeUnit.SECONDS));
+  es.shutdown();
+}
