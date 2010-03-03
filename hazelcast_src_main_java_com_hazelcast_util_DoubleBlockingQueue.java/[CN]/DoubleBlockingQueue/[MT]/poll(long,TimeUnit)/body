@@ -1,0 +1,16 @@
+{
+  E e=tryPoll();
+  if (e != null)   return e;
+  long timeLeft=unit.toMillis(timeout);
+  while (e == null && timeLeft > 0) {
+    long start=System.currentTimeMillis();
+synchronized (notEmptyLock) {
+      notEmptyLock.wait(100);
+    }
+    e=tryPoll();
+    long now=System.currentTimeMillis();
+    timeLeft-=(now - start);
+    start=now;
+  }
+  return e;
+}
