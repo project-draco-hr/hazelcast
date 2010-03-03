@@ -1,0 +1,17 @@
+{
+  NamedExecutorService namedExecutorService=mapExecutors.get(name);
+  if (namedExecutorService == null) {
+synchronized (CREATE_LOCK) {
+      namedExecutorService=mapExecutors.get(name);
+      if (namedExecutorService == null) {
+        ExecutorConfig executorConfig=node.getConfig().getExecutorConfig(name.substring(2));
+        if (groupProperty != null) {
+          executorConfig.setCorePoolSize(groupProperty.getInteger());
+          executorConfig.setMaxPoolSize(groupProperty.getInteger());
+        }
+        namedExecutorService=newNamedExecutorService(name,executorConfig);
+      }
+    }
+  }
+  return namedExecutorService;
+}
