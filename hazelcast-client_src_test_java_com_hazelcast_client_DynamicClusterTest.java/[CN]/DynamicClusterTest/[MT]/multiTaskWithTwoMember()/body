@@ -1,0 +1,15 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  HazelcastClient hClient=getHazelcastClient();
+  ExecutorService esService=hClient.getExecutorService();
+  Set<Member> members=getHazelcastClient().getCluster().getMembers();
+  MultiTask<DistributedMapStatsCallable.MemberMapStat> task=new MultiTask<DistributedMapStatsCallable.MemberMapStat>(new DistributedMapStatsCallable("default"),members);
+  esService.submit(task);
+  Collection<DistributedMapStatsCallable.MemberMapStat> mapStats=null;
+  mapStats=task.get();
+  for (  DistributedMapStatsCallable.MemberMapStat memberMapStat : mapStats) {
+    assertNotNull(memberMapStat);
+  }
+  assertEquals(members.size(),mapStats.size());
+  h.shutdown();
+}
