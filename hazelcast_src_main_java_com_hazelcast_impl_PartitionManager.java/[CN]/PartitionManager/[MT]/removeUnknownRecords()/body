@@ -1,17 +1,24 @@
 {
   Collection<CMap> cmaps=concurrentMapManager.maps.values();
+  Map<Address,Integer> mapMemberDistances=new HashMap<Address,Integer>();
   for (  CMap cmap : cmaps) {
     Collection<Record> records=cmap.mapRecords.values();
     for (    Record record : records) {
-      if (record != null) {
-        if (record.isActive()) {
-          Block block=blocks[record.getBlockId()];
-          Address owner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
-          if (!thisAddress.equals(owner)) {
-            int distance=concurrentMapManager.getDistance(owner,thisAddress);
-            if (distance > cmap.getBackupCount()) {
-              cmap.markAsRemoved(record);
-            }
+      if (record != null && record.isActive()) {
+        Block block=blocks[record.getBlockId()];
+        Address owner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
+        if (owner != null && !thisAddress.equals(owner)) {
+          int distance;
+          Integer d=mapMemberDistances.get(owner);
+          if (d == null) {
+            distance=concurrentMapManager.getDistance(owner,thisAddress);
+            mapMemberDistances.put(owner,distance);
+          }
+ else {
+            distance=d;
+          }
+          if (distance > cmap.getBackupCount()) {
+            cmap.markAsRemoved(record);
           }
         }
       }
