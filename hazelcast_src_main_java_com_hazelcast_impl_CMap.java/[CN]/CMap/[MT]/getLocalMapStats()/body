@@ -11,6 +11,7 @@
   ClusterImpl clusterImpl=node.getClusterImpl();
   LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
   Collection<Record> records=mapRecords.values();
+  Map<Address,Integer> mapMemberDistances=new HashMap<Address,Integer>();
   for (  Record record : records) {
     if (record.isActive() && record.isValid(now)) {
       Block block=blocks[record.getBlockId()];
@@ -26,8 +27,23 @@
         }
       }
  else {
-        backupEntryCount+=record.valueCount();
-        backupEntryMemoryCost+=record.getCost();
+        Address owner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
+        int distance;
+        Integer d=mapMemberDistances.get(owner);
+        if (d == null) {
+          distance=concurrentMapManager.getDistance(owner,thisAddress);
+          mapMemberDistances.put(owner,distance);
+        }
+ else {
+          distance=d;
+        }
+        if (distance > getBackupCount()) {
+          markAsRemoved(record);
+        }
+ else {
+          backupEntryCount+=record.valueCount();
+          backupEntryMemoryCost+=record.getCost();
+        }
       }
     }
   }
