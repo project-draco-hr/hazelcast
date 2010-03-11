@@ -1,6 +1,6 @@
 {
+  final SessionObject sessionObject=getSessionObject(this.getThreadLocalRequest().getSession());
   try {
-    final SessionObject sessionObject=getSessionObject(this.getThreadLocalRequest().getSession());
     HazelcastInstance hz=sessionObject.mapOfHz.get(clusterId);
     com.hazelcast.core.MapEntry mapEntry;
     if (hz == null) {
@@ -13,6 +13,8 @@
     return convertToMonitorMapEntry(mapEntry);
   }
  catch (  NoMemberAvailableException e) {
+    sessionObject.mapOfHz.get(clusterId).shutdown();
+    sessionObject.mapOfHz.remove(clusterId);
     throw new ClientDisconnectedException();
   }
 }

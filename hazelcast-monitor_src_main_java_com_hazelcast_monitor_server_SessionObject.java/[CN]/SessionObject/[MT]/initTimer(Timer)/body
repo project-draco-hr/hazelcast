@@ -1,14 +1,18 @@
 {
-  Timer timer=getTimerFromServletContext(session);
   task=new TimerTask(){
     @Override public void run(){
       for (      ChangeEventGenerator eventGenerator : eventGenerators) {
+        if (!mapOfHz.containsKey(eventGenerator.getClusterId())) {
+          continue;
+        }
         ChangeEvent event=null;
         try {
           event=eventGenerator.generateEvent();
         }
  catch (        NoMemberAvailableException e) {
           event=new ClientDisconnectedEvent(eventGenerator.getClusterId());
+          mapOfHz.get(eventGenerator.getClusterId()).shutdown();
+          mapOfHz.remove(eventGenerator.getClusterId());
           cleareEventGenerators(eventGenerator.getClusterId());
         }
 catch (        Exception ignored) {

@@ -1,10 +1,9 @@
 {
   SessionObject sessionObject=getSessionObject();
   HazelcastClient client=sessionObject.getHazelcastClientMap().get(clusterId);
-  if (client == null) {
-    System.err.println("Client is null: Cluster id: " + clusterId + ", client map size: "+ sessionObject.mapOfHz.size());
-  }
   ChangeEventGenerator eventGenerator=changeEventGeneratorFactory.createEventGenerator(eventType,clusterId,instanceName,client);
+  System.out.println("created event generator " + eventGenerator);
+  System.out.println(sessionObject.getEventGenerators().contains(eventGenerator));
   if (!sessionObject.getEventGenerators().contains(eventGenerator)) {
     sessionObject.getEventGenerators().add(eventGenerator);
   }
@@ -13,7 +12,7 @@
     changeEvent=eventGenerator.generateEvent();
   }
  catch (  NoMemberAvailableException e) {
-    throw new ClientDisconnectedException();
+    return handleNoMemberAvailableException(clusterId,sessionObject);
   }
   return changeEvent;
 }

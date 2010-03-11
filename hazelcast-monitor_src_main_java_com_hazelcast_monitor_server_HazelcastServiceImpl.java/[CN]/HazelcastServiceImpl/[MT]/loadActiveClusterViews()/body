@@ -1,16 +1,10 @@
 {
   final SessionObject sessionObject=getSessionObject();
-  ArrayList<ClusterView> list=new ArrayList<ClusterView>();
   for (  int clusterId : sessionObject.mapOfHz.keySet()) {
     deRegisterEvent(ChangeEventType.MAP_STATISTICS,clusterId,null);
-    ClusterView cv;
-    try {
-      cv=sessionObject.createClusterView(clusterId);
-    }
- catch (    NoMemberAvailableException e) {
-      throw new ClientDisconnectedException();
-    }
-    list.add(cv);
+    sessionObject.mapOfHz.get(clusterId).shutdown();
+    sessionObject.cleareEventGenerators(clusterId);
   }
-  return list;
+  sessionObject.mapOfHz.clear();
+  return new ArrayList<ClusterView>();
 }
