@@ -12,14 +12,20 @@
   imap.addIndex("name",false);
   imap.addIndex("age",true);
   imap.addIndex("active",false);
+  int expectedCount=0;
   for (int i=0; i < 1000; i++) {
-    imap.put(String.valueOf(i),new Employee("joe" + i,i % 60,((i % 2) == 1),Double.valueOf(i)));
+    Employee employee=new Employee("joe" + i,i % 60,((i % 2) == 1),Double.valueOf(i));
+    if (employee.name.startsWith("joe15") && employee.active) {
+      expectedCount++;
+      System.out.println(employee);
+    }
+    imap.put(String.valueOf(i),employee);
   }
   Collection<Employee> values=imap.values(new SqlPredicate("active and name LIKE 'joe15%'"));
   for (  Employee employee : values) {
     assertTrue(employee.isActive());
   }
-  assertEquals(6,values.size());
+  assertEquals(expectedCount,values.size());
   Thread.sleep((TTL + 1) * 1000);
   assertEquals(0,imap.size());
   values=imap.values(new SqlPredicate("active and name LIKE 'joe15%'"));

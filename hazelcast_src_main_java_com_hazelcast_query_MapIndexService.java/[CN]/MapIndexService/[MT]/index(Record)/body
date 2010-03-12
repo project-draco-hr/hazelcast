@@ -1,0 +1,24 @@
+{
+  final long recordId=record.getId();
+  if (!record.isActive()) {
+    records.remove(recordId);
+  }
+ else {
+    records.put(recordId,record);
+  }
+  indexValue.index(record.getValueHash(),record);
+  long[] indexValues=record.getIndexes();
+  byte[] indexTypes=record.getIndexTypes();
+  if (indexValues != null && hasIndexedAttributes) {
+    if (indexTypes == null || indexValues.length != indexTypes.length) {
+      throw new IllegalArgumentException("index and types don't match " + indexTypes);
+    }
+    Collection<MapIndex> indexes=mapIndexes.values();
+    for (    MapIndex index : indexes) {
+      if (indexValues.length > index.getAttributeIndex()) {
+        long newValue=indexValues[index.getAttributeIndex()];
+        index.index(newValue,record);
+      }
+    }
+  }
+}

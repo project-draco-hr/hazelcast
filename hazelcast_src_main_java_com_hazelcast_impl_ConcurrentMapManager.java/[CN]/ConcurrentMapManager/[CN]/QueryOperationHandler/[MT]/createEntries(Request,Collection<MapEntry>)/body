@@ -1,32 +1,34 @@
 {
   Pairs pairs=new Pairs();
-  long now=System.currentTimeMillis();
-  for (  MapEntry mapEntry : colRecords) {
-    Record record=(Record)mapEntry;
-    if (record.isActive() && record.isValid(now)) {
-      if (record.getKey() == null || record.getKey().size() == 0) {
-        throw new RuntimeException("Key cannot be null or zero-size: " + record.getKey());
-      }
-      Block block=blocks[record.getBlockId()];
-      if (thisAddress.equals(block.getOwner())) {
-        if (record.getValue() != null || request.operation == CONCURRENT_MAP_ITERATE_KEYS_ALL) {
-          pairs.addKeyValue(new KeyValue(record.getKey(),null));
+  if (colRecords != null) {
+    long now=System.currentTimeMillis();
+    for (    MapEntry mapEntry : colRecords) {
+      Record record=(Record)mapEntry;
+      if (record.isActive() && record.isValid(now)) {
+        if (record.getKey() == null || record.getKey().size() == 0) {
+          throw new RuntimeException("Key cannot be null or zero-size: " + record.getKey());
         }
- else         if (record.getCopyCount() > 0) {
-          for (int i=0; i < record.getCopyCount(); i++) {
+        Block block=blocks[record.getBlockId()];
+        if (thisAddress.equals(block.getOwner())) {
+          if (record.getValue() != null || request.operation == CONCURRENT_MAP_ITERATE_KEYS_ALL) {
             pairs.addKeyValue(new KeyValue(record.getKey(),null));
           }
-        }
- else         if (record.getMultiValues() != null) {
-          int size=record.getMultiValues().size();
-          if (size > 0) {
-            if (request.operation == CONCURRENT_MAP_ITERATE_KEYS) {
+ else           if (record.getCopyCount() > 0) {
+            for (int i=0; i < record.getCopyCount(); i++) {
               pairs.addKeyValue(new KeyValue(record.getKey(),null));
             }
+          }
+ else           if (record.getMultiValues() != null) {
+            int size=record.getMultiValues().size();
+            if (size > 0) {
+              if (request.operation == CONCURRENT_MAP_ITERATE_KEYS) {
+                pairs.addKeyValue(new KeyValue(record.getKey(),null));
+              }
  else {
-              Set<Data> values=record.getMultiValues();
-              for (              Data value : values) {
-                pairs.addKeyValue(new KeyValue(record.getKey(),value));
+                Set<Data> values=record.getMultiValues();
+                for (                Data value : values) {
+                  pairs.addKeyValue(new KeyValue(record.getKey(),value));
+                }
               }
             }
           }

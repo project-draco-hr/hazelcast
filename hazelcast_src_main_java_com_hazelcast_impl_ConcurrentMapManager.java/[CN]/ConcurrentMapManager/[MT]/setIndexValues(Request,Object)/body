@@ -1,33 +1,15 @@
 {
   CMap cmap=getMap(request.name);
   if (cmap != null) {
-    int indexCount=cmap.getMapIndexes().size();
-    if (indexCount > 0) {
-      Index[] indexes=cmap.getIndexes();
-      byte[] indexTypes=cmap.indexTypes;
-      long[] newIndexes=new long[indexCount];
-      boolean typesNew=false;
-      if (indexTypes == null) {
-        indexTypes=new byte[indexCount];
-        typesNew=true;
-      }
-      for (int i=0; i < indexes.length; i++) {
-        Index index=indexes[i];
-        if (index != null) {
-          Object realValue=value;
-          if (realValue instanceof Data) {
-            realValue=toObject((Data)value);
-          }
-          newIndexes[i]=index.extractLongValue(realValue);
-          if (typesNew) {
-            indexTypes[i]=index.getIndexType();
-          }
+    long[] indexes=cmap.getMapIndexService().getIndexValues(value);
+    if (indexes != null) {
+      byte[] indexTypes=cmap.getMapIndexService().getIndexTypes();
+      request.setIndexes(indexes,indexTypes);
+      for (      byte b : indexTypes) {
+        if (b == -1) {
+          throw new RuntimeException("Index type cannot be -1: " + b);
         }
       }
-      if (typesNew) {
-        cmap.indexTypes=indexTypes;
-      }
-      request.setIndexes(newIndexes,indexTypes);
     }
   }
 }
