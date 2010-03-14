@@ -1,0 +1,39 @@
+{
+  MultiResultSet results=new MultiResultSet();
+  if (valueOrder != null) {
+    Set<Long> values=(lessThan) ? valueOrder.headSet(searchedValue) : valueOrder.tailSet(searchedValue);
+    for (    Long value : values) {
+      if (lessThan || equal || !value.equals(searchedValue)) {
+        ConcurrentMap<Long,Record> records=mapRecords.get(value);
+        if (records != null) {
+          results.addResultSet(value,records.values());
+        }
+      }
+    }
+    if (lessThan && equal) {
+      ConcurrentMap<Long,Record> records=mapRecords.get(searchedValue);
+      if (records != null) {
+        results.addResultSet(searchedValue,records.values());
+      }
+    }
+  }
+ else {
+    Set<Long> values=mapRecords.keySet();
+    for (    Long value : values) {
+      boolean valid;
+      if (lessThan) {
+        valid=(equal) ? (value <= searchedValue) : (value < searchedValue);
+      }
+ else {
+        valid=(equal) ? (value >= searchedValue) : (value > searchedValue);
+      }
+      if (valid) {
+        ConcurrentMap<Long,Record> records=mapRecords.get(value);
+        if (records != null) {
+          results.addResultSet(value,records.values());
+        }
+      }
+    }
+  }
+  return results;
+}

@@ -1,0 +1,34 @@
+{
+  Set<MapEntry> results=new HashSet<MapEntry>();
+  if (valueOrder != null) {
+    Set<Long> values=(lessThan) ? valueOrder.headSet(searchedValue) : valueOrder.tailSet(searchedValue);
+    if (lessThan && equal) {
+      values.add(searchedValue);
+    }
+    for (    Long value : values) {
+      ConcurrentMap<Long,Record> records=mapRecords.get(value);
+      if (records != null) {
+        results.addAll(records.values());
+      }
+    }
+  }
+ else {
+    Set<Long> values=mapRecords.keySet();
+    for (    Long value : values) {
+      boolean valid;
+      if (lessThan) {
+        valid=(equal) ? (value <= searchedValue) : (value < searchedValue);
+      }
+ else {
+        valid=(equal) ? (value >= searchedValue) : (value > searchedValue);
+      }
+      if (valid) {
+        ConcurrentMap<Long,Record> records=mapRecords.get(value);
+        if (records != null) {
+          results.addAll(records.values());
+        }
+      }
+    }
+  }
+  return results;
+}
