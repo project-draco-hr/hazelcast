@@ -1,11 +1,8 @@
 {
   check(messageListener);
-  if (proxyHelper.getHazelcastClient().listenerManager.messageListenerManager.noMessageListenerRegistered(name)) {
-    Packet request=proxyHelper.prepareRequest(ClusterOperation.ADD_LISTENER,null,null);
-    proxyHelper.callAndGetResult(request);
-    Call c=proxyHelper.createCall(request);
-    proxyHelper.getHazelcastClient().listenerManager.addListenerCall(c);
-    proxyHelper.doCall(c);
+  boolean shouldCall=proxyHelper.getHazelcastClient().getListenerManager().getMessageListenerManager().noMessageListenerRegistered(name);
+  proxyHelper.getHazelcastClient().getListenerManager().getMessageListenerManager().registerMessageListener(name,messageListener);
+  if (shouldCall) {
+    doAddListenerCall(messageListener);
   }
-  proxyHelper.getHazelcastClient().listenerManager.messageListenerManager.registerMessageListener(name,messageListener);
 }
