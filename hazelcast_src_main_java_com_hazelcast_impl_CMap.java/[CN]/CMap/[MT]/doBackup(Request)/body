@@ -3,10 +3,9 @@
     throw new RuntimeException("Backup key size cannot be zero! " + req.key);
   }
   if (req.operation == CONCURRENT_MAP_BACKUP_PUT) {
-    Record record=toRecord(req);
+    Record record=toBackupRecord(req);
     if (!record.isActive()) {
       record.setActive();
-      setRemovedRecords.remove(record);
       record.setCreationTime(System.currentTimeMillis());
     }
     record.setVersion(req.version);
@@ -29,7 +28,7 @@
     }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_REMOVE) {
-    Record record=getRecord(req.key);
+    Record record=getBackupRecord(req.key);
     if (record != null) {
       if (record.getCopyCount() > 0) {
         record.decrementCopyCount();
@@ -38,7 +37,7 @@
     }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_LOCK) {
-    Record rec=toRecord(req);
+    Record rec=toBackupRecord(req);
     if (rec.getVersion() == 0) {
       rec.setVersion(req.version);
     }
@@ -47,7 +46,7 @@
     add(req,true);
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_REMOVE_MULTI) {
-    Record record=getRecord(req.key);
+    Record record=getBackupRecord(req.key);
     if (record != null) {
       if (req.value == null) {
         markAsRemoved(record);

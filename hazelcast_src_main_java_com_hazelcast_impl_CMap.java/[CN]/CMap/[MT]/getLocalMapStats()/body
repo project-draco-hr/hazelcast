@@ -2,6 +2,7 @@
   long now=System.currentTimeMillis();
   int ownedEntryCount=0;
   int backupEntryCount=0;
+  int removedEntryCount=0;
   int ownedEntryMemoryCost=0;
   int backupEntryMemoryCost=0;
   int markedAsRemovedMemoryCost=0;
@@ -10,23 +11,30 @@
   int lockWaitCount=0;
   ClusterImpl clusterImpl=node.getClusterImpl();
   LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
-  Collection<Record> records=mapRecords.values();
+  Collection<Record> records=mapOwnedRecords.values();
+  for (  Record record : records) {
+    if (record.isActive() && record.isValid(now)) {
+      ownedEntryCount+=record.valueCount();
+      ownedEntryMemoryCost+=record.getCost();
+      localMapStats.setLastAccessTime(clusterImpl.getClusterTimeFor(record.getLastAccessTime()));
+      localMapStats.setLastUpdateTime(clusterImpl.getClusterTimeFor(record.getLastUpdateTime()));
+      hits+=record.getHits();
+      if (record.isLocked()) {
+        lockedEntryCount++;
+        lockWaitCount+=record.getScheduledActionCount();
+      }
+    }
+ else {
+      removedEntryCount++;
+      markedAsRemovedMemoryCost+=record.getCost();
+    }
+  }
+  records=mapBackupRecords.values();
   Map<Address,Integer> mapMemberDistances=new HashMap<Address,Integer>();
   for (  Record record : records) {
     if (record.isActive() && record.isValid(now)) {
       Block block=blocks[record.getBlockId()];
-      if (thisAddress.equals(block.getOwner())) {
-        ownedEntryCount+=record.valueCount();
-        ownedEntryMemoryCost+=record.getCost();
-        localMapStats.setLastAccessTime(clusterImpl.getClusterTimeFor(record.getLastAccessTime()));
-        localMapStats.setLastUpdateTime(clusterImpl.getClusterTimeFor(record.getLastUpdateTime()));
-        hits+=record.getHits();
-        if (record.isLocked()) {
-          lockedEntryCount++;
-          lockWaitCount+=record.getScheduledActionCount();
-        }
-      }
- else {
+      if (!thisAddress.equals(block.getOwner())) {
         Address owner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
         int distance;
         Integer d=mapMemberDistances.get(owner);
@@ -46,11 +54,12 @@
         }
       }
     }
+ else {
+      removedEntryCount++;
+      markedAsRemovedMemoryCost+=record.getCost();
+    }
   }
-  for (  Record removedRecord : setRemovedRecords) {
-    markedAsRemovedMemoryCost+=removedRecord.getCost();
-  }
-  localMapStats.setMarkedAsRemovedEntryCount(setRemovedRecords.size());
+  localMapStats.setMarkedAsRemovedEntryCount(removedEntryCount);
   localMapStats.setMarkedAsRemovedMemoryCost(markedAsRemovedMemoryCost);
   localMapStats.setLockWaitCount(lockWaitCount);
   localMapStats.setLockedEntryCount(lockedEntryCount);
