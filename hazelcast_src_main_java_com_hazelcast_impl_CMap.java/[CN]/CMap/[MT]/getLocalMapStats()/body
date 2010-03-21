@@ -30,29 +30,10 @@
     }
   }
   records=mapBackupRecords.values();
-  Map<Address,Integer> mapMemberDistances=new HashMap<Address,Integer>();
   for (  Record record : records) {
     if (record.isActive() && record.isValid(now)) {
-      Block block=blocks[record.getBlockId()];
-      if (!thisAddress.equals(block.getOwner())) {
-        Address owner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
-        int distance;
-        Integer d=mapMemberDistances.get(owner);
-        if (d == null) {
-          distance=concurrentMapManager.getDistance(owner,thisAddress);
-          mapMemberDistances.put(owner,distance);
-        }
- else {
-          distance=d;
-        }
-        if (distance > getBackupCount()) {
-          markAsRemoved(record);
-        }
- else {
-          backupEntryCount+=record.valueCount();
-          backupEntryMemoryCost+=record.getCost();
-        }
-      }
+      backupEntryCount+=record.valueCount();
+      backupEntryMemoryCost+=record.getCost();
     }
  else {
       removedEntryCount++;
@@ -68,7 +49,7 @@
   localMapStats.setBackupEntryCount(backupEntryCount);
   localMapStats.setOwnedEntryMemoryCost(ownedEntryMemoryCost);
   localMapStats.setBackupEntryMemoryCost(backupEntryMemoryCost);
-  localMapStats.setLastEvictionTime(clusterImpl.getClusterTimeFor(this.lastEvictionTime));
-  localMapStats.setCreationTime(clusterImpl.getClusterTimeFor(this.creationTime));
+  localMapStats.setLastEvictionTime(clusterImpl.getClusterTimeFor(lastEvictionTime));
+  localMapStats.setCreationTime(clusterImpl.getClusterTimeFor(creationTime));
   return localMapStats;
 }

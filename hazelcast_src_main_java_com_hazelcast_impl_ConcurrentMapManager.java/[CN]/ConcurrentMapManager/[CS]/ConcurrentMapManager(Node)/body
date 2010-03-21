@@ -15,15 +15,20 @@
   node.clusterService.registerPeriodicRunnable(new Runnable(){
     public void run(){
       logState();
-      executeLocally(new Runnable(){
-        public void run(){
-          Collection<CMap> cmaps=maps.values();
-          for (          CMap cmap : cmaps) {
-            cmap.startCleanup();
+      long now=System.currentTimeMillis();
+      if (now > nextCleanup) {
+        nextCleanup=Long.MAX_VALUE;
+        executeLocally(new Runnable(){
+          public void run(){
+            Collection<CMap> cmaps=maps.values();
+            for (            CMap cmap : cmaps) {
+              cmap.startCleanup();
+            }
+            nextCleanup=System.currentTimeMillis() + GLOBAL_REMOVE_DELAY_MILLIS;
           }
         }
-      }
 );
+      }
     }
   }
 );

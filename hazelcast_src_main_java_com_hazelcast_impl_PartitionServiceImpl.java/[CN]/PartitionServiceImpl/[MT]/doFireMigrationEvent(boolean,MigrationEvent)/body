@@ -1,0 +1,18 @@
+{
+  if (migrationEvent == null)   throw new RuntimeException("MigrationEvent: " + migrationEvent);
+  final PartitionReal partitionReal=new PartitionReal(migrationEvent.getPartitionId(),migrationEvent.getOldOwner(),migrationEvent.getNewOwner());
+  mapRealPartitions.put(partitionReal.getPartitionId(),partitionReal);
+  for (  final MigrationListener migrationListener : lsMigrationListeners) {
+    concurrentMapManager.executeLocally(new Runnable(){
+      public void run(){
+        if (started) {
+          migrationListener.migrationStarted(migrationEvent);
+        }
+ else {
+          migrationListener.migrationCompleted(migrationEvent);
+        }
+      }
+    }
+);
+  }
+}
