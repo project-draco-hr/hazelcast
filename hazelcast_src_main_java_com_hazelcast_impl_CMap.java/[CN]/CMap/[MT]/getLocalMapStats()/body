@@ -2,7 +2,7 @@
   long now=System.currentTimeMillis();
   int ownedEntryCount=0;
   int backupEntryCount=0;
-  int removedEntryCount=0;
+  int markedAsRemovedEntryCount=0;
   int ownedEntryMemoryCost=0;
   int backupEntryMemoryCost=0;
   int markedAsRemovedMemoryCost=0;
@@ -12,27 +12,30 @@
   PartitionServiceImpl partitionService=concurrentMapManager.partitionManager.partitionServiceImpl;
   ClusterImpl clusterImpl=node.getClusterImpl();
   LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
-  Map<Data,Record> allRecords=new HashMap<Data,Record>();
-  allRecords.putAll(mapOwnedRecords);
-  allRecords.putAll(mapBackupRecords);
-  for (  Record record : allRecords.values()) {
-    if (isBackup(record,partitionService,now)) {
-      backupEntryCount+=record.valueCount();
-      backupEntryMemoryCost+=record.getCost();
+  for (  Record record : mapRecords.values()) {
+    if (!record.isActive()) {
+      markedAsRemovedEntryCount+=record.valueCount();
+      markedAsRemovedMemoryCost+=record.getCost();
     }
- else     if (isOwned(record,partitionService,now)) {
-      ownedEntryCount+=record.valueCount();
-      ownedEntryMemoryCost+=record.getCost();
-      localMapStats.setLastAccessTime(clusterImpl.getClusterTimeFor(record.getLastAccessTime()));
-      localMapStats.setLastUpdateTime(clusterImpl.getClusterTimeFor(record.getLastUpdateTime()));
-      hits+=record.getHits();
-      if (record.isLocked()) {
-        lockedEntryCount++;
-        lockWaitCount+=record.getScheduledActionCount();
+ else {
+      if (isOwned(record,partitionService,now)) {
+        ownedEntryCount+=record.valueCount();
+        ownedEntryMemoryCost+=record.getCost();
+        localMapStats.setLastAccessTime(clusterImpl.getClusterTimeFor(record.getLastAccessTime()));
+        localMapStats.setLastUpdateTime(clusterImpl.getClusterTimeFor(record.getLastUpdateTime()));
+        hits+=record.getHits();
+        if (record.isLocked()) {
+          lockedEntryCount++;
+          lockWaitCount+=record.getScheduledActionCount();
+        }
+      }
+ else       if (isBackup(record,partitionService,now)) {
+        backupEntryCount+=record.valueCount();
+        backupEntryMemoryCost+=record.getCost();
       }
     }
   }
-  localMapStats.setMarkedAsRemovedEntryCount(removedEntryCount);
+  localMapStats.setMarkedAsRemovedEntryCount(markedAsRemovedEntryCount);
   localMapStats.setMarkedAsRemovedMemoryCost(markedAsRemovedMemoryCost);
   localMapStats.setLockWaitCount(lockWaitCount);
   localMapStats.setLockedEntryCount(lockedEntryCount);

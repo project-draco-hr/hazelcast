@@ -18,12 +18,19 @@
   ttl=mapConfig.getTimeToLiveSeconds() * 1000L;
   evictionDelayMillis=mapConfig.getEvictionDelaySeconds() * 1000L;
   maxIdle=mapConfig.getMaxIdleSeconds() * 1000L;
-  evictionPolicy=SortedHashMap.getOrderingTypeByName(mapConfig.getEvictionPolicy());
-  if (evictionPolicy == SortedHashMap.OrderingType.NONE) {
+  evictionPolicy=EvictionPolicy.valueOf(mapConfig.getEvictionPolicy());
+  if (evictionPolicy == EvictionPolicy.NONE) {
     maxSize=Integer.MAX_VALUE;
+    evictionComparator=null;
   }
  else {
     maxSize=(mapConfig.getMaxSize() == 0) ? MapConfig.DEFAULT_MAX_SIZE : mapConfig.getMaxSize();
+    if (evictionPolicy == EvictionPolicy.LRU) {
+      evictionComparator=LRU_COMPARATOR;
+    }
+ else {
+      evictionComparator=LFU_COMPARATOR;
+    }
   }
   evictionRate=mapConfig.getEvictionPercentage() / 100f;
   instanceType=ConcurrentMapManager.getInstanceType(name);
@@ -59,7 +66,7 @@
  else {
     removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS;
   }
-  if (evictionPolicy == SortedHashMap.OrderingType.NONE && instanceType == Instance.InstanceType.MAP) {
+  if (evictionPolicy == EvictionPolicy.NONE && instanceType == Instance.InstanceType.MAP) {
     locallyOwnedMap=new LocallyOwnedMap();
     concurrentMapManager.mapLocallyOwnedMaps.put(name,locallyOwnedMap);
   }
