@@ -1,19 +1,30 @@
 {
   PartitionProxy partition=mapPartitions.get(partitionId);
-  if (partition != null)   return partition;
+  if (partition != null && partition.getOwner() != null)   return partition;
   final BlockingQueue<PartitionReal> responseQ=ResponseQueueFactory.newResponseQueue();
   concurrentMapManager.enqueueAndReturn(new Processable(){
     public void process(){
-      Block block=concurrentMapManager.getOrCreateBlock(partitionId);
-      MemberImpl memberOwner=(block.getOwner() == null) ? null : concurrentMapManager.getMember(block.getOwner());
+      Block block=concurrentMapManager.blocks[partitionId];
+      if (block == null) {
+        block=concurrentMapManager.getOrCreateBlock(partitionId);
+      }
+      MemberImpl memberOwner=null;
+      if (block.getOwner() != null) {
+        if (concurrentMapManager.thisAddress.equals(block.getOwner())) {
+          memberOwner=concurrentMapManager.thisMember;
+        }
+ else {
+          memberOwner=concurrentMapManager.getMember(block.getOwner());
+        }
+      }
       responseQ.offer(new PartitionReal(block.getBlockId(),memberOwner,null));
     }
   }
 );
   try {
     PartitionReal partitionReal=responseQ.take();
-    mapRealPartitions.putIfAbsent(partitionId,partitionReal);
-    mapPartitions.putIfAbsent(partitionReal.getPartitionId(),new PartitionProxy(partitionId));
+    mapRealPartitions.put(partitionId,partitionReal);
+    mapPartitions.putIfAbsent(partitionId,new PartitionProxy(partitionId));
   }
  catch (  InterruptedException ignored) {
   }
