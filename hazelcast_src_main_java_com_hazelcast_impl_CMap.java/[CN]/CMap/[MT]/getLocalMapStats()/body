@@ -9,16 +9,15 @@
   int hits=0;
   int lockedEntryCount=0;
   int lockWaitCount=0;
-  PartitionServiceImpl partitionService=concurrentMapManager.partitionManager.partitionServiceImpl;
   ClusterImpl clusterImpl=node.getClusterImpl();
   LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
   for (  Record record : mapRecords.values()) {
-    if (!record.isActive()) {
+    if (!record.isActive() || !record.isValid(now)) {
       markedAsRemovedEntryCount+=record.valueCount();
       markedAsRemovedMemoryCost+=record.getCost();
     }
  else {
-      if (isOwned(record,partitionService,now)) {
+      if (isOwned(record)) {
         ownedEntryCount+=record.valueCount();
         ownedEntryMemoryCost+=record.getCost();
         localMapStats.setLastAccessTime(clusterImpl.getClusterTimeFor(record.getLastAccessTime()));
@@ -29,9 +28,13 @@
           lockWaitCount+=record.getScheduledActionCount();
         }
       }
- else       if (isBackup(record,partitionService,now)) {
+ else       if (isBackup(record)) {
         backupEntryCount+=record.valueCount();
         backupEntryMemoryCost+=record.getCost();
+      }
+ else {
+        markedAsRemovedEntryCount+=record.valueCount();
+        markedAsRemovedMemoryCost+=record.getCost();
       }
     }
   }
