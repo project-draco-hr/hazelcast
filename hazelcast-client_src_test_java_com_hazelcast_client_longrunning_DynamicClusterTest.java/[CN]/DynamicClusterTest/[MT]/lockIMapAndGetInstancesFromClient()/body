@@ -1,0 +1,17 @@
+{
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  final IMap iMap=h.getMap("map");
+  iMap.put("key","value");
+  ILock lock=h.getLock(iMap);
+  lock.lock();
+  final HazelcastClient client=getHazelcastClient(h);
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      client.getInstances();
+      latch.countDown();
+    }
+  }
+).start();
+  assertTrue("Couldnot get instances from client",latch.await(1,TimeUnit.SECONDS));
+}
