@@ -1,25 +1,26 @@
 {
   if (concurrentMapManager.isMaster()) {
-    Map<Address,Integer> addressBlockCounts=getCurrentMemberBlocks();
-    if (addressBlockCounts.size() == 0) {
+    Map<Address,List<Block>> addressBlocks=getCurrentMemberBlocks();
+    if (addressBlocks.size() == 0) {
       return;
     }
     List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
-    int aveBlockOwnCount=PARTITION_COUNT / (addressBlockCounts.size());
-    for (    Block blockReal : blocks) {
-      if (!blockReal.isMigrating()) {
-        int count=addressBlockCounts.get(blockReal.getOwner());
-        if (count >= aveBlockOwnCount) {
-          lsBlocksToRedistribute.add(new Block(blockReal));
-        }
- else {
-          addressBlockCounts.put(blockReal.getOwner(),++count);
-        }
+    int aveBlockOwnCount=PARTITION_COUNT / (addressBlocks.size());
+    for (    Address address : addressBlocks.keySet()) {
+      List<Block> blocks=addressBlocks.get(address);
+      if (blocks.size() == aveBlockOwnCount + 1) {
+        continue;
+      }
+      int diff=(blocks.size() - aveBlockOwnCount);
+      for (int i=0; i < diff; i++) {
+        Block block=blocks.remove(0);
+        lsBlocksToRedistribute.add(block);
       }
     }
     lsBlocksToMigrate.clear();
-    for (    Address address : addressBlockCounts.keySet()) {
-      int count=addressBlockCounts.get(address);
+    for (    Address address : addressBlocks.keySet()) {
+      List<Block> blocks=addressBlocks.get(address);
+      int count=blocks.size();
       while (count < aveBlockOwnCount && lsBlocksToRedistribute.size() > 0) {
         Block blockToMigrate=lsBlocksToRedistribute.remove(0);
         addBlockToMigrate(blockToMigrate,address);
@@ -27,7 +28,7 @@
       }
     }
     lsBlocksToRedistribute.removeAll(lsBlocksToMigrate);
-    for (    Address address : addressBlockCounts.keySet()) {
+    for (    Address address : addressBlocks.keySet()) {
       if (lsBlocksToRedistribute.size() == 0) {
         break;
       }
