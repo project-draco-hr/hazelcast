@@ -1,0 +1,53 @@
+{
+  long now=System.currentTimeMillis();
+  int ownedEntryCount=0;
+  int backupEntryCount=0;
+  int markedAsRemovedEntryCount=0;
+  int ownedEntryMemoryCost=0;
+  int backupEntryMemoryCost=0;
+  int markedAsRemovedMemoryCost=0;
+  int hits=0;
+  int lockedEntryCount=0;
+  int lockWaitCount=0;
+  ClusterImpl clusterImpl=node.getClusterImpl();
+  LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
+  for (  Record record : mapRecords.values()) {
+    if (!record.isActive() || !record.isValid(now)) {
+      markedAsRemovedEntryCount++;
+      markedAsRemovedMemoryCost+=record.getCost();
+    }
+ else {
+      if (isOwned(record)) {
+        ownedEntryCount+=record.valueCount();
+        ownedEntryMemoryCost+=record.getCost();
+        localMapStats.setLastAccessTime(clusterImpl.getClusterTimeFor(record.getLastAccessTime()));
+        localMapStats.setLastUpdateTime(clusterImpl.getClusterTimeFor(record.getLastUpdateTime()));
+        hits+=record.getHits();
+        if (record.isLocked()) {
+          lockedEntryCount++;
+          lockWaitCount+=record.getScheduledActionCount();
+        }
+      }
+ else       if (isBackup(record)) {
+        backupEntryCount+=record.valueCount();
+        backupEntryMemoryCost+=record.getCost();
+      }
+ else {
+        markedAsRemovedEntryCount++;
+        markedAsRemovedMemoryCost+=record.getCost();
+      }
+    }
+  }
+  localMapStats.setMarkedAsRemovedEntryCount(markedAsRemovedEntryCount);
+  localMapStats.setMarkedAsRemovedMemoryCost(markedAsRemovedMemoryCost);
+  localMapStats.setLockWaitCount(lockWaitCount);
+  localMapStats.setLockedEntryCount(lockedEntryCount);
+  localMapStats.setHits(hits);
+  localMapStats.setOwnedEntryCount(ownedEntryCount);
+  localMapStats.setBackupEntryCount(backupEntryCount);
+  localMapStats.setOwnedEntryMemoryCost(ownedEntryMemoryCost);
+  localMapStats.setBackupEntryMemoryCost(backupEntryMemoryCost);
+  localMapStats.setLastEvictionTime(clusterImpl.getClusterTimeFor(lastEvictionTime));
+  localMapStats.setCreationTime(clusterImpl.getClusterTimeFor(creationTime));
+  return localMapStats;
+}

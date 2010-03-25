@@ -1,16 +1,20 @@
 {
-  Record record=ensureRecord(request);
+  final CMap cmap=getOrCreateMap(request.name);
+  final Record record=ensureRecord(request);
   request.scheduled=true;
   ScheduledAction scheduledAction=new ScheduledAction(request){
     @Override public boolean consume(){
+      cmap.decrementLockWaits(record);
       handle(request);
       return true;
     }
     @Override public void onExpire(){
+      cmap.decrementLockWaits(record);
       onNoTimeToSchedule(request);
     }
   }
 ;
+  cmap.incrementLockWaits(record);
   record.addScheduledAction(scheduledAction);
   node.clusterManager.registerScheduledAction(scheduledAction);
 }

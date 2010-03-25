@@ -7,6 +7,9 @@
   if (req.txnId != -1) {
     unlock(record);
   }
+  if (!record.isActive()) {
+    return;
+  }
   if (!record.isValid()) {
     if (record.isEvictable()) {
       return;
@@ -29,9 +32,7 @@
     concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_REMOVED,record.getKey(),oldValue,record.getMapListeners());
     record.incrementVersion();
   }
-  if (req.txnId != -1) {
-    unlock(record);
-  }
+  updateStats(REMOVE,record,true,null);
   markAsRemoved(record);
   req.clearForResponse();
   req.version=record.getVersion();

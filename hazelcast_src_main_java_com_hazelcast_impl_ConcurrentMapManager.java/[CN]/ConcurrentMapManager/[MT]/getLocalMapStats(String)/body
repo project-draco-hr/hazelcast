@@ -1,5 +1,5 @@
 {
-  CMap cmap=getMap(name);
+  final CMap cmap=getMap(name);
   if (cmap == null) {
     return new LocalMapStatsImpl();
   }
@@ -12,5 +12,17 @@
       throw new RuntimeException(e);
     }
   }
-  return cmap.getLocalMapStats();
+  final BlockingQueue responseQ=ResponseQueueFactory.newResponseQueue();
+  enqueueAndReturn(new Processable(){
+    public void process(){
+      responseQ.offer(cmap.getLocalMapStats());
+    }
+  }
+);
+  try {
+    return (LocalMapStatsImpl)responseQ.take();
+  }
+ catch (  InterruptedException e) {
+    throw new RuntimeException(e);
+  }
 }
