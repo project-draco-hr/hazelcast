@@ -1,33 +1,36 @@
 {
   if (!concurrentMapManager.isMaster())   return;
   createAllBlocks();
-  Map<Address,Integer> addressBlocks=getCurrentMemberBlocks();
-  if (addressBlocks.size() == 0) {
+  Map<Address,Integer> addressBlockCounts=getCurrentMemberBlocks();
+  if (addressBlockCounts.size() == 0) {
     return;
   }
-  List<Block> ownableBlocks=new ArrayList<Block>();
+  List<Block> lsEmptyBlocks=new ArrayList<Block>();
   for (  Block blockReal : blocks) {
-    if (blockReal.getOwner() == null) {
-      ownableBlocks.add(blockReal);
-    }
- else     if (!blockReal.isMigrating() && thisAddress.equals(blockReal.getOwner())) {
+    if (!blockReal.isMigrating() && thisAddress.equals(blockReal.getOwner())) {
       if (isBlockEmpty(blockReal.getBlockId())) {
-        ownableBlocks.add(blockReal);
+        lsEmptyBlocks.add(blockReal);
       }
     }
-    Integer countInt=addressBlocks.get(blockReal.getOwner());
-    int count=(countInt == null) ? 0 : countInt;
-    addressBlocks.put(blockReal.getOwner(),++count);
+    int count=addressBlockCounts.get(blockReal.getOwner());
+    addressBlockCounts.put(blockReal.getOwner(),++count);
   }
-  int aveBlockOwnCount=PARTITION_COUNT / (addressBlocks.size());
-  Set<Address> allAddress=addressBlocks.keySet();
-  for (  Address address : allAddress) {
-    Integer countInt=addressBlocks.get(address);
-    int count=(countInt == null) ? 0 : countInt;
-    while (count < aveBlockOwnCount && ownableBlocks.size() > 0) {
-      Block ownableBlock=ownableBlocks.remove(0);
+  int aveBlockOwnCount=PARTITION_COUNT / (addressBlockCounts.size());
+  for (  Address address : addressBlockCounts.keySet()) {
+    int count=addressBlockCounts.get(address);
+    while (count < aveBlockOwnCount && lsEmptyBlocks.size() > 0) {
+      Block ownableBlock=lsEmptyBlocks.remove(0);
       ownableBlock.setOwner(address);
       count++;
+    }
+  }
+  if (lsEmptyBlocks.size() > 0) {
+    for (    Address address : addressBlockCounts.keySet()) {
+      if (lsEmptyBlocks.size() == 0) {
+        break;
+      }
+      Block ownableBlock=lsEmptyBlocks.remove(0);
+      ownableBlock.setOwner(address);
     }
   }
   sendBlocks(null);

@@ -1,27 +1,25 @@
 {
   if (concurrentMapManager.isMaster()) {
-    Map<Address,Integer> addressBlocks=getCurrentMemberBlocks();
-    if (addressBlocks.size() == 0) {
+    Map<Address,Integer> addressBlockCounts=getCurrentMemberBlocks();
+    if (addressBlockCounts.size() == 0) {
       return;
     }
     List<Block> lsBlocksToRedistribute=new ArrayList<Block>();
-    int aveBlockOwnCount=PARTITION_COUNT / (addressBlocks.size());
+    int aveBlockOwnCount=PARTITION_COUNT / (addressBlockCounts.size());
     for (    Block blockReal : blocks) {
       if (!blockReal.isMigrating()) {
-        Integer countInt=addressBlocks.get(blockReal.getOwner());
-        int count=(countInt == null) ? 0 : countInt;
+        int count=addressBlockCounts.get(blockReal.getOwner());
         if (count >= aveBlockOwnCount) {
           lsBlocksToRedistribute.add(new Block(blockReal));
         }
  else {
-          addressBlocks.put(blockReal.getOwner(),++count);
+          addressBlockCounts.put(blockReal.getOwner(),++count);
         }
       }
     }
     lsBlocksToMigrate.clear();
-    for (    Address address : addressBlocks.keySet()) {
-      Integer countInt=addressBlocks.get(address);
-      int count=(countInt == null) ? 0 : countInt;
+    for (    Address address : addressBlockCounts.keySet()) {
+      int count=addressBlockCounts.get(address);
       while (count < aveBlockOwnCount && lsBlocksToRedistribute.size() > 0) {
         Block blockToMigrate=lsBlocksToRedistribute.remove(0);
         addBlockToMigrate(blockToMigrate,address);
@@ -29,12 +27,12 @@
       }
     }
     lsBlocksToRedistribute.removeAll(lsBlocksToMigrate);
-    for (    MemberImpl member : concurrentMapManager.getMembers()) {
+    for (    Address address : addressBlockCounts.keySet()) {
       if (lsBlocksToRedistribute.size() == 0) {
         break;
       }
       Block blockToMigrate=lsBlocksToRedistribute.remove(0);
-      addBlockToMigrate(blockToMigrate,member.getAddress());
+      addBlockToMigrate(blockToMigrate,address);
     }
     Collections.shuffle(lsBlocksToMigrate);
   }
