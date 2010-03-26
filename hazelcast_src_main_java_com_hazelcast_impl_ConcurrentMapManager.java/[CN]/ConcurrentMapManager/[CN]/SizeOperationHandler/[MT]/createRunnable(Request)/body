@@ -1,13 +1,19 @@
 {
-  final Connection conn=(request.local) ? null : node.connectionManager.getConnection(request.caller);
   final CMap cmap=getOrCreateMap(request.name);
   return new Runnable(){
     public void run(){
       request.response=(long)cmap.size();
-      if (partitionManager.partitionServiceImpl.isMigrating()) {
-        request.response=OBJECT_REDO;
+      enqueueAndReturn(new Processable(){
+        public void process(){
+          int callerPartitionHash=request.blockId;
+          int myPartitionHashNow=hashBlocks();
+          if (callerPartitionHash != myPartitionHashNow) {
+            request.response=OBJECT_REDO;
+          }
+          returnResponse(request);
+        }
       }
-      returnResponse(request,conn);
+);
     }
   }
 ;

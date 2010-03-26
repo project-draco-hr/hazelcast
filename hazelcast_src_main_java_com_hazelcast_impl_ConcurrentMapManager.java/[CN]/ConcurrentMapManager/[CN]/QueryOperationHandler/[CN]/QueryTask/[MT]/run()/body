@@ -28,5 +28,15 @@
     }
   }
   createEntries(request,results);
-  returnResponse(request,conn);
+  enqueueAndReturn(new Processable(){
+    public void process(){
+      int callerPartitionHash=request.blockId;
+      int myPartitionHashNow=hashBlocks();
+      if (callerPartitionHash != myPartitionHashNow) {
+        request.response=OBJECT_REDO;
+      }
+      returnResponse(request);
+    }
+  }
+);
 }
