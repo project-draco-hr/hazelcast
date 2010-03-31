@@ -1,42 +1,46 @@
 {
-  Predicate predicate=null;
-  if (request.value != null) {
-    predicate=(Predicate)toObject(request.value);
-  }
-  QueryContext queryContext=new QueryContext(cmap.getName(),predicate);
-  Set<MapEntry> results=cmap.getMapIndexService().doQuery(queryContext);
-  if (predicate != null) {
-    if (results != null && !queryContext.isStrong()) {
-      Iterator<MapEntry> it=results.iterator();
-      while (it.hasNext()) {
-        Record record=(Record)it.next();
-        if (record.isActive()) {
-          try {
-            if (!predicate.apply(record.getRecordEntry())) {
+  try {
+    Predicate predicate=null;
+    if (request.value != null) {
+      predicate=(Predicate)toObject(request.value);
+    }
+    QueryContext queryContext=new QueryContext(cmap.getName(),predicate);
+    Set<MapEntry> results=cmap.getMapIndexService().doQuery(queryContext);
+    if (predicate != null) {
+      if (results != null && !queryContext.isStrong()) {
+        Iterator<MapEntry> it=results.iterator();
+        while (it.hasNext()) {
+          Record record=(Record)it.next();
+          if (record.isActive()) {
+            try {
+              if (!predicate.apply(record.getRecordEntry())) {
+                it.remove();
+              }
+            }
+ catch (            Exception e) {
+              e.printStackTrace();
               it.remove();
             }
           }
- catch (          Exception e) {
-            e.printStackTrace();
+ else {
             it.remove();
           }
         }
- else {
-          it.remove();
+      }
+    }
+    createEntries(request,results);
+    enqueueAndReturn(new Processable(){
+      public void process(){
+        int callerPartitionHash=request.blockId;
+        if (partitionManager.containsMigratingBlock() || callerPartitionHash != hashBlocks()) {
+          request.response=OBJECT_REDO;
         }
+        returnResponse(request);
       }
     }
-  }
-  createEntries(request,results);
-  enqueueAndReturn(new Processable(){
-    public void process(){
-      int callerPartitionHash=request.blockId;
-      int myPartitionHashNow=hashBlocks();
-      if (callerPartitionHash != myPartitionHashNow) {
-        request.response=OBJECT_REDO;
-      }
-      returnResponse(request);
-    }
-  }
 );
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
 }
