@@ -6,41 +6,24 @@
     }
     QueryContext queryContext=new QueryContext(cmap.getName(),predicate);
     Set<MapEntry> results=cmap.getMapIndexService().doQuery(queryContext);
-    if (predicate != null) {
-      if (results != null && !queryContext.isStrong()) {
-        Iterator<MapEntry> it=results.iterator();
-        while (it.hasNext()) {
-          Record record=(Record)it.next();
-          if (record.isActive()) {
-            try {
-              if (!predicate.apply(record.getRecordEntry())) {
-                it.remove();
-              }
-            }
- catch (            Exception e) {
-              e.printStackTrace();
-              it.remove();
-            }
-          }
- else {
-            it.remove();
-          }
-        }
-      }
-    }
-    createEntries(request,results);
+    boolean evaluateValues=(predicate != null && !queryContext.isStrong());
+    createResultPairs(request,results,evaluateValues,predicate);
     enqueueAndReturn(new Processable(){
       public void process(){
         int callerPartitionHash=request.blockId;
         if (partitionManager.containsMigratingBlock() || callerPartitionHash != hashBlocks()) {
           request.response=OBJECT_REDO;
         }
-        returnResponse(request);
+        boolean sent=returnResponse(request);
+        if (!sent) {
+          Connection conn=node.connectionManager.getConnection(request.caller);
+          logger.log(Level.WARNING,request + " !! response cannot be sent to " + request.caller+ " conn:"+ conn);
+        }
       }
     }
 );
   }
- catch (  Exception e) {
+ catch (  Throwable e) {
     logger.log(Level.SEVERE,request.toString(),e);
   }
 }

@@ -1,0 +1,43 @@
+{
+  Pairs pairs=new Pairs();
+  if (colRecords != null) {
+    long now=System.currentTimeMillis();
+    for (    MapEntry mapEntry : colRecords) {
+      Record record=(Record)mapEntry;
+      if (record.isActive() && record.isValid(now)) {
+        if (record.getKey() == null || record.getKey().size() == 0) {
+          throw new RuntimeException("Key cannot be null or zero-size: " + record.getKey());
+        }
+        boolean match=(!evaluateEntries) || predicate.apply(record.getRecordEntry());
+        if (match) {
+          boolean onlyKeys=(request.operation == CONCURRENT_MAP_ITERATE_KEYS_ALL || request.operation == CONCURRENT_MAP_ITERATE_KEYS);
+          Data key=record.getKey();
+          if (record.getValue() != null) {
+            Data value=(onlyKeys) ? null : record.getValue();
+            pairs.addKeyValue(new KeyValue(key,value));
+          }
+ else           if (record.getCopyCount() > 0) {
+            for (int i=0; i < record.getCopyCount(); i++) {
+              pairs.addKeyValue(new KeyValue(key,null));
+            }
+          }
+ else           if (record.getMultiValues() != null) {
+            int size=record.getMultiValues().size();
+            if (size > 0) {
+              if (request.operation == CONCURRENT_MAP_ITERATE_KEYS) {
+                pairs.addKeyValue(new KeyValue(key,null));
+              }
+ else {
+                Set<Data> values=record.getMultiValues();
+                for (                Data value : values) {
+                  pairs.addKeyValue(new KeyValue(key,value));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  request.response=(pairs.size() > 0) ? ((request.local) ? pairs : toData(pairs)) : null;
+}
