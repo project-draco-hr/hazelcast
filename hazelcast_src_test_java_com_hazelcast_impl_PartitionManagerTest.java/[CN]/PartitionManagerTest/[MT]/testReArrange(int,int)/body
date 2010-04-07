@@ -1,41 +1,4 @@
 {
-  LinkedList<MemberImpl> members=new LinkedList<MemberImpl>();
-  List<Address> listOfAddresses=new ArrayList<Address>();
-  for (int i=0; i < NODE_COUNT; i++) {
-    Address address=new Address("localhost",5701 + i);
-    listOfAddresses.add(address);
-    members.add(new MemberImpl(address,true));
-  }
   Address thisAddress=new Address("localhost",5701);
-  ConcurrentMapManager concurrentMapManager=mock(ConcurrentMapManager.class);
-  Node node=mock(Node.class);
-  when(node.getLogger(PartitionManager.class.getName())).thenReturn(new NoLogFactory().getLogger("test"));
-  Config config=new Config();
-  GroupProperties group=new GroupProperties(config);
-  when(node.getGroupProperties()).thenReturn(group);
-  when(concurrentMapManager.getNode()).thenReturn(node);
-  when(concurrentMapManager.getPartitionCount()).thenReturn(BLOCK_COUNT);
-  when(concurrentMapManager.getBlocks()).thenReturn(createBlocks(BLOCK_COUNT,thisAddress));
-  when(concurrentMapManager.getThisAddress()).thenReturn(thisAddress);
-  when(concurrentMapManager.getMembers()).thenReturn(members);
-  when(concurrentMapManager.isMaster()).thenReturn(true);
-  PartitionManager partitionManager=new PartitionManager(concurrentMapManager);
-  partitionManager.reArrangeBlocks();
-  int expected=BLOCK_COUNT * (NODE_COUNT - 1) / NODE_COUNT;
-  int found=partitionManager.lsBlocksToMigrate.size();
-  assertTrue(found == expected || found == expected + 1);
-  Block[] blocks=concurrentMapManager.getBlocks();
-  for (  Block block : blocks) {
-    assertEquals(thisAddress,block.getOwner());
-  }
-  for (  Block block : partitionManager.lsBlocksToMigrate) {
-    assertTrue(listOfAddresses.contains(block.getMigrationAddress()));
-  }
-  for (  Block blockMig : partitionManager.lsBlocksToMigrate) {
-    blocks[blockMig.getBlockId()].setOwner(blockMig.getMigrationAddress());
-    blocks[blockMig.getBlockId()].setMigrationAddress(null);
-  }
-  partitionManager.lsBlocksToMigrate.clear();
-  partitionManager.reArrangeBlocks();
-  assertEquals(0,partitionManager.lsBlocksToMigrate.size());
+  testReArrange(NODE_COUNT,BLOCK_COUNT,createBlocks(BLOCK_COUNT,thisAddress));
 }
