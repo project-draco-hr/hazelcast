@@ -2,7 +2,7 @@
   ExecutorService esService=client.getExecutorService();
   Set<Member> members=client.getCluster().getMembers();
   final List<Member> lsMembers=new ArrayList<Member>(members);
-  MultiTask<DistributedMapStatsCallable.MemberMapStat> task=new MultiTask<DistributedMapStatsCallable.MemberMapStat>(new DistributedMapStatsCallable(mapName),members);
+  MultiTask<DistributedMapStatsCallable.MemberMapStat> task=new MultiTask<DistributedMapStatsCallable.MemberMapStat>(new DistributedMapStatsCallable(name),members);
   esService.execute(task);
   Collection<DistributedMapStatsCallable.MemberMapStat> mapStats;
   try {
@@ -60,15 +60,8 @@ catch (  ExecutionException e) {
     listOfStats.add(stat);
   }
   MapStatistics event=new MapStatistics(clusterId);
-  event.setMapName(this.mapName);
-  event.setSize(map.size());
+  event.setName(this.name);
   event.setListOfLocalStats(listOfStats);
-  if (!list.isEmpty() && list.get(list.size() - 1).equals(event)) {
-    list.remove(list.size() - 1);
-  }
-  list.add(event);
-  while (list.size() > 100) {
-    list.remove(0);
-  }
+  storeEvent(event);
   return event;
 }
