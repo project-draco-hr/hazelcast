@@ -1,0 +1,35 @@
+{
+  HazelcastClient client=mock(HazelcastClient.class);
+  Cluster cluster=mock(Cluster.class);
+  when(client.getCluster()).thenReturn(cluster);
+  final MembershipListenerManager membershipListenerManager=new MembershipListenerManager(client);
+  final CountDownLatch memberAdded=new CountDownLatch(1);
+  final CountDownLatch memberRemoved=new CountDownLatch(1);
+  MembershipListener listener=new MembershipListener(){
+    public void memberAdded(    MembershipEvent membershipEvent){
+      memberAdded.countDown();
+    }
+    public void memberRemoved(    MembershipEvent membershipEvent){
+      memberRemoved.countDown();
+    }
+  }
+;
+  membershipListenerManager.registerMembershipListener(listener);
+  new Thread(new Runnable(){
+    public void run(){
+      Packet packet=new Packet();
+      Address address=new Address();
+      Member member=new MemberImpl(address,false);
+      packet.setKey(toByte(member));
+      packet.setValue(toByte(type));
+      membershipListenerManager.notifyMembershipListeners(packet);
+    }
+  }
+).start();
+  if (type == MembershipEvent.MEMBER_ADDED) {
+    assertTrue(memberAdded.await(5,TimeUnit.SECONDS));
+  }
+ else {
+    assertTrue(memberRemoved.await(5,TimeUnit.SECONDS));
+  }
+}
