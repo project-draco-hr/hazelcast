@@ -1,0 +1,19 @@
+{
+  HazelcastClient client=mock(HazelcastClient.class);
+  InetSocketAddress inetSocketAddress=new InetSocketAddress("localhost",5701);
+  final Connection connection=mock(Connection.class);
+  ConnectionManager connectionManager=new ConnectionManager(client,inetSocketAddress){
+    protected Connection getNextConnection(){
+      return connection;
+    }
+  }
+;
+  ClientBinder binder=mock(ClientBinder.class);
+  connectionManager.setBinder(binder);
+  Cluster cluster=mock(Cluster.class);
+  Member member=mock(Member.class);
+  when(member.getInetSocketAddress()).thenReturn(inetSocketAddress);
+  MembershipEvent membershipEvent=new MembershipEvent(cluster,member,MembershipEvent.MEMBER_REMOVED);
+  connectionManager.memberRemoved(membershipEvent);
+  assertEquals(0,connectionManager.getClusterMembers().size());
+}

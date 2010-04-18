@@ -1,0 +1,19 @@
+{
+  HazelcastClient client=mock(HazelcastClient.class);
+  InetSocketAddress inetSocketAddress=new InetSocketAddress("localhost",5701);
+  final Connection connection=mock(Connection.class);
+  final CountDownLatch latch=new CountDownLatch(2);
+  ConnectionManager connectionManager=new ConnectionManager(client,inetSocketAddress){
+    protected Connection getNextConnection(){
+      latch.countDown();
+      return connection;
+    }
+  }
+;
+  ClientBinder binder=mock(ClientBinder.class);
+  connectionManager.setBinder(binder);
+  assertEquals(connection,connectionManager.getConnection());
+  connectionManager.destroyConnection(connection);
+  connectionManager.getConnection();
+  assertTrue(latch.await(1,TimeUnit.SECONDS));
+}
