@@ -1,0 +1,28 @@
+{
+  final AtomicInteger counter=new AtomicInteger(0);
+  final ClientRunnable clientRunnable=new ClientRunnable(){
+    @Override protected void customRun() throws InterruptedException {
+      counter.incrementAndGet();
+    }
+  }
+;
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(10);
+        clientRunnable.running=false;
+synchronized (clientRunnable.monitor) {
+          clientRunnable.monitor.wait();
+        }
+        latch.countDown();
+      }
+ catch (      InterruptedException e) {
+      }
+    }
+  }
+).start();
+  clientRunnable.run();
+  assertTrue(counter.get() > 1);
+  assertTrue("Not notified",latch.await(5,TimeUnit.SECONDS));
+}
