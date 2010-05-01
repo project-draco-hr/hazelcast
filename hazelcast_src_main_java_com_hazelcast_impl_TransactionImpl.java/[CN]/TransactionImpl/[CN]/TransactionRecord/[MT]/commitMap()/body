@@ -1,22 +1,30 @@
 {
   if (removed) {
-    if (name.startsWith("m:s:")) {
+    if (instanceType.isSet()) {
       ConcurrentMapManager.MRemoveItem mRemoveItem=factory.node.concurrentMapManager.new MRemoveItem();
       mRemoveItem.removeItem(name,key);
     }
  else     if (!newRecord) {
-      factory.node.concurrentMapManager.new MRemove().remove(name,key,-1);
+      if (instanceType.isMap()) {
+        factory.node.concurrentMapManager.new MRemove().remove(name,key,-1);
+      }
+ else       if (instanceType.isMultiMap()) {
+        factory.node.concurrentMapManager.new MRemoveMulti().remove(name,key,value);
+      }
     }
  else {
       factory.node.concurrentMapManager.new MLock().unlock(name,key,-1);
     }
   }
  else {
-    if (instanceType == Instance.InstanceType.LIST) {
+    if (instanceType.isList()) {
       int count=(Integer)value;
       for (int i=0; i < count; i++) {
         factory.node.concurrentMapManager.new MAdd().addToList(name,key);
       }
+    }
+ else     if (instanceType.isMultiMap()) {
+      factory.node.concurrentMapManager.new MPutMulti().put(name,key,value);
     }
  else {
       factory.node.concurrentMapManager.new MPut().put(name,key,value,-1,-1);

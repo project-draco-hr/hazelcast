@@ -1,7 +1,26 @@
 {
-  boolean result=booleanCall(CONCURRENT_MAP_PUT_MULTI,name,key,value,0,-1);
-  if (result) {
-    backup(CONCURRENT_MAP_BACKUP_PUT);
+  ThreadContext threadContext=ThreadContext.get();
+  TransactionImpl txn=threadContext.getCallContext().getTransaction();
+  if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+    if (!txn.has(name,key,value)) {
+      MLock mlock=new MLock();
+      boolean locked=mlock.lockAndGetValue(name,key,value,DEFAULT_TXN_TIMEOUT);
+      if (!locked)       throwCME(key);
+      boolean added=(mlock.oldValue == null);
+      if (added) {
+        txn.attachPutOp(name,key,value,true);
+      }
+      return added;
+    }
+ else {
+      return false;
+    }
   }
-  return result;
+ else {
+    boolean result=booleanCall(CONCURRENT_MAP_PUT_MULTI,name,key,value,0,-1);
+    if (result) {
+      backup(CONCURRENT_MAP_BACKUP_PUT);
+    }
+    return result;
+  }
 }

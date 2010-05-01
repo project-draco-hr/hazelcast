@@ -2,27 +2,31 @@
   ThreadContext threadContext=ThreadContext.get();
   TransactionImpl txn=threadContext.getCallContext().getTransaction();
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
-    try {
-      if (!txn.has(name,key)) {
-        MLock mlock=new MLock();
-        boolean locked=mlock.lockAndGetValue(name,key,DEFAULT_TXN_TIMEOUT);
-        if (!locked)         throwCME(key);
-        Object oldObject=null;
-        Data oldValue=mlock.oldValue;
-        if (oldValue != null) {
-          oldObject=threadContext.toObject(oldValue);
+    if (!txn.has(name,key)) {
+      MLock mlock=new MLock();
+      boolean locked=mlock.lockAndGetValue(name,key,DEFAULT_TXN_TIMEOUT);
+      if (!locked)       throwCME(key);
+      Object oldObject=null;
+      Data oldValue=mlock.oldValue;
+      if (oldValue != null) {
+        oldObject=threadContext.toObject(oldValue);
+      }
+      int removedValueCount=0;
+      if (oldObject != null) {
+        if (oldObject instanceof CMap.Values) {
+          CMap.Values values=(CMap.Values)oldObject;
+          removedValueCount=(values == null) ? 0 : values.size();
         }
-        txn.attachRemoveOp(name,key,value,(oldObject == null));
-        return oldObject;
-      }
  else {
-        return txn.attachRemoveOp(name,key,value,false);
+          removedValueCount=1;
+        }
       }
+      txn.attachRemoveOp(name,key,value,(oldObject == null),removedValueCount);
+      return oldObject;
     }
- catch (    Exception e1) {
-      e1.printStackTrace();
+ else {
+      return txn.attachRemoveOp(name,key,value,false);
     }
-    return null;
   }
  else {
     Object oldValue=objectCall(operation,name,key,value,timeout,-1);

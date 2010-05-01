@@ -1,0 +1,23 @@
+{
+  MultiMap mmap=Hazelcast.getMultiMap("testMultiMapRemoveWithTwoTxn");
+  assertTrue(mmap.put("1","value1"));
+  assertTrue(mmap.put("1","value2"));
+  assertTrue(mmap.put("1","value3"));
+  TransactionalMultiMap txnMMap=newTransactionalMultiMapProxy("testMultiMapRemoveWithTwoTxn");
+  TransactionalMultiMap txnMMap2=newTransactionalMultiMapProxy("testMultiMapRemoveWithTwoTxn");
+  assertEquals(3,mmap.size());
+  txnMMap.begin();
+  assertTrue(txnMMap.remove("1","value2"));
+  assertFalse(txnMMap.remove("1","value5"));
+  assertEquals(2,txnMMap.size());
+  assertEquals(3,txnMMap2.size());
+  txnMMap.commit();
+  assertEquals(2,mmap.size());
+  txnMMap2.begin();
+  Collection values=txnMMap2.remove("1");
+  assertEquals(2,values.size());
+  assertEquals(2,txnMMap.size());
+  assertEquals(0,txnMMap2.size());
+  txnMMap2.commit();
+  assertEquals(0,mmap.size());
+}

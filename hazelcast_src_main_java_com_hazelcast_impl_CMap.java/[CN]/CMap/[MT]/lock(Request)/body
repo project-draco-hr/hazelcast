@@ -1,7 +1,23 @@
 {
+  Data reqValue=request.value;
+  request.value=null;
   Record rec=concurrentMapManager.ensureRecord(request);
   if (request.operation == CONCURRENT_MAP_LOCK_AND_GET_VALUE) {
-    request.value=rec.getValue();
+    if (reqValue == null) {
+      request.value=rec.getValue();
+      if (rec.getMultiValues() != null) {
+        Values values=new Values(rec.getMultiValues());
+        request.value=toData(values);
+      }
+    }
+ else {
+      if (!rec.containsValue(reqValue)) {
+        request.value=null;
+      }
+ else {
+        request.value=reqValue;
+      }
+    }
   }
   rec.lock(request.lockThreadId,request.lockAddress);
   rec.incrementVersion();
