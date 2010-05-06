@@ -2,19 +2,17 @@
   concurrentMapManager.checkServiceThread();
   if (record.getLockCount() == 0) {
     record.clearLock();
-    if (record.getScheduledActions() != null) {
-      while (record.getScheduledActions().size() > 0) {
-        ScheduledAction sa=record.getScheduledActions().remove(0);
-        node.clusterManager.deregisterScheduledAction(sa);
-        if (!sa.expired()) {
-          sa.consume();
-          if (record.isLocked()) {
-            return;
-          }
+    while (record.hasScheduledAction()) {
+      ScheduledAction sa=record.getScheduledActions().remove(0);
+      node.clusterManager.deregisterScheduledAction(sa);
+      if (!sa.expired()) {
+        sa.consume();
+        if (record.isLocked()) {
+          return;
         }
+      }
  else {
-          sa.onExpire();
-        }
+        sa.onExpire();
       }
     }
   }
