@@ -1,0 +1,21 @@
+{
+  Config config=new XmlConfigBuilder().build();
+  MapConfig mapConfig=config.getMapConfig("default");
+  mapConfig.setTimeToLiveSeconds(5);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h4=Hazelcast.newHazelcastInstance(config);
+  IMap map1=h1.getMap("default");
+  final int size=20000;
+  for (int i=0; i < size; i++) {
+    map1.put(i,new byte[10000]);
+  }
+  long usedMemoryStart=getUsedMemoryAsMB();
+  assertTrue(usedMemoryStart > 400);
+  Thread.sleep(40000);
+  Runtime.getRuntime().gc();
+  Thread.sleep(5000);
+  long usedMemoryEnd=getUsedMemoryAsMB();
+  assertTrue(usedMemoryEnd < 30);
+}
