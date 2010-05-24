@@ -5,6 +5,7 @@
     if (call == null) {
       return;
     }
+    counter.incrementAndGet();
     callMap.put(call.getId(),call);
     Connection oldConnection=connection;
     connection=client.getConnectionManager().getConnection();
@@ -12,6 +13,7 @@
       redoUnfinishedCalls(call,oldConnection);
     }
  else     if (connection != null) {
+      logger.log(Level.FINEST,"Sending: " + call);
       writer.write(connection,call.getRequest());
     }
  else {
@@ -22,9 +24,9 @@
     throw e;
   }
 catch (  Throwable io) {
-    logger.finest("OutRunnable got an exception:" + io.getMessage());
+    logger.log(Level.FINE,"OutRunnable got an exception:" + io.getMessage());
+    io.printStackTrace();
     enQueue(call);
-    boolean gracefully=!running;
     client.getConnectionManager().destroyConnection(connection);
   }
 }

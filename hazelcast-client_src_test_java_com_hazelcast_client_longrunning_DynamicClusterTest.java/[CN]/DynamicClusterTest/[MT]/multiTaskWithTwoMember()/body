@@ -1,6 +1,7 @@
 {
-  HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
-  client=getHazelcastClient();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  client=getHazelcastClient(h2);
   ExecutorService esService=client.getExecutorService();
   Set<Member> members=client.getCluster().getMembers();
   MultiTask<DistributedMapStatsCallable.MemberMapStat> task=new MultiTask<DistributedMapStatsCallable.MemberMapStat>(new DistributedMapStatsCallable("default"),members);
@@ -11,4 +12,7 @@
     assertNotNull(memberMapStat);
   }
   assertEquals(members.size(),mapStats.size());
+  shutdownHazelcastClient();
+  h1.shutdown();
+  h2.shutdown();
 }

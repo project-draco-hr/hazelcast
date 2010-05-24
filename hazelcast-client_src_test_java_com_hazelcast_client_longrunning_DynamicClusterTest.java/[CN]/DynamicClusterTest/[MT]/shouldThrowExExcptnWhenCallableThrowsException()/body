@@ -1,10 +1,19 @@
 {
-  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
-  client=getHazelcastClient(h1);
-  Set<Member> members=client.getCluster().getMembers();
-  MultiTask<String> task=new MultiTask<String>(new ExceptionThrowingCallable(),members);
-  client.getExecutorService().submit(task);
-  Collection<String> result=null;
-  result=task.get();
-  assertEquals(members.size(),result.size());
+  HazelcastInstance h1=null;
+  try {
+    h1=Hazelcast.newHazelcastInstance(config);
+    client=getHazelcastClient(h1);
+    Set<Member> members=client.getCluster().getMembers();
+    MultiTask<String> task=new MultiTask<String>(new ExceptionThrowingCallable(),members);
+    client.getExecutorService().submit(task);
+    Collection<String> result=null;
+    result=task.get();
+    assertEquals(members.size(),result.size());
+  }
+ catch (  ExecutionException e) {
+    throw e;
+  }
+ finally {
+    h1.shutdown();
+  }
 }

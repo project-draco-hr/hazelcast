@@ -1,0 +1,28 @@
+{
+  HazelcastClient hClient=getHazelcastClient();
+  final Map<String,String> map=hClient.getMap("putAndget100000RecordsWith1ClusterMemberFrom10Threads");
+  int count=100000;
+  int threads=16;
+  final AtomicInteger getCounter=new AtomicInteger(count);
+  final AtomicInteger putCounter=new AtomicInteger(count);
+  ExecutorService executorService=Executors.newFixedThreadPool(threads);
+  final long beginTime=System.currentTimeMillis();
+  final CountDownLatch latch=new CountDownLatch(threads);
+  for (int i=0; i < threads; i++) {
+    executorService.execute(new Runnable(){
+      public void run(){
+        int i;
+        while ((i=putCounter.getAndDecrement()) > 0) {
+          map.put("key_" + i,String.valueOf(i));
+        }
+        while ((i=getCounter.getAndDecrement()) > 0) {
+          map.get("key_" + i);
+        }
+        latch.countDown();
+      }
+    }
+);
+  }
+  latch.await();
+  System.out.println(threads + " Threads made in total " + count+ " puts and gets in "+ (System.currentTimeMillis() - beginTime)+ " ms");
+}

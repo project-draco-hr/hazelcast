@@ -1,0 +1,45 @@
+{
+  final CountDownLatch latch=new CountDownLatch(2);
+  final CountDownLatch shutdownLatch=new CountDownLatch(1);
+  final Map<Integer,HazelcastInstance> instanceMap=new ConcurrentHashMap<Integer,HazelcastInstance>();
+  new Thread(new Runnable(){
+    public void run(){
+      HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+      instanceMap.put(0,h);
+      latch.countDown();
+    }
+  }
+).start();
+  new Thread(new Runnable(){
+    public void run(){
+      HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+      instanceMap.put(1,h);
+      latch.countDown();
+    }
+  }
+).start();
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        shutdownLatch.await();
+      }
+ catch (      InterruptedException e) {
+      }
+      instanceMap.get(1).shutdown();
+    }
+  }
+).start();
+  latch.await();
+  HazelcastClient client=getHazelcastClient(instanceMap.get(1),instanceMap.get(0));
+  Map map=client.getMap("myMap");
+  int i=0;
+  for (; i < 100; ++i) {
+    map.put("test",i);
+    if (i == 20) {
+      shutdownLatch.countDown();
+    }
+  }
+  assertEquals(i - 1,map.get("test"));
+  client.shutdown();
+  instanceMap.get(0).shutdown();
+}

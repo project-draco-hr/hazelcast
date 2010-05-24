@@ -3,12 +3,15 @@
   if (!shouldExecuteOnDisconnect) {
     return;
   }
-  Member memberLeft=oldConnection.getMember();
+  Member leftMember=oldConnection.getMember();
   Collection<Call> calls=callMap.values();
   for (  Call call : calls) {
     Call removed=callMap.remove(call.getId());
     if (removed != null) {
-      removed.onDisconnect(memberLeft);
+      if (!client.getOutRunnable().queue.contains(removed)) {
+        logger.log(Level.FINE,Thread.currentThread() + ": Calling on disconnect " + leftMember);
+        removed.onDisconnect(leftMember);
+      }
     }
   }
 }
