@@ -1,11 +1,5 @@
 {
-  boolean shouldBackup=false;
-  if (add && node.clusterManager.isNextChanged()) {
-    shouldBackup=true;
-  }
- else   if (!add && node.clusterManager.isPreviousChanged()) {
-    shouldBackup=true;
-  }
+  boolean shouldBackup=node.clusterManager.isNextChanged();
   if (shouldBackup) {
     List<Record> lsOwnedRecords=new ArrayList<Record>(1000);
     Collection<CMap> cmaps=concurrentMapManager.maps.values();
@@ -19,6 +13,7 @@
         }
       }
     }
+    if (!add)     logger.log(Level.INFO,thisAddress + " will backup " + lsOwnedRecords.size());
     for (    final Record rec : lsOwnedRecords) {
       parallelExecutorBackups.execute(new FallThroughRunnable(){
         public void doRun(){
