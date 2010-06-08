@@ -21,12 +21,16 @@
     }
   }
 );
+  partition=new PartitionProxy(partitionId);
   try {
     PartitionReal partitionReal=responseQ.take();
     mapRealPartitions.put(partitionId,partitionReal);
-    mapPartitions.putIfAbsent(partitionId,new PartitionProxy(partitionId));
+    PartitionProxy oldPartitionProxy=mapPartitions.putIfAbsent(partitionId,partition);
+    if (oldPartitionProxy != null) {
+      return oldPartitionProxy;
+    }
   }
  catch (  InterruptedException ignored) {
   }
-  return mapPartitions.get(partitionId);
+  return partition;
 }

@@ -2,11 +2,18 @@
   while (running) {
     try {
       TextCommand textCommand=blockingQueue.take();
-      SocketTextWriter socketTextWriter=textCommand.getSocketTextWriter();
-      socketTextWriter.enqueue(textCommand);
+      if (TextCommandConstants.TextCommandType.STOP == textCommand.getType()) {
+synchronized (stopObject) {
+          stopObject.notify();
+        }
+      }
+ else {
+        SocketTextWriter socketTextWriter=textCommand.getSocketTextWriter();
+        socketTextWriter.enqueue(textCommand);
+      }
     }
  catch (    InterruptedException e) {
-      running=false;
+      return;
     }
   }
 }
