@@ -1,0 +1,42 @@
+{
+  if (readyToReadData) {
+    if (chunked && (data == null || !data.hasRemaining())) {
+      boolean hasLine=readLine(cb);
+      String lineStr=null;
+      if (hasLine) {
+        lineStr=toStringAndClear(line).trim();
+      }
+      if (hasLine) {
+        int dataSize=lineStr.length() == 0 ? 0 : Integer.parseInt(lineStr,16);
+        if (dataSize == 0) {
+          return true;
+        }
+        if (data != null) {
+          ByteBuffer newData=ByteBuffer.allocate(data.capacity() + dataSize);
+          newData.put(data.array());
+          data=newData;
+        }
+ else {
+          data=ByteBuffer.allocate(dataSize);
+        }
+      }
+    }
+    IOUtil.copyToHeapBuffer(cb,data);
+  }
+  while (!readyToReadData && cb.hasRemaining()) {
+    byte b=cb.get();
+    char c=(char)b;
+    if (c == '\n') {
+      processLine(toStringAndClear(line));
+      if (nextLine) {
+        readyToReadData=true;
+      }
+      nextLine=true;
+    }
+ else     if (c != '\r') {
+      nextLine=false;
+      line.put(b);
+    }
+  }
+  return !chunked && ((data != null) && !data.hasRemaining());
+}

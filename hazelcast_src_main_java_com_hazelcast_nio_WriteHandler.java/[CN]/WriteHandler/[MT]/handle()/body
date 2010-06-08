@@ -1,7 +1,10 @@
 {
-  if (lastPacket == null) {
-    lastPacket=writeQueue.poll();
-    if (lastPacket == null && socketBB.position() == 0) {
+  if (socketWriter == null) {
+    setProtocol("HZC");
+  }
+  if (lastWritable == null) {
+    lastWritable=writeQueue.poll();
+    if (lastWritable == null && socketBB.position() == 0) {
       ready=true;
       return;
     }
@@ -9,14 +12,13 @@
   if (!connection.live())   return;
   try {
     while (socketBB.hasRemaining()) {
-      if (lastPacket == null) {
-        lastPacket=writeQueue.poll();
+      if (lastWritable == null) {
+        lastWritable=writeQueue.poll();
       }
-      if (lastPacket != null) {
-        boolean packetDone=packetWriter.writePacket(lastPacket);
-        if (packetDone) {
-          node.getPacketPool().release(lastPacket);
-          lastPacket=null;
+      if (lastWritable != null) {
+        boolean complete=socketWriter.write(lastWritable,socketBB);
+        if (complete) {
+          lastWritable=null;
         }
  else {
           if (socketBB.hasRemaining()) {
@@ -32,10 +34,9 @@
     try {
       int written=socketChannel.write(socketBB);
     }
- catch (    final Exception e) {
-      if (lastPacket != null) {
-        node.getPacketPool().release(lastPacket);
-        lastPacket=null;
+ catch (    Exception e) {
+      if (lastWritable != null) {
+        lastWritable=null;
       }
       handleSocketException(e);
       return;
@@ -47,7 +48,7 @@
       socketBB.clear();
     }
   }
- catch (  final Throwable t) {
+ catch (  Throwable t) {
     logger.log(Level.SEVERE,"Fatal Error at WriteHandler for endPoint: " + connection.getEndPoint(),t);
     t.printStackTrace();
   }

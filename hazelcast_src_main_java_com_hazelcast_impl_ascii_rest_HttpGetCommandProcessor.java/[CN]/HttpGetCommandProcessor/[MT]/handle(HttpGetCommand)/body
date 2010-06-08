@@ -1,0 +1,25 @@
+{
+  String uri=command.getURI();
+  if (uri.startsWith(URI_MAPS)) {
+    int indexEnd=uri.indexOf('/',URI_MAPS.length());
+    String mapName=uri.substring(URI_MAPS.length(),indexEnd);
+    String key=uri.substring(indexEnd + 1);
+    Object value=textCommandService.get(mapName,key);
+    if (value == null) {
+      command.setResponse(HttpCommand.RES_204);
+    }
+ else {
+      if (value instanceof byte[]) {
+        command.setResponse(null,(byte[])value);
+      }
+ else {
+        RestValue restValue=(RestValue)value;
+        command.setResponse(restValue.getContentType(),restValue.getValue());
+      }
+    }
+  }
+ else {
+    command.setResponse(HttpCommand.RES_400);
+  }
+  textCommandService.sendResponse(command);
+}

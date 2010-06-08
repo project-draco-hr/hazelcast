@@ -1,0 +1,43 @@
+{
+  String key=request.getKey();
+  String mapName="default";
+  int index=key.indexOf(':');
+  if (index != -1) {
+    mapName=key.substring(0,index);
+    key=key.substring(index + 1);
+  }
+  byte[] value=request.getValue();
+  int ttl=textCommandService.getAdjustedTTLSeconds(request.getExpiration());
+  textCommandService.incrementSetCount();
+  if (SET == request.getType()) {
+    request.setResponse(STORED);
+    if (request.shouldReply()) {
+      textCommandService.sendResponse(request);
+    }
+    textCommandService.put(mapName,key,value,ttl);
+  }
+ else   if (ADD == request.getType()) {
+    boolean added=(textCommandService.putIfAbsent(mapName,key,value,ttl) == null);
+    if (added) {
+      request.setResponse(STORED);
+    }
+ else {
+      request.setResponse(NOT_STORED);
+    }
+    if (request.shouldReply()) {
+      textCommandService.sendResponse(request);
+    }
+  }
+ else   if (REPLACE == request.getType()) {
+    boolean replaced=(textCommandService.replace(mapName,key,value) != null);
+    if (replaced) {
+      request.setResponse(STORED);
+    }
+ else {
+      request.setResponse(NOT_STORED);
+    }
+    if (request.shouldReply()) {
+      textCommandService.sendResponse(request);
+    }
+  }
+}

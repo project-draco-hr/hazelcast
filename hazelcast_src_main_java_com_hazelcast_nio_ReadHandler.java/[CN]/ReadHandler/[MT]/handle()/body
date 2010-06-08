@@ -4,24 +4,42 @@
     return;
   }
   try {
-    final int readBytes=socketChannel.read(inBuffer);
+    if (socketReader == null) {
+      int readBytes=socketChannel.read(protocolBuffer);
+      if (readBytes == -1) {
+        connection.close();
+        return;
+      }
+      if (!protocolBuffer.hasRemaining()) {
+        String protocol=new String(protocolBuffer.array());
+        WriteHandler writeHandler=connection.getWriteHandler();
+        if ("HZC".equals(protocol)) {
+          writeHandler.setProtocol("HZC");
+          socketReader=new SocketPacketReader(node,socketChannel,connection);
+        }
+ else {
+          writeHandler.setProtocol("TEXT");
+          inBuffer.put(protocolBuffer.array());
+          socketReader=new SocketTextReader(node,connection);
+          connection.connectionManager.incrementTextConnections();
+        }
+      }
+    }
+    if (socketReader == null)     return;
+    int readBytes=socketChannel.read(inBuffer);
     if (readBytes == -1) {
       connection.close();
       return;
     }
   }
- catch (  final Exception e) {
-    if (packet != null) {
-      node.getPacketPool().release(packet);
-      packet=null;
-    }
+ catch (  Exception e) {
     handleSocketException(e);
     return;
   }
   try {
     if (inBuffer.position() == 0)     return;
     inBuffer.flip();
-    packetReader.readPacket();
+    socketReader.read(inBuffer);
     if (inBuffer.hasRemaining()) {
       inBuffer.compact();
     }
@@ -29,8 +47,7 @@
       inBuffer.clear();
     }
   }
- catch (  final Exception t) {
-    t.printStackTrace();
+ catch (  Exception t) {
     handleSocketException(t);
   }
  finally {
