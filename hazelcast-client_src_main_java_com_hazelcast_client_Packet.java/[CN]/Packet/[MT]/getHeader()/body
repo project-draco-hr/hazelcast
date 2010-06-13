@@ -1,9 +1,8 @@
 {
-  ByteArrayOutputStream bos=new ByteArrayOutputStream();
-  DataOutputStream dos=new DataOutputStream(bos);
-  dos.writeByte(operation.getValue());
-  dos.writeInt(blockId);
-  dos.writeInt(threadId);
+  writeHeaderBuffer.clear();
+  writeHeaderBuffer.put(operation.getValue());
+  writeHeaderBuffer.putInt(blockId);
+  writeHeaderBuffer.putInt(threadId);
   byte booleans=0;
   if (lockCount != 0) {
     booleans=ByteUtil.setTrue(booleans,0);
@@ -25,41 +24,41 @@
   }
   booleans=ByteUtil.setTrue(booleans,6);
   booleans=ByteUtil.setTrue(booleans,7);
-  dos.writeByte(booleans);
+  writeHeaderBuffer.put(booleans);
   if (lockCount != 0) {
-    dos.writeInt(lockCount);
+    writeHeaderBuffer.putInt(lockCount);
   }
   if (timeout != -1) {
-    dos.writeLong(timeout);
+    writeHeaderBuffer.putLong(timeout);
   }
   if (ttl != -1) {
-    dos.writeLong(ttl);
+    writeHeaderBuffer.putLong(ttl);
   }
   if (txnId != -1) {
-    dos.writeLong(txnId);
+    writeHeaderBuffer.putLong(txnId);
   }
   if (longValue != Long.MIN_VALUE) {
-    dos.writeLong(longValue);
+    writeHeaderBuffer.putLong(longValue);
   }
   if (version != -1) {
-    dos.writeLong(version);
+    writeHeaderBuffer.putLong(version);
   }
-  dos.writeLong(callId);
-  dos.writeByte(responseType);
+  writeHeaderBuffer.putLong(callId);
+  writeHeaderBuffer.put(responseType);
   int nameLen=0;
   byte[] nameInBytes=null;
   if (name != null) {
     nameInBytes=name.getBytes();
     nameLen=nameInBytes.length;
   }
-  dos.writeInt(nameLen);
+  writeHeaderBuffer.putInt(nameLen);
   if (nameLen > 0) {
-    dos.write(nameInBytes);
+    writeHeaderBuffer.put(nameInBytes);
   }
-  dos.writeByte(indexCount);
+  writeHeaderBuffer.put(indexCount);
   for (int i=0; i < indexCount; i++) {
-    dos.writeLong(indexes[i]);
-    dos.writeByte(indexTypes[i]);
+    writeHeaderBuffer.putLong(indexes[i]);
+    writeHeaderBuffer.put(indexTypes[i]);
   }
-  return bos.toByteArray();
+  return writeHeaderBuffer;
 }

@@ -1,30 +1,32 @@
 {
-  Call call=null;
+  Call call=queue.poll(100,TimeUnit.MILLISECONDS);
   try {
-    call=queue.poll(100,TimeUnit.MILLISECONDS);
-    if (call == null) {
-      return;
-    }
-    counter.incrementAndGet();
-    callMap.put(call.getId(),call);
-    Connection oldConnection=connection;
-    connection=client.getConnectionManager().getConnection();
-    if (restoredConnection(oldConnection,connection)) {
-      redoUnfinishedCalls(call,oldConnection);
-    }
- else     if (connection != null) {
-      logger.log(Level.FINEST,"Sending: " + call);
-      writer.write(connection,call.getRequest());
-    }
+    if (call == null)     return;
+    int count=0;
+    while (call != null) {
+      counter.incrementAndGet();
+      callMap.put(call.getId(),call);
+      Connection oldConnection=connection;
+      connection=client.getConnectionManager().getConnection();
+      if (restoredConnection(oldConnection,connection)) {
+        redoUnfinishedCalls(call,oldConnection);
+      }
+ else       if (connection != null) {
+        logger.log(Level.FINEST,"Sending: " + call);
+        writer.write(connection,call.getRequest());
+      }
  else {
-      interruptWaitingCalls();
+        interruptWaitingCalls();
+      }
+      call=null;
+      if (count++ < 24) {
+        call=queue.poll();
+      }
     }
+    writer.flush(connection);
   }
- catch (  InterruptedException e) {
-    throw e;
-  }
-catch (  Throwable io) {
-    logger.log(Level.FINE,"OutRunnable got an exception:" + io.getMessage());
+ catch (  Throwable io) {
+    logger.log(Level.FINE,"OutRunnable got exception:" + io.getMessage());
     io.printStackTrace();
     enQueue(call);
     client.getConnectionManager().destroyConnection(connection);

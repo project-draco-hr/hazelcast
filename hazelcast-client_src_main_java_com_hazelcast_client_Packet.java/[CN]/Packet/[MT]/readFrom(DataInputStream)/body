@@ -1,52 +1,51 @@
 {
-  headerSize=dis.readInt();
-  keySize=dis.readInt();
-  valueSize=dis.readInt();
+  int headerSize=dis.readInt();
+  int keySize=dis.readInt();
+  int valueSize=dis.readInt();
   byte packetVersion=dis.readByte();
   if (packetVersion != PACKET_VERSION) {
     throw new RuntimeException("Invalid packet version. Expected:" + PACKET_VERSION + ", Found:"+ packetVersion);
   }
-  headerInBytes=new byte[headerSize];
-  dis.readFully(headerInBytes);
-  ByteArrayInputStream bis=new ByteArrayInputStream(headerInBytes);
-  DataInputStream dis2=new DataInputStream(bis);
-  this.operation=ClusterOperation.create(dis2.readByte());
-  this.blockId=dis2.readInt();
-  this.threadId=dis2.readInt();
-  byte booleans=dis2.readByte();
+  readHeaderBuffer.clear();
+  readHeaderBuffer.limit(headerSize);
+  dis.readFully(readHeaderBuffer.array(),0,headerSize);
+  this.operation=ClusterOperation.create(readHeaderBuffer.get());
+  this.blockId=readHeaderBuffer.getInt();
+  this.threadId=readHeaderBuffer.getInt();
+  byte booleans=readHeaderBuffer.get();
   if (ByteUtil.isTrue(booleans,0)) {
-    lockCount=dis2.readInt();
+    lockCount=readHeaderBuffer.getInt();
   }
   if (ByteUtil.isTrue(booleans,1)) {
-    timeout=dis2.readLong();
+    timeout=readHeaderBuffer.getLong();
   }
   if (ByteUtil.isTrue(booleans,2)) {
-    ttl=dis2.readLong();
+    ttl=readHeaderBuffer.getLong();
   }
   if (ByteUtil.isTrue(booleans,3)) {
-    txnId=dis2.readLong();
+    txnId=readHeaderBuffer.getLong();
   }
   if (ByteUtil.isTrue(booleans,4)) {
-    longValue=dis2.readLong();
+    longValue=readHeaderBuffer.getLong();
   }
   if (ByteUtil.isTrue(booleans,5)) {
-    version=dis2.readLong();
+    version=readHeaderBuffer.getLong();
   }
   if (!ByteUtil.isTrue(booleans,7)) {
     throw new RuntimeException("LockAddress cannot be sent to the client!" + operation);
   }
-  this.callId=dis2.readLong();
-  this.responseType=dis2.readByte();
-  int nameLength=dis2.readInt();
+  this.callId=readHeaderBuffer.getLong();
+  this.responseType=readHeaderBuffer.get();
+  int nameLength=readHeaderBuffer.getInt();
   if (nameLength > 0) {
     byte[] b=new byte[nameLength];
-    dis2.readFully(b);
+    readHeaderBuffer.get(b);
     this.name=new String(b);
   }
-  indexCount=dis2.readByte();
+  indexCount=readHeaderBuffer.get();
   for (int i=0; i < indexCount; i++) {
-    indexes[i]=dis2.readLong();
-    indexTypes[i]=dis2.readByte();
+    indexes[i]=readHeaderBuffer.getLong();
+    indexTypes[i]=readHeaderBuffer.get();
   }
   key=new byte[keySize];
   dis.readFully(key);
