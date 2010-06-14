@@ -1,0 +1,22 @@
+{
+  final BlockingQueue qResponse=new ArrayBlockingQueue(1);
+  Hazelcast.getDefaultInstance();
+  Thread thread=new Thread(new Runnable(){
+    public void run(){
+      try {
+        DistributedTask<Member> dtask=new DistributedTask<Member>(new MemberCheck());
+        Hazelcast.getExecutorService().submit(dtask);
+        Member member=dtask.get();
+        qResponse.offer(member);
+      }
+ catch (      Exception e) {
+        qResponse.offer(e);
+      }
+    }
+  }
+);
+  thread.start();
+  Object response=qResponse.poll(10,TimeUnit.SECONDS);
+  assertNotNull(response);
+  assertTrue(response instanceof Member);
+}
