@@ -3,7 +3,7 @@
   final ThreadFactory threadFactory=new ThreadFactory(){
     final AtomicInteger atomicInteger=new AtomicInteger();
     public Thread newThread(    Runnable r){
-      Thread t=new Thread(HazelcastClient.this.groupName + "thread_" + atomicInteger.incrementAndGet());
+      Thread t=new Thread(r,"hz.client." + HazelcastClient.this.groupName + "_cached_thread_"+ atomicInteger.incrementAndGet());
       if (t.isDaemon()) {
         t.setDaemon(false);
       }
@@ -14,7 +14,9 @@
     }
   }
 ;
-  executor=new ThreadPoolExecutor(0,20,60L,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),threadFactory);
+  executor=Executors.newCachedThreadPool(threadFactory);
+  parallelExecutorService=new ParallelExecutorService(executor);
+  parallelExecutorDefault=parallelExecutorService.newParallelExecutor(40);
   if (automatic) {
     this.connectionManager=new ConnectionManager(this,clusterMembers[0]);
   }
