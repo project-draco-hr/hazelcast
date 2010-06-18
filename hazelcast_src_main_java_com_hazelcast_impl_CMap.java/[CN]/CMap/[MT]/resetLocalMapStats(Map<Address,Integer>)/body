@@ -11,14 +11,14 @@
   int lockWaitCount=0;
   ClusterImpl clusterImpl=node.getClusterImpl();
   for (  Record record : mapRecords.values()) {
-    if (!record.isActive() || !record.isValid(now)) {
-      markedAsRemovedEntryCount++;
-      markedAsRemovedMemoryCost+=record.getCost();
-    }
+    Block block=concurrentMapManager.getOrCreateBlock(record.getBlockId());
+    boolean owned=thisAddress.equals(block.getOwner());
+    if (owned) {
+      if (!record.isActive() || !record.isValid(now)) {
+        markedAsRemovedEntryCount++;
+        markedAsRemovedMemoryCost+=record.getCost();
+      }
  else {
-      Block block=concurrentMapManager.getOrCreateBlock(record.getBlockId());
-      boolean owned=thisAddress.equals(block.getOwner());
-      if (owned) {
         ownedEntryCount+=record.valueCount();
         ownedEntryMemoryCost+=record.getCost();
         localMapStats.setLastAccessTime(record.getLastAccessTime());
@@ -29,25 +29,18 @@
           lockWaitCount+=record.getScheduledActionCount();
         }
       }
+    }
  else {
-        boolean unknown=false;
-        Address eventualOwner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
-        if (!thisAddress.equals(eventualOwner)) {
-          Integer distance=distances.get(eventualOwner);
-          if (distance != null && distance > getBackupCount()) {
-            unknown=true;
-          }
-        }
-        if (unknown) {
-          markedAsRemovedEntryCount++;
-          markedAsRemovedMemoryCost+=record.getCost();
-          markAsRemoved(record);
-        }
- else {
-          backupEntryCount+=record.valueCount();
-          backupEntryMemoryCost+=record.getCost();
+      boolean unknown=false;
+      Address eventualOwner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
+      if (!thisAddress.equals(eventualOwner)) {
+        Integer distance=distances.get(eventualOwner);
+        if (distance != null && distance > getBackupCount()) {
+          unknown=true;
         }
       }
+      backupEntryCount+=record.valueCount();
+      backupEntryMemoryCost+=record.getCost();
     }
   }
   localMapStats.setMarkedAsRemovedEntryCount(markedAsRemovedEntryCount);
