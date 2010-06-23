@@ -1,16 +1,21 @@
 {
-  Config configSuperClient=new XmlConfigBuilder().build();
+  Config configSuperClient=new Config();
   configSuperClient.setSuperClient(true);
-  HazelcastInstance hNormal=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance hNormal=Hazelcast.newHazelcastInstance(new Config());
   final HazelcastInstance hSuper=Hazelcast.newHazelcastInstance(configSuperClient);
   Map map=hSuper.getMap("default");
   assertNull(map.put("1","value"));
+  Set<Partition> partitions2=hSuper.getPartitionService().getPartitions();
+  for (  Partition partition : partitions2) {
+    System.out.println(partition);
+  }
   hNormal.shutdown();
   Set<Partition> partitions=hSuper.getPartitionService().getPartitions();
   for (  Partition partition : partitions) {
+    System.out.println(partition);
     assertNull(partition.getOwner());
   }
-  hNormal=Hazelcast.newHazelcastInstance(null);
+  hNormal=Hazelcast.newHazelcastInstance(new Config());
   partitions=hSuper.getPartitionService().getPartitions();
   for (  Partition partition : partitions) {
     assertEquals(hNormal.getCluster().getLocalMember(),partition.getOwner());

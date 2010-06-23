@@ -1,37 +1,46 @@
 {
-  final CountDownLatch latchAdded=new CountDownLatch(1);
-  final CountDownLatch latchUpdated=new CountDownLatch(1);
-  final CountDownLatch latchRemoved=new CountDownLatch(1);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  final Member member1=h1.getCluster().getLocalMember();
+  final Member member2=h2.getCluster().getLocalMember();
+  final CountDownLatch latchAdded=new CountDownLatch(2);
+  final CountDownLatch latchUpdated=new CountDownLatch(2);
+  final CountDownLatch latchRemoved=new CountDownLatch(2);
   final CountDownLatch latchEvicted=new CountDownLatch(0);
   EntryListener listener=new EntryListener(){
     public void entryAdded(    EntryEvent entryEvent){
+      assertEquals(member1,entryEvent.getMember());
       latchAdded.countDown();
     }
     public void entryRemoved(    EntryEvent entryEvent){
+      assertEquals(member1,entryEvent.getMember());
       latchRemoved.countDown();
     }
     public void entryUpdated(    EntryEvent entryEvent){
+      assertEquals(member2,entryEvent.getMember());
       latchUpdated.countDown();
     }
     public void entryEvicted(    EntryEvent entryEvent){
-      latchEvicted.countDown();
+      fail("Should never receive eviction event");
     }
   }
 ;
-  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
-  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
-  IMap mapSource=h2.getMap("default");
-  IMap map=h1.getMap("default");
+  IMap map2=h2.getMap("default");
+  IMap map1=h1.getMap("default");
   Object key="2133aa";
-  map.addEntryListener(listener,key,true);
-  assertNull(mapSource.put(key,"value5"));
-  assertEquals("value5",mapSource.put(key,"value55"));
-  assertFalse(mapSource.evict(key));
-  assertEquals("value55",mapSource.put(key,"value5"));
-  assertEquals("value5",mapSource.remove(key));
-  map.removeEntryListener(listener,key);
-  assertTrue(mapSource.evict(key));
+  map1.addEntryListener(listener,key,true);
+  map2.addEntryListener(listener,key,true);
+  assertNull(map1.put(key,"value5"));
+  assertEquals("value5",map2.put(key,"value55"));
+  assertFalse(map2.evict(key));
+  assertEquals("value55",map2.put(key,"value5"));
+  assertEquals("value5",map1.remove(key));
   int waitSeconds=20;
+  assertTrue(latchRemoved.await(waitSeconds,TimeUnit.SECONDS));
+  map1.removeEntryListener(listener,key);
+  assertFalse(map2.evict(key));
+  map2.removeEntryListener(listener,key);
+  assertTrue(map2.evict(key));
   assertTrue(latchAdded.await(waitSeconds,TimeUnit.SECONDS));
   assertTrue(latchUpdated.await(waitSeconds,TimeUnit.SECONDS));
   assertTrue(latchRemoved.await(waitSeconds,TimeUnit.SECONDS));

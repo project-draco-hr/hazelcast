@@ -7,6 +7,8 @@
   }
   Record record=getRecord(req.key);
   if (record != null && !record.isValid(now)) {
+    record.setValue(null);
+    record.setMultiValues(null);
   }
   if (req.operation == CONCURRENT_MAP_PUT_IF_ABSENT) {
     if (record != null && record.isActive() && record.isValid(now) && record.getValue() != null) {
@@ -58,11 +60,11 @@
     ttlPerRecord=true;
   }
   if (oldValue == null) {
-    concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_ADDED,record);
+    concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_ADDED,record,req.caller);
   }
  else {
     fireInvalidation(record);
-    concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_UPDATED,record);
+    concurrentMapManager.fireMapEvent(mapListeners,getName(),EntryEvent.TYPE_UPDATED,record,req.caller);
   }
   if (req.txnId != -1) {
     unlock(record);
