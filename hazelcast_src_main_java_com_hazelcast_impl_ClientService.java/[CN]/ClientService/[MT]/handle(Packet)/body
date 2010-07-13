@@ -2,10 +2,10 @@
   ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
   CallContext callContext=clientEndpoint.getCallContext(packet.threadId);
   ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandlers);
-  if (!packet.operation.equals(ClusterOperation.CONCURRENT_MAP_UNLOCK)) {
-    node.executorManager.getClientExecutorService().executeOrderedRunnable(callContext.getThreadId(),clientRequestHandler);
+  if (packet.operation.equals(ClusterOperation.CONCURRENT_MAP_UNLOCK)) {
+    node.executorManager.executeNow(clientRequestHandler);
   }
  else {
-    node.executorManager.executeNow(clientRequestHandler);
+    node.executorManager.getClientExecutorService().executeOrderedRunnable(callContext.getThreadId(),clientRequestHandler);
   }
 }
