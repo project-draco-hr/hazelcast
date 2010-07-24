@@ -1,0 +1,18 @@
+{
+  Config configSuperClient=new Config();
+  configSuperClient.setSuperClient(true);
+  HazelcastInstance hNormal=Hazelcast.newHazelcastInstance(new Config());
+  final HazelcastInstance hSuper=Hazelcast.newHazelcastInstance(configSuperClient);
+  final Queue qSuper=hSuper.getQueue("default");
+  final Queue qNormal=hNormal.getQueue("default");
+  for (int i=0; i < 12000; i++) {
+    String item="item" + i;
+    qSuper.offer(item);
+    assertEquals(item,qNormal.poll());
+  }
+  for (int i=0; i < 5000; i++) {
+    String item="item" + i;
+    qNormal.offer(item);
+    assertEquals(item,qSuper.poll());
+  }
+}

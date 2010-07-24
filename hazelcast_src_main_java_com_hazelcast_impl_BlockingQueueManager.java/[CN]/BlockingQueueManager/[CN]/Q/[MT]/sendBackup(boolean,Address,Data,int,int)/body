@@ -2,7 +2,8 @@
   if (zeroBackup)   return true;
   if (addIndex == -1)   throw new RuntimeException("addIndex cannot be -1");
   if (lsMembers.size() > 1) {
-    if (getNextMemberAfter(thisAddress,true,1).getAddress().equals(caller)) {
+    MemberImpl memberBackup=getNextMemberAfter(thisAddress,true,1);
+    if (memberBackup == null || memberBackup.getAddress().equals(caller)) {
       return true;
     }
     ClusterOperation operation=ClusterOperation.BLOCKING_QUEUE_BACKUP_REMOVE;
@@ -12,7 +13,7 @@
     Packet packet=obtainPacket(name,null,data,operation,0);
     packet.blockId=blockId;
     packet.longValue=addIndex;
-    boolean sent=send(packet,getNextMemberAfter(thisAddress,true,1).getAddress());
+    boolean sent=send(packet,memberBackup.getAddress());
     if (!sent) {
       releasePacket(packet);
     }
