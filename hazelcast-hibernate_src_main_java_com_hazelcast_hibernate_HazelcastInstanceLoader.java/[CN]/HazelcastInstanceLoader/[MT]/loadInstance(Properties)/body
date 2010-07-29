@@ -1,0 +1,29 @@
+{
+  boolean useSuperClient=false;
+  String configResourcePath=null;
+  if (props != null) {
+    useSuperClient=PropertiesHelper.getBoolean(CacheEnvironment.USE_SUPER_CLIENT,props,false);
+    configResourcePath=PropertiesHelper.getString(CacheEnvironment.CONFIG_FILE_PATH_LEGACY,props,null);
+    if (StringHelper.isEmpty(configResourcePath)) {
+      configResourcePath=PropertiesHelper.getString(CacheEnvironment.CONFIG_FILE_PATH,props,null);
+    }
+  }
+  if (useSuperClient) {
+    logger.log(Level.WARNING,"Creating Hazelcast node as Super-Client. " + "Be sure this node has access to an already running cluster...");
+  }
+  Config config=null;
+  if (StringHelper.isEmpty(configResourcePath)) {
+    config=new XmlConfigBuilder().build();
+  }
+ else {
+    URL url=ConfigHelper.locateConfig(configResourcePath);
+    try {
+      config=new UrlXmlConfig(url);
+    }
+ catch (    IOException e) {
+      throw new CacheException(e);
+    }
+  }
+  config.setSuperClient(useSuperClient);
+  return Hazelcast.newHazelcastInstance(config);
+}
