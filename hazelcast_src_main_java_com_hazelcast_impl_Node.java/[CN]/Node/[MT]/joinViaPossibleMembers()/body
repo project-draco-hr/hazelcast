@@ -1,9 +1,9 @@
 {
   try {
     failedConnections.clear();
-    final List<Address> lsPossibleAddresses=getPossibleMembers();
-    lsPossibleAddresses.remove(address);
-    for (    final Address possibleAddress : lsPossibleAddresses) {
+    final Collection<Address> colPossibleAddresses=getPossibleMembers();
+    colPossibleAddresses.remove(address);
+    for (    final Address possibleAddress : colPossibleAddresses) {
       logger.log(Level.FINEST,"connecting to " + possibleAddress);
       connectionManager.getOrConnect(possibleAddress);
     }
@@ -11,15 +11,15 @@
     int numberOfSeconds=0;
     final int connectionTimeoutSeconds=config.getNetworkConfig().getJoin().getTcpIpConfig().getConnectionTimeoutSeconds();
     while (!found && numberOfSeconds < connectionTimeoutSeconds) {
-      lsPossibleAddresses.removeAll(failedConnections);
-      if (lsPossibleAddresses.size() == 0) {
+      colPossibleAddresses.removeAll(failedConnections);
+      if (colPossibleAddresses.size() == 0) {
         break;
       }
       Thread.sleep(1000);
       numberOfSeconds++;
       int numberOfJoinReq=0;
       logger.log(Level.FINE,"we are going to try to connect to each lockAddress, but no more than five times");
-      for (      Address possibleAddress : lsPossibleAddresses) {
+      for (      Address possibleAddress : colPossibleAddresses) {
         logger.log(Level.FINEST,"connection attempt " + numberOfJoinReq + " to "+ possibleAddress);
         final Connection conn=connectionManager.getOrConnect(possibleAddress);
         if (conn != null && numberOfJoinReq < 5) {
@@ -41,8 +41,8 @@
  else {
       while (!joined) {
         int numberOfJoinReq=0;
-        lsPossibleAddresses.removeAll(failedConnections);
-        for (        Address possibleAddress : lsPossibleAddresses) {
+        colPossibleAddresses.removeAll(failedConnections);
+        for (        Address possibleAddress : colPossibleAddresses) {
           final Connection conn=connectionManager.getOrConnect(possibleAddress);
           if (conn != null && numberOfJoinReq < 5) {
             logger.log(Level.FINEST,"sending join request for " + possibleAddress);
@@ -56,7 +56,7 @@
         Thread.sleep(2000);
         if (masterAddress == null) {
           boolean masterCandidate=true;
-          for (          Address address : lsPossibleAddresses) {
+          for (          Address address : colPossibleAddresses) {
             if (this.address.hashCode() > address.hashCode()) {
               masterCandidate=false;
             }
@@ -68,7 +68,7 @@
         }
       }
     }
-    lsPossibleAddresses.clear();
+    colPossibleAddresses.clear();
     failedConnections.clear();
   }
  catch (  Exception e) {

@@ -1,7 +1,7 @@
 {
   Join join=config.getNetworkConfig().getJoin();
   final List<String> lsJoinMembers=join.getTcpIpConfig().getMembers();
-  final List<Address> lsPossibleAddresses=new ArrayList<Address>();
+  final Set<Address> setPossibleAddresses=new HashSet<Address>();
   for (  final String lsJoinMember : lsJoinMembers) {
     String host=lsJoinMember;
     int port=config.getPort();
@@ -15,8 +15,9 @@
       if (ip) {
         for (        final Address addrs : getPossibleIpAddresses(host,port,indexColon >= 0)) {
           if (!addrs.equals(getThisAddress())) {
-            logger.log(Level.FINEST,"adding possible member " + addrs);
-            lsPossibleAddresses.add(addrs);
+            if (setPossibleAddresses.add(addrs)) {
+              logger.log(Level.FINEST,"adding possible member " + addrs);
+            }
           }
         }
       }
@@ -30,12 +31,23 @@
             addrs=new Address(inetAddress.getAddress(),port);
             shouldCheck=AddressPicker.matchAddress(addrs.getHost(),interfaces.getInterfaces());
           }
-          if (shouldCheck) {
-            for (int i=-2; i < 3; i++) {
-              final Address addressProper=new Address(inetAddress.getAddress(),port + i);
-              if (!addressProper.equals(getThisAddress())) {
+          if (indexColon < 0) {
+            if (shouldCheck) {
+              for (int i=-2; i < 3; i++) {
+                final Address addressProper=new Address(inetAddress.getAddress(),port + i);
+                if (!addressProper.equals(getThisAddress())) {
+                  if (setPossibleAddresses.add(addressProper)) {
+                    logger.log(Level.FINEST,"adding possible member " + addressProper);
+                  }
+                }
+              }
+            }
+          }
+ else {
+            final Address addressProper=new Address(inetAddress.getAddress(),port);
+            if (!addressProper.equals(getThisAddress())) {
+              if (setPossibleAddresses.add(addressProper)) {
                 logger.log(Level.FINEST,"adding possible member " + addressProper);
-                lsPossibleAddresses.add(addressProper);
               }
             }
           }
@@ -47,6 +59,6 @@
       logger.log(Level.SEVERE,e.getMessage(),e);
     }
   }
-  lsPossibleAddresses.addAll(config.getNetworkConfig().getJoin().getTcpIpConfig().getAddresses());
-  return lsPossibleAddresses;
+  setPossibleAddresses.addAll(config.getNetworkConfig().getJoin().getTcpIpConfig().getAddresses());
+  return setPossibleAddresses;
 }
