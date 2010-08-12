@@ -7,35 +7,47 @@
       currentAddress=InetAddress.getByName(localAddress.trim()).getHostAddress();
     }
     if (currentAddress == null) {
-      final Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
-      interfaces:       while (enums.hasMoreElements()) {
-        final NetworkInterface ni=enums.nextElement();
-        final Enumeration<InetAddress> e=ni.getInetAddresses();
-        while (e.hasMoreElements()) {
-          final InetAddress inetAddress=e.nextElement();
-          if (inetAddress instanceof Inet4Address) {
-            final String address=inetAddress.getHostAddress();
-            final Collection<String> interfaces=config.getNetworkConfig().getInterfaces().getInterfaces();
-            if (config.getNetworkConfig().getInterfaces().isEnabled()) {
+      final Set<String> interfaces=new HashSet<String>();
+      if (config.getNetworkConfig().getJoin().getTcpIpConfig().isEnabled()) {
+        Collection<Address> possibleAddresses=node.getPossibleMembers();
+        for (        Address possibleAddress : possibleAddresses) {
+          interfaces.add(possibleAddress.getHost());
+        }
+      }
+      if (config.getNetworkConfig().getInterfaces().isEnabled()) {
+        interfaces.addAll(config.getNetworkConfig().getInterfaces().getInterfaces());
+      }
+      if (interfaces.contains("127.0.0.1")) {
+        currentAddress="127.0.0.1";
+      }
+ else {
+        final Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
+        interfaces:         while (enums.hasMoreElements()) {
+          final NetworkInterface ni=enums.nextElement();
+          final Enumeration<InetAddress> e=ni.getInetAddresses();
+          while (e.hasMoreElements()) {
+            final InetAddress inetAddress=e.nextElement();
+            if (inetAddress instanceof Inet4Address) {
+              final String address=inetAddress.getHostAddress();
               if (matchAddress(address,interfaces)) {
                 currentAddress=address;
                 break interfaces;
               }
-            }
  else {
-              if (!inetAddress.isLoopbackAddress()) {
-                currentAddress=address;
-                break interfaces;
+                if (!inetAddress.isLoopbackAddress()) {
+                  currentAddress=address;
+                  break interfaces;
+                }
               }
             }
           }
         }
-      }
-      if (config.getNetworkConfig().getInterfaces().isEnabled() && currentAddress == null) {
-        String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
-        msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
-        logger.log(Level.SEVERE,msg);
-        throw new RuntimeException(msg);
+        if (config.getNetworkConfig().getInterfaces().isEnabled() && currentAddress == null) {
+          String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
+          msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
+          logger.log(Level.SEVERE,msg);
+          throw new RuntimeException(msg);
+        }
       }
     }
     if (currentAddress == null) {
