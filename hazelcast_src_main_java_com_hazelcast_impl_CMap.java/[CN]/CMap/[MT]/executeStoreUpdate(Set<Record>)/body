@@ -1,0 +1,41 @@
+{
+  if (dirtyRecords.size() > 0) {
+    concurrentMapManager.node.executorManager.executeStoreTask(new Runnable(){
+      public void run(){
+        try {
+          Set<Object> keysToDelete=new HashSet<Object>();
+          Map<Object,Object> updates=new HashMap<Object,Object>();
+          for (          Record dirtyRecord : dirtyRecords) {
+            dirtyRecord.setDirty(false);
+            if (!dirtyRecord.isActive()) {
+              keysToDelete.add(dirtyRecord.getRecordEntry().getKey());
+            }
+ else {
+              Map.Entry entry=dirtyRecord.getRecordEntry();
+              updates.put(entry.getKey(),entry.getValue());
+            }
+          }
+          if (keysToDelete.size() == 1) {
+            store.delete(keysToDelete.iterator().next());
+          }
+ else           if (keysToDelete.size() > 1) {
+            store.deleteAll(keysToDelete);
+          }
+          if (updates.size() == 1) {
+            Map.Entry entry=updates.entrySet().iterator().next();
+            store.store(entry.getKey(),entry.getValue());
+          }
+ else           if (updates.size() > 1) {
+            store.storeAll(updates);
+          }
+        }
+ catch (        Exception e) {
+          for (          Record dirtyRecord : dirtyRecords) {
+            dirtyRecord.setDirty(true);
+          }
+        }
+      }
+    }
+);
+  }
+}
