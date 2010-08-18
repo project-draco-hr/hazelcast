@@ -1,4 +1,5 @@
 {
+  boolean done=true;
   long remainingMillis=timeoutMillis;
   try {
     for (    MemberCall memberCall : lsMemberCalls) {
@@ -8,7 +9,8 @@
       }
  else {
         if (remainingMillis < 0) {
-          innerFutureTask.innerSetException(new TimeoutException());
+          done=false;
+          innerFutureTask.innerSetException(new TimeoutException(),done);
           return;
         }
         memberCall.get(remainingMillis,TimeUnit.MILLISECONDS);
@@ -17,10 +19,11 @@
     }
   }
  catch (  Exception e) {
-    e.printStackTrace();
-    innerFutureTask.innerSetException(e);
+    innerFutureTask.innerSetException(e,done);
   }
  finally {
-    innerFutureTask.innerDone();
+    if (done) {
+      innerFutureTask.innerDone();
+    }
   }
 }
