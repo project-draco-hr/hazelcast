@@ -1,14 +1,24 @@
 {
   Object result=null;
   try {
-    Callable callable=(Callable)toObject(request.value);
-    result=callable.call();
-    result=toData(result);
+    runningThread=Thread.currentThread();
+    running=true;
+    if (!cancelled) {
+      Callable callable=(Callable)toObject(request.value);
+      result=callable.call();
+      result=toData(result);
+    }
   }
  catch (  Throwable e) {
     result=toData(e);
   }
  finally {
+    if (cancelled) {
+      result=toData(new CancellationException());
+    }
+    running=false;
+    done=true;
+    executions.remove(executionKey);
     request.clearForResponse();
     request.response=result;
     enqueueAndReturn(new ReturnResponseProcess(request));
