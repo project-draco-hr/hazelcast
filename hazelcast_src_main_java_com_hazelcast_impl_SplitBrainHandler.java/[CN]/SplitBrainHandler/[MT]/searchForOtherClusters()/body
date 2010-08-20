@@ -1,0 +1,47 @@
+{
+  Config config=node.getConfig();
+  boolean multicastEnabled=config.getNetworkConfig().getJoin().getMulticastConfig().isEnabled();
+  boolean tcpEnabled=config.getNetworkConfig().getJoin().getTcpIpConfig().isEnabled();
+  if (multicastEnabled) {
+    final BlockingQueue q=new LinkedBlockingQueue();
+    MulticastListener listener=new MulticastListener(){
+      public void onMessage(      Object msg){
+        if (msg != null && msg instanceof JoinInfo) {
+          JoinInfo joinInfo=(JoinInfo)msg;
+          if (node.address != null && !node.address.equals(joinInfo.address)) {
+            q.offer(msg);
+          }
+        }
+      }
+    }
+;
+    node.multicastService.addMulticastListener(listener);
+    node.multicastService.send(node.createJoinInfo());
+    try {
+      JoinInfo joinInfo=(JoinInfo)q.poll(3,TimeUnit.SECONDS);
+      node.multicastService.removeMulticastListener(listener);
+      if (joinInfo != null) {
+        if (node.validateJoinRequest(joinInfo)) {
+          boolean shouldJoin=false;
+          int currentMemberCount=node.getClusterImpl().getMembers().size();
+          if (joinInfo.getMemberCount() > currentMemberCount) {
+            shouldJoin=true;
+          }
+ else           if (joinInfo.getMemberCount() == currentMemberCount) {
+            if (node.getThisAddress().hashCode() > joinInfo.address.hashCode()) {
+              shouldJoin=true;
+            }
+          }
+          if (shouldJoin) {
+            node.factory.restart();
+          }
+        }
+      }
+    }
+ catch (    InterruptedException ignored) {
+    }
+catch (    Exception e) {
+      e.printStackTrace();
+    }
+  }
+}
