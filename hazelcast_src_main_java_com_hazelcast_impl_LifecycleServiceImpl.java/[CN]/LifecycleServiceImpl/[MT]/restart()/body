@@ -1,0 +1,43 @@
+{
+synchronized (lifecycleLock) {
+    fireLifecycleEvent(new LifecycleEvent(LifecycleEvent.LifecycleState.RESTARTING));
+    paused.set(true);
+    List<Record> lsOwnedRecords=new ArrayList<Record>();
+    for (    CMap cmap : node.concurrentMapManager.getCMaps().values()) {
+      if (cmap.isUserMap()) {
+        lsOwnedRecords.addAll(cmap.getMapIndexService().getOwnedRecords());
+      }
+    }
+    node.connectionManager.onRestart();
+    node.clusterManager.onRestart();
+    node.concurrentMapManager.onRestart();
+    node.rejoin();
+    final CountDownLatch latch=new CountDownLatch(lsOwnedRecords.size());
+    final ParallelExecutor executor=node.executorManager.newParallelExecutor(16);
+    for (    final Record ownedRecord : lsOwnedRecords) {
+      executor.execute(new Runnable(){
+        public void run(){
+          try {
+            ConcurrentMapManager.MPut mput=node.concurrentMapManager.new MPut();
+            System.out.println("sending merge");
+            mput.merge(ownedRecord);
+            latch.countDown();
+            System.out.println("merge complete " + latch.getCount());
+          }
+ catch (          Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+);
+    }
+    try {
+      latch.await(30,TimeUnit.SECONDS);
+    }
+ catch (    InterruptedException ignored) {
+    }
+    logger.log(Level.INFO,node.getThisAddress() + " is restarted!");
+    paused.set(false);
+    fireLifecycleEvent(new LifecycleEvent(LifecycleEvent.LifecycleState.RESTARTED));
+  }
+}
