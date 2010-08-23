@@ -4,9 +4,11 @@
   assertTrue(lock.tryLock());
   lock.lock();
   final CountDownLatch latch=new CountDownLatch(1);
+  final CountDownLatch unlockLatch=new CountDownLatch(1);
   new Thread(new Runnable(){
     public void run(){
       assertFalse(lock.tryLock());
+      unlockLatch.countDown();
       try {
         assertTrue(lock.tryLock(10,TimeUnit.SECONDS));
       }
@@ -17,10 +19,8 @@
     }
   }
 ).start();
-  Thread.sleep(100);
-  assertEquals(1,latch.getCount());
+  assertTrue(unlockLatch.await(10,TimeUnit.SECONDS));
   lock.unlock();
   lock.unlock();
-  Thread.sleep(100);
   assertTrue(latch.await(10,TimeUnit.SECONDS));
 }
