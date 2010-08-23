@@ -28,6 +28,20 @@
     }
   }
 );
+  registerPacketProcessor(ClusterOperation.JOIN_CHECK,new PacketProcessor(){
+    public void process(    Packet packet){
+      Connection conn=packet.conn;
+      Request request=Request.copy(packet);
+      JoinInfo joinInfo=(JoinInfo)toObject(request.value);
+      request.clearForResponse();
+      if (joinInfo != null && node.joined() && node.isActive() && node.validateJoinRequest(joinInfo)) {
+        request.response=toData(node.createJoinInfo());
+      }
+      returnResponse(request,conn);
+      releasePacket(packet);
+    }
+  }
+);
   registerPacketProcessor(ClusterOperation.REMOTELY_PROCESS_AND_RESPOND,new PacketProcessor(){
     public void process(    Packet packet){
       Data data=packet.getValueData();

@@ -20,28 +20,46 @@
     try {
       JoinInfo joinInfo=(JoinInfo)q.poll(3,TimeUnit.SECONDS);
       node.multicastService.removeMulticastListener(listener);
-      if (joinInfo != null) {
-        if (node.validateJoinRequest(joinInfo)) {
-          boolean shouldJoin=false;
-          int currentMemberCount=node.getClusterImpl().getMembers().size();
-          if (joinInfo.getMemberCount() > currentMemberCount) {
-            shouldJoin=true;
-          }
- else           if (joinInfo.getMemberCount() == currentMemberCount) {
-            if (node.getThisAddress().hashCode() > joinInfo.address.hashCode()) {
-              shouldJoin=true;
-            }
-          }
-          if (shouldJoin) {
-            node.factory.restart();
-          }
-        }
+      if (shouldJoin(joinInfo)) {
+        node.factory.restart();
+        return;
       }
     }
  catch (    InterruptedException ignored) {
     }
 catch (    Exception e) {
       e.printStackTrace();
+    }
+  }
+  if (tcpEnabled) {
+    final Collection<Address> colPossibleAddresses=node.getPossibleMembers();
+    colPossibleAddresses.remove(node.getThisAddress());
+    for (    Member member : node.getClusterImpl().getMembers()) {
+      colPossibleAddresses.remove(((MemberImpl)member).getAddress());
+    }
+    if (colPossibleAddresses.size() == 0) {
+      return;
+    }
+    for (    final Address possibleAddress : colPossibleAddresses) {
+      logger.log(Level.FINEST,node.getThisAddress() + " is connecting to " + possibleAddress);
+      node.connectionManager.getOrConnect(possibleAddress);
+    }
+    for (    Address possibleAddress : colPossibleAddresses) {
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException e) {
+        return;
+      }
+      final Connection conn=node.connectionManager.getOrConnect(possibleAddress);
+      if (conn != null) {
+        JoinInfo response=node.clusterManager.checkJoin(conn);
+        if (shouldJoin(response)) {
+          lastRun=System.currentTimeMillis() + FIRST_RUN_DELAY_MILLIS;
+          node.factory.restart();
+        }
+        return;
+      }
     }
   }
 }
