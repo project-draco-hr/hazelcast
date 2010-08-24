@@ -1,5 +1,8 @@
 {
   Object result=waitAndGetResult();
+  if (Thread.interrupted()) {
+    handleInterruptedException();
+  }
   if (result == OBJECT_REDO) {
     request.redoCount++;
     if (request.redoCount > 19 && (request.redoCount % 10 == 0)) {
@@ -39,13 +42,14 @@
         l.await();
       }
  catch (      InterruptedException e) {
+        handleInterruptedException();
       }
     }
     try {
       Thread.sleep(redoWaitMillis);
     }
  catch (    InterruptedException e) {
-      throw new RuntimeException(e);
+      handleInterruptedException();
     }
     beforeRedo();
     doOp();
