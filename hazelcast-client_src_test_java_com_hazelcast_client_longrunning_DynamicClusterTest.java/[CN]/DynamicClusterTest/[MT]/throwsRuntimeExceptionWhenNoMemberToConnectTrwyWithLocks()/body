@@ -1,0 +1,22 @@
+{
+  try {
+    HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+    HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+    Map realMap=h1.getMap("default");
+    Map<Integer,HazelcastInstance> memberMap=getMapOfClusterMembers(h1);
+    client=getHazelcastClient(h1,h3);
+    Map map=client.getMap("default");
+    int counter=0;
+    realMap.get("currentIteratedKey");
+    while (counter < 2) {
+      map.put("currentIteratedKey",counter);
+      assertEquals(counter,map.get("currentIteratedKey"));
+      assertEquals(counter,realMap.get("currentIteratedKey"));
+      memberMap.get(client.getConnectionManager().getConnection().getAddress().getPort()).shutdown();
+      counter++;
+    }
+  }
+ catch (  Exception e) {
+    System.out.println("Here is the exception: " + e);
+  }
+}
