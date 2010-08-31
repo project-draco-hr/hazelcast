@@ -1,0 +1,25 @@
+{
+  if (cmap.cleanupState == CMap.CleanupState.CLEANING) {
+    return;
+  }
+  cmap.cleanupState=CMap.CleanupState.CLEANING;
+  executeLocally(new FallThroughRunnable(){
+    public void doRun(){
+      try {
+        cmap.startCleanup(forced);
+      }
+ catch (      Exception e) {
+        logger.log(Level.SEVERE,e.getMessage(),e);
+      }
+ finally {
+        enqueueAndReturn(new Processable(){
+          public void process(){
+            cmap.cleanupState=CMap.CleanupState.NONE;
+          }
+        }
+);
+      }
+    }
+  }
+);
+}

@@ -1,0 +1,16 @@
+{
+  int perJVMMaxSize=maxSize / concurrentMapManager.getMembers().size();
+  if (perJVMMaxSize <= mapIndexService.size()) {
+    boolean addOp=(request.operation == ClusterOperation.CONCURRENT_MAP_PUT) || (request.operation == ClusterOperation.CONCURRENT_MAP_PUT_IF_ABSENT);
+    if (addOp) {
+      Record record=getRecord(request.key);
+      if (record == null) {
+        if (cleanupState == CleanupState.NONE) {
+          cleanupState=CleanupState.SHOULD_CLEAN;
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
