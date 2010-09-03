@@ -48,7 +48,7 @@
       mapStoreWrapper=new MapStoreWrapper(storeInstance,node.factory.getHazelcastInstanceProxy(),mapStoreConfig.getProperties(),mapConfigName);
     }
  catch (    Exception e) {
-      e.printStackTrace();
+      logger.log(Level.SEVERE,e.getMessage(),e);
     }
     writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
   }
@@ -76,5 +76,23 @@
     mapNearCache=new MapNearCache(this,SortedHashMap.getOrderingTypeByName(nearCacheConfig.getEvictionPolicy()),nearCacheConfig.getMaxSize(),nearCacheConfig.getTimeToLiveSeconds() * 1000L,nearCacheConfig.getMaxIdleSeconds() * 1000L,nearCacheConfig.isInvalidateOnChange());
     concurrentMapManager.mapCaches.put(name,mapNearCache);
   }
+  MergePolicy mergePolicyTemp=null;
+  String mergePolicyName=mapConfig.getMergePolicy();
+  if (mergePolicyName != null && !"hz.NO_MERGE".equalsIgnoreCase(mergePolicyName)) {
+    MergePolicyConfig mergePolicyConfig=node.getConfig().getMergePolicyConfig(mapConfig.getMergePolicy());
+    if (mergePolicyConfig != null) {
+      mergePolicyTemp=mergePolicyConfig.getImplementation();
+      if (mergePolicyTemp == null) {
+        String mergeClassName=mergePolicyConfig.getClassName();
+        try {
+          mergePolicyTemp=(MergePolicy)Serializer.classForName(node.getConfig().getClassLoader(),mergeClassName).newInstance();
+        }
+ catch (        Exception e) {
+          logger.log(Level.SEVERE,e.getMessage(),e);
+        }
+      }
+    }
+  }
+  this.mergePolicy=mergePolicyTemp;
   this.creationTime=System.currentTimeMillis();
 }
