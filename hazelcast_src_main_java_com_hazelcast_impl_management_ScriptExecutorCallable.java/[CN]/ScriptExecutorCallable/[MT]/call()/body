@@ -1,0 +1,32 @@
+{
+  if (scriptEngineManagerClass == null) {
+    throw new ClassNotFoundException("ScriptEngineManager class could not be loaded!");
+  }
+  Object engine=null;
+synchronized (lock) {
+    if (scriptEngineManager == null) {
+      scriptEngineManager=scriptEngineManagerClass.newInstance();
+      mGetEngineByName=scriptEngineManagerClass.getMethod("getEngineByName",new Class[]{String.class});
+    }
+    engine=mGetEngineByName.invoke(scriptEngineManager,engineName);
+  }
+  if (engine == null) {
+    throw new NullPointerException("Could not find ScriptEngine named '" + engineName + "'.");
+  }
+  if (bindings != null) {
+    Method put=engine.getClass().getMethod("put",new Class[]{String.class,Object.class});
+    Set<Entry<String,Serializable>> entries=bindings.entrySet();
+    for (    Entry<String,Serializable> entry : entries) {
+      put.invoke(engine,entry.getKey(),entry.getValue());
+    }
+  }
+  Method eval=engine.getClass().getMethod("eval",new Class[]{String.class});
+  Object result=eval.invoke(engine,script);
+  if (result == null) {
+    return null;
+  }
+  if (result instanceof Serializable) {
+    return (Serializable)result;
+  }
+  throw new NotSerializableException(result.getClass().getName());
+}
