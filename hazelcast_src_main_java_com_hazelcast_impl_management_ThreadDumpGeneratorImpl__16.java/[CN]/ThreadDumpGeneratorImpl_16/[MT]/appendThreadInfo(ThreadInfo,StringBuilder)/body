@@ -1,0 +1,59 @@
+{
+  sb.append("\"" + info.getThreadName() + "\""+ " Id="+ info.getThreadId()+ " "+ info.getThreadState());
+  if (info.getLockName() != null) {
+    sb.append(" on " + info.getLockName());
+  }
+  if (info.getLockOwnerName() != null) {
+    sb.append(" owned by \"" + info.getLockOwnerName() + "\" Id="+ info.getLockOwnerId());
+  }
+  if (info.isSuspended()) {
+    sb.append(" (suspended)");
+  }
+  if (info.isInNative()) {
+    sb.append(" (in native)");
+  }
+  sb.append('\n');
+  StackTraceElement[] stackTrace=info.getStackTrace();
+  for (int i=0; i < stackTrace.length; i++) {
+    StackTraceElement ste=stackTrace[i];
+    sb.append("\tat " + ste.toString());
+    sb.append('\n');
+    Object lockInfo=objectCall(info,ThreadInfo_getLockInfo);
+    if (i == 0 && lockInfo != null) {
+      Thread.State ts=info.getThreadState();
+switch (ts) {
+case BLOCKED:
+        sb.append("\t-  blocked on " + lockInfo);
+      sb.append('\n');
+    break;
+case WAITING:
+  sb.append("\t-  waiting on " + lockInfo);
+sb.append('\n');
+break;
+case TIMED_WAITING:
+sb.append("\t-  waiting on " + lockInfo);
+sb.append('\n');
+break;
+default :
+}
+}
+Object[] monitorInfo=objectCall(info,ThreadInfo_getLockedMonitors);
+for (Object mi : monitorInfo) {
+Integer depth=objectCall(mi,MonitorInfo_getLockedStackDepth);
+if (depth == i) {
+sb.append("\t-  locked " + mi);
+sb.append('\n');
+}
+}
+}
+Object[] locks=objectCall(info,ThreadInfo_getLockedSynchronizers);
+if (locks.length > 0) {
+sb.append("\n\tNumber of locked synchronizers = " + locks.length);
+sb.append('\n');
+for (Object li : locks) {
+sb.append("\t- " + li);
+sb.append('\n');
+}
+}
+sb.append('\n');
+}
