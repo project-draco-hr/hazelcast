@@ -1,0 +1,20 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  HazelcastClient client=newHazelcastClient(h1);
+  final CountDownLatch memberAddLatch=new CountDownLatch(1);
+  final CountDownLatch memberRemoveLatch=new CountDownLatch(1);
+  client.getCluster().addMembershipListener(new MembershipListener(){
+    public void memberAdded(    MembershipEvent membershipEvent){
+      memberAddLatch.countDown();
+    }
+    public void memberRemoved(    MembershipEvent membershipEvent){
+      memberRemoveLatch.countDown();
+    }
+  }
+);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(new Config());
+  h2.getLifecycleService().shutdown();
+  assertTrue(memberAddLatch.await(10,TimeUnit.SECONDS));
+  assertTrue(memberRemoveLatch.await(10,TimeUnit.SECONDS));
+  client.shutdown();
+}
