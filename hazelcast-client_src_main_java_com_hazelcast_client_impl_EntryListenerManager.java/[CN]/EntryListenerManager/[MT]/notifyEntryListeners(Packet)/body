@@ -1,19 +1,13 @@
 {
-  Object object=toObject(packet.getValue());
   Object oldValue=null;
-  Object value=null;
-  if (object != null) {
-    if (object instanceof Values) {
-      Values values=(Values)object;
-      final Object[] array=values.toArray();
-      oldValue=array.length == 2 ? array[0] : null;
-      value=array.length == 2 ? array[1] : array.length == 1 ? array[0] : null;
-    }
- else {
-      value=object;
-    }
+  Object value=toObject(packet.getValue());
+  if (value instanceof CollectionWrapper) {
+    final CollectionWrapper values=(CollectionWrapper)value;
+    final Iterator it=values.getKeys().iterator();
+    value=it.hasNext() ? it.next() : null;
+    oldValue=it.hasNext() ? it.next() : null;
   }
-  EntryEvent event=new EntryEvent(packet.getName(),null,(int)packet.getLongValue(),toObject(packet.getKey()),oldValue,value);
+  final EntryEvent event=new EntryEvent(packet.getName(),null,(int)packet.getLongValue(),toObject(packet.getKey()),oldValue,value);
   String name=event.getName();
   Object key=event.getKey();
   if (entryListeners.get(name) != null) {
