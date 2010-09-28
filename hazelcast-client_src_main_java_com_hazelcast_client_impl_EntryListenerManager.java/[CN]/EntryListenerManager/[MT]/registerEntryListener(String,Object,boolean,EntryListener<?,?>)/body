@@ -1,14 +1,15 @@
 {
-  Map<Object,List<EntryListenerHolder>> map=entryListeners.get(name);
+  ConcurrentHashMap<Object,List<EntryListenerHolder>> map=entryListeners.get(name);
+  key=toKey(key);
   if (map == null) {
-    map=new HashMap<Object,List<EntryListenerHolder>>();
-    final Map<Object,List<EntryListenerHolder>> map2=entryListeners.putIfAbsent(name,map);
+    map=new ConcurrentHashMap<Object,List<EntryListenerHolder>>();
+    final ConcurrentHashMap<Object,List<EntryListenerHolder>> map2=entryListeners.putIfAbsent(name,map);
     if (map2 != null) {
       map=map2;
     }
   }
-  if (!map.containsKey(key)) {
-    map.put(key,new CopyOnWriteArrayList<EntryListenerHolder>());
+  if (!map.contains(key)) {
+    map.putIfAbsent(key,new CopyOnWriteArrayList<EntryListenerHolder>());
   }
   map.get(key).add(new EntryListenerHolder(entryListener,includeValue));
 }
