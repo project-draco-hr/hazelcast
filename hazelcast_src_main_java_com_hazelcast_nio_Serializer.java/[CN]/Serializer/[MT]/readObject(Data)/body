@@ -1,16 +1,11 @@
 {
-  try {
-    if (data == null || data.size() == 0)     return null;
-    bbis.set(data.buffer,data.size());
-    byte typeId=bbis.readByte();
-    Object obj=typeSerializer[typeId].read(bbis);
-    if (obj instanceof HazelcastInstanceAware) {
-      ((HazelcastInstanceAware)obj).setHazelcastInstance(ThreadContext.get().getCurrentFactory());
-    }
-    return obj;
+  if ((data == null) || (data.buffer == null) || (data.buffer.length == 0)) {
+    return null;
   }
- catch (  Throwable e) {
-    logger.log(Level.SEVERE,e.getMessage(),e);
-    throw new RuntimeException(e);
+  this.bbis.set(data.buffer,data.buffer.length);
+  final Object obj=toObject(this.bbis);
+  if (obj instanceof HazelcastInstanceAware) {
+    ((HazelcastInstanceAware)obj).setHazelcastInstance(ThreadContext.get().getCurrentFactory());
   }
+  return obj;
 }
