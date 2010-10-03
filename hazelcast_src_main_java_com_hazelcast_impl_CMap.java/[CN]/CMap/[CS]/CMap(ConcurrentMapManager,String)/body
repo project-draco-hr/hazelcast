@@ -54,8 +54,12 @@
     writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
   }
   if (!node.isSuperClient() && evictionPolicy == EvictionPolicy.NONE && instanceType == Instance.InstanceType.MAP) {
-    locallyOwnedMap=new LocallyOwnedMap();
-    concurrentMapManager.mapLocallyOwnedMaps.put(name,locallyOwnedMap);
+    LocallyOwnedMap locallyOwnedMap=new LocallyOwnedMap();
+    LocallyOwnedMap anotherLocallyOwnedMap=concurrentMapManager.mapLocallyOwnedMaps.putIfAbsent(name,locallyOwnedMap);
+    if (anotherLocallyOwnedMap != null) {
+      locallyOwnedMap=anotherLocallyOwnedMap;
+    }
+    this.locallyOwnedMap=locallyOwnedMap;
   }
  else {
     locallyOwnedMap=null;
@@ -74,8 +78,12 @@
     mapNearCache=null;
   }
  else {
-    mapNearCache=new MapNearCache(this,SortedHashMap.getOrderingTypeByName(nearCacheConfig.getEvictionPolicy()),nearCacheConfig.getMaxSize(),nearCacheConfig.getTimeToLiveSeconds() * 1000L,nearCacheConfig.getMaxIdleSeconds() * 1000L,nearCacheConfig.isInvalidateOnChange());
-    concurrentMapManager.mapCaches.put(name,mapNearCache);
+    MapNearCache mapNearCache=new MapNearCache(this,SortedHashMap.getOrderingTypeByName(nearCacheConfig.getEvictionPolicy()),nearCacheConfig.getMaxSize(),nearCacheConfig.getTimeToLiveSeconds() * 1000L,nearCacheConfig.getMaxIdleSeconds() * 1000L,nearCacheConfig.isInvalidateOnChange());
+    final MapNearCache anotherMapNearCache=concurrentMapManager.mapCaches.putIfAbsent(name,mapNearCache);
+    if (anotherMapNearCache != null) {
+      mapNearCache=anotherMapNearCache;
+    }
+    this.mapNearCache=mapNearCache;
   }
   MergePolicy mergePolicyTemp=null;
   String mergePolicyName=mapConfig.getMergePolicy();
