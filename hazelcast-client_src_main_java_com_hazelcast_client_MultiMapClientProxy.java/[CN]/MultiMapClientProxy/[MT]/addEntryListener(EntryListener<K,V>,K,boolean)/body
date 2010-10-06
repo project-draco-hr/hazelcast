@@ -1,16 +1,13 @@
 {
   check(listener);
-  Boolean noEntryListenerRegistered=client.getListenerManager().getEntryListenerManager().noEntryListenerRegistered(key,name,includeValue);
+  Boolean noEntryListenerRegistered=entryListenerManager().noEntryListenerRegistered(key,name,includeValue);
   if (noEntryListenerRegistered == null) {
     proxyHelper.doOp(ClusterOperation.REMOVE_LISTENER,key,null);
     noEntryListenerRegistered=Boolean.TRUE;
   }
   if (noEntryListenerRegistered.booleanValue()) {
-    Packet request=proxyHelper.createRequestPacket(ClusterOperation.ADD_LISTENER,toByte(key),null);
-    request.setLongValue(includeValue ? 1 : 0);
-    Call c=proxyHelper.createCall(request);
-    client.getListenerManager().addListenerCall(c);
+    Call c=entryListenerManager().createNewAddListenerCall(proxyHelper,key,includeValue);
     proxyHelper.doCall(c);
   }
-  client.getListenerManager().getEntryListenerManager().registerEntryListener(name,key,includeValue,listener);
+  entryListenerManager().registerEntryListener(name,key,includeValue,listener);
 }

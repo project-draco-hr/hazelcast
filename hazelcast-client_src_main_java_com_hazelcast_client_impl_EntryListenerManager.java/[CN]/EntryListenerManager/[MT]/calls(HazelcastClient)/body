@@ -1,0 +1,18 @@
+{
+  final List<Call> calls=new ArrayList<Call>();
+  for (  final Entry<String,ConcurrentHashMap<Object,List<EntryListenerHolder>>> entry : entryListeners.entrySet()) {
+    final String name=entry.getKey();
+    final ConcurrentHashMap<Object,List<EntryListenerHolder>> value=entry.getValue();
+    for (    final Entry<Object,List<EntryListenerHolder>> anotherEntry : value.entrySet()) {
+      boolean includeValue=false;
+      final Object key=fromKey(anotherEntry.getKey());
+      for (      final EntryListenerHolder entryListenerHolder : anotherEntry.getValue()) {
+        includeValue|=entryListenerHolder.includeValue;
+        if (includeValue)         break;
+      }
+      final ProxyHelper proxyHelper=new ProxyHelper(name,client);
+      calls.add(createNewAddListenerCall(proxyHelper,key,includeValue));
+    }
+  }
+  return calls;
+}
