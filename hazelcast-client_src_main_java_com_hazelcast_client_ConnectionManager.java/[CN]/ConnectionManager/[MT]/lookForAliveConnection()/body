@@ -1,4 +1,6 @@
 {
+  final int attemptsLimit=client.getProperties().getInteger(ClientPropertyName.RECONNECTION_ATTEMPTS_LIMIT);
+  final int reconnectionTimeout=client.getProperties().getInteger(ClientPropertyName.RECONNECTION_TIMEOUT);
   boolean restored=false;
   int attempt=0;
   while (currentConnection == null) {
@@ -12,13 +14,13 @@ synchronized (this) {
       logger.log(Level.FINE,"Client is connecting to " + currentConnection);
       break;
     }
-    if (attempt >= RECONNECTION_ATTEMPTS_LIMIT) {
+    if (attempt >= attemptsLimit) {
       break;
     }
     attempt++;
-    logger.log(Level.INFO,format("Unable to get alive cluster connection," + " try in {0} ms later, attempt {1} of {2}.",RECONNECTION_TIMEOUT,attempt,RECONNECTION_ATTEMPTS_LIMIT));
+    logger.log(Level.INFO,format("Unable to get alive cluster connection," + " try in {0} ms later, attempt {1} of {2}.",reconnectionTimeout,attempt,attemptsLimit));
     try {
-      Thread.sleep(RECONNECTION_TIMEOUT);
+      Thread.sleep(reconnectionTimeout);
     }
  catch (    InterruptedException e) {
       break;
