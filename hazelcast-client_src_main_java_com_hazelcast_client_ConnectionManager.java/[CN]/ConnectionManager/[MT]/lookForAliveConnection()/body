@@ -1,0 +1,31 @@
+{
+  boolean restored=false;
+  int attempt=0;
+  while (currentConnection == null) {
+synchronized (this) {
+      if (currentConnection == null) {
+        currentConnection=searchForAvailableConnection();
+        restored=currentConnection != null;
+      }
+    }
+    if (currentConnection != null) {
+      logger.log(Level.FINE,"Client is connecting to " + currentConnection);
+      break;
+    }
+    if (attempt >= RECONNECTION_ATTEMPTS_LIMIT) {
+      break;
+    }
+    attempt++;
+    logger.log(Level.INFO,format("Unable to get alive cluster connection," + " try in {0} ms later, attempt {1} of {2}.",RECONNECTION_TIMEOUT,attempt,RECONNECTION_ATTEMPTS_LIMIT));
+    try {
+      Thread.sleep(RECONNECTION_TIMEOUT);
+    }
+ catch (    InterruptedException e) {
+      break;
+    }
+  }
+  if (restored) {
+    notifyConnectionIsRestored();
+  }
+  return currentConnection;
+}

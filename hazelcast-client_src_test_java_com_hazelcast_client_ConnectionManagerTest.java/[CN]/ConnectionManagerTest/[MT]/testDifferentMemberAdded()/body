@@ -2,7 +2,9 @@
   HazelcastClient client=mock(HazelcastClient.class);
   InetSocketAddress inetSocketAddress=new InetSocketAddress("localhost",5701);
   final Connection connection=mock(Connection.class);
-  ConnectionManager connectionManager=new ConnectionManager(client,inetSocketAddress){
+  final List<LifecycleState> lifecycleEvents=new ArrayList<LifecycleState>();
+  final LifecycleServiceClientImpl lifecycleService=createLifecycleServiceClientImpl(client,lifecycleEvents);
+  ConnectionManager connectionManager=new ConnectionManager(client,lifecycleService,inetSocketAddress){
     protected Connection getNextConnection(){
       return connection;
     }
@@ -18,4 +20,5 @@
   connectionManager.memberAdded(membershipEvent);
   connectionManager.getClusterMembers().contains(inetSocketAddress2);
   assertEquals(2,connectionManager.getClusterMembers().size());
+  assertArrayEquals(new Object[0],lifecycleEvents.toArray());
 }

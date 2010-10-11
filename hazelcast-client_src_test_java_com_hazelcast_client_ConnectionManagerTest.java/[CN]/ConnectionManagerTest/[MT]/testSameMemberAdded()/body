@@ -3,7 +3,9 @@
   InetSocketAddress inetSocketAddress=new InetSocketAddress("localhost",5701);
   final Connection connection=mock(Connection.class);
   final CountDownLatch latch=new CountDownLatch(2);
-  ConnectionManager connectionManager=new ConnectionManager(client,inetSocketAddress){
+  final List<LifecycleState> lifecycleEvents=new ArrayList<LifecycleState>();
+  final LifecycleServiceClientImpl lifecycleService=createLifecycleServiceClientImpl(client,lifecycleEvents);
+  ConnectionManager connectionManager=new ConnectionManager(client,lifecycleService,inetSocketAddress){
     protected Connection getNextConnection(){
       latch.countDown();
       return connection;
@@ -19,4 +21,5 @@
   connectionManager.memberAdded(membershipEvent);
   connectionManager.getClusterMembers().contains(inetSocketAddress);
   assertEquals(1,connectionManager.getClusterMembers().size());
+  assertArrayEquals(new Object[0],lifecycleEvents.toArray());
 }

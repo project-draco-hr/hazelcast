@@ -1,0 +1,31 @@
+{
+  interruptWaitingCalls();
+  if (!reconnection) {
+    reconnection=true;
+    final Thread thread=new Thread(new Runnable(){
+      public void run(){
+        try {
+          final Connection c=client.getConnectionManager().lookForAliveConnection();
+          final Connection oldConnection=connection;
+          connection=c;
+          if (connection == null) {
+            if (reconnection) {
+              reconnection=false;
+              interruptWaitingCallsAndShutdown();
+            }
+          }
+ else           if (restoredConnection(oldConnection,connection)) {
+            resubscribe(oldConnection);
+          }
+        }
+  finally {
+          reconnection=false;
+        }
+      }
+    }
+);
+    thread.setName("hz.client.ReconnectionThread");
+    thread.setDaemon(true);
+    thread.start();
+  }
+}
