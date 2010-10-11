@@ -4,15 +4,19 @@
     if (call == null)     return;
     int count=0;
     while (call != null) {
-      callMap.put(call.getId(),call);
+      if (call != RECONNECT_CALL) {
+        callMap.put(call.getId(),call);
+      }
       Connection oldConnection=connection;
       connection=client.getConnectionManager().getConnection();
       if (restoredConnection(oldConnection,connection)) {
         resubscribe(call,oldConnection);
       }
  else       if (connection != null) {
-        logger.log(Level.FINEST,"Sending: " + call);
-        writer.write(connection,call.getRequest());
+        if (call != RECONNECT_CALL) {
+          logger.log(Level.FINEST,"Sending: " + call);
+          writer.write(connection,call.getRequest());
+        }
       }
  else {
         clusterIsDown();
