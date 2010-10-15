@@ -1,0 +1,31 @@
+{
+  final Collection<String> results=new CopyOnWriteArrayList<String>();
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance(null);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        for (int i=0; i < 5; i++) {
+          results.add((String)hz1.getQueue("q").take());
+        }
+      }
+ catch (      InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+).start();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance(null);
+  new Thread(new Runnable(){
+    public void run(){
+      for (int i=0; i < 5; i++) {
+        hz2.getQueue("q").offer(Integer.toString(i));
+      }
+    }
+  }
+).start();
+  Thread.sleep(5000);
+  assertTrue(hz1.getQueue("q").isEmpty());
+  hz1.getLifecycleService().shutdown();
+  assertTrue(hz2.getQueue("q").isEmpty());
+  assertArrayEquals(new Object[]{"0","1","2","3","4"},results.toArray());
+}
