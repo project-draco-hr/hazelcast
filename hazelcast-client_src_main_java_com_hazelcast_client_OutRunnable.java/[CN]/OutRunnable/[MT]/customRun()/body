@@ -21,6 +21,9 @@
  else {
         clusterIsDown();
       }
+      if (reconnectionCalls != null) {
+        break;
+      }
       call=null;
       if (count++ < 24) {
         call=queue.poll();
@@ -29,11 +32,27 @@
     if (connection != null) {
       writer.flush(connection);
     }
+    if (call != null && reconnectionCalls != null && reconnectionCalls.contains(call)) {
+      Object response=null;
+      for (int i=0; i < 20 && response == null; i++) {
+        response=call.getResponse(500,TimeUnit.MILLISECONDS);
+      }
+      if (response != null) {
+        if (reconnectionCalls.remove(call) && reconnectionCalls.isEmpty()) {
+          reconnectionCalls=null;
+        }
+      }
+ else {
+        logger.log(Level.WARNING,"There is no responce on reconnection call:" + call);
+      }
+    }
   }
  catch (  Throwable io) {
-    logger.log(Level.FINE,"OutRunnable got exception:" + io.getMessage());
+    logger.log(Level.WARNING,"OutRunnable got exception:" + io.getMessage());
     io.printStackTrace();
-    enQueue(call);
+    if (call != null) {
+      enQueue(call);
+    }
     client.getConnectionManager().destroyConnection(connection);
   }
 }
