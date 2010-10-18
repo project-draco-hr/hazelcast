@@ -17,12 +17,13 @@
               logger.log(Level.WARNING,"Added " + address + " to list of dead addresses because of timeout since last read");
               lsDeadAddresses.add(address);
             }
-          }
-          if (conn != null && conn.live()) {
             if ((now - memberImpl.getLastWrite()) > 500) {
               Packet packet=obtainPacket("heartbeat",null,null,ClusterOperation.HEARTBEAT,0);
               sendOrReleasePacket(packet,conn);
             }
+          }
+ else           if (conn == null && (now - memberImpl.getLastRead()) > 5000) {
+            logMissingConnection(address);
           }
         }
  catch (        Exception e) {
@@ -79,6 +80,9 @@
           }
  else {
             logger.log(Level.FINEST,"not sending heartbeat because connection is null or not live " + address);
+            if (conn == null && (now - member.getLastRead()) > 5000) {
+              logMissingConnection(address);
+            }
           }
         }
       }
