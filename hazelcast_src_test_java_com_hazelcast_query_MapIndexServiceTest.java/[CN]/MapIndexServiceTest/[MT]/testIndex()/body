@@ -1,4 +1,5 @@
 {
+  CMap cmap=mockCMap("default");
   MapIndexService mapIndexService=new MapIndexService(false);
   Map<Expression,Index> indexes=mapIndexService.getIndexes();
   assertFalse(mapIndexService.hasIndexedAttributes());
@@ -12,13 +13,12 @@
   assertTrue(indexes.containsKey(ageExpression));
   assertTrue(indexes.containsKey(salaryExpression));
   assertTrue(mapIndexService.hasIndexedAttributes());
-  for (int i=0; i < 200000; i++) {
+  for (int i=0; i < 20000; i++) {
     Employee employee=new Employee(i + "Name",i % 80,(i % 2 == 0),100 + (i % 1000));
-    Record record=newRecord(i,"key" + i,employee);
+    Record record=newRecord(cmap,i,"key" + i,employee);
     record.setIndexes(mapIndexService.getIndexValues(employee),mapIndexService.getIndexTypes());
     mapIndexService.index(record);
   }
-  System.out.println("done");
   long total=Runtime.getRuntime().totalMemory();
   long free=Runtime.getRuntime().freeMemory();
   System.out.println("Used Memory:" + ((total - free) / 1024 / 1024));
@@ -26,5 +26,6 @@
     long start=System.currentTimeMillis();
     QueryContext queryContext=new QueryContext("default",new SqlPredicate("salary=161 and age >20 and age <23"));
     Set<MapEntry> results=mapIndexService.doQuery(queryContext);
+    assertEquals(10,results.size());
   }
 }

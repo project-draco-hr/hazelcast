@@ -1,6 +1,6 @@
 {
+  FactoryImpl factory=null;
   try {
-    FactoryImpl factory=null;
 synchronized (factoryLock) {
       if (config == null) {
         config=new XmlConfigBuilder().build();
@@ -9,6 +9,7 @@ synchronized (factoryLock) {
       factory=new FactoryImpl(name,config);
       FactoryImpl old=factories.put(name,factory);
       if (old != null) {
+        factory.logger.log(Level.SEVERE,"HazelcastInstance with [" + name + "] already exist!");
         throw new RuntimeException();
       }
       if (!jmxRegistered) {
@@ -41,6 +42,9 @@ synchronized (factoryLock) {
     return factory.hazelcastInstanceProxy;
   }
  catch (  Throwable t) {
+    if (factory != null) {
+      factory.logger.log(Level.SEVERE,t.getMessage(),t);
+    }
     throw new RuntimeException(t);
   }
 }
