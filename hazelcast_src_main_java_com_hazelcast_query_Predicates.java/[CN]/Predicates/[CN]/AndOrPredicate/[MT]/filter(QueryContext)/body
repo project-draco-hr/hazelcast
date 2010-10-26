@@ -1,3 +1,32 @@
 {
-  return null;
+  Set<MapEntry> results=null;
+  for (  Predicate predicate : predicates) {
+    if (predicate instanceof IndexAwarePredicate) {
+      IndexAwarePredicate p=(IndexAwarePredicate)predicate;
+      final Set<MapEntry> filter=p.filter(queryContext);
+      if (and && filter.isEmpty())       return null;
+      if (results == null) {
+        results=and ? filter : new HashSet<MapEntry>(filter);
+      }
+ else {
+        if (and) {
+          boolean direct=results.size() < filter.size();
+          final Set<MapEntry> s1=direct ? results : filter;
+          final Set<MapEntry> s2=direct ? filter : results;
+          results=new HashSet<MapEntry>();
+          for (final Iterator<MapEntry> it=s1.iterator(); it.hasNext(); ) {
+            final MapEntry next=it.next();
+            if (s2.contains(next)) {
+              results.add(next);
+            }
+          }
+          if (results.isEmpty())           return null;
+        }
+ else {
+          results.addAll(filter);
+        }
+      }
+    }
+  }
+  return results;
 }

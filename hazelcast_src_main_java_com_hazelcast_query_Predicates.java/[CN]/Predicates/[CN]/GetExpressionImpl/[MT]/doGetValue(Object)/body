@@ -5,28 +5,40 @@
   if (obj == null)   return null;
   try {
     if (getter == null) {
+      Getter parent=null;
+      Object o=obj;
       List<String> possibleMethodNames=new ArrayList<String>(3);
-      possibleMethodNames.add(input);
-      possibleMethodNames.add("get" + input.substring(0,1).toUpperCase() + input.substring(1));
-      possibleMethodNames.add("is" + input.substring(0,1).toUpperCase() + input.substring(1));
-      getter:       for (      String methodName : possibleMethodNames) {
-        try {
-          getter=new MethodGetter(obj.getClass().getMethod(methodName,null));
-          break getter;
+      for (      final String name : input.split("\\.")) {
+        Getter localGetter=null;
+        o=parent != null ? parent.getValue(obj) : obj;
+        if (o == null)         return null;
+        Class clazz=o.getClass();
+        possibleMethodNames.clear();
+        possibleMethodNames.add(name);
+        final String camelName=Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        possibleMethodNames.add("get" + camelName);
+        possibleMethodNames.add("is" + camelName);
+        for (        String methodName : possibleMethodNames) {
+          try {
+            localGetter=new MethodGetter(parent,clazz.getMethod(methodName,null));
+            break;
+          }
+ catch (          NoSuchMethodException ignored) {
+          }
         }
- catch (        NoSuchMethodException ignored) {
+        if (localGetter == null) {
+          try {
+            localGetter=new FieldGetter(parent,clazz.getField(name));
+          }
+ catch (          NoSuchFieldException ignored) {
+          }
         }
+        if (localGetter == null) {
+          throw new RuntimeException("There is no method of field matching " + name);
+        }
+        parent=localGetter;
       }
-      if (getter == null) {
-        try {
-          getter=new FieldGetter(obj.getClass().getField(input));
-        }
- catch (        NoSuchFieldException ignored) {
-        }
-      }
-      if (getter == null) {
-        throw new RuntimeException("There is no method of field matching " + input);
-      }
+      getter=parent;
     }
     return getter.getValue(obj);
   }
