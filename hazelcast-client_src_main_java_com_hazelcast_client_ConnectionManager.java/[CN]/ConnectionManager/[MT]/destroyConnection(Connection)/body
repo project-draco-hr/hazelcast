@@ -1,13 +1,18 @@
 {
   boolean lost=false;
 synchronized (this) {
-    if (currentConnection != null && currentConnection.getVersion() == connection.getVersion()) {
+    if (currentConnection != null && connection != null && currentConnection.getVersion() == connection.getVersion()) {
       logger.log(Level.WARNING,"Connection to " + currentConnection + " is lost");
       currentConnection=null;
       lost=true;
     }
   }
   if (lost) {
-    lifecycleService.fireLifecycleEvent(CLIENT_CONNECTION_LOST);
+    notify(new Runnable(){
+      public void run(){
+        lifecycleService.fireLifecycleEvent(CLIENT_CONNECTION_LOST);
+      }
+    }
+);
   }
 }

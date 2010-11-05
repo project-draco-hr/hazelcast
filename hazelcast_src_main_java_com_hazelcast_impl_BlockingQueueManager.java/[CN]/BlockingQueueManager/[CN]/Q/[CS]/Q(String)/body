@@ -1,17 +1,22 @@
 {
-  QueueConfig qconfig=node.getConfig().getQueueConfig(name.substring(2));
+  QueueConfig qconfig=node.getConfig().getQueueConfig(name.substring(Prefix.QUEUE.length()));
   maxSizePerJVM=(qconfig.getMaxSizePerJVM() == 0) ? QueueConfig.DEFAULT_MAX_SIZE_PER_JVM : qconfig.getMaxSizePerJVM();
-  maxAge=(qconfig.getTimeToLiveSeconds() == 0) ? QueueConfig.DEFAULT_TTL_SECONDS : qconfig.getTimeToLiveSeconds() * 1000l;
+  maxAge=(qconfig.getTimeToLiveSeconds() == 0) ? QueueConfig.DEFAULT_TTL_SECONDS : TimeUnit.SECONDS.toMillis(qconfig.getTimeToLiveSeconds());
   logger.log(Level.FINEST,name + ".maxSizePerJVM=" + maxSizePerJVM);
   logger.log(Level.FINEST,name + ".maxAge=" + maxAge);
   this.name=name;
+  final int blocksLimit=10;
+  lsBlocks=new ArrayList<Block>(blocksLimit);
   Address master=getMasterAddress();
-  if (master != null && master.isThisAddress()) {
+  if (master == null) {
+    throw new IllegalStateException("Master is " + master);
+  }
+  if (master.isThisAddress()) {
     Block block=createBlock(master,0);
     addBlock(block);
     sendAddBlockMessageToOthers(block,-1,null,true);
-    for (int i=0; i < 9; i++) {
-      int blockId=i + 1;
+    for (int i=1; i < blocksLimit; i++) {
+      int blockId=i;
       Address target=nextTarget();
       block=createBlock(target,blockId);
       addBlock(block);

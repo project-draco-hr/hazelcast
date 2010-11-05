@@ -1,56 +1,43 @@
 {
   Call call=queue.poll(100,TimeUnit.MILLISECONDS);
   try {
-    if (call == null)     return;
-    int count=0;
-    while (call != null) {
+    if (call == null) {
+      if (reconnectionCalls != null) {
+        checkOnReconnect(call);
+      }
+      return;
+    }
+    if (call != RECONNECT_CALL) {
+      callMap.put(call.getId(),call);
+    }
+    Connection oldConnection=connection;
+    connection=client.getConnectionManager().getConnection();
+    boolean wrote=false;
+    if (restoredConnection(oldConnection,connection)) {
+      resubscribe(call,oldConnection);
+    }
+ else     if (connection != null) {
       if (call != RECONNECT_CALL) {
-        callMap.put(call.getId(),call);
-      }
-      Connection oldConnection=connection;
-      connection=client.getConnectionManager().getConnection();
-      if (restoredConnection(oldConnection,connection)) {
-        resubscribe(call,oldConnection);
-      }
- else       if (connection != null) {
-        if (call != RECONNECT_CALL) {
-          logger.log(Level.FINEST,"Sending: " + call);
-          writer.write(connection,call.getRequest());
-        }
-      }
- else {
-        clusterIsDown(oldConnection);
-      }
-      if (reconnectionCalls != null)       break;
-      call=null;
-      if (count++ < 24) {
-        call=queue.poll();
+        logger.log(Level.FINEST,"Sending: " + call);
+        wrote=true;
+        writer.write(connection,call.getRequest());
       }
     }
-    if (connection != null) {
+ else {
+      clusterIsDown(oldConnection);
+    }
+    if (connection != null && wrote) {
       writer.flush(connection);
     }
-    if (call != null && reconnectionCalls != null && reconnectionCalls.contains(call)) {
-      Object response=null;
-      for (int i=0; i < 20 && response == null; i++) {
-        response=call.getResponse(1000,TimeUnit.MILLISECONDS);
-      }
-      if (response != null) {
-        if (reconnectionCalls.remove(call) && reconnectionCalls.isEmpty()) {
-          reconnectionCalls=null;
-        }
-      }
- else {
-        logger.log(Level.WARNING,"There is no responce on reconnection call:" + call);
-      }
+    if (reconnectionCalls != null) {
+      checkOnReconnect(call);
     }
   }
  catch (  Throwable io) {
-    logger.log(Level.WARNING,"OutRunnable got exception:" + io.getMessage());
-    io.printStackTrace();
+    logger.log(Level.WARNING,"OutRunnable got exception:" + io.getMessage(),io);
     if (call != null) {
       enQueue(call);
     }
-    client.getConnectionManager().destroyConnection(connection);
+    clusterIsDown(connection);
   }
 }

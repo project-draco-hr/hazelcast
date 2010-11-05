@@ -1,59 +1,61 @@
 {
-  Object result=waitAndGetResult();
-  if (Thread.interrupted()) {
-    handleInterruptedException();
-  }
-  if (result == OBJECT_REDO) {
-    request.redoCount++;
-    if (request.redoCount > 19 && (request.redoCount % 10 == 0)) {
-      final CountDownLatch l=new CountDownLatch(1);
-      final Request reqCopy=request.hardCopy();
-      reqCopy.redoCount=request.redoCount;
-      final Address targetCopy=getTarget();
-      enqueueAndReturn(new Processable(){
-        public void process(){
-          StringBuffer sb=new StringBuffer();
-          Connection targetConnection=null;
-          MemberImpl targetMember=null;
-          Object key=toObject(reqCopy.key);
-          Block block=(reqCopy.key == null) ? null : node.concurrentMapManager.getOrCreateBlock(reqCopy.key);
-          if (targetCopy != null) {
-            targetMember=getMember(targetCopy);
-            targetConnection=node.connectionManager.getConnection(targetCopy);
-            if (targetMember != null) {
-              if (!lsMembers.contains(targetMember)) {
-                logger.log(Level.SEVERE,targetMember + " is not in member list!");
+  for (; ; ) {
+    Object result=waitAndGetResult();
+    if (Thread.interrupted()) {
+      handleInterruptedException();
+    }
+    if (result == OBJECT_REDO) {
+      request.redoCount++;
+      if (request.redoCount > 19 && (request.redoCount % 10 == 0)) {
+        final CountDownLatch l=new CountDownLatch(1);
+        final Request reqCopy=request.hardCopy();
+        reqCopy.redoCount=request.redoCount;
+        final Address targetCopy=getTarget();
+        if (!thisAddress.equals(targetCopy)) {
+          enqueueAndReturn(new Processable(){
+            public void process(){
+              Connection targetConnection=null;
+              MemberImpl targetMember=null;
+              Object key=toObject(reqCopy.key);
+              Block block=(reqCopy.key == null) ? null : node.concurrentMapManager.getOrCreateBlock(reqCopy.key);
+              if (targetCopy != null) {
+                targetMember=getMember(targetCopy);
+                targetConnection=node.connectionManager.getConnection(targetCopy);
+                if (targetMember != null) {
+                  if (!lsMembers.contains(targetMember)) {
+                    logger.log(Level.SEVERE,targetMember + " is not in member list!");
+                  }
+                }
               }
+              final String msg="======= " + reqCopy.callId + ": "+ reqCopy.operation+ " ======== "+ "\n\t"+ "thisAddress= "+ thisAddress+ ", target= "+ targetCopy+ "\n\t"+ "targetMember= "+ targetMember+ ", targetConn="+ targetConnection+ ", targetBlock="+ block+ "\n\t"+ key+ " Re-doing ["+ reqCopy.redoCount+ "] times! "+ reqCopy.name+ " : "+ toObject(reqCopy.value);
+              logger.log(Level.INFO,msg);
+              l.countDown();
             }
           }
-          sb.append("======= " + reqCopy.callId + ": "+ reqCopy.operation+ " ======== ");
-          sb.append("\n\t");
-          sb.append("thisAddress= " + thisAddress + ", target= "+ targetCopy);
-          sb.append("\n\t");
-          sb.append("targetMember= " + targetMember + ", targetConn="+ targetConnection+ ", targetBlock="+ block);
-          sb.append("\n\t");
-          sb.append(key + " Re-doing [" + reqCopy.redoCount+ "] times! "+ reqCopy.name);
-          logger.log(Level.INFO,sb.toString());
+);
+        }
+ else {
+          final String msg="======= " + reqCopy.callId + ": "+ reqCopy.operation+ " ======== "+ "\n\t"+ "thisAddress= "+ thisAddress+ ", target= "+ targetCopy+ "\n\t"+ " Re-doing ["+ reqCopy.redoCount+ "] times! "+ reqCopy.name+ " : "+ toObject(reqCopy.key)+ "="+ toObject(reqCopy.value);
+          logger.log(Level.WARNING,msg);
           l.countDown();
         }
+        try {
+          l.await();
+        }
+ catch (        InterruptedException e) {
+          handleInterruptedException();
+        }
       }
-);
       try {
-        l.await();
+        Thread.sleep(redoWaitMillis);
       }
  catch (      InterruptedException e) {
         handleInterruptedException();
       }
+      beforeRedo();
+      doOp();
+      continue;
     }
-    try {
-      Thread.sleep(redoWaitMillis);
-    }
- catch (    InterruptedException e) {
-      handleInterruptedException();
-    }
-    beforeRedo();
-    doOp();
-    return getResult();
+    return result;
   }
-  return result;
 }

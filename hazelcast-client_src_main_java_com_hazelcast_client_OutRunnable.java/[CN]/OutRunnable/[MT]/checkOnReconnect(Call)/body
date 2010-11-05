@@ -1,0 +1,26 @@
+{
+  final Collection oldCalls=reconnectionCalls;
+  try {
+    Object response=reconnectionCalls.contains(call) ? call.getResponse(100L,TimeUnit.MILLISECONDS) : null;
+    if (response != null) {
+      reconnectionCalls.remove(call);
+    }
+ else {
+      for (final Iterator<Call> it=reconnectionCalls.iterator(); it.hasNext(); ) {
+        final Call c=it.next();
+        response=!c.hasResponse() ? c.getResponse(100L,TimeUnit.MILLISECONDS) : Boolean.TRUE;
+        if (response != null) {
+          it.remove();
+        }
+      }
+    }
+  }
+ catch (  Throwable e) {
+  }
+  if (reconnectionCalls.isEmpty()) {
+    reconnectionCalls=null;
+  }
+  if (oldCalls != null && reconnectionCalls == null) {
+    client.getConnectionManager().notifyConnectionIsOpened();
+  }
+}
