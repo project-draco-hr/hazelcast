@@ -1,0 +1,42 @@
+{
+  final AtomicBoolean finished=new AtomicBoolean(false);
+  final HazelcastInstance h=Hazelcast.newHazelcastInstance(null);
+  int threadCount=2;
+  int operationCount=100;
+  final BlockingQueue queue=new LinkedBlockingQueue();
+  for (int i=0; i < operationCount; i++) {
+    queue.add(i);
+  }
+  final CountDownLatch latch=new CountDownLatch(operationCount);
+  final CountDownLatch startUpLatch=new CountDownLatch(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    new Thread(new Runnable(){
+      public void run(){
+        int count=0;
+        try {
+          System.out.println(Thread.currentThread() + " Running....");
+          HazelcastClient client;
+synchronized (finished) {
+            client=HazelcastClient.newHazelcastClient("dev","dev-pass","localhost");
+          }
+          System.out.println(Thread.currentThread() + " Client init");
+          startUpLatch.countDown();
+          startUpLatch.await();
+          while (!finished.get()) {
+            queue.take();
+            client.getMap("map").put(latch.getCount(),latch.getCount());
+            count++;
+            latch.countDown();
+          }
+        }
+ catch (        InterruptedException e) {
+          return;
+        }
+        System.out.println(Thread.currentThread() + "processed: " + count);
+      }
+    }
+).start();
+  }
+  assertTrue(latch.await(200,TimeUnit.SECONDS));
+  finished.set(true);
+}
