@@ -1,13 +1,22 @@
 {
   boolean shouldMerge=false;
-  if (joinInfo != null && node.validateJoinRequest(joinInfo)) {
-    int currentMemberCount=node.getClusterImpl().getMembers().size();
-    if (joinInfo.getMemberCount() > currentMemberCount) {
-      shouldMerge=true;
+  if (joinInfo != null) {
+    boolean validJoinRequest;
+    try {
+      validJoinRequest=node.validateJoinRequest(joinInfo);
     }
- else     if (joinInfo.getMemberCount() == currentMemberCount) {
-      if (node.getThisAddress().hashCode() > joinInfo.address.hashCode()) {
+ catch (    Exception e) {
+      validJoinRequest=false;
+    }
+    if (validJoinRequest) {
+      int currentMemberCount=node.getClusterImpl().getMembers().size();
+      if (joinInfo.getMemberCount() > currentMemberCount) {
         shouldMerge=true;
+      }
+ else       if (joinInfo.getMemberCount() == currentMemberCount) {
+        if (node.getThisAddress().hashCode() > joinInfo.address.hashCode()) {
+          shouldMerge=true;
+        }
       }
     }
   }
