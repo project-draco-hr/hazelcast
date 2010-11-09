@@ -41,8 +41,14 @@
       Request request=Request.copy(packet);
       JoinInfo joinInfo=(JoinInfo)toObject(request.value);
       request.clearForResponse();
-      if (joinInfo != null && node.joined() && node.isActive() && node.validateJoinRequest(joinInfo)) {
-        request.response=toData(node.createJoinInfo());
+      if (joinInfo != null && node.joined() && node.isActive()) {
+        try {
+          node.validateJoinRequest(joinInfo);
+          request.response=toData(node.createJoinInfo());
+        }
+ catch (        Exception e) {
+          request.response=toData(e);
+        }
       }
       returnResponse(request,conn);
       releasePacket(packet);
