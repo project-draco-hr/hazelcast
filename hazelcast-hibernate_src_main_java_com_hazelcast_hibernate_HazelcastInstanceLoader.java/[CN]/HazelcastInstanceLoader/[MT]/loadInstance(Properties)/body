@@ -13,17 +13,21 @@
   }
   Config config=null;
   if (StringHelper.isEmpty(configResourcePath)) {
+    if (!useSuperClient) {
+      return Hazelcast.getDefaultInstance();
+    }
     config=new XmlConfigBuilder().build();
+    config.setSuperClient(true);
   }
  else {
     URL url=ConfigHelper.locateConfig(configResourcePath);
     try {
       config=new UrlXmlConfig(url);
+      config.setSuperClient(useSuperClient);
     }
  catch (    IOException e) {
       throw new CacheException(e);
     }
   }
-  config.setSuperClient(useSuperClient);
   return Hazelcast.newHazelcastInstance(config);
 }
