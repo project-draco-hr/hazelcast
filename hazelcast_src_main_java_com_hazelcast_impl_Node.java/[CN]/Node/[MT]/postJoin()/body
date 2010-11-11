@@ -1,0 +1,47 @@
+{
+  if (!isMaster()) {
+    Set<Member> members=null;
+    boolean allConnected=false;
+    int checkCount=0;
+    while (checkCount++ < 10 && !allConnected) {
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException ignored) {
+      }
+      members=clusterImpl.getMembers();
+      allConnected=true;
+      for (      Member member : members) {
+        MemberImpl memberImpl=(MemberImpl)member;
+        if (!memberImpl.localMember() && connectionManager.getConnection(memberImpl.getAddress()) == null) {
+          allConnected=false;
+        }
+      }
+    }
+    if (!allConnected) {
+      logger.log(Level.WARNING,"Failed to connect to all other members after " + checkCount + "seconds.");
+      logger.log(Level.WARNING,"Rebooting after 10 seconds.");
+      try {
+        Thread.sleep(10000);
+      }
+ catch (      InterruptedException e) {
+        shutdown();
+      }
+      rejoin();
+    }
+ else {
+      clusterManager.finalizeJoin();
+      clusterManager.enqueueAndWait(new Processable(){
+        public void process(){
+          if (baseVariables.lsMembers.size() == 1) {
+            final StringBuilder sb=new StringBuilder();
+            sb.append("\n");
+            sb.append(clusterManager);
+            logger.log(Level.INFO,sb.toString());
+          }
+        }
+      }
+,5);
+    }
+  }
+}
