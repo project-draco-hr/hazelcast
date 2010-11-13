@@ -1,0 +1,52 @@
+{
+  lookinglForAlive=true;
+  try {
+    boolean restored=false;
+    int attempt=0;
+    while (currentConnection == null && running && !Thread.interrupted()) {
+      final long next=System.currentTimeMillis() + reconnectionTimeout;
+synchronized (this) {
+        if (currentConnection == null) {
+          final Connection connection=searchForAvailableConnection();
+          restored=connection != null;
+          if (restored) {
+            try {
+              bindConnection(connection);
+              currentConnection=connection;
+            }
+ catch (            Throwable e) {
+              logger.log(Level.INFO,"got an exception on getConnection:" + e.getMessage(),e);
+              restored=false;
+            }
+          }
+        }
+      }
+      if (currentConnection != null) {
+        logger.log(Level.FINE,"Client is connecting to " + currentConnection);
+        lookinglForAlive=false;
+        break;
+      }
+      if (attempt >= attemptsLimit) {
+        break;
+      }
+      attempt++;
+      final long t=next - System.currentTimeMillis();
+      logger.log(Level.INFO,format("Unable to get alive cluster connection," + " try in {0} ms later, attempt {1} of {2}.",Math.max(0,t),attempt,attemptsLimit));
+      if (t > 0) {
+        try {
+          Thread.sleep(t);
+        }
+ catch (        InterruptedException e) {
+          break;
+        }
+      }
+    }
+    if (restored) {
+      notifyConnectionIsRestored();
+    }
+  }
+  finally {
+    lookinglForAlive=false;
+  }
+  return currentConnection;
+}
