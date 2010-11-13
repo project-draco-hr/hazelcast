@@ -8,22 +8,18 @@
       idGeneratorMapProxy.remove(name);
     }
     globalProxies.remove(proxyKey);
-    final BlockingQueue<Object> result=ResponseQueueFactory.newResponseQueue();
-    node.clusterService.enqueueAndReturn(new Processable(){
+    node.clusterService.enqueueAndWait(new Processable(){
       public void process(){
         try {
           destroyProxy(proxyKey);
-          result.put(Boolean.TRUE);
         }
  catch (        Exception e) {
         }
       }
     }
-);
-    try {
-      result.take();
-    }
- catch (    InterruptedException e) {
-    }
+,5);
+  }
+ else {
+    logger.log(Level.WARNING,"Destroying unknown instance name: " + name);
   }
 }
