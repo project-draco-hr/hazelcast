@@ -1,5 +1,8 @@
 {
   client.getConnectionManager().destroyConnection(oldConnection);
+  if (call != null) {
+    enQueue(call);
+  }
   if (!reconnection) {
     reconnection=true;
     client.executor.execute(new Runnable(){
@@ -7,13 +10,14 @@
         try {
           final Connection lookForAliveConnection=client.getConnectionManager().lookForAliveConnection();
           if (lookForAliveConnection == null) {
-            logger.log(Level.WARNING,"lookForAliveConnection is null, reconnection: " + reconnection);
             if (reconnection) {
               interruptWaitingCalls();
             }
           }
  else {
-            sendReconnectCall();
+            if (running) {
+              enQueue(RECONNECT_CALL);
+            }
           }
         }
  catch (        IOException e) {
