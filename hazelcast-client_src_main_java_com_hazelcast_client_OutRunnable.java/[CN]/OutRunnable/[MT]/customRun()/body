@@ -2,7 +2,7 @@
   Call call=queue.poll(100,TimeUnit.MILLISECONDS);
   try {
     if (call == null) {
-      if (reconnectionCalls != null) {
+      if (reconnectionCalls.size() > 0) {
         checkOnReconnect(call);
       }
       return;
@@ -19,22 +19,22 @@
  else     if (connection != null) {
       if (call != RECONNECT_CALL) {
         logger.log(Level.FINEST,"Sending: " + call);
-        wrote=true;
         writer.write(connection,call.getRequest());
+        wrote=true;
       }
     }
  else {
-      clusterIsDown(call,oldConnection);
+      clusterIsDown(oldConnection);
     }
     if (connection != null && wrote) {
       writer.flush(connection);
     }
-    if (reconnectionCalls != null) {
+    if (reconnectionCalls.size() > 0) {
       checkOnReconnect(call);
     }
   }
  catch (  Throwable io) {
     logger.log(Level.WARNING,"OutRunnable [" + connection + "] got exception:"+ io.getMessage(),io);
-    clusterIsDown(call,connection);
+    clusterIsDown(connection);
   }
 }

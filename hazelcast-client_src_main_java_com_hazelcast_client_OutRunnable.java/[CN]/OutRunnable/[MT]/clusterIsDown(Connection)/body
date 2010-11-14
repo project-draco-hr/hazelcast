@@ -1,16 +1,13 @@
 {
   client.getConnectionManager().destroyConnection(oldConnection);
-  if (call != null) {
-    enQueue(call);
-  }
-  if (!reconnection) {
-    reconnection=true;
+  if (!reconnecting) {
+    reconnecting=true;
     client.executor.execute(new Runnable(){
       public void run(){
         try {
           final Connection lookForAliveConnection=client.getConnectionManager().lookForAliveConnection();
           if (lookForAliveConnection == null) {
-            if (reconnection) {
+            if (reconnecting) {
               interruptWaitingCalls();
             }
           }
@@ -24,7 +21,7 @@
           logger.log(Level.WARNING,Thread.currentThread().getName() + " got exception:" + e.getMessage(),e);
         }
  finally {
-          reconnection=false;
+          reconnecting=false;
         }
       }
     }
