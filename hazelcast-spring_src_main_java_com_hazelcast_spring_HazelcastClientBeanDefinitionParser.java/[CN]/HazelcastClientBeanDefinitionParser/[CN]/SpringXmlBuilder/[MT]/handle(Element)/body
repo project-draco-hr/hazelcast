@@ -1,0 +1,23 @@
+{
+  for (  org.w3c.dom.Node node : new IterableNodeList(element,Node.ELEMENT_NODE)) {
+    final String nodeName=cleanNodeName(node.getNodeName());
+    if ("members".equals(nodeName)) {
+      members.add(getValue(node));
+    }
+ else     if ("client-properties".equals(nodeName)) {
+      ManagedMap properties=new ManagedMap();
+      for (      org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+        final String name=cleanNodeName(n.getNodeName());
+        final String propertyName;
+        if ("client-property".equals(name)) {
+          propertyName=getTextContent(n.getAttributes().getNamedItem("name")).trim();
+          final String value=getValue(n);
+          properties.put(propertyName,value);
+        }
+      }
+      propertiesBuilder.addPropertyValue("properties",properties);
+    }
+  }
+  this.builder.addConstructorArgValue(propertiesBuilder.getBeanDefinition());
+  this.builder.addConstructorArgValue(members);
+}
