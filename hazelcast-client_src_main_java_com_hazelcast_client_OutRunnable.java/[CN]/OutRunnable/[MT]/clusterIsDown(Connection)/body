@@ -1,13 +1,13 @@
 {
   client.getConnectionManager().destroyConnection(oldConnection);
-  if (!reconnecting) {
-    reconnecting=true;
+  if (reconnection.compareAndSet(false,true)) {
     client.executor.execute(new Runnable(){
       public void run(){
         try {
           final Connection lookForAliveConnection=client.getConnectionManager().lookForAliveConnection();
           if (lookForAliveConnection == null) {
-            if (reconnecting) {
+            logger.log(Level.WARNING,"lookForAliveConnection is null, reconnection: " + reconnection);
+            if (reconnection.get()) {
               interruptWaitingCalls();
             }
           }
@@ -21,7 +21,7 @@
           logger.log(Level.WARNING,Thread.currentThread().getName() + " got exception:" + e.getMessage(),e);
         }
  finally {
-          reconnecting=false;
+          reconnection.compareAndSet(true,false);
         }
       }
     }
