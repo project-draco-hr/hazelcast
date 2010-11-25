@@ -1,16 +1,13 @@
 {
-  DataRecordEntry dataRecordEntry=new DataRecordEntry(record);
-  ClusterOperation operation=CONCURRENT_MAP_MERGE;
-  setLocal(operation,record.getName(),record.getKey(),dataRecordEntry,0,-1);
-  request.longValue=(request.value == null) ? Integer.MIN_VALUE : request.value.hashCode();
-  Object value=record.getRecordEntry().getValue();
-  setIndexValues(request,value);
-  request.setBooleanRequest();
-  doOp();
-  Boolean returnObject=getResultAsBoolean();
-  if (returnObject) {
-    request.value=record.getValue();
-    backup(CONCURRENT_MAP_BACKUP_PUT);
+  if (getInstanceType(record.getName()).isMultiMap()) {
+    Set<Data> values=record.getMultiValues();
+    if (values != null && values.size() > 0) {
+      for (      Data value : values) {
+        mergeOne(record,value);
+      }
+    }
   }
-  return returnObject;
+ else {
+    mergeOne(record,record.getValue());
+  }
 }
