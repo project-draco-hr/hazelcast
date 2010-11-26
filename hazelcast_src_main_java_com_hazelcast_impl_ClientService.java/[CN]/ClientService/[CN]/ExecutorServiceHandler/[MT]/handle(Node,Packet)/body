@@ -1,0 +1,43 @@
+{
+  try {
+    String name=packet.name;
+    ExecutorService executorService=node.factory.getExecutorService(name);
+    ClientDistributedTask cdt=(ClientDistributedTask)toObject(packet.getKeyData());
+    DistributedTask task;
+    if (cdt.getKey() != null) {
+      task=new DistributedTask(cdt.getCallable(),cdt.getKey());
+    }
+ else     if (cdt.getMember() != null) {
+      task=new DistributedTask(cdt.getCallable(),cdt.getMember());
+    }
+ else     if (cdt.getMembers() != null) {
+      task=new MultiTask(cdt.getCallable(),cdt.getMembers());
+    }
+ else {
+      task=new DistributedTask(cdt.getCallable());
+    }
+    executorService.execute(task);
+    task.setExecutionCallback(new ExecutionCallback(){
+      public void done(      Future future){
+        Object result;
+        try {
+          result=future.get();
+          packet.setValue(toData(result));
+        }
+ catch (        InterruptedException e) {
+          return;
+        }
+catch (        ExecutionException e) {
+          packet.setValue(toData(e));
+        }
+        sendResponse(packet);
+      }
+    }
+);
+  }
+ catch (  RuntimeException e) {
+    logger.log(Level.WARNING,"exception during handling " + packet.operation + ": "+ e.getMessage(),e);
+    packet.clearForResponse();
+    packet.setValue(toData(e));
+  }
+}
