@@ -2,7 +2,7 @@
   try {
     node.checkNodeState();
     onCall();
-    TargetAwareOp localCall=createNewTargetAwareOp(thisAddress);
+    TargetAwareOp localCall=createNewTargetAwareOp(getFirstAddressToMakeCall());
     localCall.doOp();
     Object result=localCall.getResultAsObject();
     if (result == OBJECT_REDO) {
@@ -14,7 +14,7 @@
       Set<Member> members=node.getClusterImpl().getMembers();
       List<TargetAwareOp> lsCalls=new ArrayList<TargetAwareOp>();
       for (      Member member : members) {
-        if (!member.localMember()) {
+        if (!member.getInetSocketAddress().equals(getFirstAddressToMakeCall().getInetSocketAddress())) {
           MemberImpl cMember=(MemberImpl)member;
           TargetAwareOp targetAwareOp=createNewTargetAwareOp(cMember.getAddress());
           targetAwareOp.doOp();
@@ -39,6 +39,9 @@
   }
  catch (  InterruptedException e) {
     throw new RuntimeException(e);
+  }
+catch (  UnknownHostException e) {
+    e.printStackTrace();
   }
   return (T)returnResult();
 }
