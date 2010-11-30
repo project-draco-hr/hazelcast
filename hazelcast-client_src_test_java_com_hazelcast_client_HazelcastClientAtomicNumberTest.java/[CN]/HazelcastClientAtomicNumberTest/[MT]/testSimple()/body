@@ -1,0 +1,22 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  HazelcastClient client=newHazelcastClient(h1);
+  final String name="simple";
+  final AtomicNumber nodeAtomicNumber=h1.getAtomicNumber(name);
+  final AtomicNumber clientAtomicNumber=client.getAtomicNumber(name);
+  check(nodeAtomicNumber,clientAtomicNumber,0L);
+  assertEquals(1L,clientAtomicNumber.incrementAndGet());
+  check(nodeAtomicNumber,clientAtomicNumber,1L);
+  assertEquals(1L,clientAtomicNumber.getAndAdd(1));
+  check(nodeAtomicNumber,clientAtomicNumber,2L);
+  assertEquals(1L,clientAtomicNumber.decrementAndGet());
+  check(nodeAtomicNumber,clientAtomicNumber,1L);
+  assertEquals(2L,clientAtomicNumber.addAndGet(1L));
+  check(nodeAtomicNumber,clientAtomicNumber,2L);
+  clientAtomicNumber.set(3L);
+  check(nodeAtomicNumber,clientAtomicNumber,3L);
+  assertFalse(clientAtomicNumber.compareAndSet(4L,1L));
+  check(nodeAtomicNumber,clientAtomicNumber,3L);
+  assertTrue(clientAtomicNumber.compareAndSet(3L,1L));
+  check(nodeAtomicNumber,clientAtomicNumber,1L);
+}

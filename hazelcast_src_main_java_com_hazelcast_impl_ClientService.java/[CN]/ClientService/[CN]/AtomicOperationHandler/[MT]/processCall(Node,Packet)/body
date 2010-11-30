@@ -1,0 +1,26 @@
+{
+  final String name=packet.name;
+  AtomicNumber atomicNumber=node.factory.getAtomicNumber(name);
+  final Object result;
+switch (packet.operation) {
+case ATOMIC_NUMBER_GET_AND_SET:
+    result=atomicNumber.getAndSet(packet.longValue);
+  break;
+case ATOMIC_NUMBER_GET_AND_ADD:
+result=atomicNumber.getAndAdd(packet.longValue);
+break;
+case ATOMIC_NUMBER_COMPARE_AND_SET:
+final Long expected=(Long)toObject(packet.getKey());
+final Long update=(Long)toObject(packet.getValue());
+result=atomicNumber.compareAndSet(expected,update);
+break;
+case ATOMIC_NUMBER_ADD_AND_GET:
+result=atomicNumber.addAndGet(packet.longValue);
+break;
+default :
+logger.log(Level.WARNING,"operation " + packet.operation + " is unsupported.");
+result=new UnsupportedOperationException("operation " + packet.operation + " is unsupported.");
+break;
+}
+packet.setValue(toData(result));
+}
