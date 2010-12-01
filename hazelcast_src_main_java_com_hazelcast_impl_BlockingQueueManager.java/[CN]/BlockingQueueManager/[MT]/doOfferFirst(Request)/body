@@ -1,15 +1,15 @@
 {
   if (req.value == null) {
-    throw new RuntimeException("Offer request value cannot be null. Local:" + req.local);
+    throw new RuntimeException("OfferFirst request value cannot be null. Local:" + req.local);
   }
   if (req.value.size() == 0) {
-    throw new RuntimeException("Offer request value size cannot be zero. Local:" + req.local);
+    throw new RuntimeException("OfferFirst request value size cannot be zero. Local:" + req.local);
   }
   Q q=getQ(req.name);
-  if (q.blCurrentPut == null) {
-    q.setCurrentPut();
+  if (q.blCurrentTake == null) {
+    q.setCurrentTake();
   }
-  if (q.quickSize() >= q.maxSizePerJVM) {
+  if (q.quickSize() >= q.maxSizePerJVM || q.blCurrentTake.hasNoSpace()) {
     if (req.hasEnoughTimeToSchedule()) {
       req.scheduled=true;
       final Request reqScheduled=(req.local) ? req : req.hardCopy();
@@ -18,13 +18,13 @@
           throw new RuntimeException("Scheduled local but attachment is null");
         }
       }
-      q.scheduleOffer(reqScheduled);
+      q.scheduleOfferFirst(reqScheduled);
     }
  else {
       req.response=Boolean.FALSE;
     }
     return;
   }
-  q.offer(req,false);
+  q.offer(req,true);
   req.response=Boolean.TRUE;
 }
