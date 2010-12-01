@@ -1,0 +1,16 @@
+{
+  try {
+    long requestId=lastRequestId.addAndGet(1);
+    requestLocal.set(requestId);
+    getNext().invoke(request,response);
+    HazelSessionFacade ses=(HazelSessionFacade)request.getSession();
+    List<HazelAttribute> touchedList=ses.getTouchedAttributes(requestId);
+    IMap<String,HazelAttribute> hatributes=Hazelcast.getMap("attributes");
+    for (    HazelAttribute hattribute : touchedList) {
+      hatributes.put(hattribute.getKey(),hattribute);
+    }
+  }
+  finally {
+    requestLocal.remove();
+  }
+}
