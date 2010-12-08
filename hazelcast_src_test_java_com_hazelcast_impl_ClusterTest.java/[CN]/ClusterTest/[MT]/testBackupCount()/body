@@ -10,7 +10,16 @@
   assertEquals(map2.getLocalMapStats().getBackupEntryCount(),map1.getLocalMapStats().getOwnedEntryCount());
   HazelcastInstance h3=Hazelcast.newHazelcastInstance(null);
   IMap map3=h3.getMap("default");
-  sleep(12000);
+  final CountDownLatch latch=new CountDownLatch(1);
+  h2.getPartitionService().addMigrationListener(new MigrationListener(){
+    public void migrationStarted(    MigrationEvent migrationEvent){
+    }
+    public void migrationCompleted(    MigrationEvent migrationEvent){
+      latch.countDown();
+    }
+  }
+);
+  latch.await();
   assertEquals(map2.getLocalMapStats().getBackupEntryCount(),map1.getLocalMapStats().getOwnedEntryCount());
   assertEquals(map1.getLocalMapStats().getBackupEntryCount(),map3.getLocalMapStats().getOwnedEntryCount());
   assertEquals(map3.getLocalMapStats().getBackupEntryCount(),map2.getLocalMapStats().getOwnedEntryCount());
