@@ -1,7 +1,17 @@
 {
   if ((this.id != null) && (manager != null))   manager.remove(this);
   this.id=id;
-  Collection<HazelAttribute> colAttributes=Hazelcast.getMap("attributes").values(new SqlPredicate("sessionId=" + id));
+  Collection<HazelAttribute> colAttributes=hazelAttributes.values(new SqlPredicate("sessionId=" + id));
+  if (colAttributes.size() != 0) {
+    for (    HazelAttribute hattribute : colAttributes) {
+      attributes.put(hattribute.getName(),hattribute);
+    }
+  }
+ else {
+    HazelAttribute mark=new HazelAttribute(id,HAZEL_SESSION_MARK,System.currentTimeMillis());
+    hazelAttributes.put(mark.getKey(),mark);
+    attributes.put(HAZEL_SESSION_MARK,mark);
+  }
   if (manager != null)   manager.add(this);
   tellNew();
 }
