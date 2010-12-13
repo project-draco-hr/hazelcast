@@ -1,13 +1,17 @@
 {
   try {
     while (live) {
-      if (size.get() > 0) {
-        processSelectionQueue();
+      if (threadWatcher.incrementRunCount() % 10000 == 0) {
+        publishUtilization();
       }
+      processSelectionQueue();
       if (!live)       return;
       int selectedKeyCount;
       try {
+        long startWait=System.nanoTime();
         selectedKeyCount=selector.select(waitTime);
+        long now=System.nanoTime();
+        threadWatcher.addWait((now - startWait),now);
         if (Thread.interrupted()) {
           node.handleInterruptedException(Thread.currentThread(),new RuntimeException());
           return;

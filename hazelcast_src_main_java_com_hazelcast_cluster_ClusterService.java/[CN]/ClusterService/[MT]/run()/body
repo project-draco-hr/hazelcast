@@ -2,13 +2,17 @@
   boolean readPackets=false;
   boolean readProcessables=false;
   while (running) {
+    threadWatcher.incrementRunCount();
     readPackets=(dequeuePackets() != 0);
     readProcessables=(dequeueProcessables() != 0);
     if (!readPackets && !readProcessables) {
       try {
+        long startWait=System.nanoTime();
 synchronized (notEmptyLock) {
           notEmptyLock.wait(10);
         }
+        long now=System.nanoTime();
+        threadWatcher.addWait((now - startWait),now);
         checkPeriodics();
       }
  catch (      InterruptedException e) {
