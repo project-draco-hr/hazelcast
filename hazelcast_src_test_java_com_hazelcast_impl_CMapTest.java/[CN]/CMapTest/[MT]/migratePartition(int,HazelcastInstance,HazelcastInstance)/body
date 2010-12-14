@@ -1,0 +1,38 @@
+{
+  final MemberImpl currentOwnerMember=(MemberImpl)getPartitionById(oldest.getPartitionService(),partitionId).getOwner();
+  final MemberImpl toMember=(MemberImpl)to.getCluster().getLocalMember();
+  if (currentOwnerMember.equals(toMember)) {
+    return false;
+  }
+  final ConcurrentMapManager concurrentMapManagerOldest=getConcurrentMapManager(oldest);
+  final Address addressCurrentOwner=currentOwnerMember.getAddress();
+  final Address addressNewOwner=toMember.getAddress();
+  final int blockId=getPartitionById(oldest.getPartitionService(),partitionId).getPartitionId();
+  final CountDownLatch migrationLatch=new CountDownLatch(2);
+  MigrationListener migrationListener=new MigrationListener(){
+    public void migrationCompleted(    MigrationEvent migrationEvent){
+      if (migrationEvent.getPartitionId() == blockId && migrationEvent.getNewOwner().equals(toMember)) {
+        migrationLatch.countDown();
+      }
+    }
+    public void migrationStarted(    MigrationEvent migrationEvent){
+    }
+  }
+;
+  oldest.getPartitionService().addMigrationListener(migrationListener);
+  to.getPartitionService().addMigrationListener(migrationListener);
+  concurrentMapManagerOldest.enqueueAndReturn(new Processable(){
+    public void process(){
+      Block blockToMigrate=new Block(blockId,addressCurrentOwner,addressNewOwner);
+      concurrentMapManagerOldest.partitionManager.lsBlocksToMigrate.add(blockToMigrate);
+      concurrentMapManagerOldest.partitionManager.initiateMigration();
+    }
+  }
+);
+  if (!migrationLatch.await(20,TimeUnit.SECONDS)) {
+    fail("Migration should get completed in 20 seconds!!");
+  }
+  assertEquals(toMember,getPartitionById(oldest.getPartitionService(),partitionId).getOwner());
+  assertEquals(toMember,getPartitionById(to.getPartitionService(),partitionId).getOwner());
+  return true;
+}
