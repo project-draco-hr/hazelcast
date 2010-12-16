@@ -1,0 +1,31 @@
+{
+  authType=null;
+  creationTime=((Long)stream.readObject()).longValue();
+  lastAccessedTime=((Long)stream.readObject()).longValue();
+  maxInactiveInterval=((Integer)stream.readObject()).intValue();
+  isNew=((Boolean)stream.readObject()).booleanValue();
+  isValid=((Boolean)stream.readObject()).booleanValue();
+  thisAccessedTime=((Long)stream.readObject()).longValue();
+  principal=null;
+  id=(String)stream.readObject();
+  if (manager.getContainer().getLogger().isDebugEnabled())   manager.getContainer().getLogger().debug("readObject() loading session " + id);
+  if (attributes == null)   attributes=new Hashtable();
+  int n=((Integer)stream.readObject()).intValue();
+  boolean isValidSave=isValid;
+  isValid=true;
+  for (int i=0; i < n; i++) {
+    String name=(String)stream.readObject();
+    Object value=(Object)stream.readObject();
+    if ((value instanceof String) && (value.equals(NOT_SERIALIZED)))     continue;
+    if (manager.getContainer().getLogger().isDebugEnabled())     manager.getContainer().getLogger().debug("  loading attribute '" + name + "' with value '"+ value+ "'");
+    attributes.put(name,new HazelcastAttribute(id,name,value));
+  }
+  attributes.put(HAZEL_SESSION_MARK,new HazelcastAttribute(id,HAZEL_SESSION_MARK,System.currentTimeMillis()));
+  isValid=isValidSave;
+  if (listeners == null) {
+    listeners=new ArrayList();
+  }
+  if (notes == null) {
+    notes=new Hashtable();
+  }
+}
