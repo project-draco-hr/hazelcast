@@ -1,0 +1,60 @@
+{
+  Config config=new Config();
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final Address address1=((MemberImpl)h1.getCluster().getLocalMember()).getAddress();
+  final Address address2=((MemberImpl)h2.getCluster().getLocalMember()).getAddress();
+  final int partitionId=h1.getPartitionService().getPartition(1).getPartitionId();
+  final Node node1=getNode(h1);
+  final Node node2=getNode(h2);
+  h1.getMap("default").put(1,"value");
+  h2.getMap("default").put(1,"value");
+  final CountDownLatch migrationLatch=new CountDownLatch(1);
+  MigrationListener migrationListener=new MigrationListener(){
+    public void migrationCompleted(    MigrationEvent migrationEvent){
+      if (migrationEvent.getPartitionId() == partitionId && (h2.getCluster().getLocalMember().equals(migrationEvent.getNewOwner()))) {
+        migrationLatch.countDown();
+      }
+    }
+    public void migrationStarted(    MigrationEvent migrationEvent){
+    }
+  }
+;
+  h2.getPartitionService().addMigrationListener(migrationListener);
+  CallBuilder callBuilder=new KeyCallBuilder(h2);
+  BeforeAfterBehavior behavior=new BeforeAfterBehavior(){
+    @Override void before() throws Exception {
+      migrateKey(1,h1,h2);
+      node2.clusterManager.enqueueAndWait(new Processable(){
+        public void process(){
+          Block block=node2.concurrentMapManager.getOrCreateBlock(partitionId);
+          block.setMigrationAddress(address1);
+          assertEquals(address2,block.getOwner());
+        }
+      }
+,5);
+    }
+    @Override void after(){
+      node1.clusterManager.enqueueAndWait(new Processable(){
+        public void process(){
+          node1.concurrentMapManager.partitionManager.sendBlocks(null);
+        }
+      }
+,5);
+      try {
+        assertTrue(migrationLatch.await(5,TimeUnit.SECONDS));
+      }
+ catch (      InterruptedException e) {
+      }
+      node2.clusterManager.enqueueAndWait(new Processable(){
+        public void process(){
+          Block block=node2.concurrentMapManager.getOrCreateBlock(partitionId);
+          assertEquals(address2,block.getOwner());
+        }
+      }
+,5);
+    }
+  }
+;
+  new BeforeAfterTester(behavior,callBuilder).run();
+}

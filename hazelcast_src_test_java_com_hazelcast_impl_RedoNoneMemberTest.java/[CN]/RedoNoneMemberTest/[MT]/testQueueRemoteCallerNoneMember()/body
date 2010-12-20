@@ -1,0 +1,33 @@
+{
+  Config config=new Config();
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  CallBuilder calls=new QueueCallBuilder(h2);
+  final Node node1=getNode(h1);
+  BeforeAfterBehavior behavior=new BeforeAfterBehavior(){
+    public void before() throws Exception {
+      node1.clusterManager.enqueueAndWait(new Processable(){
+        public void process(){
+          node1.clusterManager.removeMember((MemberImpl)h2.getCluster().getLocalMember());
+          assertEquals(1,node1.clusterManager.lsMembers.size());
+        }
+      }
+,5);
+    }
+    public void after(){
+      node1.clusterManager.enqueueAndWait(new Processable(){
+        public void process(){
+          MemberImpl secondMember=new MemberImpl(((MemberImpl)h2.getCluster().getLocalMember()).getAddress(),false);
+          node1.clusterManager.addMember(secondMember);
+          assertEquals(2,node1.clusterManager.lsMembers.size());
+        }
+      }
+,5);
+    }
+    public void destroy(){
+    }
+  }
+;
+  BeforeAfterTester t=new BeforeAfterTester(behavior,calls);
+  t.run();
+}

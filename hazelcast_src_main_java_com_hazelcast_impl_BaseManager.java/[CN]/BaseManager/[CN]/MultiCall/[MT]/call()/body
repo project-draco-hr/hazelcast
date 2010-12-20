@@ -2,7 +2,7 @@
   try {
     node.checkNodeState();
     onCall();
-    TargetAwareOp localCall=createNewTargetAwareOp(getFirstAddressToMakeCall());
+    SubCall localCall=createNewTargetAwareOp(getFirstAddressToMakeCall());
     localCall.doOp();
     Object result=localCall.getResultAsObject();
     if (result == OBJECT_REDO) {
@@ -12,16 +12,16 @@
     }
     if (onResponse(result)) {
       Set<Member> members=node.getClusterImpl().getMembers();
-      List<TargetAwareOp> lsCalls=new ArrayList<TargetAwareOp>();
+      List<SubCall> lsCalls=new ArrayList<SubCall>();
       for (      Member member : members) {
-        if (!member.getInetSocketAddress().equals(getFirstAddressToMakeCall().getInetSocketAddress())) {
-          MemberImpl cMember=(MemberImpl)member;
-          TargetAwareOp targetAwareOp=createNewTargetAwareOp(cMember.getAddress());
-          targetAwareOp.doOp();
-          lsCalls.add(targetAwareOp);
+        MemberImpl cMember=(MemberImpl)member;
+        if (!cMember.getAddress().equals(getFirstAddressToMakeCall())) {
+          SubCall subCall=createNewTargetAwareOp(cMember.getAddress());
+          subCall.doOp();
+          lsCalls.add(subCall);
         }
       }
-      for (      TargetAwareOp call : lsCalls) {
+      for (      SubCall call : lsCalls) {
         result=call.getResultAsObject();
         if (result == OBJECT_REDO) {
           onRedo();
@@ -39,9 +39,6 @@
   }
  catch (  InterruptedException e) {
     throw new RuntimeException(e);
-  }
-catch (  UnknownHostException e) {
-    e.printStackTrace();
   }
   return (T)returnResult();
 }
