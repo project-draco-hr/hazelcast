@@ -7,11 +7,11 @@
   }
   final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
   final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
-  migratePartition(28,h1,h2);
+  TestUtil.migratePartition(28,h1,h2);
   assertEquals(getPartitionById(h1.getPartitionService(),28).getOwner(),h2.getCluster().getLocalMember());
   assertEquals(getPartitionById(h2.getPartitionService(),28).getOwner(),h2.getCluster().getLocalMember());
   assertEquals(getPartitionById(h3.getPartitionService(),28).getOwner(),h2.getCluster().getLocalMember());
-  initiateMigration(28,20,h1,h2,h1);
+  TestUtil.initiateMigration(28,20,h1,h2,h1);
   final ConcurrentMapManager chm2=getConcurrentMapManager(h2);
   chm2.enqueueAndWait(new Processable(){
     public void process(){
@@ -22,11 +22,13 @@
   final CountDownLatch migrationLatch=new CountDownLatch(2);
   MigrationListener migrationListener=new MigrationListener(){
     public void migrationCompleted(    MigrationEvent migrationEvent){
+      System.out.println("event " + migrationEvent);
       if (migrationEvent.getPartitionId() == 28 && migrationEvent.getNewOwner().equals(h1.getCluster().getLocalMember())) {
         migrationLatch.countDown();
       }
     }
     public void migrationStarted(    MigrationEvent migrationEvent){
+      System.out.println("ev " + migrationEvent);
     }
   }
 ;

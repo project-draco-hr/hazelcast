@@ -2,10 +2,15 @@
   super(node);
   WAIT_MILLIS_BEFORE_JOIN=node.groupProperties.WAIT_SECONDS_BEFORE_JOIN.getInteger() * 1000L;
   MAX_NO_HEARTBEAT_MILLIS=node.groupProperties.MAX_NO_HEARTBEAT_SECONDS.getInteger() * 1000L;
+  HEARTBEAT_INTERVAL_MILLIS=node.groupProperties.HEARTBEAT_INTERVAL_SECONDS.getInteger() * 1000L;
   node.clusterService.registerPeriodicRunnable(new SplitBrainHandler(node));
   node.clusterService.registerPeriodicRunnable(new Runnable(){
     public void run(){
-      heartBeater();
+      long now=System.currentTimeMillis();
+      if (now - lastHeartbeat >= HEARTBEAT_INTERVAL_MILLIS) {
+        heartBeater();
+        lastHeartbeat=now;
+      }
     }
   }
 );
