@@ -1,14 +1,7 @@
 {
-  this.keyObject=key;
-  this.nearCache=mapCaches.get(name);
-  Data dataKey=toData(key);
-  if (nearCache != null) {
-    if (nearCache.containsKey(key)) {
-      return true;
-    }
- else     if (nearCache.getMaxSize() == Integer.MAX_VALUE) {
-      return false;
-    }
+  MapNearCache nearCache=mapCaches.get(name);
+  if (nearCache != null && !nearCache.isEmpty()) {
+    return false;
   }
   final CMap cMap=maps.get(name);
   if (cMap != null) {
@@ -16,16 +9,16 @@
     for (    Record record : cMap.mapRecords.values()) {
       if (record.isActive() && record.isValid(now) && record.getValue() != null) {
         if (cMap.useBackupData) {
-          return true;
+          return false;
         }
  else {
           Partition partition=partitionManager.partitionServiceImpl.getPartition(record.getBlockId());
           if (partition != null && partition.getOwner() != null && partition.getOwner().localMember()) {
-            return true;
+            return false;
           }
         }
       }
     }
   }
-  return booleanCall(CONCURRENT_MAP_CONTAINS,name,dataKey,null,0,-1);
+  return new MSize(name).getSize() == 0;
 }

@@ -7,28 +7,47 @@
       return txn.get(name,key);
     }
   }
-  nearCache=mapCaches.get(name);
-  if (nearCache != null) {
-    Object value=nearCache.get(key);
-    if (value != null) {
-      return value;
-    }
-  }
-  LocallyOwnedMap locallyOwnedMap=mapLocallyOwnedMaps.get(name);
-  if (locallyOwnedMap != null) {
-    Object value=locallyOwnedMap.get(key);
-    if (value != OBJECT_REDO) {
-      return value;
-    }
-  }
   final CMap cMap=maps.get(name);
-  if (cMap != null && cMap.useBackupData) {
+  if (cMap != null) {
+    nearCache=cMap.mapNearCache;
+    if (nearCache != null) {
+      Object value=nearCache.get(key);
+      if (value != null) {
+        return value;
+      }
+    }
     final Data dataKey=toData(key);
-    final Record record=cMap.mapRecords.get(dataKey);
-    if (record != null && cMap.isBackup(record) && record.isActive() && record.isValid()) {
-      final Data valueData=record.getValue();
-      if (valueData != null) {
-        return ThreadContext.get().isClient() ? valueData : toObject(valueData);
+    Record ownedRecord=cMap.getOwnedRecord(dataKey);
+    if (ownedRecord != null && ownedRecord.isActive() && ownedRecord.isValid()) {
+      long version=ownedRecord.getVersion();
+      Object result=null;
+      if (tc.isClient()) {
+        Data valueData=ownedRecord.getValue();
+        if (valueData != null && valueData.size() > 0) {
+          result=valueData;
+        }
+      }
+ else {
+        RecordEntry recordEntry=cMap.getRecordEntry(ownedRecord);
+        if (recordEntry != null) {
+          Object value=recordEntry.getValue();
+          if (value != null) {
+            result=value;
+          }
+        }
+      }
+      if (result != null && ownedRecord.getVersion() == version) {
+        ownedRecord.setLastAccessed();
+        return result;
+      }
+    }
+    if (cMap.useBackupData) {
+      final Record record=cMap.mapRecords.get(dataKey);
+      if (record != null && cMap.isBackup(record) && record.isActive() && record.isValid()) {
+        final Data valueData=record.getValue();
+        if (valueData != null) {
+          return ThreadContext.get().isClient() ? valueData : toObject(valueData);
+        }
       }
     }
   }
