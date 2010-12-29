@@ -1,6 +1,6 @@
 {
   final HazelcastInstance instance=Hazelcast.newHazelcastInstance(new Config());
-  int threads=3;
+  int threads=5;
   final IMap<Object,Object> testMap=instance.getMap("testConcurrentLockPrimitive");
   assertNull(testMap.putIfAbsent(1L,0L));
   assertEquals(0L,testMap.get(1L));
@@ -18,7 +18,7 @@
           try {
             Long value=(Long)testMap.get(1L);
             assertNotNull(value);
-            testMap.put(1L,value.longValue() + 1);
+            testMap.put(1L,value + 1);
           }
   finally {
             testMap.unlock(1L);
@@ -31,7 +31,7 @@
   }
   countDownLatch.await();
   pool.shutdown();
-  pool.awaitTermination(1,TimeUnit.SECONDS);
+  assertTrue(pool.awaitTermination(5,TimeUnit.SECONDS));
   Long value=(Long)testMap.get(1L);
   assertEquals(Long.valueOf(total),value);
 }

@@ -22,18 +22,15 @@
       long version=ownedRecord.getVersion();
       Object result=null;
       if (tc.isClient()) {
-        Data valueData=ownedRecord.getValue();
+        Data valueData=ownedRecord.getValueData();
         if (valueData != null && valueData.size() > 0) {
           result=valueData;
         }
       }
  else {
-        RecordEntry recordEntry=cMap.getRecordEntry(ownedRecord);
-        if (recordEntry != null) {
-          Object value=recordEntry.getValue();
-          if (value != null) {
-            result=value;
-          }
+        Object value=ownedRecord.getValue();
+        if (value != null) {
+          result=value;
         }
       }
       if (result != null && ownedRecord.getVersion() == version) {
@@ -41,10 +38,10 @@
         return result;
       }
     }
-    if (cMap.useBackupData) {
+    if (cMap.readBackupData) {
       final Record record=cMap.mapRecords.get(dataKey);
       if (record != null && cMap.isBackup(record) && record.isActive() && record.isValid()) {
-        final Data valueData=record.getValue();
+        final Data valueData=record.getValueData();
         if (valueData != null) {
           return ThreadContext.get().isClient() ? valueData : toObject(valueData);
         }

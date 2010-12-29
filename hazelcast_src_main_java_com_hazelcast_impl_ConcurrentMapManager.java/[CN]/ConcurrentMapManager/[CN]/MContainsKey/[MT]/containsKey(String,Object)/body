@@ -12,17 +12,15 @@
   }
   final CMap cMap=maps.get(name);
   if (cMap != null) {
-    long now=System.currentTimeMillis();
-    for (    Record record : cMap.mapRecords.values()) {
-      if (record.isActive() && record.isValid(now) && record.getValue() != null) {
-        if (cMap.useBackupData) {
-          return true;
-        }
+    Record record=cMap.getOwnedRecord(dataKey);
+    if (record != null && record.isActive() && record.isValid() && record.getValueData() != null) {
+      if (cMap.readBackupData) {
+        return true;
+      }
  else {
-          Partition partition=partitionManager.partitionServiceImpl.getPartition(record.getBlockId());
-          if (partition != null && partition.getOwner() != null && partition.getOwner().localMember()) {
-            return true;
-          }
+        PartitionServiceImpl.PartitionProxy partition=partitionManager.partitionServiceImpl.getPartition(record.getBlockId());
+        if (partition != null && !partition.isMigrating() && partition.getOwner() != null && partition.getOwner().localMember()) {
+          return true;
         }
       }
     }
