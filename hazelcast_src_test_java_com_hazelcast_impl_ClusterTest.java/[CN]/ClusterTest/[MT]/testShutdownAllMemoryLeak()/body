@@ -1,9 +1,7 @@
 {
   Runtime.getRuntime().gc();
   long usedMemoryInit=getUsedMemoryAsMB();
-  Config config=new XmlConfigBuilder().build();
-  MapConfig mapConfig=config.getMapConfig("default");
-  mapConfig.setMaxIdleSeconds(15);
+  Config config=new Config();
   final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
   final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
@@ -18,8 +16,6 @@
   for (int i=0; i < size; i++) {
     map1.put(i,new byte[10000]);
   }
-  long usedMemoryStart=getUsedMemoryAsMB();
-  assertTrue("UsedMemoryStart: " + usedMemoryStart,usedMemoryStart > 200);
   final ExecutorService es=Executors.newFixedThreadPool(4);
   final CountDownLatch latch=new CountDownLatch(4);
   for (int a=0; a < 4; a++) {
@@ -37,15 +33,13 @@
   latch.await();
   es.shutdown();
   assertTrue(es.awaitTermination(5,TimeUnit.SECONDS));
-  for (int i=0; i < 50; i++) {
+  Hazelcast.shutdownAll();
+  for (int i=0; i < 100; i++) {
     sleep(1000);
     Runtime.getRuntime().gc();
     long usedMemoryEnd=getUsedMemoryAsMB();
-    if ((usedMemoryEnd - usedMemoryInit) < 25) {
+    if ((usedMemoryEnd - usedMemoryInit) < 10) {
       return;
     }
   }
-  Runtime.getRuntime().gc();
-  long usedMemoryEnd=getUsedMemoryAsMB();
-  assertTrue(usedMemoryInit + ", UsedMemory now: " + usedMemoryEnd,(usedMemoryEnd - usedMemoryInit) < 25);
 }
