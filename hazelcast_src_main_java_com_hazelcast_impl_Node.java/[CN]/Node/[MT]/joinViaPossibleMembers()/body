@@ -56,9 +56,13 @@
           connectAndSendJoinRequest(colPossibleAddresses);
           Thread.sleep(1000L);
         }
+        int requestCount=0;
         while (masterAddress != null && !joined) {
           Thread.sleep(1000L);
           clusterManager.sendJoinRequest(masterAddress);
+          if (requestCount++ > 22) {
+            failedJoiningToMaster(false,requestCount);
+          }
         }
         if (masterAddress == null) {
           boolean masterCandidate=true;
@@ -77,8 +81,6 @@
     colPossibleAddresses.clear();
     failedConnections.clear();
   }
- catch (  Exception e) {
-    e.printStackTrace();
-    logger.log(Level.SEVERE,e.getMessage(),e);
+ catch (  InterruptedException ignored) {
   }
 }
