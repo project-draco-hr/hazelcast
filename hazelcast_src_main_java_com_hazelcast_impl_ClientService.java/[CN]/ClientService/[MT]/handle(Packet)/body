@@ -1,16 +1,16 @@
 {
-  if (workers == null) {
+  if (firstCall) {
     String threadNamePrefix=node.getThreadPoolNamePrefix("client.service");
-    workers=new Worker[THREAD_COUNT];
     for (int i=0; i < THREAD_COUNT; i++) {
-      Worker worker=new Worker();
-      workers[i]=worker;
+      Worker worker=workers[i];
       new Thread(node.threadGroup,worker,threadNamePrefix + i).start();
     }
+    firstCall=false;
   }
   ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
   CallContext callContext=clientEndpoint.getCallContext(packet.threadId);
-  ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandlers[packet.operation.getValue()]);
+  ClientOperationHandler clientOperationHandler=clientOperationHandlers[packet.operation.getValue()];
+  ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandler);
   if (packet.operation == CONCURRENT_MAP_UNLOCK) {
     node.executorManager.executeNow(clientRequestHandler);
   }
