@@ -3,44 +3,37 @@
     Thread.sleep(50L);
     return;
   }
-  Call call=queue.poll(100,TimeUnit.MILLISECONDS);
-  try {
-    if (call == null) {
-      if (reconnectionCalls.size() > 0) {
-        checkOnReconnect(call);
-      }
-      return;
-    }
-    if (call != RECONNECT_CALL) {
-      callMap.put(call.getId(),call);
-    }
-    Connection oldConnection=connection;
-    connection=client.getConnectionManager().getConnection();
-    boolean wrote=false;
-    if (restoredConnection(oldConnection,connection)) {
-      resubscribe(call,oldConnection);
-    }
- else     if (connection != null) {
-      if (call != RECONNECT_CALL) {
-        logger.log(Level.FINEST,"Sending: " + call);
-        writer.write(connection,call.getRequest());
-        wrote=true;
-      }
-    }
- else {
-      enQueue(call);
-      clusterIsDown(oldConnection);
-      return;
-    }
-    if (connection != null && wrote) {
-      writer.flush(connection);
-    }
-    if (reconnectionCalls.size() > 0) {
-      checkOnReconnect(call);
+  boolean written=false;
+  if (queue.size() > 0 || q.size() > 0) {
+    queue.drainTo(q);
+    Call call=q.poll();
+    while (call != null) {
+      writeCall(call);
+      written=true;
+      call=q.poll();
     }
   }
- catch (  Throwable io) {
-    logger.log(Level.WARNING,"OutRunnable [" + connection + "] got exception:"+ io.getMessage(),io);
+ else   if (reconnectionCalls.size() > 0) {
+    checkOnReconnect(null);
+    return;
+  }
+  try {
+    if (written) {
+      writer.flush(connection);
+    }
+  }
+ catch (  IOException e) {
     clusterIsDown(connection);
+  }
+  Call call=queue.poll(12,TimeUnit.MILLISECONDS);
+  if (call != null) {
+    writeCall(call);
+    try {
+      writer.flush(connection);
+    }
+ catch (    IOException e) {
+      queue.offer(call);
+      clusterIsDown(connection);
+    }
   }
 }

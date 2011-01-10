@@ -1,0 +1,55 @@
+{
+  final ByteBuffer readHeaderBuffer=packetReader.readHeaderBuffer;
+  final int headerSize=dis.readInt();
+  int keySize=dis.readInt();
+  int valueSize=dis.readInt();
+  byte packetVersion=dis.readByte();
+  if (packetVersion != PACKET_VERSION) {
+    throw new ClusterClientException("Invalid packet version. Expected:" + PACKET_VERSION + ", Found:"+ packetVersion);
+  }
+  readHeaderBuffer.clear();
+  readHeaderBuffer.limit(headerSize);
+  dis.readFully(readHeaderBuffer.array(),0,headerSize);
+  this.operation=ClusterOperation.create(readHeaderBuffer.get());
+  this.blockId=readHeaderBuffer.getInt();
+  this.threadId=readHeaderBuffer.getInt();
+  byte booleans=readHeaderBuffer.get();
+  if (ByteUtil.isTrue(booleans,0)) {
+    lockCount=readHeaderBuffer.getInt();
+  }
+  if (ByteUtil.isTrue(booleans,1)) {
+    timeout=readHeaderBuffer.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,2)) {
+    ttl=readHeaderBuffer.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,3)) {
+    txnId=readHeaderBuffer.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,4)) {
+    longValue=readHeaderBuffer.getLong();
+  }
+  if (ByteUtil.isTrue(booleans,5)) {
+    version=readHeaderBuffer.getLong();
+  }
+  if (!ByteUtil.isTrue(booleans,7)) {
+    throw new ClusterClientException("LockAddress cannot be sent to the client!" + operation);
+  }
+  this.callId=readHeaderBuffer.getLong();
+  this.responseType=readHeaderBuffer.get();
+  int nameLength=readHeaderBuffer.getInt();
+  if (nameLength > 0) {
+    byte[] b=new byte[nameLength];
+    readHeaderBuffer.get(b);
+    this.name=new String(b);
+  }
+  indexCount=readHeaderBuffer.get();
+  for (int i=0; i < indexCount; i++) {
+    indexes[i]=readHeaderBuffer.getLong();
+    indexTypes[i]=readHeaderBuffer.get();
+  }
+  key=new byte[keySize];
+  dis.readFully(key);
+  value=new byte[valueSize];
+  dis.readFully(value);
+}

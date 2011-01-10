@@ -1,11 +1,20 @@
 {
+  if (workers == null) {
+    workers=new Worker[THREAD_COUNT];
+    for (int i=0; i < THREAD_COUNT; i++) {
+      Worker worker=new Worker();
+      workers[i]=worker;
+      new Thread(worker).start();
+    }
+  }
   ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
   CallContext callContext=clientEndpoint.getCallContext(packet.threadId);
-  ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandlers);
-  if (packet.operation.equals(ClusterOperation.CONCURRENT_MAP_UNLOCK)) {
+  ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandlers[packet.operation.getValue()]);
+  if (packet.operation == CONCURRENT_MAP_UNLOCK) {
     node.executorManager.executeNow(clientRequestHandler);
   }
  else {
-    node.executorManager.getClientExecutorService().executeOrderedRunnable(callContext.getThreadId(),clientRequestHandler);
+    int hash=hash(callContext.getThreadId(),THREAD_COUNT);
+    workers[hash].addWork(clientRequestHandler);
   }
 }

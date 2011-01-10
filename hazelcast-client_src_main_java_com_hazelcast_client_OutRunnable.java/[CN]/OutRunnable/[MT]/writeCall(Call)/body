@@ -1,0 +1,28 @@
+{
+  try {
+    Connection oldConnection=connection;
+    connection=client.getConnectionManager().getConnection();
+    if (restoredConnection(oldConnection,connection)) {
+      resubscribe(call,oldConnection);
+    }
+ else     if (connection != null) {
+      if (call != RECONNECT_CALL) {
+        callMap.put(call.getId(),call);
+        writer.write(connection,call.getRequest());
+        call.written=System.nanoTime();
+      }
+    }
+ else {
+      queue.offer(call);
+      clusterIsDown(oldConnection);
+      return;
+    }
+    if (reconnectionCalls.size() > 0) {
+      checkOnReconnect(call);
+    }
+  }
+ catch (  Exception e) {
+    queue.offer(call);
+    clusterIsDown(connection);
+  }
+}
