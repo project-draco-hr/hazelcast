@@ -4,15 +4,40 @@
     if (member == null) {
       member=new MemberImpl(from,thisAddress.equals(from));
     }
-    final EventTask eventTask=new EventTask(member,eventType,name,eventKey,eventValue);
+    Data newValue=value;
+    Data oldValue=null;
+    if (value != null && getInstanceType(name).isMap()) {
+      Keys keys=(Keys)toObject(value);
+      Collection<Data> values=keys.getKeys();
+      if (values != null) {
+        Iterator<Data> it=values.iterator();
+        if (it.hasNext()) {
+          newValue=it.next();
+        }
+        if (it.hasNext()) {
+          oldValue=it.next();
+        }
+      }
+    }
+    final DataAwareEntryEvent dataAwareEntryEvent=new DataAwareEntryEvent(member,eventType,name,key,newValue,oldValue);
     int hash;
-    if (eventKey != null) {
-      hash=eventKey.hashCode();
+    if (key != null) {
+      hash=key.hashCode();
     }
  else {
       hash=hashTwo(from.hashCode(),name.hashCode());
     }
-    node.executorManager.getEventExecutorService().executeOrderedRunnable(hash,eventTask);
+    node.executorManager.getEventExecutorService().executeOrderedRunnable(hash,new Runnable(){
+      public void run(){
+        try {
+          node.listenerManager.callListeners(dataAwareEntryEvent);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+);
   }
  catch (  Exception e) {
     e.printStackTrace();

@@ -1,0 +1,17 @@
+{
+  if (timeout < 0)   throw new IllegalArgumentException();
+  lock.lock();
+  try {
+    if (timeout == 0)     return response;
+    long remaining=unit.toMillis(timeout);
+    while (response == null && remaining > 0) {
+      long start=System.currentTimeMillis();
+      noValue.await(remaining,TimeUnit.MILLISECONDS);
+      remaining-=(System.currentTimeMillis() - start);
+    }
+    return response;
+  }
+  finally {
+    lock.unlock();
+  }
+}
