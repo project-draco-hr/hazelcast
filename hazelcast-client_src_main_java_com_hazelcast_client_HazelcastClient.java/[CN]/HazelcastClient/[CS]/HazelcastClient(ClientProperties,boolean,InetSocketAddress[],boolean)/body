@@ -1,27 +1,10 @@
 {
   this.properties=properties;
-  this.id=counter.incrementAndGet();
+  this.id=clientIdCounter.incrementAndGet();
   final String groupName=properties.getProperty(ClientPropertyName.GROUP_NAME);
   final String prefix="hz.client." + this.id + ".";
-  final ThreadFactory threadFactory=new ThreadFactory(){
-    final AtomicInteger atomicInteger=new AtomicInteger();
-    public Thread newThread(    Runnable r){
-      Thread t=new Thread(r,prefix + groupName + "_cached_thread_"+ atomicInteger.incrementAndGet());
-      if (t.isDaemon()) {
-        t.setDaemon(false);
-      }
-      if (t.getPriority() != Thread.NORM_PRIORITY) {
-        t.setPriority(Thread.NORM_PRIORITY);
-      }
-      return t;
-    }
-  }
-;
-  executor=Executors.newCachedThreadPool(threadFactory);
   lifecycleService=new LifecycleServiceClientImpl(this);
   lifecycleService.fireLifecycleEvent(STARTING);
-  parallelExecutorService=new ParallelExecutorService(executor);
-  parallelExecutorDefault=parallelExecutorService.newParallelExecutor(10);
   connectionManager=automatic ? new ConnectionManager(this,lifecycleService,clusterMembers[0]) : new ConnectionManager(this,lifecycleService,clusterMembers,shuffle);
   connectionManager.setBinder(new DefaultClientBinder(this));
   out=new OutRunnable(this,calls,new PacketWriter());

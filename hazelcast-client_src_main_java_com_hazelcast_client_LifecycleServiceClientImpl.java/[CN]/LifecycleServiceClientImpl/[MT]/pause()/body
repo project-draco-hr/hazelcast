@@ -1,13 +1,19 @@
 {
+  Callable<Boolean> callable=new Callable<Boolean>(){
+    public Boolean call(){
 synchronized (lifecycleLock) {
-    if (!paused.get()) {
-      fireLifecycleEvent(PAUSING);
-    }
+        if (paused.get()) {
+          fireLifecycleEvent(PAUSING);
+        }
  else {
-      return false;
+          return false;
+        }
+        paused.set(false);
+        fireLifecycleEvent(PAUSED);
+        return true;
+      }
     }
-    paused.set(true);
-    fireLifecycleEvent(PAUSED);
-    return true;
   }
+;
+  return hazelcastClient.callAsyncAndWait(callable);
 }
