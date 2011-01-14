@@ -1,5 +1,5 @@
 {
-  Runtime.getRuntime().gc();
+  waitForGC(20,20);
   long usedMemoryInit=getUsedMemoryAsMB();
   Config config=new XmlConfigBuilder().build();
   MapConfig mapConfig=config.getMapConfig("default");
@@ -37,12 +37,5 @@
   latch.await();
   es.shutdown();
   assertTrue(es.awaitTermination(5,TimeUnit.SECONDS));
-  for (int i=0; i < 100; i++) {
-    sleep(1000);
-    Runtime.getRuntime().gc();
-    if ((getUsedMemoryAsMB() - usedMemoryInit) < 25) {
-      return;
-    }
-  }
-  fail(String.format("UsedMemory now: %d init: %d ",getUsedMemoryAsMB(),usedMemoryInit));
+  waitForGC(25 + usedMemoryInit,100);
 }

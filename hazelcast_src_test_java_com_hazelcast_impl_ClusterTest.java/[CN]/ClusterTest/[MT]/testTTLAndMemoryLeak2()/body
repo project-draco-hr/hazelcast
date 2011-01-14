@@ -1,9 +1,6 @@
 {
-  Runtime.getRuntime().gc();
-  sleep(2000);
-  Runtime.getRuntime().gc();
+  waitForGC(20,20);
   long usedMemoryInit=getUsedMemoryAsMB();
-  assertTrue("UsedMemoryInit: " + usedMemoryInit,usedMemoryInit < 20);
   Config config=new Config();
   final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
@@ -38,12 +35,5 @@
   latch.await();
   es.shutdown();
   assertTrue(es.awaitTermination(5,TimeUnit.SECONDS));
-  for (int i=0; i < 100; i++) {
-    sleep(1000);
-    Runtime.getRuntime().gc();
-    if ((getUsedMemoryAsMB() - usedMemoryInit) < 25) {
-      return;
-    }
-  }
-  fail(String.format("UsedMemory now: %d init: %d ",getUsedMemoryAsMB(),usedMemoryInit));
+  waitForGC(25 + usedMemoryInit,100);
 }
