@@ -1,0 +1,30 @@
+{
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  final IMap map1=h1.getMap("default");
+  map1.put(1,1);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(new Config());
+  final IMap map2=h2.getMap("default");
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(new Config());
+  final IMap map3=h3.getMap("default");
+  assertTrue(map2.tryLock(1));
+  final CountDownLatch latchLock=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        map3.lock(1);
+        assertTrue(latchLock.await(10,TimeUnit.SECONDS));
+      }
+ catch (      Throwable e) {
+        fail();
+      }
+    }
+  }
+).start();
+  Thread.sleep(2000);
+  h1.getLifecycleService().shutdown();
+  Thread.sleep(2000);
+  assertEquals(1,map2.put(1,2));
+  map2.unlock(1);
+  latchLock.countDown();
+  assertFalse(map2.tryLock(1));
+}

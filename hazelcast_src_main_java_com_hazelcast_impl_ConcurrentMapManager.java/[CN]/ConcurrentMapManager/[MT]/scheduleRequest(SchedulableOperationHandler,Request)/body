@@ -1,0 +1,20 @@
+{
+  final Record record=ensureRecord(request);
+  request.scheduled=true;
+  ScheduledAction scheduledAction=new ScheduledAction(request){
+    @Override public boolean consume(){
+      handler.handle(request);
+      return true;
+    }
+    @Override public void onExpire(){
+      handler.onNoTimeToSchedule(request);
+    }
+    @Override public void onMigrate(){
+      request.response=OBJECT_REDO;
+      returnResponse(request);
+    }
+  }
+;
+  record.addScheduledAction(scheduledAction);
+  node.clusterManager.registerScheduledAction(scheduledAction);
+}
