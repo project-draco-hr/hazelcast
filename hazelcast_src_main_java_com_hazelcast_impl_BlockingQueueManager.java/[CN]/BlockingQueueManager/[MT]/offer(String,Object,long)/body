@@ -1,14 +1,13 @@
 {
   Long key=generateKey(name,timeout);
+  ThreadContext threadContext=ThreadContext.get();
+  TransactionImpl txn=threadContext.getCallContext().getTransaction();
   if (key != -1) {
-    IMap imap=getStorageMap(name);
-    final Data dataKey=toData(key);
-    imap.put(dataKey,obj);
-    if (addKeyAsync) {
-      sendKeyToMaster(name,dataKey);
+    if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+      txn.attachPutOp(name,key,obj,timeout,true);
     }
  else {
-      addKey(name,dataKey);
+      storeQueueItem(name,key,obj,true);
     }
     return true;
   }

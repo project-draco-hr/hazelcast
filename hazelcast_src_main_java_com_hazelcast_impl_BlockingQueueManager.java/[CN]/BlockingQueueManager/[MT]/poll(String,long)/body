@@ -12,6 +12,13 @@
     IMap imap=getStorageMap(name);
     try {
       removedItem=imap.tryRemove(key,0,TimeUnit.MILLISECONDS);
+      if (removedItem != null) {
+        ThreadContext threadContext=ThreadContext.get();
+        TransactionImpl txn=threadContext.getCallContext().getTransaction();
+        if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+          txn.attachRemoveOp(name,key,removedItem,true);
+        }
+      }
     }
  catch (    TimeoutException e) {
     }
