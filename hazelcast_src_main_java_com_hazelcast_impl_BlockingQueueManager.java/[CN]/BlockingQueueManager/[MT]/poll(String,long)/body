@@ -1,0 +1,23 @@
+{
+  if (timeout == -1) {
+    timeout=Long.MAX_VALUE;
+  }
+  Object removedItem=null;
+  long start=System.currentTimeMillis();
+  while (removedItem == null && timeout >= 0) {
+    Data key=takeKey(name,timeout);
+    if (key == null) {
+      return null;
+    }
+    IMap imap=getStorageMap(name);
+    try {
+      removedItem=imap.tryRemove(key,0,TimeUnit.MILLISECONDS);
+    }
+ catch (    TimeoutException e) {
+    }
+    long now=System.currentTimeMillis();
+    timeout-=(now - start);
+    start=now;
+  }
+  return removedItem;
+}

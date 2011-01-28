@@ -4,8 +4,10 @@
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
     if (!txn.has(name,key)) {
       MLock mlock=new MLock();
-      boolean locked=mlock.lockAndGetValue(name,key,DEFAULT_TXN_TIMEOUT);
-      if (!locked)       throwCME(key);
+      boolean locked=mlock.lockAndGetValue(name,key,timeout);
+      if (!locked) {
+        throwCME(key);
+      }
       Object oldObject=null;
       Data oldValue=mlock.oldValue;
       if (oldValue != null) {
@@ -13,6 +15,9 @@
       }
       int removedValueCount=0;
       if (oldObject != null) {
+        if (oldObject instanceof DistributedTimeoutException) {
+          return oldObject;
+        }
         if (oldObject instanceof CMap.Values) {
           CMap.Values values=(CMap.Values)oldObject;
           removedValueCount=values.size();
@@ -34,7 +39,9 @@
       if (oldValue instanceof AddressAwareException) {
         rethrowException(operation,(AddressAwareException)oldValue);
       }
-      backup(CONCURRENT_MAP_BACKUP_REMOVE);
+      if (!(oldValue instanceof DistributedTimeoutException)) {
+        backup(CONCURRENT_MAP_BACKUP_REMOVE);
+      }
     }
     return oldValue;
   }
