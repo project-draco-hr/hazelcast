@@ -1,0 +1,74 @@
+{
+  MasterOp op=new MasterOp(ClusterOperation.BLOCKING_ITERATE,name,0);
+  op.initOp();
+  Keys keys=(Keys)op.getResultAsObject();
+  final Collection<Data> dataKeys=keys.getKeys();
+  final Collection allKeys=new ArrayList(dataKeys);
+  TransactionImpl txn=ThreadContext.get().getCallContext().getTransaction();
+  Map txnOfferItems=null;
+  if (txn != null) {
+    txnOfferItems=txn.newKeys(name);
+    if (txnOfferItems != null) {
+      allKeys.addAll(txnOfferItems.keySet());
+    }
+  }
+  final Map txnMap=txnOfferItems;
+  final Iterator it=allKeys.iterator();
+  final IMap imap=getStorageMap(name);
+  return new Iterator(){
+    Object key=null;
+    Object next=null;
+    boolean hasNext=false;
+    boolean set=false;
+    public boolean hasNext(){
+      if (!set) {
+        set();
+      }
+      boolean result=hasNext;
+      hasNext=false;
+      set=false;
+      return result;
+    }
+    public Object next(){
+      if (!set) {
+        set();
+      }
+      Object result=next;
+      set=false;
+      next=null;
+      return result;
+    }
+    public void remove(){
+      if (key != null) {
+        try {
+          imap.tryRemove(key,0,TimeUnit.MILLISECONDS);
+        }
+ catch (        TimeoutException ignored) {
+        }
+      }
+    }
+    void set(){
+      try {
+        while (next == null) {
+          hasNext=it.hasNext();
+          if (hasNext) {
+            key=it.next();
+            if (txnMap != null) {
+              next=txnMap.get(key);
+            }
+            if (next == null) {
+              next=imap.get(key);
+            }
+          }
+ else {
+            return;
+          }
+        }
+      }
+  finally {
+        set=true;
+      }
+    }
+  }
+;
+}
