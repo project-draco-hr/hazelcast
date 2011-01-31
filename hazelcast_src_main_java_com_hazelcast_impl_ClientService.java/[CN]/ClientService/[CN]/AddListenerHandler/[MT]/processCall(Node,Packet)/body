@@ -13,33 +13,14 @@
  else   if (getInstanceType(packet.name).equals(InstanceType.QUEUE)) {
     IQueue<Object> queue=(IQueue)node.factory.getOrCreateProxyByName(packet.name);
     final String packetName=packet.name;
-    ItemListener itemListener=new ItemListener(){
-      public void itemAdded(      Object item){
-        Packet p=new Packet();
-        p.set(packetName,ClusterOperation.EVENT,item,true);
-        clientEndpoint.sendPacket(p);
-      }
-      public void itemRemoved(      Object item){
-        Packet p=new Packet();
-        p.set(packetName,ClusterOperation.EVENT,item,false);
-        clientEndpoint.sendPacket(p);
-      }
-    }
-;
+    ItemListener itemListener=new ClientItemListener(clientEndpoint,packetName);
     queue.addItemListener(itemListener,includeValue);
     clientEndpoint.queueItemListeners.put(queue,itemListener);
   }
  else   if (getInstanceType(packet.name).equals(InstanceType.TOPIC)) {
     ITopic<Object> topic=(ITopic)node.factory.getOrCreateProxyByName(packet.name);
     final String packetName=packet.name;
-    MessageListener<Object> messageListener=new MessageListener<Object>(){
-      public void onMessage(      Object msg){
-        Packet p=new Packet();
-        p.set(packetName,ClusterOperation.EVENT,msg,null);
-        clientEndpoint.sendPacket(p);
-      }
-    }
-;
+    MessageListener<Object> messageListener=new ClientMessageListener<Object>(clientEndpoint,packetName);
     topic.addMessageListener(messageListener);
     clientEndpoint.messageListeners.put(topic,messageListener);
   }
