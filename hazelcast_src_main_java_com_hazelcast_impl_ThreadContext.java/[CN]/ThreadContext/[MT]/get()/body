@@ -1,8 +1,15 @@
 {
   ThreadContext threadContext=threadLocal.get();
   if (threadContext == null) {
-    threadContext=new ThreadContext();
+    threadContext=new ThreadContext(Thread.currentThread());
     threadLocal.set(threadContext);
+    threadContexts.add(threadContext);
+    for (    ThreadContext context : threadContexts) {
+      if (!context.thread.isAlive()) {
+        context.cleanup();
+        threadContexts.remove(context);
+      }
+    }
   }
   return threadContext;
 }
