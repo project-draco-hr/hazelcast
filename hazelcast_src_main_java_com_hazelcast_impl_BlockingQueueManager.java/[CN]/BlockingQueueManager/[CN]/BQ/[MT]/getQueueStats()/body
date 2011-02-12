@@ -1,0 +1,21 @@
+{
+  long now=System.currentTimeMillis();
+  CMap cmap=getStorageCMap(name);
+  IMap storageMap=getStorageMap(name);
+  Set<Object> localKeys=storageMap.localKeySet();
+  int total=cmap.mapRecords.size();
+  int ownedCount=localKeys.size();
+  int backupCount=Math.abs(total - ownedCount);
+  long minAge=Long.MAX_VALUE;
+  long maxAge=Long.MIN_VALUE;
+  long totalAge=0;
+  for (  Object localKey : localKeys) {
+    MapEntry entry=storageMap.getMapEntry(localKey);
+    long age=(now - entry.getCreationTime());
+    minAge=Math.min(minAge,age);
+    maxAge=Math.max(maxAge,age);
+    totalAge+=age;
+  }
+  long aveAge=(ownedCount == 0) ? 0 : (totalAge / ownedCount);
+  return new LocalQueueStatsImpl(ownedCount,backupCount,minAge,maxAge,aveAge);
+}
