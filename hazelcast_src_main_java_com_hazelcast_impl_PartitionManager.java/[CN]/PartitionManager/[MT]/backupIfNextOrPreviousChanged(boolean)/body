@@ -23,10 +23,16 @@
     }
   }
   if (!add)   logger.log(Level.FINEST,thisAddress + " will backup " + lsOwnedRecords.size());
+  backupTaskCount.addAndGet(lsOwnedRecords.size());
   for (  final Record rec : lsOwnedRecords) {
     parallelExecutorBackups.execute(new FallThroughRunnable(){
       public void doRun(){
-        concurrentMapManager.backupRecord(rec);
+        try {
+          concurrentMapManager.backupRecord(rec);
+        }
+  finally {
+          backupTaskCount.decrementAndGet();
+        }
       }
     }
 );
