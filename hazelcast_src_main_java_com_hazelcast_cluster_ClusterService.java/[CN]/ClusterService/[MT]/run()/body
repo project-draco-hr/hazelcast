@@ -2,22 +2,31 @@
   boolean readPackets=false;
   boolean readProcessables=false;
   while (running) {
-    threadWatcher.incrementRunCount();
-    readPackets=(dequeuePackets() != 0);
-    readProcessables=(dequeueProcessables() != 0);
-    if (!readPackets && !readProcessables) {
-      try {
-        long startWait=System.nanoTime();
+    try {
+      threadWatcher.incrementRunCount();
+      readPackets=(dequeuePackets() != 0);
+      readProcessables=(dequeueProcessables() != 0);
+      if (!readPackets && !readProcessables) {
+        try {
+          long startWait=System.nanoTime();
 synchronized (notEmptyLock) {
-          notEmptyLock.wait(2);
+            notEmptyLock.wait(2);
+          }
+          long now=System.nanoTime();
+          threadWatcher.addWait((now - startWait),now);
+          checkPeriodics();
         }
-        long now=System.nanoTime();
-        threadWatcher.addWait((now - startWait),now);
-        checkPeriodics();
+ catch (        InterruptedException e) {
+          node.handleInterruptedException(Thread.currentThread(),e);
+        }
       }
- catch (      InterruptedException e) {
-        node.handleInterruptedException(Thread.currentThread(),e);
-      }
+    }
+ catch (    OutOfMemoryError e) {
+      e.printStackTrace();
+      node.onOutOfMemory();
+    }
+catch (    Throwable e) {
+      e.printStackTrace();
     }
   }
   packetQueue.clear();

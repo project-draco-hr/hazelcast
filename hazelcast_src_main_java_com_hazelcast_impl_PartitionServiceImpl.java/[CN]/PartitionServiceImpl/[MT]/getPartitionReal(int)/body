@@ -28,7 +28,12 @@
     }
 );
     try {
-      partitionReal=responseQ.take();
+      while (partitionReal == null) {
+        partitionReal=responseQ.poll(5,TimeUnit.SECONDS);
+        if (partitionVersion == null) {
+          concurrentMapManager.node.checkNodeState();
+        }
+      }
       mapRealPartitions.put(partitionId,partitionReal);
       return partitionReal;
     }

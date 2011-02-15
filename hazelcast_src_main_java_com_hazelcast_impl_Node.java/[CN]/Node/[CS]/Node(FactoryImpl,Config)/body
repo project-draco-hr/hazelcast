@@ -31,7 +31,7 @@
  catch (  Exception ignored) {
   }
   buildNumber=tmpBuildNumber;
-  ServerSocketChannel serverSocketChannel;
+  ServerSocketChannel serverSocketChannelTemp=null;
   Address localAddress=null;
   try {
     final String preferIPv4Stack=System.getProperty("java.net.preferIPv4Stack");
@@ -39,14 +39,15 @@
     if (preferIPv6Address == null && preferIPv4Stack == null) {
       System.setProperty("java.net.preferIPv4Stack","true");
     }
-    serverSocketChannel=ServerSocketChannel.open();
-    AddressPicker addressPicker=new AddressPicker(this,serverSocketChannel);
+    serverSocketChannelTemp=ServerSocketChannel.open();
+    AddressPicker addressPicker=new AddressPicker(this,serverSocketChannelTemp);
     localAddress=addressPicker.pickAddress();
     localAddress.setThisAddress(true);
   }
  catch (  Throwable e) {
     throw new RuntimeException(e);
   }
+  serverSocketChannel=serverSocketChannelTemp;
   address=localAddress;
   localMember=new MemberImpl(address,true,localNodeType);
   packetPool=new NoneStrictObjectPool<Packet>(2000){
