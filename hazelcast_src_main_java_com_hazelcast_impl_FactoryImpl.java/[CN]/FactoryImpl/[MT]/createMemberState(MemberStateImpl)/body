@@ -1,0 +1,23 @@
+{
+  memberStats.setMember(node.getClusterImpl().getLocalMember());
+  memberStats.getMemberHealthStats().setOutOfMemory(node.isOutOfMemory());
+  memberStats.getMemberHealthStats().setActive(node.isActive());
+  memberStats.getMemberHealthStats().setServiceThreadStats(node.getCpuUtilization().serviceThread);
+  memberStats.getMemberHealthStats().setOutThreadStats(node.getCpuUtilization().outThread);
+  memberStats.getMemberHealthStats().setInThreadStats(node.getCpuUtilization().inThread);
+  Collection<HazelcastInstanceAwareInstance> proxyObjects=proxies.values();
+  for (  HazelcastInstanceAwareInstance proxyObject : proxyObjects) {
+    if (proxyObject.getInstanceType() == Instance.InstanceType.MAP) {
+      MProxy mapProxy=(MProxy)proxyObject;
+      memberStats.putLocalMapStats(mapProxy.getName(),(LocalMapStatsImpl)mapProxy.getLocalMapStats());
+    }
+ else     if (proxyObject.getInstanceType() == Instance.InstanceType.QUEUE) {
+      QProxy qProxy=(QProxy)proxyObject;
+      memberStats.putLocalQueueStats(qProxy.getName(),(LocalQueueStatsImpl)qProxy.getLocalQueueStats());
+    }
+ else     if (proxyObject.getInstanceType() == Instance.InstanceType.TOPIC) {
+      TopicProxy topicProxy=(TopicProxy)proxyObject;
+      memberStats.putLocalTopicStats(topicProxy.getName(),(LocalTopicStatsImpl)topicProxy.getLocalTopicStats());
+    }
+  }
+}
