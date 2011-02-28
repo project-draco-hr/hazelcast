@@ -1,0 +1,24 @@
+{
+  HazelcastClient client=getHazelcastClient();
+  IMap<String,HashSet<byte[]>> callEventsMap=client.getMap("CALL_EVENTS");
+  IMap<String,Long> metaDataMap=client.getMap("CALL_META_DATA");
+  IMap<String,byte[]> callStartMap=client.getMap("CALL_START_EVENTS");
+  byte[] bytes=new byte[10];
+  HashSet<byte[]> hashSet=new HashSet<byte[]>();
+  hashSet.add(bytes);
+  callEventsMap.put("1",hashSet);
+  callStartMap.put("1",bytes);
+  metaDataMap.put("1",10L);
+  Transaction txn=client.getTransaction();
+  txn.begin();
+  try {
+    String callId="1";
+    callEventsMap.remove(callId);
+    metaDataMap.remove(callId);
+    callStartMap.remove(callId);
+    txn.commit();
+  }
+ catch (  Exception e) {
+    fail();
+  }
+}
