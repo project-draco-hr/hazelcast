@@ -1,9 +1,14 @@
 {
-  final String output;
-synchronized (lock) {
-    app.handleCommand(command);
-    output=buffer.toString();
-    buffer.setLength(0);
+  if ("exit".equals(command) || "quit".equals(command)) {
+    return "'" + command + "' is not allowed!";
   }
-  return output;
+  if (lock.tryLock(1,TimeUnit.SECONDS)) {
+    try {
+      return doHandleCommand(command);
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+  return "'" + command + "' execution is timed out!";
 }
