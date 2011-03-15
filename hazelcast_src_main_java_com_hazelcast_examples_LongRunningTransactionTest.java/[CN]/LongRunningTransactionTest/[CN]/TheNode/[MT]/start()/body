@@ -1,0 +1,57 @@
+{
+  final Stats stats=new Stats();
+  for (int i=0; i < threadCount; i++) {
+    es.execute(new Runnable(){
+      public void run(){
+        IQueue<Integer> q=hazelcast.getQueue("default");
+        Map<Integer,Integer> map1=hazelcast.getMap("default");
+        Map<Integer,Integer> map2=hazelcast.getMap("default");
+        Map<Integer,Integer> map3=hazelcast.getMap("default");
+        Map<Integer,Integer> map4=hazelcast.getMap("default");
+        while (running) {
+          try {
+            Transaction txn=hazelcast.getTransaction();
+            txn.begin();
+            try {
+              int key=random(1000);
+              while (key < 5) {
+                key=random(1000);
+              }
+              Integer id=q.take();
+              Integer id1=map1.put(1,id);
+              Integer id2=map2.put(2,id);
+              Integer id3=map3.put(3,id);
+              Integer id4=map4.put(key,id);
+              Thread.sleep(random.nextInt(5));
+              txn.commit();
+              processedIds.put(id);
+            }
+ catch (            Throwable e) {
+              e.printStackTrace();
+              txn.rollback();
+            }
+          }
+ catch (          Throwable ignored) {
+          }
+        }
+      }
+    }
+);
+  }
+  esStats.execute(new Runnable(){
+    public void run(){
+      while (running) {
+        try {
+          Thread.sleep(STATS_SECONDS * 1000);
+          int clusterSize=hazelcast.getCluster().getMembers().size();
+          Stats currentStats=stats.getAndReset();
+          log("Cluster size: " + clusterSize + ", Operations per Second: "+ (currentStats.total() / STATS_SECONDS));
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+);
+}

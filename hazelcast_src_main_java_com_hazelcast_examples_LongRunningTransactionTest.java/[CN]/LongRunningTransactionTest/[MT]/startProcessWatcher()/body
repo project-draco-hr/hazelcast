@@ -1,0 +1,45 @@
+{
+  Executors.newSingleThreadExecutor().execute(new Runnable(){
+    public void run(){
+      Set<Integer> outOfOrderIds=new TreeSet<Integer>();
+      int lastId=0;
+      while (true) {
+        try {
+          Integer id=processedIds.take();
+          if (id % 5000 == 0) {
+            log("ID " + id + "  mapSize "+ Hazelcast.getMap("default").size()+ " OO "+ outOfOrderIds.size()+ ", lastId:"+ lastId);
+          }
+          if (id == (lastId + 1)) {
+            lastId=id;
+            if (outOfOrderIds.size() > 0) {
+              if (outOfOrderIds.size() > 20) {
+                log("Consuming outOfOrders " + outOfOrderIds.size());
+              }
+              if (outOfOrderIds.size() > 1000) {
+                Thread.sleep(1000);
+                System.exit(0);
+              }
+              Set<Integer> outOfOrderIdsNow=outOfOrderIds;
+              outOfOrderIds=new TreeSet<Integer>();
+              for (              Integer idOutOfOrder : outOfOrderIdsNow) {
+                if (idOutOfOrder == (lastId + 1)) {
+                  lastId=idOutOfOrder;
+                }
+ else {
+                  outOfOrderIds.add(idOutOfOrder);
+                }
+              }
+            }
+          }
+ else {
+            outOfOrderIds.add(id);
+          }
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+);
+}
