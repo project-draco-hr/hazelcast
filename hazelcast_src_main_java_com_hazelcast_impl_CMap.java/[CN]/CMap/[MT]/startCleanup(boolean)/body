@@ -9,8 +9,8 @@
   final Set<Record> recordsToEvict=new HashSet<Record>();
   final Set<Record> sortedRecords=new TreeSet<Record>(new ComparatorWrapper(evictionComparator));
   final Collection<Record> records=mapRecords.values();
-  final int maxSizePerJVM=getMaxSizePerJVM();
-  final boolean evictionAware=evictionComparator != null && maxSizePerJVM > 0;
+  final boolean overCapacity=maxSizePolicy.overCapacity();
+  final boolean evictionAware=evictionComparator != null && overCapacity;
   final PartitionServiceImpl partitionService=concurrentMapManager.partitionManager.partitionServiceImpl;
   int recordsStillOwned=0;
   int backupPurgeCount=0;
@@ -59,7 +59,7 @@
       }
     }
   }
-  if (evictionAware && ((forced) ? maxSizePerJVM <= recordsStillOwned : maxSizePerJVM < recordsStillOwned)) {
+  if (evictionAware && (forced || overCapacity)) {
     int numberOfRecordsToEvict=(int)(recordsStillOwned * evictionRate);
     int evictedCount=0;
     for (    Record record : sortedRecords) {
