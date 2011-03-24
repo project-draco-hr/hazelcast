@@ -1,0 +1,35 @@
+{
+  Pairs results=new Pairs(keys.size());
+  final Map<Member,Keys> targetMembers=new HashMap<Member,Keys>(10);
+  PartitionServiceImpl partitionService=partitionManager.partitionServiceImpl;
+  for (  Object key : keys) {
+    Data dKey=toData(key);
+    Member owner=partitionService.getPartition(dKey).getOwner();
+    if (owner == null) {
+      owner=thisMember;
+    }
+    Keys targetKeys=targetMembers.get(owner);
+    if (targetKeys == null) {
+      targetKeys=new Keys();
+      targetMembers.put(owner,targetKeys);
+    }
+    targetKeys.add(dKey);
+  }
+  List<Future<Pairs>> lsFutures=new ArrayList<Future<Pairs>>(targetMembers.size());
+  for (  Member member : targetMembers.keySet()) {
+    Keys targetKeys=targetMembers.get(member);
+    GetAllCallable callable=new GetAllCallable(name,targetKeys);
+    DistributedTask<Pairs> dt=new DistributedTask<Pairs>(callable,member);
+    lsFutures.add(dt);
+    node.factory.getExecutorService().execute(dt);
+  }
+  for (  Future<Pairs> future : lsFutures) {
+    Pairs pairs=future.get();
+    if (pairs != null) {
+      for (      KeyValue keyValue : pairs.getKeyValues()) {
+        results.addKeyValue(keyValue);
+      }
+    }
+  }
+  return results;
+}
