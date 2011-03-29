@@ -4,6 +4,7 @@
   long ownedEntryCount=0;
   long backupEntryCount=0;
   long markedAsRemovedEntryCount=0;
+  long dirtyCount=0;
   long ownedEntryMemoryCost=0;
   long backupEntryMemoryCost=0;
   long markedAsRemovedMemoryCost=0;
@@ -24,6 +25,9 @@
       if (owner != null && !partition.isMigrating()) {
         boolean owned=owner.localMember();
         if (owned) {
+          if (record.getLastStoredTime() < Math.max(record.getLastUpdateTime(),record.getCreationTime())) {
+            dirtyCount++;
+          }
           ownedEntryCount+=record.valueCount();
           ownedEntryMemoryCost+=record.getCost();
           localMapStats.setLastAccessTime(record.getLastAccessTime());
@@ -53,6 +57,7 @@
       }
     }
   }
+  localMapStats.setDirtyEntryCount(zeroOrPositive(dirtyCount));
   localMapStats.setMarkedAsRemovedEntryCount(zeroOrPositive(markedAsRemovedEntryCount));
   localMapStats.setMarkedAsRemovedMemoryCost(zeroOrPositive(markedAsRemovedMemoryCost));
   localMapStats.setLockWaitCount(zeroOrPositive(lockWaitCount));
