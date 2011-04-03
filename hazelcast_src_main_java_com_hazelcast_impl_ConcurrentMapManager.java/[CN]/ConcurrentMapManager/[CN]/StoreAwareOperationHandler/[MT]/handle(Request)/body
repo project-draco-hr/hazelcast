@@ -1,34 +1,26 @@
 {
-  CallHistory.CallerThreadState cts=node.getCallHistory().getOrCreateCallerThreadState(request.caller,request.lockThreadId);
-  try {
-    cts.set(request.name,request.callId,request.operation);
-    CMap cmap=getOrCreateMap(request.name);
-    if (cmap.isNotLocked(request) && !cmap.overCapacity(request)) {
-      if (shouldSchedule(request)) {
-        if (request.hasEnoughTimeToSchedule()) {
-          schedule(request);
-        }
- else {
-          onNoTimeToSchedule(request);
-        }
-        return;
+  CMap cmap=getOrCreateMap(request.name);
+  boolean checkCapacity=(cmap.store == null && (request.operation == CONCURRENT_MAP_PUT || request.operation == CONCURRENT_MAP_TRY_PUT));
+  boolean overCapacity=checkCapacity && cmap.overCapacity(request);
+  if (cmap.isNotLocked(request) && !overCapacity) {
+    if (shouldSchedule(request)) {
+      if (request.hasEnoughTimeToSchedule()) {
+        schedule(request);
       }
-      if (shouldExecuteAsync(request)) {
-        executeAsync(request);
-        return;
-      }
-      doOperation(request);
-      returnResponse(request);
-    }
  else {
-      request.response=OBJECT_REDO;
-      returnResponse(request);
+        onNoTimeToSchedule(request);
+      }
+      return;
     }
+    if (shouldExecuteAsync(request)) {
+      executeAsync(request);
+      return;
+    }
+    doOperation(request);
+    returnResponse(request);
   }
-  finally {
-    if (request.scheduled) {
-      cts.setScheduled();
-    }
-    cts.response=request.response;
+ else {
+    request.response=OBJECT_REDO;
+    returnResponse(request);
   }
 }

@@ -1,0 +1,30 @@
+{
+  TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  Config config=newConfig("themap",testMapStore,0);
+  config.getQueueConfig("default").setBackingMapName("themap");
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  IQueue q1=h1.getQueue("default");
+  for (int i=0; i < 100; i++) {
+    q1.put("value" + i);
+  }
+  assertEquals(100,q1.size());
+  assertEquals(100,testMapStore.store.size());
+  h1.getLifecycleService().shutdown();
+  h1=Hazelcast.newHazelcastInstance(config);
+  q1=h1.getQueue("default");
+  assertEquals(100,q1.size());
+  for (int i=0; i < 100; i++) {
+    assertEquals("value" + i,q1.take());
+  }
+  for (int i=0; i < 100; i++) {
+    q1.put("value" + i);
+  }
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  IQueue q2=h2.getQueue("default");
+  assertEquals(100,q2.size());
+  h1.getLifecycleService().shutdown();
+  assertEquals(100,q2.size());
+  for (int i=0; i < 100; i++) {
+    assertEquals("value" + i,q2.take());
+  }
+}
