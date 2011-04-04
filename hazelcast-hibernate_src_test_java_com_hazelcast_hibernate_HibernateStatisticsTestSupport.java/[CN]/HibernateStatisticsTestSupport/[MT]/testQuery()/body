@@ -1,0 +1,21 @@
+{
+  final HazelcastInstance hz=getHazelcastInstance();
+  final int entityCount=10;
+  final int queryCount=5;
+  insertDummyEntities(entityCount);
+  sleep(1);
+  for (int i=0; i < queryCount; i++) {
+    executeQuery(entityCount);
+    sleep(1);
+  }
+  assertEquals(1,stats.getQueryCachePutCount());
+  assertEquals(1,stats.getQueryCacheMissCount());
+  assertEquals(queryCount - 1,stats.getQueryCacheHitCount());
+  assertEquals(1,stats.getQueryExecutionCount());
+  assertEquals(entityCount,stats.getEntityInsertCount());
+  assertEquals(entityCount,stats.getEntityLoadCount());
+  assertEquals(entityCount * (queryCount - 1),stats.getSecondLevelCacheHitCount());
+  assertEquals(0,stats.getSecondLevelCacheMissCount());
+  assertEquals(1,hz.getMap(StandardQueryCache.class.getName()).size());
+  stats.logSummary();
+}
