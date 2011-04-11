@@ -4,9 +4,26 @@
   final int queryCount=5;
   insertDummyEntities(entityCount);
   sleep(1);
+  List<DummyEntity> list=null;
   for (int i=0; i < queryCount; i++) {
-    executeQuery(entityCount);
+    list=executeQuery();
+    assertEquals(entityCount,list.size());
     sleep(1);
+  }
+  Session session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  try {
+    for (    DummyEntity dummy : list) {
+      session.delete(dummy);
+    }
+    tx.commit();
+  }
+ catch (  Exception e) {
+    tx.rollback();
+    e.printStackTrace();
+  }
+ finally {
+    session.close();
   }
   assertEquals(1,stats.getQueryCachePutCount());
   assertEquals(1,stats.getQueryCacheMissCount());
@@ -14,6 +31,7 @@
   assertEquals(1,stats.getQueryExecutionCount());
   assertEquals(entityCount,stats.getEntityInsertCount());
   assertEquals(entityCount,stats.getEntityLoadCount());
+  assertEquals(entityCount,stats.getEntityDeleteCount());
   assertEquals(entityCount * (queryCount - 1),stats.getSecondLevelCacheHitCount());
   assertEquals(0,stats.getSecondLevelCacheMissCount());
   assertEquals(1,hz.getMap(StandardQueryCache.class.getName()).size());
