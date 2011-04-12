@@ -3,23 +3,15 @@
     socketChannel=SocketChannel.open();
     initSocket(socketChannel.socket());
     final Address thisAddress=node.getThisAddress();
-    try {
-      socketChannel.configureBlocking(false);
-      socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),0));
-      logger.log(Level.FINEST,"connecting to " + address);
-      boolean connected=socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
-      logger.log(Level.FINEST,"connection check. connected: " + connected + ", "+ address);
-      if (connected) {
-        handle();
-        return;
-      }
-    }
- catch (    final Throwable e) {
-      logger.log(Level.FINEST,address + " ConnectionFailed.",e);
-    }
-    socketChannel.register(selector,SelectionKey.OP_CONNECT,Connector.this);
+    socketChannel.configureBlocking(false);
+    socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),0));
+    logger.log(Level.FINEST,"connecting to " + address);
+    boolean connected=socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
+    logger.log(Level.FINEST,"connection check. connected: " + connected + ", "+ address);
+    handle();
   }
- catch (  final Throwable e) {
+ catch (  Throwable e) {
+    logger.log(Level.WARNING,e.getMessage(),e);
     if (socketChannel != null) {
       try {
         socketChannel.close();

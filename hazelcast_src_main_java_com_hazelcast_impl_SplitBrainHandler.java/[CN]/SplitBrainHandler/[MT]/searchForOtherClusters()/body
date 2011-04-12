@@ -16,10 +16,13 @@
     node.multicastService.send(node.createJoinInfo());
     try {
       JoinInfo joinInfo=(JoinInfo)q.poll(3,TimeUnit.SECONDS);
-      node.multicastService.removeMulticastListener(listener);
-      if (shouldMerge(joinInfo)) {
-        node.factory.restart();
-        return;
+      if (joinInfo != null) {
+        node.multicastService.removeMulticastListener(listener);
+        if (shouldMerge(joinInfo)) {
+          logger.log(Level.WARNING,node.address + " is merging [multicast] to " + joinInfo.address);
+          node.factory.restart();
+          return;
+        }
       }
     }
  catch (    InterruptedException ignored) {
@@ -59,6 +62,7 @@ catch (    Exception e) {
       if (conn != null) {
         JoinInfo response=node.clusterManager.checkJoin(conn);
         if (shouldMerge(response)) {
+          logger.log(Level.WARNING,node.address + " is merging [tcp/ip] to " + possibleAddress);
           lastRun=System.currentTimeMillis() + FIRST_RUN_DELAY_MILLIS;
           node.factory.restart();
         }

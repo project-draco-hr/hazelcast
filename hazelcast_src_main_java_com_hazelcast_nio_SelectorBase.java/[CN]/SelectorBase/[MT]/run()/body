@@ -1,8 +1,11 @@
 {
   try {
     while (live) {
-      if (threadWatcher.incrementRunCount() % 10000 == 0) {
+      threadWatcher.incrementRunCount();
+      long currentMillis=System.currentTimeMillis();
+      if ((currentMillis - lastPublish) > TEN_SECOND_MILLIS) {
         publishUtilization();
+        lastPublish=currentMillis;
       }
       processSelectionQueue();
       if (!live)       return;
@@ -29,9 +32,11 @@
         final SelectionKey sk=it.next();
         it.remove();
         try {
-          sk.interestOps(sk.interestOps() & ~sk.readyOps());
-          SelectionHandler selectionHandler=(SelectionHandler)sk.attachment();
-          selectionHandler.handle();
+          if (sk.isValid()) {
+            sk.interestOps(sk.interestOps() & ~sk.readyOps());
+            SelectionHandler selectionHandler=(SelectionHandler)sk.attachment();
+            selectionHandler.handle();
+          }
         }
  catch (        CancelledKeyException e) {
         }

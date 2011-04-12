@@ -1,0 +1,38 @@
+{
+  if (proxy instanceof MProxy) {
+    MProxy mProxy=(MProxy)proxy;
+    CMap cmap=node.concurrentMapManager.getMap(mProxy.getLongName());
+    if (!cmap.isMapForQueue() && !cmap.initialized) {
+synchronized (cmap.getInitLock()) {
+        if (!cmap.initialized) {
+          if (cmap.loader != null) {
+            if (getAtomicNumber(name).compareAndSet(0,1)) {
+              ExecutorService es=getExecutorService();
+              MultiTask task=new MultiTask(new InitializeMap(mProxy.getName()),getCluster().getMembers());
+              es.execute(task);
+            }
+            Set keys=cmap.loader.loadAllKeys();
+            if (keys != null) {
+              int count=0;
+              PartitionService partitionService=getPartitionService();
+              Set ownedKeys=new HashSet();
+              for (              Object key : keys) {
+                if (partitionService.getPartition(key).getOwner().localMember()) {
+                  ownedKeys.add(key);
+                  count++;
+                  if (ownedKeys.size() >= node.groupProperties.MAP_LOAD_CHUNK_SIZE.getInteger()) {
+                    loadKeys(mProxy,cmap,ownedKeys);
+                    ownedKeys.clear();
+                  }
+                }
+              }
+              loadKeys(mProxy,cmap,ownedKeys);
+              logger.log(Level.INFO,node.address + "[" + mProxy.getName()+ "] loaded "+ count);
+            }
+          }
+        }
+        cmap.initialized=true;
+      }
+    }
+  }
+}
