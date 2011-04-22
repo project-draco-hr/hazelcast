@@ -1,0 +1,27 @@
+{
+  try {
+    socketIn.setInputStream(socket.getInputStream());
+    socketOut.setOutputStream(socket.getOutputStream());
+    while (running) {
+      int requestType=socketIn.read();
+      if (requestType == -1) {
+        return;
+      }
+      ConsoleRequest consoleRequest=consoleRequests[requestType];
+      consoleRequest.readData(socketIn);
+      boolean isOutOfMemory=factory.node.isOutOfMemory();
+      if (isOutOfMemory) {
+        socketOut.writeByte(ConsoleRequestConstants.STATE_OUT_OF_MEMORY);
+      }
+ else {
+        socketOut.writeByte(ConsoleRequestConstants.STATE_ACTIVE);
+        consoleRequest.writeResponse(ManagementCenterService.this,socketOut);
+      }
+    }
+  }
+ catch (  Throwable e) {
+    if (running && factory.node.isActive()) {
+      logger.log(Level.WARNING,e.getMessage(),e);
+    }
+  }
+}
