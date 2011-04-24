@@ -1,0 +1,20 @@
+{
+  Set<Member> members=node.getClusterImpl().getMembers();
+  List<Future<Keys>> lsFutures=new ArrayList<Future<Keys>>(members.size());
+  for (  Member member : members) {
+    GetValueKeysCallable callable=new GetValueKeysCallable(name,item);
+    DistributedTask<Keys> dt=new DistributedTask<Keys>(callable,member);
+    lsFutures.add(dt);
+    node.factory.getExecutorService().execute(dt);
+  }
+  Set<Long> foundKeys=new TreeSet<Long>();
+  for (  Future<Keys> future : lsFutures) {
+    Keys keys=future.get();
+    if (keys != null) {
+      for (      Data keyData : keys.getKeys()) {
+        foundKeys.add((Long)toObject(keyData));
+      }
+    }
+  }
+  return foundKeys;
+}

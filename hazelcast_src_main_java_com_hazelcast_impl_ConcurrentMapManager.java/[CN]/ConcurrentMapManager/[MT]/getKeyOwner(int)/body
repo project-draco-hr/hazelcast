@@ -5,8 +5,19 @@
     if (isMaster() && !isSuperClient()) {
       block=partitionManager.getOrCreateBlock(blockId);
       block.setOwner(thisAddress);
+      block.setMigrationAddress(null);
+      partitionManager.lsBlocksToMigrate.clear();
+      partitionManager.invalidateBlocksHash();
     }
- else     return null;
+ else {
+      return null;
+    }
+  }
+ else   if (block.getOwner() == null && isMaster() && !isSuperClient()) {
+    block.setOwner(thisAddress);
+    block.setMigrationAddress(null);
+    partitionManager.lsBlocksToMigrate.clear();
+    partitionManager.invalidateBlocksHash();
   }
   if (block.isMigrating()) {
     return null;

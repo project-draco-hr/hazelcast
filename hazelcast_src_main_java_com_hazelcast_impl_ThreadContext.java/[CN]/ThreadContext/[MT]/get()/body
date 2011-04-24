@@ -1,13 +1,14 @@
 {
-  ThreadContext threadContext=threadLocal.get();
+  Thread currentThread=Thread.currentThread();
+  ThreadContext threadContext=mapContexts.get(currentThread);
   if (threadContext == null) {
     threadContext=new ThreadContext(Thread.currentThread());
-    threadLocal.set(threadContext);
-    threadContexts.add(threadContext);
-    for (    ThreadContext context : threadContexts) {
-      if (!context.thread.isAlive()) {
-        context.cleanup();
-        threadContexts.remove(context);
+    mapContexts.put(currentThread,threadContext);
+    Iterator<Thread> threads=mapContexts.keySet().iterator();
+    while (threads.hasNext()) {
+      Thread thread=threads.next();
+      if (!thread.isAlive()) {
+        threads.remove();
       }
     }
   }
