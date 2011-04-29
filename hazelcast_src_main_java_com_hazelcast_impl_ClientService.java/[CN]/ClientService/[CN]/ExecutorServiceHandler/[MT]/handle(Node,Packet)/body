@@ -16,15 +16,21 @@
  else {
       task=new DistributedTask(cdt.getCallable());
     }
+    final ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
+    clientEndpoint.storeTask(packet.callId,task);
     task.setExecutionCallback(new ExecutionCallback(){
       public void done(      Future future){
         Object result;
         try {
+          clientEndpoint.removeTask(packet.callId);
           result=future.get();
           packet.setValue(toData(result));
         }
  catch (        InterruptedException e) {
           return;
+        }
+catch (        CancellationException e) {
+          packet.setValue(toData(e));
         }
 catch (        ExecutionException e) {
           packet.setValue(toData(e));

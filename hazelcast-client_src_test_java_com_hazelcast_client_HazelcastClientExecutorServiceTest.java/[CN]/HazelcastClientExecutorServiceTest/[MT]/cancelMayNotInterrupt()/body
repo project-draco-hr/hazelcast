@@ -1,0 +1,23 @@
+{
+  ExecutorService esService=getExecutorService();
+  IMap<Integer,Boolean> map=getHazelcastClient().getMap("cancel");
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryListener<Integer,Boolean>(){
+    public void entryAdded(    EntryEvent<Integer,Boolean> integerBooleanEntryEvent){
+      latch.countDown();
+    }
+    public void entryRemoved(    EntryEvent<Integer,Boolean> integerBooleanEntryEvent){
+    }
+    public void entryUpdated(    EntryEvent<Integer,Boolean> integerBooleanEntryEvent){
+    }
+    public void entryEvicted(    EntryEvent<Integer,Boolean> integerBooleanEntryEvent){
+    }
+  }
+,false);
+  Future f=esService.submit(new MyRunnable());
+  Thread.sleep(500);
+  boolean cancelled=f.cancel(false);
+  assertTrue("should be cancelled",cancelled);
+  assertTrue(latch.await(2000,TimeUnit.MILLISECONDS));
+  assertTrue(getHazelcastInstance().getMap("interrupted").isEmpty());
+}
