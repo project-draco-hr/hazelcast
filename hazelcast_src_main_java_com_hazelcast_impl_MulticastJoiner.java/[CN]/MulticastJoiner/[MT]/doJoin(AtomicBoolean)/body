@@ -1,0 +1,36 @@
+{
+  int tryCount=0;
+  while (!joined.get()) {
+    logger.log(Level.FINEST,"joining... " + node.getMasterAddress());
+    Address masterAddressNow=findMasterWithMulticast();
+    if (masterAddressNow != null && masterAddressNow.equals(node.getMasterAddress())) {
+      tryCount--;
+    }
+    node.setMasterAddress(masterAddressNow);
+    if (node.getMasterAddress() == null || node.address.equals(node.getMasterAddress())) {
+      TcpIpConfig tcpIpConfig=config.getNetworkConfig().getJoin().getTcpIpConfig();
+      if (tcpIpConfig != null && tcpIpConfig.isEnabled()) {
+        doTCP(joined);
+      }
+ else {
+        node.setAsMaster();
+      }
+      return;
+    }
+    if (tryCount++ > 22) {
+      failedJoiningToMaster(true,tryCount);
+    }
+    if (!node.getMasterAddress().equals(node.address)) {
+      connectAndSendJoinRequest(node.getMasterAddress());
+    }
+ else {
+      node.setMasterAddress(null);
+      tryCount=0;
+    }
+    try {
+      Thread.sleep(500L);
+    }
+ catch (    InterruptedException ignored) {
+    }
+  }
+}

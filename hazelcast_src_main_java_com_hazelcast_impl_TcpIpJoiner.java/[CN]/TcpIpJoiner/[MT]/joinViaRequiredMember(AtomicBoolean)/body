@@ -1,0 +1,31 @@
+{
+  try {
+    final Address requiredAddress=getAddressFor(config.getNetworkConfig().getJoin().getTcpIpConfig().getRequiredMember());
+    logger.log(Level.FINEST,"Joining over required member " + requiredAddress);
+    if (requiredAddress == null) {
+      throw new RuntimeException("Invalid required member " + config.getNetworkConfig().getJoin().getTcpIpConfig().getRequiredMember());
+    }
+    if (requiredAddress.equals(node.address)) {
+      node.setAsMaster();
+      return;
+    }
+    node.connectionManager.getOrConnect(requiredAddress);
+    Connection conn=null;
+    while (conn == null) {
+      conn=node.connectionManager.getOrConnect(requiredAddress);
+      Thread.sleep(2000L);
+    }
+    while (!joined.get()) {
+      final Connection connection=node.connectionManager.getOrConnect(requiredAddress);
+      if (connection == null) {
+        joinViaRequiredMember(joined);
+      }
+      logger.log(Level.FINEST,"Sending joinRequest " + requiredAddress);
+      node.clusterManager.sendJoinRequest(requiredAddress);
+      Thread.sleep(3000L);
+    }
+  }
+ catch (  final Exception e) {
+    e.printStackTrace();
+  }
+}

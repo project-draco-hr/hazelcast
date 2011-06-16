@@ -1,0 +1,26 @@
+{
+  try {
+    final String ip=System.getProperty("join.ip");
+    if (ip == null) {
+      JoinInfo joinInfo=node.createJoinInfo();
+      int tryCount=config.getNetworkConfig().getJoin().getMulticastConfig().getMulticastTimeoutSeconds() * 100;
+      for (int i=0; i < tryCount; i++) {
+        node.multicastService.send(joinInfo);
+        if (node.getMasterAddress() == null) {
+          Thread.sleep(10);
+        }
+ else {
+          return node.getMasterAddress();
+        }
+      }
+    }
+ else {
+      logger.log(Level.FINEST,"RETURNING join.ip");
+      return new Address(ip,config.getPort());
+    }
+  }
+ catch (  final Exception e) {
+    e.printStackTrace();
+  }
+  return null;
+}

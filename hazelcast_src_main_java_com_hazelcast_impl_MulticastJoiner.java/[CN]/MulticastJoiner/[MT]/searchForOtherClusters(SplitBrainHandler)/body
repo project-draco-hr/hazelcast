@@ -1,0 +1,32 @@
+{
+  final BlockingQueue q=new LinkedBlockingQueue();
+  MulticastListener listener=new MulticastListener(){
+    public void onMessage(    Object msg){
+      if (msg != null && msg instanceof JoinInfo) {
+        JoinInfo joinInfo=(JoinInfo)msg;
+        if (node.address != null && !node.address.equals(joinInfo.address)) {
+          q.offer(msg);
+        }
+      }
+    }
+  }
+;
+  node.multicastService.addMulticastListener(listener);
+  node.multicastService.send(node.createJoinInfo());
+  try {
+    JoinInfo joinInfo=(JoinInfo)q.poll(3,TimeUnit.SECONDS);
+    if (joinInfo != null) {
+      node.multicastService.removeMulticastListener(listener);
+      if (shouldMerge(joinInfo)) {
+        logger.log(Level.WARNING,node.address + " is merging [multicast] to " + joinInfo.address);
+        node.factory.restart();
+        return;
+      }
+    }
+  }
+ catch (  InterruptedException ignored) {
+  }
+catch (  Exception e) {
+    e.printStackTrace();
+  }
+}
