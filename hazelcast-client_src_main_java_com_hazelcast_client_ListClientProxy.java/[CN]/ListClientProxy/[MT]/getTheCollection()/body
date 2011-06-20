@@ -1,0 +1,31 @@
+{
+  final Collection<Map.Entry<?,E>> entries=proxyHelper.entries(null);
+  final Iterator<Map.Entry<?,E>> it=entries.iterator();
+  final ListClientProxy thisListProxy=this;
+  return new AbstractCollection<E>(){
+    @Override public Iterator<E> iterator(){
+      return new Iterator<E>(){
+        volatile E lastRecord;
+        public boolean hasNext(){
+          return it.hasNext();
+        }
+        public E next(){
+          lastRecord=it.next().getValue();
+          return lastRecord;
+        }
+        public void remove(){
+          if (lastRecord == null) {
+            throw new IllegalStateException();
+          }
+          it.remove();
+          thisListProxy.remove(lastRecord);
+        }
+      }
+;
+    }
+    @Override public int size(){
+      return entries.size();
+    }
+  }
+;
+}
