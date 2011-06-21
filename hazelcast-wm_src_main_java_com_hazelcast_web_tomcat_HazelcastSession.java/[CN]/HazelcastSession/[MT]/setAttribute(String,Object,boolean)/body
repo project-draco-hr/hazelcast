@@ -1,7 +1,7 @@
 {
   if (name == null)   throw new IllegalArgumentException(sm.getString("standardSession.setAttribute.namenull"));
-  if (HAZEL_SESSION_MARK.equals(name)) {
-    throw new IllegalArgumentException(HAZEL_MARK_EXCEPTION);
+  if (SESSION_MARK.equals(name)) {
+    throw new IllegalArgumentException(SESSION_MARK_EXCEPTION);
   }
   if (value == null) {
     removeAttribute(name);
@@ -9,10 +9,10 @@
   }
   if (!isValidInternal())   throw new IllegalStateException(sm.getString("standardSession.setAttribute.ise"));
   if ((manager != null) && manager.getDistributable() && !(value instanceof Serializable))   throw new IllegalArgumentException(sm.getString("standardSession.setAttribute.iae"));
-  HazelcastAttribute oldHattribute=(HazelcastAttribute)attributes.get(name);
   HttpSessionBindingEvent event=null;
   if (notify && value instanceof HttpSessionBindingListener) {
-    if (oldHattribute != null && value != oldHattribute.getValue()) {
+    HazelcastAttribute oldAttribute=(HazelcastAttribute)attributes.get(name);
+    if (oldAttribute != null && value != oldAttribute.getValue()) {
       event=new HttpSessionBindingEvent(getSession(),name,value);
       try {
         ((HttpSessionBindingListener)value).valueBound(event);
@@ -22,19 +22,14 @@
       }
     }
   }
-  if (oldHattribute == null) {
-    oldHattribute=new HazelcastAttribute(getIdInternal(),name,value);
-  }
- else {
-    oldHattribute.setValue(value);
-  }
-  long requestId=HazelcastValve.requestLocal.get();
-  oldHattribute.touch(requestId);
-  HazelcastAttribute unboundHattribute=(HazelcastAttribute)attributes.put(name,oldHattribute);
-  Object unbound=unboundHattribute != null ? unboundHattribute.getValue() : null;
-  if (notify && (unbound != null) && (unbound != value)&& (unbound instanceof HttpSessionBindingListener)) {
+  final HazelcastAttribute attribute=new HazelcastAttribute(getIdInternal(),name,value);
+  long requestId=LocalRequestId.get();
+  attribute.touch(requestId);
+  final HazelcastAttribute unboundAttribute=(HazelcastAttribute)attributes.put(name,attribute);
+  final Object unboundValue=unboundAttribute != null ? unboundAttribute.getValue() : null;
+  if (notify && (unboundValue != null) && (unboundValue != value)&& (unboundValue instanceof HttpSessionBindingListener)) {
     try {
-      ((HttpSessionBindingListener)unbound).valueUnbound(new HttpSessionBindingEvent(getSession(),name));
+      ((HttpSessionBindingListener)unboundValue).valueUnbound(new HttpSessionBindingEvent(getSession(),name));
     }
  catch (    Throwable t) {
       manager.getContainer().getLogger().error(sm.getString("standardSession.bindingEvent"),t);
@@ -48,10 +43,10 @@
     if (!(listeners[i] instanceof HttpSessionAttributeListener))     continue;
     HttpSessionAttributeListener listener=(HttpSessionAttributeListener)listeners[i];
     try {
-      if (unbound != null) {
+      if (unboundValue != null) {
         fireContainerEvent(context,"beforeSessionAttributeReplaced",listener);
         if (event == null) {
-          event=new HttpSessionBindingEvent(getSession(),name,unbound);
+          event=new HttpSessionBindingEvent(getSession(),name,unboundValue);
         }
         listener.attributeReplaced(event);
         fireContainerEvent(context,"afterSessionAttributeReplaced",listener);
@@ -67,7 +62,7 @@
     }
  catch (    Throwable t) {
       try {
-        if (unbound != null) {
+        if (unboundValue != null) {
           fireContainerEvent(context,"afterSessionAttributeReplaced",listener);
         }
  else {

@@ -1,16 +1,16 @@
 {
   if (name == null)   return;
-  if (name.equals(HAZEL_SESSION_MARK)) {
-    throw new IllegalArgumentException(HAZEL_MARK_EXCEPTION);
+  if (name.equals(SESSION_MARK)) {
+    throw new IllegalArgumentException(SESSION_MARK_EXCEPTION);
   }
-  HazelcastAttribute hattribute=(HazelcastAttribute)attributes.get(name);
-  if (hattribute == null || hattribute.getValue() == null) {
+  HazelcastAttribute attribute=(HazelcastAttribute)attributes.remove(name);
+  if (attribute == null || attribute.getValue() == null) {
     return;
   }
-  Object value=hattribute.getValue();
-  hattribute.setValue(null);
-  long requestId=HazelcastValve.requestLocal.get();
-  hattribute.touch(requestId);
-  attributes.put(name,hattribute);
+  Object value=attribute.getValue();
+  attribute.setValue(null);
+  long requestId=LocalRequestId.get();
+  attribute.touch(requestId);
+  attributes.put(name,attribute);
   notifyRemove(name,value,notify);
 }

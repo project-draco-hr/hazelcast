@@ -1,16 +1,17 @@
 {
   if ((this.id != null) && (manager != null))   manager.remove(this);
   this.id=id;
-  Collection<HazelcastAttribute> colAttributes=hazelAttributes.values(new SqlPredicate("sessionId=" + id));
+  final IMap<String,HazelcastAttribute> sessionAttrMap=HazelcastClusterSupport.get().getAttributesMap();
+  Collection<HazelcastAttribute> colAttributes=sessionAttrMap.values(new SqlPredicate("sessionId=" + id));
   if (colAttributes.size() != 0) {
     for (    HazelcastAttribute hattribute : colAttributes) {
       attributes.put(hattribute.getName(),hattribute);
     }
   }
  else {
-    HazelcastAttribute mark=new HazelcastAttribute(id,HAZEL_SESSION_MARK,System.currentTimeMillis());
-    hazelAttributes.put(mark.getKey(),mark);
-    attributes.put(HAZEL_SESSION_MARK,mark);
+    HazelcastAttribute mark=new HazelcastAttribute(id,SESSION_MARK,System.currentTimeMillis());
+    sessionAttrMap.put(mark.getKey(),mark);
+    attributes.put(SESSION_MARK,mark);
   }
   if (manager != null)   manager.add(this);
   tellNew();

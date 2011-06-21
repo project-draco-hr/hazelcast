@@ -3,18 +3,19 @@
     throw new IllegalStateException(sm.getString("standardSession.getAttribute.ise"));
   }
   if (name == null)   throw new IllegalArgumentException(sm.getString("standardSession.setAttribute.namenull"));
-  if (HAZEL_SESSION_MARK.equals(name)) {
-    throw new IllegalArgumentException(HAZEL_MARK_EXCEPTION);
+  if (SESSION_MARK.equals(name)) {
+    throw new IllegalArgumentException(SESSION_MARK_EXCEPTION);
   }
-  HazelcastAttribute hattribute=(HazelcastAttribute)attributes.get(name);
-  if (hattribute == null) {
-    hattribute=(HazelcastAttribute)hazelAttributes.get(getIdInternal() + "_" + name);
-    if (hattribute == null) {
+  HazelcastAttribute attribute=(HazelcastAttribute)attributes.get(name);
+  if (attribute == null) {
+    final IMap<String,HazelcastAttribute> sessionMap=HazelcastClusterSupport.get().getAttributesMap();
+    attribute=(HazelcastAttribute)sessionMap.get(getIdInternal() + "_" + name);
+    if (attribute == null) {
       attributes.put(name,new HazelcastAttribute(getIdInternal(),name,null));
       return null;
     }
   }
-  long requestId=HazelcastValve.requestLocal.get();
-  hattribute.touch(requestId);
-  return hattribute.getValue();
+  long requestId=LocalRequestId.get();
+  attribute.touch(requestId);
+  return attribute.getValue();
 }
