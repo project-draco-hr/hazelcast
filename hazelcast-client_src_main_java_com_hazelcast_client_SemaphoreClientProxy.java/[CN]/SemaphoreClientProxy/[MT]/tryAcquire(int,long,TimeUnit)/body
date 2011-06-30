@@ -1,0 +1,23 @@
+{
+  Boolean result=false;
+  long start=System.currentTimeMillis();
+  Integer remaining=(Integer)proxyHelper.doOp(ClusterOperation.SEMAPHORE_ACQUIRE,null,permits);
+  long end=System.currentTimeMillis();
+  long diff=end - start;
+  if (remaining > 0) {
+    if (timeout > 0 && timeout > diff) {
+      result=tryAcquire(remaining,timeout - diff,timeUnit);
+    }
+ else     if (timeout < 0) {
+      result=tryAcquire(remaining,timeout,timeUnit);
+    }
+ else {
+      result=false;
+    }
+  }
+ else   result=true;
+  if (!result) {
+    tryRelease(permits - remaining,-1,TimeUnit.MILLISECONDS);
+  }
+  return result;
+}

@@ -1,28 +1,25 @@
 {
   Boolean result=false;
-  long start=System.currentTimeMillis();
-  setLocal(op,FactoryImpl.SEMAPHORE_MAP_NAME,nameAsKey,permits,timeUnit.convert(timeout,TimeUnit.MILLISECONDS),0);
-  request.longValue=value;
-  request.caller=thisAddress;
-  request.operation=SEMAPHORE_ACQUIRE;
-  doOp();
-  Integer remaining=(Integer)getResultAsObject(false);
-  long end=System.currentTimeMillis();
-  long diff=end - start;
-  if (remaining > 0) {
-    if (timeout > 0 && timeout > diff) {
-      result=tryAcquire(remaining,timeout - diff,timeUnit);
-    }
- else     if (timeout < 0) {
-      result=tryAcquire(remaining,timeout,timeUnit);
-    }
- else {
-      result=false;
+  int remaining=permits;
+  long elapsed=0;
+  do {
+    long start=System.currentTimeMillis();
+    setLocal(op,FactoryImpl.SEMAPHORE_MAP_NAME,nameAsKey,remaining,timeUnit.convert(timeout - elapsed,TimeUnit.MILLISECONDS),0);
+    request.longValue=value;
+    request.caller=thisAddress;
+    request.operation=SEMAPHORE_ACQUIRE;
+    doOp();
+    remaining=(Integer)getResultAsObject(false);
+    long end=System.currentTimeMillis();
+    elapsed+=end - start;
+    if (remaining == 0) {
+      result=true;
     }
   }
- else   result=true;
+ while (remaining > 0 && (timeout > 0 && timeout > elapsed));
   if (!result) {
     tryRelease(permits - remaining,-1,TimeUnit.MILLISECONDS);
   }
+  backup(SEMAPHORE_ACQUIRE);
   return result;
 }
