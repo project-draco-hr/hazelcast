@@ -22,48 +22,10 @@
     mapConfig=node.getConfig().findMatchingMapConfig(mapConfigName);
   }
   this.mapIndexService=new MapIndexService(mapConfig.isValueIndexed());
-  this.backupCount=mapConfig.getBackupCount();
-  ttl=mapConfig.getTimeToLiveSeconds() * 1000L;
-  evictionDelayMillis=mapConfig.getEvictionDelaySeconds() * 1000L;
-  maxIdle=mapConfig.getMaxIdleSeconds() * 1000L;
-  evictionPolicy=EvictionPolicy.valueOf(mapConfig.getEvictionPolicy());
-  readBackupData=mapConfig.isReadBackupData();
-  cacheValue=mapConfig.isCacheValue();
-  MaxSizeConfig maxSizeConfig=mapConfig.getMaxSizeConfig();
-  if (MaxSizeConfig.POLICY_MAP_SIZE_PER_JVM.equals(maxSizeConfig.getMaxSizePolicy())) {
-    maxSizePolicy=new MaxSizePerJVMPolicy(maxSizeConfig);
-  }
- else   if (MaxSizeConfig.POLICY_CLUSTER_WIDE_MAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
-    maxSizePolicy=new MaxSizeClusterWidePolicy(maxSizeConfig);
-  }
- else   if (MaxSizeConfig.POLICY_PARTITIONS_WIDE_MAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
-    maxSizePolicy=new MaxSizePartitionsWidePolicy(maxSizeConfig);
-  }
- else   if (MaxSizeConfig.POLICY_USED_HEAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
-    maxSizePolicy=new MaxSizeHeapPolicy(maxSizeConfig);
-  }
- else   if (MaxSizeConfig.POLICY_USED_HEAP_PERCENTAGE.equals(maxSizeConfig.getMaxSizePolicy())) {
-    maxSizePolicy=new MaxSizeHeapPercentagePolicy(maxSizeConfig);
-  }
- else {
-    maxSizePolicy=null;
-  }
-  if (evictionPolicy == EvictionPolicy.NONE) {
-    evictionComparator=null;
-  }
- else {
-    if (evictionPolicy == EvictionPolicy.LRU) {
-      evictionComparator=new ComparatorWrapper(LRU_COMPARATOR);
-    }
- else {
-      evictionComparator=new ComparatorWrapper(LFU_COMPARATOR);
-    }
-  }
-  evictionRate=mapConfig.getEvictionPercentage() / 100f;
+  setRuntimeConfig(mapConfig);
   MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
-  MapStoreWrapper mapStoreWrapper=null;
   int writeDelaySeconds=-1;
-  if (!node.isSuperClient() && mapStoreConfig != null && mapStoreConfig.isEnabled()) {
+  if (!node.isSuperClient() && mapStoreConfig != null) {
     try {
       MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
       if (factory == null) {
@@ -77,7 +39,7 @@
         String mapStoreClassName=mapStoreConfig.getClassName();
         storeInstance=Serializer.classForName(node.getConfig().getClassLoader(),mapStoreClassName).newInstance();
       }
-      mapStoreWrapper=new MapStoreWrapper(storeInstance,node.factory.getHazelcastInstanceProxy(),mapStoreConfig.getProperties(),mapConfigName);
+      mapStoreWrapper=new MapStoreWrapper(storeInstance,node.factory.getHazelcastInstanceProxy(),mapStoreConfig.getProperties(),mapConfigName,mapStoreConfig.isEnabled());
       if (!mapStoreWrapper.isMapLoader() && !mapStoreWrapper.isMapStore()) {
         throw new Exception("MapStore class [" + storeInstance.getClass().getName() + "] should implement either MapLoader or MapStore!");
       }
@@ -89,7 +51,7 @@
   }
   writeDelayMillis=(writeDelaySeconds == -1) ? -1L : writeDelaySeconds * 1000L;
   if (writeDelaySeconds > 0) {
-    removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS + writeDelaySeconds;
+    removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS + writeDelayMillis;
   }
  else {
     removeDelayMillis=concurrentMapManager.GLOBAL_REMOVE_DELAY_MILLIS;

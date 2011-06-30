@@ -1,0 +1,40 @@
+{
+  backupCount=mapConfig.getBackupCount();
+  ttl=mapConfig.getTimeToLiveSeconds() * 1000L;
+  evictionDelayMillis=mapConfig.getEvictionDelaySeconds() * 1000L;
+  maxIdle=mapConfig.getMaxIdleSeconds() * 1000L;
+  evictionPolicy=EvictionPolicy.valueOf(mapConfig.getEvictionPolicy());
+  readBackupData=mapConfig.isReadBackupData();
+  cacheValue=mapConfig.isCacheValue();
+  MaxSizeConfig maxSizeConfig=mapConfig.getMaxSizeConfig();
+  if (MaxSizeConfig.POLICY_MAP_SIZE_PER_JVM.equals(maxSizeConfig.getMaxSizePolicy())) {
+    maxSizePolicy=new MaxSizePerJVMPolicy(maxSizeConfig);
+  }
+ else   if (MaxSizeConfig.POLICY_CLUSTER_WIDE_MAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
+    maxSizePolicy=new MaxSizeClusterWidePolicy(maxSizeConfig);
+  }
+ else   if (MaxSizeConfig.POLICY_PARTITIONS_WIDE_MAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
+    maxSizePolicy=new MaxSizePartitionsWidePolicy(maxSizeConfig);
+  }
+ else   if (MaxSizeConfig.POLICY_USED_HEAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
+    maxSizePolicy=new MaxSizeHeapPolicy(maxSizeConfig);
+  }
+ else   if (MaxSizeConfig.POLICY_USED_HEAP_PERCENTAGE.equals(maxSizeConfig.getMaxSizePolicy())) {
+    maxSizePolicy=new MaxSizeHeapPercentagePolicy(maxSizeConfig);
+  }
+ else {
+    maxSizePolicy=null;
+  }
+  if (evictionPolicy == EvictionPolicy.NONE) {
+    evictionComparator=null;
+  }
+ else {
+    if (evictionPolicy == EvictionPolicy.LRU) {
+      evictionComparator=new ComparatorWrapper(LRU_COMPARATOR);
+    }
+ else {
+      evictionComparator=new ComparatorWrapper(LFU_COMPARATOR);
+    }
+  }
+  evictionRate=mapConfig.getEvictionPercentage() / 100f;
+}
