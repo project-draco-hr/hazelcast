@@ -70,23 +70,15 @@
     }
     this.nearCache=nearCache;
   }
-  MergePolicy mergePolicyTemp=null;
-  String mergePolicyName=mapConfig.getMergePolicy();
-  if (mergePolicyName != null && !"hz.NO_MERGE".equalsIgnoreCase(mergePolicyName)) {
-    MergePolicyConfig mergePolicyConfig=node.getConfig().getMergePolicyConfig(mapConfig.getMergePolicy());
-    if (mergePolicyConfig != null) {
-      mergePolicyTemp=mergePolicyConfig.getImplementation();
-      if (mergePolicyTemp == null) {
-        String mergeClassName=mergePolicyConfig.getClassName();
-        try {
-          mergePolicyTemp=(MergePolicy)Serializer.classForName(node.getConfig().getClassLoader(),mergeClassName).newInstance();
-        }
- catch (        Exception e) {
-          logger.log(Level.SEVERE,e.getMessage(),e);
-        }
-      }
-    }
-  }
-  this.mergePolicy=mergePolicyTemp;
+  this.mergePolicy=getMergePolicy(mapConfig.getMergePolicy());
   this.creationTime=System.currentTimeMillis();
+  WanReplicationRef wanReplicationRef=mapConfig.getWanReplicationRef();
+  if (wanReplicationRef != null) {
+    this.localUpdateListener=node.wanReplicationService.getWanReplication(wanReplicationRef.getName());
+    this.wanMergePolicy=getMergePolicy(wanReplicationRef.getMergePolicy());
+  }
+ else {
+    this.localUpdateListener=null;
+    this.wanMergePolicy=null;
+  }
 }

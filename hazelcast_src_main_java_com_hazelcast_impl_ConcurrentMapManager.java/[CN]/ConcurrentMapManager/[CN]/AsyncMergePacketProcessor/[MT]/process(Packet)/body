@@ -1,0 +1,30 @@
+{
+  final String name=packet.name;
+  final DataRecordEntry mergingEntry=(DataRecordEntry)toObject(packet.getValueData());
+  final int blockId=packet.blockId;
+  final CMap cmap=getOrCreateMap(name);
+  releasePacket(packet);
+  parallelExecutor.execute(new Runnable(){
+    public void run(){
+      Record recordExisting=cmap.getRecord(mergingEntry.getKeyData());
+      DataRecordEntry existingEntry=recordExisting == null ? null : new DataRecordEntry(recordExisting);
+      MProxy mproxy=(MProxy)node.factory.getOrCreateProxyByName(name);
+      MergePolicy mergePolicy=cmap.wanMergePolicy;
+      if (mergePolicy == null) {
+        logger.log(Level.SEVERE,"Received wan merge but no merge policy defined!");
+      }
+ else {
+        Object winner=mergePolicy.merge(cmap.getName(),mergingEntry,existingEntry);
+        if (winner != null) {
+          if (winner == MergePolicy.REMOVE_EXISTING) {
+            mproxy.removeForSync(mergingEntry.getKey());
+          }
+ else {
+            mproxy.putForSync(mergingEntry.getKeyData(),winner);
+          }
+        }
+      }
+    }
+  }
+,blockId);
+}

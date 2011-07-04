@@ -1,0 +1,24 @@
+{
+  WanReplication wr=mapWanReplications.get(name);
+  if (wr != null)   return wr;
+synchronized (this) {
+    wr=mapWanReplications.get(name);
+    if (wr != null)     return wr;
+    WanReplicationConfig wanReplicationConfig=node.getConfig().getWanReplicationConfig(name);
+    List<WanTargetClusterConfig> targets=wanReplicationConfig.getTargetClusterConfigs();
+    WanReplicationEndpoint[] targetClusters=new WanReplicationEndpoint[targets.size()];
+    int count=0;
+    for (    WanTargetClusterConfig targetClusterConfig : targets) {
+      WanReplicationEndpoint target=new WanNoDelayReplication();
+      String groupName=targetClusterConfig.getGroupName();
+      String password=targetClusterConfig.getGroupPassword();
+      String[] addresses=new String[targetClusterConfig.getEndpoints().size()];
+      targetClusterConfig.getEndpoints().toArray(addresses);
+      target.init(node,groupName,password,addresses);
+      targetClusters[count++]=target;
+    }
+    wr=new WanReplication(name,targetClusters);
+    mapWanReplications.put(name,wr);
+    return wr;
+  }
+}

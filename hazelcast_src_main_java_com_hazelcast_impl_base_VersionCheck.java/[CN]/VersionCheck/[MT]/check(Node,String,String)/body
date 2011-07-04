@@ -1,0 +1,48 @@
+{
+  if (!hazelcastNode.getGroupProperties().VERSION_CHECK_ENABLED.getBoolean()) {
+    return;
+  }
+  ILogger logger=hazelcastNode.getLogger(VersionCheck.class.getName());
+  String urlStr="http://www.hazelcast.com/version.jsp?version=" + version;
+  try {
+    Document doc=fetchWebService(urlStr);
+    if (doc != null) {
+      org.w3c.dom.Node nodeFinal=(org.w3c.dom.Node)XPathFactory.newInstance().newXPath().evaluate("/hazelcast-version/final",doc,XPathConstants.NODE);
+      String finalVersion=nodeFinal.getAttributes().getNamedItem("version").getTextContent();
+      String finalDate=nodeFinal.getAttributes().getNamedItem("date").getTextContent();
+      org.w3c.dom.Node nodeSnapshot=(org.w3c.dom.Node)XPathFactory.newInstance().newXPath().evaluate("/hazelcast-version/snapshot",doc,XPathConstants.NODE);
+      String snapshotVersion=nodeSnapshot.getAttributes().getNamedItem("version").getTextContent();
+      String snapshotDate=nodeSnapshot.getAttributes().getNamedItem("date").getTextContent();
+      if (version.indexOf("SNAPSHOT") == -1) {
+        int currentDate=Integer.parseInt(buildDate);
+        int finalOne=Integer.parseInt(finalDate);
+        if (currentDate < finalOne) {
+          StringBuilder sb=new StringBuilder("Newer version of Hazelcast is available.\n");
+          sb.append("======================================\n");
+          sb.append("\n");
+          sb.append("You are running " + version + "\t["+ buildDate+ "]\n");
+          sb.append("Newer version " + finalVersion + "\t["+ finalDate+ "]\n");
+          sb.append("\n");
+          sb.append("======================================\n");
+          logger.log(Level.WARNING,sb.toString());
+        }
+      }
+ else {
+        int currentDate=Integer.parseInt(buildDate);
+        int availableOne=Integer.parseInt(snapshotDate);
+        if (currentDate < availableOne) {
+          StringBuilder sb=new StringBuilder("Newer version of Hazelcast snapshot is available.\n");
+          sb.append("======================================\n");
+          sb.append("\n");
+          sb.append("You are running " + version + "\t["+ buildDate+ "]\n");
+          sb.append("Newer version " + snapshotVersion + "\t["+ snapshotDate+ "]\n");
+          sb.append("\n");
+          sb.append("======================================\n");
+          logger.log(Level.WARNING,sb.toString());
+        }
+      }
+    }
+  }
+ catch (  Throwable e) {
+  }
+}
