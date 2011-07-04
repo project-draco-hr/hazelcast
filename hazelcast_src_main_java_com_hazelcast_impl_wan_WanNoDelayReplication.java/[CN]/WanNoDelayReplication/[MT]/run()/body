@@ -1,0 +1,22 @@
+{
+  Connection conn=null;
+  while (running) {
+    try {
+      RecordUpdate ru=(failureQ.size() > 0) ? failureQ.removeFirst() : q.take();
+      if (conn == null) {
+        conn=getConnection();
+      }
+      System.out.println(node.getClusterImpl().getLocalMember() + " UUWriting...");
+      conn.getWriteHandler().enqueueSocketWritable(ru.toNewPacket());
+      if (!conn.live()) {
+        failureQ.addFirst(ru);
+      }
+    }
+ catch (    InterruptedException e) {
+      running=false;
+    }
+catch (    Throwable e) {
+      e.printStackTrace();
+    }
+  }
+}

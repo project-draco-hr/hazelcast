@@ -1,0 +1,30 @@
+{
+  while (true) {
+    String targetStr=addressQueue.take();
+    Address target=null;
+    try {
+      target=null;
+      int colon=targetStr.indexOf(':');
+      if (colon == -1) {
+        target=new Address(targetStr,node.getConfig().getPort());
+      }
+ else {
+        target=new Address(targetStr.substring(0,colon),Integer.parseInt(targetStr.substring(colon + 1)));
+      }
+      Connection conn=node.getConnectionManager().getOrConnect(target);
+      for (int i=0; i < 10; i++) {
+        conn=node.getConnectionManager().getConnection(target);
+        if (conn == null) {
+          Thread.sleep(1000);
+        }
+ else {
+          return conn;
+        }
+      }
+    }
+ catch (    Throwable e) {
+      Thread.sleep(1000);
+    }
+    addressQueue.offer(targetStr);
+  }
+}
