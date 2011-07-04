@@ -1,0 +1,20 @@
+{
+  int tryCount=0;
+  while (!node.joined() && tryCount++ < 100 && (node.getMasterAddress() == null)) {
+    connectAndSendJoinRequest(colPossibleAddresses);
+    Thread.sleep(1000L);
+    System.out.println(node.getThisAddress() + " looking for master " + colPossibleAddresses);
+  }
+  int requestCount=0;
+  while (!node.joined()) {
+    Thread.sleep(1000L);
+    final Address master=node.getMasterAddress();
+    if (master != null) {
+      System.out.println(node.getThisAddress() + " joining to master " + master);
+      node.clusterManager.sendJoinRequest(master);
+      if (requestCount++ > node.getGroupProperties().MAX_WAIT_SECONDS_BEFORE_JOIN.getInteger() + 10) {
+        logger.log(Level.WARNING,"Couldn't join to the master : " + master);
+      }
+    }
+  }
+}
