@@ -1,0 +1,49 @@
+{
+  System.setProperty(GroupProperties.PROP_VERSION_CHECK_ENABLED,"false");
+  final int count=35;
+  final int groupCount=3;
+  System.setProperty("hazelcast.mancenter.enabled","false");
+  final CountDownLatch latch=new CountDownLatch(count);
+  final ConcurrentHashMap<Integer,HazelcastInstance> mapOfInstances=new ConcurrentHashMap<Integer,HazelcastInstance>();
+  final Random random=new Random(System.currentTimeMillis());
+  final Map<String,AtomicInteger> groups=new ConcurrentHashMap<String,AtomicInteger>();
+  for (int i=0; i < groupCount; i++) {
+    groups.put("group" + i,new AtomicInteger(0));
+  }
+  for (int i=0; i < count; i++) {
+    final int seed=i;
+    new Thread(new Runnable(){
+      public void run(){
+        try {
+          Thread.sleep(random.nextInt(5) * 1000);
+          final Config config=new Config();
+          String name="group" + random.nextInt(groupCount);
+          groups.get(name).incrementAndGet();
+          config.getGroupConfig().setName(name);
+          config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+          TcpIpConfig tcpIpConfig=config.getNetworkConfig().getJoin().getTcpIpConfig();
+          tcpIpConfig.setEnabled(true);
+          int port=12301;
+          config.setPortAutoIncrement(false);
+          config.setPort(port + seed);
+          for (int i=0; i < count; i++) {
+            tcpIpConfig.addAddress(new Address("127.0.0.1",port + i));
+          }
+          HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+          mapOfInstances.put(seed,h);
+          latch.countDown();
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+).start();
+  }
+  latch.await();
+  for (  HazelcastInstance h : mapOfInstances.values()) {
+    int clusterSize=h.getCluster().getMembers().size();
+    int shouldBeClusterSize=groups.get(h.getConfig().getGroupConfig().getName()).get();
+    Assert.assertEquals(h.getConfig().getGroupConfig().getName() + ": ",shouldBeClusterSize,clusterSize);
+  }
+}
