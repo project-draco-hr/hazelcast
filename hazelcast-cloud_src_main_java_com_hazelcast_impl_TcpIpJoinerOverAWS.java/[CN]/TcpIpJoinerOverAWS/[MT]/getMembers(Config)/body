@@ -1,9 +1,14 @@
 {
-  try {
-    return aws.getPrivateDnsNames();
+  List<String> possibleMembers=new ArrayList<String>();
+  DescribeInstancesResult result=ec2.describeInstances(new DescribeInstancesRequest());
+  for (  Reservation reservation : result.getReservations()) {
+    for (    Instance instance : reservation.getInstances()) {
+      if ("running".equalsIgnoreCase(instance.getState().getName())) {
+        String ip=instance.getPrivateIpAddress();
+        possibleMembers.add(ip);
+        System.out.println("IP is " + ip);
+      }
+    }
   }
- catch (  Exception e) {
-    logger.log(Level.WARNING,e.getMessage(),e);
-    return new ArrayList<String>();
-  }
+  return possibleMembers;
 }

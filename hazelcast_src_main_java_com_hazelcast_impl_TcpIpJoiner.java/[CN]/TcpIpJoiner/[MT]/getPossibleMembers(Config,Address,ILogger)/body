@@ -16,7 +16,7 @@
       }
       final boolean ip=isIP(host);
       if (ip) {
-        for (        final Address addrs : getPossibleIpAddresses(host,port,indexColon >= 0)) {
+        for (        final Address addrs : getPossibleIpAddresses(host,port,indexColon >= 0 || !config.isPortAutoIncrement())) {
           if (!addrs.equals(thisAddress)) {
             setPossibleAddresses.add(addrs);
           }
@@ -38,8 +38,16 @@
           }
           if (indexColon < 0) {
             if (shouldCheck) {
-              for (int i=-2; i < 3; i++) {
-                final Address addressProper=new Address(inetAddress.getAddress(),port + i);
+              if (config.isPortAutoIncrement()) {
+                for (int i=-2; i < 3; i++) {
+                  final Address addressProper=new Address(inetAddress.getAddress(),port + i);
+                  if (!addressProper.equals(thisAddress)) {
+                    setPossibleAddresses.add(addressProper);
+                  }
+                }
+              }
+ else {
+                final Address addressProper=new Address(inetAddress.getAddress(),port);
                 if (!addressProper.equals(thisAddress)) {
                   setPossibleAddresses.add(addressProper);
                 }
