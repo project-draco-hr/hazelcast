@@ -1,0 +1,36 @@
+{
+  Config c1=new Config();
+  Config c2=new Config();
+  c1.getGroupConfig().setName("differentGroup");
+  c1.addWanReplicationConfig(new WanReplicationConfig().setName("my-wan").addTargetClusterConfig(new WanTargetClusterConfig().addEndpoint("127.0.0.1:5702")));
+  c1.getMapConfig("default").setWanReplicationRef(new WanReplicationRef().setName("my-wan").setMergePolicy(PassThroughMergePolicy.NAME));
+  c2.getGroupConfig().setName("sameGroup");
+  c2.addWanReplicationConfig(new WanReplicationConfig().setName("my-wan").addTargetClusterConfig(new WanTargetClusterConfig().addEndpoint("127.0.0.1:5701")));
+  c2.getMapConfig("default").setWanReplicationRef(new WanReplicationRef().setName("my-wan").setMergePolicy(PassThroughMergePolicy.NAME));
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
+  HazelcastInstance h12=Hazelcast.newHazelcastInstance(c1);
+  HazelcastInstance h13=Hazelcast.newHazelcastInstance(c1);
+  HazelcastInstance h22=Hazelcast.newHazelcastInstance(c2);
+  int size=1000;
+  for (int i=0; i < size; i++) {
+    h2.getMap("default").put(i,"value" + i);
+    h22.getMap("default").put(size + i,"value" + (size + i));
+  }
+  Thread.sleep(5000);
+  Assert.assertEquals(2 * size,h1.getMap("default").size());
+  Assert.assertEquals(2 * size,h2.getMap("default").size());
+  Assert.assertEquals(2 * size,h12.getMap("default").size());
+  Assert.assertEquals(2 * size,h13.getMap("default").size());
+  Assert.assertEquals(2 * size,h22.getMap("default").size());
+  for (int i=0; i < size / 2; i++) {
+    h1.getMap("default").remove(i);
+    h13.getMap("default").remove(size + i);
+  }
+  Thread.sleep(5000);
+  Assert.assertEquals(size,h1.getMap("default").size());
+  Assert.assertEquals(size,h2.getMap("default").size());
+  Assert.assertEquals(size,h12.getMap("default").size());
+  Assert.assertEquals(size,h13.getMap("default").size());
+  Assert.assertEquals(size,h22.getMap("default").size());
+}

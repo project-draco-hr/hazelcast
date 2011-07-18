@@ -1,0 +1,44 @@
+{
+  Config c1=new Config();
+  Config c2=new Config();
+  c1.getGroupConfig().setName("differentGroup");
+  c1.addWanReplicationConfig(new WanReplicationConfig().setName("my-wan").addTargetClusterConfig(new WanTargetClusterConfig().addEndpoint("127.0.0.1:5703")));
+  c1.getMapConfig("default").setWanReplicationRef(new WanReplicationRef().setName("my-wan").setMergePolicy(PassThroughMergePolicy.NAME));
+  c2.getGroupConfig().setName("sameGroup");
+  c2.addWanReplicationConfig(new WanReplicationConfig().setName("my-wan").addTargetClusterConfig(new WanTargetClusterConfig().addEndpoint("127.0.0.1:5701")));
+  c2.getMapConfig("default").setWanReplicationRef(new WanReplicationRef().setName("my-wan").setMergePolicy(PassThroughMergePolicy.NAME));
+  HazelcastInstance h10=Hazelcast.newHazelcastInstance(c1);
+  HazelcastInstance h11=Hazelcast.newHazelcastInstance(c1);
+  int size=1000;
+  for (int i=0; i < size; i++) {
+    h11.getMap("default").put(i,"value" + i);
+  }
+  HazelcastInstance h20=Hazelcast.newHazelcastInstance(c2);
+  HazelcastInstance h21=Hazelcast.newHazelcastInstance(c2);
+  HazelcastInstance h12=Hazelcast.newHazelcastInstance(c1);
+  Thread.sleep(5000);
+  Assert.assertEquals(size,h10.getMap("default").size());
+  Assert.assertEquals(size,h20.getMap("default").size());
+  Assert.assertEquals(size,h12.getMap("default").size());
+  Assert.assertEquals(size,h11.getMap("default").size());
+  Assert.assertEquals(size,h21.getMap("default").size());
+  for (int i=0; i < size; i++) {
+    h21.getMap("default").put(size + i,"value" + (size + i));
+  }
+  Thread.sleep(5000);
+  Assert.assertEquals(2 * size,h10.getMap("default").size());
+  Assert.assertEquals(2 * size,h20.getMap("default").size());
+  Assert.assertEquals(2 * size,h12.getMap("default").size());
+  Assert.assertEquals(2 * size,h11.getMap("default").size());
+  Assert.assertEquals(2 * size,h21.getMap("default").size());
+  for (int i=0; i < size / 2; i++) {
+    h10.getMap("default").remove(i);
+    h21.getMap("default").remove(size + i);
+  }
+  Thread.sleep(5000);
+  Assert.assertEquals(size,h10.getMap("default").size());
+  Assert.assertEquals(size,h20.getMap("default").size());
+  Assert.assertEquals(size,h12.getMap("default").size());
+  Assert.assertEquals(size,h11.getMap("default").size());
+  Assert.assertEquals(size,h21.getMap("default").size());
+}
