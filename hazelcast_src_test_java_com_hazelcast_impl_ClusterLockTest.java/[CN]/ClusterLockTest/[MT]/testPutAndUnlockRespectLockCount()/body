@@ -1,0 +1,22 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  final IMap map1=h1.getMap("default");
+  map1.lock(1);
+  map1.lock(1);
+  map1.putAndUnlock(1,1);
+  final AtomicBoolean locked=new AtomicBoolean(false);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        map1.lock(1);
+        locked.set(true);
+      }
+ catch (      Throwable e) {
+      }
+    }
+  }
+).start();
+  Thread.sleep(2000);
+  Assert.assertFalse("should not acquire lock",locked.get());
+  map1.unlock(1);
+}
