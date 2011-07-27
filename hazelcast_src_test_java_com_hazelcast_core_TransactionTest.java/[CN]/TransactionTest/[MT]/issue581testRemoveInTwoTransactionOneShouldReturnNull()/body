@@ -1,0 +1,39 @@
+{
+  final IMap m=Hazelcast.getMap("test");
+  final AtomicReference<Object> t1Return=new AtomicReference<Object>();
+  final AtomicReference<Object> t2Return=new AtomicReference<Object>();
+  m.put("a","b");
+  new Thread("1. thread"){
+    @Override public void run(){
+      try {
+        Transaction tx=Hazelcast.getTransaction();
+        tx.begin();
+        t1Return.set(m.remove("a"));
+        Thread.sleep(1000);
+        tx.commit();
+      }
+ catch (      InterruptedException ex) {
+      }
+    }
+  }
+.start();
+  Thread t2=new Thread("2. thread"){
+    @Override public void run(){
+      try {
+        Transaction tx=Hazelcast.getTransaction();
+        tx.begin();
+        Thread.sleep(1000);
+        t2Return.set(m.remove("a"));
+        tx.commit();
+      }
+ catch (      InterruptedException ex) {
+      }
+    }
+  }
+;
+  t2.start();
+  t2.join();
+  Assert.assertEquals("b",t1Return.get());
+  Assert.assertNull("The remove in the second thread should return null",t2Return.get());
+  Hazelcast.shutdownAll();
+}
