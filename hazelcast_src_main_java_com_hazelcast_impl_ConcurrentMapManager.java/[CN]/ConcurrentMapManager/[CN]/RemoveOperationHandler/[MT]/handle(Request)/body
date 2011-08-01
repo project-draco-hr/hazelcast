@@ -1,0 +1,24 @@
+{
+  CMap cmap=getOrCreateMap(request.name);
+  if (cmap.isNotLocked(request)) {
+    if (shouldSchedule(request)) {
+      if (request.hasEnoughTimeToSchedule()) {
+        schedule(request);
+      }
+ else {
+        onNoTimeToSchedule(request);
+      }
+      return;
+    }
+    Record record=cmap.getRecord(request);
+    if (record == null && cmap.loader != null) {
+      storeExecutor.execute(new RemoveLoader(cmap,request),request.key.hashCode());
+      return;
+    }
+    storeProceed(cmap,request);
+  }
+ else {
+    request.response=OBJECT_REDO;
+    returnResponse(request);
+  }
+}
