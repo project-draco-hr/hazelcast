@@ -15,33 +15,25 @@
     record.setMultiValues(null);
   }
   if (req.operation == CONCURRENT_MAP_PUT_IF_ABSENT) {
-    if (record != null && record.isActive() && record.isValid(now) && record.getValueData() != null) {
+    if (!isApplicable(CONCURRENT_MAP_PUT_IF_ABSENT,req,now)) {
       req.clearForResponse();
       req.response=record.getValueData();
       return;
     }
   }
  else   if (req.operation == CONCURRENT_MAP_REPLACE_IF_NOT_NULL) {
-    if (record == null || !record.isActive() || !record.isValid(now) || record.getValueData() == null) {
+    if (!isApplicable(CONCURRENT_MAP_REPLACE_IF_NOT_NULL,req,now)) {
       req.value=null;
       return;
     }
   }
  else   if (req.operation == CONCURRENT_MAP_REPLACE_IF_SAME) {
-    if (record == null || !record.isActive() || !record.isValid(now)) {
+    if (!isApplicable(CONCURRENT_MAP_REPLACE_IF_SAME,req,now)) {
       req.response=Boolean.FALSE;
       return;
     }
     MultiData multiData=(MultiData)toObject(req.value);
-    if (multiData == null || multiData.size() != 2) {
-      throw new RuntimeException("Illegal replaceIfSame argument: " + multiData);
-    }
-    Data expectedOldValue=multiData.getData(0);
     req.value=multiData.getData(1);
-    if (!expectedOldValue.equals(record.getValueData())) {
-      req.response=Boolean.FALSE;
-      return;
-    }
   }
   Data oldValue=null;
   if (record == null) {
