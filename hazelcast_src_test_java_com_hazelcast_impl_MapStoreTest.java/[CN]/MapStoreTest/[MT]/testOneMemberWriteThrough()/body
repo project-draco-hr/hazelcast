@@ -4,7 +4,12 @@
   Config config=newConfig(testMapStore,0);
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   Employee employee=new Employee("joe",25,true,100.00);
+  Employee newEmployee=new Employee("ali",26,true,1000);
   testMapStore.insert("1",employee);
+  testMapStore.insert("2",employee);
+  testMapStore.insert("3",employee);
+  testMapStore.insert("4",employee);
+  testMapStore.insert("5",employee);
   IMap map=h1.getMap("default");
   map.addIndex("name",false);
   assertEquals(0,map.size());
@@ -12,6 +17,9 @@
   assertEquals(employee,map.get("1"));
   assertEquals(employee,testMapStore.getStore().get("1"));
   assertEquals(1,map.size());
+  assertEquals(employee,map.put("2",newEmployee));
+  assertEquals(newEmployee,testMapStore.getStore().get("2"));
+  assertEquals(2,map.size());
   Collection values=map.values(new SqlPredicate("name = 'joe'"));
   assertEquals(1,values.size());
   assertEquals(employee,values.iterator().next());
@@ -20,4 +28,12 @@
   Thread.sleep(2000);
   assertEquals(employee,testMapStore.getStore().get("1"));
   assertEquals(employee,map.get("1"));
+  map.evict("2");
+  assertEquals(newEmployee,map.get("2"));
+  assertEquals(employee,map.tryLockAndGet("3",1,TimeUnit.SECONDS));
+  assertEquals(employee,map.put("3",newEmployee));
+  assertEquals(newEmployee,map.get("3"));
+  assertEquals(employee,map.remove("4"));
+  assertEquals(employee,map.tryLockAndGet("5",1,TimeUnit.SECONDS));
+  assertEquals(employee,map.remove("5"));
 }
