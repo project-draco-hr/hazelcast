@@ -1,0 +1,38 @@
+{
+  final BeanDefinitionBuilder wanRepConfigBuilder=createBeanBuilder(WanReplicationConfig.class,"wanReplicationConfig");
+  final AbstractBeanDefinition beanDefinition=wanRepConfigBuilder.getBeanDefinition();
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getValue(attName);
+  wanRepConfigBuilder.addPropertyValue("name",name);
+  final ManagedList targetClusters=new ManagedList();
+  for (  Node n : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    final String nName=cleanNodeName(n);
+    if ("target-cluster".equals(nName)) {
+      final BeanDefinitionBuilder targetClusterConfigBuilder=createBeanBuilder(WanTargetClusterConfig.class,"targetClusterConfig");
+      final AbstractBeanDefinition childBeanDefinition=targetClusterConfigBuilder.getBeanDefinition();
+      fillAttributeValues(n,targetClusterConfigBuilder,Collections.EMPTY_LIST);
+      for (      Node childNode : new IterableNodeList(n.getChildNodes(),Node.ELEMENT_NODE)) {
+        final String childNodeName=cleanNodeName(childNode);
+        if ("replication-impl".equals(childNodeName)) {
+          targetClusterConfigBuilder.addPropertyValue(xmlToJavaName(childNodeName),getValue(childNode));
+        }
+ else         if ("replication-impl-object".equals(childNodeName)) {
+          Node refName=childNode.getAttributes().getNamedItem("ref");
+          targetClusterConfigBuilder.addPropertyReference(xmlToJavaName(childNodeName),getValue(refName));
+        }
+ else         if ("end-points".equals(childNodeName)) {
+          final ManagedList addresses=new ManagedList();
+          for (          Node addressNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
+            if ("address".equals(cleanNodeName(addressNode))) {
+              addresses.add(getValue(addressNode));
+            }
+          }
+          targetClusterConfigBuilder.addPropertyValue("endpoints",addresses);
+        }
+      }
+      targetClusters.add(childBeanDefinition);
+    }
+  }
+  wanRepConfigBuilder.addPropertyValue("targetClusterConfigs",targetClusters);
+  wanReplicationManagedMap.put(name,beanDefinition);
+}
