@@ -1,0 +1,13 @@
+{
+  CMap cmap=getOrCreateMap(request.name);
+  if (cmap.isNotLocked(request)) {
+    Record record=cmap.getRecord(request);
+    boolean doesNotExist=(record == null || !record.isActive() || !record.isValid() || record.getValueData() == null);
+    DataRecordEntry existing=(doesNotExist) ? null : new DataRecordEntry(record);
+    node.executorManager.executeNow(new MergeLoader(cmap,request,existing));
+  }
+ else {
+    request.response=OBJECT_REDO;
+    returnResponse(request);
+  }
+}
