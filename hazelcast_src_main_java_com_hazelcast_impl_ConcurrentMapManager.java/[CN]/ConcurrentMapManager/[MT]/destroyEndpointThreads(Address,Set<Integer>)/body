@@ -1,0 +1,14 @@
+{
+  node.clusterManager.invalidateScheduledActionsFor(endpoint,threadIds);
+  for (  CMap cmap : maps.values()) {
+    for (    Record record : cmap.mapRecords.values()) {
+      DistributedLock lock=record.getLock();
+      if (lock != null && lock.isLocked()) {
+        if (endpoint.equals(record.getLockAddress()) && threadIds.contains(record.getLock().getLockThreadId())) {
+          record.setLock(null);
+          cmap.fireScheduledActions(record);
+        }
+      }
+    }
+  }
+}

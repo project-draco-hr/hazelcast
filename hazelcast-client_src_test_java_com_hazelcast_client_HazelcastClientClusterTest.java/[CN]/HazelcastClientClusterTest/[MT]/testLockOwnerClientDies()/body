@@ -1,0 +1,20 @@
+{
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  HazelcastClient client1=newHazelcastClient(h1);
+  HazelcastClient client2=newHazelcastClient(h1);
+  final IMap c1=client1.getMap("default");
+  final IMap c2=client2.getMap("default");
+  final IMap m1=h1.getMap("default");
+  c1.lock("key");
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      c2.lock("key");
+      latch.countDown();
+    }
+  }
+).start();
+  Thread.sleep(1000);
+  client1.shutdown();
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+}

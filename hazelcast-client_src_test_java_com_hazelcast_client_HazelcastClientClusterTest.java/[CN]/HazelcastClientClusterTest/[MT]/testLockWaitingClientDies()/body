@@ -1,0 +1,20 @@
+{
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  HazelcastClient client1=newHazelcastClient(h1);
+  HazelcastClient client2=newHazelcastClient(h1);
+  final IMap c1=client1.getMap("default");
+  final IMap c2=client2.getMap("default");
+  final IMap m1=h1.getMap("default");
+  m1.lock("key");
+  new Thread(new Runnable(){
+    public void run(){
+      c1.lock("key");
+    }
+  }
+).start();
+  Thread.sleep(1000);
+  client1.shutdown();
+  Thread.sleep(1000);
+  m1.unlock("key");
+  assertTrue(c2.tryLock("key"));
+}
