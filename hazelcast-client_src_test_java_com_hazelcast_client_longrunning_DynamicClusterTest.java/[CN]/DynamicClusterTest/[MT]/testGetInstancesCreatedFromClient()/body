@@ -1,15 +1,14 @@
 {
+  String instanceName="testGetInstancesCreatedFromClient";
   HazelcastInstance h=Hazelcast.newHazelcastInstance(new Config());
   client=newHazelcastClient(h);
-  List list=client.getList("testGetInstancesCreatedFromClient");
-  Map map=client.getMap("testGetInstancesCreatedFromClient");
-  MultiMap mmap=client.getMultiMap("testGetInstancesCreatedFromClient");
-  Queue q=client.getQueue("testGetInstancesCreatedFromClient");
-  Set set=client.getSet("testGetInstancesCreatedFromClient");
-  ITopic topic=client.getTopic("testGetInstancesCreatedFromClient");
-  Lock lock=client.getLock("testGetInstancesCreatedFromClient");
-  Collection<Instance> caches=client.getInstances();
-  assertEquals(0,caches.size());
+  List list=client.getList(instanceName);
+  Map map=client.getMap(instanceName);
+  MultiMap mmap=client.getMultiMap(instanceName);
+  Queue q=client.getQueue(instanceName);
+  Set set=client.getSet(instanceName);
+  ITopic topic=client.getTopic(instanceName);
+  Lock lock=client.getLock(instanceName);
   List listOfInstances=new ArrayList();
   listOfInstances.add(list);
   listOfInstances.add(map);
@@ -18,6 +17,7 @@
   listOfInstances.add(set);
   listOfInstances.add(topic);
   listOfInstances.add(lock);
+  assertEquals(0,client.getInstances().size());
   list.add("List");
   map.put("key","value");
   assertEquals(2,client.getInstances().size());
@@ -26,11 +26,9 @@
   assertEquals(4,client.getInstances().size());
   set.add("element");
   topic.publish("Message");
-  caches=client.getInstances();
-  for (Iterator<Instance> instanceIterator=caches.iterator(); instanceIterator.hasNext(); ) {
-    Instance instance=instanceIterator.next();
-    assertTrue(instance.getId().toString().endsWith("testGetInstancesCreatedFromClient"));
-    assertTrue(listOfInstances.contains(instance));
+  assertEquals(6,client.getInstances().size());
+  for (  Instance instance : client.getInstances()) {
+    assertTrue(instance.getId().toString().endsWith(instanceName));
     instance.destroy();
   }
 }
