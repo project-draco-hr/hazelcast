@@ -1,0 +1,32 @@
+{
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(null);
+  HazelcastClient client1=newHazelcastClient(instance);
+  HazelcastClient client2=newHazelcastClient(instance);
+  final ICountDownLatch cdl1=client1.getCountDownLatch("test");
+  final ICountDownLatch cdl2=client2.getCountDownLatch("test");
+  final Socket socket1=client1.connectionManager.getConnection().getSocket();
+  final Address client1Address=new Address(socket1.getLocalAddress(),socket1.getLocalPort());
+  final AtomicInteger result=new AtomicInteger();
+  int count=5;
+  cdl1.setCount(count);
+  assertEquals(client1Address,cdl2.getOwnerAddress());
+  Thread thread=new Thread(){
+    @Override public void run(){
+      try {
+        if (cdl2.await(1000,TimeUnit.MILLISECONDS))         result.incrementAndGet();
+      }
+ catch (      Throwable e) {
+        e.printStackTrace();
+        fail();
+      }
+    }
+  }
+;
+  thread.start();
+  for (int i=count; i > 0; i--) {
+    assertEquals(i,cdl2.getCount());
+    cdl1.countDown();
+    Thread.sleep(100);
+  }
+  assertEquals(1,result.get());
+}

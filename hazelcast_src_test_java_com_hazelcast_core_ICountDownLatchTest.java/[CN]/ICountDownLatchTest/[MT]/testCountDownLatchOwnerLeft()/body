@@ -1,0 +1,35 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  final ICountDownLatch cdl1=h1.getCountDownLatch("test");
+  final ICountDownLatch cdl2=h2.getCountDownLatch("test");
+  Address h1Address=((MemberImpl)h2.getCluster().getLocalMember()).getAddress();
+  final AtomicInteger result=new AtomicInteger();
+  assertNull(cdl1.getOwnerAddress());
+  assertNull(cdl2.getOwnerAddress());
+  cdl2.setCount(1);
+  assertEquals(1,cdl2.getCount());
+  assertEquals(h1Address,cdl1.getOwnerAddress());
+  assertEquals(h1Address,cdl2.getOwnerAddress());
+  Thread thread=new Thread(){
+    @Override public void run(){
+      try {
+        cdl1.await();
+        fail();
+      }
+ catch (      MemberLeftException e) {
+        result.incrementAndGet();
+      }
+catch (      Throwable e) {
+        e.printStackTrace();
+        fail();
+      }
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(20);
+  h2.shutdown();
+  thread.join();
+  assertEquals(1,result.get());
+}

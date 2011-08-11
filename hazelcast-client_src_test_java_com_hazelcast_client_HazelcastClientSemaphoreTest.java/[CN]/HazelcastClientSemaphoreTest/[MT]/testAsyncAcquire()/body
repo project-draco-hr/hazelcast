@@ -1,0 +1,29 @@
+{
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(null);
+  HazelcastClient client=newHazelcastClient(instance);
+  final ISemaphore semaphore=client.getSemaphore("test");
+  final Future f1=semaphore.acquireAsync();
+  Thread thread=new Thread(){
+    @Override public void run(){
+      for (; ; ) {
+        try {
+          f1.get();
+          break;
+        }
+ catch (        InterruptedException e) {
+          assertTrue(f1.cancel(false));
+          semaphore.release();
+          break;
+        }
+catch (        ExecutionException e) {
+        }
+      }
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(1000);
+  thread.interrupt();
+  thread.join();
+  assertEquals(1,semaphore.availablePermits());
+}

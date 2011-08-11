@@ -1,0 +1,19 @@
+{
+  SemaphoreConfig semaphoreConfig=new SemaphoreConfig("test",10);
+  Config config=new Config();
+  config.addSemaphoreConfig(semaphoreConfig);
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+  HazelcastClient client=newHazelcastClient(instance);
+  ISemaphore semaphore=client.getSemaphore("test");
+  assertEquals(10,semaphore.availablePermits());
+  semaphore.reducePermits(1);
+  assertEquals(9,semaphore.availablePermits());
+  semaphore.tryAcquire(9);
+  assertEquals(0,semaphore.availablePermits());
+  semaphore.reducePermits(8);
+  assertEquals(-8,semaphore.availablePermits());
+  semaphore.release();
+  assertEquals(-7,semaphore.availablePermits());
+  semaphore.release(8);
+  assertEquals(1,semaphore.availablePermits());
+}

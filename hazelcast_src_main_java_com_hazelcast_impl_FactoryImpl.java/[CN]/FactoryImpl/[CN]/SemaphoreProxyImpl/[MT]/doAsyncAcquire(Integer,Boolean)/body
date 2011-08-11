@@ -1,0 +1,25 @@
+{
+  final SemaphoreProxyImpl semaphoreProxy=SemaphoreProxyImpl.this;
+  AsyncCall call=new AsyncCall(){
+    @Override protected void call(){
+      try {
+        if (attach)         semaphoreProxy.acquireAttach(permits);
+ else         semaphoreProxy.acquire(permits);
+        setResult(null);
+      }
+ catch (      InterruptedException e) {
+        setResult(e);
+      }
+catch (      InstanceDestroyedException e) {
+        e.printStackTrace();
+      }
+    }
+    @Override public boolean cancel(    boolean mayInterruptIfRunning){
+      ConcurrentMapManager.MSemaphore msemaphore=factory.node.concurrentMapManager.new MSemaphore();
+      return msemaphore.cancelAcquire(getNameAsData());
+    }
+  }
+;
+  factory.node.executorManager.executeAsync(call);
+  return call;
+}

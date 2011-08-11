@@ -1,0 +1,34 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  final ICountDownLatch cdl1=h1.getCountDownLatch("test");
+  final ICountDownLatch cdl2=h2.getCountDownLatch("test");
+  Address h1Address=((MemberImpl)h1.getCluster().getLocalMember()).getAddress();
+  final AtomicInteger result=new AtomicInteger();
+  cdl1.setCount(1);
+  assertEquals(1,cdl2.getCount());
+  assertEquals(h1Address,cdl1.getOwnerAddress());
+  assertEquals(h1Address,cdl2.getOwnerAddress());
+  Thread thread=new Thread(){
+    @Override public void run(){
+      try {
+        cdl1.await();
+        fail();
+      }
+ catch (      IllegalStateException e) {
+        e.printStackTrace();
+        result.incrementAndGet();
+      }
+catch (      Throwable e) {
+        e.printStackTrace();
+        fail();
+      }
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(20);
+  h1.shutdown();
+  thread.join();
+  assertEquals(1,result.get());
+}

@@ -1,0 +1,90 @@
+{
+  final Random random=new Random();
+  final int rndTimeMax=20;
+  int initialPermits=2;
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(null);
+  HazelcastClient client1=newHazelcastClient(instance);
+  HazelcastClient client2=newHazelcastClient(instance);
+  final ISemaphore semaphore1=client1.getSemaphore("test");
+  final ISemaphore semaphore2=client2.getSemaphore("test");
+  final ISemaphore semaphore3=instance.getSemaphore("test");
+  semaphore1.release(initialPermits);
+  assertEquals(initialPermits,semaphore1.availablePermits());
+  assertEquals(initialPermits,semaphore2.availablePermits());
+  assertEquals(initialPermits,semaphore3.availablePermits());
+  Thread thread1=new Thread(){
+    public void run(){
+      for (int i=0; i < 100; i++) {
+        try {
+          semaphore1.acquire(2);
+          if (semaphore3.availablePermits() < 0)           fail();
+          Thread.sleep(random.nextInt(rndTimeMax));
+          semaphore1.release(2);
+          Thread.sleep(random.nextInt(rndTimeMax));
+        }
+ catch (        InterruptedException e) {
+          fail(e.getMessage());
+        }
+catch (        InstanceDestroyedException e) {
+          fail(e.getMessage());
+        }
+      }
+    }
+  }
+;
+  Thread thread2=new Thread(){
+    public void run(){
+      for (int i=0; i < 200; i++) {
+        try {
+          semaphore2.acquire();
+          if (semaphore1.availablePermits() < 0)           fail();
+          Thread.sleep(random.nextInt(rndTimeMax));
+          semaphore2.release();
+          Thread.sleep(random.nextInt(rndTimeMax));
+        }
+ catch (        InterruptedException e) {
+          fail(e.getMessage());
+        }
+catch (        InstanceDestroyedException e) {
+          fail(e.getMessage());
+        }
+      }
+    }
+  }
+;
+  Thread thread3=new Thread(){
+    public void run(){
+      for (int i=0; i < 300; i++) {
+        try {
+          semaphore3.acquire();
+          if (semaphore2.availablePermits() < 0)           fail();
+          Thread.sleep(random.nextInt(rndTimeMax));
+          semaphore3.release();
+          Thread.sleep(random.nextInt(rndTimeMax));
+        }
+ catch (        InterruptedException e) {
+          fail(e.getMessage());
+        }
+catch (        InstanceDestroyedException e) {
+          fail(e.getMessage());
+        }
+      }
+    }
+  }
+;
+  thread1.start();
+  thread2.start();
+  thread3.start();
+  try {
+    thread1.join();
+    thread2.join();
+    thread3.join();
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+    fail();
+  }
+  assertEquals(initialPermits,semaphore1.availablePermits());
+  assertEquals(initialPermits,semaphore2.availablePermits());
+  assertEquals(initialPermits,semaphore3.availablePermits());
+}

@@ -1,0 +1,30 @@
+{
+  final ISemaphore semaphore=Hazelcast.getSemaphore("test");
+  assertEquals(0,semaphore.availablePermits());
+  final Future f1=semaphore.acquireAsync();
+  Thread thread=new Thread(){
+    @Override public void run(){
+      for (; ; ) {
+        try {
+          f1.get(1,TimeUnit.SECONDS);
+          break;
+        }
+ catch (        InterruptedException e) {
+          semaphore.release();
+          assertFalse(f1.cancel(false));
+          break;
+        }
+catch (        ExecutionException e) {
+        }
+catch (        TimeoutException e) {
+        }
+      }
+    }
+  }
+;
+  assertEquals(0,semaphore.availablePermits());
+  thread.start();
+  Thread.sleep(3500);
+  thread.interrupt();
+  assertEquals(0,semaphore.availablePermits());
+}

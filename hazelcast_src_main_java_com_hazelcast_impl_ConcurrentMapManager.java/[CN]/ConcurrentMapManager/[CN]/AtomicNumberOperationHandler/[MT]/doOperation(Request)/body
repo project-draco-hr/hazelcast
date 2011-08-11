@@ -1,0 +1,21 @@
+{
+  final Record record=ensureRecord(request,AtomicNumberProxy.DATA_LONG_ZERO);
+  final Data oldValueData=record.getValueData();
+  final Data expectedValue=request.value;
+  final long value=request.longValue;
+  request.clearForResponse();
+  if (expectedValue == null || expectedValue.equals(oldValueData)) {
+    final long oldValue=(Long)toObject(oldValueData);
+    final long newValue=getNewValue(oldValue,value);
+    request.longValue=getResponseValue(oldValue,value);
+    if (oldValue != newValue) {
+      record.setValue(toData(newValue));
+      record.incrementVersion();
+      request.version=record.getVersion();
+      request.response=record.getValueData();
+    }
+  }
+ else {
+    request.longValue=0L;
+  }
+}

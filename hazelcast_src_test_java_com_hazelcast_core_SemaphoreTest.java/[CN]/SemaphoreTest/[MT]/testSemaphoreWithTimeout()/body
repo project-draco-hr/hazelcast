@@ -3,14 +3,19 @@
   Config config=new Config();
   config.addSemaphoreConfig(semaphoreConfig);
   HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
-  ISemaphore semaphore=instance.getSemaphore("testSemaphoreWithTimeout");
-  assertEquals(10,semaphore.availablePermits());
-  semaphore.tryAcquire();
-  assertEquals(9,semaphore.availablePermits());
-  assertEquals(false,semaphore.tryAcquire(10,10,TimeUnit.MILLISECONDS));
-  assertEquals(9,semaphore.availablePermits());
-  semaphore=instance.getSemaphore("testSemaphoreWithTimeoutAnd10Permits");
-  assertEquals(10,semaphore.availablePermits());
-  assertEquals(false,semaphore.tryAcquire(20,10,TimeUnit.MILLISECONDS));
-  assertEquals(10,semaphore.availablePermits());
+  ISemaphore semaphore=instance.getSemaphore("test");
+  try {
+    assertEquals(10,semaphore.availablePermits());
+    semaphore.tryAcquire();
+    assertEquals(9,semaphore.availablePermits());
+    assertEquals(false,semaphore.tryAcquire(10,10,TimeUnit.MILLISECONDS));
+    assertEquals(9,semaphore.availablePermits());
+    semaphore.release();
+    assertEquals(10,semaphore.availablePermits());
+    assertEquals(false,semaphore.tryAcquire(20,10,TimeUnit.MILLISECONDS));
+    assertEquals(10,semaphore.availablePermits());
+  }
+ catch (  Throwable e) {
+    fail(e.getMessage());
+  }
 }
