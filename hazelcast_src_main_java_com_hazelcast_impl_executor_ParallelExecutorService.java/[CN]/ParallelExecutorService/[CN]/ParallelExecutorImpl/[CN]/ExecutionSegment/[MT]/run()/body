@@ -1,27 +1,8 @@
 {
-  executing=true;
   activeCount.incrementAndGet();
-  Runnable r=null;
-  try {
-    r=q.poll();
-    while (r != null) {
-      try {
-        beforeRun();
-        r.run();
-        afterRun();
-        waitingExecutions.decrementAndGet();
-      }
- catch (      Throwable e) {
-        logger.log(Level.WARNING,e.getMessage(),e);
-      }
-      size.decrementAndGet();
-      r=q.poll(5,TimeUnit.SECONDS);
-    }
+  while (shouldLoop()) {
+    doRun();
   }
- catch (  InterruptedException ignored) {
-  }
- finally {
-    activeCount.decrementAndGet();
-    executing=false;
-  }
+  setExecuting(false);
+  activeCount.decrementAndGet();
 }
