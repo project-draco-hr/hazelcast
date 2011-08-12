@@ -4,22 +4,17 @@
   HazelcastClient client2=newHazelcastClient(instance);
   final ICountDownLatch cdl1=client1.getCountDownLatch("test");
   final ICountDownLatch cdl2=client2.getCountDownLatch("test");
-  final Socket socket1=client1.connectionManager.getConnection().getSocket();
-  final Address client1Address=new Address(socket1.getLocalAddress(),socket1.getLocalPort());
+  final Member c1Member=clientToMember(client1);
   final AtomicInteger result=new AtomicInteger();
-  cdl1.setCount(1);
-  assertEquals(1,cdl2.getCount());
-  assertEquals(client1Address,cdl2.getOwnerAddress());
+  int count=5;
+  cdl1.setCount(count);
+  assertEquals(c1Member,((CountDownLatchClientProxy)cdl2).getOwner());
   Thread thread=new Thread(){
     @Override public void run(){
       try {
-        cdl2.await(1000,TimeUnit.MILLISECONDS);
-        fail();
+        if (cdl2.await(1000,TimeUnit.MILLISECONDS))         result.incrementAndGet();
       }
- catch (      InstanceDestroyedException e) {
-        result.incrementAndGet();
-      }
-catch (      Throwable e) {
+ catch (      Throwable e) {
         e.printStackTrace();
         fail();
       }
@@ -27,8 +22,10 @@ catch (      Throwable e) {
   }
 ;
   thread.start();
-  Thread.sleep(200);
-  cdl1.destroy();
-  thread.join();
+  for (int i=count; i > 0; i--) {
+    assertEquals(i,((CountDownLatchClientProxy)cdl2).getCount());
+    cdl1.countDown();
+    Thread.sleep(100);
+  }
   assertEquals(1,result.get());
 }
