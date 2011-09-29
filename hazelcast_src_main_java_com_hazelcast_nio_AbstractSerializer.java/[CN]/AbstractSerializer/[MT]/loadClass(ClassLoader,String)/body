@@ -9,15 +9,20 @@
       }
     }
   }
-  if (className.startsWith("com.hazelcast")) {
-    return AbstractSerializer.class.getClassLoader().loadClass(className);
-  }
   ClassLoader theClassLoader=classLoader;
+  if (className.startsWith("com.hazelcast.") || className.startsWith("[Lcom.hazelcast.")) {
+    theClassLoader=AbstractSerializer.class.getClassLoader();
+  }
   if (theClassLoader == null) {
     theClassLoader=Thread.currentThread().getContextClassLoader();
   }
   if (theClassLoader != null) {
-    return theClassLoader.loadClass(className);
+    if (className.startsWith("[L")) {
+      return Class.forName(className,true,theClassLoader);
+    }
+ else {
+      return theClassLoader.loadClass(className);
+    }
   }
   return Class.forName(className);
 }
