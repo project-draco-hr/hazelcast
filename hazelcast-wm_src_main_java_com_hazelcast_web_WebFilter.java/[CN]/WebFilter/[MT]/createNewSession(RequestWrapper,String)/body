@@ -1,0 +1,17 @@
+{
+  String id=existingSessionId != null ? existingSessionId : generateSessionId();
+  if (requestWrapper.getOriginalSession(false) != null) {
+    log("Original session exist!!!");
+  }
+  HttpSession originalSession=requestWrapper.getOriginalSession(true);
+  HazelcastHttpSession hazelcastSession=new HazelcastHttpSession(WebFilter.this,id,originalSession);
+  mapSessions.put(hazelcastSession.getId(),hazelcastSession);
+  String oldHazelcastSessionId=mapOriginalSessions.put(originalSession.getId(),hazelcastSession.getId());
+  if (oldHazelcastSessionId != null) {
+    log("!!! Overriding an existing hazelcastSessionId " + oldHazelcastSessionId);
+  }
+  log("Created new session with id: " + id);
+  log(mapSessions.size() + " is sessions.size and originalSessions.size: " + mapOriginalSessions.size());
+  addSessionCookie(requestWrapper,id);
+  return hazelcastSession;
+}

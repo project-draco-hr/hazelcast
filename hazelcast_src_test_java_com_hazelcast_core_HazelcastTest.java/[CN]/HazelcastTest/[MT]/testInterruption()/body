@@ -1,12 +1,14 @@
 {
   final IQueue<String> q=Hazelcast.getQueue("testInterruption");
+  final CountDownLatch latch=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
       try {
         q.take();
+        fail();
       }
  catch (      InterruptedException e) {
-        e.printStackTrace();
+        latch.countDown();
       }
     }
   }
@@ -14,7 +16,7 @@
   t.start();
   Thread.sleep(2000);
   t.interrupt();
-  Thread.sleep(10);
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
   q.offer("message");
   assertEquals(1,q.size());
 }

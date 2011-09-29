@@ -1,81 +1,35 @@
 {
-  log("doFILTER");
-  if (DEBUG) {
-    log(appsSharingSessions + " FILTERING %%55555.. " + req.getClass().getName());
-  }
+  log("FILTERING " + req.getClass().getName());
+  log(mapSessions.size() + " FILTERING " + mapOriginalSessions.size());
   if (!(req instanceof HttpServletRequest)) {
     chain.doFilter(req,res);
   }
  else {
     if (req instanceof RequestWrapper) {
+      log("Request is instance ! continue...");
       chain.doFilter(req,res);
       return;
     }
- else {
-      if (req.getAttribute(HAZELCAST_REQUEST) != null) {
-        chain.doFilter(req,res);
-        return;
-      }
-    }
     HttpServletRequest httpReq=(HttpServletRequest)req;
-    if (DEBUG) {
-      final Cookie[] cookies=httpReq.getCookies();
-      if (cookies != null) {
-        for (        final Cookie cookie : cookies) {
-          final String name=cookie.getName();
-          final String value=cookie.getValue();
-          final String path=cookie.getPath();
-          if (name.equalsIgnoreCase("JSESSIONID")) {
-            log(path + " Request has JSESSIONID cookie " + value);
-          }
-        }
-      }
-    }
-    final ResponseWrapper resWrapper=new ResponseWrapper(app,(HttpServletResponse)res);
-    final RequestWrapper reqWrapper=new RequestWrapper(app,httpReq,resWrapper);
+    RequestWrapper existingReq=(RequestWrapper)req.getAttribute(HAZELCAST_REQUEST);
+    final ResponseWrapper resWrapper=new ResponseWrapper((HttpServletResponse)res);
+    final RequestWrapper reqWrapper=new RequestWrapper(httpReq,resWrapper);
     resWrapper.setRequest(reqWrapper);
-    final ServletRequestEvent event=(app.lsRequestListeners.size() == 0) ? null : new ServletRequestEvent(app.getOriginalServletContext(),reqWrapper);
-    if (event != null) {
-      executor.execute(new Runnable(){
-        public void run(){
-          for (          final ServletRequestListener listener : app.lsRequestListeners) {
-            listener.requestInitialized(event);
-          }
-        }
-      }
-);
+    if (existingReq != null) {
+      reqWrapper.setHazelcastSession(existingReq.hazelcastSession,existingReq.requestedSessionId);
     }
     req=null;
     res=null;
     httpReq=null;
-    HazelSession session=null;
-    String sessionId=null;
-    session=reqWrapper.getSession(false);
-    if (session != null)     sessionId=session.getId();
-    if (session != null) {
-      if (session.expired(System.currentTimeMillis())) {
-        if (DEBUG) {
-          log("doFilter got session expiration for " + session.getId());
-        }
-        app.destroySession(session);
-      }
-    }
     chain.doFilter(reqWrapper,resWrapper);
+    if (existingReq != null)     return;
     req=null;
-    session=reqWrapper.getSession(false);
-    if (session != null)     sessionId=session.getId();
-    if (session != null) {
-      if (!session.valid.get()) {
-        if (DEBUG) {
-          log("Session is not valid. removing cookie for " + sessionId);
-        }
-        removeCookieForSession(reqWrapper,sessionId);
-        return;
-      }
-      final Enumeration<String> attsNames=session.getAttributeNames();
+    HazelcastHttpSession session=reqWrapper.getSession(false);
+    if (session != null && session.isValid()) {
+      final Enumeration<String> attNames=session.getAttributeNames();
       Map mapData=null;
-      while (attsNames.hasMoreElements()) {
-        final String attName=attsNames.nextElement();
+      while (attNames.hasMoreElements()) {
+        final String attName=attNames.nextElement();
         final Object value=session.getAttribute(attName);
         if (value instanceof Serializable) {
           if (mapData == null) {
@@ -84,44 +38,16 @@
           mapData.put(attName,value);
         }
       }
-      boolean sessionChanged=false;
       Data data=session.writeObject(mapData);
-      sessionChanged=session.sessionChanged(data);
+      boolean sessionChanged=session.sessionChanged(data);
       if (sessionChanged) {
         if (data == null) {
           mapData=new HashMap<String,Object>();
           data=session.writeObject(mapData);
         }
-        if (DEBUG) {
-          log("PUTTING SESSION " + sessionId);
-        }
-        if (session.knownToCluster()) {
-          app.getClusterMap().put(sessionId,data);
-        }
- else {
-          Object old=app.getClusterMap().putIfAbsent(sessionId,data);
-          int tryCount=1;
-          while (old != null) {
-            app.changeSessionId(session);
-            old=app.getClusterMap().putIfAbsent(sessionId,data);
-            if (tryCount++ >= 3)             throw new RuntimeException("SessinId Generator is no good!");
-          }
-          session.setKnownToCluster(true);
-        }
+        log("PUTTING SESSION " + session.getId());
+        getClusterMap().put(session.getId(),data);
       }
-      session.setLastAccessed();
-      session.setNew(false);
-    }
-    app.getSnapshot().requestTime((System.nanoTime() - reqWrapper.creationTime) / 1000);
-    if (event != null) {
-      executor.execute(new Runnable(){
-        public void run(){
-          for (          final ServletRequestListener listener : app.lsRequestListeners) {
-            listener.requestDestroyed(event);
-          }
-        }
-      }
-);
     }
   }
 }

@@ -3,15 +3,25 @@
     return input;
   }
   try {
-    Source xmlInput=new StreamSource(new StringReader(input));
-    StringWriter stringWriter=new StringWriter();
-    StreamResult xmlOutput=new StreamResult(stringWriter);
+    final Source xmlInput=new StreamSource(new StringReader(input));
+    final StreamResult xmlOutput=new StreamResult(new StringWriter());
     TransformerFactory transformerFactory=TransformerFactory.newInstance();
-    transformerFactory.setAttribute("indent-number",indent);
+    try {
+      transformerFactory.setAttribute("indent-number",indent);
+    }
+ catch (    IllegalArgumentException e) {
+      logger.log(Level.FINEST,"Failed to set indent-number attribute; cause: " + e.getMessage());
+    }
     Transformer transformer=transformerFactory.newTransformer();
     transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION,"yes");
     transformer.setOutputProperty(OutputKeys.ENCODING,"UTF-8");
     transformer.setOutputProperty(OutputKeys.INDENT,"yes");
+    try {
+      transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount",Integer.toString(indent));
+    }
+ catch (    IllegalArgumentException e) {
+      logger.log(Level.FINEST,"Failed to set indent-amount property; cause: " + e.getMessage());
+    }
     transformer.transform(xmlInput,xmlOutput);
     return xmlOutput.getWriter().toString();
   }

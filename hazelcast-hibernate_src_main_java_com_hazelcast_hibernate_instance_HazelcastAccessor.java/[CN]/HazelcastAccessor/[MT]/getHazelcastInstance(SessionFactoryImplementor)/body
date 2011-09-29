@@ -1,0 +1,23 @@
+{
+  boolean oldHibernateVersion=false;
+  try {
+    sessionFactory.getSettings().getClass().getMethod(METHOD_GET_REGION_FACTORY);
+  }
+ catch (  NoSuchMethodException ignore) {
+    oldHibernateVersion=true;
+  }
+  final HazelcastAccessor accessor;
+  try {
+    if (oldHibernateVersion) {
+      accessor=getAccessor(OLD_HIBERNATE_ACCESSOR,CLASS_CACHE_PROVIDER_ACCESSOR);
+    }
+ else {
+      accessor=getAccessor(HIBERNATE_ACCESSOR,CLASS_REGION_FACTORY_ACCESSOR);
+    }
+    return accessor.getHazelcastInstance(sessionFactory.getSettings());
+  }
+ catch (  Exception e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
+  }
+  return null;
+}

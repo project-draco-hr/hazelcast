@@ -2,19 +2,16 @@
   ThreadContext threadContext=ThreadContext.get();
   TransactionImpl txn=threadContext.getCallContext().getTransaction();
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
-    if (!txn.has(name,key,value)) {
+    if (!txn.has(name,key)) {
       MLock mlock=new MLock();
-      boolean locked=mlock.lockAndGetValue(name,key,value,DEFAULT_TXN_TIMEOUT);
+      boolean locked=mlock.lock(name,key,DEFAULT_TXN_TIMEOUT);
       if (!locked)       throwCME(key);
-      boolean added=(mlock.oldValue == null);
-      if (added) {
-        txn.attachPutOp(name,key,value,true);
-      }
-      return added;
     }
- else {
+    if (txn.has(name,key,value)) {
       return false;
     }
+    txn.attachPutMultiOp(name,key,value);
+    return true;
   }
  else {
     boolean result=booleanCall(CONCURRENT_MAP_PUT_MULTI,name,key,value,0,-1);

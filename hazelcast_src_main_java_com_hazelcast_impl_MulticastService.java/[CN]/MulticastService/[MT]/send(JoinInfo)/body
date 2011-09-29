@@ -1,7 +1,10 @@
 {
 synchronized (sendLock) {
     try {
-      joinInfo.writeToPacket(datagramPacketSend);
+      deflatingBuffer.reset();
+      joinInfo.writeData(deflatingBuffer.getDataOutput());
+      final int count=deflatingBuffer.deflate();
+      datagramPacketSend.setData(deflatingBuffer.getOutputBuffer().array(),0,count);
       multicastSocket.send(datagramPacketSend);
     }
  catch (    IOException e) {

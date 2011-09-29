@@ -1,55 +1,41 @@
 {
-  if (hazelSession != null)   return hazelSession;
-  final String requestedSessionId=getRequestedSessionId();
-  HazelSession session=null;
-  if (requestedSessionId != null) {
-    session=context.getSession(requestedSessionId,false);
+  if (hazelcastSession != null && !hazelcastSession.isValid()) {
+    log("Session is invalid!");
+    destroySession(hazelcastSession);
+    hazelcastSession=null;
   }
-  if (DEBUG) {
-    log(requestedSessionId + " is requestedSessionId and  getSession : " + session);
-    log("Request AppContext " + context);
-  }
-  if (session == null) {
-    if (create) {
-      session=context.createNewSession();
-      hazelSession=session;
-      if (requestedSessionId != null) {
-        final Map mapSession=(Map)context.getClusterMap().remove(requestedSessionId);
-        if (DEBUG) {
-          log(session + " Reloading from map.. " + mapSession);
-          log("ContextPath " + getContextPath());
-          log("pathInfo " + getPathInfo());
-          log("pathtranslated " + getPathTranslated());
-          log("requesturi " + getRequestURI());
-        }
-        if (mapSession != null) {
-          final Set<Map.Entry> entries=mapSession.entrySet();
-          for (          final Map.Entry entry : entries) {
-            session.setAttribute((String)entry.getKey(),entry.getValue());
-          }
-        }
-        removeCookieForSession(this,requestedSessionId);
-        final Cookie[] cookies=getCookies();
-        if (cookies != null) {
-          removeCookies:           for (          final Cookie cookie : cookies) {
-            final String name=cookie.getName();
-            final String value=cookie.getValue();
-            final String path=cookie.getPath();
-            if (getContextPath().equals(path)) {
-              if (name.equals("JSESSIONID") && value.equals(requestedSessionId)) {
-                if (DEBUG) {
-                  log("Found old sessionId cookie DELETING " + value);
-                }
-                cookie.setMaxAge(0);
-                res.addCookie(cookie);
-                break removeCookies;
-              }
-            }
-          }
-        }
+  if (hazelcastSession == null) {
+    HttpSession originalSession=getOriginalSession(false);
+    if (originalSession != null) {
+      String hazelcastSessionId=mapOriginalSessions.get(originalSession.getId());
+      if (hazelcastSessionId != null) {
+        hazelcastSession=mapSessions.get(hazelcastSessionId);
       }
-      addCookieForSession(this,session.getId());
+      if (hazelcastSession == null) {
+        mapOriginalSessions.remove(originalSession.getId());
+        originalSession.invalidate();
+      }
     }
   }
-  return session;
+  if (hazelcastSession != null)   return hazelcastSession;
+  final String requestedSessionId=fetchHazelcastSessionId();
+  if (requestedSessionId != null) {
+    hazelcastSession=getSessionWithId(requestedSessionId);
+    if (hazelcastSession == null) {
+      final Map mapSession=(Map)getClusterMap().get(requestedSessionId);
+      if (mapSession != null) {
+        hazelcastSession=createNewSession(RequestWrapper.this,requestedSessionId);
+        overrideSession(hazelcastSession,mapSession);
+      }
+    }
+  }
+  if (hazelcastSession == null && create) {
+    hazelcastSession=createNewSession(RequestWrapper.this,null);
+  }
+ else   if (hazelcastSession != null && !stickySession && requestedSessionId != null && hazelcastSession.isDirty()) {
+    log(requestedSessionId + " is dirty reloading.");
+    final Map mapSession=(Map)getClusterMap().get(requestedSessionId);
+    overrideSession(hazelcastSession,mapSession);
+  }
+  return hazelcastSession;
 }

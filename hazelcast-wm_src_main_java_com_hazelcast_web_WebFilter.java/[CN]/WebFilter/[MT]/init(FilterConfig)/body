@@ -1,45 +1,34 @@
 {
-  int maxInactiveInterval=30;
-  final String appsSharingSessionsValue=config.getInitParameter("apps-sharing-sessions");
-  if (appsSharingSessionsValue != null) {
-    appsSharingSessions=Boolean.valueOf(appsSharingSessionsValue.trim());
+  String debugParam=config.getInitParameter("debug");
+  if (debugParam != null) {
+    DEBUG=Boolean.valueOf(debugParam);
   }
-  final String sessionTimeoutValue=config.getInitParameter("session-timeout");
-  if (sessionTimeoutValue != null) {
-    maxInactiveInterval=Integer.parseInt(sessionTimeoutValue.trim());
+  servletContext=config.getServletContext();
+  String mapName=config.getInitParameter("map-name");
+  if (mapName != null) {
+    clusterMapName=mapName;
   }
-  app=ensureServletContext(config.getServletContext());
-  app.init(maxInactiveInterval);
-  final int listenerCount=Integer.parseInt(config.getInitParameter("listener-count"));
-  for (int i=0; i < listenerCount; i++) {
-    final String listenerClass=config.getInitParameter("listener" + i);
-    if (DEBUG) {
-      log("Found listener " + listenerClass);
-    }
-    try {
-      final Object listener=Class.forName(listenerClass).newInstance();
-      if (listener instanceof HttpSessionListener) {
-        app.lsSessionListeners.add((HttpSessionListener)listener);
+ else {
+    clusterMapName="_web_" + servletContext.getServletContextName();
+  }
+  String stickySessionParam=config.getInitParameter("sticky-session");
+  if (stickySessionParam != null) {
+    stickySession=Boolean.valueOf(stickySessionParam);
+  }
+  if (!stickySession) {
+    getClusterMap().addEntryListener(new EntryListener(){
+      public void entryAdded(      EntryEvent entryEvent){
       }
-      if (listener instanceof HttpSessionAttributeListener) {
-        app.lsSessionAttListeners.add((HttpSessionAttributeListener)listener);
+      public void entryRemoved(      EntryEvent entryEvent){
+        removeSessionLocally((String)entryEvent.getKey());
       }
-      if (listener instanceof ServletContextListener) {
-        app.lsContextListeners.add((ServletContextListener)listener);
+      public void entryUpdated(      EntryEvent entryEvent){
+        markSessionDirty((String)entryEvent.getKey());
       }
-      if (listener instanceof ServletContextAttributeListener) {
-        app.lsContextAttListeners.add((ServletContextAttributeListener)listener);
-      }
-      if (listener instanceof ServletRequestListener) {
-        app.lsRequestListeners.add((ServletRequestListener)listener);
-      }
-      if (listener instanceof ServletRequestAttributeListener) {
-        app.lsRequestAttListeners.add((ServletRequestAttributeListener)listener);
+      public void entryEvicted(      EntryEvent entryEvent){
       }
     }
- catch (    final Exception e) {
-      e.printStackTrace();
-    }
+,false);
   }
-  app.setReady();
+  log("sticky:" + stickySession + ", debug: "+ DEBUG+ ", map-name: "+ clusterMapName);
 }

@@ -31,23 +31,6 @@
           firstFilter=node;
         }
       }
- else       if ("servlet".equals(name)) {
-        final NodeList nl=node.getChildNodes();
-        for (int a=0; a < nl.getLength(); a++) {
-          final Node n=nl.item(a);
-          if (n.getNodeName().equals("servlet-class")) {
-            final String className=n.getTextContent();
-            final String wrapperClass="com.hazelcast.web.ServletWrapper";
-            final String hazelParam="*hazelcast-base-servlet-class";
-            n.setTextContent(wrapperClass);
-            Node initParam;
-            initParam=append(doc,node,"init-param",null);
-            append(doc,initParam,"param-name",hazelParam);
-            append(doc,initParam,"param-value",className);
-            node.appendChild(initParam);
-          }
-        }
-      }
  else       if ("session-config".equals(name)) {
         final NodeList nl=node.getChildNodes();
         for (int a=0; a < nl.getLength(); a++) {
@@ -71,21 +54,12 @@
   append(doc,filter,"filter-name","hazel-filter");
   append(doc,filter,"filter-class","com.hazelcast.web.WebFilter");
   Node initParam=append(doc,filter,"init-param",null);
-  append(doc,initParam,"param-name","listener-count");
-  append(doc,initParam,"param-value",String.valueOf(lsListeners.size()));
-  initParam=append(doc,filter,"init-param",null);
   append(doc,initParam,"param-name","apps-sharing-sessions");
   append(doc,initParam,"param-value",String.valueOf(appsSharingSessions));
   if (sessionTimeout != sessionTimeoutDefault) {
     initParam=append(doc,filter,"init-param",null);
     append(doc,initParam,"param-name","session-timeout");
     append(doc,initParam,"param-value","" + sessionTimeout);
-  }
-  int counter=0;
-  for (  final String listener : lsListeners) {
-    initParam=append(doc,filter,"init-param",null);
-    append(doc,initParam,"param-name","listener" + counter++);
-    append(doc,initParam,"param-value",listener);
   }
   Node first=firstFilter;
   if (first == null) {
@@ -100,6 +74,9 @@
   final Element filterMapping=doc.createElement("filter-mapping");
   append(doc,filterMapping,"filter-name","hazel-filter");
   append(doc,filterMapping,"url-pattern","/*");
+  append(doc,filterMapping,"dispatcher","FORWARD");
+  append(doc,filterMapping,"dispatcher","INCLUDE");
+  append(doc,filterMapping,"dispatcher","REQUEST");
   final Element contextListener=doc.createElement("listener");
   append(doc,contextListener,"listener-class","com.hazelcast.web.WebFilter$ContextListener");
   docElement.insertBefore(filterMapping,after(docElement,"filter"));

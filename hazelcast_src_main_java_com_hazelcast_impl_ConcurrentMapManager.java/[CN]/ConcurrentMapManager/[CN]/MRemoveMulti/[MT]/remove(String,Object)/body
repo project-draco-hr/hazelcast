@@ -1,0 +1,36 @@
+{
+  final ThreadContext tc=ThreadContext.get();
+  TransactionImpl txn=tc.getCallContext().getTransaction();
+  if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+    Collection committedValues=null;
+    if (!txn.has(name,key)) {
+      MLock mlock=new MLock();
+      boolean locked=mlock.lockAndGetValue(name,key,null,DEFAULT_TXN_TIMEOUT);
+      if (!locked)       throwCME(key);
+      committedValues=(Collection)toObject(mlock.oldValue);
+    }
+ else {
+      Object value=objectCall(CONCURRENT_MAP_GET,name,key,null,0,-1);
+      if (value instanceof AddressAwareException) {
+        rethrowException(request.operation,(AddressAwareException)value);
+      }
+      committedValues=(Collection)value;
+    }
+    List allValues=new ArrayList();
+    int removedValueCount=1;
+    if (committedValues != null) {
+      allValues.addAll(committedValues);
+      removedValueCount=committedValues.size();
+    }
+    txn.getMulti(name,key,allValues);
+    txn.attachRemoveOp(name,key,null,false,removedValueCount);
+    return allValues;
+  }
+ else {
+    Collection result=(Collection)objectCall(CONCURRENT_MAP_REMOVE,name,key,null,0,-1);
+    if (result != null) {
+      backup(CONCURRENT_MAP_BACKUP_REMOVE);
+    }
+    return result;
+  }
+}

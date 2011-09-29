@@ -1,0 +1,26 @@
+{
+  final DocumentBuilder builder;
+  try {
+    builder=DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    Document doc=builder.parse(in);
+    final ByteArrayOutputStream baos=new ByteArrayOutputStream();
+    Util.streamXML(doc,baos);
+    final byte[] bytes=baos.toByteArray();
+    Element element=doc.getDocumentElement();
+    NodeHolder elementNodeHolder=new NodeHolder(element);
+    List<String> names=new ArrayList<String>();
+    List<NodeHolder> reservationset=elementNodeHolder.getSubNodes("reservationset");
+    for (    NodeHolder reservation : reservationset) {
+      List<NodeHolder> items=reservation.getSubNodes("item");
+      for (      NodeHolder item : items) {
+        NodeHolder instancesset=item.getSub("instancesset");
+        names.addAll(instancesset.getList("privateipaddress",awsConfig));
+      }
+    }
+    return names;
+  }
+ catch (  Exception e) {
+    logger.log(Level.WARNING,e.getMessage(),e);
+  }
+  return new ArrayList<String>();
+}
