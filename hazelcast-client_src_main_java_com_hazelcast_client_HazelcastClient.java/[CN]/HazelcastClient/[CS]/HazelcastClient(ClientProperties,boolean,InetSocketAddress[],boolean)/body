@@ -1,34 +1,3 @@
 {
-  this.properties=properties;
-  this.id=clientIdCounter.incrementAndGet();
-  final long timeout=Long.valueOf(properties.getProperty(ClientPropertyName.CONNECTION_TIMEOUT));
-  final String prefix="hz.client." + this.id + ".";
-  lifecycleService=new LifecycleServiceClientImpl(this);
-  lifecycleService.fireLifecycleEvent(STARTING);
-  connectionManager=automatic ? new ConnectionManager(this,lifecycleService,clusterMembers[0],timeout) : new ConnectionManager(this,lifecycleService,clusterMembers,shuffle,timeout);
-  connectionManager.setBinder(new DefaultClientBinder(this));
-  out=new OutRunnable(this,calls,new PacketWriter());
-  in=new InRunnable(this,out,calls,new PacketReader());
-  listenerManager=new ListenerManager(this);
-  try {
-    final Connection c=connectionManager.getInitConnection();
-    if (c == null) {
-      throw new IllegalStateException("Unable to connect to cluster");
-    }
-  }
- catch (  IOException e) {
-    throw new ClusterClientException(e.getMessage(),e);
-  }
-  new Thread(out,prefix + "OutThread").start();
-  new Thread(in,prefix + "InThread").start();
-  new Thread(listenerManager,prefix + "Listener").start();
-  mapLockProxy=getMap(Prefix.HAZELCAST + "Locks");
-  clusterClientProxy=new ClusterClientProxy(this);
-  partitionClientProxy=new PartitionClientProxy(this);
-  if (automatic) {
-    this.getCluster().addMembershipListener(connectionManager);
-    connectionManager.updateMembers();
-  }
-  lifecycleService.fireLifecycleEvent(STARTED);
-  connectionManager.scheduleHeartbeatTimerTask();
+  this(properties,new UsernamePasswordCredentials(properties.getProperty(ClientPropertyName.GROUP_NAME),properties.getProperty(ClientPropertyName.GROUP_PASSWORD)),shuffle,clusterMembers,automatic);
 }

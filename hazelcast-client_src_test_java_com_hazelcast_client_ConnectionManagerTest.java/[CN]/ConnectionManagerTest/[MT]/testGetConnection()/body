@@ -5,7 +5,7 @@
   final CountDownLatch latch=new CountDownLatch(2);
   final List<LifecycleState> lifecycleEvents=new ArrayList<LifecycleState>();
   final LifecycleServiceClientImpl lifecycleService=createLifecycleServiceClientImpl(client,lifecycleEvents);
-  ConnectionManager connectionManager=new ConnectionManager(client,lifecycleService,inetSocketAddress,60000){
+  ConnectionManager connectionManager=new ConnectionManager(client,credentials,lifecycleService,inetSocketAddress,60000){
     protected Connection getNextConnection(){
       latch.countDown();
       return connection;
@@ -16,7 +16,7 @@
   connectionManager.setBinder(binder);
   connectionManager.getConnection();
   assertEquals(connection,connectionManager.getConnection());
-  verify(binder).bind(connection);
+  verify(binder).bind(connection,credentials);
   assertEquals(connection,connectionManager.getConnection());
   assertEquals(1,latch.getCount());
   assertArrayEquals(new Object[]{LifecycleState.CLIENT_CONNECTION_OPENING},lifecycleEvents.toArray());
