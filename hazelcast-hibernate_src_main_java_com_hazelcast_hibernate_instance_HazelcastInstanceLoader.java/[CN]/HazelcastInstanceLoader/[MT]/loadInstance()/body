@@ -1,0 +1,44 @@
+{
+  if (instance != null && instance.getLifecycleService().isRunning()) {
+    logger.log(Level.WARNING,"Current HazelcastInstance is already loaded and running! " + "Returning current instance...");
+    return instance;
+  }
+  String configResourcePath=null;
+  if (props != null) {
+    instanceName=CacheEnvironment.getInstanceName(props);
+    useSuperClient=CacheEnvironment.isSuperClient(props);
+    configResourcePath=CacheEnvironment.getConfigFilePath(props);
+  }
+  if (useSuperClient) {
+    logger.log(Level.WARNING,"Creating Hazelcast node as Super-Client. " + "Be sure this node has access to an already running cluster...");
+  }
+  if (StringHelper.isEmpty(configResourcePath)) {
+    if (!useSuperClient) {
+      staticInstance=true;
+    }
+  }
+ else {
+    URL url=ConfigHelper.locateConfig(configResourcePath);
+    try {
+      config=new UrlXmlConfig(url);
+    }
+ catch (    IOException e) {
+      throw new CacheException(e);
+    }
+  }
+  if (instanceName != null) {
+    instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+    if (instance == null) {
+      try {
+        createOrGetInstance();
+      }
+ catch (      DuplicateInstanceNameException ignored) {
+        instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+      }
+    }
+  }
+ else {
+    createOrGetInstance();
+  }
+  return instance;
+}

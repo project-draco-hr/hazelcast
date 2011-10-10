@@ -1,0 +1,36 @@
+{
+  Properties props=getDefaultProperties();
+  props.setProperty(Environment.CACHE_REGION_FACTORY,HazelcastCacheRegionFactory.class.getName());
+  props.put(CacheEnvironment.LOCK_TIMEOUT,"3");
+  final SessionFactory sf=createSessionFactory(props);
+  assertEquals(3,CacheEnvironment.getLockTimeoutInSeconds(props));
+  final HazelcastInstance hz=HazelcastAccessor.getHazelcastInstance(sf);
+  final Long id=new Long(1L);
+  DummyEntity e=new DummyEntity(id,"",0,null);
+  Session session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  session.save(e);
+  tx.commit();
+  session.close();
+  new Thread(){
+    public void run(){
+      final SessionFactoryImplementor sfi=(SessionFactoryImplementor)sf;
+      final CacheKey key=new CacheKey(id,Hibernate.LONG,DummyEntity.class.getName(),EntityMode.POJO,sfi);
+      assertTrue(hz.getMap(DummyEntity.class.getName()).tryLock(key));
+    }
+  }
+.start();
+  Thread.sleep(1000);
+  session=sf.openSession();
+  try {
+    e=(DummyEntity)session.get(DummyEntity.class,id);
+    e.setName("test");
+    tx=session.beginTransaction();
+    session.update(e);
+    tx.commit();
+  }
+  finally {
+    session.close();
+    sf.close();
+  }
+}
