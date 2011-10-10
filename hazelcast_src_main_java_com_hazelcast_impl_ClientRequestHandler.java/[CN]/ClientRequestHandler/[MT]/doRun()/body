@@ -3,9 +3,21 @@
   ThreadContext.get().setCallContext(callContext);
   try {
     if (!valid)     return;
-    clientOperationHandler.handle(node,packet);
-    node.clientService.getClientEndpoint(packet.conn).removeRequest(this);
-    clientOperationHandler.postHandle(packet);
+    final PrivilegedAction<Void> action=new PrivilegedAction<Void>(){
+      public Void run(){
+        clientOperationHandler.handle(node,packet);
+        node.clientService.getClientEndpoint(packet.conn).removeRequest(ClientRequestHandler.this);
+        clientOperationHandler.postHandle(packet);
+        return null;
+      }
+    }
+;
+    if (node.securityContext == null) {
+      action.run();
+    }
+ else {
+      node.securityContext.doAsPrivileged(subject,action);
+    }
   }
  catch (  Throwable e) {
     logger.log(Level.WARNING,e.getMessage(),e);

@@ -18,6 +18,27 @@
       }
     }
     if (isMaster() && node.joined() && node.isActive()) {
+      final MemberInfo newMemberInfo=new MemberInfo(joinRequest.address,joinRequest.nodeType);
+      if (node.securityContext != null && !setJoins.contains(newMemberInfo)) {
+        final Credentials cr=joinRequest.getCredentials();
+        if (cr == null) {
+          securityLogger.log(Level.SEVERE,"Expecting security credentials " + "but credentials could not be found in JoinRequest!");
+          sendAuthFail(conn);
+          return;
+        }
+ else {
+          try {
+            LoginContext lc=node.securityContext.createMemberLoginContext(cr);
+            lc.login();
+          }
+ catch (          LoginException e) {
+            securityLogger.log(Level.SEVERE,"Authentication has failed for " + cr.getName() + " => ("+ e.getMessage()+ ")");
+            securityLogger.log(Level.FINEST,e.getMessage(),e);
+            sendAuthFail(conn);
+            return;
+          }
+        }
+      }
       if (joinRequest.to != null && !joinRequest.to.equals(thisAddress)) {
         sendProcessableTo(new Master(node.getMasterAddress()),conn);
         return;
@@ -28,7 +49,6 @@
           startJoin();
         }
  else {
-          MemberInfo newMemberInfo=new MemberInfo(joinRequest.address,joinRequest.nodeType);
           if (setJoins.add(newMemberInfo)) {
             sendProcessableTo(new Master(node.getMasterAddress()),conn);
             if (firstJoinRequest == 0) {

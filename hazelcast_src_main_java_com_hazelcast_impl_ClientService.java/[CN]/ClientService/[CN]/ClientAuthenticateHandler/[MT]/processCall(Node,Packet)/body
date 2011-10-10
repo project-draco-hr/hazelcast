@@ -1,10 +1,27 @@
 {
-  String nodeGroupName=node.factory.getConfig().getGroupConfig().getName();
-  String nodeGroupPassword=node.factory.getConfig().getGroupConfig().getPassword();
-  Object groupName=toObject(packet.getKeyData());
-  Object groupPassword=toObject(packet.getValueData());
-  boolean authenticated=(nodeGroupName.equals(groupName) && nodeGroupPassword.equals(groupPassword));
-  logger.log((authenticated ? Level.INFO : Level.WARNING),"received auth from " + packet.conn + ", this group name:"+ nodeGroupName+ ", auth group name:"+ groupName+ ", "+ (authenticated ? "successfully authenticated" : "authentication failed"));
+  final Credentials credentials=(Credentials)toObject(packet.getValueData());
+  boolean authenticated=false;
+  if (node.securityContext != null) {
+    final Socket endpointSocket=packet.conn.getSocketChannel().socket();
+    credentials.setEndpoint(Address.toString(endpointSocket.getInetAddress().getAddress()));
+    try {
+      LoginContext lc=node.securityContext.createClientLoginContext(credentials);
+      lc.login();
+      getClientEndpoint(packet.conn).setLoginContext(lc);
+      authenticated=true;
+    }
+ catch (    LoginException e) {
+      e.printStackTrace();
+      authenticated=false;
+    }
+  }
+ else {
+    UsernamePasswordCredentials usernamePasswordCredentials=(UsernamePasswordCredentials)credentials;
+    String nodeGroupName=factory.getConfig().getGroupConfig().getName();
+    String nodeGroupPassword=factory.getConfig().getGroupConfig().getPassword();
+    authenticated=(nodeGroupName.equals(usernamePasswordCredentials.getUsername()) && nodeGroupPassword.equals(new String(usernamePasswordCredentials.getPassword())));
+  }
+  logger.log((authenticated ? Level.INFO : Level.WARNING),"received auth from " + packet.conn + ", "+ (authenticated ? "successfully authenticated" : "authentication failed"));
   packet.clearForResponse();
   packet.setValue(toData(authenticated));
 }
