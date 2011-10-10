@@ -1,63 +1,18 @@
 {
-  FactoryImpl factory=null;
-  try {
-    if (config == null) {
-      config=new XmlConfigBuilder().build();
-    }
-    String name="_hzInstance_" + factoryIdGen.incrementAndGet() + "_"+ config.getGroupConfig().getName();
-    factory=new FactoryImpl(name,config);
-    factories.put(name,factory);
-    boolean firstMember=(factory.node.getClusterImpl().getMembers().iterator().next().localMember());
-    int initialWaitSeconds=factory.node.groupProperties.INITIAL_WAIT_SECONDS.getInteger();
-    if (initialWaitSeconds > 0) {
-      try {
-        Thread.sleep(initialWaitSeconds * 1000);
-        if (firstMember) {
-          final ConcurrentMapManager concurrentMapManager=factory.node.concurrentMapManager;
-          concurrentMapManager.enqueueAndReturn(new Processable(){
-            public void process(){
-              concurrentMapManager.partitionManager.quickBlockRearrangement();
-            }
-          }
-);
-        }
- else {
-          Thread.sleep(4 * 1000);
-        }
-      }
- catch (      InterruptedException ignored) {
-      }
-    }
-    int initialMinClusterSize=factory.node.groupProperties.INITIAL_MIN_CLUSTER_SIZE.getInteger();
-    while (factory.node.getClusterImpl().getMembers().size() < initialMinClusterSize) {
-      try {
-        Thread.sleep(1000);
-      }
- catch (      InterruptedException ignored) {
-      }
-    }
-    if (initialMinClusterSize > 0) {
-      if (firstMember) {
-        final ConcurrentMapManager concurrentMapManager=factory.node.concurrentMapManager;
-        concurrentMapManager.enqueueAndReturn(new Processable(){
-          public void process(){
-            concurrentMapManager.partitionManager.quickBlockRearrangement();
-          }
-        }
-);
-      }
- else {
-        Thread.sleep(4 * 1000);
-      }
-      factory.logger.log(Level.INFO,"HazelcastInstance starting after waiting for cluster size of " + initialMinClusterSize);
-    }
-    factory.lifecycleService.fireLifecycleEvent(STARTED);
-    return factory.hazelcastInstanceProxy;
+  if (config == null) {
+    config=new XmlConfigBuilder().build();
   }
- catch (  Throwable t) {
-    if (factory != null) {
-      factory.logger.log(Level.SEVERE,t.getMessage(),t);
+  String name=config.getInstanceName();
+  if (name == null || name.trim().length() == 0) {
+    name="_hzInstance_" + factoryIdGen.incrementAndGet() + "_"+ config.getGroupConfig().getName();
+    return newHazelcastInstanceProxy(config,name);
+  }
+ else {
+synchronized (INIT_LOCK) {
+      if (factories.containsKey(name)) {
+        throw new DuplicateInstanceNameException("HazelcastInstance with name '" + name + "' already exists!");
+      }
+      return newHazelcastInstanceProxy(config,name);
     }
-    throw new RuntimeException(t);
   }
 }
