@@ -1,0 +1,42 @@
+{
+  final ClassLoader cl=Thread.currentThread().getContextClassLoader();
+  final String resourceName="META-INF/services/" + factoryId;
+  try {
+    final Enumeration<URL> configs;
+    if (cl != null) {
+      configs=cl.getResources(resourceName);
+    }
+ else {
+      configs=ClassLoader.getSystemResources(resourceName);
+    }
+    while (configs.hasMoreElements()) {
+      URL url=configs.nextElement();
+      InputStream in=url.openStream();
+      try {
+        BufferedReader r=new BufferedReader(new InputStreamReader(in,"UTF-8"));
+        while (true) {
+          String line=r.readLine();
+          if (line == null) {
+            break;
+          }
+          int comment=line.indexOf('#');
+          if (comment >= 0) {
+            line=line.substring(0,comment);
+          }
+          String name=line.trim();
+          if (name.length() == 0) {
+            continue;
+          }
+          return name;
+        }
+      }
+  finally {
+        in.close();
+      }
+    }
+  }
+ catch (  Exception e) {
+    logger.log(Level.WARNING,e.getMessage(),e);
+  }
+  return null;
+}

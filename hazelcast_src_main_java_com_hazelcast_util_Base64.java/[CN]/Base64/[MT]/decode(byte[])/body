@@ -1,0 +1,62 @@
+{
+  if (base64Data == null)   return null;
+  byte[] normalizedBase64Data=removeWhiteSpace(base64Data);
+  if (normalizedBase64Data.length % FOURBYTE != 0) {
+    return null;
+  }
+  int numberQuadruple=(normalizedBase64Data.length / FOURBYTE);
+  if (numberQuadruple == 0)   return new byte[0];
+  byte decodedData[]=null;
+  byte b1=0, b2=0, b3=0, b4=0, marker0=0, marker1=0;
+  byte d1=0, d2=0, d3=0, d4=0;
+  int i=0;
+  int encodedIndex=0;
+  int dataIndex=0;
+  decodedData=new byte[(numberQuadruple) * 3];
+  for (; i < numberQuadruple - 1; i++) {
+    if (!isData((d1=normalizedBase64Data[dataIndex++])) || !isData((d2=normalizedBase64Data[dataIndex++])) || !isData((d3=normalizedBase64Data[dataIndex++]))|| !isData((d4=normalizedBase64Data[dataIndex++])))     return null;
+    b1=base64Alphabet[d1];
+    b2=base64Alphabet[d2];
+    b3=base64Alphabet[d3];
+    b4=base64Alphabet[d4];
+    decodedData[encodedIndex++]=(byte)(b1 << 2 | b2 >> 4);
+    decodedData[encodedIndex++]=(byte)(((b2 & 0xf) << 4) | ((b3 >> 2) & 0xf));
+    decodedData[encodedIndex++]=(byte)(b3 << 6 | b4);
+  }
+  if (!isData((d1=normalizedBase64Data[dataIndex++])) || !isData((d2=normalizedBase64Data[dataIndex++]))) {
+    return null;
+  }
+  b1=base64Alphabet[d1];
+  b2=base64Alphabet[d2];
+  d3=normalizedBase64Data[dataIndex++];
+  d4=normalizedBase64Data[dataIndex++];
+  if (!isData((d3)) || !isData((d4))) {
+    if (isPad(d3) && isPad(d4)) {
+      if ((b2 & 0xf) != 0)       return null;
+      byte[] tmp=new byte[i * 3 + 1];
+      System.arraycopy(decodedData,0,tmp,0,i * 3);
+      tmp[encodedIndex]=(byte)(b1 << 2 | b2 >> 4);
+      return tmp;
+    }
+ else     if (!isPad(d3) && isPad(d4)) {
+      b3=base64Alphabet[d3];
+      if ((b3 & 0x3) != 0)       return null;
+      byte[] tmp=new byte[i * 3 + 2];
+      System.arraycopy(decodedData,0,tmp,0,i * 3);
+      tmp[encodedIndex++]=(byte)(b1 << 2 | b2 >> 4);
+      tmp[encodedIndex]=(byte)(((b2 & 0xf) << 4) | ((b3 >> 2) & 0xf));
+      return tmp;
+    }
+ else {
+      return null;
+    }
+  }
+ else {
+    b3=base64Alphabet[d3];
+    b4=base64Alphabet[d4];
+    decodedData[encodedIndex++]=(byte)(b1 << 2 | b2 >> 4);
+    decodedData[encodedIndex++]=(byte)(((b2 & 0xf) << 4) | ((b3 >> 2) & 0xf));
+    decodedData[encodedIndex++]=(byte)(b3 << 6 | b4);
+  }
+  return decodedData;
+}

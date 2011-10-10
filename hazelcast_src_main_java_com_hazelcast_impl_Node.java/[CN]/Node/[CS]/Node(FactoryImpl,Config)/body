@@ -6,31 +6,6 @@
   this.groupProperties=new GroupProperties(config);
   this.superClient=config.isSuperClient();
   this.localNodeType=(superClient) ? NodeType.SUPER_CLIENT : NodeType.MEMBER;
-  String version=System.getProperty("hazelcast.version","unknown");
-  String build=System.getProperty("hazelcast.build","unknown");
-  if ("unknown".equals(version) || "unknown".equals(build)) {
-    try {
-      InputStream inRuntimeProperties=Node.class.getClassLoader().getResourceAsStream("hazelcast-runtime.properties");
-      if (inRuntimeProperties != null) {
-        Properties runtimeProperties=new Properties();
-        runtimeProperties.load(inRuntimeProperties);
-        version=runtimeProperties.getProperty("hazelcast.version");
-        build=runtimeProperties.getProperty("hazelcast.build");
-      }
-    }
- catch (    Exception ignored) {
-    }
-  }
-  int tmpBuildNumber=0;
-  try {
-    tmpBuildNumber=Integer.getInteger("hazelcast.build",-1);
-    if (tmpBuildNumber == -1) {
-      tmpBuildNumber=Integer.parseInt(build);
-    }
-  }
- catch (  Exception ignored) {
-  }
-  buildNumber=tmpBuildNumber;
   ServerSocketChannel serverSocketChannelTemp=null;
   Address localAddress=null;
   try {
@@ -45,6 +20,9 @@
     localAddress.setThisAddress(true);
   }
  catch (  Throwable e) {
+    if (e instanceof RuntimeException) {
+      throw (RuntimeException)e;
+    }
     throw new RuntimeException(e);
   }
   serverSocketChannel=serverSocketChannelTemp;
@@ -69,6 +47,9 @@
   String loggingType=groupProperties.LOGGING_TYPE.getString();
   this.loggingService=new LoggingServiceImpl(config.getGroupConfig().getName(),loggingType,localMember);
   this.logger=loggingService.getLogger(Node.class.getName());
+  initializer=NodeInitializerFactory.create();
+  initializer.beforeInitialize(this);
+  securityContext=config.getSecurityConfig().isEnabled() ? initializer.createSecurityContext() : null;
   clusterImpl=new ClusterImpl(this,localMember);
   baseVariables=new NodeBaseVariables(address,localMember);
   clusterService=new ClusterService(this);
@@ -85,10 +66,9 @@
   topicManager=new TopicManager(this);
   textCommandService=new TextCommandServiceImpl(this);
   clusterManager.addMember(false,localMember);
-  ILogger systemLogger=getLogger("com.hazelcast.system");
-  systemLogger.log(Level.INFO,"Hazelcast " + version + " ("+ build+ ") starting at "+ address);
-  systemLogger.log(Level.INFO,"Copyright (C) 2008-2011 Hazelcast.com");
-  VersionCheck.check(this,build,version);
+  initializer.afterInitialize(this);
+  buildNumber=initializer.getBuildNumber();
+  VersionCheck.check(this,initializer.getBuild(),initializer.getVersion());
   Join join=config.getNetworkConfig().getJoin();
   MulticastService mcService=null;
   try {
