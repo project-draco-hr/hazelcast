@@ -2,10 +2,16 @@
   try {
     if (!connection.live())     return;
     if (sk == null) {
-      sk=socketChannel.register(selector,operation,this);
+      sk=socketChannel.keyFor(selector);
+    }
+    if (sk == null) {
+      sk=socketChannel.register(selector,operation,connection);
     }
  else {
-      sk.interestOps(operation);
+      sk.interestOps(sk.interestOps() | operation);
+      if (sk.attachment() != connection) {
+        sk.attach(connection);
+      }
     }
   }
  catch (  Throwable e) {
