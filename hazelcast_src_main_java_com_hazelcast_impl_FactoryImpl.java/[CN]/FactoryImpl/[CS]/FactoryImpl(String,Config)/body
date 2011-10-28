@@ -1,13 +1,12 @@
 {
   this.name=name;
   node=new Node(this,config);
-  globalProxies=new MProxyImpl(Prefix.MAP_HAZELCAST + "Proxies",this);
+  proxyFactory=node.initializer.getProxyFactory();
   logger=node.getLogger(FactoryImpl.class.getName());
+  globalProxies=proxyFactory.createMapProxy(Prefix.MAP_HAZELCAST + "Proxies");
   lifecycleService=new LifecycleServiceImpl(FactoryImpl.this);
-  transactionFactory=new TransactionFactory(this);
   hazelcastInstanceProxy=new HazelcastInstanceProxy(this);
-  locksMapProxy=new MProxyImpl(Prefix.MAP_HAZELCAST + "Locks",this);
-  idGeneratorMapProxy=new MProxyImpl(Prefix.MAP_HAZELCAST + "IdGenerator",this);
+  locksMapProxy=proxyFactory.createMapProxy(Prefix.MAP_HAZELCAST + "Locks");
   lifecycleService.fireLifecycleEvent(STARTING);
   node.start();
   if (!node.isActive()) {

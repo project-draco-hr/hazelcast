@@ -3,20 +3,21 @@
     String name=packet.name;
     ExecutorService executorService=factory.getExecutorService(name);
     ClientDistributedTask cdt=(ClientDistributedTask)toObject(packet.getKeyData());
-    DistributedTask task;
+    final ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
+    final Callable callable=node.securityContext == null ? cdt.getCallable() : node.securityContext.createSecureCallable(clientEndpoint.getSubject(),cdt.getCallable());
+    final DistributedTask task;
     if (cdt.getKey() != null) {
-      task=new DistributedTask(cdt.getCallable(),cdt.getKey());
+      task=new DistributedTask(callable,cdt.getKey());
     }
  else     if (cdt.getMember() != null) {
-      task=new DistributedTask(cdt.getCallable(),cdt.getMember());
+      task=new DistributedTask(callable,cdt.getMember());
     }
  else     if (cdt.getMembers() != null) {
-      task=new MultiTask(cdt.getCallable(),cdt.getMembers());
+      task=new MultiTask(callable,cdt.getMembers());
     }
  else {
-      task=new DistributedTask(cdt.getCallable());
+      task=new DistributedTask(callable);
     }
-    final ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
     clientEndpoint.storeTask(packet.callId,task);
     task.setExecutionCallback(new ExecutionCallback(){
       public void done(      Future future){
@@ -45,5 +46,6 @@ catch (        ExecutionException e) {
     logger.log(Level.WARNING,"exception during handling " + packet.operation + ": "+ e.getMessage(),e);
     packet.clearForResponse();
     packet.setValue(toData(e));
+    sendResponse(packet);
   }
 }

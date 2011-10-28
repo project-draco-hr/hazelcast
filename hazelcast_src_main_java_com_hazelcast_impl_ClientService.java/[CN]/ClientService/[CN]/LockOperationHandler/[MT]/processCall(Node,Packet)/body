@@ -1,0 +1,23 @@
+{
+  final Object key=toObject(packet.getKeyData());
+  final ILock lock=(ILock)factory.getLock(key);
+  final long timeout=packet.timeout;
+  Data value=null;
+  if (timeout == -1) {
+    lock.lock();
+  }
+ else   if (timeout == 0) {
+    value=toData(lock.tryLock());
+  }
+ else {
+    try {
+      value=toData(lock.tryLock(timeout,TimeUnit.MILLISECONDS));
+    }
+ catch (    InterruptedException e) {
+      logger.log(Level.FINEST,"Lock interrupted!");
+      value=toData(Boolean.FALSE);
+    }
+  }
+  packet.clearForResponse();
+  packet.setValue(value);
+}
