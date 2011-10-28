@@ -4,7 +4,7 @@
   props.setProperty(CacheEnvironment.USE_NATIVE_CLIENT,"true");
   props.setProperty(CacheEnvironment.NATIVE_CLIENT_GROUP,"dev-custom");
   props.setProperty(CacheEnvironment.NATIVE_CLIENT_PASSWORD,"dev-pass");
-  props.setProperty(CacheEnvironment.NATIVE_CLIENT_HOSTS,"localhost");
+  props.setProperty(CacheEnvironment.NATIVE_CLIENT_ADDRESS,"localhost");
   SessionFactory sf=createSessionFactory(props);
   HazelcastInstance hz=HazelcastAccessor.getHazelcastInstance(sf);
   assertTrue(hz instanceof HazelcastClient);
@@ -13,6 +13,10 @@
   ClientProperties cProps=client.getProperties();
   assertEquals("dev-custom",cProps.getProperty(ClientPropertyName.GROUP_NAME));
   assertEquals("dev-pass",cProps.getProperty(ClientPropertyName.GROUP_PASSWORD));
-  sf.close();
+  Hazelcast.newHazelcastInstance(new ClasspathXmlConfig("hazelcast-custom.xml"));
+  assertEquals(2,hz.getCluster().getMembers().size());
   main.getLifecycleService().shutdown();
+  assertEquals(1,hz.getCluster().getMembers().size());
+  sf.close();
+  Hazelcast.shutdownAll();
 }
