@@ -1,0 +1,22 @@
+{
+  final BeanDefinitionBuilder credentialsConfigBuilder=createBeanBuilder(CredentialsFactoryConfig.class,"memberCredentialsConfig");
+  final AbstractBeanDefinition beanDefinition=credentialsConfigBuilder.getBeanDefinition();
+  final NamedNodeMap attrs=node.getAttributes();
+  Node classNameNode=attrs.getNamedItem("class-name");
+  String className=classNameNode != null ? getValue(classNameNode) : null;
+  Node implNode=attrs.getNamedItem("implementation");
+  String implementation=implNode != null ? getValue(implNode) : null;
+  credentialsConfigBuilder.addPropertyValue("className",className);
+  if (implementation != null) {
+    credentialsConfigBuilder.addPropertyReference("implementation",implementation);
+  }
+  Assert.isTrue(className != null || implementation != null,"One of 'class-name' or 'implementation' " + "attributes is required to create CredentialsFactory!");
+  for (  org.w3c.dom.Node child : new IterableNodeList(node.getChildNodes())) {
+    final String nodeName=cleanNodeName(child.getNodeName());
+    if ("properties".equals(nodeName)) {
+      handleProperties(child,credentialsConfigBuilder);
+      break;
+    }
+  }
+  securityConfigBuilder.addPropertyValue("memberCredentialsConfig",beanDefinition);
+}
