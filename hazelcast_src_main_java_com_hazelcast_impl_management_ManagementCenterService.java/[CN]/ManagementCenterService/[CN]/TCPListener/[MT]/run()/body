@@ -2,10 +2,18 @@
   try {
     while (running) {
       ClientHandler clientHandler=qClientHandlers.poll();
-      serverSocket.doAccept(clientHandler.getSocket());
+      try {
+        serverSocket.doAccept(clientHandler.getSocket());
+      }
+ catch (      SocketTimeoutException e) {
+        qClientHandlers.offer(clientHandler);
+        continue;
+      }
       clientHandler.start();
     }
   }
- catch (  IOException ignored) {
+ catch (  Throwable throwable) {
+    logger.log(Level.WARNING,"ManagementCenter will be closed due to exception.",throwable);
+    shutdown();
   }
 }
