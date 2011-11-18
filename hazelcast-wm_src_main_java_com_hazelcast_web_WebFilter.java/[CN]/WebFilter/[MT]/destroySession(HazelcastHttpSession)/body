@@ -1,7 +1,14 @@
 {
-  log("Destroying " + session.getId());
+  log("Destroying local session: " + session.getId());
   mapSessions.remove(session.getId());
   mapOriginalSessions.remove(session.originalSession.getId());
   session.destroy();
-  getClusterMap().remove(session.getId());
+  final long maxInactive=session.originalSession.getMaxInactiveInterval() * 1000;
+  final long clusterLastAccess=session.timestamp.get();
+  final long now=System.currentTimeMillis();
+  if ((now - clusterLastAccess) >= maxInactive) {
+    log("Destroying cluster session: " + session.getId() + " => Max-inactive: "+ maxInactive+ ", Local-Last-Access: "+ session.originalSession.getLastAccessedTime()+ ", Cluster-Last-Access: "+ clusterLastAccess+ ", Now: "+ now);
+    getClusterMap().remove(session.getId());
+    session.timestamp.destroy();
+  }
 }

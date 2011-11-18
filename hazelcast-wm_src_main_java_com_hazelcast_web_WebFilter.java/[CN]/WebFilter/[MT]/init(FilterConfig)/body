@@ -1,7 +1,7 @@
 {
   String debugParam=config.getInitParameter("debug");
   if (debugParam != null) {
-    DEBUG=Boolean.valueOf(debugParam);
+    debug=Boolean.valueOf(debugParam);
   }
   servletContext=config.getServletContext();
   String mapName=config.getInitParameter("map-name");
@@ -20,15 +20,19 @@
       public void entryAdded(      EntryEvent entryEvent){
       }
       public void entryRemoved(      EntryEvent entryEvent){
-        removeSessionLocally((String)entryEvent.getKey());
+        if (!entryEvent.getMember().localMember()) {
+          removeSessionLocally((String)entryEvent.getKey());
+        }
       }
       public void entryUpdated(      EntryEvent entryEvent){
-        markSessionDirty((String)entryEvent.getKey());
+        if (!entryEvent.getMember().localMember()) {
+          markSessionDirty((String)entryEvent.getKey());
+        }
       }
       public void entryEvicted(      EntryEvent entryEvent){
       }
     }
 ,false);
   }
-  log("sticky:" + stickySession + ", debug: "+ DEBUG+ ", map-name: "+ clusterMapName);
+  log("sticky:" + stickySession + ", debug: "+ debug+ ", map-name: "+ clusterMapName);
 }

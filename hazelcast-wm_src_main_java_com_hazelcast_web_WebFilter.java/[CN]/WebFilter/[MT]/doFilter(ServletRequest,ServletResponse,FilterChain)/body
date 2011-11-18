@@ -1,12 +1,10 @@
 {
-  log("FILTERING " + req.getClass().getName());
-  log(mapSessions.size() + " FILTERING " + mapOriginalSessions.size());
   if (!(req instanceof HttpServletRequest)) {
     chain.doFilter(req,res);
   }
  else {
     if (req instanceof RequestWrapper) {
-      log("Request is instance ! continue...");
+      log("Request is instance of RequestWrapper! Continue...");
       chain.doFilter(req,res);
       return;
     }
@@ -26,17 +24,16 @@
     req=null;
     HazelcastHttpSession session=reqWrapper.getSession(false);
     if (session != null && session.isValid()) {
+      session.setAccessed();
       final Enumeration<String> attNames=session.getAttributeNames();
       Map mapData=null;
       while (attNames.hasMoreElements()) {
         final String attName=attNames.nextElement();
         final Object value=session.getAttribute(attName);
-        if (value instanceof Serializable) {
-          if (mapData == null) {
-            mapData=new HashMap<String,Object>();
-          }
-          mapData.put(attName,value);
+        if (mapData == null) {
+          mapData=new HashMap<String,Object>();
         }
+        mapData.put(attName,value);
       }
       Data data=session.writeObject(mapData);
       boolean sessionChanged=session.sessionChanged(data);
