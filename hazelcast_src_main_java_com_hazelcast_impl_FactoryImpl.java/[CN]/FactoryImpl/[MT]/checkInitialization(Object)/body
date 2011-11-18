@@ -6,34 +6,39 @@
       logger.log(Level.WARNING,"CMap[" + mProxy.getLongName() + "] has not been created yet! Initialization attempt failed!");
       return;
     }
-    if (!cmap.isMapForQueue() && !cmap.initialized) {
+    if (!cmap.isMapForQueue() && !cmap.initState.isInitialized()) {
 synchronized (cmap.getInitLock()) {
-        if (!cmap.initialized) {
-          if (cmap.loader != null) {
+        if (!cmap.initState.isInitialized()) {
+          final MapStoreConfig mapStoreConfig=cmap.mapConfig.getMapStoreConfig();
+          if (mapStoreConfig != null && mapStoreConfig.isEnabled()) {
+            cmap.initState=InitializationState.INITIALIZING;
             try {
-              if (getAtomicNumber(name).compareAndSet(0,1)) {
-                ExecutorService es=getExecutorService();
-                MultiTask task=new MultiTask(new InitializeMap(mProxy.getName()),getCluster().getMembers());
-                es.execute(task);
-              }
-              Set keys=cmap.loader.loadAllKeys();
-              if (keys != null) {
-                int count=0;
-                PartitionService partitionService=getPartitionService();
-                Set ownedKeys=new HashSet();
-                for (                Object key : keys) {
-                  if (partitionService.getPartition(key).getOwner().localMember()) {
-                    ownedKeys.add(key);
-                    count++;
-                    if (ownedKeys.size() >= node.groupProperties.MAP_LOAD_CHUNK_SIZE.getInteger()) {
-                      loadKeys(mProxy,cmap,ownedKeys);
-                      ownedKeys.clear();
+              ExecutorService es=getExecutorService();
+              final Set<Member> members=new HashSet<Member>(getCluster().getMembers());
+              members.remove(node.localMember);
+              final MultiTask task=new MultiTask(new InitializeMap(mProxy.getName()),members);
+              es.execute(task);
+              if (cmap.loader != null) {
+                Set keys=cmap.loader.loadAllKeys();
+                if (keys != null) {
+                  int count=0;
+                  PartitionService partitionService=getPartitionService();
+                  Set ownedKeys=new HashSet();
+                  for (                  Object key : keys) {
+                    if (partitionService.getPartition(key).getOwner().localMember()) {
+                      ownedKeys.add(key);
+                      count++;
+                      if (ownedKeys.size() >= node.groupProperties.MAP_LOAD_CHUNK_SIZE.getInteger()) {
+                        loadKeys(mProxy,cmap,ownedKeys);
+                        ownedKeys.clear();
+                      }
                     }
                   }
+                  loadKeys(mProxy,cmap,ownedKeys);
+                  logger.log(Level.INFO,node.address + "[" + mProxy.getName()+ "] loaded "+ count);
                 }
-                loadKeys(mProxy,cmap,ownedKeys);
-                logger.log(Level.INFO,node.address + "[" + mProxy.getName()+ "] loaded "+ count);
               }
+              task.get();
             }
  catch (            Throwable e) {
               if (node.isActive()) {
@@ -42,7 +47,7 @@ synchronized (cmap.getInitLock()) {
             }
           }
         }
-        cmap.initialized=true;
+        cmap.initState=InitializationState.INITIALIZED;
       }
     }
   }
