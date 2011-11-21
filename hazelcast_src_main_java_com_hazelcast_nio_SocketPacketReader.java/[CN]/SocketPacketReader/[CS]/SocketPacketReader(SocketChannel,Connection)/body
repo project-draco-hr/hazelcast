@@ -1,0 +1,25 @@
+{
+  this.connection=connection;
+  this.ioService=connection.connectionManager.ioService;
+  this.socketChannel=socketChannel;
+  this.logger=ioService.getLogger(SocketPacketReader.class.getName());
+  boolean symmetricEncryptionEnabled=CipherHelper.isSymmetricEncryptionEnabled(ioService);
+  boolean asymmetricEncryptionEnabled=CipherHelper.isAsymmetricEncryptionEnabled(ioService);
+  if (asymmetricEncryptionEnabled || symmetricEncryptionEnabled) {
+    if (asymmetricEncryptionEnabled && symmetricEncryptionEnabled) {
+      packetReader=new ComplexCipherPacketReader();
+      logger.log(Level.INFO,"Reader started with ComplexEncryption");
+    }
+ else     if (symmetricEncryptionEnabled) {
+      packetReader=new SymmetricCipherPacketReader();
+      logger.log(Level.INFO,"Reader started with SymmetricEncryption");
+    }
+ else {
+      packetReader=new AsymmetricCipherPacketReader();
+      logger.log(Level.INFO,"Reader started with AsymmetricEncryption");
+    }
+  }
+ else {
+    packetReader=new DefaultPacketReader();
+  }
+}

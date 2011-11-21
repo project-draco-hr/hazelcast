@@ -2,30 +2,12 @@
   connection.setEndPoint(endPoint);
   final Connection connExisting=mapConnections.get(endPoint);
   if (connExisting != null && connExisting != connection) {
-    final String msg="Two connections from the same endpoint " + endPoint + ", acceptTypeConnection="+ acceptTypeConnection+ ",  now accept="+ accept;
-    if (node.joined() && node.isMaster()) {
-      logger.log(Level.WARNING,msg);
-      connExisting.closeSilently();
-      final Address deadEndpoint=connExisting.getEndPoint();
-      if (deadEndpoint != null) {
-        node.clusterManager.enqueueAndReturn(new Processable(){
-          public void process(){
-            node.clusterManager.disconnectExistingCalls(deadEndpoint);
-          }
-        }
-);
-      }
-    }
- else {
-      logger.log(Level.FINEST,msg);
-      return true;
-    }
+    return ioService.onDuplicateConnection(endPoint,acceptTypeConnection,accept,connExisting);
   }
-  if (!endPoint.equals(node.getThisAddress())) {
+  if (!endPoint.equals(ioService.getThisAddress())) {
     acceptTypeConnection=accept;
     if (!accept) {
-      ClusterManager clusterManager=node.clusterManager;
-      Packet bindPacket=clusterManager.createRemotelyProcessablePacket(new Bind(clusterManager.getThisAddress()));
+      Packet bindPacket=createBindPacket(new Bind(ioService.getThisAddress()));
       connection.writeHandler.enqueueSocketWritable(bindPacket);
     }
     mapConnections.put(endPoint,connection);

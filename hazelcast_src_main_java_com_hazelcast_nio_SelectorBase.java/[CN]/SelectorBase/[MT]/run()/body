@@ -1,6 +1,6 @@
 {
   try {
-    ThreadContext.get().setCurrentFactory(node.factory);
+    connectionManager.ioService.onIOThreadStart();
     while (live) {
       threadWatcher.incrementRunCount();
       long currentMillis=System.currentTimeMillis();
@@ -17,7 +17,7 @@
         long now=System.nanoTime();
         threadWatcher.addWait((now - startWait),now);
         if (Thread.interrupted()) {
-          node.handleInterruptedException(Thread.currentThread(),new RuntimeException());
+          connectionManager.ioService.handleInterruptedException(Thread.currentThread(),new RuntimeException());
           return;
         }
       }
@@ -59,7 +59,7 @@
     }
   }
  catch (  OutOfMemoryError e) {
-    node.onOutOfMemory(e);
+    connectionManager.ioService.onOutOfMemory(e);
   }
 catch (  Throwable e) {
     logger.log(Level.WARNING,"unhandled exception in " + Thread.currentThread().getName(),e);

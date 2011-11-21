@@ -1,0 +1,25 @@
+{
+  this.connection=connection;
+  final IOService ioService=connection.connectionManager.ioService;
+  this.logger=ioService.getLogger(SocketPacketWriter.class.getName());
+  boolean symmetricEncryptionEnabled=CipherHelper.isSymmetricEncryptionEnabled(ioService);
+  boolean asymmetricEncryptionEnabled=CipherHelper.isAsymmetricEncryptionEnabled(ioService);
+  if (asymmetricEncryptionEnabled || symmetricEncryptionEnabled) {
+    if (asymmetricEncryptionEnabled && symmetricEncryptionEnabled) {
+      logger.log(Level.INFO,"Incorrect encryption configuration.");
+      logger.log(Level.INFO,"You can enable either SymmetricEncryption or AsymmetricEncryption.");
+      throw new RuntimeException();
+    }
+ else     if (symmetricEncryptionEnabled) {
+      packetWriter=new SymmetricCipherPacketWriter();
+      logger.log(Level.INFO,"Writer started with SymmetricEncryption");
+    }
+ else {
+      packetWriter=new AsymmetricCipherPacketWriter();
+      logger.log(Level.INFO,"Writer started with AsymmetricEncryption");
+    }
+  }
+ else {
+    packetWriter=new DefaultPacketWriter();
+  }
+}
