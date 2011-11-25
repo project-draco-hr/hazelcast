@@ -4,9 +4,9 @@
   this.factory=factory;
   this.config=config;
   this.groupProperties=new GroupProperties(config);
-  this.superClient=config.isSuperClient();
-  this.localNodeType=(superClient) ? NodeType.LITE_MEMBER : NodeType.MEMBER;
-  ServerSocketChannel serverSocketChannelTemp=null;
+  this.liteMember=config.isLiteMember();
+  this.localNodeType=(liteMember) ? NodeType.LITE_MEMBER : NodeType.MEMBER;
+  ServerSocketChannel serverSocketChannel=null;
   Address localAddress=null;
   try {
     final String preferIPv4Stack=System.getProperty("java.net.preferIPv4Stack");
@@ -14,15 +14,14 @@
     if (preferIPv6Address == null && preferIPv4Stack == null) {
       System.setProperty("java.net.preferIPv4Stack","true");
     }
-    serverSocketChannelTemp=ServerSocketChannel.open();
-    AddressPicker addressPicker=new AddressPicker(this,serverSocketChannelTemp);
+    serverSocketChannel=ServerSocketChannel.open();
+    AddressPicker addressPicker=new AddressPicker(this,serverSocketChannel);
     localAddress=addressPicker.pickAddress();
     localAddress.setThisAddress(true);
   }
  catch (  Throwable e) {
     Util.throwUncheckedException(e);
   }
-  serverSocketChannel=serverSocketChannelTemp;
   address=localAddress;
   localMember=new MemberImpl(address,true,localNodeType);
   String loggingType=groupProperties.LOGGING_TYPE.getString();
