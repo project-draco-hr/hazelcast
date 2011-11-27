@@ -1,4 +1,21 @@
 {
   CMap cmap=getOrCreateMap(request.name);
-  request.response=cmap.putMulti(request);
+  if (!cmap.multiMapSet) {
+    cmap.putMulti(request);
+    request.response=Boolean.TRUE;
+    returnResponse(request);
+  }
+ else {
+    Record record=cmap.getRecord(request);
+    if (record == null) {
+      cmap.putMulti(request);
+      request.response=Boolean.TRUE;
+      returnResponse(request);
+    }
+ else {
+      record=cmap.toRecord(request);
+      record.lock(request.lockThreadId,request.caller);
+      node.executorManager.executeQueryTask(new PutMultiSetMapTask(request,record,cmap));
+    }
+  }
 }

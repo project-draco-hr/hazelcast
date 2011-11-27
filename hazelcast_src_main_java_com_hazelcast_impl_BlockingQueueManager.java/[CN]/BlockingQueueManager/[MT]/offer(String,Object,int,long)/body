@@ -7,7 +7,17 @@
       txn.attachPutOp(name,key,obj,timeout,true);
     }
  else {
-      storeQueueItem(name,key,obj,index);
+      final Data dataItem=toData(obj);
+      storeQueueItem(name,key,dataItem,index);
+      final BQ bq=getBQ(name);
+      if (bq != null && bq.mapListeners.size() > 0) {
+        enqueueAndReturn(new Processable(){
+          public void process(){
+            fireMapEvent(bq.mapListeners,name,EntryEvent.TYPE_ADDED,dataItem,thisAddress);
+          }
+        }
+);
+      }
     }
     return true;
   }

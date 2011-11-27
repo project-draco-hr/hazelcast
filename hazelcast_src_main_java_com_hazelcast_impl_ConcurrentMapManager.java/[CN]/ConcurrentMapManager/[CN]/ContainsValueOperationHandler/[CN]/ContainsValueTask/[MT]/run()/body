@@ -1,0 +1,47 @@
+{
+  CMap cmap=getMap(request.name);
+  Data value=request.value;
+  request.response=Boolean.FALSE;
+  if (cmap != null) {
+    MapIndexService mapIndexService=cmap.getMapIndexService();
+    long now=System.currentTimeMillis();
+    if (cmap.isMultiMap()) {
+      Collection<Record> records=mapIndexService.getOwnedRecords();
+      ValueHolder theValueHolder=new ValueHolder(value);
+      for (      Record record : records) {
+        if (record.isActive() && record.isValid(now)) {
+          Collection<ValueHolder> multiValues=record.getMultiValues();
+          if (multiValues != null) {
+            if (multiValues.contains(theValueHolder)) {
+              request.response=Boolean.TRUE;
+              break;
+            }
+          }
+        }
+      }
+    }
+ else {
+      Collection<? extends MapEntry> results=null;
+      Index index=mapIndexService.getValueIndex();
+      if (index != null) {
+        results=index.getRecords((long)value.hashCode());
+      }
+ else {
+        results=mapIndexService.getOwnedRecords();
+      }
+      if (results != null) {
+        Object obj=toObject(value);
+        for (        MapEntry entry : results) {
+          Record record=(Record)entry;
+          if (record.isActive() && record.isValid(now)) {
+            if (obj.equals(record.getValue())) {
+              request.response=Boolean.TRUE;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  returnResponse(request);
+}

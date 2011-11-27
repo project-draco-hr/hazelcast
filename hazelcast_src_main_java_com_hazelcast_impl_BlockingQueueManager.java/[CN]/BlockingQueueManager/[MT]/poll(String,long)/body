@@ -18,6 +18,16 @@
         if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
           txn.attachRemoveOp(name,key,removedItem,true);
         }
+        final Data removedItemData=toData(removedItem);
+        final BQ bq=getBQ(name);
+        if (bq != null && bq.mapListeners.size() > 0) {
+          enqueueAndReturn(new Processable(){
+            public void process(){
+              fireMapEvent(bq.mapListeners,name,EntryEvent.TYPE_REMOVED,removedItemData,thisAddress);
+            }
+          }
+);
+        }
       }
     }
  catch (    TimeoutException e) {

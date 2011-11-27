@@ -1,5 +1,6 @@
 {
-  Set<Long> keys=getValueKeys(name,toData(obj));
+  final Data dataValue=toData(obj);
+  Set<Long> keys=getValueKeys(name,dataValue);
   if (keys != null) {
     for (    Long key : keys) {
       Data keyData=toData(key);
@@ -8,6 +9,15 @@
           getStorageMap(name).tryRemove(keyData,0,TimeUnit.SECONDS);
         }
  catch (        TimeoutException ignored) {
+        }
+        final BQ bq=getBQ(name);
+        if (bq != null && bq.mapListeners.size() > 0) {
+          enqueueAndReturn(new Processable(){
+            public void process(){
+              fireMapEvent(bq.mapListeners,name,EntryEvent.TYPE_REMOVED,dataValue,thisAddress);
+            }
+          }
+);
         }
         return true;
       }
