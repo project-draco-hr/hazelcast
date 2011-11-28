@@ -1,14 +1,31 @@
 {
   CMap cmap=getOrCreateMap(request.name);
   if (!cmap.multiMapSet) {
+    Record record=cmap.getRecord(request);
+    if (record == null) {
+      record=cmap.toRecord(request);
+    }
+    cmap.markAsActive(record);
+    if (record.getMultiValues() == null) {
+      record.setMultiValues(new CopyOnWriteArrayList<ValueHolder>());
+    }
     cmap.putMulti(request);
+    request.value=null;
     request.response=Boolean.TRUE;
     returnResponse(request);
   }
  else {
     Record record=cmap.getRecord(request);
-    if (record == null) {
+    if (record == null || record.getMultiValues() == null || !record.isValid()) {
+      if (record == null) {
+        record=cmap.toRecord(request);
+      }
+      cmap.markAsActive(record);
+      if (record.getMultiValues() == null) {
+        record.setMultiValues(new ConcurrentHashSet<ValueHolder>());
+      }
       cmap.putMulti(request);
+      request.value=null;
       request.response=Boolean.TRUE;
       returnResponse(request);
     }
