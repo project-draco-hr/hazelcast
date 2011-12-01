@@ -16,21 +16,33 @@
   if (maxSizePolicyNode != null) {
     maxSizeConfigBuilder.addPropertyValue(xmlToJavaName(cleanNodeName(maxSizePolicyNode)),getValue(maxSizePolicyNode));
   }
-  for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
-    final String nname=cleanNodeName(n.getNodeName());
-    if ("map-store".equals(nname)) {
-      handleMapStoreConfig(n,mapConfigBuilder);
+  for (  org.w3c.dom.Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    final String nodeName=cleanNodeName(childNode.getNodeName());
+    if ("map-store".equals(nodeName)) {
+      handleMapStoreConfig(childNode,mapConfigBuilder);
     }
- else     if ("near-cache".equals(nname)) {
-      handleNearCacheConfig(n,mapConfigBuilder);
+ else     if ("near-cache".equals(nodeName)) {
+      handleNearCacheConfig(childNode,mapConfigBuilder);
     }
- else     if ("wan-replication-ref".equals(nname)) {
+ else     if ("wan-replication-ref".equals(nodeName)) {
       final BeanDefinitionBuilder wanReplicationRefBuilder=createBeanBuilder(WanReplicationRef.class,"wanReplicationRef");
       final AbstractBeanDefinition wanReplicationRefBeanDefinition=wanReplicationRefBuilder.getBeanDefinition();
-      fillValues(n,wanReplicationRefBuilder);
+      fillValues(childNode,wanReplicationRefBuilder);
       mapConfigBuilder.addPropertyValue("wanReplicationRef",wanReplicationRefBeanDefinition);
+    }
+ else     if ("indexes".equals(nodeName)) {
+      ManagedList indexes=new ManagedList();
+      for (      Node indexNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
+        final BeanDefinitionBuilder indexConfBuilder=createBeanBuilder(MapIndexConfig.class,"mapIndexConfig");
+        fillAttributeValues(indexNode,indexConfBuilder);
+        indexes.add(indexConfBuilder.getBeanDefinition());
+      }
+      mapConfigBuilder.addPropertyValue("mapIndexConfigs",indexes);
+    }
+ else     if ("entry-listeners".equals(nodeName)) {
+      ManagedList listeners=parseListeners(childNode,"entryListenerConfig",EntryListenerConfig.class);
+      mapConfigBuilder.addPropertyValue("entryListenerConfigs",listeners);
     }
   }
   mapConfigManagedMap.put(name,beanDefinition);
-  mapConfigBuilder=null;
 }

@@ -1,3 +1,13 @@
 {
-  createAndFillListedBean(node,TopicConfig.class,"topicConfig",topicManagedMap);
+  BeanDefinitionBuilder topicConfigBuilder=createBeanBuilder(TopicConfig.class,"topicConfig");
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getValue(attName);
+  fillAttributeValues(node,topicConfigBuilder);
+  for (  org.w3c.dom.Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    if ("message-listeners".equals(cleanNodeName(childNode))) {
+      ManagedList listeners=parseListeners(childNode,"messageListenerConfig",ListenerConfig.class);
+      topicConfigBuilder.addPropertyValue("messageListenerConfigs",listeners);
+    }
+  }
+  topicManagedMap.put(name,topicConfigBuilder.getBeanDefinition());
 }

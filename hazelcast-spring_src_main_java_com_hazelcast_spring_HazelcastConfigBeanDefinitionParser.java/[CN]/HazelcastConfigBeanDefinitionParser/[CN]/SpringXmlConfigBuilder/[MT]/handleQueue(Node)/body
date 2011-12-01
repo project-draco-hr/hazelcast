@@ -1,3 +1,13 @@
 {
-  createAndFillListedBean(node,QueueConfig.class,"queueConfig",queueManagedMap);
+  BeanDefinitionBuilder queueConfigBuilder=createBeanBuilder(QueueConfig.class,"queueConfig");
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getValue(attName);
+  fillAttributeValues(node,queueConfigBuilder);
+  for (  org.w3c.dom.Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    if ("item-listeners".equals(cleanNodeName(childNode))) {
+      ManagedList listeners=parseListeners(childNode,"itemListenerConfig",ItemListenerConfig.class);
+      queueConfigBuilder.addPropertyValue("itemListenerConfigs",listeners);
+    }
+  }
+  queueManagedMap.put(name,queueConfigBuilder.getBeanDefinition());
 }
