@@ -1,0 +1,27 @@
+{
+  for (  final ListenerConfig listenerCfg : config.getListenerConfigs()) {
+    Object listener=listenerCfg.getImplementation();
+    if (listener == null) {
+      try {
+        listener=Serializer.newInstance(Serializer.loadClass(listenerCfg.getClassName()));
+      }
+ catch (      Exception e) {
+        logger.log(Level.SEVERE,e.getMessage(),e);
+      }
+    }
+    if (listener instanceof InstanceListener) {
+      addInstanceListener((InstanceListener)listener);
+    }
+ else     if (listener instanceof MembershipListener) {
+      getCluster().addMembershipListener((MembershipListener)listener);
+    }
+ else     if (listener instanceof MigrationListener) {
+      getPartitionService().addMigrationListener((MigrationListener)listener);
+    }
+ else     if (listener != null) {
+      final String error="Unknown listener type: " + listener.getClass();
+      Throwable t=new IllegalArgumentException(error);
+      logger.log(Level.WARNING,error,t);
+    }
+  }
+}

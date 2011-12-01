@@ -1,0 +1,27 @@
+{
+  List<EntryListenerConfig> listenerConfigs=null;
+  if (isMultiMap()) {
+    listenerConfigs=multiMapConfig.getEntryListenerConfigs();
+  }
+ else {
+    listenerConfigs=mapConfig.getEntryListenerConfigs();
+  }
+  if (listenerConfigs != null && !listenerConfigs.isEmpty()) {
+    for (    EntryListenerConfig lc : listenerConfigs) {
+      try {
+        node.listenerManager.createAndAddListenerItem(name,lc,instanceType);
+        if (lc.isLocal()) {
+          addListener(null,thisAddress,lc.isIncludeValue());
+        }
+ else {
+          for (          MemberImpl member : node.clusterManager.getMembers()) {
+            addListener(null,member.getAddress(),lc.isIncludeValue());
+          }
+        }
+      }
+ catch (      Throwable e) {
+        logger.log(Level.SEVERE,e.getMessage(),e);
+      }
+    }
+  }
+}

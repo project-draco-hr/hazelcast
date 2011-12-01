@@ -1,0 +1,137 @@
+{
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(new Config());
+  final String name="testListenerLifecycle";
+  final int sleep=100;
+  IMap map=hz.getMap(name);
+  final CountDownLatch mapLatch=new CountingCountdownLatch(2);
+  final EntryListener el=new EntryAdapter(){
+    public void entryAdded(    EntryEvent event){
+      mapLatch.countDown();
+    }
+  }
+;
+  map.addEntryListener(el,false);
+  map.put(1,1);
+  Thread.sleep(sleep);
+  map.destroy();
+  map=hz.getMap(name);
+  map.addEntryListener(el,false);
+  map.put(2,2);
+  Thread.sleep(sleep);
+  map.removeEntryListener(el);
+  map.put(3,3);
+  Thread.sleep(sleep);
+  assertTrue("Remaining:" + mapLatch.getCount(),mapLatch.await(3,TimeUnit.SECONDS));
+  map.destroy();
+  IQueue q=hz.getQueue(name);
+  final CountDownLatch qLatch=new CountingCountdownLatch(2);
+  final ItemListener ql=new ItemListener(){
+    public void itemAdded(    Object item){
+      qLatch.countDown();
+    }
+    public void itemRemoved(    Object item){
+    }
+  }
+;
+  q.addItemListener(ql,false);
+  q.offer(1);
+  Thread.sleep(sleep);
+  q.destroy();
+  q=hz.getQueue(name);
+  q.addItemListener(ql,false);
+  q.offer(2);
+  Thread.sleep(sleep);
+  q.removeItemListener(ql);
+  q.offer(3);
+  Thread.sleep(sleep);
+  assertTrue("Remaining:" + qLatch.getCount(),qLatch.await(3,TimeUnit.SECONDS));
+  q.destroy();
+  ITopic t=hz.getTopic(name);
+  final CountDownLatch tLatch=new CountingCountdownLatch(2);
+  final MessageListener ml=new MessageListener(){
+    public void onMessage(    Object message){
+      tLatch.countDown();
+    }
+  }
+;
+  t.addMessageListener(ml);
+  t.publish(1);
+  Thread.sleep(sleep);
+  t.destroy();
+  t=hz.getTopic(name);
+  t.addMessageListener(ml);
+  t.publish(2);
+  Thread.sleep(sleep);
+  t.removeMessageListener(ml);
+  t.publish(3);
+  Thread.sleep(sleep);
+  assertTrue("Remaining:" + tLatch.getCount(),tLatch.await(3,TimeUnit.SECONDS));
+  t.destroy();
+  MultiMap mmap=hz.getMultiMap(name);
+  final CountDownLatch mmapLatch=new CountingCountdownLatch(2);
+  final EntryListener el2=new EntryAdapter(){
+    public void entryAdded(    EntryEvent event){
+      mmapLatch.countDown();
+    }
+  }
+;
+  mmap.addEntryListener(el2,false);
+  mmap.put(1,1);
+  Thread.sleep(sleep);
+  mmap.destroy();
+  mmap=hz.getMultiMap(name);
+  mmap.addEntryListener(el2,false);
+  mmap.put(2,2);
+  Thread.sleep(sleep);
+  mmap.removeEntryListener(el2);
+  mmap.put(3,3);
+  Thread.sleep(sleep);
+  assertTrue("Remaining:" + mmapLatch.getCount(),mmapLatch.await(3,TimeUnit.SECONDS));
+  mmap.destroy();
+  IList l=hz.getList(name);
+  final CountDownLatch lLatch=new CountingCountdownLatch(2);
+  final ItemListener ll=new ItemListener(){
+    public void itemAdded(    Object item){
+      lLatch.countDown();
+    }
+    public void itemRemoved(    Object item){
+    }
+  }
+;
+  l.addItemListener(ll,false);
+  l.add(1);
+  Thread.sleep(sleep);
+  l.destroy();
+  l=hz.getList(name);
+  l.addItemListener(ll,false);
+  l.add(2);
+  Thread.sleep(sleep);
+  l.removeItemListener(ll);
+  l.add(3);
+  Thread.sleep(sleep);
+  assertTrue("Remaining:" + lLatch.getCount(),lLatch.await(3,TimeUnit.SECONDS));
+  l.destroy();
+  ISet s=hz.getSet(name);
+  final CountDownLatch sLatch=new CountingCountdownLatch(2);
+  final ItemListener sl=new ItemListener(){
+    public void itemAdded(    Object item){
+      sLatch.countDown();
+    }
+    public void itemRemoved(    Object item){
+    }
+  }
+;
+  s.addItemListener(sl,false);
+  s.add(1);
+  Thread.sleep(sleep);
+  s.destroy();
+  s=hz.getSet(name);
+  s.addItemListener(sl,false);
+  s.add(2);
+  Thread.sleep(sleep);
+  s.removeItemListener(sl);
+  s.add(3);
+  Thread.sleep(sleep);
+  assertTrue("Remaining:" + sLatch.getCount(),sLatch.await(3,TimeUnit.SECONDS));
+  s.destroy();
+}

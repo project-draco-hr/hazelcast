@@ -4,9 +4,16 @@
   final TopicConfig tConfig=new TopicConfig();
   tConfig.setName(name);
   for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes())) {
-    final String value=getTextContent(n).trim();
-    if (cleanNodeName(n.getNodeName()).equals("global-ordering-enabled")) {
-      tConfig.setGlobalOrderingEnabled(checkTrue(value));
+    final String nodeName=cleanNodeName(n.getNodeName());
+    if (nodeName.equals("global-ordering-enabled")) {
+      tConfig.setGlobalOrderingEnabled(checkTrue(getValue(n)));
+    }
+ else     if ("message-listeners".equals(nodeName)) {
+      for (      org.w3c.dom.Node listenerNode : new IterableNodeList(n.getChildNodes())) {
+        if ("message-listener".equals(cleanNodeName(listenerNode))) {
+          tConfig.addMessageListenerConfig(new ListenerConfig(getValue(listenerNode)));
+        }
+      }
     }
   }
   config.addTopicConfig(tConfig);
