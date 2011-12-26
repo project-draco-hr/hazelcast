@@ -1,6 +1,12 @@
 {
   CMap cmap=getOrCreateMap(request.name);
-  Record record=cmap.toRecord(request);
-  record.lock(request.lockThreadId,request.caller);
-  node.executorManager.executeQueryTask(new RemoveMultiSetMapTask(request,record,cmap));
+  Record record=cmap.getRecord(request);
+  if (record == null || record.getMultiValues() == null) {
+    request.response=Boolean.FALSE;
+    returnResponse(request);
+  }
+ else {
+    record.lock(request.lockThreadId,request.caller);
+    node.executorManager.executeQueryTask(new RemoveMultiSetMapTask(request,record,cmap));
+  }
 }

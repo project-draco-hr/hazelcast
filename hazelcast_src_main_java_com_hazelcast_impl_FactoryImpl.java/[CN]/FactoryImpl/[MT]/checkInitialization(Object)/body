@@ -23,19 +23,21 @@ synchronized (cmap.getInitLock()) {
                 if (keys != null) {
                   int count=0;
                   PartitionService partitionService=getPartitionService();
+                  Queue<Set> chunks=new ConcurrentLinkedQueue<Set>();
                   Set ownedKeys=new HashSet();
                   for (                  Object key : keys) {
                     if (partitionService.getPartition(key).getOwner().localMember()) {
                       ownedKeys.add(key);
                       count++;
                       if (ownedKeys.size() >= node.groupProperties.MAP_LOAD_CHUNK_SIZE.getInteger()) {
-                        loadKeys(mProxy,cmap,ownedKeys);
-                        ownedKeys.clear();
+                        chunks.add(ownedKeys);
+                        ownedKeys=new HashSet();
                       }
                     }
                   }
-                  loadKeys(mProxy,cmap,ownedKeys);
-                  logger.log(Level.INFO,node.address + "[" + mProxy.getName()+ "] loaded "+ count);
+                  chunks.add(ownedKeys);
+                  loadChunks(mProxy,cmap,chunks);
+                  logger.log(Level.INFO,node.address + "[" + mProxy.getName()+ "] loaded "+ count+ " in total.");
                 }
               }
               task.get();
