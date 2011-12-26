@@ -1,7 +1,16 @@
 {
-  boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,key,null,timeout,-1);
-  if (unlocked) {
-    backup(CONCURRENT_MAP_BACKUP_LOCK);
+  Data dataKey=toData(key);
+  CMap cmap=getMap(name);
+  AtomicInteger lockCount=cmap.mapLocalLocks.get(dataKey);
+  if (lockCount == null || lockCount.decrementAndGet() == 0) {
+    boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,dataKey,null,timeout,-1);
+    if (unlocked) {
+      cmap.mapLocalLocks.remove(dataKey);
+      backup(CONCURRENT_MAP_BACKUP_LOCK);
+    }
+    return unlocked;
   }
-  return unlocked;
+ else {
+    return true;
+  }
 }
