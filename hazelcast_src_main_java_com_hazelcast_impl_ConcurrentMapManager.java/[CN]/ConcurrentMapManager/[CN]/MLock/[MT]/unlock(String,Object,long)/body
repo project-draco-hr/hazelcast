@@ -1,16 +1,16 @@
 {
   Data dataKey=toData(key);
   CMap cmap=getMap(name);
-  AtomicInteger lockCount=cmap.mapLocalLocks.get(dataKey);
-  if (lockCount == null || lockCount.decrementAndGet() == 0) {
-    boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,dataKey,null,timeout,-1);
-    if (unlocked) {
-      cmap.mapLocalLocks.remove(dataKey);
-      backup(CONCURRENT_MAP_BACKUP_LOCK);
-    }
-    return unlocked;
+  if (cmap == null)   return false;
+  LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
+  if (localLock == null || localLock.getThreadId() != ThreadContext.get().getThreadId()) {
+    return false;
   }
- else {
-    return true;
+  if (localLock.decrementAndGet() > 0)   return true;
+  boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,dataKey,null,timeout,-1);
+  if (unlocked) {
+    cmap.mapLocalLocks.remove(dataKey);
+    backup(CONCURRENT_MAP_BACKUP_LOCK);
   }
+  return unlocked;
 }

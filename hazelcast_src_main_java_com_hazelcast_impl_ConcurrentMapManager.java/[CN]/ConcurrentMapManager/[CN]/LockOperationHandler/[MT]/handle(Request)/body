@@ -14,6 +14,16 @@
       if (request.operation == CONCURRENT_MAP_TRY_LOCK_AND_GET && cmap.loader != null && (record == null || !record.hasValueData())) {
         storeExecutor.execute(new LockLoader(cmap,request),request.key.hashCode());
       }
+ else       if (cmap.isMultiMap() && request.value != null) {
+        Collection<ValueHolder> col=record.getMultiValues();
+        if (col != null && col.size() > 0) {
+          storeExecutor.execute(new MultiMapContainsTask(request,col),request.key.hashCode());
+        }
+ else {
+          doOperation(request);
+          returnResponse(request);
+        }
+      }
  else {
         doOperation(request);
         returnResponse(request);

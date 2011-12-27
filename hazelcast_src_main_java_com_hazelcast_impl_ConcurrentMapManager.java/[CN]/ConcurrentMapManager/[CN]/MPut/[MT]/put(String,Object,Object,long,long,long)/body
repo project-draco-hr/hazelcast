@@ -1,3 +1,19 @@
 {
-  return txnalPut(CONCURRENT_MAP_PUT,name,key,value,timeout,ttl,txnId);
+  Object result=null;
+  if (txnId != -1) {
+    ThreadContext tc=ThreadContext.get();
+    Data dataKey=toData(key);
+    CMap cmap=getMap(name);
+    LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
+    boolean shouldUnlock=localLock != null && localLock.getThreadId() == tc.getThreadId() && localLock.getCount() == 1;
+    if (shouldUnlock) {
+      result=txnalPut(CONCURRENT_MAP_PUT_AND_UNLOCK,name,key,value,timeout,ttl,-1);
+      cmap.mapLocalLocks.remove(dataKey);
+    }
+ else {
+      result=txnalPut(CONCURRENT_MAP_PUT,name,key,value,timeout,ttl,-1);
+      localLock.decrementAndGet();
+    }
+  }
+  return result;
 }

@@ -3,12 +3,12 @@
   boolean locked=booleanCall(op,name,dataKey,value,timeout,-1);
   if (locked) {
     CMap cmap=getMap(name);
-    AtomicInteger lockCount=cmap.mapLocalLocks.get(dataKey);
-    if (lockCount == null) {
-      lockCount=new AtomicInteger(0);
-      cmap.mapLocalLocks.put(dataKey,lockCount);
+    LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
+    if (localLock == null) {
+      localLock=new LocalLock(ThreadContext.get().getThreadId());
+      cmap.mapLocalLocks.put(dataKey,localLock);
     }
-    if (lockCount.incrementAndGet() == 1) {
+    if (localLock.incrementAndGet() == 1) {
       backup(CONCURRENT_MAP_BACKUP_LOCK);
     }
   }

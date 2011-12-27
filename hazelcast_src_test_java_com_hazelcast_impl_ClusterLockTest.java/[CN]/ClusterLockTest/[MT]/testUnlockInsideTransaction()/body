@@ -6,19 +6,19 @@
   map1.put(1,1);
   map1.lock(1);
   map1.unlock(1);
-  final AtomicBoolean locked=new AtomicBoolean(false);
+  final BlockingQueue<Boolean> q=new LinkedBlockingQueue<Boolean>();
   new Thread(new Runnable(){
     public void run(){
       try {
-        map1.lock(1);
-        locked.set(true);
+        q.put(map1.tryLock(1));
       }
  catch (      Throwable e) {
       }
     }
   }
 ).start();
-  Thread.sleep(2000);
-  Assert.assertFalse("should not acquire lock",locked.get());
+  Boolean locked=q.poll(5,TimeUnit.SECONDS);
+  assertNotNull(locked);
+  Assert.assertFalse("should not acquire lock",locked);
   tx.commit();
 }
