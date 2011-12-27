@@ -1,15 +1,16 @@
 {
   Data dataKey=toData(key);
+  ThreadContext tc=ThreadContext.get();
   CMap cmap=getMap(name);
   if (cmap == null)   return false;
   LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
-  if (localLock == null || localLock.getThreadId() != ThreadContext.get().getThreadId()) {
+  if (localLock == null || localLock.getThreadId() != tc.getThreadId()) {
     return false;
   }
   if (localLock.decrementAndGet() > 0)   return true;
   boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,dataKey,null,timeout,-1);
   if (unlocked) {
-    cmap.mapLocalLocks.remove(dataKey);
+    cmap.mapLocalLocks.remove(dataKey,localLock);
     backup(CONCURRENT_MAP_BACKUP_LOCK);
   }
   return unlocked;

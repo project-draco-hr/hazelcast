@@ -1,11 +1,12 @@
 {
   Data dataKey=toData(key);
+  ThreadContext tc=ThreadContext.get();
   boolean locked=booleanCall(op,name,dataKey,value,timeout,-1);
   if (locked) {
     CMap cmap=getMap(name);
     LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
-    if (localLock == null) {
-      localLock=new LocalLock(ThreadContext.get().getThreadId());
+    if (localLock == null || localLock.getThreadId() != tc.getThreadId()) {
+      localLock=new LocalLock(tc.getThreadId());
       cmap.mapLocalLocks.put(dataKey,localLock);
     }
     if (localLock.incrementAndGet() == 1) {
