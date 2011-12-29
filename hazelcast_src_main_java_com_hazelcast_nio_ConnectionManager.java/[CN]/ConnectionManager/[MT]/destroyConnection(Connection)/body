@@ -1,12 +1,18 @@
 {
   if (connection == null)   return;
   setActiveConnections.remove(connection);
-  if (connection.getEndPoint() != null) {
-    mapConnections.remove(connection.getEndPoint());
-    setConnectionInProgress.remove(connection.getEndPoint());
-    for (    ConnectionListener listener : setConnectionListeners) {
-      listener.connectionRemoved(connection);
+  final Address endPoint=connection.getEndPoint();
+  if (endPoint != null) {
+    setConnectionInProgress.remove(endPoint);
+    final Connection existingConn=mapConnections.get(endPoint);
+    if (existingConn == connection) {
+      mapConnections.remove(endPoint);
+      for (      ConnectionListener listener : setConnectionListeners) {
+        listener.connectionRemoved(connection);
+      }
     }
   }
-  if (connection.live())   connection.close();
+  if (connection.live()) {
+    connection.close();
+  }
 }

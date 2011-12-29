@@ -1,14 +1,13 @@
 {
   connection.setEndPoint(endPoint);
-  final Connection connExisting=mapConnections.get(endPoint);
-  if (connExisting != null && connExisting != connection) {
-    return ioService.onDuplicateConnection(endPoint,acceptTypeConnection,accept,connExisting);
+  if (mapConnections.containsKey(endPoint)) {
+    return false;
   }
   if (!endPoint.equals(ioService.getThisAddress())) {
-    acceptTypeConnection=accept;
+    connection.setMonitor(getConnectionMonitor(endPoint,true));
     if (!accept) {
       Packet bindPacket=createBindPacket(new Bind(ioService.getThisAddress()));
-      connection.writeHandler.enqueueSocketWritable(bindPacket);
+      connection.getWriteHandler().enqueueSocketWritable(bindPacket);
     }
     mapConnections.put(endPoint,connection);
     setConnectionInProgress.remove(endPoint);

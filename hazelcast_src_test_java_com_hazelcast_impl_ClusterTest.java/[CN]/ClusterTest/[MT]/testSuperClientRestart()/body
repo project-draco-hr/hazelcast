@@ -1,13 +1,17 @@
 {
   Config configNormal=new Config();
+  configNormal.setProperty(GroupProperties.PROP_CONNECTION_MONITOR_INTERVAL,"1");
+  configNormal.setProperty(GroupProperties.PROP_CONNECTION_MONITOR_MAX_FAULTS,"1");
   Config configSuper=new Config();
+  configSuper.setProperty(GroupProperties.PROP_CONNECTION_MONITOR_INTERVAL,"1");
+  configSuper.setProperty(GroupProperties.PROP_CONNECTION_MONITOR_MAX_FAULTS,"1");
   configSuper.setLiteMember(true);
   HazelcastInstance h=Hazelcast.newHazelcastInstance(configNormal);
   HazelcastInstance s=Hazelcast.newHazelcastInstance(configSuper);
   assertEquals(2,h.getCluster().getMembers().size());
   assertEquals(2,s.getCluster().getMembers().size());
-  assertFalse(h.getCluster().getLocalMember().isSuperClient());
-  assertTrue(s.getCluster().getLocalMember().isSuperClient());
+  assertFalse(h.getCluster().getLocalMember().isLiteMember());
+  assertTrue(s.getCluster().getLocalMember().isLiteMember());
   IMap map=h.getMap("default");
   final IMap maps=s.getMap("default");
   assertNull(map.put("1","value1"));
@@ -32,8 +36,8 @@
   latch.await();
   assertEquals(2,h.getCluster().getMembers().size());
   assertEquals(2,s.getCluster().getMembers().size());
-  assertFalse(h.getCluster().getLocalMember().isSuperClient());
-  assertTrue(s.getCluster().getLocalMember().isSuperClient());
+  assertFalse(h.getCluster().getLocalMember().isLiteMember());
+  assertTrue(s.getCluster().getLocalMember().isLiteMember());
   map=h.getMap("default");
   assertEquals("value3",map.put("1","value2"));
   assertEquals("value2",map.get("1"));
