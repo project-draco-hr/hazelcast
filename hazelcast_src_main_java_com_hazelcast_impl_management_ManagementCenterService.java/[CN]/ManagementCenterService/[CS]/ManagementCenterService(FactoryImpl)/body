@@ -6,8 +6,6 @@
   this.instanceFilterAtomicNumber=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_ATOMIC_NUMBER_EXCLUDES.getString());
   this.instanceFilterCountDownLatch=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_COUNT_DOWN_LATCH_EXCLUDES.getString());
   this.instanceFilterSemaphore=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_SEMAPHORE_EXCLUDES.getString());
-  Config config=factory.node.config;
-  thisAddress=((MemberImpl)factory.getCluster().getLocalMember()).getAddress();
   updateMemberOrder();
   logger=factory.node.getLogger(ManagementCenterService.class.getName());
   for (int i=0; i < 100; i++) {
@@ -15,8 +13,9 @@
   }
   maxVisibleInstanceCount=factory.node.groupProperties.MC_MAX_INSTANCE_COUNT.getInteger();
   factory.getCluster().addMembershipListener(this);
-  MemberImpl memberLocal=(MemberImpl)factory.getCluster().getLocalMember();
-  int port=(memberLocal.getInetSocketAddress().getPort() - config.getPort()) + factoryImpl.node.getGroupProperties().MC_PORT.getInteger();
+  final MemberImpl memberLocal=(MemberImpl)factory.getCluster().getLocalMember();
+  thisAddress=memberLocal.getAddress();
+  int port=calculatePort(thisAddress);
   datagramSocket=new DatagramSocket(port);
   serverSocket=new SocketReadyServerSocket(port,1000,factory.node.config.isReuseAddress());
   udpListener=new UDPListener(datagramSocket,1000,factory.node.config.isReuseAddress());
