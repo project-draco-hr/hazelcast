@@ -1,0 +1,30 @@
+{
+  final PartitionInfo[] newState=new PartitionInfo[partitionCount];
+  for (int i=0; i < partitionCount; i++) {
+    newState[i]=currentState[i].copy();
+  }
+  int tryCount=0;
+  do {
+    arrange0(newState,members,partitionCount);
+  }
+ while (++tryCount < 3 && !test(newState,partitionCount,members.size()));
+  final int nodeSize=members.size();
+  final int replicaCount=Math.min(nodeSize,PartitionInfo.MAX_REPLICA_COUNT);
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    PartitionInfo oldPartition=currentState[partitionId];
+    PartitionInfo newPartition=newState[partitionId];
+    for (int index=0; index < replicaCount; index++) {
+      Address oldOwner=oldPartition.getReplicaAddress(index);
+      Address newOwner=newPartition.getReplicaAddress(index);
+      if (oldOwner != null && newOwner != null && !oldOwner.equals(newOwner)) {
+        migrationQueue.offer(new PartitionTransfer(partitionId,oldOwner,newOwner,true));
+      }
+ else       if (oldOwner == null && newOwner != null) {
+        backupQueue.offer(new PartitionTransfer(partitionId,oldOwner,newOwner,false));
+      }
+ else       if (oldOwner != null && newOwner == null) {
+      }
+    }
+  }
+  return newState;
+}
