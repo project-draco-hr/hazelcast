@@ -1,0 +1,46 @@
+{
+  int readBytesCount=0;
+  int limit;
+  if (in.hasRemaining()) {
+    limit=Math.min(in.remaining(),output.remaining());
+    for (int i=0; i < limit; i++) {
+      output.put(in.get());
+      readBytesCount++;
+    }
+    return readBytesCount;
+  }
+  if (sTOc.hasRemaining()) {
+    unwrap(sTOc);
+    in.flip();
+    limit=Math.min(in.limit(),output.remaining());
+    for (int i=0; i < limit; i++) {
+      output.put(in.get());
+      readBytesCount++;
+    }
+    if (sslEngineResult.getStatus() != SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+      sTOc.clear();
+      sTOc.flip();
+      return readBytesCount;
+    }
+  }
+  if (sTOc.hasRemaining()) {
+    sTOc.compact();
+  }
+ else {
+    sTOc.clear();
+  }
+  if (socketChannel.read(sTOc) == -1) {
+    sTOc.clear();
+    sTOc.flip();
+    return -1;
+  }
+  sTOc.flip();
+  unwrap(sTOc);
+  in.flip();
+  limit=Math.min(in.limit(),output.remaining());
+  for (int i=0; i < limit; i++) {
+    output.put(in.get());
+    readBytesCount++;
+  }
+  return readBytesCount;
+}
