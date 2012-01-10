@@ -1,18 +1,11 @@
 {
-  invalidateBlocksHash();
-  partitionServiceImpl.reset();
   Address deadAddress=deadMember.getAddress();
+  for (  PartitionInfo partition : partitions) {
+    partition.onDeadAddress(deadAddress);
+  }
+  Address thisAddress=concurrentMapManager.getThisAddress();
   if (deadAddress == null || deadAddress.equals(thisAddress)) {
     return;
-  }
-  Set<Integer> blocksOwnedAfterDead=new HashSet<Integer>();
-  for (  Block block : blocks) {
-    if (block != null) {
-      syncForDead(deadMember,block);
-      if (thisAddress.equals(block.getOwner())) {
-        blocksOwnedAfterDead.add(block.getBlockId());
-      }
-    }
   }
   Collection<CMap> cmaps=concurrentMapManager.maps.values();
   for (  CMap cmap : cmaps) {
@@ -27,12 +20,17 @@
           }
         }
         cmap.onDisconnect(record,deadAddress);
-        if (record.isActive() && blocksOwnedAfterDead.contains(record.getBlockId())) {
+        if (record.isActive() && thisAddress.equals(partitions[record.getBlockId()].getOwner())) {
           cmap.markAsDirty(record);
           cmap.updateIndexes(record);
         }
       }
     }
   }
-  onMembershipChange(false);
+  if (concurrentMapManager.isMaster()) {
+    System.out.println("-====== NOW ====");
+    System.out.println(this);
+    sendClusterRuntimeState();
+    initRepartitioning();
+  }
 }

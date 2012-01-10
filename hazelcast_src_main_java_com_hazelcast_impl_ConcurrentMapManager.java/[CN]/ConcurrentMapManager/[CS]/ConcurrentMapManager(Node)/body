@@ -8,11 +8,10 @@
   GLOBAL_REMOVE_DELAY_MILLIS=node.groupProperties.REMOVE_DELAY_SECONDS.getLong() * 1000L;
   CLEANUP_DELAY_MILLIS=node.groupProperties.CLEANUP_DELAY_SECONDS.getLong() * 1000L;
   LOG_STATE=node.groupProperties.LOG_STATE.getBoolean();
-  blocks=new Block[PARTITION_COUNT];
   maps=new ConcurrentHashMap<String,CMap>(10,0.75f,1);
   mapCaches=new ConcurrentHashMap<String,NearCache>(10,0.75f,1);
-  clusterPartitionManager=new ClusterPartitionManager(this);
   partitionManager=new PartitionManager(this);
+  partitionServiceImpl=new PartitionServiceImpl(this);
   node.clusterService.registerPeriodicRunnable(new FallThroughRunnable(){
     public void doRun(){
       logState();
@@ -34,7 +33,6 @@
     }
   }
 );
-  node.clusterService.registerPeriodicRunnable(partitionManager);
   registerPacketProcessor(CONCURRENT_MAP_GET_MAP_ENTRY,new GetMapEntryOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_GET_DATA_RECORD_ENTRY,new GetDataRecordEntryOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_GET,new GetOperationHandler());
@@ -76,9 +74,6 @@
   registerPacketProcessor(CONCURRENT_MAP_CONTAINS_KEY,new ContainsKeyOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_CONTAINS_ENTRY,new ContainsEntryOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_CONTAINS_VALUE,new ContainsValueOperationHandler());
-  registerPacketProcessor(CONCURRENT_MAP_BLOCK_INFO,new BlockInfoOperationHandler());
-  registerPacketProcessor(CONCURRENT_MAP_BLOCKS,new BlocksOperationHandler());
-  registerPacketProcessor(CONCURRENT_MAP_BLOCK_MIGRATION_CHECK,new BlockMigrationCheckHandler());
   registerPacketProcessor(CONCURRENT_MAP_VALUE_COUNT,new ValueCountOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_INVALIDATE,new InvalidateOperationHandler());
   registerPacketProcessor(ATOMIC_NUMBER_ADD_AND_GET,new AtomicNumberAddAndGetOperationHandler());

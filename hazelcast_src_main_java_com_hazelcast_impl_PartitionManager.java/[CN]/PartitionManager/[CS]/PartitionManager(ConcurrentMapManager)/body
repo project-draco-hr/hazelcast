@@ -1,12 +1,21 @@
 {
-  this.logger=concurrentMapManager.getNode().getLogger(PartitionManager.class.getName());
-  this.concurrentMapManager=concurrentMapManager;
-  this.node=concurrentMapManager.getNode();
   this.PARTITION_COUNT=concurrentMapManager.getPartitionCount();
-  this.blocks=concurrentMapManager.getBlocks();
-  this.thisAddress=concurrentMapManager.getThisAddress();
-  this.partitionServiceImpl=new PartitionServiceImpl(concurrentMapManager);
-  this.timeToInitiateMigration=System.currentTimeMillis() + node.getGroupProperties().INITIAL_WAIT_SECONDS.getInteger() * 1000 + MIGRATION_INTERVAL_MILLIS;
-  this.parallelExecutorMigration=node.getExecutorManager().newParallelExecutor(node.getGroupProperties().EXECUTOR_MIGRATION_THREAD_COUNT.getInteger());
-  this.parallelExecutorBackups=node.getExecutorManager().newParallelExecutor(20);
+  this.concurrentMapManager=concurrentMapManager;
+  this.logger=concurrentMapManager.node.getLogger(PartitionManager.class.getName());
+  this.partitions=new PartitionInfo[PARTITION_COUNT];
+  for (int i=0; i < PARTITION_COUNT; i++) {
+    this.partitions[i]=new PartitionInfo(i);
+  }
+  esMigrationService.scheduleAtFixedRate(new Runnable(){
+    public void run(){
+      concurrentMapManager.enqueueAndWait(new Processable(){
+        public void process(){
+          if (!concurrentMapManager.node.isActive())           return;
+          sendClusterRuntimeState();
+        }
+      }
+,1000);
+    }
+  }
+,5,5,TimeUnit.SECONDS);
 }

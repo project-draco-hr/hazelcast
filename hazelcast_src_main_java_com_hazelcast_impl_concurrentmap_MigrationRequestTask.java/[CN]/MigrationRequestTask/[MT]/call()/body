@@ -1,17 +1,16 @@
 {
+  if (from.equals(to))   return Boolean.TRUE;
   Node node=((FactoryImpl)hazelcast).node;
-  ClusterPartitionManager pm=node.concurrentMapManager.getClusterPartitionManager();
-  MigrationRequestTask existing=pm.addActiveMigration(this);
-  if (existing != null)   return Boolean.FALSE;
+  PartitionManager pm=node.concurrentMapManager.getClusterPartitionManager();
   try {
     Member target=pm.getMember(to);
     if (target == null)     return Boolean.FALSE;
-    List<Record> lsRecordsToMigrate=pm.getActivePartitionRecords(partitionId);
+    List<Record> lsRecordsToMigrate=pm.getActivePartitionRecords(partitionId,replicaIndex,to);
     RecordSet recordSet=new RecordSet();
     for (    Record record : lsRecordsToMigrate) {
       recordSet.addDataRecordEntry(new DataRecordEntry(record));
     }
-    DistributedTask task=new DistributedTask(new MigrationTask(partitionId,toData(recordSet)),target);
+    DistributedTask task=new DistributedTask(new MigrationTask(partitionId,toData(recordSet),replicaIndex),target);
     Future future=node.factory.getExecutorService().submit(task);
     return (Boolean)future.get(400,TimeUnit.SECONDS);
   }

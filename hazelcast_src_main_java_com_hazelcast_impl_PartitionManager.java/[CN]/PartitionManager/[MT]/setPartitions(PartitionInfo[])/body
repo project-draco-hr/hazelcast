@@ -1,0 +1,23 @@
+{
+  int size=newPartitions.length;
+  for (int i=0; i < size; i++) {
+    PartitionInfo newPartition=newPartitions[i];
+    PartitionInfo currentPartition=partitions[newPartition.getPartitionId()];
+    currentPartition.setPartitionInfo(newPartition);
+    checkCurrentMigrations(currentPartition);
+    Address ownerAddress=currentPartition.getOwner();
+    if (ownerAddress != null) {
+      MemberImpl ownerMember=concurrentMapManager.getMember(ownerAddress);
+      if (ownerMember != null) {
+        concurrentMapManager.partitionServiceImpl.setOwner(currentPartition.getPartitionId(),ownerMember);
+      }
+ else {
+        concurrentMapManager.partitionServiceImpl.setOwner(currentPartition.getPartitionId(),null);
+      }
+    }
+ else {
+      concurrentMapManager.partitionServiceImpl.setOwner(currentPartition.getPartitionId(),null);
+    }
+  }
+  initialized=true;
+}

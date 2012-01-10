@@ -11,7 +11,7 @@
   final Collection<Record> records=mapRecords.values();
   final boolean overCapacity=maxSizePolicy.overCapacity();
   final boolean evictionAware=evictionComparator != null && overCapacity;
-  final PartitionServiceImpl partitionService=concurrentMapManager.partitionManager.partitionServiceImpl;
+  final PartitionServiceImpl partitionService=concurrentMapManager.partitionServiceImpl;
   int recordsStillOwned=0;
   int backupPurgeCount=0;
   for (  Record record : records) {
@@ -38,13 +38,7 @@
         }
       }
  else {
-        Member ownerEventual=partition.getEventualOwner();
-        boolean backup=false;
-        if (ownerEventual != null && owner != null && !owner.localMember()) {
-          int distance=node.getClusterImpl().getDistanceFrom(ownerEventual,true);
-          backup=(distance != -1 && distance <= getBackupCount());
-        }
-        if (backup) {
+        if (partition.isMigrating()) {
           if (shouldPurgeRecord(record,now)) {
             recordsToPurge.add(record);
             backupPurgeCount++;

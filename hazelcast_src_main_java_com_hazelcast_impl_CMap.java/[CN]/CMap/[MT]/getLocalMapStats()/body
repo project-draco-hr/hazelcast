@@ -13,47 +13,33 @@
   long lockWaitCount=0;
   ClusterImpl clusterImpl=node.getClusterImpl();
   final Collection<Record> records=mapRecords.values();
-  final PartitionServiceImpl partitionService=concurrentMapManager.partitionManager.partitionServiceImpl;
+  final PartitionManager partitionManager=concurrentMapManager.partitionManager;
   for (  Record record : records) {
     if (!record.isActive() || !record.isValid(now)) {
       markedAsRemovedEntryCount++;
       markedAsRemovedMemoryCost+=record.getCost();
     }
  else {
-      PartitionServiceImpl.PartitionProxy partition=partitionService.getPartition(record.getBlockId());
-      Member owner=partition.getOwner();
-      if (owner != null && !partition.isMigrating()) {
-        boolean owned=owner.localMember();
-        if (owned) {
-          if (store != null && record.getLastStoredTime() < Math.max(record.getLastUpdateTime(),record.getCreationTime())) {
-            dirtyCount++;
-          }
-          ownedEntryCount+=record.valueCount();
-          ownedEntryMemoryCost+=record.getCost();
-          localMapStats.setLastAccessTime(record.getLastAccessTime());
-          localMapStats.setLastUpdateTime(record.getLastUpdateTime());
-          hits+=record.getHits();
-          if (record.isLocked()) {
-            lockedEntryCount++;
-            lockWaitCount+=record.getScheduledActionCount();
-          }
+      PartitionInfo partition=partitionManager.getPartition(record.getBlockId());
+      Address owner=partition.getOwner();
+      if (owner != null && thisAddress.equals(owner)) {
+        if (store != null && record.getLastStoredTime() < Math.max(record.getLastUpdateTime(),record.getCreationTime())) {
+          dirtyCount++;
         }
- else {
-          Member ownerEventual=partition.getEventualOwner();
-          boolean backup=false;
-          if (ownerEventual != null && !owner.localMember()) {
-            int distance=node.getClusterImpl().getDistanceFrom(ownerEventual,true);
-            backup=(distance != -1 && distance <= getBackupCount());
-          }
-          if (backup && !shouldPurgeRecord(record,now)) {
-            backupEntryCount+=record.valueCount();
-            backupEntryMemoryCost+=record.getCost();
-          }
- else {
-            markedAsRemovedEntryCount++;
-            markedAsRemovedMemoryCost+=record.getCost();
-          }
+        ownedEntryCount+=record.valueCount();
+        ownedEntryMemoryCost+=record.getCost();
+        localMapStats.setLastAccessTime(record.getLastAccessTime());
+        localMapStats.setLastUpdateTime(record.getLastUpdateTime());
+        hits+=record.getHits();
+        if (record.isLocked()) {
+          lockedEntryCount++;
+          lockWaitCount+=record.getScheduledActionCount();
         }
+      }
+ else       if (partition.isBackup(thisAddress,backupCount)) {
+        if (record.valueCount() <= 0)         throw new RuntimeException();
+        backupEntryCount+=record.valueCount();
+        backupEntryMemoryCost+=record.getCost();
       }
     }
   }

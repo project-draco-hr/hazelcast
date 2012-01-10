@@ -1,0 +1,38 @@
+{
+  try {
+    if (!concurrentMapManager.node.isActive())     return;
+    Member fromMember=getMember(migrationRequestTask.getFromAddress());
+    DistributedTask task=new DistributedTask(migrationRequestTask,fromMember);
+    Future future=concurrentMapManager.node.factory.getExecutorService().submit(task);
+    Object result=future.get(600,TimeUnit.SECONDS);
+    if (Boolean.TRUE.equals(result)) {
+      concurrentMapManager.enqueueAndWait(new Processable(){
+        public void process(){
+          int partitionId=migrationRequestTask.getPartitionId();
+          int replicaIndex=migrationRequestTask.getReplicaIndex();
+          PartitionInfo partition=partitions[partitionId];
+          if (PartitionInfo.MAX_REPLICA_COUNT < replicaIndex) {
+            String msg="Migrated [" + partitionId + ":"+ replicaIndex+ "] but cannot assign. Length:"+ PartitionInfo.MAX_REPLICA_COUNT;
+            logger.log(Level.WARNING,msg);
+          }
+ else {
+            Address newOwner=migrationRequestTask.getToAddress();
+            partition.setReplicaAddress(replicaIndex,newOwner);
+            if (replicaIndex == 0) {
+              MemberImpl ownerMember=concurrentMapManager.getMember(newOwner);
+              if (ownerMember != null) {
+                concurrentMapManager.partitionServiceImpl.setOwner(partition.getPartitionId(),ownerMember);
+              }
+            }
+            checkCurrentMigrations(partition);
+            sendClusterRuntimeState();
+          }
+        }
+      }
+,10000);
+    }
+  }
+ catch (  Throwable e) {
+    e.printStackTrace();
+  }
+}

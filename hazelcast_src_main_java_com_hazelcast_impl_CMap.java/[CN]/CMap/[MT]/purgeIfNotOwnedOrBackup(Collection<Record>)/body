@@ -1,24 +1,8 @@
 {
-  Map<Address,Integer> mapMemberDistances=new HashMap<Address,Integer>();
+  PartitionManager partitionManager=concurrentMapManager.getClusterPartitionManager();
   for (  Record record : records) {
-    Block block=blocks[record.getBlockId()];
-    boolean owned=thisAddress.equals(block.getOwner());
-    if (!owned && !block.isMigrating()) {
-      Address owner=(block.isMigrating()) ? block.getMigrationAddress() : block.getOwner();
-      if (owner != null && !thisAddress.equals(owner)) {
-        int distance;
-        Integer d=mapMemberDistances.get(owner);
-        if (d == null) {
-          distance=concurrentMapManager.getDistance(owner,thisAddress);
-          mapMemberDistances.put(owner,distance);
-        }
- else {
-          distance=d;
-        }
-        if (distance > getBackupCount()) {
-          mapRecords.remove(record.getKeyData());
-        }
-      }
+    if (partitionManager.shouldPurge(record.getBlockId())) {
+      mapRecords.remove(record.getKeyData());
     }
   }
 }

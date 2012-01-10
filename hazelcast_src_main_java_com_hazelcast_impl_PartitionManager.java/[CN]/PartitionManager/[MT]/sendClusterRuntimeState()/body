@@ -1,0 +1,13 @@
+{
+  long clusterTime=concurrentMapManager.node.getClusterImpl().getClusterTime();
+  List<MemberImpl> lsMembers=concurrentMapManager.lsMembers;
+  ArrayList<MemberInfo> memberInfos=new ArrayList<MemberInfo>(lsMembers.size());
+  for (  MemberImpl member : lsMembers) {
+    memberInfos.add(new MemberInfo(member.getAddress(),member.getNodeType(),member.getUuid()));
+  }
+  for (  MemberImpl member : concurrentMapManager.getMembers()) {
+    if (!member.localMember()) {
+      concurrentMapManager.sendProcessableToAll(new ClusterRuntimeState(memberInfos,partitions,clusterTime),false);
+    }
+  }
+}

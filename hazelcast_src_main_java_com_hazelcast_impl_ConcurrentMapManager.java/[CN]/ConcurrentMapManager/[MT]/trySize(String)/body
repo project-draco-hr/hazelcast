@@ -1,0 +1,20 @@
+{
+  int totalSize=0;
+  Set<Member> members=node.getClusterImpl().getMembers();
+  List<Future<Integer>> lsFutures=new ArrayList<Future<Integer>>();
+  for (  Member member : members) {
+    if (!member.isLiteMember()) {
+      MapSizeCallable callable=new MapSizeCallable(name);
+      DistributedTask<Integer> dt=new DistributedTask<Integer>(callable,member);
+      lsFutures.add(dt);
+      node.factory.getExecutorService(BATCH_OPS_EXECUTOR_NAME).execute(dt);
+    }
+  }
+  for (  Future<Integer> future : lsFutures) {
+    Integer partialSize=future.get();
+    if (partialSize != null) {
+      totalSize+=partialSize;
+    }
+  }
+  return totalSize;
+}

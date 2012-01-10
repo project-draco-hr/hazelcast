@@ -1,0 +1,31 @@
+{
+  concurrentMapManager.enqueueAndWait(new Processable(){
+    public void process(){
+      PartitionInfo migratingPartition=mapActiveMigrations.get(partitionId);
+      if (migratingPartition == null) {
+        migratingPartition=new PartitionInfo(partitionId);
+        mapActiveMigrations.put(partitionId,migratingPartition);
+      }
+      migratingPartition.setReplicaAddress(replicaIndex,newAddress);
+    }
+  }
+,10000);
+  long now=System.currentTimeMillis();
+  final Collection<CMap> cmaps=concurrentMapManager.maps.values();
+  List<Record> lsResultSet=new ArrayList<Record>(1000);
+  for (  final CMap cmap : cmaps) {
+    if (cmap.getBackupCount() >= replicaIndex) {
+      for (      Record rec : cmap.mapRecords.values()) {
+        if (rec.isActive() && rec.isValid(now)) {
+          if (rec.getKeyData() == null || rec.getKeyData().size() == 0) {
+            throw new RuntimeException("Record.key is null or empty " + rec.getKeyData());
+          }
+          if (rec.getBlockId() == partitionId) {
+            lsResultSet.add(rec);
+          }
+        }
+      }
+    }
+  }
+  return lsResultSet;
+}
