@@ -1,4 +1,15 @@
 {
+  if (initialized) {
+    esMigrationService.getQueue().clear();
+  }
+  int maxBackupCount=0;
+  for (  final CMap cmap : concurrentMapManager.maps.values()) {
+    maxBackupCount=Math.max(maxBackupCount,cmap.getBackupCount());
+  }
+  int[] indexesOfDead=new int[partitions.length];
+  for (  PartitionInfo partition : partitions) {
+    indexesOfDead[partition.getPartitionId()]=partition.getReplicaIndexOf(deadMember.getAddress());
+  }
   Address deadAddress=deadMember.getAddress();
   for (  PartitionInfo partition : partitions) {
     partition.onDeadAddress(deadAddress);
@@ -7,8 +18,7 @@
   if (deadAddress == null || deadAddress.equals(thisAddress)) {
     return;
   }
-  Collection<CMap> cmaps=concurrentMapManager.maps.values();
-  for (  CMap cmap : cmaps) {
+  for (  CMap cmap : concurrentMapManager.maps.values()) {
     cmap.onDisconnect(deadAddress);
     Object[] records=cmap.mapRecords.values().toArray();
     for (    Object recordObject : records) {
@@ -28,9 +38,26 @@
     }
   }
   if (concurrentMapManager.isMaster()) {
-    System.out.println("-====== NOW ====");
-    System.out.println(this);
+    for (int i=0; i < indexesOfDead.length; i++) {
+      int indexOfDead=indexesOfDead[i];
+      if (indexOfDead != -1) {
+        PartitionInfo partition=partitions[i];
+        if (indexOfDead <= maxBackupCount) {
+          Address owner=partition.getOwner();
+          Address target=partition.getReplicaAddress(maxBackupCount);
+          if (owner != null && target != null) {
+            MigrationRequestTask mrt=new MigrationRequestTask(i,owner,target,maxBackupCount,false);
+            esMigrationService.execute(new Migrator(mrt));
+          }
+        }
+      }
+    }
     sendClusterRuntimeState();
-    initRepartitioning();
+    esMigrationService.execute(new Runnable(){
+      public void run(){
+        initRepartitioning();
+      }
+    }
+);
   }
 }

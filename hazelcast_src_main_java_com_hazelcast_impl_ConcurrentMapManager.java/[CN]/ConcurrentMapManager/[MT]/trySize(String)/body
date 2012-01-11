@@ -2,9 +2,10 @@
   int totalSize=0;
   Set<Member> members=node.getClusterImpl().getMembers();
   List<Future<Integer>> lsFutures=new ArrayList<Future<Integer>>();
+  int expectedPartitionVersion=partitionManager.getVersion();
   for (  Member member : members) {
     if (!member.isLiteMember()) {
-      MapSizeCallable callable=new MapSizeCallable(name);
+      MapSizeCallable callable=new MapSizeCallable(name,expectedPartitionVersion);
       DistributedTask<Integer> dt=new DistributedTask<Integer>(callable,member);
       lsFutures.add(dt);
       node.factory.getExecutorService(BATCH_OPS_EXECUTOR_NAME).execute(dt);
@@ -13,6 +14,9 @@
   for (  Future<Integer> future : lsFutures) {
     Integer partialSize=future.get();
     if (partialSize != null) {
+      if (partialSize == -1) {
+        throw new IllegalStateException("Unexpected partition version!");
+      }
       totalSize+=partialSize;
     }
   }

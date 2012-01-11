@@ -4,17 +4,23 @@
   this.logger=concurrentMapManager.node.getLogger(PartitionManager.class.getName());
   this.partitions=new PartitionInfo[PARTITION_COUNT];
   for (int i=0; i < PARTITION_COUNT; i++) {
-    this.partitions[i]=new PartitionInfo(i);
+    this.partitions[i]=new PartitionInfo(i,new ChangeListener(){
+      public void stateChanged(      ChangeEvent e){
+        if (!concurrentMapManager.isMaster())         return;
+        version.incrementAndGet();
+      }
+    }
+);
   }
-  esMigrationService.scheduleAtFixedRate(new Runnable(){
+  concurrentMapManager.node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new Runnable(){
     public void run(){
-      concurrentMapManager.enqueueAndWait(new Processable(){
+      concurrentMapManager.enqueueAndReturn(new Processable(){
         public void process(){
           if (!concurrentMapManager.node.isActive())           return;
           sendClusterRuntimeState();
         }
       }
-,1000);
+);
     }
   }
 ,5,5,TimeUnit.SECONDS);
