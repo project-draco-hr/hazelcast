@@ -1,0 +1,26 @@
+{
+  final PartitionInfo[] state=new PartitionInfo[partitionCount];
+  stateInitializer.initialize(state);
+  int tryCount=0;
+  TestResult result=null;
+  boolean failed=false;
+  do {
+    doArrange(state,members,partitionCount,clusterPartitionRegistry);
+    result=testArrangment(state,partitionCount,members.size(),clusterPartitionRegistry.getMaxReplicaCount());
+    if (result == TestResult.FAIL) {
+      logger.log(Level.WARNING,"Error detected on partition arrangement! Try-count: " + tryCount);
+      stateInitializer.initialize(state);
+      failed=true;
+    }
+ else     if (failed && result != TestResult.FAIL) {
+      logger.log(Level.INFO,"Successfully re-rearranged partitions after an error...");
+      break;
+    }
+ else {
+      tryCount++;
+      logger.log(Level.FINEST,"Re-trying partition arragement.. Count: " + tryCount);
+    }
+  }
+ while (tryCount < 3 && result != TestResult.PASS);
+  return state;
+}
