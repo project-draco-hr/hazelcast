@@ -12,27 +12,12 @@
   mapCaches=new ConcurrentHashMap<String,NearCache>(10,0.75f,1);
   partitionManager=new PartitionManager(this);
   partitionServiceImpl=new PartitionServiceImpl(this);
-  node.clusterService.registerPeriodicRunnable(new FallThroughRunnable(){
-    public void doRun(){
-      logState();
-      long now=currentTimeMillis();
-      Collection<CMap> cmaps=maps.values();
-      for (      final CMap cmap : cmaps) {
-        if (cmap.cleanupState == CMap.CleanupState.SHOULD_CLEAN) {
-          executeCleanup(cmap,true);
-        }
-      }
-      if (now > nextCleanup) {
-        for (        final CMap cmap : cmaps) {
-          if (cmap.cleanupState == CMap.CleanupState.NONE) {
-            executeCleanup(cmap,false);
-          }
-        }
-        nextCleanup=now + CLEANUP_DELAY_MILLIS;
-      }
+  node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new Runnable(){
+    public void run(){
+      startCleanup(false);
     }
   }
-);
+,10,10,TimeUnit.SECONDS);
   registerPacketProcessor(CONCURRENT_MAP_GET_MAP_ENTRY,new GetMapEntryOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_GET_DATA_RECORD_ENTRY,new GetDataRecordEntryOperationHandler());
   registerPacketProcessor(CONCURRENT_MAP_GET,new GetOperationHandler());
