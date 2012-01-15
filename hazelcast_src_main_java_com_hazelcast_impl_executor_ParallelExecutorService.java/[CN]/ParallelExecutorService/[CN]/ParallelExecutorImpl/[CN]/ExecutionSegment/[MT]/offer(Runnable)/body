@@ -1,8 +1,25 @@
 {
-  waitingExecutions.incrementAndGet();
-  q.offer(e);
-  onOffer();
-  if (shouldRun()) {
+  boolean interrupted=false;
+  try {
+    for (; ; ) {
+      try {
+        q.put(command);
+        break;
+      }
+ catch (      InterruptedException ie) {
+        interrupted=true;
+      }
+    }
+  }
+  finally {
+    if (interrupted) {
+      Thread.currentThread().interrupt();
+    }
+  }
+  if (active.get()) {
+    return;
+  }
+  if (active.compareAndSet(false,true)) {
     executorService.execute(ExecutionSegment.this);
   }
 }

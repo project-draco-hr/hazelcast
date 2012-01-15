@@ -1,0 +1,17 @@
+{
+  ParallelExecutor executor=parallelExecutorService.newBlockingParallelExecutor(CONCURRENCY_LEVEL,capacity);
+  Random random=new Random();
+  Segment[] segmentArray=new Segment[CONCURRENCY_LEVEL];
+  for (int k=0; k < segmentArray.length; k++) {
+    segmentArray[k]=new Segment(k);
+  }
+  for (int k=0; k < TASK_COUNT; k++) {
+    sleepMs(random.nextInt(2));
+    int segmentIndex=random.nextInt(CONCURRENCY_LEVEL);
+    Segment segment=segmentArray[segmentIndex];
+    TestRunnable runnable=new TestRunnable(segment);
+    executor.execute(runnable,segmentIndex);
+  }
+  assertTrue("The tasks where not executed in the given timeout",completedLatch.await(120,TimeUnit.SECONDS));
+  assertEquals(violationCounter.get(),0);
+}

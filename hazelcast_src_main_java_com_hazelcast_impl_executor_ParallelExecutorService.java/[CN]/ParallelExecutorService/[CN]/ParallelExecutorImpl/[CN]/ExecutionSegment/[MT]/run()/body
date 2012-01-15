@@ -1,7 +1,32 @@
 {
   activeCount.incrementAndGet();
-  while (shouldLoop()) {
-    doRun();
+  try {
+    for (; ; ) {
+      Runnable command=q.poll();
+      if (command == null) {
+        active.set(false);
+        boolean finished;
+        if (q.peek() == null) {
+          finished=true;
+        }
+ else {
+          finished=!active.compareAndSet(false,true);
+        }
+        if (finished) {
+          break;
+        }
+      }
+ else {
+        try {
+          command.run();
+        }
+ catch (        Throwable e) {
+          logger.log(Level.WARNING,e.getMessage(),e);
+        }
+      }
+    }
   }
-  activeCount.decrementAndGet();
+  finally {
+    activeCount.decrementAndGet();
+  }
 }

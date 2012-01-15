@@ -1,0 +1,16 @@
+{
+  if (segment.activeCounter.getAndIncrement() != 0) {
+    System.out.println("ERROR: Concurrent execution within a segment has taken place");
+    violationCounter.incrementAndGet();
+  }
+  if (segment.expectedSequenceNumber.getAndIncrement() != sequenceNumber) {
+    System.out.println("ERROR: An out of order execution within a segment has taken place");
+    violationCounter.incrementAndGet();
+  }
+  if (sequenceNumber % 100 == 0) {
+    System.out.println("Segment [" + segment.segment + "] is at element ["+ sequenceNumber+ "]");
+  }
+  sleepMs(segment.random.nextInt(TASK_DURATION_MS));
+  segment.activeCounter.decrementAndGet();
+  completedLatch.countDown();
+}
