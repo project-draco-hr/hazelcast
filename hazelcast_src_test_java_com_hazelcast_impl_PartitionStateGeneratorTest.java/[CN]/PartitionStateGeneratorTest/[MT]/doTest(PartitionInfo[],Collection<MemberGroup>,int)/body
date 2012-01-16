@@ -1,0 +1,89 @@
+{
+  Iterator<MemberGroup> iter=groups.iterator();
+  while (iter.hasNext()) {
+    if (iter.next().size() == 0) {
+      iter.remove();
+    }
+  }
+  final int replicaCount=Math.min(groups.size(),PartitionInfo.MAX_REPLICA_COUNT);
+  final Map<MemberGroup,GroupPartitionState> groupPartitionStates=new HashMap<MemberGroup,GroupPartitionState>();
+  final Set<Address> set=new HashSet<Address>();
+  final int avgPartitionPerGroup=partitionCount / groups.size();
+  for (  PartitionInfo p : state) {
+    for (int i=0; i < replicaCount; i++) {
+      Address owner=p.getReplicaAddress(i);
+      Assert.assertNotNull(owner);
+      Assert.assertFalse("Duplicate owner of partition: " + p.getPartitionId(),set.contains(owner));
+      set.add(owner);
+      MemberGroup group=null;
+      for (      MemberGroup g : groups) {
+        if (g.hasMember(new MemberImpl(owner,true))) {
+          group=g;
+          break;
+        }
+      }
+      Assert.assertNotNull(group);
+      GroupPartitionState groupState=groupPartitionStates.get(group);
+      if (groupState == null) {
+        groupState=new GroupPartitionState();
+        groupState.group=group;
+        groupPartitionStates.put(group,groupState);
+      }
+      groupState.groupPartitions[i].add(p.getPartitionId());
+      groupState.getNodePartitions(owner)[i].add(p.getPartitionId());
+    }
+    set.clear();
+  }
+  print("Owner");
+  for (int i=0; i < replicaCount; i++) {
+    if (i == 0) {
+      print("\t\t");
+    }
+    print("\tRep-" + i);
+  }
+  print("\tTotal");
+  println();
+  println("_______________________________________________________________________________________");
+  int k=1;
+  for (  GroupPartitionState groupState : groupPartitionStates.values()) {
+    for (    Entry<Address,Set<Integer>[]> entry : groupState.nodePartitionsMap.entrySet()) {
+      int total=0;
+      print(entry.getKey().getHost() + ":" + entry.getKey().getPort());
+      Collection<Integer>[] partitions=entry.getValue();
+      for (int i=0; i < replicaCount; i++) {
+        final int avgPartitionPerNode=groupState.groupPartitions[i].size() / groupState.nodePartitionsMap.size();
+        if (i == 0) {
+          print("\t");
+        }
+        print('\t');
+        int count=partitions[i].size();
+        print(count);
+        total+=partitions[i].size();
+        isInAllowedRange(count,avgPartitionPerNode,i);
+      }
+      print('\t');
+      print(total);
+      println();
+    }
+    println("----------------------------------------------------------------------------------------");
+    int total=0;
+    print("Group" + (k++) + "["+ +groupState.group.size()+ "]");
+    Collection<Integer>[] partitions=groupState.groupPartitions;
+    for (int i=0; i < replicaCount; i++) {
+      if (i == 0) {
+        print("\t");
+      }
+      print('\t');
+      int count=partitions[i].size();
+      print(count);
+      total+=partitions[i].size();
+      isInAllowedRange(count,avgPartitionPerGroup,i);
+    }
+    print('\t');
+    print(total);
+    println();
+    println();
+  }
+  println();
+  println();
+}

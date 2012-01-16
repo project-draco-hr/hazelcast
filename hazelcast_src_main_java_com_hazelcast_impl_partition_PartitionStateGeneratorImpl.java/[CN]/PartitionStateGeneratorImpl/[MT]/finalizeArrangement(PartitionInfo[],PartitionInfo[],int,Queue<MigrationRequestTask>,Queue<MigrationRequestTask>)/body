@@ -1,0 +1,23 @@
+{
+  final int partitionCount=currentState.length;
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    PartitionInfo currentPartition=currentState[partitionId];
+    PartitionInfo newPartition=newState[partitionId];
+    for (int replicaIndex=0; replicaIndex < replicaCount; replicaIndex++) {
+      Address currentOwner=currentPartition.getReplicaAddress(replicaIndex);
+      Address newOwner=newPartition.getReplicaAddress(replicaIndex);
+      if (currentOwner != null && newOwner != null && !currentOwner.equals(newOwner)) {
+        MigrationRequestTask migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,true);
+        migrationQueue.offer(migrationRequestTask);
+      }
+ else       if (currentOwner == null && newOwner != null) {
+        currentOwner=currentPartition.getOwner();
+        MigrationRequestTask migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,false);
+        replicaQueue.offer(migrationRequestTask);
+      }
+ else       if (currentOwner != null && newOwner == null) {
+        logger.log(Level.WARNING,"Something is wrong! Old owner valid but new owner is null!");
+      }
+    }
+  }
+}

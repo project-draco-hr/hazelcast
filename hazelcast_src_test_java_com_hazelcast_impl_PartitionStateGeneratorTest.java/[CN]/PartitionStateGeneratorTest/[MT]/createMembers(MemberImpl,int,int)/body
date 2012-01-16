@@ -1,0 +1,34 @@
+{
+  Random rand=new Random();
+  int count=0;
+  int port=5700;
+  final byte[] ip=new byte[]{10,10,0,0};
+  if (startAfter != null) {
+    Address address=startAfter.getAddress();
+    if (maxSameHostCount > 1 && rand.nextBoolean()) {
+      ip[2]=address.getIP()[2];
+      ip[3]=(byte)(address.getIP()[3] + 1);
+    }
+ else {
+      ip[2]=(byte)(address.getIP()[2] + 1);
+    }
+  }
+  List<MemberImpl> members=new ArrayList<MemberImpl>();
+  int sameHostCount=rand.nextInt(maxSameHostCount) + 1;
+  for (int i=0; i < memberCount; i++) {
+    if (count == sameHostCount) {
+      ip[3]=++ip[3];
+      count=0;
+      port=5700;
+      sameHostCount=rand.nextInt(maxSameHostCount) + 1;
+    }
+    count++;
+    port++;
+    MemberImpl m=new MemberImpl(new Address(new byte[]{ip[0],ip[1],ip[2],ip[3]},port),false);
+    members.add(m);
+    if (ip[3] == 255) {
+      ip[2]=++ip[2];
+    }
+  }
+  return members;
+}

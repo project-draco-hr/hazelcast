@@ -1,0 +1,46 @@
+{
+  int maxSameHostCount=3;
+  int[] partitionCounts=new int[]{271};
+  int[] members=new int[]{2,3,5,5,10,9,9,7};
+  Queue<MigrationRequestTask> qm=new LinkedList<MigrationRequestTask>();
+  Queue<MigrationRequestTask> qr=new LinkedList<MigrationRequestTask>();
+  for (int i=0; i < partitionCounts.length; i++) {
+    int partitionCount=partitionCounts[i];
+    int memberCount=members[0];
+    List<MemberImpl> memberList=createMembers(memberCount,maxSameHostCount);
+    Collection<MemberGroup> groups=nodeGroupFactory.createMemberGroups(memberList);
+    System.out.println("PARTITION-COUNT= " + partitionCount + ", MEMBER-COUNT= "+ members[0]+ ", GROUP-COUNT= "+ groups.size());
+    System.out.println();
+    PartitionInfo[] state=generator.initialize(memberList,partitionCount);
+    doTest(state,groups,partitionCount);
+    int previousMemberCount=memberCount;
+    for (int j=1; j < members.length; j++) {
+      memberCount=members[j];
+      if ((float)partitionCount / memberCount > 2) {
+        if (previousMemberCount == 0) {
+          memberList=createMembers(memberCount,maxSameHostCount);
+        }
+ else         if (memberCount > previousMemberCount) {
+          MemberImpl last=memberList.get(previousMemberCount - 1);
+          List<MemberImpl> extra=createMembers(last,(memberCount - previousMemberCount),maxSameHostCount);
+          memberList.addAll(extra);
+        }
+ else {
+          memberList=memberList.subList(0,memberCount);
+          shift(state,memberList,0);
+        }
+        groups=nodeGroupFactory.createMemberGroups(memberList);
+        System.out.println("PARTITION-COUNT= " + partitionCount + ", MEMBER-COUNT= "+ memberCount+ ", GROUP-COUNT= "+ groups.size());
+        state=generator.reArrange(state,memberList,partitionCount,qm,qr);
+        for (int k=0; k < Math.min(groups.size(),PartitionInfo.MAX_REPLICA_COUNT); k++) {
+          printTaskQueueSize(qm,qr,k);
+        }
+        System.out.println();
+        qm.clear();
+        qr.clear();
+        doTest(state,groups,partitionCount);
+        previousMemberCount=memberCount;
+      }
+    }
+  }
+}
