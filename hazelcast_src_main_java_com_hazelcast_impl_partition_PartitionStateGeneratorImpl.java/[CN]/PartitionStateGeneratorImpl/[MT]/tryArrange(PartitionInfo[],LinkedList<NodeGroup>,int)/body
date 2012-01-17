@@ -90,22 +90,25 @@
         groups.offer(group);
       }
     }
-    maxTries=underLoadedGroups.size() * overLoadedGroups.size();
+    maxTries=underLoadedGroups.size() * overLoadedGroups.size() * 2;
     tries=0;
     int expectedPartitionCount=remainingPartitions > 0 ? maxPartitionPerGroup : avgPartitionPerGroup;
-    while (tries++ < maxTries && !underLoadedGroups.isEmpty() && !overLoadedGroups.isEmpty()) {
+    while (tries++ < maxTries && !underLoadedGroups.isEmpty()) {
       NodeGroup toGroup=underLoadedGroups.poll();
       int size=overLoadedGroups.size();
-      boolean done=false;
       for (int i=0; i < size; i++) {
         NodeGroup fromGroup=overLoadedGroups.poll();
-        final Iterator<Integer> partitionsIter=fromGroup.getPartitions(index);
+        final Iterator<Integer> partitionsIter=fromGroup.getPartitionsIterator(index);
         while (partitionsIter.hasNext() && fromGroup.getPartitonCount(index) > expectedPartitionCount) {
           Integer partitionId=partitionsIter.next();
           if (toGroup.addPartition(index,partitionId)) {
             partitionsIter.remove();
-            if (toGroup.getPartitonCount(index) == expectedPartitionCount) {
-              done=true;
+            if (toGroup.getPartitonCount(index) >= expectedPartitionCount) {
+              if (expectedPartitionCount == maxPartitionPerGroup) {
+                if (--remainingPartitions == 0) {
+                  expectedPartitionCount=avgPartitionPerGroup;
+                }
+              }
               break;
             }
           }
@@ -122,21 +125,18 @@
  else         if (count > avgPartitionPerGroup) {
           overLoadedGroups.offer(fromGroup);
         }
-        if (done) {
+        if (toGroup.getPartitonCount(index) == expectedPartitionCount) {
           break;
-        }
- else {
-          underLoadedGroups.offer(toGroup);
         }
       }
     }
     for (    NodeGroup group : groups) {
-      Map<Address,PartitionTable> tables=group.postProcessPartitionTable(index);
-      for (      Entry<Address,PartitionTable> e : tables.entrySet()) {
-        PartitionTable t=e.getValue();
-        Set<Integer> set=t.getPartitions(index);
+      group.postProcessPartitionTable(index);
+      for (      Address address : group.getNodes()) {
+        PartitionTable table=group.getPartitionTable(address);
+        Set<Integer> set=table.getPartitions(index);
         for (        Integer partitionId : set) {
-          state[partitionId.intValue()].setReplicaAddress(index,e.getKey());
+          state[partitionId.intValue()].setReplicaAddress(index,address);
         }
       }
     }
