@@ -1,0 +1,18 @@
+{
+  final int size=1000;
+  Config config=new Config();
+  config.getMapConfig("default").setBackupCount(2);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  IMap map1=h1.getMap("default");
+  IMap map2=h2.getMap("default");
+  for (int i=0; i < size; i++) {
+    map1.put(i,i);
+  }
+  assertEquals(size,getTotalOwnedEntryCount(map1,map2));
+  assertEquals(size,getTotalBackupEntryCount(map1,map2));
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  IMap map3=h3.getMap("default");
+  assertEquals(size,getTotalOwnedEntryCount(map1,map2,map3));
+  assertEquals(size,getTotalBackupEntryCount(map1,map2,map3));
+}

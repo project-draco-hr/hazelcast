@@ -2,5 +2,9 @@
   if (!initialized) {
     firstArrangement();
   }
-  return partitions[partitionId].getOwner();
+  Address owner=partitions[partitionId].getOwner();
+  if (owner == null && !concurrentMapManager.isMaster()) {
+    concurrentMapManager.sendProcessableTo(new AssignPartitions(),concurrentMapManager.getMasterAddress());
+  }
+  return owner;
 }
