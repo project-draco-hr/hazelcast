@@ -3,6 +3,7 @@
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     PartitionInfo currentPartition=currentState[partitionId];
     PartitionInfo newPartition=newState[partitionId];
+    boolean lost=false;
     for (int replicaIndex=0; replicaIndex < replicaCount; replicaIndex++) {
       Address currentOwner=currentPartition.getReplicaAddress(replicaIndex);
       Address newOwner=newPartition.getReplicaAddress(replicaIndex);
@@ -11,7 +12,9 @@
         migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,true);
       }
  else       if (currentOwner == null && newOwner != null) {
-        currentOwner=currentPartition.getOwner();
+        if ((currentOwner=currentPartition.getOwner()) == null) {
+          lost=true;
+        }
         migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,false);
       }
  else       if (currentOwner != null && newOwner == null) {
@@ -28,6 +31,9 @@
           scheduledQueue.offer(migrationRequestTask);
         }
       }
+    }
+    if (lost) {
+      logger.log(Level.SEVERE,"Oops! " + currentPartition + " has been LOST!");
     }
   }
 }
