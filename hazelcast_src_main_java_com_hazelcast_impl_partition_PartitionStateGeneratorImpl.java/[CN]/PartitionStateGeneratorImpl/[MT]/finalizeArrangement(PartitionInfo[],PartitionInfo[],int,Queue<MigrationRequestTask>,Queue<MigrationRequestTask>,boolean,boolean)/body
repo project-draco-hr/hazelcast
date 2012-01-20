@@ -6,17 +6,27 @@
     for (int replicaIndex=0; replicaIndex < replicaCount; replicaIndex++) {
       Address currentOwner=currentPartition.getReplicaAddress(replicaIndex);
       Address newOwner=newPartition.getReplicaAddress(replicaIndex);
+      MigrationRequestTask migrationRequestTask=null;
       if (currentOwner != null && newOwner != null && !currentOwner.equals(newOwner)) {
-        MigrationRequestTask migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,true);
-        migrationQueue.offer(migrationRequestTask);
+        migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,true);
       }
  else       if (currentOwner == null && newOwner != null) {
         currentOwner=currentPartition.getOwner();
-        MigrationRequestTask migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,false);
-        replicaQueue.offer(migrationRequestTask);
+        migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,false);
       }
  else       if (currentOwner != null && newOwner == null) {
         logger.log(Level.WARNING,"Something is wrong! Old owner valid but new owner is null!");
+      }
+      if (migrationRequestTask != null) {
+        if (replicaIndex == 0 && immediateZero) {
+          immediateQueue.offer(migrationRequestTask);
+        }
+ else         if (replicaIndex == 1 && immediateOne) {
+          immediateQueue.offer(migrationRequestTask);
+        }
+ else {
+          scheduledQueue.offer(migrationRequestTask);
+        }
       }
     }
   }
