@@ -21,10 +21,14 @@
         logger.log(Level.WARNING,"Something is wrong! Old owner valid but new owner is null!");
       }
       if (migrationRequestTask != null) {
-        if (replicaIndex == 0 && immediateZero) {
-          immediateQueue.offer(migrationRequestTask);
+        boolean immediate=false;
+        if (replicaIndex == 0 && currentPartition.getOwner() != null && currentPartition.getOwner().equals(newPartition.getReplicaAddress(1))) {
+          immediate=true;
         }
- else         if (replicaIndex == 1 && immediateOne) {
+ else         if (replicaIndex == 1 && currentPartition.getReplicaAddress(1) == null) {
+          immediate=true;
+        }
+        if (immediate) {
           immediateQueue.offer(migrationRequestTask);
         }
  else {

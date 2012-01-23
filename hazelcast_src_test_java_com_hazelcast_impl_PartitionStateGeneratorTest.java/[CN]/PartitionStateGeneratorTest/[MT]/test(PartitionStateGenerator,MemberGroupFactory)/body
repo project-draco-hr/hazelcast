@@ -1,6 +1,6 @@
 {
   int maxSameHostCount=3;
-  int[] partitionCounts=new int[]{271,787};
+  int[] partitionCounts=new int[]{271};
   int[] members=new int[]{3,6,7,9,10,5,11,13,8,17,57,100,130,77,255};
   Queue<MigrationRequestTask> scheduledQ=new LinkedList<MigrationRequestTask>();
   Queue<MigrationRequestTask> immediateQ=new LinkedList<MigrationRequestTask>();
@@ -14,7 +14,6 @@
     PartitionInfo[] state=generator.initialize(memberList,partitionCount);
     doTest(state,groups,partitionCount);
     int previousMemberCount=memberCount;
-    List<MemberImpl> oldMemberList=new ArrayList<MemberImpl>(memberList);
     for (int j=1; j < members.length; j++) {
       memberCount=members[j];
       if ((float)partitionCount / memberCount > 2) {
@@ -32,7 +31,7 @@
         }
         groups=nodeGroupFactory.createMemberGroups(memberList);
         println("PARTITION-COUNT= " + partitionCount + ", MEMBER-COUNT= "+ memberCount+ ", GROUP-COUNT= "+ groups.size());
-        state=generator.reArrange(state,oldMemberList,memberList,partitionCount,scheduledQ,immediateQ);
+        state=generator.reArrange(state,memberList,partitionCount,scheduledQ,immediateQ);
         for (int k=0; k < Math.min(groups.size(),PartitionInfo.MAX_REPLICA_COUNT); k++) {
           printTaskQueueSize(scheduledQ,immediateQ,k);
         }
@@ -41,7 +40,6 @@
         immediateQ.clear();
         doTest(state,groups,partitionCount);
         previousMemberCount=memberCount;
-        oldMemberList=new ArrayList<MemberImpl>(memberList);
       }
     }
   }
