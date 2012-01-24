@@ -1,0 +1,29 @@
+{
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(null);
+  try {
+    HazelcastInstance hza=Hazelcast.getHazelcastInstanceByName(hz.getExecutorService().submit(new NewInstanceCallable()).get());
+    HazelcastInstance hzb=Hazelcast.getHazelcastInstanceByName(hz.getExecutorService().submit(new NewInstanceCallable()).get());
+    hz.getLifecycleService().shutdown();
+    DistributedTask<String> taskA=new DistributedTask<String>(new EchoCallable(),hzb.getCluster().getLocalMember());
+    hza.getExecutorService().submit(taskA);
+    DistributedTask<String> taskB=new DistributedTask<String>(new EchoCallable(),hza.getCluster().getLocalMember());
+    hzb.getExecutorService().submit(taskB);
+    try {
+      taskA.get(10,TimeUnit.SECONDS);
+    }
+ catch (    TimeoutException e) {
+      e.printStackTrace();
+      fail("Failed to get result of EchoCallable from " + hza.getCluster().getLocalMember() + " to "+ hzb.getCluster().getLocalMember());
+    }
+    try {
+      taskB.get(10,TimeUnit.SECONDS);
+    }
+ catch (    TimeoutException e) {
+      e.printStackTrace();
+      fail("Failed to get result of EchoCallable from " + hzb.getCluster().getLocalMember() + " to "+ hza.getCluster().getLocalMember());
+    }
+  }
+  finally {
+    Hazelcast.shutdownAll();
+  }
+}
