@@ -3,7 +3,8 @@
   assertNotNull(hz);
   assertEquals(Hazelcast.getDefaultInstance(),hz);
   final int count=100;
-  insertDummyEntities(count);
+  final int childCount=3;
+  insertDummyEntities(count,childCount);
   sleep(1);
   List<DummyEntity> list=new ArrayList<DummyEntity>(count);
   Session session=sf.openSession();
@@ -34,13 +35,19 @@
     session.close();
   }
   Map<?,?> cache=hz.getMap(DummyEntity.class.getName());
-  assertEquals(count,stats.getEntityInsertCount());
-  assertEquals(count * 2,stats.getSecondLevelCachePutCount());
-  assertEquals(0,stats.getEntityLoadCount());
+  Map<?,?> propCache=hz.getMap(DummyProperty.class.getName());
+  Map<?,?> propCollCache=hz.getMap(DummyEntity.class.getName() + ".properties");
+  assertEquals((childCount + 1) * count,stats.getEntityInsertCount());
+  assertEquals((childCount + 1) * count * 2 + count,stats.getSecondLevelCachePutCount());
+  assertEquals(childCount * count,stats.getEntityLoadCount());
   assertEquals(count,stats.getSecondLevelCacheHitCount());
-  assertEquals(0,stats.getSecondLevelCacheMissCount());
+  assertEquals(count,stats.getSecondLevelCacheMissCount());
   assertEquals(count,cache.size());
+  assertEquals(count * childCount,propCache.size());
+  assertEquals(count,propCollCache.size());
   sf.getCache().evictEntityRegion(DummyEntity.class);
+  sf.getCache().evictEntityRegion(DummyProperty.class);
   assertEquals(0,cache.size());
+  assertEquals(0,propCache.size());
   stats.logSummary();
 }
