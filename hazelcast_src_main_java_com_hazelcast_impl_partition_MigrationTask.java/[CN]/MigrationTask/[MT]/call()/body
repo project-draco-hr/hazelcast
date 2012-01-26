@@ -1,6 +1,6 @@
 {
+  Node node=((FactoryImpl)hazelcast).node;
   try {
-    Node node=((FactoryImpl)hazelcast).node;
     ByteArrayInputStream bais=new ByteArrayInputStream(bytesRecordSet);
     DataInputStream dis=new DataInputStream(new InflaterInputStream(bais));
     int size=dis.readInt();
@@ -12,7 +12,8 @@
     }
     node.concurrentMapManager.getPartitionManager().doMigrate(partitionId,replicaIndex,recordSet);
   }
- catch (  Throwable ignored) {
+ catch (  IOException e) {
+    node.getLogger(MigrationTask.class.getName()).log(Level.WARNING,e.getMessage(),e);
     return Boolean.FALSE;
   }
   return Boolean.TRUE;

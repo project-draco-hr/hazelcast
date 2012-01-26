@@ -1,0 +1,27 @@
+{
+  final int groupSize=groups.size();
+  final int replicaCount=Math.min(groupSize,PartitionInfo.MAX_REPLICA_COUNT);
+  final int avgPartitionPerGroup=partitionCount / groupSize;
+  initializeGroupPartitions(state,groups,replicaCount,aggressive);
+  for (int index=0; index < replicaCount; index++) {
+    final LinkedList<Integer> freePartitions=getUnownedPartitions(state,index);
+    final LinkedList<NodeGroup> underLoadedGroups=new LinkedList<NodeGroup>();
+    final LinkedList<NodeGroup> overLoadedGroups=new LinkedList<NodeGroup>();
+    int plusOneGroupCount=partitionCount - avgPartitionPerGroup * groupSize;
+    for (    NodeGroup nodeGroup : groups) {
+      int size=nodeGroup.getPartitionCount(index);
+      if (size < avgPartitionPerGroup) {
+        underLoadedGroups.add(nodeGroup);
+      }
+ else       if (size > avgPartitionPerGroup) {
+        overLoadedGroups.add(nodeGroup);
+      }
+    }
+    plusOneGroupCount=tryToDistributeUnownedPartitions(underLoadedGroups,freePartitions,avgPartitionPerGroup,index,plusOneGroupCount);
+    if (!freePartitions.isEmpty()) {
+      distributeUnownedPartitions(groups,freePartitions,index);
+    }
+    transferPartitionsBetweenGroups(underLoadedGroups,overLoadedGroups,index,avgPartitionPerGroup,plusOneGroupCount);
+    updatePartitionState(state,groups,index);
+  }
+}

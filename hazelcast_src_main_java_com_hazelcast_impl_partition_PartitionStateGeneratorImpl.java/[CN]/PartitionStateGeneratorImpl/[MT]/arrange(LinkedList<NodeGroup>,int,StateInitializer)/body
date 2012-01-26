@@ -2,11 +2,11 @@
   final PartitionInfo[] state=new PartitionInfo[partitionCount];
   stateInitializer.initialize(state);
   TestResult result=null;
-  final int maxTries=3;
   int tryCount=0;
-  do {
-    tryArrange(state,groups,partitionCount);
-    result=testArrangment(state,groups,partitionCount);
+  while (tryCount < MAX_RETRY_COUNT && result != TestResult.PASS) {
+    boolean aggressive=tryCount >= AGGRESSIVE_RETRY_THRESHOLD;
+    tryArrange(state,groups,partitionCount,aggressive);
+    result=testArrangement(state,groups,partitionCount);
     if (result == TestResult.FAIL) {
       logger.log(Level.WARNING,"Error detected on partition arrangement! Try-count: " + tryCount);
       stateInitializer.initialize(state);
@@ -16,7 +16,6 @@
       logger.log(Level.INFO,"Re-trying partition arrangement.. Count: " + tryCount);
     }
   }
- while (tryCount <= maxTries && result != TestResult.PASS);
   if (result == TestResult.FAIL) {
     logger.log(Level.SEVERE,"Failed to arrange partitions !!!");
   }
