@@ -1,8 +1,8 @@
 {
   if (to.equals(from))   return Boolean.TRUE;
-  Node node=((FactoryImpl)hazelcast).node;
-  PartitionManager pm=node.concurrentMapManager.getPartitionManager();
   try {
+    Node node=((FactoryImpl)hazelcast).node;
+    PartitionManager pm=node.concurrentMapManager.getPartitionManager();
     Member target=pm.getMember(to);
     if (target == null)     return Boolean.FALSE;
     CostAwareRecordList costAwareRecordList=pm.getActivePartitionRecords(partitionId,replicaIndex,to);
@@ -10,11 +10,7 @@
     Future future=node.factory.getExecutorService().submit(task);
     return (Boolean)future.get(400,TimeUnit.SECONDS);
   }
- catch (  IllegalStateException e) {
-    node.getLogger(MigrationRequestTask.class.getName()).log(Level.FINEST,e.getMessage(),e);
+ catch (  Throwable ignored) {
+    return Boolean.FALSE;
   }
-catch (  Throwable e) {
-    node.getLogger(MigrationRequestTask.class.getName()).log(Level.WARNING,e.getMessage(),e);
-  }
-  return Boolean.FALSE;
 }

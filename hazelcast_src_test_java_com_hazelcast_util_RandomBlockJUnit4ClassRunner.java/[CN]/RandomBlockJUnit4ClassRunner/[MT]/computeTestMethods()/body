@@ -1,5 +1,18 @@
 {
   List<FrameworkMethod> methods=super.computeTestMethods();
+  if (indexStr != null && concurrencyLevelStr != null) {
+    System.out.println(concurrencyLevelStr + " concurrencyLevel and index: " + indexStr);
+    int index=Integer.parseInt(indexStr);
+    System.setProperty("hazelcast.multicast.group","224.2.2." + index);
+    int concurrencyLevel=Integer.parseInt(concurrencyLevelStr);
+    List<FrameworkMethod> filteredMethods=new ArrayList<FrameworkMethod>(methods.size());
+    for (    FrameworkMethod method : methods) {
+      if (method.getName().hashCode() % concurrencyLevel == index) {
+        filteredMethods.add(method);
+      }
+    }
+    methods=filteredMethods;
+  }
   Collections.shuffle(methods);
   return methods;
 }
