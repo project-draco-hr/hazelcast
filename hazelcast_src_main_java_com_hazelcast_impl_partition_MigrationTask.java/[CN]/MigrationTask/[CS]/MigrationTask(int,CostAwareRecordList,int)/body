@@ -2,13 +2,17 @@
   this.partitionId=partitionId;
   this.replicaIndex=replicaIndex;
   ByteArrayOutputStream bos=new ByteArrayOutputStream((int)(costAwareRecordList.getCost() / 100));
-  DataOutputStream dos=new DataOutputStream(new DeflaterOutputStream(bos));
-  List<Record> lsRecordsToMigrate=costAwareRecordList.getRecords();
-  dos.writeInt(lsRecordsToMigrate.size());
-  for (  Record record : lsRecordsToMigrate) {
-    new DataRecordEntry(record).writeData(dos);
+  DataOutputStream dos=null;
+  try {
+    dos=new DataOutputStream(new DeflaterOutputStream(bos));
+    List<Record> lsRecordsToMigrate=costAwareRecordList.getRecords();
+    dos.writeInt(lsRecordsToMigrate.size());
+    for (    Record record : lsRecordsToMigrate) {
+      new DataRecordEntry(record).writeData(dos);
+    }
   }
-  dos.flush();
-  dos.close();
+  finally {
+    IOUtil.closeResource(dos);
+  }
   bytesRecordSet=bos.toByteArray();
 }

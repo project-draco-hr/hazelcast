@@ -38,26 +38,26 @@
     }
   }
   if (concurrentMapManager.isMaster()) {
-    for (int i=0; i < indexesOfDead.length; i++) {
-      int indexOfDead=indexesOfDead[i];
+    for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
+      int indexOfDead=indexesOfDead[partitionId];
       if (indexOfDead != -1) {
-        PartitionInfo partition=partitions[i];
-        if (indexOfDead <= maxBackupCount) {
-          Address owner=partition.getOwner();
-          Address target=partition.getReplicaAddress(maxBackupCount);
-          if (owner != null && target != null) {
-            MigrationRequestTask mrt=new MigrationRequestTask(i,owner,target,maxBackupCount,false);
+        PartitionInfo partition=partitions[partitionId];
+        Address owner=partition.getOwner();
+        if (owner == null) {
+          logger.log(Level.WARNING,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
+          logger.log(Level.FINEST,partition.toString());
+          continue;
+        }
+        for (int replicaIndex=indexOfDead; replicaIndex <= maxBackupCount; replicaIndex++) {
+          Address target=partition.getReplicaAddress(replicaIndex);
+          if (target != null) {
+            MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
             esMigrationService.execute(new Migrator(mrt));
           }
         }
       }
     }
     sendClusterRuntimeState();
-    esMigrationService.execute(new Runnable(){
-      public void run(){
-        initRepartitioning();
-      }
-    }
-);
+    esMigrationService.execute(new InitRepartitioningTask());
   }
 }

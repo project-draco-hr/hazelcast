@@ -2,13 +2,13 @@
   concurrentMapManager.checkServiceThread();
   PartitionInfo migratingPartition=mapActiveMigrations.get(partition.getPartitionId());
   if (migratingPartition != null) {
-    boolean lostReplica=false;
+    boolean migrationCompleted=false;
     for (int i=0; i < PartitionInfo.MAX_REPLICA_COUNT; i++) {
       Address targetAddress=migratingPartition.getReplicaAddress(i);
       if (targetAddress != null) {
         if (targetAddress.equals(partition.getReplicaAddress(i))) {
           migratingPartition.setReplicaAddress(i,null);
-          lostReplica=true;
+          migrationCompleted=true;
         }
       }
     }
@@ -19,8 +19,5 @@
       }
     }
     mapActiveMigrations.remove(partition.getPartitionId());
-    if (lostReplica) {
-      concurrentMapManager.startCleanup(false,false);
-    }
   }
 }
