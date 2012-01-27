@@ -1,6 +1,6 @@
 {
-  HazelcastInstance h1=Hazelcast.newHazelcastInstance(null);
-  HazelcastInstance h2=Hazelcast.newHazelcastInstance(null);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(new Config());
   final ICountDownLatch cdl1=h1.getCountDownLatch("test");
   final ICountDownLatch cdl2=h2.getCountDownLatch("test");
   Member h2Member=h2.getCluster().getLocalMember();
@@ -15,7 +15,7 @@
   Thread thread=new Thread(){
     @Override public void run(){
       try {
-        cdl1.await();
+        assertFalse(cdl1.await(5,TimeUnit.SECONDS));
         fail();
       }
  catch (      MemberLeftException e) {
@@ -29,7 +29,7 @@ catch (      Throwable e) {
   }
 ;
   thread.start();
-  Thread.sleep(20);
+  Thread.sleep(1000);
   h2.shutdown();
   thread.join();
   assertEquals(1,result.get());

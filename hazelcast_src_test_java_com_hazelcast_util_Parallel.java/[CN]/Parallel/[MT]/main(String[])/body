@@ -5,6 +5,7 @@
   final Thread[] threads=new Thread[concurrencyLevel];
   System.out.println(format.format(new Date()) + " PARALLEL TESTS STARTED concurrency:" + concurrencyLevel+ " profile:"+ profile);
   long start=System.currentTimeMillis();
+  final Collection<Process> colProcesses=new CopyOnWriteArrayList<Process>();
   for (int i=0; i < concurrencyLevel; i++) {
     final String index=Integer.toString(i);
     Thread t=new Thread(new Runnable(){
@@ -15,19 +16,20 @@
           ProcessBuilder processBuilder=new ProcessBuilder(exec);
           processBuilder.redirectErrorStream(true);
           Process proc=processBuilder.start();
+          colProcesses.add(proc);
           InputStream in=proc.getInputStream();
           BufferedReader br=new BufferedReader(new InputStreamReader(in));
           String str;
           while ((str=br.readLine()) != null) {
-            if (str.contains("Started") || str.contains("Finished")) {
-              System.out.println(str);
+            if (str.contains("Started") || str.contains("Finished") || str.startsWith("PLOG:")) {
+              System.out.println("[" + index + "] "+ str);
             }
           }
           try {
             proc.waitFor();
           }
  catch (          InterruptedException e) {
-            System.err.println("Process was interrupted");
+            System.err.println("[" + index + "] Process was interrupted");
           }
           System.out.println(proc.exitValue());
           br.close();
@@ -51,6 +53,19 @@
     threads[i]=t;
     t.start();
   }
+  Runtime.getRuntime().addShutdownHook(new Thread(new Runnable(){
+    public void run(){
+      for (      Process process : colProcesses) {
+        try {
+          System.out.println("Destroying process");
+          process.destroy();
+        }
+ catch (        Exception ignored) {
+        }
+      }
+    }
+  }
+));
   for (  Thread thread : threads) {
     try {
       thread.join();

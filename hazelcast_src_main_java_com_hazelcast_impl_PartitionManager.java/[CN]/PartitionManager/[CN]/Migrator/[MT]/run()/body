@@ -9,19 +9,26 @@
       }
 ,100);
     }
+    System.out.println("Migrating " + migrationRequestTask);
+    Object result=null;
     MemberImpl fromMember=null;
     if (migrationRequestTask.isMigration()) {
       fromMember=getMember(migrationRequestTask.getFromAddress());
     }
  else {
       fromMember=getMember(partitions[migrationRequestTask.getPartitionId()].getOwner());
-      migrationRequestTask.setFromAddress(fromMember.getAddress());
     }
-    Object result=Boolean.FALSE;
+    result=Boolean.FALSE;
     if (fromMember != null) {
+      migrationRequestTask.setFromAddress(fromMember.getAddress());
       DistributedTask task=new DistributedTask(migrationRequestTask,fromMember);
       Future future=concurrentMapManager.node.factory.getExecutorService().submit(task);
-      result=future.get(600,TimeUnit.SECONDS);
+      try {
+        result=future.get(600,TimeUnit.SECONDS);
+      }
+ catch (      Throwable e) {
+        logger.log(Level.WARNING,"Failed migrating to " + fromMember);
+      }
     }
  else {
       result=Boolean.TRUE;
