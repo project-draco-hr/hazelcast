@@ -16,29 +16,49 @@
   HazelcastInstance h20=Hazelcast.newHazelcastInstance(c2);
   HazelcastInstance h21=Hazelcast.newHazelcastInstance(c2);
   HazelcastInstance h12=Hazelcast.newHazelcastInstance(c1);
-  Thread.sleep(5000);
-  Assert.assertEquals(size,h10.getMap("default").size());
-  Assert.assertEquals(size,h20.getMap("default").size());
-  Assert.assertEquals(size,h12.getMap("default").size());
-  Assert.assertEquals(size,h11.getMap("default").size());
-  Assert.assertEquals(size,h21.getMap("default").size());
+  MergeLatch mergeLatch1=new MergeLatch(size);
+  getConcurrentMapManager(h10).addWanMergeListener(mergeLatch1);
+  getConcurrentMapManager(h11).addWanMergeListener(mergeLatch1);
+  getConcurrentMapManager(h12).addWanMergeListener(mergeLatch1);
+  MergeLatch mergeLatch2=new MergeLatch(size);
+  getConcurrentMapManager(h20).addWanMergeListener(mergeLatch2);
+  getConcurrentMapManager(h21).addWanMergeListener(mergeLatch2);
+  assertTrue(mergeLatch2.await(30,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  assertEquals(size,mergeLatch2.totalOperations());
+  assertEquals(0,mergeLatch1.totalOperations());
+  assertEquals(size,h10.getMap("default").size());
+  assertEquals(size,h20.getMap("default").size());
+  assertEquals(size,h12.getMap("default").size());
+  assertEquals(size,h11.getMap("default").size());
+  assertEquals(size,h21.getMap("default").size());
+  mergeLatch2.reset();
   for (int i=0; i < size; i++) {
     h21.getMap("default").put(size + i,"value" + (size + i));
   }
-  Thread.sleep(5000);
-  Assert.assertEquals(2 * size,h10.getMap("default").size());
-  Assert.assertEquals(2 * size,h20.getMap("default").size());
-  Assert.assertEquals(2 * size,h12.getMap("default").size());
-  Assert.assertEquals(2 * size,h11.getMap("default").size());
-  Assert.assertEquals(2 * size,h21.getMap("default").size());
+  assertTrue(mergeLatch1.await(30,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  assertEquals(size,mergeLatch1.totalOperations());
+  assertEquals(0,mergeLatch2.totalOperations());
+  assertEquals(2 * size,h10.getMap("default").size());
+  assertEquals(2 * size,h20.getMap("default").size());
+  assertEquals(2 * size,h12.getMap("default").size());
+  assertEquals(2 * size,h11.getMap("default").size());
+  assertEquals(2 * size,h21.getMap("default").size());
+  mergeLatch1.reset(size / 2);
+  mergeLatch2.reset(size / 2);
   for (int i=0; i < size / 2; i++) {
     h10.getMap("default").remove(i);
     h21.getMap("default").remove(size + i);
   }
-  Thread.sleep(5000);
-  Assert.assertEquals(size,h10.getMap("default").size());
-  Assert.assertEquals(size,h20.getMap("default").size());
-  Assert.assertEquals(size,h12.getMap("default").size());
-  Assert.assertEquals(size,h11.getMap("default").size());
-  Assert.assertEquals(size,h21.getMap("default").size());
+  assertTrue(mergeLatch1.await(30,TimeUnit.SECONDS));
+  assertTrue(mergeLatch2.await(30,TimeUnit.SECONDS));
+  Thread.sleep(1000);
+  assertEquals(size / 2,mergeLatch1.totalOperations());
+  assertEquals(size / 2,mergeLatch2.totalOperations());
+  assertEquals(size,h10.getMap("default").size());
+  assertEquals(size,h20.getMap("default").size());
+  assertEquals(size,h12.getMap("default").size());
+  assertEquals(size,h11.getMap("default").size());
+  assertEquals(size,h21.getMap("default").size());
 }
