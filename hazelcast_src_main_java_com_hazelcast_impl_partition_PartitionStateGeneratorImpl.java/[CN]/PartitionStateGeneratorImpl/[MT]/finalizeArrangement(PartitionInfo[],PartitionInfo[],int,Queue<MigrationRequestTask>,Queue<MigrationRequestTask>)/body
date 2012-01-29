@@ -1,5 +1,6 @@
 {
   final int partitionCount=currentState.length;
+  final List<MigrationRequestTask> partitionMigrationTasks=new LinkedList<MigrationRequestTask>();
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     PartitionInfo currentPartition=currentState[partitionId];
     PartitionInfo newPartition=newState[partitionId];
@@ -15,12 +16,25 @@
         if ((currentOwner=currentPartition.getOwner()) == null) {
           lost=true;
         }
-        migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,false);
+        boolean selfCopy=false;
+        ListIterator<MigrationRequestTask> iter=partitionMigrationTasks.listIterator(partitionMigrationTasks.size());
+        while (iter.hasPrevious()) {
+          MigrationRequestTask task=iter.previous();
+          if (newOwner.equals(task.getFromAddress())) {
+            selfCopy=true;
+            task.setSelfCopyReplicaIndex(replicaIndex);
+            break;
+          }
+        }
+        if (!selfCopy) {
+          migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,false);
+        }
       }
  else       if (currentOwner != null && newOwner == null) {
         logger.log(Level.WARNING,"Something seems wrong! Old owner is valid but new owner is null!");
       }
       if (migrationRequestTask != null) {
+        partitionMigrationTasks.add(migrationRequestTask);
         boolean immediate=false;
         if (replicaIndex == 0 && currentPartition.getOwner() != null && currentPartition.getOwner().equals(newPartition.getReplicaAddress(1))) {
           immediate=true;
@@ -36,8 +50,9 @@
         }
       }
     }
+    partitionMigrationTasks.clear();
     if (lost) {
-      logger.log(Level.SEVERE,"Oops! " + currentPartition + " has been LOST!");
+      logger.log(Level.WARNING,"Oops! " + currentPartition + " has been LOST!");
     }
   }
 }
