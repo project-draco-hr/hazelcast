@@ -2,30 +2,6 @@
   Config config=new Config();
   final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
-  final Node node1=getNode(h1);
-  CallBuilder callBuilder=new KeyCallBuilder(h1);
-  BeforeAfterBehavior behavior=new BeforeAfterBehavior(){
-    @Override void before() throws Exception {
-      TestUtil.migrateKey(1,h1,h2);
-      node1.clusterManager.enqueueAndWait(new Processable(){
-        public void process(){
-          node1.clusterManager.removeMember((MemberImpl)h2.getCluster().getLocalMember());
-          assertEquals(1,node1.clusterManager.lsMembers.size());
-        }
-      }
-,5);
-    }
-    @Override void after(){
-      node1.clusterManager.enqueueAndWait(new Processable(){
-        public void process(){
-          MemberImpl secondMember=new MemberImpl(((MemberImpl)h2.getCluster().getLocalMember()).getAddress(),false);
-          node1.clusterManager.addMember(secondMember);
-          assertEquals(2,node1.clusterManager.lsMembers.size());
-        }
-      }
-,5);
-    }
-  }
-;
-  new BeforeAfterTester(behavior,callBuilder).run();
+  new RunAfterTester(new TargetNotMemberBehavior(h1,h2),new KeyCallBuilder(h1)).run();
+  new RunAfterTester(new TargetNotMemberBehavior(h2,h1),new KeyCallBuilder(h2)).run();
 }

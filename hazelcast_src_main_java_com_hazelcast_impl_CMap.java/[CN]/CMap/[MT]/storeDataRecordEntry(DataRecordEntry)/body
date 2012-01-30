@@ -1,0 +1,32 @@
+{
+  Record record;
+  if (isMultiMap()) {
+    record=getRecord(dataRecordEntry.getKeyData());
+    if (record == null) {
+      record=createNewRecord(dataRecordEntry.getKeyData(),null);
+      mapRecords.put(dataRecordEntry.getKeyData(),record);
+    }
+    if (record.getMultiValues() == null) {
+      record.setMultiValues(createMultiValuesCollection());
+    }
+    record.getMultiValues().add(new ValueHolder(dataRecordEntry.getValueData()));
+  }
+ else {
+    Record existing=getRecord(dataRecordEntry.getKeyData());
+    if (existing != null) {
+      mapIndexService.remove(existing);
+    }
+    record=createNewRecord(dataRecordEntry.getKeyData(),dataRecordEntry.getValueData());
+    record.setCreationTime(dataRecordEntry.getCreationTime());
+    record.setExpirationTime(dataRecordEntry.getExpirationTime() - System.currentTimeMillis());
+    record.setMaxIdle(dataRecordEntry.getRemainingIdle());
+    record.setIndexes(dataRecordEntry.getIndexes(),dataRecordEntry.getIndexTypes());
+    if (dataRecordEntry.getLockAddress() != null && dataRecordEntry.getLockThreadId() != -1) {
+      record.lock(dataRecordEntry.getLockThreadId(),dataRecordEntry.getLockAddress());
+    }
+    mapRecords.put(dataRecordEntry.getKeyData(),record);
+  }
+  record.setVersion(dataRecordEntry.getVersion());
+  markAsActive(record);
+  return record;
+}
