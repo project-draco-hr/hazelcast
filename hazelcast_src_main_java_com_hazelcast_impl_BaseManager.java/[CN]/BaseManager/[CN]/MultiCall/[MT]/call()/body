@@ -2,21 +2,27 @@
   try {
     node.checkNodeState();
     onCall();
-    SubCall localCall=createNewTargetAwareOp(getFirstAddressToMakeCall());
-    localCall.doOp();
-    Object result=localCall.getResultAsObject();
-    if (result == OBJECT_REDO) {
-      logRedo(localCall);
-      onRedo();
-      Thread.sleep(redoWaitMillis);
-      return call();
+    Object result=null;
+    boolean excludeThisMember=excludeSuperClient && thisMember.isSuperClient();
+    if (!excludeThisMember) {
+      SubCall localCall=createNewTargetAwareOp(getFirstAddressToMakeCall());
+      localCall.doOp();
+      result=localCall.getResultAsObject();
+      if (result == OBJECT_REDO) {
+        logRedo(localCall);
+        onRedo();
+        Thread.sleep(redoWaitMillis);
+        return call();
+      }
     }
-    if (onResponse(result)) {
+    boolean runOnOtherMembers=excludeThisMember || onResponse(result);
+    if (runOnOtherMembers) {
       Set<Member> members=node.getClusterImpl().getMembers();
       List<SubCall> lsCalls=new ArrayList<SubCall>();
       for (      Member member : members) {
         MemberImpl cMember=(MemberImpl)member;
-        if (!cMember.getAddress().equals(getFirstAddressToMakeCall())) {
+        boolean excludeMember=excludeSuperClient && cMember.isSuperClient();
+        if (!excludeMember && !cMember.getAddress().equals(getFirstAddressToMakeCall())) {
           SubCall subCall=createNewTargetAwareOp(cMember.getAddress());
           subCall.doOp();
           lsCalls.add(subCall);
