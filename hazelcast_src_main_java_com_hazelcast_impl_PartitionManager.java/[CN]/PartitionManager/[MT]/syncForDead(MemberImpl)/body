@@ -8,7 +8,7 @@
     indexesOfDead[partition.getPartitionId()]=partition.getReplicaIndexOf(deadMember.getAddress());
   }
   if (isMember) {
-    clearQueue();
+    clearTaskQueues();
     for (    PartitionInfo partition : partitions) {
       partition.onDeadAddress(deadAddress);
     }
@@ -46,7 +46,7 @@
         PartitionInfo partition=partitions[partitionId];
         Address owner=partition.getOwner();
         if (owner == null) {
-          logger.log(Level.WARNING,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
+          logger.log(Level.FINEST,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
           logger.log(Level.FINEST,partition.toString());
           continue;
         }
@@ -54,12 +54,12 @@
           Address target=partition.getReplicaAddress(replicaIndex);
           if (target != null) {
             MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
-            esMigrationService.execute(new Migrator(mrt));
+            immediateTasksQueue.offer(new Migrator(mrt));
           }
         }
       }
     }
     sendClusterRuntimeState();
-    esMigrationService.execute(new InitRepartitioningTask());
+    immediateTasksQueue.offer(new InitRepartitioningTask(new ArrayList<MemberImpl>(concurrentMapManager.lsMembers)));
   }
 }

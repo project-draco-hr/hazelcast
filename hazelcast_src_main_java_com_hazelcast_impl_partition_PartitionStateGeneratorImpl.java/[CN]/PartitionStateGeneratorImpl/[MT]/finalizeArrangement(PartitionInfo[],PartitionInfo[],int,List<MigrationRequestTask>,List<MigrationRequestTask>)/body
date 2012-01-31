@@ -43,16 +43,22 @@
           immediate=true;
         }
         if (immediate) {
-          immediateQueue.offer(migrationRequestTask);
+          immediateTasksList.add(migrationRequestTask);
         }
  else {
-          scheduledQueue.offer(migrationRequestTask);
+          scheduledTasksList.add(migrationRequestTask);
         }
       }
     }
     partitionMigrationTasks.clear();
     if (lost) {
-      logger.log(Level.WARNING,"Oops! " + currentPartition + " has been LOST!");
+      logger.log(Level.FINEST,"Oops! " + currentPartition + " has been LOST!");
     }
   }
+  Collections.sort(scheduledTasksList,new Comparator<MigrationRequestTask>(){
+    public int compare(    final MigrationRequestTask t1,    final MigrationRequestTask t2){
+      return t1.getReplicaIndex() > t2.getReplicaIndex() ? 1 : (t1.getReplicaIndex() == t2.getReplicaIndex() ? 0 : -1);
+    }
+  }
+);
 }
