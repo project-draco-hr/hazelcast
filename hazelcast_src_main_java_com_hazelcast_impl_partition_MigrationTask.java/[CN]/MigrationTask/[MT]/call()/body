@@ -11,14 +11,18 @@
       r.readData(dis);
       recordSet.addDataRecordEntry(r);
     }
-    node.concurrentMapManager.getPartitionManager().doMigrate(partitionId,replicaIndex,recordSet);
+    node.concurrentMapManager.getPartitionManager().doMigrate(partitionId,replicaIndex,recordSet,from);
+    return Boolean.TRUE;
   }
- catch (  IOException e) {
-    node.getLogger(MigrationTask.class.getName()).log(Level.WARNING,e.getMessage(),e);
-    return Boolean.FALSE;
+ catch (  Throwable e) {
+    Level level=Level.WARNING;
+    if (e instanceof IllegalStateException) {
+      level=Level.FINEST;
+    }
+    node.getLogger(MigrationTask.class.getName()).log(level,e.getMessage(),e);
   }
  finally {
     IOUtil.closeResource(dis);
   }
-  return Boolean.TRUE;
+  return Boolean.FALSE;
 }

@@ -3,6 +3,14 @@
   boolean isMember=!deadMember.isLiteMember();
   Address deadAddress=deadMember.getAddress();
   Address thisAddress=concurrentMapManager.getThisAddress();
+  Iterator<MigratingPartition> migratingPartitions=mapActiveMigrations.values().iterator();
+  while (migratingPartitions.hasNext()) {
+    MigratingPartition mp=migratingPartitions.next();
+    mp.onDeadAddress(deadAddress);
+    if (mp.isEmpty()) {
+      migratingPartitions.remove();
+    }
+  }
   int[] indexesOfDead=new int[partitions.length];
   for (  PartitionInfo partition : partitions) {
     indexesOfDead[partition.getPartitionId()]=partition.getReplicaIndexOf(deadMember.getAddress());
@@ -52,7 +60,7 @@
         }
         for (int replicaIndex=indexOfDead; replicaIndex <= maxBackupCount; replicaIndex++) {
           Address target=partition.getReplicaAddress(replicaIndex);
-          if (target != null) {
+          if (target != null && !target.equals(owner)) {
             MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
             immediateTasksQueue.offer(new Migrator(mrt));
           }

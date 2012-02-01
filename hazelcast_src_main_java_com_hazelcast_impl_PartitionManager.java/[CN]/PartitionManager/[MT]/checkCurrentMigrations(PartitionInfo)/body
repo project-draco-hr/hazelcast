@@ -1,23 +1,19 @@
 {
   concurrentMapManager.checkServiceThread();
-  PartitionInfo migratingPartition=mapActiveMigrations.get(partition.getPartitionId());
+  MigratingPartition migratingPartition=mapActiveMigrations.get(partition.getPartitionId());
   if (migratingPartition != null) {
     boolean migrationCompleted=false;
     for (int i=0; i < PartitionInfo.MAX_REPLICA_COUNT; i++) {
-      Address targetAddress=migratingPartition.getReplicaAddress(i);
+      Address targetAddress=migratingPartition.getTargetAddress(i);
       if (targetAddress != null) {
         if (targetAddress.equals(partition.getReplicaAddress(i))) {
-          migratingPartition.setReplicaAddress(i,null);
+          migratingPartition.removeAddresses(i);
           migrationCompleted=true;
         }
       }
     }
-    for (int i=0; i < PartitionInfo.MAX_REPLICA_COUNT; i++) {
-      Address targetAddress=migratingPartition.getReplicaAddress(i);
-      if (targetAddress != null) {
-        return;
-      }
+    if (migratingPartition.isEmpty()) {
+      mapActiveMigrations.remove(partition.getPartitionId());
     }
-    mapActiveMigrations.remove(partition.getPartitionId());
   }
 }
