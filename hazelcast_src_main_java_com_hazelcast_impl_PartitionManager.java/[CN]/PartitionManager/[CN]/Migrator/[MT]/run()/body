@@ -9,60 +9,59 @@
       }
 ,100);
     }
-    MemberImpl fromMember=null;
-    Object result=Boolean.FALSE;
-    if (migrationRequestTask.isMigration()) {
-      fromMember=getMember(migrationRequestTask.getFromAddress());
-    }
- else {
-      final int partitionId=migrationRequestTask.getPartitionId();
-      fromMember=getMember(partitions[partitionId].getOwner());
-    }
     if (migrationRequestTask.getToAddress() == null) {
-      result=Boolean.TRUE;
-    }
- else     if (fromMember != null) {
-      migrationRequestTask.setFromAddress(fromMember.getAddress());
-      DistributedTask task=new DistributedTask(migrationRequestTask,fromMember);
-      Future future=concurrentMapManager.node.factory.getExecutorService().submit(task);
-      try {
-        result=future.get(600,TimeUnit.SECONDS);
-      }
- catch (      Throwable e) {
-        logger.log(Level.WARNING,"Failed migrating to " + fromMember);
-      }
-    }
- else {
-      result=Boolean.TRUE;
-    }
-    if (Boolean.TRUE.equals(result)) {
       concurrentMapManager.enqueueAndWait(new Processable(){
         public void process(){
           int partitionId=migrationRequestTask.getPartitionId();
           int replicaIndex=migrationRequestTask.getReplicaIndex();
           PartitionInfo partition=partitions[partitionId];
-          if (PartitionInfo.MAX_REPLICA_COUNT < replicaIndex) {
-            String msg="Migrated [" + partitionId + ":"+ replicaIndex+ "] but cannot assign. Length:"+ PartitionInfo.MAX_REPLICA_COUNT;
-            logger.log(Level.WARNING,msg);
-          }
- else {
-            Address newOwner=migrationRequestTask.getToAddress();
-            MemberImpl ownerMember=concurrentMapManager.getMember(newOwner);
-            if (ownerMember == null)             return;
-            partition.setReplicaAddress(replicaIndex,newOwner);
-            if (replicaIndex == 0) {
-              concurrentMapManager.partitionServiceImpl.setOwner(partition.getPartitionId(),ownerMember);
-              concurrentMapManager.sendMigrationEvent(false,migrationRequestTask);
-            }
-            if (migrationRequestTask.getSelfCopyReplicaIndex() > -1) {
-              partition.setReplicaAddress(migrationRequestTask.getSelfCopyReplicaIndex(),migrationRequestTask.getFromAddress());
-            }
-            checkCurrentMigrations(partition);
-            sendClusterRuntimeState();
-          }
+          partition.setReplicaAddress(replicaIndex,null);
+          migratingPartition=null;
         }
       }
-,10000);
+);
+    }
+ else {
+      MemberImpl fromMember=null;
+      Object result=Boolean.FALSE;
+      if (migrationRequestTask.isMigration()) {
+        fromMember=getMember(migrationRequestTask.getFromAddress());
+      }
+ else {
+        final int partitionId=migrationRequestTask.getPartitionId();
+        fromMember=getMember(partitions[partitionId].getOwner());
+      }
+      if (fromMember != null) {
+        migrationRequestTask.setFromAddress(fromMember.getAddress());
+        DistributedTask task=new DistributedTask(migrationRequestTask,fromMember);
+        concurrentMapManager.enqueueAndWait(new Processable(){
+          public void process(){
+            addActiveMigration(migrationRequestTask);
+          }
+        }
+);
+        Future future=concurrentMapManager.node.factory.getExecutorService().submit(task);
+        try {
+          result=future.get(600,TimeUnit.SECONDS);
+        }
+ catch (        Throwable e) {
+          logger.log(Level.WARNING,"Failed migrating to " + fromMember);
+        }
+      }
+ else {
+        result=Boolean.TRUE;
+      }
+      if (Boolean.TRUE.equals(result)) {
+        concurrentMapManager.enqueueAndWait(new ProcessMigrationResult(migrationRequestTask),10000);
+      }
+ else {
+        concurrentMapManager.enqueueAndWait(new Processable(){
+          public void process(){
+            compareAndSetActiveMigratingPartition(migrationRequestTask,null);
+          }
+        }
+);
+      }
     }
   }
  catch (  Throwable ignored) {

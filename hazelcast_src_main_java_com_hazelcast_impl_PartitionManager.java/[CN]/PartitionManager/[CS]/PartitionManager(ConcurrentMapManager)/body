@@ -22,13 +22,37 @@
   migrationService.start();
   node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new Runnable(){
     public void run(){
-      concurrentMapManager.enqueueAndReturn(new Processable(){
-        public void process(){
-          if (!node.isActive())           return;
-          sendClusterRuntimeState();
+      if (concurrentMapManager.isMaster()) {
+        concurrentMapManager.enqueueAndReturn(new Processable(){
+          public void process(){
+            if (!node.isActive())             return;
+            sendClusterRuntimeState();
+          }
+        }
+);
+      }
+ else {
+        final MigratingPartition currentMigratingPartition=migratingPartition;
+        if (currentMigratingPartition != null) {
+          try {
+            AsyncRemotelyBooleanCallable rrp=node.clusterManager.new AsyncRemotelyBooleanCallable();
+            rrp.executeProcess(node.getMasterAddress(),new CheckMigratingPartition(currentMigratingPartition));
+            boolean valid=rrp.getResultAsBoolean(1);
+            if (!valid) {
+              logger.log(Level.INFO,currentMigratingPartition + " could not be validated with master! " + "Removing current MigratingPartition...");
+              concurrentMapManager.enqueueAndReturn(new Processable(){
+                public void process(){
+                  migratingPartition=null;
+                }
+              }
+);
+            }
+          }
+ catch (          Throwable t) {
+            logger.log(Level.WARNING,t.getMessage(),t);
+          }
         }
       }
-);
     }
   }
 ,5,5,TimeUnit.SECONDS);

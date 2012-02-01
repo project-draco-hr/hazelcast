@@ -1,12 +1,11 @@
 {
   concurrentMapManager.checkServiceThread();
-  MigratingPartition migratingPartition=mapActiveMigrations.get(partitionId);
-  if (migratingPartition == null) {
-    migratingPartition=new MigratingPartition(partitionId);
-    MigratingPartition existing=mapActiveMigrations.putIfAbsent(partitionId,migratingPartition);
-    if (existing != null) {
-      migratingPartition=existing;
+  final MigratingPartition currentMigratingPartition=migratingPartition;
+  final MigratingPartition newMigratingPartition=new MigratingPartition(partitionId,replicaIndex,currentAddress,newAddress);
+  if (!newMigratingPartition.equals(currentMigratingPartition)) {
+    if (currentMigratingPartition != null) {
+      logger.log(Level.WARNING,"Replacing current " + currentMigratingPartition + " with "+ newMigratingPartition);
     }
+    migratingPartition=newMigratingPartition;
   }
-  migratingPartition.setAddresses(replicaIndex,currentAddress,newAddress);
 }
