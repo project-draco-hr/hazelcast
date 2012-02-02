@@ -1,20 +1,19 @@
 {
   try {
     while (running) {
-      if (!concurrentMapManager.isMaster()) {
-        Thread.sleep(1000);
-        continue;
-      }
       Runnable r;
       while ((r=immediateTasksQueue.poll()) != null) {
         safeRunImmediate(r);
       }
+      if (!running) {
+        break;
+      }
       if (scheduledTasksQueue.isEmpty()) {
-        Thread.sleep(1000);
+        Thread.sleep(250);
         continue;
       }
       long totalWait=0L;
-      while (r == null && totalWait < partitionMigrationInterval) {
+      while (running && r == null && totalWait < partitionMigrationInterval) {
         long start=System.currentTimeMillis();
         r=immediateTasksQueue.poll(1,TimeUnit.SECONDS);
         safeRunImmediate(r);

@@ -51,18 +51,19 @@
   MulticastService mcService=null;
   try {
     if (join.getMulticastConfig().isEnabled()) {
+      MulticastConfig multicastConfig=join.getMulticastConfig();
       MulticastSocket multicastSocket=new MulticastSocket(null);
       multicastSocket.setReuseAddress(true);
-      multicastSocket.bind(new InetSocketAddress(join.getMulticastConfig().getMulticastPort()));
-      multicastSocket.setTimeToLive(32);
+      multicastSocket.bind(new InetSocketAddress(multicastConfig.getMulticastPort()));
+      multicastSocket.setTimeToLive(multicastConfig.getMulticastTimeToLive());
       multicastSocket.setInterface(address.getInetAddress());
       multicastSocket.setReceiveBufferSize(64 * 1024);
       multicastSocket.setSendBufferSize(64 * 1024);
       String multicastGroup=System.getProperty("hazelcast.multicast.group");
       if (multicastGroup == null) {
-        multicastGroup=join.getMulticastConfig().getMulticastGroup();
+        multicastGroup=multicastConfig.getMulticastGroup();
       }
-      join.getMulticastConfig().setMulticastGroup(multicastGroup);
+      multicastConfig.setMulticastGroup(multicastGroup);
       multicastSocket.joinGroup(InetAddress.getByName(multicastGroup));
       multicastSocket.setSoTimeout(1000);
       mcService=new MulticastService(this,multicastSocket);
