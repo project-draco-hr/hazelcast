@@ -4,10 +4,20 @@
     Object value=entries.get(key);
     pairs.addKeyValue(new KeyValue(toData(key),toData(value)));
   }
-  try {
-    doPutAll(name,pairs);
-  }
- catch (  Exception e) {
-    throw new RuntimeException(e);
+  while (true) {
+    try {
+      doPutAll(name,pairs);
+    }
+ catch (    Exception e) {
+      if (e instanceof InterruptedException) {
+        handleInterruptedException();
+      }
+      try {
+        Thread.sleep(redoWaitMillis);
+      }
+ catch (      InterruptedException e1) {
+        handleInterruptedException();
+      }
+    }
   }
 }
