@@ -29,12 +29,20 @@
     }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_LOCK) {
-    Record rec=toRecord(req);
-    if (rec.getVersion() == 0) {
-      rec.setVersion(req.version);
+    if (req.lockCount == 0) {
+      Record rec=getRecord(req);
+      if (rec != null) {
+        rec.setLock(null);
+        if (rec.valueCount() == 0) {
+          markAsEvicted(rec);
+        }
+      }
     }
-    if (rec.getLockCount() == 0 && rec.valueCount() == 0) {
-      markAsEvicted(rec);
+ else {
+      Record rec=toRecord(req);
+      if (rec.getVersion() == 0) {
+        rec.setVersion(req.version);
+      }
     }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_ADD) {
