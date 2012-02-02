@@ -1,11 +1,15 @@
 {
-  if (owner == null) {
-    try {
-      owner=getPartitionOwner(partitionId);
-    }
- catch (    InterruptedException e) {
-      owner=null;
+  Address address=concurrentMapManager.getPartitionManager().getOwner(partitionId);
+  if (address != null) {
+    Member member=concurrentMapManager.node.getClusterImpl().getMembers(address);
+    if (member != null) {
+      return member;
     }
   }
-  return owner;
+  try {
+    return getPartitionOwner(partitionId);
+  }
+ catch (  InterruptedException e) {
+    return null;
+  }
 }
