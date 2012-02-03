@@ -1,19 +1,31 @@
 {
   try {
+    try {
+      multicastSocket.close();
+    }
+ catch (    Throwable ignored) {
+    }
     final CountDownLatch l=new CountDownLatch(1);
     queue.put(new Runnable(){
       public void run(){
         running=false;
-        inflatingBuffer.destroy();
-        deflatingBuffer.destroy();
-        datagramPacketReceive.setData(new byte[0]);
-        datagramPacketSend.setData(new byte[0]);
-        l.countDown();
+        try {
+          inflatingBuffer.destroy();
+          deflatingBuffer.destroy();
+          datagramPacketReceive.setData(new byte[0]);
+          datagramPacketSend.setData(new byte[0]);
+        }
+  finally {
+          l.countDown();
+        }
       }
     }
 );
-    l.await();
+    if (!l.await(5,TimeUnit.SECONDS)) {
+      logger.log(Level.WARNING,"Failed to shutdown MulticastService in 5 seconds!");
+    }
   }
- catch (  InterruptedException ignored) {
+ catch (  Throwable e) {
+    logger.log(Level.WARNING,e.getMessage(),e);
   }
 }
