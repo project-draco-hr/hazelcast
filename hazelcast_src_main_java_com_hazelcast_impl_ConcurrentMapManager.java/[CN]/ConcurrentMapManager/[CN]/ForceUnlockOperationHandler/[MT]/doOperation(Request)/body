@@ -1,14 +1,16 @@
 {
-  boolean unlocked=true;
+  boolean unlocked=false;
   CMap cmap=getOrCreateMap(request.name);
   Record record=cmap.getRecord(request);
   if (record != null) {
-    unlocked=record.unlock(request.lockThreadId,request.lockAddress);
-    if (unlocked) {
+    DistributedLock lock=record.getLock();
+    if (lock != null && lock.getLockCount() > 0) {
+      record.setLock(null);
+      unlocked=true;
       record.incrementVersion();
       request.version=record.getVersion();
-      request.lockCount=record.getLockCount();
-      if (record.getLockCount() == 0 && record.valueCount() == 0 && !record.hasScheduledAction()) {
+      request.lockCount=0;
+      if (record.valueCount() == 0 && !record.hasScheduledAction()) {
         cmap.markAsEvicted(record);
       }
       cmap.fireScheduledActions(record);

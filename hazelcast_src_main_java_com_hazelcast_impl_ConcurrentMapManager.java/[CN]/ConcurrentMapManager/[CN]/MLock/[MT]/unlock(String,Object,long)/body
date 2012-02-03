@@ -4,16 +4,16 @@
   CMap cmap=getMap(name);
   if (cmap == null)   return false;
   LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
-  if (localLock == null || localLock.getThreadId() != tc.getThreadId()) {
-    return false;
-  }
-  if (localLock.decrementAndGet() > 0)   return true;
-  boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,dataKey,null,timeout,-1);
-  if (unlocked) {
+  if (localLock != null && localLock.getThreadId() == tc.getThreadId()) {
+    if (localLock.decrementAndGet() > 0)     return true;
+    boolean unlocked=booleanCall(CONCURRENT_MAP_UNLOCK,name,dataKey,null,timeout,-1);
     cmap.mapLocalLocks.remove(dataKey,localLock);
-    request.lockAddress=null;
-    request.lockCount=0;
-    backup(CONCURRENT_MAP_BACKUP_LOCK);
+    if (unlocked) {
+      request.lockAddress=null;
+      request.lockCount=0;
+      backup(CONCURRENT_MAP_BACKUP_LOCK);
+    }
+    return unlocked;
   }
-  return unlocked;
+  return false;
 }

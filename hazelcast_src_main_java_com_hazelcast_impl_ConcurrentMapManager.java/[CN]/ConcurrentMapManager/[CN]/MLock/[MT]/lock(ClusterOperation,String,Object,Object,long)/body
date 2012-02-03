@@ -1,9 +1,16 @@
 {
   Data dataKey=toData(key);
   ThreadContext tc=ThreadContext.get();
-  boolean locked=booleanCall(op,name,dataKey,value,timeout,-1);
-  if (locked) {
+  setLocal(op,name,dataKey,value,timeout,-1);
+  request.setLongRequest();
+  doOp();
+  long result=(Long)getResultAsObject();
+  if (result == -1L)   return false;
+ else {
     CMap cmap=getMap(name);
+    if (result == 0) {
+      cmap.mapLocalLocks.remove(dataKey);
+    }
     LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
     if (localLock == null || localLock.getThreadId() != tc.getThreadId()) {
       localLock=new LocalLock(tc.getThreadId());
@@ -13,5 +20,5 @@
       backup(CONCURRENT_MAP_BACKUP_LOCK);
     }
   }
-  return locked;
+  return true;
 }
