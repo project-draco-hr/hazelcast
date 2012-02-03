@@ -1,0 +1,22 @@
+{
+  Address thisAddress=concurrentMapManager.getThisAddress();
+  for (  CMap cmap : concurrentMapManager.maps.values()) {
+    cmap.onDisconnect(deadAddress);
+    Object[] records=cmap.mapRecords.values().toArray();
+    for (    Object recordObject : records) {
+      if (recordObject != null) {
+        Record record=(Record)recordObject;
+        if (record.isLocked() && cmap.isMapForQueue()) {
+          if (deadAddress.equals(record.getLock().getLockAddress())) {
+            cmap.sendKeyToMaster(record.getKeyData());
+          }
+        }
+        cmap.onDisconnect(record,deadAddress);
+        if (record.isActive() && thisAddress.equals(partitions[record.getBlockId()].getOwner())) {
+          cmap.markAsDirty(record);
+          cmap.updateIndexes(record);
+        }
+      }
+    }
+  }
+}

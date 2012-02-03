@@ -3,19 +3,14 @@
   if (!hasStorageMember()) {
     reset();
   }
-  boolean isMember=!deadMember.isLiteMember();
   Address deadAddress=deadMember.getAddress();
   Address thisAddress=concurrentMapManager.getThisAddress();
-  if (migratingPartition != null) {
-    if (deadAddress.equals(migratingPartition.getFromAddress()) || deadAddress.equals(migratingPartition.getToAddress())) {
-      migratingPartition=null;
-    }
-  }
+  checkMigratingPartitionForDead(deadAddress);
   int[] indexesOfDead=new int[partitions.length];
   for (  PartitionInfo partition : partitions) {
-    indexesOfDead[partition.getPartitionId()]=partition.getReplicaIndexOf(deadMember.getAddress());
+    indexesOfDead[partition.getPartitionId()]=partition.getReplicaIndexOf(deadAddress);
   }
-  if (isMember) {
+  if (!deadMember.isLiteMember()) {
     clearTaskQueues();
     for (    PartitionInfo partition : partitions) {
       partition.onDeadAddress(deadAddress);
@@ -24,50 +19,6 @@
       return;
     }
   }
-  for (  CMap cmap : concurrentMapManager.maps.values()) {
-    cmap.onDisconnect(deadAddress);
-    Object[] records=cmap.mapRecords.values().toArray();
-    for (    Object recordObject : records) {
-      if (recordObject != null) {
-        Record record=(Record)recordObject;
-        if (record.isLocked() && cmap.isMapForQueue()) {
-          if (deadAddress.equals(record.getLock().getLockAddress())) {
-            cmap.sendKeyToMaster(record.getKeyData());
-          }
-        }
-        cmap.onDisconnect(record,deadAddress);
-        if (record.isActive() && thisAddress.equals(partitions[record.getBlockId()].getOwner())) {
-          cmap.markAsDirty(record);
-          cmap.updateIndexes(record);
-        }
-      }
-    }
-  }
-  if (isMember && concurrentMapManager.isMaster()) {
-    int maxBackupCount=0;
-    for (    final CMap cmap : concurrentMapManager.maps.values()) {
-      maxBackupCount=Math.max(maxBackupCount,cmap.getBackupCount());
-    }
-    for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
-      int indexOfDead=indexesOfDead[partitionId];
-      if (indexOfDead != -1) {
-        PartitionInfo partition=partitions[partitionId];
-        Address owner=partition.getOwner();
-        if (owner == null) {
-          logger.log(Level.FINEST,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
-          logger.log(Level.FINEST,partition.toString());
-          continue;
-        }
-        for (int replicaIndex=indexOfDead; replicaIndex <= maxBackupCount; replicaIndex++) {
-          Address target=partition.getReplicaAddress(replicaIndex);
-          if (target != null && !target.equals(owner)) {
-            MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
-            immediateTasksQueue.offer(new Migrator(mrt));
-          }
-        }
-      }
-    }
-    sendClusterRuntimeState();
-    immediateTasksQueue.offer(new InitRepartitioningTask(new ArrayList<MemberImpl>(concurrentMapManager.lsMembers)));
-  }
+  fixCMapsForDead(deadAddress);
+  fixReplicasAndPartitionsForDead(deadMember,indexesOfDead);
 }

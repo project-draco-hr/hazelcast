@@ -24,44 +24,6 @@
   if (partitionTableSendInterval <= 0) {
     partitionTableSendInterval=1;
   }
-  node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new Runnable(){
-    public void run(){
-      if (concurrentMapManager.isMaster()) {
-        logger.log(Level.INFO,"Remaining migration tasks in queue => Immediate-Tasks: " + immediateTasksQueue.size() + ", Scheduled-Tasks: "+ scheduledTasksQueue.size());
-        concurrentMapManager.enqueueAndReturn(new Processable(){
-          public void process(){
-            if (!node.isActive())             return;
-            sendClusterRuntimeState();
-          }
-        }
-);
-      }
- else {
-        final MigratingPartition currentMigratingPartition=migratingPartition;
-        if (currentMigratingPartition != null) {
-          try {
-            AsyncRemotelyBooleanCallable rrp=node.clusterManager.new AsyncRemotelyBooleanCallable();
-            rrp.executeProcess(node.getMasterAddress(),new CheckMigratingPartition(currentMigratingPartition));
-            boolean valid=rrp.getResultAsBoolean(1);
-            if (valid) {
-              logger.log(Level.FINEST,"Master has confirmed current " + currentMigratingPartition);
-            }
- else {
-              logger.log(Level.INFO,currentMigratingPartition + " could not be validated with master! " + "Removing current MigratingPartition...");
-              concurrentMapManager.enqueueAndReturn(new Processable(){
-                public void process(){
-                  migratingPartition=null;
-                }
-              }
-);
-            }
-          }
- catch (          Throwable t) {
-            logger.log(Level.WARNING,t.getMessage(),t);
-          }
-        }
-      }
-    }
-  }
-,partitionTableSendInterval,partitionTableSendInterval,TimeUnit.SECONDS);
+  node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new SendClusterStateTask(),partitionTableSendInterval,partitionTableSendInterval,TimeUnit.SECONDS);
+  node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new CheckMigratingPartitionTask(),partitionTableSendInterval,partitionTableSendInterval,TimeUnit.SECONDS);
 }

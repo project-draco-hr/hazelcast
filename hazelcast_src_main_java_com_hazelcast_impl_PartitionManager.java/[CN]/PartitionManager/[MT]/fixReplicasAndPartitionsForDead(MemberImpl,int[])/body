@@ -1,0 +1,42 @@
+{
+  boolean isMember=!deadMember.isLiteMember();
+  if (isMember && concurrentMapManager.isMaster()) {
+    sendingDiffs.set(true);
+    logger.log(Level.INFO,"Starting to send partition replica diffs..." + sendingDiffs.get());
+    int diffCount=0;
+    final int maxBackupCount=getMaxBackupCount();
+    for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
+      int indexOfDead=indexesOfDead[partitionId];
+      if (indexOfDead != -1) {
+        PartitionInfo partition=partitions[partitionId];
+        Address owner=partition.getOwner();
+        if (owner == null) {
+          logger.log(Level.FINEST,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
+          logger.log(Level.FINEST,partition.toString());
+          continue;
+        }
+        for (int replicaIndex=indexOfDead; replicaIndex < maxBackupCount; replicaIndex++) {
+          Address target=partition.getReplicaAddress(replicaIndex);
+          if (target != null && !target.equals(owner)) {
+            MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
+            immediateTasksQueue.offer(new Migrator(mrt));
+            diffCount++;
+          }
+        }
+        if (indexOfDead <= maxBackupCount) {
+          partition.setReplicaAddress(maxBackupCount,null);
+        }
+      }
+    }
+    sendClusterRuntimeState();
+    final int totalDiffCount=diffCount;
+    immediateTasksQueue.offer(new Runnable(){
+      public void run(){
+        logger.log(Level.INFO,"Total " + totalDiffCount + " partition replica diffs have been processed.");
+        sendingDiffs.set(false);
+      }
+    }
+);
+    immediateTasksQueue.offer(new PrepareRepartitioningTask());
+  }
+}

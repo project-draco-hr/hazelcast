@@ -1,6 +1,11 @@
 {
   if (concurrentMapManager.isMaster()) {
-    clearTaskQueues();
-    immediateTasksQueue.offer(new InitRepartitioningTask(new ArrayList<MemberImpl>(concurrentMapManager.lsMembers)));
+    if (sendingDiffs.get()) {
+      logger.log(Level.INFO,"MigrationService is already sending diffs for dead member, " + "no need to initiate task!");
+    }
+ else {
+      clearTaskQueues();
+      immediateTasksQueue.offer(new PrepareRepartitioningTask());
+    }
   }
 }
