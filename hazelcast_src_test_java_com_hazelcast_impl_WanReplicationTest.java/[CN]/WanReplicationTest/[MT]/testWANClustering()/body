@@ -13,10 +13,6 @@
   HazelcastInstance h13=Hazelcast.newHazelcastInstance(c1);
   HazelcastInstance h22=Hazelcast.newHazelcastInstance(c2);
   int size=100;
-  for (int i=0; i < size; i++) {
-    h2.getMap("default").put(i,"value" + i);
-    h22.getMap("default").put(size + i,"value" + (size + i));
-  }
   MergeLatch mergeLatch1=new MergeLatch(2 * size);
   MergeLatch mergeLatch2=new MergeLatch(size);
   getConcurrentMapManager(h1).addWanMergeListener(mergeLatch1);
@@ -24,6 +20,10 @@
   getConcurrentMapManager(h13).addWanMergeListener(mergeLatch1);
   getConcurrentMapManager(h2).addWanMergeListener(mergeLatch2);
   getConcurrentMapManager(h22).addWanMergeListener(mergeLatch2);
+  for (int i=0; i < size; i++) {
+    h2.getMap("default").put(i,"value" + i);
+    h22.getMap("default").put(size + i,"value" + (size + i));
+  }
   assertTrue("Latch state: " + mergeLatch1,mergeLatch1.await(60,TimeUnit.SECONDS));
   Thread.sleep(1000);
   assertEquals(0,mergeLatch2.totalOperations());
