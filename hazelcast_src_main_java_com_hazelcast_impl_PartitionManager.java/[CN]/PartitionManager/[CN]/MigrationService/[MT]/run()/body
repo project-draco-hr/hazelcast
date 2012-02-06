@@ -1,25 +1,25 @@
 {
   try {
     while (running) {
-      Runnable r;
-      while ((r=immediateTasksQueue.poll()) != null) {
+      Runnable r=null;
+      while (migrationActive.get() && (r=immediateTasksQueue.poll()) != null) {
         safeRunImmediate(r);
       }
       if (!running) {
         break;
       }
-      if (scheduledTasksQueue.isEmpty()) {
+      if (!migrationActive.get() || scheduledTasksQueue.isEmpty()) {
         Thread.sleep(250);
         continue;
       }
       long totalWait=0L;
-      while (running && r == null && totalWait < partitionMigrationInterval) {
+      while (migrationActive.get() && running && r == null && totalWait < partitionMigrationInterval) {
         long start=System.currentTimeMillis();
         r=immediateTasksQueue.poll(1,TimeUnit.SECONDS);
         safeRunImmediate(r);
         totalWait+=(System.currentTimeMillis() - start);
       }
-      if (running) {
+      if (migrationActive.get() && running) {
         r=scheduledTasksQueue.poll();
         safeRun(r);
       }
