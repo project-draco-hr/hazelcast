@@ -13,9 +13,7 @@
         migrationRequestTask=new MigrationRequestTask(partitionId,currentOwner,newOwner,replicaIndex,true);
       }
  else       if (currentOwner == null && newOwner != null) {
-        if ((currentOwner=currentPartition.getOwner()) == null) {
-          lost=true;
-        }
+        currentOwner=currentPartition.getOwner();
         boolean selfCopy=false;
         ListIterator<MigrationRequestTask> iter=partitionMigrationTasks.listIterator(partitionMigrationTasks.size());
         while (iter.hasPrevious()) {
@@ -36,14 +34,13 @@
       }
       if (migrationRequestTask != null) {
         partitionMigrationTasks.add(migrationRequestTask);
-        boolean immediate=false;
-        if (replicaIndex == 0 && currentPartition.getOwner() != null && currentPartition.getOwner().equals(newPartition.getReplicaAddress(1))) {
-          immediate=true;
+        if (replicaIndex == 0 && currentOwner == null) {
+          lostPartitionTasksList.add(migrationRequestTask);
+        }
+ else         if (replicaIndex == 0 && currentOwner != null && currentOwner.equals(newPartition.getReplicaAddress(1))) {
+          immediateTasksList.add(migrationRequestTask);
         }
  else         if (replicaIndex == 1 && currentPartition.getReplicaAddress(1) == null) {
-          immediate=true;
-        }
-        if (immediate) {
           immediateTasksList.add(migrationRequestTask);
         }
  else {
@@ -52,9 +49,6 @@
       }
     }
     partitionMigrationTasks.clear();
-    if (lost) {
-      logger.log(Level.FINEST,"Oops! " + currentPartition + " has been LOST!");
-    }
   }
   arrangeScheduledTasks(scheduledTasksList);
 }
