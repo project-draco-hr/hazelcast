@@ -26,4 +26,13 @@
   }
   node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new SendClusterStateTask(),partitionTableSendInterval,partitionTableSendInterval,TimeUnit.SECONDS);
   node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new CheckMigratingPartitionTask(),partitionTableSendInterval,partitionTableSendInterval,TimeUnit.SECONDS);
+  node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new Runnable(){
+    public void run(){
+      if (concurrentMapManager.isMaster() && initialized && shouldCheckRepartitioning()) {
+        logger.log(Level.FINEST,"Checking partition table for repartitioning...");
+        immediateTasksQueue.add(new CheckRepartitioningTask());
+      }
+    }
+  }
+,180,180,TimeUnit.SECONDS);
 }

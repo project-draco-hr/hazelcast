@@ -1,0 +1,23 @@
+{
+  if (shouldCheckRepartitioning()) {
+    final int v=version.get();
+    prepareMigrationTasks();
+    int totalTasks=0;
+    for (    MigrationRequestTask task : immediateQ) {
+      if (task.getReplicaIndex() <= REPARTITIONING_TASK_REPLICA_THRESHOLD) {
+        totalTasks++;
+      }
+    }
+    for (    MigrationRequestTask task : scheduledQ) {
+      if (task.getReplicaIndex() <= REPARTITIONING_TASK_REPLICA_THRESHOLD) {
+        totalTasks++;
+      }
+    }
+    if (!lostQ.isEmpty() || totalTasks > REPARTITIONING_TASK_COUNT_THRESHOLD) {
+      logger.log(Level.WARNING,"Something weird! Migration task queues are empty," + " last repartitioning executed on " + lastRepartitionTime.get() + " but repartitioning check resulted "+ totalTasks+ " tasks"+ " and "+ lostQ.size()+ " lost partitions!");
+      if (version.get() == v && shouldCheckRepartitioning()) {
+        fillMigrationQueues();
+      }
+    }
+  }
+}

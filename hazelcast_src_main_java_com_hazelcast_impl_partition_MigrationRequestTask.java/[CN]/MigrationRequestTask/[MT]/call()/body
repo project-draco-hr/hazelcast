@@ -1,10 +1,19 @@
 {
-  if (to.equals(from))   return Boolean.TRUE;
+  if (to.equals(from)) {
+    getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
+    return Boolean.TRUE;
+  }
+  if (from == null) {
+    getLogger().log(Level.FINEST,"From address is null => " + toString());
+  }
   Node node=((FactoryImpl)hazelcast).node;
   PartitionManager pm=node.concurrentMapManager.getPartitionManager();
   try {
     Member target=pm.getMember(to);
-    if (target == null)     return Boolean.FALSE;
+    if (target == null) {
+      getLogger().log(Level.WARNING,"Target of task is null! => " + toString());
+      return Boolean.FALSE;
+    }
     CostAwareRecordList costAwareRecordList=pm.getActivePartitionRecords(partitionId,replicaIndex,to,diffOnly);
     DistributedTask task=new DistributedTask(new MigrationTask(partitionId,costAwareRecordList,replicaIndex,from),target);
     Future future=node.factory.getExecutorService().submit(task);
@@ -18,7 +27,7 @@
     if (e instanceof MemberLeftException || e instanceof IllegalStateException) {
       level=Level.FINEST;
     }
-    node.getLogger(MigrationRequestTask.class.getName()).log(level,e.getMessage(),e);
+    getLogger().log(level,e.getMessage(),e);
   }
   return Boolean.FALSE;
 }
