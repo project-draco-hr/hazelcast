@@ -1,9 +1,27 @@
 {
   concurrentMapManager.checkServiceThread();
+  final Connection conn=clusterRuntimeState.getConnection();
+  final Address sender=conn != null ? conn.getEndPoint() : null;
+  if (concurrentMapManager.isMaster()) {
+    logger.log(Level.WARNING,"This is the master node and received a ClusterRuntimeState from " + (sender != null ? sender : conn) + ". Ignoring state! ");
+    return;
+  }
+ else {
+    final Address master=concurrentMapManager.getMasterAddress();
+    if (sender == null || master == null || !master.equals(sender)) {
+      logger.log(Level.WARNING,"Received a ClusterRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+    }
+  }
   PartitionInfo[] newPartitions=clusterRuntimeState.getPartitions();
   int size=newPartitions.length;
   for (int i=0; i < size; i++) {
     PartitionInfo newPartition=newPartitions[i];
+    for (int j=0; j < PartitionInfo.MAX_REPLICA_COUNT; j++) {
+      Address address=newPartition.getReplicaAddress(j);
+      if (address != null && concurrentMapManager.getMember(address) == null) {
+        logger.log(Level.WARNING,"Unknown " + address + " is found in received partition table from master "+ sender+ ". Probably it is dead. Partition: "+ newPartition);
+      }
+    }
     PartitionInfo currentPartition=partitions[newPartition.getPartitionId()];
     currentPartition.setPartitionInfo(newPartition);
     checkMigratingPartitionFor(currentPartition);

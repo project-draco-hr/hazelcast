@@ -3,19 +3,24 @@
   this.concurrentMapManager=concurrentMapManager;
   this.logger=concurrentMapManager.node.getLogger(PartitionManager.class.getName());
   this.partitions=new PartitionInfo[PARTITION_COUNT];
+  final Node node=concurrentMapManager.node;
   for (int i=0; i < PARTITION_COUNT; i++) {
     this.partitions[i]=new PartitionInfo(i,new PartitionListener(){
       public void replicaChanged(      PartitionReplicaChangeEvent event){
         for (        PartitionListener partitionListener : lsPartitionListeners) {
           partitionListener.replicaChanged(event);
         }
-        if (!concurrentMapManager.isMaster())         return;
-        version.incrementAndGet();
+        if (node.isActive() && event.getReplicaIndex() == 0 && event.getNewAddress() == null) {
+          logger.log(Level.WARNING,"Owner of partition is being removed! " + event);
+        }
+        if (concurrentMapManager.isMaster()) {
+          ;
+          version.incrementAndGet();
+        }
       }
     }
 );
   }
-  final Node node=concurrentMapManager.node;
   partitionMigrationInterval=node.groupProperties.PARTITION_MIGRATION_INTERVAL.getInteger() * 1000;
   immediateBackupInterval=node.groupProperties.IMMEDIATE_BACKUP_INTERVAL.getInteger() * 1000;
   migrationService=new MigrationService(concurrentMapManager.node);
@@ -28,7 +33,7 @@
   node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new CheckMigratingPartitionTask(),partitionTableSendInterval,partitionTableSendInterval,TimeUnit.SECONDS);
   node.executorManager.getScheduledExecutorService().scheduleAtFixedRate(new Runnable(){
     public void run(){
-      if (concurrentMapManager.isMaster() && initialized && shouldCheckRepartitioning()) {
+      if (concurrentMapManager.isMaster() && node.isActive() && initialized&& shouldCheckRepartitioning()) {
         logger.log(Level.FINEST,"Checking partition table for repartitioning...");
         immediateTasksQueue.add(new CheckRepartitioningTask());
       }

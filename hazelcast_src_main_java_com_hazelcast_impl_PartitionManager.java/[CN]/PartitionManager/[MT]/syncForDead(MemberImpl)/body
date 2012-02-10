@@ -1,11 +1,18 @@
 {
-  concurrentMapManager.partitionServiceImpl.reset();
+  Address deadAddress=deadMember.getAddress();
+  Address thisAddress=concurrentMapManager.getThisAddress();
+  if (deadAddress == null || deadAddress.equals(thisAddress)) {
+    return;
+  }
   if (!hasStorageMember()) {
     reset();
   }
-  Address deadAddress=deadMember.getAddress();
-  Address thisAddress=concurrentMapManager.getThisAddress();
+  concurrentMapManager.partitionServiceImpl.reset();
   checkMigratingPartitionForDead(deadAddress);
+  fixCMapsForDead(deadAddress);
+  if (!concurrentMapManager.isMaster()) {
+    return;
+  }
   int[] indexesOfDead=new int[partitions.length];
   for (  PartitionInfo partition : partitions) {
     indexesOfDead[partition.getPartitionId()]=partition.getReplicaIndexOf(deadAddress);
@@ -15,10 +22,6 @@
     for (    PartitionInfo partition : partitions) {
       partition.onDeadAddress(deadAddress);
     }
-    if (deadAddress == null || deadAddress.equals(thisAddress)) {
-      return;
-    }
   }
-  fixCMapsForDead(deadAddress);
   fixReplicasAndPartitionsForDead(deadMember,indexesOfDead);
 }

@@ -1,0 +1,72 @@
+{
+  final int[] clusterSize=new int[]{3,5,7,6,4,2,1};
+  final int entryCount=10000;
+  final int totalPartitionCount=271;
+  final int mapBackupCount=3;
+  Config config=new Config();
+  config.getProperties().put(GroupProperties.PROP_CLEANUP_DELAY_SECONDS,"3");
+  config.getProperties().put(GroupProperties.PROP_PARTITION_MIGRATION_INTERVAL,"0");
+  config.getProperties().put(GroupProperties.PROP_IMMEDIATE_BACKUP_INTERVAL,"0");
+  config.getProperties().put(GroupProperties.PROP_PARTITION_TABLE_SEND_INTERVAL,"5");
+  final String mapName="testPartitionAndCMapRecordCounts";
+  int testMapReplicaCount=mapBackupCount + 1;
+  config.getMapConfig(mapName).setBackupCount(mapBackupCount);
+  final IMap<Integer,Integer> testMap=Hazelcast.newHazelcastInstance(config).getMap(mapName);
+  for (int i=0; i < entryCount; i++) {
+    testMap.put(i,i);
+  }
+  int k=0;
+  for (int i=0; i < clusterSize.length; i++) {
+    int size=clusterSize[k++ % clusterSize.length];
+    System.out.println("Cluster size : " + size);
+    while (Hazelcast.getAllHazelcastInstances().size() < size) {
+      Hazelcast.newHazelcastInstance(config);
+    }
+    while (Hazelcast.getAllHazelcastInstances().size() > size) {
+      Collection<HazelcastInstance> all=Hazelcast.getAllHazelcastInstances();
+      for (      HazelcastInstance hz : all) {
+        if (hz.getCluster().getMembers().iterator().next().localMember()) {
+          hz.getLifecycleService().shutdown();
+          break;
+        }
+      }
+    }
+    Collection<HazelcastInstance> set=Hazelcast.getAllHazelcastInstances();
+    final int replicaMax=set.size();
+    int wait=replicaMax * 3;
+    System.out.println("Waiting " + wait + " seconds for partition arrangement...");
+    Thread.sleep(1000 * wait);
+    int[] partitionCounts=new int[PartitionInfo.MAX_REPLICA_COUNT];
+    for (    HazelcastInstance hazelcastInstance : set) {
+      int[] pc=getPartitionCounts(getNode(hazelcastInstance));
+      for (int j=0; j < pc.length; j++) {
+        partitionCounts[j]+=pc[j];
+      }
+    }
+    for (int j=0; j < partitionCounts.length; j++) {
+      int partitionCount=partitionCounts[j];
+      if (j < replicaMax) {
+        assertTrue("index: " + j + ", partitions: "+ partitionCount+ ", max-replica: "+ replicaMax,partitionCount == totalPartitionCount);
+      }
+ else {
+        assertTrue("index: " + j + ", partitions: "+ partitionCount+ ", max-replica: "+ replicaMax,partitionCount == 0);
+      }
+    }
+    int[] recordCounts=new int[PartitionInfo.MAX_REPLICA_COUNT];
+    for (    HazelcastInstance hazelcastInstance : set) {
+      int[] rc=getCMapRecordCounts(getNode(hazelcastInstance),mapName);
+      for (int j=0; j < rc.length; j++) {
+        recordCounts[j]+=rc[j];
+      }
+    }
+    for (int j=0; j < recordCounts.length; j++) {
+      int recordCount=recordCounts[j];
+      if (j < Math.min(testMapReplicaCount,replicaMax)) {
+        assertTrue("index: " + j + ", records: "+ recordCount+ ", max-replica: "+ replicaMax,recordCount == entryCount);
+      }
+ else {
+        assertTrue("index: " + j + ", records: "+ recordCount+ ", max-replica: "+ replicaMax,recordCount == 0);
+      }
+    }
+  }
+}
