@@ -1,0 +1,22 @@
+{
+  Set<Member> members=node.getClusterImpl().getMembers();
+  List<Future<Pairs>> lsFutures=new ArrayList<Future<Pairs>>();
+  int expectedPartitionVersion=partitionManager.getVersion();
+  for (  Member member : members) {
+    if (!member.isLiteMember()) {
+      Callable callable=new MapQueryCallable(name,operation,predicateData,expectedPartitionVersion);
+      DistributedTask<Pairs> dt=new DistributedTask<Pairs>(callable,member);
+      lsFutures.add(dt);
+      node.factory.getExecutorService(BATCH_OPS_EXECUTOR_NAME).execute(dt);
+    }
+  }
+  for (  Future<Pairs> future : lsFutures) {
+    Pairs pairs=future.get();
+    if (pairs == null) {
+      throw new IllegalPartitionState("Unexpected partition version!");
+    }
+ else {
+      entries.addEntries(pairs);
+    }
+  }
+}

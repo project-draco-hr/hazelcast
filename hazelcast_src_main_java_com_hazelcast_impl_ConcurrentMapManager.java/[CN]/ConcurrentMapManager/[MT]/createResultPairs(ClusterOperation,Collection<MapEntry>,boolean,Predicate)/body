@@ -1,0 +1,38 @@
+{
+  Pairs pairs=new Pairs();
+  if (colRecords != null) {
+    long now=currentTimeMillis();
+    for (    MapEntry mapEntry : colRecords) {
+      Record record=(Record)mapEntry;
+      if (record.isActive() && record.isValid(now)) {
+        if (record.getKeyData() == null || record.getKeyData().size() == 0) {
+          throw new RuntimeException("Key cannot be null or zero-size: " + record.getKeyData());
+        }
+        boolean match=(!evaluateEntries) || predicate.apply(record);
+        if (match) {
+          boolean onlyKeys=(operation == CONCURRENT_MAP_ITERATE_KEYS_ALL || operation == CONCURRENT_MAP_ITERATE_KEYS);
+          Data key=record.getKeyData();
+          if (record.hasValueData()) {
+            Data value=(onlyKeys) ? null : record.getValueData();
+            pairs.addKeyValue(new KeyValue(key,value));
+          }
+ else           if (record.getMultiValues() != null) {
+            int size=record.getMultiValues().size();
+            if (size > 0) {
+              if (operation == CONCURRENT_MAP_ITERATE_KEYS) {
+                pairs.addKeyValue(new KeyValue(key,null));
+              }
+ else {
+                Collection<ValueHolder> values=record.getMultiValues();
+                for (                ValueHolder valueHolder : values) {
+                  pairs.addKeyValue(new KeyValue(key,valueHolder.getData()));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return pairs;
+}

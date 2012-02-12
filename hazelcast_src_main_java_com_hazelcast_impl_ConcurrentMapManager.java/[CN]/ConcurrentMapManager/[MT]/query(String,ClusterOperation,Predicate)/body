@@ -1,0 +1,38 @@
+{
+  Data predicateData=toData(predicate);
+  while (true) {
+    try {
+      Entries entries=new Entries(this,name,operation,predicate);
+      tryQuery(entries,name,operation,predicateData);
+      return entries;
+    }
+ catch (    Throwable e) {
+      if (e instanceof MemberLeftException || e instanceof IllegalPartitionState) {
+        try {
+          Thread.sleep(redoWaitMillis);
+        }
+ catch (        InterruptedException e1) {
+          handleInterruptedException();
+        }
+      }
+ else       if (e instanceof InterruptedException) {
+        handleInterruptedException();
+      }
+ else       if (e instanceof RuntimeException) {
+        throw (RuntimeException)e;
+      }
+ else       if (e instanceof ExecutionException) {
+        Throwable cause=e.getCause();
+        if (cause != null && cause instanceof RuntimeException) {
+          throw (RuntimeException)cause;
+        }
+ else {
+          throw new RuntimeException(e);
+        }
+      }
+ else {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+}
