@@ -17,9 +17,14 @@
         for (int replicaIndex=indexOfDead; replicaIndex < maxBackupCount; replicaIndex++) {
           Address target=partition.getReplicaAddress(replicaIndex);
           if (target != null && !target.equals(owner)) {
-            MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
-            immediateTasksQueue.offer(new Migrator(mrt));
-            diffCount++;
+            if (getMember(target) != null) {
+              MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
+              immediateTasksQueue.offer(new Migrator(mrt));
+              diffCount++;
+            }
+ else {
+              logger.log(Level.WARNING,"Target member of replica diff task couldn't found! " + "Replica: " + replicaIndex + ", Dead: "+ deadMember+ "\n"+ partition);
+            }
           }
         }
         if (indexOfDead <= maxBackupCount) {
