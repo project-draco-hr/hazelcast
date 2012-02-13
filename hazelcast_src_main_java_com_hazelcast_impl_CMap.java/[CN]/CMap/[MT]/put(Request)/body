@@ -9,9 +9,9 @@
   if (record != null && !record.isValid(now)) {
     if (record.isActive() && record.isEvictable()) {
       sendEvictEvent=true;
-      evictedRecord=createNewRecord(record.getKeyData(),record.getValueData());
+      evictedRecord=createNewTransientRecord(record.getKeyData(),record.getValueData());
     }
-    record.setValue(null);
+    record.setValueData(null);
     record.setMultiValues(null);
   }
   if (req.operation == CONCURRENT_MAP_PUT_IF_ABSENT) {
@@ -29,13 +29,12 @@
   }
   Data oldValue=null;
   if (record == null) {
-    record=createNewRecord(req.key,req.value);
-    mapRecords.put(req.key,record);
+    record=createAndAddNewRecord(req.key,req.value);
   }
  else {
     markAsActive(record);
     oldValue=(record.isValid(now)) ? record.getValueData() : null;
-    record.setValue(req.value);
+    record.setValueData(req.value);
     record.incrementVersion();
     record.setLastUpdated();
   }
