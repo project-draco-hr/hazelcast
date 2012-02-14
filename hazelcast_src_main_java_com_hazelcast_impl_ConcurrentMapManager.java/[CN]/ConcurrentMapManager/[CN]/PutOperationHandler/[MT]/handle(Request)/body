@@ -1,8 +1,17 @@
 {
   CMap cmap=getOrCreateMap(request.name);
+  CallStateService css=node.getCallStateService();
+  if (css.shouldLog(CS_INFO)) {
+    css.logObject(request,CS_INFO,cmap);
+  }
   boolean checkCapacity=(request.operation == CONCURRENT_MAP_PUT || request.operation == CONCURRENT_MAP_TRY_PUT || request.operation == CONCURRENT_MAP_PUT_AND_UNLOCK);
   boolean overCapacity=checkCapacity && cmap.overCapacity(request);
-  if (cmap.isNotLocked(request) && !overCapacity) {
+  boolean cmapNotLocked=cmap.isNotLocked(request);
+  if (css.shouldLog(CS_INFO)) {
+    css.logObject(request,CS_INFO,"OverCapacity " + overCapacity);
+    css.logObject(request,CS_INFO,"cmapNotLocked " + cmapNotLocked);
+  }
+  if (cmapNotLocked && !overCapacity) {
     if (shouldSchedule(request)) {
       if (request.hasEnoughTimeToSchedule()) {
         schedule(request);
@@ -13,7 +22,13 @@
       return;
     }
     Record record=cmap.getRecord(request);
+    if (css.shouldLog(CS_INFO)) {
+      css.logObject(request,CS_INFO,"Record: " + record);
+    }
     if ((record == null || !record.hasValueData()) && cmap.loader != null && request.operation != ClusterOperation.CONCURRENT_MAP_PUT_TRANSIENT) {
+      if (css.shouldLog(CS_INFO)) {
+        css.logObject(request,CS_INFO,"Will Load");
+      }
       storeExecutor.execute(new PutLoader(cmap,request),request.key.hashCode());
     }
  else {

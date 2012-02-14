@@ -1,6 +1,10 @@
 {
   ThreadContext threadContext=ThreadContext.get();
   TransactionImpl txn=threadContext.getTransaction();
+  CallStateService css=node.getCallStateService();
+  if (css.shouldLog(CS_INFO)) {
+    css.logObject(MPut.this,CS_INFO,operation);
+  }
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
     if (!txn.has(name,key)) {
       MLock mlock=new MLock();
@@ -54,8 +58,17 @@
     }
  else {
       request.setObjectRequest();
+      if (css.shouldLog(CS_INFO)) {
+        css.logObject(MPut.this,CS_INFO,"Calling doOp");
+      }
       doOp();
+      if (css.shouldLog(CS_INFO)) {
+        css.logObject(MPut.this,CS_INFO,"Done doOp");
+      }
       Object returnObject=getResultAsObject();
+      if (css.shouldLog(CS_INFO)) {
+        css.logObject(MPut.this,CS_INFO,returnObject);
+      }
       if (operation == CONCURRENT_MAP_REPLACE_IF_NOT_NULL && returnObject == null) {
         return null;
       }
@@ -64,6 +77,9 @@
       }
       request.longValue=Long.MIN_VALUE;
       backup(CONCURRENT_MAP_BACKUP_PUT);
+      if (css.shouldLog(CS_INFO)) {
+        css.logObject(MPut.this,CS_INFO,"Backups completed returning result");
+      }
       return returnObject;
     }
   }

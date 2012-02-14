@@ -1,11 +1,21 @@
 {
   Request remoteReq=Request.copy(packet);
-  if (isMigrating(remoteReq) || !isRightRemoteTarget(remoteReq)) {
+  boolean isMigrating=isMigrating(remoteReq);
+  boolean rightRemoteTarget=isRightRemoteTarget(remoteReq);
+  CallStateService css=node.getCallStateService();
+  if (css.shouldLog(CS_INFO)) {
+    css.logObject(remoteReq,CS_INFO,"IsMigrating " + isMigrating);
+    css.logObject(remoteReq,CS_INFO,"RightRemoteTarget " + rightRemoteTarget);
+  }
+  if (isMigrating || !rightRemoteTarget) {
     remoteReq.clearForResponse();
     remoteReq.response=OBJECT_REDO;
     returnResponse(remoteReq);
   }
  else {
+    if (css.shouldLog(CS_INFO)) {
+      css.logObject(remoteReq,CS_INFO,"handle");
+    }
     handle(remoteReq);
   }
   releasePacket(packet);
