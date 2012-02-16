@@ -7,27 +7,35 @@
   boolean checkCapacity=(request.operation == CONCURRENT_MAP_PUT || request.operation == CONCURRENT_MAP_TRY_PUT || request.operation == CONCURRENT_MAP_PUT_AND_UNLOCK);
   boolean overCapacity=checkCapacity && cmap.overCapacity(request);
   boolean cmapNotLocked=cmap.isNotLocked(request);
-  if (css.shouldLog(CS_INFO)) {
-    css.logObject(request,CS_INFO,"OverCapacity " + overCapacity);
-    css.logObject(request,CS_INFO,"cmapNotLocked " + cmapNotLocked);
+  if (css.shouldLog(CS_TRACE)) {
+    css.trace(request,"OverCapacity/CmapNotLocked",overCapacity,cmapNotLocked);
   }
   if (cmapNotLocked && !overCapacity) {
     if (shouldSchedule(request)) {
       if (request.hasEnoughTimeToSchedule()) {
+        if (css.shouldLog(CS_INFO)) {
+          Record r=cmap.getRecord(request);
+          int scheduledActionCount=(r == null) ? 0 : r.getScheduledActionCount();
+          DistributedLock lock=(r == null) ? null : r.getLock();
+          css.info(request,MapCallStateFactory.newScheduleRequest(lock,scheduledActionCount));
+        }
         schedule(request);
       }
  else {
+        if (css.shouldLog(CS_INFO)) {
+          css.info(request,"NoTimeToSchedule");
+        }
         onNoTimeToSchedule(request);
       }
       return;
     }
     Record record=cmap.getRecord(request);
-    if (css.shouldLog(CS_INFO)) {
-      css.logObject(request,CS_INFO,"Record: " + record);
+    if (css.shouldLog(CS_TRACE)) {
+      css.trace(request,"Record is",record);
     }
     if ((record == null || !record.hasValueData()) && cmap.loader != null && request.operation != ClusterOperation.CONCURRENT_MAP_PUT_TRANSIENT) {
-      if (css.shouldLog(CS_INFO)) {
-        css.logObject(request,CS_INFO,"Will Load");
+      if (css.shouldLog(CS_TRACE)) {
+        css.trace(request,"Will Load");
       }
       storeExecutor.execute(new PutLoader(cmap,request),request.key.hashCode());
     }
