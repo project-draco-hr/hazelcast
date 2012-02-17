@@ -1,0 +1,32 @@
+{
+  SocketChannel socketChannel=null;
+  try {
+    connectionManager.ioService.onIOThreadStart();
+    socketChannel=SocketChannel.open();
+    final Address thisAddress=connectionManager.ioService.getThisAddress();
+    socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),0));
+    logger.log(Level.FINEST,"connecting to " + address);
+    boolean connected=socketChannel.connect(new InetSocketAddress(address.getInetAddress(),address.getPort()));
+    logger.log(Level.FINEST,"connection check. connected: " + connected + ", "+ address);
+    MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
+    if (memberSocketInterceptor != null) {
+      memberSocketInterceptor.onConnect(socketChannel.socket());
+    }
+    socketChannel.configureBlocking(false);
+    logger.log(Level.FINEST,"connected to " + address);
+    final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
+    Connection connection=connectionManager.assignSocketChannel(socketChannelWrapper);
+    connectionManager.bind(address,connection,false);
+  }
+ catch (  Throwable e) {
+    logger.log(Level.WARNING,e.getMessage(),e);
+    if (socketChannel != null) {
+      try {
+        socketChannel.close();
+      }
+ catch (      final IOException ignored) {
+      }
+    }
+    connectionManager.failedConnection(address,e);
+  }
+}

@@ -1,8 +1,12 @@
 {
   live=true;
   for (int i=0; i < selectors.length; i++) {
-    InOutSelector s=new InOutSelector(this,(i == 0 ? serverSocketChannel : null));
+    InOutSelector s=new InOutSelector(this);
     selectors[i]=s;
     new Thread(ioService.getThreadGroup(),s,ioService.getThreadPrefix() + i).start();
+  }
+  if (serverSocketChannel != null) {
+    Runnable acceptRunnable=new SocketAcceptor(serverSocketChannel,this);
+    new Thread(ioService.getThreadGroup(),acceptRunnable,ioService.getThreadPrefix() + "_Acceptor").start();
   }
 }

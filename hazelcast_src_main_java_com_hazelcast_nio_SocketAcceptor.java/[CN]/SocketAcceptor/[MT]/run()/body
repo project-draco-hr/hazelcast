@@ -1,0 +1,52 @@
+{
+  try {
+    connectionManager.ioService.onIOThreadStart();
+    serverSocketChannel.configureBlocking(true);
+    while (connectionManager.isLive()) {
+      SocketChannelWrapper socketChannelWrapper=null;
+      try {
+        socketChannelWrapper=connectionManager.wrapSocketChannel(serverSocketChannel.accept(),false);
+      }
+ catch (      Exception e) {
+        logger.log(Level.INFO,e.getMessage(),e);
+        try {
+          serverSocketChannel.close();
+        }
+ catch (        Exception ignore) {
+        }
+        connectionManager.ioService.onFatalError(e);
+      }
+      if (socketChannelWrapper != null) {
+        final SocketChannelWrapper socketChannel=socketChannelWrapper;
+        connectionManager.executeAsync(new Runnable(){
+          public void run(){
+            logger.log(Level.INFO,socketChannel.socket().getLocalPort() + " is accepting socket connection from " + socketChannel.socket().getRemoteSocketAddress());
+            try {
+              MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
+              if (memberSocketInterceptor != null) {
+                memberSocketInterceptor.onAccept(socketChannel.socket());
+              }
+              socketChannel.configureBlocking(false);
+              connectionManager.initSocket(socketChannel.socket());
+              connectionManager.assignSocketChannel(socketChannel);
+            }
+ catch (            Exception e) {
+              logger.log(Level.WARNING,e.getMessage(),e);
+              if (socketChannel != null) {
+                try {
+                  socketChannel.close();
+                }
+ catch (                IOException ignored) {
+                }
+              }
+            }
+          }
+        }
+);
+      }
+    }
+  }
+ catch (  IOException e) {
+    e.printStackTrace();
+  }
+}
