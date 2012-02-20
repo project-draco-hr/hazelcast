@@ -1,0 +1,26 @@
+{
+  acceptCallCount.incrementAndGet();
+  try {
+    OutputStream out=acceptedSocket.getOutputStream();
+    InputStream in=acceptedSocket.getInputStream();
+    int loop=new Random().nextInt(2) + 1;
+    int secretValue=1;
+    int expected=(int)Math.pow(2,loop);
+    for (int i=0; i < loop; i++) {
+      out.write(secretValue);
+      int read=in.read();
+      if (read != 2 * secretValue) {
+        throw new IOException("Authentication Failed");
+      }
+      secretValue=read;
+    }
+    if (secretValue != expected) {
+      throw new IOException("Authentication Failed");
+    }
+    out.write(0);
+  }
+ catch (  IOException e) {
+    acceptFailureCount.incrementAndGet();
+    throw e;
+  }
+}

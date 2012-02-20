@@ -1,0 +1,21 @@
+{
+  if (currentLevel == Level.CS_NONE)   return null;
+  CallKey callKey=new CallKey(callerAddress,callerThreadId);
+  CallState callBefore=mapCallStates.get(callKey);
+  if (callBefore == null) {
+    CallState callStateNew=new CallState(callId,callerAddress,callerThreadId);
+    mapCallStates.put(callKey,callStateNew);
+    int callStatesCount=mapCallStates.size();
+    if (callStatesCount > 10000) {
+      String msg=" CallStates created! You might have too many threads accessing Hazelcast!";
+      node.getLogger(SystemLogService.class.getName()).log(WARNING,callStatesCount + msg);
+    }
+    return callStateNew;
+  }
+ else {
+    if (callBefore.getCallId() != callId) {
+      callBefore.reset(callId);
+    }
+    return callBefore;
+  }
+}

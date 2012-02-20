@@ -6,45 +6,12 @@
     }
     if (result == OBJECT_REDO) {
       request.redoCount++;
+      SystemLogService css=node.getCallStateService();
+      if (css.shouldTrace()) {
+        css.trace(this,MapSystemLogFactory.newRedoLog(node,request));
+      }
       if (request.redoCount > 19 && (request.redoCount % 10 == 0)) {
-        final CountDownLatch l=new CountDownLatch(1);
-        final Request reqCopy=request.hardCopy();
-        reqCopy.redoCount=request.redoCount;
-        final Address targetCopy=getTarget();
-        if (!thisAddress.equals(targetCopy)) {
-          enqueueAndReturn(new Processable(){
-            public void process(){
-              Connection targetConnection=null;
-              MemberImpl targetMember=null;
-              Object key=toObject(reqCopy.key);
-              PartitionInfo block=(reqCopy.key == null) ? null : node.concurrentMapManager.getPartitionInfo(reqCopy.blockId);
-              if (targetCopy != null) {
-                targetMember=getMember(targetCopy);
-                targetConnection=node.connectionManager.getConnection(targetCopy);
-                if (targetMember != null) {
-                  if (!lsMembers.contains(targetMember)) {
-                    logger.log(Level.SEVERE,targetMember + " is not in member list!");
-                  }
-                }
-              }
-              final String msg="======= " + reqCopy.callId + ": "+ reqCopy.operation+ " ======== "+ "\n\t"+ "thisAddress= "+ thisAddress+ ", target= "+ targetCopy+ "\n\t"+ "targetMember= "+ targetMember+ ", targetConn="+ targetConnection+ ", targetBlock="+ block+ "\n\t"+ key+ " Re-doing ["+ reqCopy.redoCount+ "] times! "+ reqCopy.name+ " : "+ toObject(reqCopy.value);
-              logger.log(Level.INFO,msg);
-              l.countDown();
-            }
-          }
-);
-        }
- else {
-          final String msg="======= " + reqCopy.callId + ": "+ reqCopy.operation+ " ======== "+ "\n\t"+ "thisAddress= "+ thisAddress+ ", target= "+ targetCopy+ "\n\t"+ " Re-doing ["+ reqCopy.redoCount+ "] times! "+ reqCopy.name+ " : "+ toObject(reqCopy.key)+ "="+ toObject(reqCopy.value);
-          logger.log(Level.WARNING,msg);
-          l.countDown();
-        }
-        try {
-          l.await();
-        }
- catch (        InterruptedException e) {
-          handleInterruptedException();
-        }
+        logger.log(Level.WARNING,MapSystemLogFactory.newRedoLog(node,request).toString());
       }
       try {
         Thread.sleep(redoWaitMillis);
