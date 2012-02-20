@@ -1,42 +1,45 @@
 {
-  ManagedMap properties=new ManagedMap();
-  final NamedNodeMap atts=element.getAttributes();
-  if (atts != null) {
-    for (int a=0; a < atts.getLength(); a++) {
-      final org.w3c.dom.Node att=atts.item(a);
-      String name=att.getNodeName();
-      ClientProperties.ClientPropertyName key;
+  final NamedNodeMap attrs=element.getAttributes();
+  if (attrs != null) {
+    for (int a=0; a < attrs.getLength(); a++) {
+      final org.w3c.dom.Node att=attrs.item(a);
+      final String name=att.getNodeName();
       final String value=att.getNodeValue();
       if ("group-name".equals(name)) {
-        key=ClientProperties.ClientPropertyName.GROUP_NAME;
+        groupConfigBuilder.addPropertyValue("name",value);
       }
  else       if ("group-password".equals(name)) {
-        key=ClientProperties.ClientPropertyName.GROUP_PASSWORD;
+        groupConfigBuilder.addPropertyValue("password",value);
       }
- else {
-        continue;
+ else       if ("auto-update-members".equals(name)) {
+        configBuilder.addPropertyValue("updateAutomatic",value);
       }
-      properties.put(key,value);
+ else       if ("shuffle-members".equals(name)) {
+        configBuilder.addPropertyValue("shuffle",value);
+      }
+ else       if ("connect-attempt-limit".equals(name)) {
+        configBuilder.addPropertyValue("initialConnectionAttemptLimit",value);
+      }
+ else       if ("connect-timeout".equals(name)) {
+        configBuilder.addPropertyValue("connectionTimeout",value);
+      }
+ else       if ("reconnect-attempt-limit".equals(name)) {
+        configBuilder.addPropertyValue("reconnectionAttemptLimit",value);
+      }
+ else       if ("reconnect-timeout".equals(name)) {
+        configBuilder.addPropertyValue("reConnectionTimeOut",value);
+      }
+ else       if ("credentials-ref".equals(name)) {
+        configBuilder.addPropertyReference("credentials",value);
+      }
     }
   }
   for (  org.w3c.dom.Node node : new IterableNodeList(element,Node.ELEMENT_NODE)) {
     final String nodeName=cleanNodeName(node.getNodeName());
-    if ("members".equals(nodeName)) {
+    if ("member".equals(nodeName)) {
       members.add(getValue(node));
     }
- else     if ("client-properties".equals(nodeName)) {
-      for (      org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
-        final String name=cleanNodeName(n.getNodeName());
-        final String propertyName;
-        if ("client-property".equals(name)) {
-          propertyName=getTextContent(n.getAttributes().getNamedItem("name")).trim();
-          final String value=getValue(n);
-          properties.put(propertyName,value);
-        }
-      }
-    }
   }
-  propertiesBuilder.addPropertyValue("properties",properties);
-  this.builder.addConstructorArgValue(propertiesBuilder.getBeanDefinition());
-  this.builder.addConstructorArgValue(members);
+  configBuilder.addPropertyValue("addresses",members);
+  builder.addConstructorArgValue(configBuilder.getBeanDefinition());
 }
