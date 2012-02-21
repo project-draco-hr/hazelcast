@@ -1,0 +1,23 @@
+{
+  if (CipherHelper.isSymmetricEncryptionEnabled(ioService)) {
+    throw new RuntimeException("SSL and SymmetricEncryption cannot be both enabled!");
+  }
+  if (CipherHelper.isAsymmetricEncryptionEnabled(ioService)) {
+    throw new RuntimeException("SSL and AsymmetricEncryption cannot be both enabled!");
+  }
+  SSLContextFactory sslContextFactoryObject=(SSLContextFactory)sslConfig.getFactoryImplementation();
+  try {
+    String factoryClassName=sslConfig.getFactoryClassName();
+    if (sslContextFactoryObject == null && factoryClassName != null) {
+      sslContextFactoryObject=(SSLContextFactory)Class.forName(factoryClassName).newInstance();
+    }
+    if (sslContextFactoryObject == null) {
+      sslContextFactoryObject=new BasicSSLContextFactory();
+    }
+    sslContextFactoryObject.init(sslConfig.getProperties());
+  }
+ catch (  Exception e) {
+    throw new RuntimeException(e);
+  }
+  sslContextFactory=sslContextFactoryObject;
+}

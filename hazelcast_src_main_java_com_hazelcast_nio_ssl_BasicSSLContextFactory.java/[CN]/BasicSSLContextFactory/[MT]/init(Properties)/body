@@ -1,0 +1,28 @@
+{
+  KeyStore ks=KeyStore.getInstance("JKS");
+  KeyStore ts=KeyStore.getInstance("JKS");
+  String keyStorePassword=properties.getProperty("keyStorePassword");
+  if (keyStorePassword == null) {
+    keyStorePassword=System.getProperty("javax.net.ssl.keyStorePassword");
+  }
+  String keyStore=properties.getProperty("keyStore");
+  if (keyStore == null) {
+    keyStore=System.getProperty("javax.net.ssl.keyStore");
+  }
+  if (keyStore == null || keyStorePassword == null) {
+    throw new RuntimeException("SSL is enabled but keyStore[Password] properties aren't set!");
+  }
+  String keyManagerAlgorithm=getProperty(properties,"keyManagerAlgorithm","SunX509");
+  String trustManagerAlgorithm=getProperty(properties,"trustManagerAlgorithm","SunX509");
+  String protocol=getProperty(properties,"protocol","TLS");
+  final char[] passPhrase=keyStorePassword.toCharArray();
+  final String keyStoreFile=keyStore;
+  ks.load(new FileInputStream(keyStoreFile),passPhrase);
+  ts.load(new FileInputStream(keyStoreFile),passPhrase);
+  KeyManagerFactory kmf=KeyManagerFactory.getInstance(keyManagerAlgorithm);
+  kmf.init(ks,passPhrase);
+  TrustManagerFactory tmf=TrustManagerFactory.getInstance(trustManagerAlgorithm);
+  tmf.init(ts);
+  sslContext=SSLContext.getInstance(protocol);
+  sslContext.init(kmf.getKeyManagers(),tmf.getTrustManagers(),null);
+}
