@@ -1,13 +1,10 @@
 {
   SSLConfig sslConfig=new SSLConfig();
   final NamedNodeMap atts=node.getAttributes();
-  for (int a=0; a < atts.getLength(); a++) {
-    final org.w3c.dom.Node att=atts.item(a);
-    final String value=getTextContent(att).trim();
-    if (att.getNodeName().equals("enabled")) {
-      sslConfig.setEnabled(checkTrue(value));
-    }
-  }
+  final Node enabledNode=atts.getNamedItem("enabled");
+  final boolean enabled=enabledNode != null ? checkTrue(getTextContent(enabledNode).trim()) : false;
+  config.getSecurityConfig().setEnabled(enabled);
+  sslConfig.setEnabled(enabled);
   for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes())) {
     final String nodeName=cleanNodeName(n.getNodeName());
     if ("factory-class-name".equals(nodeName)) {
@@ -17,5 +14,5 @@
       handleProperties(n,sslConfig.getProperties());
     }
   }
-  return sslConfig;
+  config.getNetworkConfig().setSSLConfig(sslConfig);
 }
