@@ -23,6 +23,7 @@
     }
   }
   final CMap cMap=maps.get(name);
+  Data dataKey=null;
   if (cMap != null) {
     NearCache nearCache=cMap.nearCache;
     if (nearCache != null) {
@@ -31,7 +32,7 @@
         return value;
       }
     }
-    final Data dataKey=toData(key);
+    dataKey=toData(key);
     Record ownedRecord=cMap.getOwnedRecord(dataKey);
     if (ownedRecord != null && ownedRecord.isActive() && ownedRecord.isValid()) {
       long version=ownedRecord.getVersion();
@@ -63,7 +64,10 @@
       }
     }
   }
-  Object value=objectCall(CONCURRENT_MAP_GET,name,key,null,timeout,-1);
+  if (dataKey == null) {
+    dataKey=toData(key);
+  }
+  Object value=objectCall(CONCURRENT_MAP_GET,name,dataKey,null,timeout,-1);
   if (value instanceof AddressAwareException) {
     rethrowException(request.operation,(AddressAwareException)value);
   }
