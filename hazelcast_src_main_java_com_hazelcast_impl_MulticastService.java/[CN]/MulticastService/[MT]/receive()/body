@@ -4,14 +4,16 @@
     try {
       multicastSocket.receive(datagramPacketReceive);
     }
- catch (    SocketTimeoutException ignore) {
-      return null;
-    }
-catch (    SocketException ignore) {
+ catch (    IOException ignore) {
       return null;
     }
     try {
       inflatingBuffer.inflate(datagramPacketReceive.getLength());
+      final byte packetVersion=inflatingBuffer.getDataInput().readByte();
+      if (packetVersion != Packet.PACKET_VERSION) {
+        logger.log(Level.FINEST,"Received a JoinRequest with different packet version: " + packetVersion);
+        return null;
+      }
       JoinInfo joinInfo=new JoinInfo();
       joinInfo.readData(inflatingBuffer.getDataInput());
       return joinInfo;
