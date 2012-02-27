@@ -3,18 +3,22 @@
   long joinStartTime=System.currentTimeMillis();
   long maxJoinMillis=node.getGroupProperties().MAX_JOIN_SECONDS.getInteger() * 1000;
   while (node.isActive() && !joined.get() && (System.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
-    logger.log(Level.FINEST,"joining... " + node.getMasterAddress());
+    String msg="Joining master " + node.getMasterAddress();
+    logger.log(Level.FINEST,msg);
+    systemLogService.logJoin(msg);
     Address masterAddressNow=findMasterWithMulticast();
     if (masterAddressNow != null && masterAddressNow.equals(node.getMasterAddress())) {
       tryCount--;
     }
     node.setMasterAddress(masterAddressNow);
+    systemLogService.logJoin("Setting master " + masterAddressNow);
     if (node.getMasterAddress() == null || node.address.equals(node.getMasterAddress())) {
       TcpIpConfig tcpIpConfig=config.getNetworkConfig().getJoin().getTcpIpConfig();
       if (tcpIpConfig != null && tcpIpConfig.isEnabled()) {
         doTCP(joined);
       }
  else {
+        systemLogService.logJoin("Setting as master");
         node.setAsMaster();
       }
       return;

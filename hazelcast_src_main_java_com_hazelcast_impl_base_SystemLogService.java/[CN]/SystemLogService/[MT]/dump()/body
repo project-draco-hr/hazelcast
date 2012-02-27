@@ -1,0 +1,39 @@
+{
+  StringBuilder sb=new StringBuilder();
+  Set<SystemLog> sorted=new TreeSet<SystemLog>(new Comparator<SystemLog>(){
+    public int compare(    SystemLog o1,    SystemLog o2){
+      long thisVal=o1.date;
+      long anotherVal=o2.date;
+      return (thisVal < anotherVal ? -1 : (thisVal == anotherVal ? 0 : 1));
+    }
+  }
+);
+  sorted.addAll(joinLogs);
+  sorted.addAll(nodeLogs);
+  sorted.addAll(connectionLogs);
+  sorted.addAll(migrationLogs);
+  for (  SystemLog systemLog : sorted) {
+    sb.append(systemLog.getType().toString());
+    sb.append(" - ");
+    sb.append(new Date(systemLog.getDate()).toString());
+    sb.append(" - ");
+    sb.append(systemLog.toString());
+    sb.append("\n");
+  }
+  for (  CallState callState : mapCallStates.values()) {
+    sb.append(callState.toString());
+    sb.append("\n");
+    for (    Object log : callState.getLogs()) {
+      SystemLog systemLog=(SystemLog)log;
+      sb.append(systemLog.getType().toString());
+      sb.append(" - ");
+      sb.append(new Date(systemLog.getDate()).toString());
+      sb.append(" - ");
+      sb.append(systemLog.toString());
+      sb.append("\n");
+    }
+  }
+  sb.append(node.concurrentMapManager.getPartitionManager().toString());
+  sb.append("\n");
+  return sb.toString();
+}

@@ -35,6 +35,7 @@
         fromMember=getMember(partitions[partitionId].getOwner());
       }
       logger.log(Level.FINEST,"Started Migration : " + migrationRequestTask);
+      systemLogService.logPartition("Started Migration : " + migrationRequestTask);
       if (fromMember != null) {
         migrationRequestTask.setFromAddress(fromMember.getAddress());
         DistributedTask task=new DistributedTask(migrationRequestTask,fromMember);
@@ -56,11 +57,13 @@
         result=Boolean.TRUE;
       }
       logger.log(Level.FINEST,"Finished Migration : " + migrationRequestTask);
+      systemLogService.logPartition("Finished Migration : " + migrationRequestTask);
       if (Boolean.TRUE.equals(result)) {
         concurrentMapManager.enqueueAndWait(new ProcessMigrationResult(migrationRequestTask),10000);
       }
  else {
         logger.log(Level.WARNING,"Migration task has failed => " + migrationRequestTask);
+        systemLogService.logPartition("Migration task has failed => " + migrationRequestTask);
         concurrentMapManager.enqueueAndWait(new Processable(){
           public void process(){
             compareAndSetActiveMigratingPartition(migrationRequestTask,null);
@@ -71,7 +74,7 @@
     }
   }
  catch (  Throwable t) {
-    logger.log(Level.WARNING,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestTask);
-    logger.log(Level.FINEST,t.getMessage(),t);
+    logger.log(Level.WARNING,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestTask,t);
+    systemLogService.logPartition("Failed! " + migrationRequestTask);
   }
 }
