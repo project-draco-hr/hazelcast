@@ -3,12 +3,26 @@
   logger.log(Level.INFO,"Shutting down Hazelcast Management Center");
   running=false;
   try {
-    datagramSocket.close();
-    serverSocket.close();
+    if (datagramSocket != null) {
+      datagramSocket.close();
+    }
+  }
+ catch (  Throwable ignored) {
+  }
+  try {
+    if (serverSocket != null) {
+      serverSocket.close();
+    }
+  }
+ catch (  Throwable ignored) {
+  }
+  try {
+    interruptThread(udpSender);
+    interruptThread(stateSender);
+    interruptThread(taskPoller);
     for (    ClientHandler clientHandler : lsClientHandlers) {
       clientHandler.shutdown();
     }
-    udpSender.interrupt();
     lsClientHandlers.clear();
   }
  catch (  Throwable ignored) {

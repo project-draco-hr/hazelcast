@@ -1,5 +1,6 @@
 {
   this.factory=factoryImpl;
+  final ManagementCenterConfig config=factory.node.config.getManagementCenterConfig();
   this.instanceFilterMap=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_MAP_EXCLUDES.getString());
   this.instanceFilterQueue=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_QUEUE_EXCLUDES.getString());
   this.instanceFilterTopic=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_TOPIC_EXCLUDES.getString());
@@ -8,27 +9,40 @@
   this.instanceFilterSemaphore=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_SEMAPHORE_EXCLUDES.getString());
   updateMemberOrder();
   logger=factory.node.getLogger(ManagementCenterService.class.getName());
-  for (int i=0; i < 100; i++) {
-    qClientHandlers.offer(new ClientHandler(i));
-  }
   maxVisibleInstanceCount=factory.node.groupProperties.MC_MAX_INSTANCE_COUNT.getInteger();
+  commandHandler=new ConsoleCommandHandler(factory);
+  String tmpWebServerUrl=config != null ? config.getUrl() : null;
+  webServerUrl=tmpWebServerUrl != null ? (!tmpWebServerUrl.endsWith("/") ? tmpWebServerUrl + '/' : tmpWebServerUrl) : tmpWebServerUrl;
+  updateIntervalMs=(config != null && config.getUpdateInterval() > 0) ? config.getUpdateInterval() * 1000 : 3000;
   factory.getCluster().addMembershipListener(this);
   factory.getLifecycleService().addLifecycleListener(this);
   final MemberImpl memberLocal=(MemberImpl)factory.getCluster().getLocalMember();
   thisAddress=memberLocal.getAddress();
-  int port=calculatePort(thisAddress);
-  datagramSocket=new DatagramSocket(port);
-  serverSocket=new SocketReadyServerSocket(port,1000,factory.node.config.isReuseAddress());
-  udpListener=new UDPListener(datagramSocket,1000,factory.node.config.isReuseAddress());
-  udpListener.start();
-  udpSender=new UDPSender(datagramSocket);
-  udpSender.start();
-  taskPoller=new TaskPoller("http://localhost:9999/");
-  taskPoller.start();
-  stateSender=new StateSender("http://localhost:9999/");
-  stateSender.start();
-  tcpListener=new TCPListener(serverSocket);
-  tcpListener.start();
-  commandHandler=new ConsoleCommandHandler(factory);
-  logger.log(Level.INFO,"Hazelcast Management Center started at port " + port + ".");
+  if (factory.node.groupProperties.MANCENTER_ENABLED.getBoolean()) {
+    int port=calculatePort(thisAddress);
+    datagramSocket=new DatagramSocket(port);
+    serverSocket=new SocketReadyServerSocket(port,1000,factory.node.config.isReuseAddress());
+    udpListener=new UDPListener(datagramSocket,1000,factory.node.config.isReuseAddress());
+    udpSender=new UDPSender(datagramSocket);
+    tcpListener=new TCPListener(serverSocket);
+    for (int i=0; i < 100; i++) {
+      qClientHandlers.offer(new ClientHandler(i));
+    }
+    udpSender.start();
+    tcpListener.start();
+    udpListener.start();
+    logger.log(Level.INFO,"Hazelcast Management Center started at port " + port + ".");
+  }
+  if (config != null && config.isEnabled()) {
+    if (config.getUrl() != null) {
+      taskPoller=new TaskPoller();
+      stateSender=new StateSender();
+      taskPoller.start();
+      stateSender.start();
+      logger.log(Level.INFO,"Hazelcast Management Center is listening from " + config.getUrl());
+    }
+ else {
+      logger.log(Level.WARNING,"Hazelcast Management Center Web server url is null!");
+    }
+  }
 }

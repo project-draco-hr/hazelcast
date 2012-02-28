@@ -1,4 +1,8 @@
 {
+  if (host == null) {
+    logger.log(Level.WARNING,"Web server url is null!");
+    return;
+  }
   try {
     while (running) {
       if (started.get()) {
@@ -7,21 +11,22 @@
           HttpURLConnection connection=(HttpURLConnection)url.openConnection();
           connection.setDoOutput(true);
           connection.setRequestMethod("POST");
+          connection.setConnectTimeout(1000);
+          connection.setReadTimeout(1000);
           final DataOutputStream out=new DataOutputStream(connection.getOutputStream());
-          ConsoleRequest req=new GetMemberStateRequest();
-          req.writeResponse(ManagementCenterService.this,out);
+          TimedMemberState ts=getTimedMemberState();
+          ts.writeData(out);
           out.flush();
           connection.getInputStream();
         }
  catch (        Exception e) {
-          e.printStackTrace();
+          logger.log(Level.FINEST,e.getMessage(),e);
         }
       }
-      Thread.sleep(2400);
+      Thread.sleep(updateIntervalMs);
     }
   }
  catch (  Throwable throwable) {
-    throwable.printStackTrace();
     logger.log(Level.FINEST,"Web Management Center will be closed due to exception.",throwable);
     shutdown();
   }

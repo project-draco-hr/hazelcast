@@ -1,10 +1,14 @@
 {
+  if (host == null) {
+    logger.log(Level.WARNING,"Web server url is null!");
+    return;
+  }
   try {
     Random rand=new Random();
+    Address address=((MemberImpl)factory.node.getClusterImpl().getLocalMember()).getAddress();
+    GroupConfig groupConfig=factory.getConfig().getGroupConfig();
     while (running) {
       try {
-        Address address=((MemberImpl)factory.node.getClusterImpl().getLocalMember()).getAddress();
-        GroupConfig groupConfig=factory.getConfig().getGroupConfig();
         URL url=new URL(host + "getTask.do?member=" + address.getHost()+ ":"+ address.getPort()+ "&cluster="+ groupConfig.getName());
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
         connection.setRequestProperty("Connection","keep-alive");
@@ -19,14 +23,12 @@
         }
       }
  catch (      Exception e) {
-        e.printStackTrace();
+        logger.log(Level.FINEST,e.getMessage(),e);
       }
       Thread.sleep(700 + rand.nextInt(300));
     }
   }
  catch (  Throwable throwable) {
-    throwable.printStackTrace();
     logger.log(Level.FINEST,"Web Management Center will be closed due to exception.",throwable);
-    shutdown();
   }
 }
