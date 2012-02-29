@@ -1,7 +1,7 @@
 {
   final long now=System.currentTimeMillis();
   long dirtyAge=(now - lastCleanup);
-  boolean shouldRun=(store != null && dirty && dirtyAge >= writeDelayMillis) || (dirtyAge > cleanupDelayMillis);
+  boolean shouldRun=forced || (store != null && dirty && dirtyAge >= writeDelayMillis) || (dirtyAge > cleanupDelayMillis);
   if (shouldRun && cleanupActive.compareAndSet(false,true)) {
     lastCleanup=now;
     try {
@@ -76,11 +76,11 @@
       executeEviction(recordsToEvict);
       executePurge(recordsToPurge);
       executePurgeUnknowns(recordsUnknown);
-      return true;
     }
   finally {
       cleanupActive.set(false);
     }
+    return true;
   }
  else {
     return false;
