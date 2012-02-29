@@ -1,22 +1,24 @@
 {
-  if (counter.get() > 0) {
-    return;
-  }
-  MBeanServer mbs=mBeanServer();
-  Set<ObjectName> entries;
-  try {
-    entries=mbs.queryNames(new ObjectName(ObjectNameSpec.NAME_DOMAIN + "*"),null);
-    for (    ObjectName name : entries) {
-      if (mbs.isRegistered(name)) {
-        mbs.unregisterMBean(name);
+synchronized (LOCK) {
+    if (counter.get() > 0) {
+      return;
+    }
+    MBeanServer mbs=mBeanServer();
+    Set<ObjectName> entries;
+    try {
+      entries=mbs.queryNames(new ObjectName(ObjectNameSpec.NAME_DOMAIN + "*"),null);
+      for (      ObjectName name : entries) {
+        if (mbs.isRegistered(name)) {
+          mbs.unregisterMBean(name);
+        }
       }
     }
-  }
- catch (  Exception e) {
-    Logger.getLogger("hz.ManagementCenter").log(Level.FINEST,"Error unregistering MBeans",e);
-  }
-  if (statCollectors != null) {
-    statCollectors.shutdownNow();
-    statCollectors=null;
+ catch (    Exception e) {
+      Logger.getLogger("hz.ManagementCenter").log(Level.FINEST,"Error unregistering MBeans",e);
+    }
+    if (statCollectors != null) {
+      statCollectors.shutdownNow();
+      statCollectors=null;
+    }
   }
 }

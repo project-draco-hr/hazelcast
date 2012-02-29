@@ -1,22 +1,24 @@
 {
-  if (!started) {
-    start();
+synchronized (LOCK) {
+    if (!started) {
+      start();
+    }
+    if (!started) {
+      return;
+    }
+    MBeanServer mbs=mBeanServer();
+    try {
+      nameLookup();
+      ClusterMBean clusterMBean=new ClusterMBean(this,this.name);
+      mbs.registerMBean(clusterMBean,clusterMBean.getObjectName());
+      DataMBean dataMBean=new DataMBean(this);
+      dataMBean.setParentName(clusterMBean.getRootName());
+      mbs.registerMBean(dataMBean,dataMBean.getObjectName());
+    }
+ catch (    Exception e) {
+      logger.log(Level.WARNING,"Unable to start JMX service",e);
+      return;
+    }
+    counter.incrementAndGet();
   }
-  if (!started) {
-    return;
-  }
-  MBeanServer mbs=mBeanServer();
-  try {
-    nameLookup();
-    ClusterMBean clusterMBean=new ClusterMBean(this,this.name);
-    mbs.registerMBean(clusterMBean,clusterMBean.getObjectName());
-    DataMBean dataMBean=new DataMBean(this);
-    dataMBean.setParentName(clusterMBean.getRootName());
-    mbs.registerMBean(dataMBean,dataMBean.getObjectName());
-  }
- catch (  Exception e) {
-    logger.log(Level.WARNING,"Unable to start JMX service",e);
-    return;
-  }
-  counter.incrementAndGet();
 }
