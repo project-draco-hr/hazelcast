@@ -3,7 +3,7 @@
     node.checkNodeState();
     onCall();
     Object result=null;
-    boolean excludeThisMember=excludeSuperClient && thisMember.isSuperClient();
+    final boolean excludeThisMember=excludeLiteMember() && thisMember.isLiteMember();
     if (!excludeThisMember) {
       SubCall localCall=createNewTargetAwareOp(getFirstAddressToMakeCall());
       localCall.doOp();
@@ -15,13 +15,13 @@
         return call();
       }
     }
-    boolean runOnOtherMembers=excludeThisMember || onResponse(result);
+    final boolean runOnOtherMembers=excludeThisMember || onResponse(result);
     if (runOnOtherMembers) {
       Set<Member> members=node.getClusterImpl().getMembers();
       List<SubCall> lsCalls=new ArrayList<SubCall>();
       for (      Member member : members) {
         MemberImpl cMember=(MemberImpl)member;
-        boolean excludeMember=excludeSuperClient && cMember.isSuperClient();
+        final boolean excludeMember=excludeLiteMember() && cMember.isLiteMember();
         if (!excludeMember && !cMember.getAddress().equals(getFirstAddressToMakeCall())) {
           SubCall subCall=createNewTargetAwareOp(cMember.getAddress());
           subCall.doOp();
