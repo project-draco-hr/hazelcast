@@ -1,0 +1,23 @@
+{
+  final IMap<String,byte[]> map=Hazelcast.getMap("default");
+  final Member thisMember=Hazelcast.getCluster().getLocalMember();
+  List<String> lsOwnedEntries=new LinkedList<String>();
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    final String key=String.valueOf(i);
+    Partition partition=Hazelcast.getPartitionService().getPartition(key);
+    if (thisMember.equals(partition.getOwner())) {
+      lsOwnedEntries.add(key);
+    }
+  }
+  final CountDownLatch latch=new CountDownLatch(lsOwnedEntries.size());
+  for (  final String ownedKey : lsOwnedEntries) {
+    es.execute(new Runnable(){
+      public void run(){
+        map.put(ownedKey,new byte[VALUE_SIZE]);
+        latch.countDown();
+      }
+    }
+);
+  }
+  latch.await();
+}
