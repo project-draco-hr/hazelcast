@@ -3,7 +3,6 @@
   node=new Node(this,config);
   proxyFactory=node.initializer.getProxyFactory();
   logger=node.getLogger(FactoryImpl.class.getName());
-  globalProxies=proxyFactory.createMapProxy(Prefix.MAP_HAZELCAST + "Proxies");
   lifecycleService=new LifecycleServiceImpl(FactoryImpl.this);
   hazelcastInstanceProxy=new HazelcastInstanceProxy(this);
   locksMapProxy=proxyFactory.createMapProxy(Prefix.MAP_HAZELCAST + "Locks");
@@ -12,53 +11,33 @@
   if (!node.isActive()) {
     throw new IllegalStateException("Node failed to start!");
   }
-  globalProxies.addEntryListener(new EntryListener(){
-    public void entryAdded(    EntryEvent event){
-      if (node.localMember.equals(event.getMember())) {
-        return;
+  final Set<Member> members=node.getClusterImpl().getMembers();
+  if (members.size() > 1) {
+    Member target=null;
+    for (    Member member : members) {
+      if (!member.isLiteMember() && !member.localMember()) {
+        target=member;
+        break;
       }
-      final ProxyKey proxyKey=(ProxyKey)event.getKey();
-      if (!proxies.containsKey(proxyKey)) {
-        logger.log(Level.FINEST,"Instance created " + proxyKey);
-        node.clusterService.enqueueAndReturn(new Processable(){
-          public void process(){
-            createProxy(proxyKey);
+    }
+    if (target != null) {
+      DistributedTask task=new DistributedTask(new GetAllProxyKeysCallable(),target);
+      Future f=getExecutorService().submit(task);
+      try {
+        final Set<ProxyKey> proxyKeys=(Set<ProxyKey>)f.get(10,TimeUnit.SECONDS);
+        for (        final ProxyKey proxyKey : proxyKeys) {
+          if (!proxies.containsKey(proxyKey)) {
+            node.clusterService.enqueueAndReturn(new Processable(){
+              public void process(){
+                createProxy(proxyKey);
+              }
+            }
+);
           }
         }
-);
       }
-    }
-    public void entryRemoved(    EntryEvent event){
-      if (node.localMember.equals(event.getMember())) {
-        return;
-      }
-      final ProxyKey proxyKey=(ProxyKey)event.getKey();
-      logger.log(Level.FINEST,"Instance removed " + proxyKey);
-      node.clusterService.enqueueAndReturn(new Processable(){
-        public void process(){
-          destroyProxy(proxyKey);
-        }
-      }
-);
-    }
-    public void entryUpdated(    EntryEvent event){
-      logger.log(Level.FINEST,"Instance updated " + event.getKey());
-    }
-    public void entryEvicted(    EntryEvent event){
-      logger.log(Level.FINEST,"Instance evicted " + event.getKey());
-    }
-  }
-,false);
-  if (node.getClusterImpl().getMembers().size() > 1) {
-    Set<ProxyKey> proxyKeys=globalProxies.allKeys();
-    for (    final ProxyKey proxyKey : proxyKeys) {
-      if (!proxies.containsKey(proxyKey)) {
-        node.clusterService.enqueueAndReturn(new Processable(){
-          public void process(){
-            createProxy(proxyKey);
-          }
-        }
-);
+ catch (      Exception e) {
+        logger.log(Level.WARNING,e.getMessage(),e);
       }
     }
   }
