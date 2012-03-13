@@ -1,5 +1,6 @@
 {
   String currentAddress=null;
+  InetAddress currentInetAddress=null;
   try {
     final Config config=node.getConfig();
     final String localAddress=System.getProperty("hazelcast.local.localAddress");
@@ -9,7 +10,7 @@
     if (currentAddress == null) {
       final Set<String> interfaces=new HashSet<String>();
       if (config.getNetworkConfig().getJoin().getTcpIpConfig().isEnabled()) {
-        Collection<Address> possibleAddresses=new TcpIpJoiner(node).getPossibleMembers(config,null,logger);
+        final Collection<Address> possibleAddresses=TcpIpJoiner.getPossibleAddresses(config,null,logger);
         for (        Address possibleAddress : possibleAddresses) {
           interfaces.add(possibleAddress.getHost());
         }
@@ -22,23 +23,9 @@
       }
  else {
         if (interfaces.size() > 0) {
-          final Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
-          interfaces:           while (enums.hasMoreElements()) {
-            final NetworkInterface ni=enums.nextElement();
-            final Enumeration<InetAddress> e=ni.getInetAddresses();
-            while (e.hasMoreElements()) {
-              final InetAddress inetAddress=e.nextElement();
-              if (inetAddress instanceof Inet4Address) {
-                final String address=inetAddress.getHostAddress();
-                if (matchAddress(address,interfaces)) {
-                  currentAddress=address;
-                  break interfaces;
-                }
-              }
-            }
-          }
+          currentInetAddress=pickInetAddress(interfaces);
         }
-        if (currentAddress == null) {
+        if (currentInetAddress == null) {
           if (config.getNetworkConfig().getInterfaces().isEnabled()) {
             String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
             msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
@@ -46,20 +33,7 @@
             throw new RuntimeException(msg);
           }
  else {
-            final Enumeration<NetworkInterface> enums=NetworkInterface.getNetworkInterfaces();
-            interfaces:             while (enums.hasMoreElements()) {
-              final NetworkInterface ni=enums.nextElement();
-              final Enumeration<InetAddress> e=ni.getInetAddresses();
-              while (e.hasMoreElements()) {
-                final InetAddress inetAddress=e.nextElement();
-                if (inetAddress instanceof Inet4Address) {
-                  if (!inetAddress.isLoopbackAddress()) {
-                    currentAddress=inetAddress.getHostAddress();
-                    break interfaces;
-                  }
-                }
-              }
-            }
+            currentInetAddress=pickInetAddress(null);
           }
         }
       }
@@ -67,7 +41,10 @@
     if (currentAddress == null) {
       currentAddress="127.0.0.1";
     }
-    final InetAddress inetAddress=InetAddress.getByName(currentAddress);
+    if (currentInetAddress == null) {
+      currentInetAddress=InetAddress.getByName(currentAddress);
+    }
+    final InetAddress inetAddress=currentInetAddress;
     final boolean reuseAddress=config.isReuseAddress();
     ServerSocket serverSocket=serverSocketChannel.socket();
     logger.log(Level.FINEST,"inet reuseAddress:" + reuseAddress);

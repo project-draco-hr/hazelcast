@@ -1,0 +1,43 @@
+{
+  final Collection<String> lsJoinMembers=getMembers(config);
+  final Set<Address> setPossibleAddresses=new HashSet<Address>();
+  for (  String host : lsJoinMembers) {
+    try {
+      final AddressHolder addressHolder=AddressUtil.getAddressHolder(host);
+      final boolean portIsDefined=addressHolder.port != -1 || !config.isPortAutoIncrement();
+      final int maxAddressTries=portIsDefined ? 1 : MAX_ADDRESS_TRIES;
+      final int port=addressHolder.port != -1 ? addressHolder.port : config.getPort();
+      if (AddressUtil.isIpAddress(addressHolder.address)) {
+        for (int i=0; i < maxAddressTries; i++) {
+          final Address addressProper=new Address(addressHolder.address,port + i);
+          if (!addressProper.equals(thisAddress)) {
+            setPossibleAddresses.add(addressProper);
+          }
+        }
+      }
+ else {
+        final InetAddress[] allAddresses=InetAddress.getAllByName(addressHolder.address);
+        for (        final InetAddress inetAddress : allAddresses) {
+          boolean matchingAddress=true;
+          Interfaces interfaces=config.getNetworkConfig().getInterfaces();
+          if (interfaces.isEnabled()) {
+            matchingAddress=AddressPicker.matchAddress(inetAddress.getHostAddress(),interfaces.getInterfaces());
+          }
+          if (matchingAddress) {
+            for (int i=0; i < maxAddressTries; i++) {
+              final Address addressProper=new Address(inetAddress,port + i);
+              if (!addressProper.equals(thisAddress)) {
+                setPossibleAddresses.add(addressProper);
+              }
+            }
+          }
+        }
+      }
+    }
+ catch (    UnknownHostException e) {
+      logger.log(Level.WARNING,e.getMessage(),e);
+    }
+  }
+  setPossibleAddresses.addAll(config.getNetworkConfig().getJoin().getTcpIpConfig().getAddresses());
+  return setPossibleAddresses;
+}

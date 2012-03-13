@@ -1,0 +1,30 @@
+{
+  final AddressMatcher matcher;
+  final int indexColon=address.indexOf(':');
+  final int lastIndexColon=address.lastIndexOf(':');
+  final int indexDot=address.indexOf('.');
+  final int lastIndexDot=address.lastIndexOf('.');
+  if (indexColon > -1 && lastIndexColon > indexColon) {
+    if (indexDot == -1) {
+      matcher=new Ip6AddressMatcher();
+      parseIpv6(matcher,address);
+    }
+ else {
+      if (indexDot >= lastIndexDot) {
+        throw new InvalidAddressException(address);
+      }
+      final int lastIndexColon2=address.lastIndexOf(':');
+      final String host2=address.substring(lastIndexColon2 + 1);
+      matcher=new Ip4AddressMatcher();
+      parseIpv4(matcher,host2);
+    }
+  }
+ else   if (indexDot > -1 && lastIndexDot > indexDot && indexColon == -1) {
+    matcher=new Ip4AddressMatcher();
+    parseIpv4(matcher,address);
+  }
+ else {
+    throw new InvalidAddressException(address);
+  }
+  return matcher;
+}

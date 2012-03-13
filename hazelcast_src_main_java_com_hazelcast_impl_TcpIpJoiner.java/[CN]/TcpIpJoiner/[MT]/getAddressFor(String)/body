@@ -1,27 +1,19 @@
 {
-  int port=config.getPort();
-  final int indexColon=host.indexOf(':');
-  if (indexColon != -1) {
-    port=Integer.parseInt(host.substring(indexColon + 1));
-    host=host.substring(0,indexColon);
-  }
-  final boolean ip=isIP(host);
   try {
-    if (ip) {
-      return new Address(host,port);
+    final AddressHolder addressHolder=AddressUtil.getAddressHolder(host,config.getPort());
+    if (AddressUtil.isIpAddress(addressHolder.address)) {
+      return new Address(addressHolder.address,addressHolder.port);
     }
  else {
-      final InetAddress[] allAddresses=InetAddress.getAllByName(host);
+      final InetAddress[] allAddresses=InetAddress.getAllByName(addressHolder.address);
+      final Interfaces interfaces=config.getNetworkConfig().getInterfaces();
       for (      final InetAddress inetAddress : allAddresses) {
-        boolean shouldCheck=true;
-        Address address;
-        Interfaces interfaces=config.getNetworkConfig().getInterfaces();
+        boolean matchingAddress=true;
         if (interfaces.isEnabled()) {
-          address=new Address(inetAddress.getAddress(),port);
-          shouldCheck=AddressPicker.matchAddress(address.getHost(),interfaces.getInterfaces());
+          matchingAddress=AddressPicker.matchAddress(inetAddress.getHostAddress(),interfaces.getInterfaces());
         }
-        if (shouldCheck) {
-          return new Address(inetAddress.getAddress(),port);
+        if (matchingAddress) {
+          return new Address(inetAddress,addressHolder.port);
         }
       }
     }

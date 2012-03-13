@@ -1,0 +1,38 @@
+{
+  if (address.indexOf('%') > -1) {
+    String[] parts=address.split("\\%");
+    address=parts[0];
+    matcher.setScopeId(parts[1]);
+  }
+  final String[] parts=address.split("((?<=:)|(?=:))");
+  final LinkedList<String> ipString=new LinkedList<String>();
+  int count=0;
+  int mark=-1;
+  for (int i=0; i < parts.length; i++) {
+    String part=parts[i];
+    String nextPart=i < parts.length - 1 ? parts[i + 1] : null;
+    if ("".equals(part)) {
+      continue;
+    }
+    if (":".equals(part) && ":".equals(nextPart)) {
+      if (mark != -1) {
+        throw new InvalidAddressException(address);
+      }
+      mark=count;
+    }
+ else     if (!":".equals(part)) {
+      count++;
+      ipString.add(part);
+    }
+  }
+  if (mark > -1) {
+    final int remaining=(8 - count);
+    for (int i=0; i < remaining; i++) {
+      ipString.add((i + mark),"0");
+    }
+  }
+  if (ipString.size() != 8) {
+    throw new InvalidAddressException(address);
+  }
+  matcher.setAddress(ipString.toArray(new String[0]));
+}
