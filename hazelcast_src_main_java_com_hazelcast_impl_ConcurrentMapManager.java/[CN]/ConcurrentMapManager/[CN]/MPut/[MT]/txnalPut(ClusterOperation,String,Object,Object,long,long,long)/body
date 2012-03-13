@@ -16,10 +16,10 @@
         oldObject=threadContext.isClient() ? oldValue : threadContext.toObject(oldValue);
       }
       if (operation == CONCURRENT_MAP_PUT_IF_ABSENT && oldObject != null) {
-        txn.attachPutOp(name,key,oldObject,0,ttl,false);
+        txn.attachPutOp(name,key,oldValue,0,ttl,false);
       }
  else {
-        txn.attachPutOp(name,key,value,0,ttl,(oldObject == null));
+        txn.attachPutOp(name,key,toData(value),0,ttl,(oldObject == null));
       }
       if (operation == CONCURRENT_MAP_TRY_PUT) {
         return Boolean.TRUE;
@@ -28,16 +28,16 @@
     }
  else {
       if (operation == CONCURRENT_MAP_PUT_IF_ABSENT) {
-        Object existingValue=txn.get(name,key);
+        Data existingValue=txn.get(name,key);
         if (existingValue != null) {
-          return existingValue;
+          return threadContext.isClient() ? existingValue : threadContext.toObject(existingValue);
         }
       }
-      Object result=txn.attachPutOp(name,key,value,false);
+      Data resultData=txn.attachPutOp(name,key,toData(value),false);
       if (operation == CONCURRENT_MAP_TRY_PUT) {
         return Boolean.TRUE;
       }
-      return result;
+      return threadContext.isClient() ? resultData : threadContext.toObject(resultData);
     }
   }
  else {
