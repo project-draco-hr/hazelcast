@@ -11,7 +11,7 @@
         for (        PartitionListener partitionListener : lsPartitionListeners) {
           partitionListener.replicaChanged(event);
         }
-        if (node.isActive() && event.getReplicaIndex() == 0 && event.getNewAddress() == null) {
+        if (event.getReplicaIndex() == 0 && event.getNewAddress() == null && node.isActive() && node.joined()) {
           final String warning="Owner of partition is being removed! " + "Possible data loss for partition[" + event.getPartitionId() + "]. "+ event;
           logger.log(Level.WARNING,warning);
           systemLogService.logPartition(warning);
@@ -25,7 +25,7 @@
   }
   partitionMigrationInterval=node.groupProperties.PARTITION_MIGRATION_INTERVAL.getInteger() * 1000;
   immediateBackupInterval=node.groupProperties.IMMEDIATE_BACKUP_INTERVAL.getInteger() * 1000;
-  migrationService=new MigrationService(concurrentMapManager.node);
+  migrationService=new MigrationService(node);
   migrationService.start();
   int partitionTableSendInterval=node.groupProperties.PARTITION_TABLE_SEND_INTERVAL.getInteger();
   if (partitionTableSendInterval <= 0) {
