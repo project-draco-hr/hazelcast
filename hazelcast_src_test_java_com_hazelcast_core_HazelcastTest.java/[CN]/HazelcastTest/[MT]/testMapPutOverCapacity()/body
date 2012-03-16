@@ -1,0 +1,58 @@
+{
+  final int capacity=100;
+  Config config=new Config();
+  config.getMapConfig("test").getMaxSizeConfig().setSize(capacity);
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  final IMap map=hz.getMap("test");
+  for (int i=0; i < capacity; i++) {
+    map.put(i,i);
+  }
+  final int blockingOpCount=4;
+  final CountDownLatch latch=new CountDownLatch(2 * blockingOpCount);
+  ExecutorService ex=Executors.newCachedThreadPool();
+  ex.execute(new Runnable(){
+    public void run(){
+      latch.countDown();
+      map.put("a","a");
+      latch.countDown();
+    }
+  }
+);
+  ex.execute(new Runnable(){
+    public void run(){
+      latch.countDown();
+      map.set("b","b",1000,TimeUnit.SECONDS);
+      latch.countDown();
+    }
+  }
+);
+  ex.execute(new Runnable(){
+    public void run(){
+      latch.countDown();
+      map.putAndUnlock("c","c");
+      latch.countDown();
+    }
+  }
+);
+  ex.execute(new Runnable(){
+    public void run(){
+      latch.countDown();
+      map.putIfAbsent("d","d");
+      latch.countDown();
+    }
+  }
+);
+  Thread.sleep(5000);
+  assertEquals(blockingOpCount,latch.getCount());
+  for (int i=0; i < blockingOpCount; i++) {
+    map.remove(i);
+  }
+  assertTrue(latch.await(1,TimeUnit.SECONDS));
+  ex.shutdown();
+  assertEquals(capacity,map.size());
+  assertFalse(map.tryPut("e","e",0,TimeUnit.SECONDS));
+  assertEquals(capacity,map.size());
+  assertEquals("a",map.replace("a","x"));
+  assertTrue(map.replace("b","b","z"));
+  assertEquals(capacity,map.size());
+}
