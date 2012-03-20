@@ -1,0 +1,39 @@
+{
+  final String instanceName=filterConfig.getInitParameter("instance-name");
+  final String configLocation=filterConfig.getInitParameter("config-location");
+  Config config=null;
+  if (isEmpty(configLocation) && isEmpty(instanceName)) {
+    return Hazelcast.getDefaultInstance();
+  }
+  URL configUrl=null;
+  if (!isEmpty(configLocation)) {
+    configUrl=ConfigLoader.locateConfig(filterConfig.getServletContext(),configLocation);
+  }
+  if (configUrl != null) {
+    try {
+      config=new UrlXmlConfig(configUrl);
+    }
+ catch (    IOException e) {
+      throw new ServletException(e);
+    }
+  }
+  if (config == null) {
+    config=new XmlConfigBuilder().build();
+  }
+  if (instanceName != null) {
+    config.setInstanceName(instanceName);
+    HazelcastInstance instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+    if (instance == null) {
+      try {
+        instance=Hazelcast.newHazelcastInstance(config);
+      }
+ catch (      DuplicateInstanceNameException ignored) {
+        instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+      }
+    }
+    return instance;
+  }
+ else {
+    return Hazelcast.newHazelcastInstance(config);
+  }
+}
