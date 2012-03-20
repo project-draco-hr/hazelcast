@@ -9,6 +9,11 @@
   ServerSocketChannel serverSocketChannel=null;
   Address localAddress=null;
   try {
+    final String preferIPv4Stack=System.getProperty("java.net.preferIPv4Stack");
+    final String preferIPv6Address=System.getProperty("java.net.preferIPv6Addresses");
+    if (preferIPv6Address == null && preferIPv4Stack == null) {
+      System.setProperty("java.net.preferIPv4Stack","true");
+    }
     serverSocketChannel=ServerSocketChannel.open();
     AddressPicker addressPicker=new AddressPicker(this,serverSocketChannel);
     localAddress=addressPicker.pickAddress();
@@ -53,7 +58,12 @@
       multicastSocket.setReuseAddress(true);
       multicastSocket.bind(new InetSocketAddress(multicastConfig.getMulticastPort()));
       multicastSocket.setTimeToLive(multicastConfig.getMulticastTimeToLive());
-      multicastSocket.setInterface(address.getInetAddress());
+      try {
+        multicastSocket.setInterface(address.getInetAddress());
+      }
+ catch (      Exception e) {
+        logger.log(Level.WARNING,e.getMessage(),e);
+      }
       multicastSocket.setReceiveBufferSize(64 * 1024);
       multicastSocket.setSendBufferSize(64 * 1024);
       String multicastGroup=System.getProperty("hazelcast.multicast.group");
