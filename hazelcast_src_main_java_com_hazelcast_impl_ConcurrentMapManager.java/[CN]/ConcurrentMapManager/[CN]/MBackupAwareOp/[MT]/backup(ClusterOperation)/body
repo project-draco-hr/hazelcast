@@ -8,6 +8,10 @@
     logger.log(Level.SEVERE,msg);
     throw new RuntimeException(msg);
   }
+  if (request.key == null || request.key.size() == 0) {
+    throw new RuntimeException("Key is null! " + request.key);
+  }
+  int syncBackups=Math.min(backupCount,1);
   for (int i=0; i < backupCount; i++) {
     int replicaIndex=i + 1;
     MBackup backupOp=backupOps[i];
@@ -15,12 +19,9 @@
       backupOp=new MBackup();
       backupOps[i]=backupOp;
     }
-    if (request.key == null || request.key.size() == 0) {
-      throw new RuntimeException("Key is null! " + request.key);
-    }
-    backupOp.sendBackup(operation,replicaIndex,request);
+    backupOp.sendBackup(operation,replicaIndex,request,(i >= syncBackups));
   }
-  for (int i=0; i < backupCount; i++) {
+  for (int i=0; i < syncBackups; i++) {
     MBackup backupOp=backupOps[i];
     backupOp.getResultAsBoolean();
   }
