@@ -1,0 +1,33 @@
+{
+  final SocketChannel socketChannel=SocketChannel.open();
+  connectionManager.initSocket(socketChannel.socket());
+  if (!connectionManager.ioService.isSocketBindAny()) {
+    final Address thisAddress=connectionManager.ioService.getThisAddress();
+    socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),0));
+  }
+  logger.log(Level.FINEST,"connecting to " + address);
+  try {
+    socketChannel.configureBlocking(true);
+    if (timeout > 0) {
+      socketChannel.socket().connect(socketAddress,timeout);
+    }
+ else {
+      socketChannel.connect(socketAddress);
+    }
+    logger.log(Level.FINEST,"connection check. connected to: " + address);
+    MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
+    if (memberSocketInterceptor != null) {
+      memberSocketInterceptor.onConnect(socketChannel.socket());
+    }
+    socketChannel.configureBlocking(false);
+    logger.log(Level.FINEST,"connected to " + address);
+    final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
+    Connection connection=connectionManager.assignSocketChannel(socketChannelWrapper);
+    connectionManager.bind(address,connection,false);
+  }
+ catch (  Exception e) {
+    closeSocket(socketChannel);
+    logger.log(Level.WARNING,"Could not connect to: " + socketAddress + ". Reason: "+ e.getClass().getSimpleName()+ "["+ e.getMessage()+ "]");
+    throw e;
+  }
+}
