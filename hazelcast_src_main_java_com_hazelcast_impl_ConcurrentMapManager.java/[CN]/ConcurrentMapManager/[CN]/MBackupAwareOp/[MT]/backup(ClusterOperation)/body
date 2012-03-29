@@ -14,12 +14,45 @@
   int syncBackups=Math.min(backupCount,1);
   for (int i=0; i < backupCount; i++) {
     int replicaIndex=i + 1;
-    MBackup backupOp=backupOps[i];
-    if (backupOp == null) {
-      backupOp=new MBackup();
-      backupOps[i]=backupOp;
+    if (i < syncBackups) {
+      MBackup backupOp=backupOps[i];
+      if (backupOp == null) {
+        backupOp=new MBackup();
+        backupOps[i]=backupOp;
+      }
+      backupOp.sendBackup(operation,replicaIndex,request);
     }
-    backupOp.sendBackup(operation,replicaIndex,request,(i >= syncBackups));
+ else {
+      final Address target=getBackupMember(request.blockId,replicaIndex);
+      if (target != null) {
+        if (target.equals(thisAddress)) {
+          final RequestHandler handler=(RequestHandler)getPacketProcessor(operation);
+          final Request reqBackup=new Request();
+          reqBackup.setFromRequest(request);
+          reqBackup.operation=operation;
+          reqBackup.longValue=1L;
+          reqBackup.callId=-1L;
+          enqueueAndReturn(new Processable(){
+            public void process(){
+              handler.handle(reqBackup);
+            }
+          }
+);
+        }
+ else {
+          final Packet packet=doObtainPacket();
+          request.setPacket(packet);
+          packet.operation=operation;
+          packet.longValue=1L;
+          packet.callId=-1L;
+          Connection targetConnection=node.connectionManager.getOrConnect(target);
+          boolean sent=send(packet,targetConnection);
+          if (!sent) {
+            releasePacket(packet);
+          }
+        }
+      }
+    }
   }
   for (int i=0; i < syncBackups; i++) {
     MBackup backupOp=backupOps[i];
