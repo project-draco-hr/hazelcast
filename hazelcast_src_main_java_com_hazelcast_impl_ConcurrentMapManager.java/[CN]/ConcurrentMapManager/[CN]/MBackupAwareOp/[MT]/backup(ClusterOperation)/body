@@ -1,60 +1,36 @@
 {
-  if (backupCount <= 0)   return;
+  final int localBackupCount=backupCount;
+  final int localAsyncBackupCount=asyncBackupCount;
+  final int totalBackupCount=localBackupCount + localAsyncBackupCount;
+  if (localBackupCount <= 0 && localAsyncBackupCount <= 0) {
+    return;
+  }
   if (thisAddress.equals(target) && (operation == CONCURRENT_MAP_LOCK || operation == CONCURRENT_MAP_UNLOCK)) {
     return;
   }
-  if (backupCount > backupOps.length) {
-    String msg="Max backup is " + backupOps.length + " but backupCount is "+ backupCount;
+  if (totalBackupCount > MAX_BACKUP_COUNT) {
+    String msg="Max backup is " + MAX_BACKUP_COUNT + " but total backupCount is "+ totalBackupCount;
     logger.log(Level.SEVERE,msg);
     throw new RuntimeException(msg);
   }
   if (request.key == null || request.key.size() == 0) {
     throw new RuntimeException("Key is null! " + request.key);
   }
-  int syncBackups=Math.min(backupCount,1);
-  for (int i=0; i < backupCount; i++) {
+  final MBackup[] backupOps=new MBackup[localBackupCount];
+  for (int i=0; i < totalBackupCount; i++) {
     int replicaIndex=i + 1;
-    if (i < syncBackups) {
-      MBackup backupOp=backupOps[i];
-      if (backupOp == null) {
-        backupOp=new MBackup();
-        backupOps[i]=backupOp;
-      }
+    if (i < localBackupCount) {
+      MBackup backupOp=new MBackup();
+      backupOps[i]=backupOp;
       backupOp.sendBackup(operation,replicaIndex,request);
     }
  else {
-      final Address target=getBackupMember(request.blockId,replicaIndex);
-      if (target != null) {
-        if (target.equals(thisAddress)) {
-          final RequestHandler handler=(RequestHandler)getPacketProcessor(operation);
-          final Request reqBackup=new Request();
-          reqBackup.setFromRequest(request);
-          reqBackup.operation=operation;
-          reqBackup.longValue=1L;
-          reqBackup.callId=-1L;
-          enqueueAndReturn(new Processable(){
-            public void process(){
-              handler.handle(reqBackup);
-            }
-          }
-);
-        }
- else {
-          final Packet packet=doObtainPacket();
-          request.setPacket(packet);
-          packet.operation=operation;
-          packet.longValue=1L;
-          packet.callId=-1L;
-          Connection targetConnection=node.connectionManager.getOrConnect(target);
-          boolean sent=send(packet,targetConnection);
-          if (!sent) {
-            releasePacket(packet);
-          }
-        }
-      }
+      final Request reqBackup=Request.copyFromRequest(request);
+      reqBackup.operation=operation;
+      enqueueAndReturn(new AsyncBackupProcessable(reqBackup,replicaIndex));
     }
   }
-  for (int i=0; i < syncBackups; i++) {
+  for (int i=0; i < localBackupCount; i++) {
     MBackup backupOp=backupOps[i];
     backupOp.getResultAsBoolean();
   }
