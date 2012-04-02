@@ -1,26 +1,36 @@
 {
-  if (backupCount <= 0)   return;
+  final int localBackupCount=backupCount;
+  final int localAsyncBackupCount=asyncBackupCount;
+  final int totalBackupCount=localBackupCount + localAsyncBackupCount;
+  if (localBackupCount <= 0 && localAsyncBackupCount <= 0) {
+    return;
+  }
   if (thisAddress.equals(target) && (operation == CONCURRENT_MAP_LOCK || operation == CONCURRENT_MAP_UNLOCK)) {
     return;
   }
-  if (backupCount > backupOps.length) {
-    String msg="Max backup is " + backupOps.length + " but backupCount is "+ backupCount;
+  if (totalBackupCount > MAX_BACKUP_COUNT) {
+    String msg="Max backup is " + MAX_BACKUP_COUNT + " but total backupCount is "+ totalBackupCount;
     logger.log(Level.SEVERE,msg);
     throw new RuntimeException(msg);
   }
-  for (int i=0; i < backupCount; i++) {
-    int replicaIndex=i + 1;
-    MBackup backupOp=backupOps[i];
-    if (backupOp == null) {
-      backupOp=new MBackup();
-      backupOps[i]=backupOp;
-    }
-    if (request.key == null || request.key.size() == 0) {
-      throw new RuntimeException("Key is null! " + request.key);
-    }
-    backupOp.sendBackup(operation,replicaIndex,request);
+  if (request.key == null || request.key.size() == 0) {
+    throw new RuntimeException("Key is null! " + request.key);
   }
-  for (int i=0; i < backupCount; i++) {
+  final MBackup[] backupOps=new MBackup[localBackupCount];
+  for (int i=0; i < totalBackupCount; i++) {
+    int replicaIndex=i + 1;
+    if (i < localBackupCount) {
+      MBackup backupOp=new MBackup();
+      backupOps[i]=backupOp;
+      backupOp.sendBackup(operation,replicaIndex,request);
+    }
+ else {
+      final Request reqBackup=Request.copyFromRequest(request);
+      reqBackup.operation=operation;
+      enqueueAndReturn(new AsyncBackupProcessable(reqBackup,replicaIndex));
+    }
+  }
+  for (int i=0; i < localBackupCount; i++) {
     MBackup backupOp=backupOps[i];
     backupOp.getResultAsBoolean();
   }
