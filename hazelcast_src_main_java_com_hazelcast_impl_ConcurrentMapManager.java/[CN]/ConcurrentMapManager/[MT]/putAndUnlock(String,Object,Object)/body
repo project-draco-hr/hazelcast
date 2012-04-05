@@ -2,18 +2,23 @@
   ThreadContext tc=ThreadContext.get();
   Data dataKey=toData(key);
   CMap cmap=getMap(name);
-  LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
-  boolean shouldUnlock=localLock != null && localLock.getThreadId() == tc.getThreadId() && localLock.getCount() == 1;
+  final LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
+  final boolean shouldUnlock=localLock != null && localLock.getThreadId() == tc.getThreadId();
+  final boolean shouldRemove=shouldUnlock && localLock.getCount() == 1;
   MPut mput=tc.getCallCache(node.factory).getMPut();
-  if (shouldUnlock) {
+  if (shouldRemove) {
     mput.txnalPut(CONCURRENT_MAP_PUT_AND_UNLOCK,name,key,value,-1,-1);
-    cmap.mapLocalLocks.remove(dataKey);
+    cmap.mapLocalLocks.remove(dataKey,localLock);
+  }
+ else   if (shouldUnlock) {
+    mput.txnalPut(CONCURRENT_MAP_PUT,name,key,value,-1,-1);
+    localLock.decrementAndGet();
   }
  else {
-    mput.txnalPut(CONCURRENT_MAP_PUT,name,key,value,-1,-1);
-    if (localLock != null) {
-      localLock.decrementAndGet();
-    }
+    mput.clearRequest();
+    final String error="Current thread is not owner of lock. putAndUnlock could not be completed! " + "Thread-Id: " + tc.getThreadId() + ", LocalLock: "+ localLock;
+    logger.log(Level.WARNING,error);
+    throw new IllegalStateException(error);
   }
   mput.clearRequest();
 }
