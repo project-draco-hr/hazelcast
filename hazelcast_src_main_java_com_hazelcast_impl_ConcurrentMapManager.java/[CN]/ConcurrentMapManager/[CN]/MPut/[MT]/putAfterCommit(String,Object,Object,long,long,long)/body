@@ -1,0 +1,25 @@
+{
+  Object result=null;
+  if (txnId != -1) {
+    ThreadContext tc=ThreadContext.get();
+    Data dataKey=toData(key);
+    CMap cmap=getMap(name);
+    final LocalLock localLock=cmap.mapLocalLocks.get(dataKey);
+    final boolean shouldUnlock=localLock != null && localLock.getThreadId() == tc.getThreadId();
+    final boolean shouldRemove=shouldUnlock && localLock.getCount() == 1;
+    if (shouldRemove) {
+      result=txnalPut(CONCURRENT_MAP_PUT_AND_UNLOCK,name,key,value,timeout,ttl,-1);
+      cmap.mapLocalLocks.remove(dataKey,localLock);
+    }
+ else     if (shouldUnlock) {
+      result=txnalPut(CONCURRENT_MAP_PUT,name,key,value,timeout,ttl,-1);
+      localLock.decrementAndGet();
+    }
+ else {
+      final String error="Could not commit put operation! Current thread is not owner of " + "transaction lock! Thread-Id: " + tc.getThreadId() + ", LocalLock: "+ localLock;
+      logger.log(Level.WARNING,error);
+      throw new IllegalStateException(error);
+    }
+  }
+  return result;
+}
