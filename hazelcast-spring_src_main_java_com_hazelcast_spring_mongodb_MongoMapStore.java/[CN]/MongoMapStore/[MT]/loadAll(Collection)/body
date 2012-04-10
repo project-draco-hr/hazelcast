@@ -1,0 +1,21 @@
+{
+  Map map=new HashMap();
+  BasicDBList dbo=new BasicDBList();
+  for (  Object key : keys) {
+    dbo.add(new BasicDBObject("_id",key));
+  }
+  BasicDBObject dbb=new BasicDBObject("$or",dbo);
+  DBCursor cursor=coll.find(dbb);
+  while (cursor.hasNext()) {
+    try {
+      DBObject obj=cursor.next();
+      Class clazz=null;
+      clazz=Class.forName(obj.get("_class").toString());
+      map.put(obj.get("_id"),converter.toObject(clazz,obj));
+    }
+ catch (    ClassNotFoundException e) {
+      logger.log(Level.WARNING,e.getMessage(),e);
+    }
+  }
+  return map;
+}

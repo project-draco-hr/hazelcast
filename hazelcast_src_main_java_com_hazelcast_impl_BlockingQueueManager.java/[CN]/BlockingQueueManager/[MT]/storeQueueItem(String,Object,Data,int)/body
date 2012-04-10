@@ -1,0 +1,20 @@
+{
+  IMap imap=getStorageMap(name);
+  final Data dataKey=toData(key);
+  imap.put(dataKey,item);
+  if (addKeyAsync) {
+    sendKeyToMaster(name,dataKey,index);
+  }
+ else {
+    addKey(name,dataKey,index);
+  }
+  final BQ bq=getBQ(name);
+  if (bq != null && bq.mapListeners.size() > 0) {
+    enqueueAndReturn(new Processable(){
+      public void process(){
+        fireMapEvent(bq.mapListeners,name,EntryEvent.TYPE_ADDED,item,thisAddress);
+      }
+    }
+);
+  }
+}
