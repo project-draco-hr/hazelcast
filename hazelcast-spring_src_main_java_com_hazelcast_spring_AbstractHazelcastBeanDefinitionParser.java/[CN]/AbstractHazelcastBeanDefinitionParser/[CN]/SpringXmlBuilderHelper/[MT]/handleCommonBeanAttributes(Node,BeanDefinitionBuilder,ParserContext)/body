@@ -1,0 +1,28 @@
+{
+  final NamedNodeMap attributes=node.getAttributes();
+  if (attributes != null) {
+    Node lazyInitAttr=attributes.getNamedItem("lazy-init");
+    if (lazyInitAttr != null) {
+      builder.setLazyInit(Boolean.valueOf(getValue(lazyInitAttr)));
+    }
+ else {
+      builder.setLazyInit(parserContext.isDefaultLazyInit());
+    }
+    if (parserContext.isNested()) {
+      builder.setScope(parserContext.getContainingBeanDefinition().getScope());
+    }
+ else {
+      Node scopeNode=attributes.getNamedItem("scope");
+      if (scopeNode != null) {
+        builder.setScope(getValue(scopeNode));
+      }
+    }
+    Node dependsOnNode=attributes.getNamedItem("depends-on");
+    if (dependsOnNode != null) {
+      String[] dependsOn=getValue(dependsOnNode).split("[,;]");
+      for (      String dep : dependsOn) {
+        builder.addDependsOn(dep.trim());
+      }
+    }
+  }
+}
