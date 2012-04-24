@@ -1,0 +1,20 @@
+{
+  ClientConfig config=new ClientConfig();
+  final BlockingQueue<LifecycleEvent> q=new LinkedBlockingQueue<LifecycleEvent>();
+  config.addListener(new LifecycleListener(){
+    public void stateChanged(    final LifecycleEvent event){
+      q.offer(event);
+      System.out.println(event);
+    }
+  }
+);
+  Hazelcast.getDefaultInstance();
+  HazelcastClient client=HazelcastClient.newHazelcastClient(config);
+  Assert.assertEquals(new LifecycleEvent(LifecycleState.STARTING),q.poll(3,TimeUnit.SECONDS));
+  Assert.assertEquals(new LifecycleEvent(LifecycleState.CLIENT_CONNECTION_OPENING),q.poll(3,TimeUnit.SECONDS));
+  Assert.assertEquals(new LifecycleEvent(LifecycleState.CLIENT_CONNECTION_OPENED),q.poll(3,TimeUnit.SECONDS));
+  Assert.assertEquals(new LifecycleEvent(LifecycleState.STARTED),q.poll(3,TimeUnit.SECONDS));
+  client.shutdown();
+  Assert.assertEquals(new LifecycleEvent(LifecycleState.SHUTTING_DOWN),q.poll(3,TimeUnit.SECONDS));
+  Assert.assertEquals(new LifecycleEvent(LifecycleState.SHUTDOWN),q.poll(3,TimeUnit.SECONDS));
+}
