@@ -15,12 +15,14 @@
       final Set<Record> recordsToEvict=new HashSet<Record>();
       final Set<Record> sortedRecords=new TreeSet<Record>(new ComparatorWrapper(evictionComparator));
       final Collection<Record> records=mapRecords.values();
-      final boolean overCapacity=maxSizePolicy != null && maxSizePolicy.overCapacity();
+      final boolean overCapacity=overCapacity();
       final boolean evictionAware=evictionComparator != null && overCapacity;
       int recordsStillOwned=0;
       int backupPurgeCount=0;
+      long costOfRecords=0L;
       PartitionManager partitionManager=concurrentMapManager.partitionManager;
       for (      Record record : records) {
+        costOfRecords+=record.getCost();
         PartitionInfo partition=partitionManager.getPartition(record.getBlockId());
         Address owner=partition.getOwner();
         boolean owned=(owner != null && thisAddress.equals(owner));
@@ -58,6 +60,7 @@
           }
         }
       }
+      totalCostOfRecords=costOfRecords;
       if (evictionAware && (forced || overCapacity)) {
         int numberOfRecordsToEvict=(int)(recordsStillOwned * evictionRate);
         int evictedCount=0;
