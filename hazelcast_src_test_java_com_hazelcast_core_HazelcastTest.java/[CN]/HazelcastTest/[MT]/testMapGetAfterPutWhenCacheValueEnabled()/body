@@ -1,0 +1,28 @@
+{
+  Config config=Hazelcast.getDefaultInstance().getConfig();
+  config.getMapConfig("testMapGetAfterPutWhenCacheValueEnabled").setCacheValue(true);
+  final IMap map=Hazelcast.getMap("testMapGetAfterPutWhenCacheValueEnabled");
+  final AtomicBoolean running=new AtomicBoolean(true);
+  final String key="key";
+  ExecutorService ex=Executors.newSingleThreadExecutor();
+  ex.execute(new Runnable(){
+    public void run(){
+      while (running.get()) {
+        map.get(key);
+      }
+    }
+  }
+);
+  try {
+    for (int i=0; i < 50000; i++) {
+      map.put(key,Integer.valueOf(i));
+      final Integer value=(Integer)map.get(key);
+      assertEquals(i,value.intValue());
+    }
+  }
+  finally {
+    running.set(false);
+    ex.shutdown();
+    ex.awaitTermination(2,TimeUnit.SECONDS);
+  }
+}
