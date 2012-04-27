@@ -15,10 +15,11 @@
       final Set<Record> recordsToEvict=new HashSet<Record>();
       final Set<Record> sortedRecords=new TreeSet<Record>(new ComparatorWrapper(evictionComparator));
       final Collection<Record> records=mapRecords.values();
-      final boolean overCapacity=maxSizePolicy != null && maxSizePolicy.overCapacity();
+      final boolean overCapacity=overCapacity();
       final boolean evictionAware=evictionComparator != null && overCapacity;
       int recordsStillOwned=0;
       int backupPurgeCount=0;
+      long costOfRecords=0L;
       PartitionManager partitionManager=concurrentMapManager.partitionManager;
       for (      Record record : records) {
         PartitionInfo partition=partitionManager.getPartition(record.getBlockId());
@@ -46,6 +47,9 @@
               sortedRecords.add(record);
               recordsStillOwned++;
             }
+            if (record.isActive() && record.isValid(now)) {
+              costOfRecords+=record.getCost();
+            }
           }
  else           if (ownedOrBackup) {
             if (shouldPurgeRecord(record,now)) {
@@ -58,6 +62,7 @@
           }
         }
       }
+      totalCostOfRecords=costOfRecords;
       if (evictionAware && (forced || overCapacity)) {
         int numberOfRecordsToEvict=(int)(recordsStillOwned * evictionRate);
         int evictedCount=0;
@@ -73,7 +78,7 @@
       Level levelLog=(concurrentMapManager.LOG_STATE) ? Level.INFO : Level.FINEST;
       if (logger.isLoggable(levelLog)) {
         logger.log(levelLog,name + " Cleanup " + ", dirty:"+ recordsDirty.size()+ ", purge:"+ recordsToPurge.size()+ ", evict:"+ recordsToEvict.size()+ ", unknown:"+ recordsUnknown.size()+ ", stillOwned:"+ recordsStillOwned+ ", backupPurge:"+ backupPurgeCount);
-        logger.log(levelLog,thisAddress + " mapRecords: " + mapRecords.size()+ "  indexes: "+ mapIndexService.getOwnedRecords().size());
+        logger.log(levelLog,thisAddress + " mapRecords: " + mapRecords.size()+ "  indexes: "+ mapIndexService.getOwnedRecords().size()+ "  totalCost: "+ costOfRecords);
       }
       executeStoreUpdate(recordsDirty);
       executeEviction(recordsToEvict);
