@@ -1,0 +1,18 @@
+{
+  int maxSize=1;
+  Config c=new Config();
+  c.setProperty(GroupProperties.PROP_CLEANUP_DELAY_SECONDS,"1");
+  MapConfig mapConfig=c.getMapConfig("default");
+  mapConfig.setMaxSizeConfig(new MaxSizeConfig().setMaxSizePolicy(MaxSizeConfig.POLICY_USED_HEAP_SIZE).setSize(maxSize));
+  final byte[] data=new byte[700];
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(c);
+  IMap map=hz.getMap("default");
+  for (int i=0; i < 1024; i++) {
+    map.put(i,data);
+  }
+  Thread.sleep(1500);
+  assertFalse(map.tryPut(1024,data,0,TimeUnit.SECONDS));
+  map.remove(0);
+  Thread.sleep(1500);
+  assertTrue(map.tryPut(1024,data,0,TimeUnit.SECONDS));
+}
