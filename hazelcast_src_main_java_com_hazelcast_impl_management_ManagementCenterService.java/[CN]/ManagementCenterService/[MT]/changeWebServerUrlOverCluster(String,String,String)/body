@@ -1,0 +1,17 @@
+{
+  try {
+    GroupConfig groupConfig=factory.getConfig().getGroupConfig();
+    if (!(groupConfig.getName().equals(groupName) && groupConfig.getPassword().equals(groupPass)))     return HttpCommand.RES_403;
+    ManagementCenterConfigCallable callable=new ManagementCenterConfigCallable(newUrl);
+    callable.setHazelcastInstance(factory);
+    Set<Member> members=factory.getCluster().getMembers();
+    MultiTask<Void> task=new MultiTask<Void>(callable,members);
+    ExecutorService executorService=factory.getExecutorService();
+    executorService.execute(task);
+  }
+ catch (  Throwable throwable) {
+    logger.log(Level.WARNING,"New web server url cannot be assigned.",throwable);
+    return HttpCommand.RES_500;
+  }
+  return HttpCommand.RES_204;
+}
