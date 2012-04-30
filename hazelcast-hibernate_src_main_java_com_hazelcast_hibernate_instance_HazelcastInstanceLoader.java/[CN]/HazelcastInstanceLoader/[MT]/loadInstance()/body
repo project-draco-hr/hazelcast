@@ -16,18 +16,20 @@
   if (useLiteMember) {
     logger.log(Level.WARNING,"Creating Hazelcast node as Lite-Member. " + "Be sure this node has access to an already running cluster...");
   }
-  if (StringHelper.isEmpty(configResourcePath)) {
+  if (isEmpty(configResourcePath)) {
     if (!useLiteMember && instanceName == null) {
       staticInstance=true;
     }
   }
  else {
-    URL url=ConfigHelper.locateConfig(configResourcePath);
     try {
-      config=new UrlXmlConfig(url);
+      config=ConfigLoader.load(configResourcePath);
     }
  catch (    IOException e) {
-      throw new CacheException(e);
+      logger.log(Level.WARNING,"IOException: " + e.getMessage());
+    }
+    if (config == null) {
+      throw new CacheException("Could not find configuration file: " + configResourcePath);
     }
   }
   if (instanceName != null) {
