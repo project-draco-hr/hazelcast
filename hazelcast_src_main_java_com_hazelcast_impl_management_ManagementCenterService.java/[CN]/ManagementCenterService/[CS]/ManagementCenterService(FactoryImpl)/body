@@ -1,10 +1,11 @@
 {
   this.factory=factoryImpl;
   logger=factory.node.getLogger(ManagementCenterService.class.getName());
-  final ManagementCenterConfig config=factory.node.config.getManagementCenterConfig();
-  if (config == null) {
+  managementCenterConfig=factory.node.config.getManagementCenterConfig();
+  if (managementCenterConfig == null) {
     throw new IllegalStateException("ManagementCenterConfig should not be null!");
   }
+  factory.getLifecycleService().addLifecycleListener(this);
   this.instanceFilterMap=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_MAP_EXCLUDES.getString());
   this.instanceFilterQueue=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_QUEUE_EXCLUDES.getString());
   this.instanceFilterTopic=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_TOPIC_EXCLUDES.getString());
@@ -13,9 +14,9 @@
   this.instanceFilterSemaphore=new StatsInstanceFilter(factoryImpl.node.getGroupProperties().MC_SEMAPHORE_EXCLUDES.getString());
   maxVisibleInstanceCount=factory.node.groupProperties.MC_MAX_INSTANCE_COUNT.getInteger();
   commandHandler=new ConsoleCommandHandler(factory);
-  String tmpWebServerUrl=config != null ? config.getUrl() : null;
+  String tmpWebServerUrl=managementCenterConfig != null ? managementCenterConfig.getUrl() : null;
   webServerUrl=tmpWebServerUrl != null ? (!tmpWebServerUrl.endsWith("/") ? tmpWebServerUrl + '/' : tmpWebServerUrl) : tmpWebServerUrl;
-  updateIntervalMs=(config != null && config.getUpdateInterval() > 0) ? config.getUpdateInterval() * 1000 : 5000;
+  updateIntervalMs=(managementCenterConfig != null && managementCenterConfig.getUpdateInterval() > 0) ? managementCenterConfig.getUpdateInterval() * 1000 : 5000;
   taskPoller=new TaskPoller();
   stateSender=new StateSender();
 }
