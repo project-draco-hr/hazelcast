@@ -1,0 +1,27 @@
+{
+  super();
+  final Map<Address,Integer> addressIndexes=new HashMap<Address,Integer>(members.size());
+  int memberIndex=0;
+  for (  Member member : members) {
+    MemberImpl memberImpl=(MemberImpl)member;
+    addMemberInfo(new MemberInfo(memberImpl.getAddress(),memberImpl.getNodeType(),member.getUuid()),addressIndexes,memberIndex);
+    if (!member.localMember()) {
+      final Connection conn=connections.get(memberImpl.getAddress());
+      ConnectionInfo connectionInfo;
+      if (conn != null) {
+        connectionInfo=new ConnectionInfo(memberIndex,conn.live(),conn.lastReadTime(),conn.lastWriteTime());
+      }
+ else {
+        connectionInfo=new ConnectionInfo(memberIndex,false,0L,0L);
+      }
+      connectionInfos.add(connectionInfo);
+    }
+ else {
+      localMemberIndex=memberIndex;
+    }
+    memberIndex++;
+  }
+  setPartitions(partitions,addressIndexes);
+  setLocks(lockedRecords,addressIndexes);
+  this.migratingPartition=migratingPartition;
+}
