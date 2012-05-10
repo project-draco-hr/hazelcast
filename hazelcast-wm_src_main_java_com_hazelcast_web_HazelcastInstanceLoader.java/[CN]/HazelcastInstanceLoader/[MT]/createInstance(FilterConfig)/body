@@ -1,7 +1,20 @@
 {
   final String instanceName=filterConfig.getInitParameter("instance-name");
   final String configLocation=filterConfig.getInitParameter("config-location");
+  final String clientAddresses=filterConfig.getInitParameter("client-addresses");
+  final String clientGroup=filterConfig.getInitParameter("client-group");
+  final String clientPass=filterConfig.getInitParameter("client-password");
   Config config=null;
+  if (!isEmpty(clientAddresses) && !isEmpty(clientGroup) && !isEmpty(clientPass)) {
+    logger.log(Level.WARNING,"Creating Hazelcast node as Lite-Member. " + "Be sure this node has access to an already running cluster...");
+    ClientConfig clientConfig=new ClientConfig();
+    clientConfig.setAddresses(Arrays.asList(clientAddresses.split(",")));
+    GroupConfig groupConfig=new GroupConfig();
+    groupConfig.setName(clientGroup);
+    groupConfig.setPassword(clientPass);
+    clientConfig.setGroupConfig(groupConfig);
+    return HazelcastClient.newHazelcastClient(clientConfig);
+  }
   if (isEmpty(configLocation) && isEmpty(instanceName)) {
     return Hazelcast.getDefaultInstance();
   }
