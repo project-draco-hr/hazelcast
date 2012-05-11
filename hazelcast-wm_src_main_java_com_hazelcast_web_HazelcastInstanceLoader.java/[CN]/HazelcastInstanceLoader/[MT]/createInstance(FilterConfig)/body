@@ -1,44 +1,43 @@
 {
   final String instanceName=filterConfig.getInitParameter("instance-name");
   final String configLocation=filterConfig.getInitParameter("config-location");
-  final String clientAddresses=filterConfig.getInitParameter("client-addresses");
-  final String clientGroup=filterConfig.getInitParameter("client-group");
-  final String clientPass=filterConfig.getInitParameter("client-password");
-  Config config=null;
-  if (!isEmpty(clientAddresses) && !isEmpty(clientGroup) && !isEmpty(clientPass)) {
-    logger.log(Level.WARNING,"Creating Hazelcast node as Lite-Member. " + "Be sure this node has access to an already running cluster...");
-    ClientConfig clientConfig=new ClientConfig();
-    clientConfig.setAddresses(Arrays.asList(clientAddresses.split(",")));
-    GroupConfig groupConfig=new GroupConfig();
-    groupConfig.setName(clientGroup);
-    groupConfig.setPassword(clientPass);
-    clientConfig.setGroupConfig(groupConfig);
+  final String useClientProp=filterConfig.getInitParameter("use-client");
+  final String clientConfigLocation=filterConfig.getInitParameter("client-config-location");
+  if (!isEmpty(useClientProp) && Boolean.parseBoolean(useClientProp)) {
+    logger.log(Level.WARNING,"Creating HazelcastClient, make sure this node has access to an already running cluster...");
+    ClientConfig clientConfig;
+    if (isEmpty(clientConfigLocation)) {
+      clientConfig=new ClientConfig();
+      clientConfig.setUpdateAutomatic(true);
+      clientConfig.setInitialConnectionAttemptLimit(3);
+      clientConfig.setReconnectionAttemptLimit(5);
+    }
+ else {
+      final URL configUrl=getConfigURL(filterConfig,clientConfigLocation);
+      try {
+        clientConfig=new ClientConfigBuilder(configUrl).build();
+      }
+ catch (      IOException e) {
+        throw new ServletException(e);
+      }
+    }
     return HazelcastClient.newHazelcastClient(clientConfig);
   }
   if (isEmpty(configLocation) && isEmpty(instanceName)) {
     return Hazelcast.getDefaultInstance();
   }
-  URL configUrl=null;
-  if (!isEmpty(configLocation)) {
-    try {
-      configUrl=filterConfig.getServletContext().getResource(configLocation);
-    }
- catch (    MalformedURLException e) {
-    }
-    if (configUrl == null) {
-      configUrl=ConfigLoader.locateConfig(configLocation);
-    }
+  Config config;
+  if (isEmpty(configLocation)) {
+    config=new XmlConfigBuilder().build();
   }
-  if (configUrl != null) {
+ else {
+    final URL configUrl=getConfigURL(filterConfig,configLocation);
     try {
       config=new UrlXmlConfig(configUrl);
     }
  catch (    IOException e) {
       throw new ServletException(e);
     }
-  }
-  if (config == null) {
-    config=new XmlConfigBuilder().build();
   }
   if (instanceName != null) {
     config.setInstanceName(instanceName);
