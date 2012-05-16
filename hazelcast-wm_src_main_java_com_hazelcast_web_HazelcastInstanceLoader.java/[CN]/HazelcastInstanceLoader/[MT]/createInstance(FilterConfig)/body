@@ -3,56 +3,12 @@
   final String configLocation=filterConfig.getInitParameter("config-location");
   final String useClientProp=filterConfig.getInitParameter("use-client");
   final String clientConfigLocation=filterConfig.getInitParameter("client-config-location");
-  if (!isEmpty(useClientProp) && Boolean.parseBoolean(useClientProp)) {
-    logger.log(Level.WARNING,"Creating HazelcastClient, make sure this node has access to an already running cluster...");
-    ClientConfig clientConfig;
-    if (isEmpty(clientConfigLocation)) {
-      clientConfig=new ClientConfig();
-      clientConfig.setUpdateAutomatic(true);
-      clientConfig.setInitialConnectionAttemptLimit(3);
-      clientConfig.setReconnectionAttemptLimit(5);
-    }
- else {
-      final URL configUrl=getConfigURL(filterConfig,clientConfigLocation);
-      try {
-        clientConfig=new ClientConfigBuilder(configUrl).build();
-      }
- catch (      IOException e) {
-        throw new ServletException(e);
-      }
-    }
-    return HazelcastClient.newHazelcastClient(clientConfig);
+  URL configUrl=null;
+  if (!isEmpty(clientConfigLocation)) {
+    configUrl=getConfigURL(filterConfig,clientConfigLocation);
   }
-  if (isEmpty(configLocation) && isEmpty(instanceName)) {
-    return Hazelcast.getDefaultInstance();
+ else   if (!isEmpty(configLocation)) {
+    configUrl=getConfigURL(filterConfig,configLocation);
   }
-  Config config;
-  if (isEmpty(configLocation)) {
-    config=new XmlConfigBuilder().build();
-  }
- else {
-    final URL configUrl=getConfigURL(filterConfig,configLocation);
-    try {
-      config=new UrlXmlConfig(configUrl);
-    }
- catch (    IOException e) {
-      throw new ServletException(e);
-    }
-  }
-  if (instanceName != null) {
-    config.setInstanceName(instanceName);
-    HazelcastInstance instance=Hazelcast.getHazelcastInstanceByName(instanceName);
-    if (instance == null) {
-      try {
-        instance=Hazelcast.newHazelcastInstance(config);
-      }
- catch (      DuplicateInstanceNameException ignored) {
-        instance=Hazelcast.getHazelcastInstanceByName(instanceName);
-      }
-    }
-    return instance;
-  }
- else {
-    return Hazelcast.newHazelcastInstance(config);
-  }
+  return getInstance(configUrl,instanceName,useClientProp);
 }
