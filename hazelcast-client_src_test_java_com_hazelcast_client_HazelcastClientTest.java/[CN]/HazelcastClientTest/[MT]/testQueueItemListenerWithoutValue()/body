@@ -1,0 +1,22 @@
+{
+  final CountDownLatch latch=new CountDownLatch(2);
+  IQueue<String> queue=getHazelcastClient().getQueue("testQueueItemListenerWithoutValue");
+  queue.addItemListener(new ItemListener<String>(){
+    public void itemAdded(    ItemEvent<String> itemEvent){
+      assertNull(itemEvent.getItem());
+      latch.countDown();
+    }
+    public void itemRemoved(    ItemEvent<String> itemEvent){
+      assertNull(itemEvent.getItem());
+      latch.countDown();
+    }
+  }
+,false);
+  queue.offer("hello");
+  assertEquals("hello",queue.poll());
+  try {
+    assertTrue(latch.await(5,TimeUnit.SECONDS));
+  }
+ catch (  InterruptedException ignored) {
+  }
+}

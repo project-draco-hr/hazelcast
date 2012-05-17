@@ -1,30 +1,30 @@
 {
-  IMap<String,String> map=getHazelcastClient().getMap("testMapEntryListener");
+  IMap<String,String> map=getHazelcastClient().getMap("testMapEntryListenerWithoutValue");
   final CountDownLatch latchAdded=new CountDownLatch(1);
   final CountDownLatch latchRemoved=new CountDownLatch(1);
   final CountDownLatch latchUpdated=new CountDownLatch(1);
   map.addEntryListener(new EntryListener<String,String>(){
     public void entryAdded(    EntryEvent<String,String> event){
-      assertEquals("world",event.getValue());
       assertEquals("hello",event.getKey());
+      assertNull(event.getValue());
       latchAdded.countDown();
     }
     public void entryRemoved(    EntryEvent<String,String> event){
       assertEquals("hello",event.getKey());
-      assertEquals("new world",event.getValue());
+      assertNull(event.getValue());
       latchRemoved.countDown();
     }
     public void entryUpdated(    EntryEvent<String,String> event){
-      assertEquals("world",event.getOldValue());
-      assertEquals("new world",event.getValue());
       assertEquals("hello",event.getKey());
+      assertNull(event.getOldValue());
+      assertNull(event.getValue());
       latchUpdated.countDown();
     }
     public void entryEvicted(    EntryEvent<String,String> event){
       entryRemoved(event);
     }
   }
-,true);
+,false);
   map.put("hello","world");
   map.put("hello","new world");
   map.remove("hello");
