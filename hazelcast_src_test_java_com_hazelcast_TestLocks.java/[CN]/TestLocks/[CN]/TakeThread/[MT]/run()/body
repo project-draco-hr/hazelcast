@@ -1,0 +1,27 @@
+{
+  while (!stop) {
+    hazelcastInstance.getTransaction().begin();
+    String key=null;
+    try {
+      System.out.println("Removing key");
+      Set<String> set=map.localKeySet();
+      ArrayList<String> strings=new ArrayList<String>(set);
+      if (!strings.isEmpty()) {
+        key=strings.get(new Random().nextInt(strings.size()));
+        String value=(String)map.tryRemove(key,100,TimeUnit.MILLISECONDS);
+        if (value != null) {
+          destination.add(value);
+          removeItemIndex++;
+          System.out.println("Removing key " + key + " successfully");
+        }
+      }
+      hazelcastInstance.getTransaction().commit();
+      System.out.println("Commiting on take " + key);
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+      hazelcastInstance.getTransaction().rollback();
+      System.out.println(Thread.currentThread().getName() + ": Exception wile consuming object: " + e.getMessage()+ " key: "+ key);
+    }
+  }
+}
