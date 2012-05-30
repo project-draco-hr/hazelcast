@@ -2,8 +2,11 @@
   if (req.key == null || req.key.size() == 0) {
     throw new RuntimeException("Backup key size cannot be zero! " + req.key);
   }
-  if (req.operation == CONCURRENT_MAP_BACKUP_PUT) {
+  if (req.operation == CONCURRENT_MAP_BACKUP_PUT || req.operation == CONCURRENT_MAP_BACKUP_PUT_AND_UNLOCK) {
     Record record=toRecord(req);
+    if (req.operation == CONCURRENT_MAP_BACKUP_PUT_AND_UNLOCK || req.txnId != -1) {
+      unlock(record,req);
+    }
     markAsActive(record);
     record.setVersion(req.version);
     if (req.indexes != null) {
@@ -25,13 +28,16 @@
     if (record.isActive()) {
       markAsEvicted(record);
     }
+    if (req.txnId != -1) {
+      unlock(record,req);
+    }
     record.setVersion(req.version);
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_LOCK) {
     if (req.lockCount == 0) {
       Record record=getRecord(req);
       if (record != null) {
-        record.setLock(null);
+        record.clearLock();
         if (record.valueCount() == 0) {
           markAsEvicted(record);
         }

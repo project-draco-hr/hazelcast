@@ -1,0 +1,19 @@
+{
+  if (!concurrentMapManager.isMaster() || !concurrentMapManager.isActive() || !concurrentMapManager.node.joined()) {
+    return;
+  }
+  if (!migrationActive.get()) {
+    return;
+  }
+  if (!initialized) {
+    return;
+  }
+  final long clusterTime=concurrentMapManager.node.getClusterImpl().getClusterTime();
+  final List<MemberImpl> lsMembers=concurrentMapManager.lsMembers;
+  final List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(lsMembers.size());
+  for (  MemberImpl member : lsMembers) {
+    memberInfos.add(new MemberInfo(member.getAddress(),member.getNodeType(),member.getUuid()));
+  }
+  PartitionStateProcessable processable=new PartitionStateProcessable(memberInfos,partitions,clusterTime,version.get());
+  concurrentMapManager.sendProcessableToAll(processable,false);
+}

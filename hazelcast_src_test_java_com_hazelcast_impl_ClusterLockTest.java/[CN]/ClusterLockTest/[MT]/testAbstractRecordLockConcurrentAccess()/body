@@ -1,0 +1,76 @@
+{
+  final Record record=new AbstractRecord(null,0,null,0,0,1){
+    public Record copy(){
+      return null;
+    }
+    public Object getValue(){
+      return null;
+    }
+    public Data getValueData(){
+      return null;
+    }
+    public Object setValue(    final Object value){
+      return null;
+    }
+    public void setValueData(    final Data value){
+    }
+    public int valueCount(){
+      return 0;
+    }
+    public long getCost(){
+      return 0;
+    }
+    public boolean hasValueData(){
+      return false;
+    }
+    public void invalidate(){
+    }
+    protected void invalidateValueCache(){
+    }
+  }
+;
+  final AtomicBoolean run=new AtomicBoolean(true);
+  final Thread serviceThread=new Thread(){
+    public void run(){
+      try {
+        final Address address=new Address("localhost",5000);
+        while (run.get()) {
+          record.lock(1,address);
+          record.unlock(1,address);
+          record.clearLock();
+        }
+      }
+ catch (      Exception e) {
+        run.set(false);
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  final int loop=100000;
+  final AtomicInteger count=new AtomicInteger(0);
+  final AtomicReference<Exception> error=new AtomicReference<Exception>();
+  final Thread executorThread=new Thread(){
+    public void run(){
+      for (int i=0; i < loop && run.get(); i++) {
+        try {
+          record.isEvictable();
+          record.isLocked();
+          record.isRemovable();
+          count.incrementAndGet();
+        }
+ catch (        Exception e) {
+          error.set(e);
+          break;
+        }
+      }
+    }
+  }
+;
+  serviceThread.start();
+  executorThread.start();
+  executorThread.join();
+  run.set(false);
+  serviceThread.join();
+  Assert.assertEquals("Error: " + error.get(),loop,count.get());
+}

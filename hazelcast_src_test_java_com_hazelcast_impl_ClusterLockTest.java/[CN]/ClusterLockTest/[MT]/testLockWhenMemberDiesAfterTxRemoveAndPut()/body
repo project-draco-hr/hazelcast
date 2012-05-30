@@ -1,0 +1,27 @@
+{
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(null);
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance(null);
+  final Object key=createKeyOwnedByInstance(hz.getPartitionService(),hz2.getCluster().getLocalMember());
+  final IMap map=hz.getMap("testLockWhenMemberDiesAfterTxRemove");
+  map.put(key,"value");
+  Transaction tx=hz.getTransaction();
+  tx.begin();
+  map.remove(key,"value");
+  map.put(key,"value2");
+  tx.commit();
+  hz2.getLifecycleService().shutdown();
+  Thread.sleep(1000);
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      if (map.tryLock(key)) {
+        latch.countDown();
+      }
+ else {
+        fail("Could not acquire lock!");
+      }
+    }
+  }
+.start();
+  assertTrue("Backup of tx remove and put is wrong!",latch.await(3,TimeUnit.SECONDS));
+}
