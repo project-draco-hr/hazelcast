@@ -1,25 +1,16 @@
 {
-  if (firstCall) {
-    String threadNamePrefix=node.getThreadPoolNamePrefix("client.service");
-    for (int i=0; i < THREAD_COUNT; i++) {
-      Worker worker=workers[i];
-      new Thread(node.threadGroup,worker,threadNamePrefix + i).start();
-    }
-    firstCall=false;
-  }
+  checkFirstCall();
   ClientEndpoint clientEndpoint=getClientEndpoint(packet.conn);
   CallContext callContext=clientEndpoint.getCallContext(packet.threadId);
-  ClientOperationHandler clientOperationHandler=clientOperationHandlers[packet.operation.getValue()];
-  if (clientOperationHandler == null) {
-    clientOperationHandler=unknownOperationHandler;
+  ClientOperationHandler handler=clientOperationHandlers[packet.operation.getValue()];
+  if (handler == null) {
+    handler=unknownOperationHandler;
   }
-  if (packet.operation != CLIENT_AUTHENTICATE && !clientEndpoint.isAuthenticated()) {
-    logger.log(Level.SEVERE,"A Client " + packet.conn + " must authenticate before any operation.");
-    node.clientHandlerService.removeClientEndpoint(packet.conn);
-    if (packet.conn != null)     packet.conn.close();
+  if (!clientEndpoint.isAuthenticated() && packet.operation != CLIENT_AUTHENTICATE) {
+    checkAuth(packet.conn);
     return;
   }
-  ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,packet,callContext,clientOperationHandler,clientEndpoint.getSubject());
+  ClientRequestHandler clientRequestHandler=new ClientPacketRequestHandler(node,packet,callContext,handler,clientEndpoint.getSubject(),packet.conn);
   clientEndpoint.addRequest(clientRequestHandler);
   if (packet.operation == CONCURRENT_MAP_UNLOCK) {
     node.executorManager.executeNow(clientRequestHandler);

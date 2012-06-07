@@ -1,0 +1,36 @@
+{
+  final DataAwareEntryEvent dataAwareEntryEvent=(DataAwareEntryEvent)event;
+  Data key=dataAwareEntryEvent.getKeyData();
+  Data newValue=null;
+  Data oldValue=null;
+  Data value=null;
+  String name=dataAwareEntryEvent.getLongName();
+  String type=null;
+  Protocol protocol=null;
+  int eventType=event.getEventType().getType();
+  if (dataAwareEntryEvent.getNewValueData() != null) {
+    newValue=dataAwareEntryEvent.getNewValueData();
+    oldValue=dataAwareEntryEvent.getOldValueData();
+    type="map";
+  }
+  if (name.startsWith(Prefix.MAP_OF_LIST)) {
+    name=name.substring(Prefix.MAP_FOR_QUEUE.length());
+    value=((DataAwareEntryEvent)event).getNewValueData();
+    type="list";
+  }
+ else   if (name.startsWith(Prefix.SET)) {
+    value=((DataAwareEntryEvent)event).getKeyData();
+    type="set";
+    key=null;
+  }
+  List<ByteBuffer> list=new ArrayList<ByteBuffer>();
+  list.add(ByteBuffer.wrap(key.buffer));
+  System.out.println("Key length is " + key.buffer.length);
+  System.out.println("Value length is " + newValue.buffer.length);
+  if (newValue != null)   list.add(ByteBuffer.wrap(newValue.buffer));
+  if (oldValue != null)   list.add(ByteBuffer.wrap(oldValue.buffer));
+  if (value != null)   list.add(ByteBuffer.wrap(value.buffer));
+  protocol=new Protocol(this.conn,Command.EVENT.value,new String[]{"0",type,name,String.valueOf(eventType)},list.toArray(new ByteBuffer[0]));
+  System.out.println("Sending the event back to client");
+  return protocol;
+}

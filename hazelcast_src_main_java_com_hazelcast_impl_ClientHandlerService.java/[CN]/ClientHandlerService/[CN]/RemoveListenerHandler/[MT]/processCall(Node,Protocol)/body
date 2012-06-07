@@ -1,0 +1,26 @@
+{
+  String type=protocol.getArgs()[1];
+  String name=protocol.getArgs()[2];
+  Data key=null;
+  if (protocol.getBuffers() != null && protocol.getBuffers().length > 0) {
+    key=new Data(protocol.getBuffers()[0].array());
+  }
+  ClientEndpoint clientEndpoint=getClientEndpoint(protocol.getConnection());
+  if ("map".equals(type)) {
+    IMap map=factory.getMap(name);
+    clientEndpoint.removeThisListener(map,key);
+  }
+  if ("multimap".equals(type)) {
+    MultiMap multiMap=factory.getMultiMap(name);
+    clientEndpoint.removeThisListener(multiMap,key);
+  }
+ else   if ("topic".equals(type)) {
+    ITopic topic=factory.getTopic(name);
+    topic.removeMessageListener(clientEndpoint.messageListeners.remove(topic));
+  }
+ else   if ("queue".equals(type)) {
+    IQueue queue=factory.getQueue(name);
+    queue.removeItemListener(clientEndpoint.queueItemListeners.remove(queue));
+  }
+  return protocol.success();
+}

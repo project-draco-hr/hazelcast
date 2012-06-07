@@ -1,0 +1,27 @@
+{
+  try {
+    readUntilTheEndOfLine(bb,commandLineRead,commandLine);
+    if (commandLineRead.get()) {
+      parseCommandLine(SocketTextReader.toStringAndClear(commandLine));
+      readUntilTheEndOfLine(bb,sizeLineRead,sizeLine);
+      if (sizeLineRead.get()) {
+        parseSizeLine(SocketTextReader.toStringAndClear(sizeLine));
+        for (int i=0; buffers != null && bb.hasRemaining() && i < buffers.length; i++) {
+          if (buffers[i].hasRemaining()) {
+            copy(bb,buffers[i]);
+          }
+        }
+        if (buffers != null && (buffers.length == 0 || !buffers[buffers.length - 1].hasRemaining())) {
+          Protocol protocol=new Protocol(connection,command,args,buffers);
+          connection.setType(Connection.Type.PROTOCOL_CLIENT);
+          ioService.handleClientCommand(protocol);
+          reset();
+        }
+      }
+    }
+  }
+ catch (  Exception e) {
+    connection.getWriteHandler().enqueueSocketWritable(new Protocol(connection,Command.ERROR.value,new String[]{"0","Malformed_request",e.toString()}));
+    logger.log(Level.SEVERE,e.toString());
+  }
+}
