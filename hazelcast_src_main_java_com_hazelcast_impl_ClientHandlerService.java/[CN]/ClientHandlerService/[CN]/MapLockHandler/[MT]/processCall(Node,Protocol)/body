@@ -1,0 +1,26 @@
+{
+  System.out.println("Locking from " + ThreadContext.get().getCallContext().getThreadId());
+  String name=protocol.getArgs()[1];
+  long timeout=Long.valueOf(protocol.getArgs()[2]);
+  boolean locked=true;
+  Data key=null;
+  if (protocol.getBuffers() != null && protocol.getBuffers().length > 0) {
+    key=new Data(protocol.getBuffers()[0].array());
+  }
+  IMap<Object,Object> map=(IMap)factory.getMap(name);
+  if (key == null) {
+    map.lockMap(timeout,TimeUnit.MILLISECONDS);
+  }
+ else {
+    if (timeout == -1) {
+      map.lock(key);
+    }
+ else     if (timeout == 0) {
+      locked=map.tryLock(key);
+    }
+ else {
+      locked=map.tryLock(key,timeout,TimeUnit.MILLISECONDS);
+    }
+  }
+  return protocol.success(String.valueOf(locked));
+}
