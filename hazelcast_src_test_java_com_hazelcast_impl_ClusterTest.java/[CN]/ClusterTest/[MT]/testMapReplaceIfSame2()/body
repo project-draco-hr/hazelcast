@@ -1,0 +1,28 @@
+{
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(new Config());
+  final IMap<String,String> map=hz.getMap("default");
+  final int loop=50000;
+  final String key="key";
+  final String value="value";
+  map.put(key,value);
+  final int threads=10;
+  final CountDownLatch latch=new CountDownLatch(loop);
+  ExecutorService ex=Executors.newFixedThreadPool(threads);
+  try {
+    for (int i=0; i < loop; i++) {
+      ex.execute(new Runnable(){
+        public void run(){
+          if (map.replace(key,value,value)) {
+            latch.countDown();
+          }
+        }
+      }
+);
+    }
+  }
+  finally {
+    ex.shutdown();
+    ex.awaitTermination(5,TimeUnit.SECONDS);
+  }
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
+}
