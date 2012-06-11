@@ -1,0 +1,32 @@
+{
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(new Config());
+  final IMap<String,Counter> map=hz.getMap("default");
+  final int loop=10000;
+  final String key="key";
+  final int t=3;
+  final ExecutorService ex=Executors.newFixedThreadPool(t);
+  try {
+    final AtomicInteger k=new AtomicInteger();
+    for (int i=0; i < loop; i++) {
+      final Counter c=new Counter(key,i);
+      map.put(key,c);
+      final CountDownLatch latch=new CountDownLatch(t);
+      for (int j=0; j < t; j++) {
+        ex.submit(new Runnable(){
+          public void run(){
+            if (map.remove(key,c)) {
+              k.incrementAndGet();
+            }
+            latch.countDown();
+          }
+        }
+);
+      }
+      assertTrue(latch.await(3,TimeUnit.SECONDS));
+      assertEquals("Remove if same should be successful only once! [" + i + "]",1,k.getAndSet(0));
+    }
+  }
+  finally {
+    ex.shutdownNow();
+  }
+}

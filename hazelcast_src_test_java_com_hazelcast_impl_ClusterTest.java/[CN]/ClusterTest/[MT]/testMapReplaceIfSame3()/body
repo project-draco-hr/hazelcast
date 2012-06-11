@@ -1,0 +1,34 @@
+{
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(new Config());
+  final IMap<String,Counter> map=hz.getMap("default");
+  final int loop=10000;
+  final String id="key";
+  map.put(id,new Counter(id,0L));
+  Thread[] threads=new Thread[2];
+  for (int k=0; k < threads.length; k++) {
+    threads[k]=new Thread(new Runnable(){
+      public void run(){
+        for (int i=0; i < loop; i++) {
+          increment();
+        }
+      }
+      void increment(){
+        for (; ; ) {
+          Counter oldCounter=map.get(id);
+          if (oldCounter == null)           throw new IllegalArgumentException();
+          Counter newCounter=new Counter(id,oldCounter.value);
+          newCounter.inc();
+          if (map.replace(id,oldCounter,newCounter)) {
+            return;
+          }
+        }
+      }
+    }
+);
+  }
+  for (  Thread thread : threads)   thread.start();
+  for (  Thread thread : threads)   thread.join();
+  long actualCount=map.get(id).value;
+  long expectedCount=loop * threads.length;
+  assertEquals(expectedCount,actualCount);
+}
