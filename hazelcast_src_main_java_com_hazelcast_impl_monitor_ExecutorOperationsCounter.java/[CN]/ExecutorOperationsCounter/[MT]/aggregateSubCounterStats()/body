@@ -1,0 +1,20 @@
+{
+  LocalExecutorOperationStatsImpl stats=new LocalExecutorOperationStatsImpl(executorName);
+  stats.periodStart=((ExecutorOperationsCounter)listOfSubCounters.get(0)).startTime;
+  long max=Long.MIN_VALUE;
+  long min=Long.MAX_VALUE;
+  for (int i=0; i < listOfSubCounters.size(); i++) {
+    ExecutorOperationsCounter sub=(ExecutorOperationsCounter)listOfSubCounters.get(i);
+    if (sub.minCompletionTime.get() < min)     min=sub.minCompletionTime.get();
+    if (sub.maxCompletionTime.get() > max)     max=sub.maxCompletionTime.get();
+    stats.started.addAndGet(sub.executionStarts.count.get());
+    stats.startLatency.addAndGet(sub.executionStarts.totalLatency.get());
+    stats.completed.addAndGet(sub.executionEnds.count.get());
+    stats.completionTime.addAndGet(sub.executionEnds.totalLatency.get());
+    stats.periodEnd=sub.endTime;
+  }
+  stats.maxCompletionTime.set(max);
+  stats.minCompletionTime.set(min);
+  stats.pending.set(((ExecutorOperationsCounter)listOfSubCounters.get(listOfSubCounters.size() - 1)).pending.get());
+  return stats;
+}
