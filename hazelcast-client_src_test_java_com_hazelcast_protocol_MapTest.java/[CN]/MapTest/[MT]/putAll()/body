@@ -1,0 +1,22 @@
+{
+  Map<String,String> map=new HashMap<String,String>();
+  map.put("1","a");
+  map.put("2","b");
+  map.put("3","c");
+  map.put("4","d");
+  String commandLine="MPUTALL 0 default";
+  StringBuilder sizeLine=new StringBuilder("#").append(map.size() * 2);
+  for (  String k : map.keySet()) {
+    sizeLine.append(" ").append(k.getBytes().length);
+    sizeLine.append(" ").append(map.get(k).getBytes().length);
+  }
+  OutputStream out=doOp(commandLine,sizeLine.toString());
+  for (  String k : map.keySet()) {
+    out.write(k.getBytes());
+    out.write(map.get(k).getBytes());
+  }
+  assertTrue(read(socket).contains("SUCCESS"));
+  doOp("ENTRYSET 0 map default","#0");
+  List<String> keys=read(socket);
+  System.out.println("keys = " + keys);
+}
