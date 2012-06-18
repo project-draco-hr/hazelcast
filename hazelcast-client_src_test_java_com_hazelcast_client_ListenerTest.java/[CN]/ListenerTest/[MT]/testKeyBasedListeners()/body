@@ -1,0 +1,46 @@
+{
+  try {
+    Config config=new Config();
+    HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+    IMap<String,String> map=instance.getMap("map");
+    map.put("key1","value1");
+    map.put("key2","value2");
+    ClientConfig clientConfig=new ClientConfig();
+    HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+    final AtomicInteger count=new AtomicInteger(0);
+    IMap<String,String> clientMap=client.getMap("map");
+    clientMap.addEntryListener(new EntryListener<String,String>(){
+      public void entryAdded(      EntryEvent<String,String> entryEvent){
+        count.incrementAndGet();
+      }
+      public void entryRemoved(      EntryEvent<String,String> entryEvent){
+      }
+      public void entryUpdated(      EntryEvent<String,String> entryEvent){
+        count.incrementAndGet();
+      }
+      public void entryEvicted(      EntryEvent<String,String> entryEvent){
+      }
+    }
+,"key1",true);
+    clientMap.addEntryListener(new EntryListener<String,String>(){
+      public void entryAdded(      EntryEvent<String,String> entryEvent){
+        count.incrementAndGet();
+      }
+      public void entryRemoved(      EntryEvent<String,String> entryEvent){
+      }
+      public void entryUpdated(      EntryEvent<String,String> entryEvent){
+        System.out.println("event map");
+        count.incrementAndGet();
+      }
+      public void entryEvicted(      EntryEvent<String,String> entryEvent){
+      }
+    }
+,"key2",true);
+    map.put("key1","new-value1");
+    Thread.sleep(100);
+    Assert.assertEquals(count.get(),1);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+  }
+}
