@@ -1,0 +1,22 @@
+{
+  String name=protocol.getArgs()[0];
+  long timeout=Long.valueOf(protocol.getArgs()[1]);
+  Data item=new Data(protocol.getBuffers()[0].array());
+  IQueue<Data> queue=node.factory.getQueue(name);
+  Data result=null;
+  try {
+    if (timeout == -1) {
+      result=queue.take();
+    }
+ else     if (timeout == 0) {
+      result=queue.poll();
+    }
+ else {
+      result=queue.poll(timeout,TimeUnit.MILLISECONDS);
+    }
+    return protocol.success(result == null ? null : ByteBuffer.wrap(result.buffer));
+  }
+ catch (  InterruptedException e) {
+    throw new RuntimeException(e);
+  }
+}
