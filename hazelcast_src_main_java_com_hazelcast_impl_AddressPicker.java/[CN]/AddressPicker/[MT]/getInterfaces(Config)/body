@@ -1,0 +1,15 @@
+{
+  final Collection<String> interfaces=new HashSet<String>();
+  if (config.getNetworkConfig().getInterfaces().isEnabled()) {
+    interfaces.addAll(config.getNetworkConfig().getInterfaces().getInterfaces());
+    logger.log(Level.INFO,"Interfaces is enabled, trying to pick one address matching " + "to one of: " + interfaces);
+  }
+ else   if (config.getNetworkConfig().getJoin().getTcpIpConfig().isEnabled()) {
+    final Collection<String> possibleAddresses=TcpIpJoiner.getConfigurationMembers(node.config);
+    for (    String possibleAddress : possibleAddresses) {
+      interfaces.add(AddressUtil.getAddressHolder(possibleAddress).address);
+    }
+    logger.log(Level.FINEST,"Interfaces is disabled, trying to pick one address from TCP-IP config " + "addresses: " + interfaces);
+  }
+  return interfaces;
+}
