@@ -1,19 +1,31 @@
 {
   try {
-    readUntilTheEndOfLine(bb,commandLineRead,commandLine);
+    while (firstNewLineRead.hasRemaining()) {
+      firstNewLineRead.put(bb.get());
+    }
+    System.out.println("Very first new line is read!");
+    readLine(bb,commandLineRead,commandLine);
+    Thread.sleep(1000);
     if (commandLineRead.get()) {
       parseCommandLine(SocketTextReader.toStringAndClear(commandLine));
-      if (bufferSize.length > 0) {
-        readUntilTheEndOfLine(bb,sizeLineRead,sizeLine);
+      if (commandLineIsParsed && bufferSize.length > 0) {
+        System.out.println("BUF SIZE LENGTH " + bufferSize.length);
+        readLine(bb,sizeLineRead,sizeLine);
+        System.out.println("Sizeline is read is it true:" + sizeLine);
       }
- else {
+ else       if (commandLineIsParsed) {
         sizeLineRead.set(true);
       }
-      if (bufferSize.length == 0 || sizeLineRead.get()) {
+      if (commandLineIsParsed && bufferSize.length == 0 || sizeLineRead.get()) {
         parseSizeLine(SocketTextReader.toStringAndClear(sizeLine));
         for (int i=0; bb.hasRemaining() && i < buffers.length; i++) {
           if (buffers[i].hasRemaining()) {
             copy(bb,buffers[i]);
+          }
+          if (i == buffers.length - 1) {
+            while (endOfTheCommand.hasRemaining()) {
+              endOfTheCommand.put(bb.get());
+            }
           }
         }
         if ((buffers.length == 0 || !buffers[buffers.length - 1].hasRemaining())) {
