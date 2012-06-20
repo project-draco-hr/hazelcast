@@ -2,12 +2,11 @@
   final String name=packet.name.substring(Prefix.COUNT_DOWN_LATCH.length());
   final CountDownLatchProxy cdlProxy=(CountDownLatchProxy)factory.getCountDownLatch(name);
   final Integer value=(Integer)toObject(packet.getValueData());
-  Object result=null;
   try {
-    result=processCall(cdlProxy,value);
-    if (result != null)     packet.setValue(toData(result));
+    Address ownerAddress=packet.conn.getEndPoint();
+    packet.setValue(toData(cdlProxy.setCount(value,ownerAddress)));
   }
- catch (  Exception e) {
+ catch (  Throwable e) {
     packet.setValue(toData(new ClientServiceException(e)));
   }
 }

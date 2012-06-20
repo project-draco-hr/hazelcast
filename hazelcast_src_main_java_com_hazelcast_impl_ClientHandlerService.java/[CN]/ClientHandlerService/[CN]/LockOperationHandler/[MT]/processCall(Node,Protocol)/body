@@ -1,0 +1,22 @@
+{
+  String name=protocol.getArgs()[0];
+  ILock lock=node.factory.getLock(name);
+  try {
+    if (protocol.getCommand().equals(Command.LOCK_TRYLOCK.value)) {
+      if (protocol.getArgs().length > 1) {
+        return protocol.success(String.valueOf(lock.tryLock(Long.valueOf(protocol.getArgs()[1]),TimeUnit.MILLISECONDS)));
+      }
+ else {
+        return protocol.success(String.valueOf(lock.tryLock()));
+      }
+    }
+ else {
+      lock.unlock();
+      return protocol.success();
+    }
+  }
+ catch (  InterruptedException e) {
+    logger.log(Level.FINEST,"Lock interrupted!");
+    return protocol.success("interrupted");
+  }
+}
