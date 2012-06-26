@@ -1,53 +1,13 @@
 {
-  InetAddress currentInetAddress=null;
+  if (address != null) {
+    return;
+  }
   try {
     final Config config=node.getConfig();
-    final String localAddress=System.getProperty("hazelcast.local.localAddress");
-    if (localAddress != null) {
-      currentInetAddress=InetAddress.getByName(localAddress.trim());
-    }
-    if (currentInetAddress == null) {
-      final Collection<String> interfaces=new HashSet<String>();
-      if (config.getNetworkConfig().getInterfaces().isEnabled()) {
-        interfaces.addAll(config.getNetworkConfig().getInterfaces().getInterfaces());
-        logger.log(Level.INFO,"Interfaces is enabled, trying to pick one address matching " + "to one of: " + interfaces);
-      }
- else       if (config.getNetworkConfig().getJoin().getTcpIpConfig().isEnabled()) {
-        final Collection<String> possibleAddresses=TcpIpJoiner.getConfigurationMembers(node.config);
-        for (        String possibleAddress : possibleAddresses) {
-          interfaces.add(AddressUtil.getAddressHolder(possibleAddress).address);
-        }
-        logger.log(Level.FINEST,"Interfaces is disabled, trying to pick one address from TCP-IP config " + "addresses: " + interfaces);
-      }
-      if (interfaces.contains("127.0.0.1") || interfaces.contains("localhost")) {
-        currentInetAddress=InetAddress.getByName("127.0.0.1");
-      }
- else {
-        if (interfaces.size() > 0) {
-          currentInetAddress=pickInetAddress(interfaces);
-        }
-        if (currentInetAddress == null) {
-          if (config.getNetworkConfig().getInterfaces().isEnabled()) {
-            String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
-            msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
-            logger.log(Level.SEVERE,msg);
-            throw new RuntimeException(msg);
-          }
- else {
-            currentInetAddress=pickInetAddress(null);
-          }
-        }
-      }
-    }
-    if (currentInetAddress != null) {
-      currentInetAddress=AddressUtil.fixAndGetInetAddress(currentInetAddress);
-    }
-    if (currentInetAddress == null) {
-      currentInetAddress=InetAddress.getByName("127.0.0.1");
-    }
-    final InetAddress inetAddress=currentInetAddress;
+    final InetAddress inetAddress=pickInetAddress(config);
     final boolean reuseAddress=config.isReuseAddress();
-    ServerSocket serverSocket=serverSocketChannel.socket();
+    serverSocketChannel=ServerSocketChannel.open();
+    final ServerSocket serverSocket=serverSocketChannel.socket();
     logger.log(Level.FINEST,"inet reuseAddress:" + reuseAddress);
     serverSocket.setReuseAddress(reuseAddress);
     serverSocket.setSoTimeout(1000);
@@ -68,8 +28,6 @@
       }
  catch (      final Exception e) {
         if (config.isPortAutoIncrement()) {
-          serverSocket=serverSocketChannel.socket();
-          serverSocket.setReuseAddress(reuseAddress);
           port++;
         }
  else {
@@ -80,7 +38,7 @@
       }
     }
     serverSocketChannel.configureBlocking(false);
-    return new Address(inetAddress,port);
+    address=new Address(inetAddress,port);
   }
  catch (  Exception e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
