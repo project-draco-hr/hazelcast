@@ -1,0 +1,24 @@
+{
+  final BlockingQueue responseQ=ResponseQueueFactory.newResponseQueue();
+  final Executor executor=getExecutor(partitionId,(op instanceof BackupOperation));
+  executor.execute(new Runnable(){
+    public void run(){
+      setOperationContext(op,mapService.getThisAddress(),-1,partitionId).setLocal(true);
+      if (op instanceof CallableOperation) {
+        Object result=null;
+        try {
+          result=((CallableOperation)op).call();
+          responseQ.offer(result);
+        }
+ catch (        Exception e) {
+          responseQ.offer(e);
+        }
+      }
+ else {
+        ((RunnableOperation)op).run();
+      }
+    }
+  }
+);
+  return responseQ;
+}

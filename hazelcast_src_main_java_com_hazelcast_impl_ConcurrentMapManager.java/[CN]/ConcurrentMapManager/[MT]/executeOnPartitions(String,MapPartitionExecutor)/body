@@ -1,0 +1,17 @@
+{
+  Map<Member,ArrayList<Integer>> memberPartitions=getMemberPartitions();
+  List<BlockingQueue> responses=new ArrayList<BlockingQueue>(memberPartitions.size());
+  Data data=toData(partitionExecutor);
+  for (  Map.Entry<Member,ArrayList<Integer>> mp : memberPartitions.entrySet()) {
+    Address target=((MemberImpl)mp.getKey()).getAddress();
+    responses.add(callOperation(new MapPartitionIterator(name,mp.getValue(),data),target));
+  }
+  Map<Integer,Object> partitionResults=new HashMap<Integer,Object>(PARTITION_COUNT);
+  for (  BlockingQueue response : responses) {
+    Response r=(Response)response.take();
+    Map<Integer,Object> partialResult=(Map<Integer,Object>)r.getResult();
+    System.out.println(partialResult);
+    partitionResults.putAll(partialResult);
+  }
+  return partitionResults;
+}

@@ -1,0 +1,25 @@
+{
+  final MapService mapService=getOperationContext().getMapService();
+  Map<Integer,Object> results=new HashMap<Integer,Object>(partitions.size());
+  Map<Integer,BlockingQueue> responses=new HashMap<Integer,BlockingQueue>(partitions.size());
+  for (  final int partitionId : partitions) {
+    final MapPartition mapPartition=mapService.getMapPartition(partitionId,name);
+    BlockingQueue resultQ=mapService.runOnPartition(partitionId,new MapPartitionCallableOperation(name){
+      public Object call() throws Exception {
+        if (!mapService.isOwner(partitionId)) {
+          return "NOT OWNER";
+        }
+ else {
+          MapPartitionExecutor mpe=(MapPartitionExecutor)toObject(mapPartitionExecutor);
+          return mpe.execute(mapPartition);
+        }
+      }
+    }
+);
+    responses.put(partitionId,resultQ);
+  }
+  for (  Map.Entry<Integer,BlockingQueue> partitionResponse : responses.entrySet()) {
+    results.put(partitionResponse.getKey(),partitionResponse.getValue().take());
+  }
+  return new Response(results);
+}
