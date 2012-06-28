@@ -1,0 +1,37 @@
+{
+  boolean callerBackup=false;
+  MapPartition mapPartition=getOperationContext().getMapPartition();
+  MapService mapService=getOperationContext().getMapService();
+  int mapBackupCount=1;
+  int backupCount=Math.min(mapService.getClusterImpl().getSize() - 1,mapBackupCount);
+  if (backupCount > 0) {
+    List<BlockingQueue> backupOps=new ArrayList<BlockingQueue>(backupCount);
+    PartitionInfo partitionInfo=mapPartition.partitionInfo;
+    for (int i=0; i < backupCount; i++) {
+      Address replicaTarget=partitionInfo.getReplicaAddress(i + 1);
+      if (replicaTarget != null) {
+        if (replicaTarget.equals(mapService.getThisAddress())) {
+        }
+ else {
+          if (replicaTarget.equals(getOperationContext().getCaller())) {
+            callerBackup=true;
+          }
+ else {
+            PutBackupOperation pbo=new PutBackupOperation(name,dataKey,dataValue,ttl);
+            backupOps.add(mapService.backup(pbo,replicaTarget));
+          }
+        }
+      }
+    }
+    for (    BlockingQueue backupOp : backupOps) {
+      try {
+        if (backupOp.poll(10,TimeUnit.SECONDS) == null) {
+          System.out.println(Thread.currentThread() + " !!!! " + backupOps.size());
+        }
+      }
+ catch (      InterruptedException e) {
+      }
+    }
+  }
+  return callerBackup;
+}
