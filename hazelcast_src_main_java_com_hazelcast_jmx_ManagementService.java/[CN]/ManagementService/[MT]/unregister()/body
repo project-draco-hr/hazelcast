@@ -1,12 +1,11 @@
 {
-synchronized (LOCK) {
-    if (!started) {
-      return;
-    }
+  if (!enabled) {
+    return;
+  }
+  if (started.compareAndSet(true,false)) {
     MBeanServer mbs=mBeanServer();
-    Set<ObjectName> entries;
     try {
-      entries=mbs.queryNames(ObjectNameSpec.getClusterNameFilter(this.name),null);
+      Set<ObjectName> entries=mbs.queryNames(new ObjectName(ObjectNameSpec.NAME_DOMAIN + "Cluster=" + name+ ",*"),null);
       for (      ObjectName name : entries) {
         if (mbs.isRegistered(name)) {
           mbs.unregisterMBean(name);
@@ -16,6 +15,5 @@ synchronized (LOCK) {
  catch (    Exception e) {
       logger.log(Level.FINEST,"Error unregistering MBeans",e);
     }
-    counter.decrementAndGet();
   }
 }
