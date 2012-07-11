@@ -12,7 +12,9 @@
       logger.log(Level.FINEST,"Terminating socket acceptor thread...",e);
     }
  else {
-      logger.log(Level.WARNING,"Unexpected error while accepting connection!",e);
+      String error="Unexpected error while accepting connection! " + e.getClass().getName() + ": "+ e.getMessage();
+      logger.log(Level.WARNING,error,e);
+      connectionManager.ioService.getSystemLogService().logConnection(error);
       try {
         serverSocketChannel.close();
       }
@@ -26,11 +28,11 @@
     connectionManager.executeAsync(new Runnable(){
       public void run(){
         String message=socketChannel.socket().getLocalPort() + " is accepting socket connection from " + socketChannel.socket().getRemoteSocketAddress();
-        logger.log(Level.INFO,message);
-        connectionManager.ioService.getSystemLogService().logConnection(message);
+        log(Level.INFO,message);
         try {
           MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
           if (memberSocketInterceptor != null) {
+            log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
             memberSocketInterceptor.onAccept(socketChannel.socket());
           }
           socketChannel.configureBlocking(false);
@@ -38,8 +40,7 @@
           connectionManager.assignSocketChannel(socketChannel);
         }
  catch (        Exception e) {
-          logger.log(Level.WARNING,e.getMessage(),e);
-          connectionManager.ioService.getSystemLogService().logConnection(e.getMessage());
+          log(Level.WARNING,e.getClass().getName() + ": " + e.getMessage(),e);
           if (socketChannel != null) {
             try {
               socketChannel.close();
