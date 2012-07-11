@@ -1,0 +1,24 @@
+{
+  final Collection<String> interfaces=new HashSet<String>();
+  if (networkConfig.getInterfaces().isEnabled()) {
+    interfaces.addAll(networkConfig.getInterfaces().getInterfaces());
+    logger.log(Level.INFO,"Interfaces is enabled, trying to pick one address matching " + "to one of: " + interfaces);
+    removeDomainNames(interfaces);
+  }
+ else   if (networkConfig.getJoin().getTcpIpConfig().isEnabled()) {
+    final Collection<String> possibleAddresses=TcpIpJoiner.getConfigurationMembers(node.config);
+    for (    String possibleAddress : possibleAddresses) {
+      final String s=AddressUtil.getAddressHolder(possibleAddress).address;
+      if (AddressUtil.isIpAddress(s)) {
+        interfaces.add(s);
+      }
+ else {
+        String address=resolveDomainName(s);
+        logger.log(Level.INFO,"Updating interface list with " + address + " for domain name '"+ s+ "'.");
+        interfaces.add(address);
+      }
+    }
+    logger.log(Level.INFO,"Interfaces is disabled, trying to pick one address from TCP-IP config " + "addresses: " + interfaces);
+  }
+  return interfaces;
+}
