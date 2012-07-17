@@ -1,0 +1,35 @@
+{
+  if (dataValue == null) {
+    dataValue=toData(value);
+  }
+  OperationContext context=getOperationContext();
+  MapService mapService=(MapService)context.getService();
+  MapPartition mapPartition=mapService.getMapPartition(context.getPartitionId(),name);
+  Record record=mapPartition.records.get(dataKey);
+  Object key=null;
+  Object oldValue=null;
+  Data oldValueData=null;
+  if (record == null) {
+    if (mapPartition.loader != null) {
+      key=toObject(dataKey);
+      oldValue=mapPartition.loader.load(key);
+      oldValueData=toData(oldValue);
+    }
+    record=new DefaultRecord(null,mapPartition.partitionInfo.getPartitionId(),dataKey,dataValue,-1,-1,mapService.nextId());
+    mapPartition.records.put(dataKey,record);
+  }
+ else {
+    oldValueData=record.getValueData();
+    record.setValueData(dataValue);
+  }
+  record.setActive();
+  record.setDirty(true);
+  if (mapPartition.store != null && mapPartition.writeDelayMillis == 0) {
+    if (key == null) {
+      key=toObject(dataKey);
+    }
+    mapPartition.store.store(key,record.getValue());
+  }
+  boolean callerBackup=takeBackup();
+  return (callerBackup) ? new PutBackupAndResponse(oldValueData,name,dataKey,dataValue) : new Response(oldValueData);
+}

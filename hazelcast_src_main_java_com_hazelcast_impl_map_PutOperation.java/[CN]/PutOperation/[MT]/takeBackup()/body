@@ -1,0 +1,44 @@
+{
+  boolean callerBackup=false;
+  OperationContext context=getOperationContext();
+  NodeService nodeService=context.getNodeService();
+  MapService mapService=(MapService)context.getService();
+  MapPartition mapPartition=mapService.getMapPartition(context.getPartitionId(),name);
+  int mapBackupCount=1;
+  int backupCount=Math.min(nodeService.getClusterImpl().getSize() - 1,mapBackupCount);
+  if (backupCount > 0) {
+    List<Future> backupOps=new ArrayList<Future>(backupCount);
+    PartitionInfo partitionInfo=mapPartition.partitionInfo;
+    for (int i=0; i < backupCount; i++) {
+      Address replicaTarget=partitionInfo.getReplicaAddress(i + 1);
+      if (replicaTarget != null) {
+        if (replicaTarget.equals(nodeService.getThisAddress())) {
+        }
+ else {
+          if (replicaTarget.equals(getOperationContext().getCaller())) {
+            callerBackup=true;
+          }
+ else {
+            PutBackupOperation pbo=new PutBackupOperation(name,dataKey,dataValue,ttl);
+            try {
+              backupOps.add(nodeService.invoke(MapService.MAP_SERVICE_NAME,pbo,replicaTarget));
+            }
+ catch (            Exception e) {
+              e.printStackTrace();
+            }
+          }
+        }
+      }
+    }
+    for (    Future backupOp : backupOps) {
+      try {
+        if (backupOp.get(10,TimeUnit.SECONDS) == null) {
+          System.out.println(Thread.currentThread() + " !!!! " + backupOps.size());
+        }
+      }
+ catch (      Exception e) {
+      }
+    }
+  }
+  return callerBackup;
+}

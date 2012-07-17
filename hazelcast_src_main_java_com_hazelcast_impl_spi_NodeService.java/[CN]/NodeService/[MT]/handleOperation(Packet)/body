@@ -1,0 +1,32 @@
+{
+  final int partitionId=packet.blockId;
+  final boolean backup=packet.longValue == 1;
+  final Data data=packet.getValueData();
+  final long callId=packet.callId;
+  final Address caller=packet.conn.getEndPoint();
+  final String serviceName=packet.name;
+  final Executor executor=getExecutor(partitionId,backup);
+  executor.execute(new Runnable(){
+    public void run(){
+      try {
+        Object obj=toObject(data);
+        Operation op=(Operation)obj;
+        setOperationContext(op,serviceName,caller,callId,partitionId);
+        Object response=op.call();
+        if (!(op instanceof NoResponse)) {
+          packet.clearForResponse();
+          packet.blockId=partitionId;
+          packet.callId=callId;
+          packet.longValue=(response instanceof BackupOperation) ? 1 : 0;
+          packet.setValue(toData(response));
+          packet.name=serviceName;
+          node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
+        }
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+);
+}

@@ -1,0 +1,35 @@
+{
+  return new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(),new ThreadFactory(){
+    public Thread newThread(    Runnable r){
+      final Thread t=new Thread(node.threadGroup,r,node.getThreadNamePrefix(threadName),0){
+        public void run(){
+          try {
+            super.run();
+          }
+  finally {
+            try {
+              ThreadContext.shutdown(this);
+            }
+ catch (            Exception e) {
+              e.printStackTrace();
+            }
+          }
+        }
+      }
+;
+      t.setContextClassLoader(node.getConfig().getClassLoader());
+      if (t.isDaemon()) {
+        t.setDaemon(false);
+      }
+      if (t.getPriority() != Thread.NORM_PRIORITY) {
+        t.setPriority(Thread.NORM_PRIORITY);
+      }
+      return t;
+    }
+  }
+,new RejectedExecutionHandler(){
+    public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
+    }
+  }
+);
+}

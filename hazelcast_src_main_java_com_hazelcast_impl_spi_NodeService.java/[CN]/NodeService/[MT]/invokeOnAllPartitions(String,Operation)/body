@@ -1,0 +1,17 @@
+{
+  Map<Member,ArrayList<Integer>> memberPartitions=getMemberPartitions();
+  List<Future> responses=new ArrayList<Future>(memberPartitions.size());
+  Data data=toData(op);
+  for (  Map.Entry<Member,ArrayList<Integer>> mp : memberPartitions.entrySet()) {
+    Address target=((MemberImpl)mp.getKey()).getAddress();
+    responses.add(invoke(serviceName,new PartitionIterator(mp.getValue(),data),target));
+  }
+  Map<Integer,Object> partitionResults=new HashMap<Integer,Object>(PARTITION_COUNT);
+  for (  Future response : responses) {
+    Response r=(Response)response.get();
+    Map<Integer,Object> partialResult=(Map<Integer,Object>)r.getResult();
+    System.out.println(partialResult);
+    partitionResults.putAll(partialResult);
+  }
+  return partitionResults;
+}

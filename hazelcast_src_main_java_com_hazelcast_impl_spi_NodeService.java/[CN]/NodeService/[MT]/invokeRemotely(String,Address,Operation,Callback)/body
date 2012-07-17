@@ -1,0 +1,23 @@
+{
+  if (target == null)   throw new NullPointerException("Target is null");
+  if (node.getClusterImpl().getMember(target) == null) {
+    throw new RuntimeException("TargetNotClusterMember[" + target + "]");
+  }
+  if (getThisAddress().equals(target)) {
+    throw new RuntimeException("RemoteTarget cannot be local!");
+  }
+  final int partitionId=(op instanceof KeyBasedOperation) ? getPartitionId(((KeyBasedOperation)op).getKey()) : -1;
+  final Packet packet=new Packet();
+  packet.operation=REMOTE_CALL;
+  packet.blockId=partitionId;
+  packet.name=serviceName;
+  packet.longValue=(op instanceof BackupOperation) ? 1 : 0;
+  Data valueData=toData(op);
+  packet.setValue(valueData);
+  TheCall call=new TheCall(target,op,callback);
+  boolean sent=node.concurrentMapManager.registerAndSend(target,packet,call);
+  if (!sent) {
+    throw new IOException();
+  }
+  return call;
+}
