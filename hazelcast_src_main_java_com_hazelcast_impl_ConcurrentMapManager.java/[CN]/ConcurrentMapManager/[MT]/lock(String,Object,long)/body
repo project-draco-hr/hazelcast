@@ -1,10 +1,15 @@
 {
   MLock mlock=new MLock();
+  final boolean booleanCall=timeout >= 0;
   try {
-    return mlock.lock(name,key,timeout);
+    final boolean locked=mlock.lock(name,key,timeout);
+    if (!locked && !booleanCall) {
+      throw new OperationTimeoutException(mlock.request.operation.toString(),"Lock request is timed out! t: " + mlock.request.timeout);
+    }
+    return locked;
   }
  catch (  OperationTimeoutException e) {
-    if (timeout < 0) {
+    if (!booleanCall) {
       throw e;
     }
  else {
