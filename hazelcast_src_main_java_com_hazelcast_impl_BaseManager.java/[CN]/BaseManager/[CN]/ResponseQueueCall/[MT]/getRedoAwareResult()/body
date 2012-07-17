@@ -6,12 +6,9 @@
     }
     if (result == OBJECT_REDO) {
       request.redoCount++;
-      SystemLogService css=node.getSystemLogService();
-      if (css.shouldTrace()) {
-        css.trace(this,MapSystemLogFactory.newRedoLog(node,request));
-      }
-      if (request.redoCount > 19 && (request.redoCount % 10 == 0)) {
-        logger.log(Level.WARNING,MapSystemLogFactory.newRedoLog(node,request).toString());
+      logRedo(request,redoType,true);
+      if (request.redoCount > redoGiveUpThreshold) {
+        throw new OperationTimeoutException(request.operation.toString(),"Redo threshold exceeded!" + " Last redo cause: " + redoType + ", Name: "+ request.name);
       }
       try {
         Thread.sleep(redoWaitMillis);

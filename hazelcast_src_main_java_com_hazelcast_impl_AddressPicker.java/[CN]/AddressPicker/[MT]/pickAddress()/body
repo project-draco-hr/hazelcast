@@ -4,26 +4,27 @@
   }
   try {
     final Config config=node.getConfig();
-    final InetAddress inetAddress=pickInetAddress(config);
+    final AddressDefinition addressDef=pickAddress(config);
     final boolean reuseAddress=config.isReuseAddress();
+    final boolean bindAny=node.getGroupProperties().SOCKET_BIND_ANY.getBoolean();
     serverSocketChannel=ServerSocketChannel.open();
     final ServerSocket serverSocket=serverSocketChannel.socket();
-    logger.log(Level.FINEST,"inet reuseAddress:" + reuseAddress);
+    log(Level.FINEST,"inet reuseAddress:" + reuseAddress);
     serverSocket.setReuseAddress(reuseAddress);
     serverSocket.setSoTimeout(1000);
     InetSocketAddress isa;
     int port=config.getPort();
     for (int i=0; i < 100; i++) {
       try {
-        boolean bindAny=node.getGroupProperties().SOCKET_BIND_ANY.getBoolean();
         if (bindAny) {
           isa=new InetSocketAddress(port);
         }
  else {
-          isa=new InetSocketAddress(inetAddress,port);
+          isa=new InetSocketAddress(addressDef.inetAddress,port);
         }
-        logger.log(Level.FINEST,"inet socket address:" + isa);
+        log(Level.FINEST,"Trying to bind inet socket address:" + isa);
         serverSocket.bind(isa,100);
+        log(Level.FINEST,"Bind successful to inet socket address:" + isa);
         break;
       }
  catch (      final Exception e) {
@@ -38,7 +39,8 @@
       }
     }
     serverSocketChannel.configureBlocking(false);
-    address=new Address(inetAddress,port);
+    address=new Address(addressDef.host != null ? addressDef.host : addressDef.address,port);
+    log(Level.INFO,"Picked " + address + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
   }
  catch (  Exception e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
