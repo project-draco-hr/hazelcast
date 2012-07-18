@@ -1,0 +1,19 @@
+{
+  if (conn == null) {
+    return;
+  }
+  Address endpoint=conn.getEndPoint();
+  if (endpoint == null || !endpoint.equals(getNode().getMasterAddress())) {
+    return;
+  }
+  final ILogger logger=node.loggingService.getLogger(this.getClass().getName());
+  logger.log(Level.WARNING,node.address + " is merging [tcp/ip] to " + newTargetAddress+ ", because : instructed by master");
+  new Thread(new Runnable(){
+    public void run(){
+      ThreadContext.get().setCurrentFactory(node.factory);
+      node.getJoiner().setTargetAddress(newTargetAddress);
+      node.factory.restart();
+    }
+  }
+).start();
+}
