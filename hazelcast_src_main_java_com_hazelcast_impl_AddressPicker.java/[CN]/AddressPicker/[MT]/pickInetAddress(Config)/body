@@ -1,7 +1,8 @@
 {
   InetAddress currentInetAddress=getSystemConfiguredAddress();
   if (currentInetAddress == null) {
-    final Collection<String> interfaces=getInterfaces(config);
+    final NetworkConfig networkConfig=config.getNetworkConfig();
+    final Collection<String> interfaces=getInterfaces(networkConfig);
     if (interfaces.contains("127.0.0.1") || interfaces.contains("localhost")) {
       currentInetAddress=pickLoopbackAddress();
     }
@@ -10,20 +11,23 @@
         currentInetAddress=pickInetAddress(interfaces);
       }
       if (currentInetAddress == null) {
-        if (config.getNetworkConfig().getInterfaces().isEnabled()) {
+        if (networkConfig.getInterfaces().isEnabled()) {
           String msg="Hazelcast CANNOT start on this node. No matching network interface found. ";
           msg+="\nInterface matching must be either disabled or updated in the hazelcast.xml config file.";
           logger.log(Level.SEVERE,msg);
           throw new RuntimeException(msg);
         }
  else {
+          if (networkConfig.getJoin().getTcpIpConfig().isEnabled()) {
+            logger.log(Level.WARNING,"Could not find a matching address to start with! " + "Picking one of non-loopback addresses.");
+          }
           currentInetAddress=pickInetAddress((Collection<String>)null);
         }
       }
     }
   }
   if (currentInetAddress != null) {
-    currentInetAddress=AddressUtil.fixAndGetInetAddress(currentInetAddress);
+    currentInetAddress=AddressUtil.fixScopeIdAndGetInetAddress(currentInetAddress);
   }
   if (currentInetAddress == null) {
     currentInetAddress=pickLoopbackAddress();
