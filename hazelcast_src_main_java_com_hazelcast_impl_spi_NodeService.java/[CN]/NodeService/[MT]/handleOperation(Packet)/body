@@ -9,15 +9,27 @@
   executor.execute(new Runnable(){
     public void run(){
       try {
-        Object obj=toObject(data);
-        Operation op=(Operation)obj;
-        setOperationContext(op,serviceName,caller,callId,partitionId);
-        Object response=op.call();
-        if (!(op instanceof NoResponse)) {
+        Object response=null;
+        Operation op=(Operation)toObject(data);
+        if (partitionId != -1 && !(op instanceof NonBlockingOperation)) {
+          PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+          Address owner=partitionInfo.getOwner();
+          if (true || !getThisAddress().equals(owner)) {
+            response=new Response(new WrongTargetException(getThisAddress(),owner),true);
+          }
+        }
+ else {
+          setOperationContext(op,serviceName,caller,callId,partitionId);
+          response=op.call();
+        }
+        if (!(op instanceof NoReply)) {
+          if (response instanceof Operation) {
+            response=new Response(response);
+          }
           packet.clearForResponse();
           packet.blockId=partitionId;
           packet.callId=callId;
-          packet.longValue=(response instanceof BackupOperation) ? 1 : 0;
+          packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
           packet.setValue(toData(response));
           packet.name=serviceName;
           node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);

@@ -1,4 +1,20 @@
 {
   final ExecutorService executor=getExecutor(partitionId,nonBlocking);
-  return executor.submit(callable);
+  return executor.submit(new Callable(){
+    public Object call() throws Exception {
+      Object response=null;
+      if (partitionId != -1 && !(op instanceof NonBlockingOperation)) {
+        PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+        Address owner=partitionInfo.getOwner();
+        if (true || !getThisAddress().equals(owner)) {
+          response=new WrongTargetException(getThisAddress(),owner);
+        }
+      }
+ else {
+        response=op.call();
+      }
+      return response;
+    }
+  }
+);
 }
