@@ -10,20 +10,19 @@
     public void run(){
       try {
         Object response=null;
-        Operation op=(Operation)toObject(data);
-        if (partitionId != -1 && !(op instanceof NonBlockingOperation)) {
-          PartitionInfo partitionInfo=getPartitionInfo(partitionId);
-          Address owner=partitionInfo.getOwner();
-          if (!getThisAddress().equals(owner)) {
-            response=new Response(new WrongTargetException(getThisAddress(),owner),true);
-          }
+        final Operation op=(Operation)toObject(data);
+        PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+        Address owner=partitionInfo.getOwner();
+        if (partitionId != -1 && !(op instanceof NonBlockingOperation) && !getThisAddress().equals(owner)) {
+          response=new Response(new WrongTargetException(getThisAddress(),owner),true);
         }
  else {
-          setOperationContext(op,serviceName,caller,callId,partitionId);
           try {
+            setOperationContext(op,serviceName,caller,callId,partitionId);
             response=op.call();
           }
  catch (          Throwable e) {
+            e.printStackTrace();
             response=e;
           }
         }
