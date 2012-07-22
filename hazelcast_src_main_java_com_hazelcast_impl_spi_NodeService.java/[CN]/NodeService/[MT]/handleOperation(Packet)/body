@@ -14,16 +14,21 @@
         if (partitionId != -1 && !(op instanceof NonBlockingOperation)) {
           PartitionInfo partitionInfo=getPartitionInfo(partitionId);
           Address owner=partitionInfo.getOwner();
-          if (true || !getThisAddress().equals(owner)) {
+          if (!getThisAddress().equals(owner)) {
             response=new Response(new WrongTargetException(getThisAddress(),owner),true);
           }
         }
  else {
           setOperationContext(op,serviceName,caller,callId,partitionId);
-          response=op.call();
+          try {
+            response=op.call();
+          }
+ catch (          Throwable e) {
+            response=e;
+          }
         }
         if (!(op instanceof NoReply)) {
-          if (response instanceof Operation) {
+          if (!(response instanceof Operation)) {
             response=new Response(response);
           }
           packet.clearForResponse();
