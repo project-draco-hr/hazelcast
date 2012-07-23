@@ -2,14 +2,14 @@
   ThreadContext threadContext=ThreadContext.get();
   TransactionImpl txn=threadContext.getTransaction();
   SystemLogService css=node.getSystemLogService();
-  if (css.shouldLog(CS_INFO)) {
-    css.logObject(MPut.this,CS_INFO,operation);
+  if (css.shouldLog(INFO)) {
+    css.logObject(MPut.this,INFO,operation);
   }
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
     if (!txn.has(name,key)) {
       MLock mlock=new MLock();
       boolean locked=mlock.lockAndGetValue(name,key,DEFAULT_TXN_TIMEOUT);
-      if (!locked)       throwCME(key);
+      if (!locked)       throwTxTimeoutException(key);
       Object oldObject=null;
       Data oldValue=mlock.oldValue;
       if (oldValue != null) {
@@ -62,16 +62,16 @@
     }
  else {
       request.setObjectRequest();
-      if (css.shouldLog(CS_TRACE)) {
-        css.logObject(MPut.this,CS_TRACE,"Calling doOp");
+      if (css.shouldLog(TRACE)) {
+        css.logObject(MPut.this,TRACE,"Calling doOp");
       }
       doOp();
-      if (css.shouldLog(CS_TRACE)) {
-        css.logObject(MPut.this,CS_TRACE,"Done doOp");
+      if (css.shouldLog(TRACE)) {
+        css.logObject(MPut.this,TRACE,"Done doOp");
       }
       Object returnObject=getResultAsObject();
-      if (css.shouldLog(CS_INFO)) {
-        css.logObject(MPut.this,CS_INFO,returnObject);
+      if (css.shouldLog(INFO)) {
+        css.logObject(MPut.this,INFO,returnObject);
       }
       if (operation == CONCURRENT_MAP_REPLACE_IF_NOT_NULL && returnObject == null) {
         return null;
@@ -81,8 +81,8 @@
       }
       request.longValue=Long.MIN_VALUE;
       backup(CONCURRENT_MAP_BACKUP_PUT);
-      if (css.shouldLog(CS_TRACE)) {
-        css.logObject(MPut.this,CS_TRACE,"Backups completed returning result");
+      if (css.shouldLog(TRACE)) {
+        css.logObject(MPut.this,TRACE,"Backups completed returning result");
       }
       return returnObject;
     }

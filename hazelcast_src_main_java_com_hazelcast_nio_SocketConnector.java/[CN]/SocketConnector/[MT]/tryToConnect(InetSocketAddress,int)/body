@@ -5,7 +5,8 @@
     final Address thisAddress=connectionManager.ioService.getThisAddress();
     socketChannel.socket().bind(new InetSocketAddress(thisAddress.getInetAddress(),0));
   }
-  logger.log(Level.FINEST,"connecting to " + address);
+  final String message="Connecting to " + socketAddress + ", timeout: "+ timeout+ ", bind-any: "+ connectionManager.ioService.isSocketBindAny();
+  log(Level.FINEST,message);
   try {
     socketChannel.configureBlocking(true);
     if (timeout > 0) {
@@ -14,13 +15,13 @@
  else {
       socketChannel.connect(socketAddress);
     }
-    logger.log(Level.FINEST,"connection check. connected to: " + address);
+    log(Level.FINEST,"Successfully connected to: " + address + " using socket "+ socketChannel.socket());
     MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
     if (memberSocketInterceptor != null) {
+      log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
       memberSocketInterceptor.onConnect(socketChannel.socket());
     }
     socketChannel.configureBlocking(false);
-    logger.log(Level.FINEST,"connected to " + address);
     final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
     Connection connection=connectionManager.assignSocketChannel(socketChannelWrapper);
     connectionManager.bind(address,connection,false);
@@ -28,7 +29,7 @@
  catch (  Exception e) {
     closeSocket(socketChannel);
     final Level level=silent ? Level.FINEST : Level.INFO;
-    logger.log(level,"Could not connect to: " + socketAddress + ". Reason: "+ e.getClass().getSimpleName()+ "["+ e.getMessage()+ "]");
+    log(level,"Could not connect to: " + socketAddress + ". Reason: "+ e.getClass().getSimpleName()+ "["+ e.getMessage()+ "]");
     throw e;
   }
 }
