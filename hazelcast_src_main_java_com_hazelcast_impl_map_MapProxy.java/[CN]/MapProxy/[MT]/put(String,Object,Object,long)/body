@@ -3,7 +3,9 @@
   int partitionId=nodeService.getPartitionId(key);
   PutOperation putOperation=new PutOperation(name,toData(k),v,ttl);
   try {
-    Data response=(Data)nodeService.invokeOptimistically(MAP_SERVICE_NAME,putOperation,partitionId).get();
+    Invocation invocation=nodeService.createSinglePartitionInvocation(MAP_SERVICE_NAME,putOperation,partitionId).build();
+    Future f=invocation.invoke();
+    Data response=(Data)f.get();
     return toObject(response);
   }
  catch (  Throwable throwable) {
