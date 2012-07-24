@@ -1,9 +1,8 @@
 {
-  if (!concurrentMapManager.isMaster()) {
+  if (!node.isMaster()) {
     final MigratingPartition currentMigratingPartition=migratingPartition;
     if (currentMigratingPartition != null && (Clock.currentTimeMillis() - currentMigratingPartition.getCreationTime()) > MIGRATING_PARTITION_CHECK_INTERVAL) {
       try {
-        final Node node=concurrentMapManager.node;
         AsyncRemotelyBooleanCallable rrp=node.clusterManager.new AsyncRemotelyBooleanCallable();
         rrp.executeProcess(node.getMasterAddress(),new RemotelyCheckMigratingPartition(currentMigratingPartition));
         boolean valid=rrp.getResultAsBoolean(1);
@@ -12,7 +11,7 @@
         }
  else {
           logger.log(Level.INFO,currentMigratingPartition + " could not be validated with master! " + "Removing current MigratingPartition...");
-          concurrentMapManager.enqueueAndReturn(new Processable(){
+          node.clusterManager.enqueueAndReturn(new Processable(){
             public void process(){
               migratingPartition=null;
             }

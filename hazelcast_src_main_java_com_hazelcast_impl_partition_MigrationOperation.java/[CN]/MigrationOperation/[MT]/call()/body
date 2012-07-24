@@ -1,0 +1,33 @@
+{
+  OperationContext context=getOperationContext();
+  PartitionManager pm=(PartitionManager)context.getService();
+  System.err.println("RUNNING ... TASK... " + this);
+  DataInputStream in=null;
+  try {
+    ByteArrayInputStream bais=new ByteArrayInputStream(bytesRecordSet);
+    in=new DataInputStream(new InflaterInputStream(bais));
+    int size=in.readInt();
+    tasks=new ArrayList<ServiceMigrationOperation>(size);
+    for (int i=0; i < size; i++) {
+      ServiceMigrationOperation task=(ServiceMigrationOperation)Serializer.loadClass(in.readUTF()).newInstance();
+      task.readData(in);
+      tasks.add(task);
+    }
+    if (taskCount != tasks.size()) {
+      getLogger().log(Level.SEVERE,"Migration record count mismatch! => " + "expected-count: " + size + ", actual-count: "+ tasks.size()+ "\nfrom: "+ from+ ", partition: "+ partitionId+ ", replica: "+ replicaIndex);
+    }
+    pm.runMigrationTasks(tasks,partitionId,replicaIndex,from);
+    return Boolean.TRUE;
+  }
+ catch (  Throwable e) {
+    Level level=Level.WARNING;
+    if (e instanceof IllegalStateException) {
+      level=Level.FINEST;
+    }
+    getLogger().log(level,e.getMessage(),e);
+  }
+ finally {
+    IOUtil.closeResource(in);
+  }
+  return Boolean.FALSE;
+}

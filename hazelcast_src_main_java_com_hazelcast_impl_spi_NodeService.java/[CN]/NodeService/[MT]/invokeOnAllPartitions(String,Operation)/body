@@ -4,11 +4,11 @@
   Data data=toData(op);
   for (  Map.Entry<Member,ArrayList<Integer>> mp : memberPartitions.entrySet()) {
     Address target=((MemberImpl)mp.getKey()).getAddress();
-    SingleTargetInvocation inv=new SingleTargetInvocation(this,serviceName,new PartitionIterator(mp.getValue(),data),target,100,500);
-    inv.invoke();
-    responses.add(inv);
+    Invocation inv=createSingleInvocation(serviceName,new PartitionIterator(mp.getValue(),data),-1).setTarget(target).setTryCount(100).setTryPauseMillis(500).build();
+    Future future=inv.invoke();
+    responses.add(future);
   }
-  Map<Integer,Object> partitionResults=new HashMap<Integer,Object>(PARTITION_COUNT);
+  Map<Integer,Object> partitionResults=new HashMap<Integer,Object>(partitionCount);
   for (  Future r : responses) {
     Object result=r.get();
     Map<Integer,Object> partialResult=null;
@@ -26,13 +26,14 @@
     int partitionId=partitionResult.getKey();
     Object result=partitionResult.getValue();
     if (result instanceof Exception) {
+      System.out.println("result = " + result);
       failedPartitions.add(partitionId);
     }
   }
   Thread.sleep(500);
   System.out.println("TRYING AGAIN...");
   for (  Integer failedPartition : failedPartitions) {
-    Invocation inv=createSinglePartitionInvocation(serviceName,op,failedPartition).build();
+    Invocation inv=createSingleInvocation(serviceName,op,failedPartition).build();
     inv.invoke();
     partitionResults.put(failedPartition,inv);
   }

@@ -1,0 +1,35 @@
+{
+  if (to.equals(from)) {
+    getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
+    return Boolean.TRUE;
+  }
+  if (from == null) {
+    getLogger().log(Level.FINEST,"From address is null => " + toString());
+  }
+  OperationContext context=getOperationContext();
+  PartitionManager pm=(PartitionManager)context.getService();
+  System.err.println("RUNNING ... REQUEST TASK... " + this);
+  try {
+    Member target=pm.getMember(to);
+    if (target == null) {
+      getLogger().log(Level.WARNING,"Target member of task could not be found! => " + toString());
+      return Boolean.FALSE;
+    }
+    final Collection<ServiceMigrationOperation> tasks=pm.collectMigrationTasks(partitionId,replicaIndex,to,diffOnly);
+    Invocation inv=context.getNodeService().createSingleInvocation(PartitionManager.PARTITION_SERVICE_NAME,new MigrationOperation(partitionId,tasks,replicaIndex,from),-1).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
+    Future future=inv.invoke();
+    final long timeout=context.getNodeService().getNode().groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong();
+    return (Boolean)IOUtil.toObject((Data)future.get(timeout,TimeUnit.SECONDS));
+  }
+ catch (  Throwable e) {
+    Level level=Level.WARNING;
+    if (e instanceof ExecutionException) {
+      e=e.getCause();
+    }
+    if (e instanceof MemberLeftException || e instanceof IllegalStateException) {
+      level=Level.FINEST;
+    }
+    getLogger().log(level,e.getMessage(),e);
+  }
+  return Boolean.FALSE;
+}

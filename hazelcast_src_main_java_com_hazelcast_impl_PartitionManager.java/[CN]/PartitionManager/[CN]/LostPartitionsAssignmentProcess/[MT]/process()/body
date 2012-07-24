@@ -1,6 +1,6 @@
 {
-  if (!concurrentMapManager.isMaster() || !concurrentMapManager.node.isActive())   return;
-  for (  MigrationRequestTask migrationRequestTask : lostQ) {
+  if (!node.isMaster() || !node.isActive())   return;
+  for (  MigrationRequestOperation migrationRequestTask : lostQ) {
     int partitionId=migrationRequestTask.getPartitionId();
     int replicaIndex=migrationRequestTask.getReplicaIndex();
     if (replicaIndex != 0 || partitionId >= partitionCount) {
@@ -9,10 +9,10 @@
     }
     PartitionInfo partition=partitions[partitionId];
     Address newOwner=migrationRequestTask.getToAddress();
-    MemberImpl ownerMember=concurrentMapManager.getMember(newOwner);
+    MemberImpl ownerMember=node.clusterManager.getMember(newOwner);
     if (ownerMember != null) {
       partition.setReplicaAddress(replicaIndex,newOwner);
-      concurrentMapManager.sendMigrationEvent(false,migrationRequestTask);
+      node.concurrentMapManager.sendMigrationEvent(false,migrationRequestTask);
     }
   }
   sendPartitionRuntimeState();
