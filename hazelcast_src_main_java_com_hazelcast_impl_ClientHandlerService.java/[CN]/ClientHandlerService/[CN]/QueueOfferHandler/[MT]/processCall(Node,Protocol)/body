@@ -1,19 +1,21 @@
 {
   String name=protocol.getArgs()[0];
-  long timeout=Long.valueOf(protocol.getArgs()[1]);
   Data item=new Data(protocol.getBuffers()[0].array());
   IQueue<Data> queue=node.factory.getQueue(name);
   boolean result=false;
   try {
-    if (timeout == -1) {
+    if (protocol.getCommand().equals(Command.QPUT.value)) {
       queue.put(item);
       result=true;
     }
- else     if (timeout == 0) {
-      result=queue.offer(item);
-    }
  else {
-      result=queue.offer(item,timeout,TimeUnit.MILLISECONDS);
+      long timeout=Long.valueOf(protocol.getArgs()[1]);
+      if (timeout == 0) {
+        result=queue.offer(item);
+      }
+ else {
+        result=queue.offer(item,timeout,TimeUnit.MILLISECONDS);
+      }
     }
     return protocol.success(String.valueOf(result));
   }
