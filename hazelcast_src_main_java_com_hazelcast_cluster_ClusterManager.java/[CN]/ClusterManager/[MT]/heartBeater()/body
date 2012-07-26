@@ -1,16 +1,16 @@
 {
   if (!node.joined() || !node.isActive())   return;
   long now=Clock.currentTimeMillis();
+  final Collection<MemberImpl> members=getMembers();
   if (isMaster()) {
     List<Address> lsDeadAddresses=null;
-    for (    MemberImpl memberImpl : lsMembers) {
+    for (    MemberImpl memberImpl : members) {
       final Address address=memberImpl.getAddress();
       if (!thisAddress.equals(address)) {
         try {
           Connection conn=node.connectionManager.getOrConnect(address);
           if (conn != null && conn.live()) {
-            if ((now - memberImpl.getLastRead()) >= (MAX_NO_HEARTBEAT_MILLIS)) {
-              conn=null;
+            if ((now - memberImpl.getLastRead()) >= (maxNoHeartbeatMillis)) {
               if (lsDeadAddresses == null) {
                 lsDeadAddresses=new ArrayList<Address>();
               }
@@ -21,7 +21,7 @@
               ping(memberImpl);
             }
             if ((now - memberImpl.getLastWrite()) > 500) {
-              sendHeartbeat(conn);
+              sendHeartbeat(address);
             }
           }
  else           if (conn == null && (now - memberImpl.getLastRead()) > 5000) {
@@ -44,11 +44,11 @@
  else {
     Address masterAddress=getMasterAddress();
     if (masterAddress != null) {
-      final Connection connMaster=node.connectionManager.getOrConnect(masterAddress);
+      node.connectionManager.getOrConnect(masterAddress);
       MemberImpl masterMember=getMember(masterAddress);
       boolean removed=false;
       if (masterMember != null) {
-        if ((now - masterMember.getLastRead()) >= (MAX_NO_HEARTBEAT_MILLIS)) {
+        if ((now - masterMember.getLastRead()) >= (maxNoHeartbeatMillis)) {
           logger.log(Level.WARNING,"Master node has timed out its heartbeat and will be removed");
           doRemoveAddress(masterAddress);
           removed=true;
@@ -58,15 +58,15 @@
         }
       }
       if (!removed) {
-        sendHeartbeat(connMaster);
+        sendHeartbeat(masterAddress);
       }
     }
-    for (    MemberImpl member : lsMembers) {
+    for (    MemberImpl member : members) {
       if (!member.localMember()) {
         Address address=member.getAddress();
         Connection conn=node.connectionManager.getOrConnect(address);
         if (conn != null) {
-          sendHeartbeat(conn);
+          sendHeartbeat(address);
         }
  else {
           logger.log(Level.FINEST,"could not connect to " + address + " to send heartbeat");

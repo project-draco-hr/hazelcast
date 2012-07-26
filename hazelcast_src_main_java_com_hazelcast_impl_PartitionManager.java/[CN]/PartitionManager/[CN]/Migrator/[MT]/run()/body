@@ -3,26 +3,9 @@
     if (!node.isActive() || !node.isMaster()) {
       return;
     }
-    if (migrationRequestOp.isMigration() && migrationRequestOp.getReplicaIndex() == 0) {
-      node.clusterManager.enqueueAndWait(new Processable(){
-        public void process(){
-          node.concurrentMapManager.sendMigrationEvent(true,migrationRequestOp);
-        }
-      }
-,100);
-    }
     if (migrationRequestOp.getToAddress() == null) {
       logger.log(Level.FINEST,"Fixing partition, " + migrationRequestOp.getReplicaIndex() + ". replica of partition["+ migrationRequestOp.getPartitionId()+ "] should be removed.");
-      node.clusterManager.enqueueAndWait(new Processable(){
-        public void process(){
-          int partitionId=migrationRequestOp.getPartitionId();
-          int replicaIndex=migrationRequestOp.getReplicaIndex();
-          PartitionInfo partition=partitions[partitionId];
-          partition.setReplicaAddress(replicaIndex,null);
-          migratingPartition=null;
-        }
-      }
-);
+      removeReplicaOwner();
     }
  else {
       MemberImpl fromMember=null;
@@ -34,12 +17,7 @@
       if (fromMember != null) {
         migrationRequestOp.setFromAddress(fromMember.getAddress());
         Invocation inv=node.nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,migrationRequestOp,migrationRequestOp.getPartitionId()).setTryCount(3).setTryPauseMillis(1000).setTarget(migrationRequestOp.getFromAddress()).setReplicaIndex(migrationRequestOp.getReplicaIndex()).build();
-        node.clusterManager.enqueueAndWait(new Processable(){
-          public void process(){
-            addActiveMigration(migrationRequestOp);
-          }
-        }
-);
+        addActiveMigration(migrationRequestOp);
         Future future=inv.invoke();
         try {
           result=(Boolean)IOUtil.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));
@@ -54,17 +32,12 @@
       logger.log(Level.FINEST,"Finished Migration : " + migrationRequestOp);
       systemLogService.logPartition("Finished Migration : " + migrationRequestOp);
       if (Boolean.TRUE.equals(result)) {
-        node.clusterManager.enqueueAndWait(new ProcessMigrationResult(migrationRequestOp),10000);
+        processMigrationResult();
       }
  else {
         logger.log(Level.WARNING,"Migration task has failed => " + migrationRequestOp);
         systemLogService.logPartition("Migration task has failed => " + migrationRequestOp);
-        node.clusterManager.enqueueAndWait(new Processable(){
-          public void process(){
-            compareAndSetActiveMigratingPartition(migrationRequestOp,null);
-          }
-        }
-);
+        compareAndSetActiveMigratingPartition(migrationRequestOp,null);
       }
     }
   }

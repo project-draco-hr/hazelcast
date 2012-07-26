@@ -11,19 +11,25 @@
       try {
         Object response=null;
         final Operation op=(Operation)toObject(data);
-        setOperationContext(op,serviceName,caller,callId,partitionId);
+        setOperationContext(op,serviceName,caller,callId,partitionId).setConnection(packet.conn);
         try {
           if (partitionId != -1) {
             PartitionInfo partitionInfo=getPartitionInfo(partitionId);
             Address owner=partitionInfo.getOwner();
             if (!(op instanceof NonBlockingOperation) && !getThisAddress().equals(owner)) {
-              throw new WrongTargetException(getThisAddress(),owner);
+              throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),serviceName);
             }
           }
           response=op.call();
         }
  catch (        Exception e) {
-          e.printStackTrace();
+          if (e instanceof RetryableException) {
+            logger.log(Level.WARNING,e.getClass() + ": " + e.getMessage());
+            logger.log(Level.FINEST,e.getMessage(),e);
+          }
+ else {
+            logger.log(Level.SEVERE,e.getMessage(),e);
+          }
           response=e;
         }
         if (!(op instanceof NoReply)) {
@@ -40,7 +46,7 @@
         }
       }
  catch (      Exception e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE,e.getMessage(),e);
       }
     }
   }

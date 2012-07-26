@@ -3,7 +3,6 @@
   if (completelyShutdown)   return;
   serviceThread=clusterService.getServiceThread();
   logger.log(Level.FINEST,"Starting thread " + serviceThread.getName());
-  serviceThread.start();
   connectionManager.start();
   if (config.getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
     final Thread multicastServiceThread=new Thread(threadGroup,multicastService,getThreadNamePrefix("MulticastThread"));
@@ -16,8 +15,8 @@
   }
   logger.log(Level.FINEST,"finished starting threads, calling join");
   join();
-  int clusterSize=clusterImpl.getMembers().size();
-  if (address.getPort() >= config.getPort() + clusterSize) {
+  int clusterSize=clusterImpl.getSize();
+  if (config.isPortAutoIncrement() && address.getPort() >= config.getPort() + clusterSize) {
     StringBuilder sb=new StringBuilder("Config seed port is ");
     sb.append(config.getPort());
     sb.append(" and cluster size is ");

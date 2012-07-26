@@ -1,31 +1,33 @@
 {
-  node.checkServiceThread();
-  final Connection conn=runtimeState.getConnection();
-  final Address sender=conn != null ? conn.getEndPoint() : null;
-  if (node.isMaster()) {
-    logger.log(Level.WARNING,"This is the master node and received a PartitionRuntimeState from " + (sender != null ? sender : conn) + ". Ignoring incoming state! ");
-    return;
-  }
- else {
-    final Address master=node.getMasterAddress();
-    if (sender == null || master == null || !master.equals(sender)) {
-      logger.log(Level.WARNING,"Received a PartitionRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+  lock.lock();
+  try {
+    final Address sender=runtimeState.getEndpoint();
+    if (node.isMaster()) {
+      logger.log(Level.WARNING,"This is the master node and received a PartitionRuntimeState from " + sender + ". Ignoring incoming state! ");
+      return;
     }
-  }
-  PartitionInfo[] newPartitions=runtimeState.getPartitions();
-  int size=newPartitions.length;
-  for (int i=0; i < size; i++) {
-    PartitionInfo newPartition=newPartitions[i];
-    PartitionInfo currentPartition=partitions[newPartition.getPartitionId()];
-    for (int index=0; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
-      Address address=newPartition.getReplicaAddress(index);
-      if (address != null && node.clusterManager.getMember(address) == null) {
-        logger.log(Level.WARNING,"Unknown " + address + " is found in received partition table from master "+ sender+ ". Probably it is dead. Partition: "+ newPartition);
+ else {
+      final Address master=node.getMasterAddress();
+      if (sender == null || master == null || !master.equals(sender)) {
+        logger.log(Level.WARNING,"Received a PartitionRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
       }
     }
-    currentPartition.setPartitionInfo(newPartition);
-    checkMigratingPartitionFor(currentPartition);
+    PartitionInfo[] newPartitions=runtimeState.getPartitions();
+    for (    PartitionInfo newPartition : newPartitions) {
+      PartitionInfo currentPartition=partitions[newPartition.getPartitionId()];
+      for (int index=0; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
+        Address address=newPartition.getReplicaAddress(index);
+        if (address != null && node.clusterManager.getMember(address) == null) {
+          logger.log(Level.WARNING,"Unknown " + address + " is found in received partition table from master "+ sender+ ". Probably it is dead. Partition: "+ newPartition);
+        }
+      }
+      currentPartition.setPartitionInfo(newPartition);
+      checkMigratingPartitionFor(currentPartition);
+    }
+    initialized=true;
+    version.set(runtimeState.getVersion());
   }
-  initialized=true;
-  version.set(runtimeState.getVersion());
+  finally {
+    lock.unlock();
+  }
 }

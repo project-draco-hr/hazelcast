@@ -2,26 +2,6 @@
   if (!node.isMaster()) {
     final MigratingPartition currentMigratingPartition=migratingPartition;
     if (currentMigratingPartition != null && (Clock.currentTimeMillis() - currentMigratingPartition.getCreationTime()) > MIGRATING_PARTITION_CHECK_INTERVAL) {
-      try {
-        AsyncRemotelyBooleanCallable rrp=node.clusterManager.new AsyncRemotelyBooleanCallable();
-        rrp.executeProcess(node.getMasterAddress(),new RemotelyCheckMigratingPartition(currentMigratingPartition));
-        boolean valid=rrp.getResultAsBoolean(1);
-        if (valid) {
-          logger.log(Level.FINEST,"Master has confirmed current " + currentMigratingPartition);
-        }
- else {
-          logger.log(Level.INFO,currentMigratingPartition + " could not be validated with master! " + "Removing current MigratingPartition...");
-          node.clusterManager.enqueueAndReturn(new Processable(){
-            public void process(){
-              migratingPartition=null;
-            }
-          }
-);
-        }
-      }
- catch (      Throwable t) {
-        logger.log(Level.WARNING,t.getMessage(),t);
-      }
     }
   }
 }

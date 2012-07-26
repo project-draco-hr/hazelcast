@@ -8,8 +8,8 @@
   if (target == null) {
     throw new NullPointerException(inv.getOperation() + ": Target is null");
   }
-  if (getClusterImpl().getMember(target) == null) {
-    throw new RuntimeException("Target not a member: " + target);
+  if (!(op instanceof NonMemberOperation) && getClusterImpl().getMember(target) == null) {
+    throw new TargetNotMemberException(target,partitionId,op.getClass().getName(),serviceName);
   }
   if (getThisAddress().equals(target)) {
     final ExecutorService executor=getExecutor(partitionId,nonBlocking);
@@ -20,7 +20,7 @@
             PartitionInfo partitionInfo=getPartitionInfo(partitionId);
             Address owner=partitionInfo.getOwner();
             if (!getThisAddress().equals(owner)) {
-              throw new WrongTargetException(getThisAddress(),owner);
+              throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),serviceName);
             }
           }
           inv.run();
@@ -43,7 +43,7 @@
     TheCall call=new TheCall(target,inv);
     boolean sent=node.concurrentMapManager.registerAndSend(target,packet,call);
     if (!sent) {
-      inv.setResult(new IOException());
+      inv.setResult(new IOException("Packet not sent!"));
     }
   }
 }

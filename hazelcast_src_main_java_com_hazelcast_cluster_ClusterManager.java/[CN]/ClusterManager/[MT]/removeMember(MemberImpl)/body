@@ -1,9 +1,19 @@
 {
-  checkServiceThread();
   logger.log(Level.FINEST,"ClusterManager removing  " + member);
-  mapMembers.remove(member.getAddress());
-  lsMembers.remove(member);
-  if (!member.isLiteMember()) {
-    dataMemberCount.decrement();
+  lock.lock();
+  try {
+    Map<Address,MemberImpl> members=membersRef.get();
+    if (members != null && members.containsKey(member.getAddress())) {
+      members=new LinkedHashMap<Address,MemberImpl>(members);
+      members.remove(member.getAddress());
+      if (!member.isLiteMember()) {
+        dataMemberCount.decrementAndGet();
+      }
+      membersRef.set(Collections.unmodifiableMap(members));
+      getMembers();
+    }
+  }
+  finally {
+    lock.unlock();
   }
 }

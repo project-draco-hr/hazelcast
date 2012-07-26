@@ -1,0 +1,29 @@
+{
+  if (members == null || members.length == 0)   return;
+  logger.log(Level.FINEST,"ClusterManager adding " + Arrays.toString(members));
+  lock.lock();
+  try {
+    Map<Address,MemberImpl> memberMap=membersRef.get();
+    if (memberMap == null) {
+      memberMap=new LinkedHashMap<Address,MemberImpl>();
+    }
+ else {
+      memberMap=new LinkedHashMap<Address,MemberImpl>(memberMap);
+    }
+    for (    MemberImpl member : members) {
+      MemberImpl oldMember=memberMap.remove(member.getAddress());
+      if (oldMember != null && !oldMember.isLiteMember()) {
+        dataMemberCount.decrementAndGet();
+      }
+      memberMap.put(member.getAddress(),member);
+      if (!member.isLiteMember()) {
+        dataMemberCount.incrementAndGet();
+      }
+    }
+    membersRef.set(Collections.unmodifiableMap(memberMap));
+    getMembers();
+  }
+  finally {
+    lock.unlock();
+  }
+}

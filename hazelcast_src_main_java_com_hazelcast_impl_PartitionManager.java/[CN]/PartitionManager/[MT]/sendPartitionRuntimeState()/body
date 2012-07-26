@@ -8,13 +8,22 @@
   if (!initialized) {
     return;
   }
-  final long clusterTime=node.getClusterImpl().getClusterTime();
-  final Collection<Member> members=node.getClusterImpl().getMembers();
-  final List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(members.size());
-  for (  Member member : members) {
-    MemberImpl memberImpl=(MemberImpl)member;
-    memberInfos.add(new MemberInfo(memberImpl.getAddress(),memberImpl.getNodeType(),member.getUuid()));
+  lock.lock();
+  try {
+    final long clusterTime=node.getClusterImpl().getClusterTime();
+    final Collection<MemberImpl> members=node.clusterManager.getMembers();
+    final List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(members.size());
+    for (    MemberImpl member : members) {
+      memberInfos.add(new MemberInfo(member.getAddress(),member.getNodeType(),member.getUuid()));
+    }
+    PartitionStateOperation operation=new PartitionStateOperation(memberInfos,partitions,clusterTime,version.get());
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,operation,-1).setTarget(member.getAddress()).setTryCount(1).build().invoke();
+      }
+    }
   }
-  PartitionStateProcessable processable=new PartitionStateProcessable(memberInfos,partitions,clusterTime,version.get());
-  node.clusterManager.sendProcessableToAll(processable,false);
+  finally {
+    lock.unlock();
+  }
 }

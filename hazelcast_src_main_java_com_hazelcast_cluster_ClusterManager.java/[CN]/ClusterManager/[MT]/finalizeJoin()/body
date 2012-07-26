@@ -1,15 +1,9 @@
 {
-  Set<Member> members=node.getClusterImpl().getMembers();
-  List<AsyncRemotelyBooleanCallable> calls=new ArrayList<AsyncRemotelyBooleanCallable>();
-  for (  Member m : members) {
-    MemberImpl member=(MemberImpl)m;
+  List<Future> calls=new ArrayList<Future>();
+  for (  MemberImpl member : getMembers()) {
     if (!member.localMember() && !member.isLiteMember()) {
-      AsyncRemotelyBooleanCallable rrp=new AsyncRemotelyBooleanCallable();
-      rrp.executeProcess(member.getAddress(),new FinalizeJoin());
-      calls.add(rrp);
+      Invocation inv=node.nodeService.createSingleInvocation(SERVICE_NAME,new FinalizeJoin(),-1).setTarget(member.getAddress()).setTryCount(1).build();
+      calls.add(inv.invoke());
     }
-  }
-  for (  AsyncRemotelyBooleanCallable call : calls) {
-    call.getResultAsBoolean();
   }
 }

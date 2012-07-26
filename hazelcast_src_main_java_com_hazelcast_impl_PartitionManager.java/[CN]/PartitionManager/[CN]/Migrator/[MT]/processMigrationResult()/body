@@ -1,0 +1,26 @@
+{
+  int partitionId=migrationRequestOp.getPartitionId();
+  int replicaIndex=migrationRequestOp.getReplicaIndex();
+  PartitionInfo partition=partitions[partitionId];
+  if (PartitionInfo.MAX_REPLICA_COUNT < replicaIndex) {
+    String msg="Migrated [" + partitionId + ":"+ replicaIndex+ "] but cannot assign. Length:"+ PartitionInfo.MAX_REPLICA_COUNT;
+    logger.log(Level.WARNING,msg);
+  }
+ else {
+    lock.lock();
+    try {
+      Address newOwner=migrationRequestOp.getToAddress();
+      MemberImpl ownerMember=node.clusterManager.getMember(newOwner);
+      if (ownerMember == null)       return;
+      partition.setReplicaAddress(replicaIndex,newOwner);
+      if (migrationRequestOp.getSelfCopyReplicaIndex() > -1) {
+        partition.setReplicaAddress(migrationRequestOp.getSelfCopyReplicaIndex(),migrationRequestOp.getFromAddress());
+      }
+      sendPartitionRuntimeState();
+      compareAndSetActiveMigratingPartition(migrationRequestOp,null);
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

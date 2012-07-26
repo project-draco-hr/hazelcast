@@ -1,13 +1,17 @@
 {
   logger.log(Level.FINEST,"Starting Join.");
-  joinInProgress=true;
-  final MembersUpdateCall membersUpdate=new MembersUpdateCall(lsMembers,node.getClusterImpl().getClusterTime());
-  if (setJoins != null && setJoins.size() > 0) {
-    for (    MemberInfo memberJoined : setJoins) {
-      membersUpdate.addMemberInfo(memberJoined);
+  lock.lock();
+  try {
+    joinInProgress=true;
+    final MembersUpdateCall membersUpdate=new MembersUpdateCall(getMembers(),node.getClusterImpl().getClusterTime());
+    if (setJoins != null && setJoins.size() > 0) {
+      for (      MemberInfo memberJoined : setJoins) {
+        membersUpdate.addMemberInfo(memberJoined);
+      }
     }
+    node.executorManager.executeNow(new JoinRunnable(membersUpdate));
   }
-  membersUpdate.setNode(node);
-  membersUpdate.call();
-  node.executorManager.executeNow(new JoinRunnable(membersUpdate));
+  finally {
+    lock.unlock();
+  }
 }
