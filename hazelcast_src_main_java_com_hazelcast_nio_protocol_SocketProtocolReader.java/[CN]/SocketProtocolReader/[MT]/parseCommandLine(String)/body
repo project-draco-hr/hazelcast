@@ -1,15 +1,19 @@
 {
-  if (commandLineIsParsed || sizeLineRead.get())   return true;
-  if (line.equals("")) {
+  if (commandLineIsParsed || sizeLineIsRead())   return;
+  if (line.length() == 0) {
     commandLineIsParsed=false;
     commandLineRead.set(false);
-    return false;
+    return;
   }
-  System.out.println("Command line is : " + line);
-  String[] split=line.split("\\s");
-  command=split[0];
+  String[] split=fastSplit(line,' ');
+  try {
+    command=Command.valueOf(split[0]);
+  }
+ catch (  IllegalArgumentException illegalArgException) {
+    command=Command.UNKNOWN;
+  }
   int bufferCount=-1;
-  int argLength=split.length;
+  int argLength=split.length - 2;
   if (split.length > 0 && split[split.length - 1].startsWith("#")) {
     bufferCount=Integer.parseInt(split[split.length - 1].substring(1));
     noreply=split.length > 1 && NOREPLY.equals(split[split.length - 2]);
@@ -20,12 +24,11 @@
   if (bufferCount >= 0)   argLength--;
   if (noreply)   argLength--;
   flag=split[1];
-  args=new String[argLength - 2];
-  for (int i=2; i < argLength; i++) {
-    args[i - 2]=split[i];
+  args=new String[argLength];
+  for (int i=0; i < argLength; i++) {
+    args[i]=split[i + 2];
   }
   if (bufferCount < 0)   bufferCount=0;
   bufferSize=new int[bufferCount];
   commandLineIsParsed=true;
-  return true;
 }
