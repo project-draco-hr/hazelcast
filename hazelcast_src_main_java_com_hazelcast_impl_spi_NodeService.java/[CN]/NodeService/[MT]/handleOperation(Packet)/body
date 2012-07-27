@@ -11,24 +11,27 @@
       try {
         final Operation op=(Operation)toObject(data);
         setOperationContext(op,serviceName,caller,callId,partitionId);
-        ResponseHandler responseHandler=new ResponseHandler(){
-          public void sendResponse(          Object response){
-            if (!(op instanceof NoReply)) {
-              if (!(response instanceof Operation)) {
-                response=new Response(response);
+        final boolean noReply=(op instanceof NoReply);
+        if (!noReply) {
+          ResponseHandler responseHandler=new ResponseHandler(){
+            public void sendResponse(            Object response){
+              if (!noReply) {
+                if (!(response instanceof Operation)) {
+                  response=new Response(response);
+                }
+                packet.clearForResponse();
+                packet.blockId=partitionId;
+                packet.callId=callId;
+                packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
+                packet.setValue(toData(response));
+                packet.name=serviceName;
+                node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
               }
-              packet.clearForResponse();
-              packet.blockId=partitionId;
-              packet.callId=callId;
-              packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
-              packet.setValue(toData(response));
-              packet.name=serviceName;
-              node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
             }
           }
-        }
 ;
-        op.getOperationContext().setResponseHandler(responseHandler);
+          op.getOperationContext().setResponseHandler(responseHandler);
+        }
         try {
           if (partitionId != -1) {
             PartitionInfo partitionInfo=getPartitionInfo(partitionId);
@@ -41,7 +44,9 @@
         }
  catch (        Exception e) {
           e.printStackTrace();
-          op.getOperationContext().getResponseHandler().sendResponse(e);
+          if (!noReply) {
+            op.getOperationContext().getResponseHandler().sendResponse(e);
+          }
         }
       }
  catch (      Exception e) {
