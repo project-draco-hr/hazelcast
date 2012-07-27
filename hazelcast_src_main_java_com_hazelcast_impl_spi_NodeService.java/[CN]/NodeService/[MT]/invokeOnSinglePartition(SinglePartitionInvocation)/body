@@ -12,25 +12,13 @@
     throw new RuntimeException("Target not a member: " + target);
   }
   if (getThisAddress().equals(target)) {
-    final ExecutorService executor=getExecutor(partitionId,nonBlocking);
-    executor.execute(new Runnable(){
-      public void run(){
-        try {
-          if (partitionId != -1 && !nonBlocking) {
-            PartitionInfo partitionInfo=getPartitionInfo(partitionId);
-            Address owner=partitionInfo.getOwner();
-            if (!getThisAddress().equals(owner)) {
-              throw new WrongTargetException(getThisAddress(),owner);
-            }
-          }
-          inv.run();
-        }
- catch (        Throwable e) {
-          inv.setResult(e);
-        }
+    op.getOperationContext().setResponseHandler(new ResponseHandler(){
+      public void sendResponse(      Object obj){
+        inv.setResult(obj);
       }
     }
 );
+    runLocally(partitionId,op,nonBlocking);
   }
  else {
     final Packet packet=new Packet();

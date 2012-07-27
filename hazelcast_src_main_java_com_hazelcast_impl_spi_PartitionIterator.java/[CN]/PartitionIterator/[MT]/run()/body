@@ -1,0 +1,24 @@
+{
+  OperationContext context=getOperationContext();
+  try {
+    final NodeService nodeService=context.getNodeService();
+    Map<Integer,Object> results=new HashMap<Integer,Object>(partitions.size());
+    Map<Integer,ResponseQueue> responses=new HashMap<Integer,ResponseQueue>(partitions.size());
+    for (    final int partitionId : partitions) {
+      Operation op=(Operation)toObject(operationData);
+      op.getOperationContext().setNodeService(getOperationContext().getNodeService()).setCaller(getOperationContext().getCaller()).setPartitionId(partitionId).setLocal(true).setService(getOperationContext().getService());
+      ResponseQueue r=new ResponseQueue();
+      nodeService.runLocally(partitionId,op,false);
+      responses.put(partitionId,r);
+    }
+    for (    Map.Entry<Integer,ResponseQueue> partitionResponse : responses.entrySet()) {
+      Object result=partitionResponse.getValue().get();
+      results.put(partitionResponse.getKey(),result);
+    }
+    context.getResponseHandler().sendResponse(results);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    context.getResponseHandler().sendResponse(e);
+  }
+}

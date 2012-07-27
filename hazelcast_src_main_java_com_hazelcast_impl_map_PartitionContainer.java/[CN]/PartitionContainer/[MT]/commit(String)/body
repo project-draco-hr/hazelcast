@@ -1,0 +1,24 @@
+{
+  TransactionLog txnLog=transactions.get(txnId);
+  if (txnLog == null)   return;
+  for (  TransactionLogItem txnLogItem : txnLog.changes.values()) {
+    System.out.println(mapService.getNodeService().getThisAddress() + " pc.commit " + txnLogItem);
+    MapPartition mapPartition=getMapPartition(txnLogItem.getName());
+    Data key=txnLogItem.getKey();
+    if (txnLogItem.isRemoved()) {
+      mapPartition.records.remove(key);
+    }
+ else {
+      Record record=mapPartition.records.get(key);
+      if (record == null) {
+        record=new DefaultRecord(null,mapPartition.partitionInfo.getPartitionId(),key,txnLogItem.getValue(),-1,-1,mapService.nextId());
+        mapPartition.records.put(key,record);
+      }
+ else {
+        record.setValueData(txnLogItem.getValue());
+      }
+      record.setActive();
+      record.setDirty(true);
+    }
+  }
+}
