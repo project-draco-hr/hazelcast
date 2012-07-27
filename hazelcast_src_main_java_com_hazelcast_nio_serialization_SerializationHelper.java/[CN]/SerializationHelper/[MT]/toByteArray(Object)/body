@@ -2,17 +2,19 @@
   if (obj == null) {
     return null;
   }
+  incrementDepth();
   try {
-    dataOut.reset();
-    writeObject(dataOut,obj);
-    final byte[] result=dataOut.toByteArray();
-    if (dataOut.size() > OUTPUT_STREAM_BUFFER_SIZE) {
-      dataOut.set(new byte[OUTPUT_STREAM_BUFFER_SIZE]);
-    }
-    return result;
+    final SerializationBuffer buffer=getBuffer();
+    return buffer.toByteArray(obj);
   }
  catch (  Throwable e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
+    if (e instanceof HazelcastSerializationException) {
+      throw (HazelcastSerializationException)e;
+    }
     throw new HazelcastSerializationException(e);
+  }
+ finally {
+    decrementDepth();
   }
 }
