@@ -1,5 +1,5 @@
 {
-  final MessageListenerManager manager=new MessageListenerManager();
+  final MessageListenerManager manager=new MessageListenerManager(serializerManager);
   final String name="default";
   assertTrue(manager.noListenerRegistered(name));
   final String myMessage="my myMessage";
@@ -16,12 +16,13 @@
   assertFalse(manager.noListenerRegistered(name));
   new Thread(new Runnable(){
     public void run(){
+      SerializationHelper serializer=new SerializationHelper(serializerManager);
       Packet packet=new Packet();
       packet.setName(name);
-      packet.setKey(toByte(myMessage));
+      packet.setKey(serializer.toByteArray(myMessage));
       manager.notifyMessageListeners(packet);
     }
   }
 ).start();
-  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertTrue(latch.await(10,TimeUnit.DAYS));
 }
