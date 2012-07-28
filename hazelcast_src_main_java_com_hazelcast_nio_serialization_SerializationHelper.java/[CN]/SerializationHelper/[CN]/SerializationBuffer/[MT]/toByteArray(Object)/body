@@ -1,0 +1,27 @@
+{
+  if (object == null) {
+    return null;
+  }
+  out.reset();
+  try {
+    final TypeSerializer serializer=getSerializerRegistry().serializerFor(object.getClass());
+    if (serializer == null) {
+      throw new NotSerializableException("There is no suitable serializer for " + object.getClass());
+    }
+    out.writeInt(serializer.getTypeId());
+    serializer.write(out,object);
+    out.flush();
+    return out.toByteArray();
+  }
+ catch (  Throwable e) {
+    if (e instanceof HazelcastSerializationException) {
+      throw (HazelcastSerializationException)e;
+    }
+    throw new HazelcastSerializationException(e);
+  }
+ finally {
+    if (out.size() > OUTPUT_STREAM_BUFFER_SIZE) {
+      out.set(new byte[OUTPUT_STREAM_BUFFER_SIZE]);
+    }
+  }
+}

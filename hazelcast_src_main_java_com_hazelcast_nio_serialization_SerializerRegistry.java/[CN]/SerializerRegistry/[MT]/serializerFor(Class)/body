@@ -1,0 +1,34 @@
+{
+  TypeSerializer serializer=typeMap.get(type);
+  if (serializer == null) {
+    if (DataSerializable.class.isAssignableFrom(type) && ClassLoaderUtil.isInternalType(type)) {
+      serializer=registerFromSuperType(type,DataSerializable.class);
+    }
+ else {
+      Class typeSuperclass=type.getSuperclass();
+      List<Class> interfaces=new LinkedList<Class>();
+      Collections.addAll(interfaces,type.getInterfaces());
+      while (typeSuperclass != null) {
+        if ((serializer=registerFromSuperType(type,typeSuperclass)) != null) {
+          break;
+        }
+        Collections.addAll(interfaces,typeSuperclass.getInterfaces());
+        typeSuperclass=typeSuperclass.getSuperclass();
+      }
+      if (serializer == null) {
+        for (        Class typeInterface : interfaces) {
+          if ((serializer=registerFromSuperType(type,typeInterface)) != null) {
+            break;
+          }
+        }
+      }
+      if (serializer == null && (serializer=global.get()) != null) {
+        safeRegister(type,serializer);
+      }
+      if (serializer == null && (serializer=DefaultSerializers.serializerFor(type)) != null) {
+        safeRegister(type,serializer);
+      }
+    }
+  }
+  return serializer;
+}
