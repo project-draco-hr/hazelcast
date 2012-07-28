@@ -1,0 +1,37 @@
+{
+  final Address target=inv.getTarget();
+  final Operation op=inv.getOperation();
+  final int partitionId=inv.getPartitionId();
+  final String serviceName=inv.getServiceName();
+  final boolean nonBlocking=(op instanceof NonBlockingOperation);
+  setOperationContext(op,serviceName,node.getThisAddress(),-1,partitionId).setLocal(true);
+  if (target == null) {
+    throw new NullPointerException(inv.getOperation() + ": Target is null");
+  }
+  if (!(op instanceof NonMemberOperation) && getClusterImpl().getMember(target) == null) {
+    throw new TargetNotMemberException(target,partitionId,op.getClass().getName(),serviceName);
+  }
+  if (getThisAddress().equals(target)) {
+    op.getOperationContext().setResponseHandler(new ResponseHandler(){
+      public void sendResponse(      Object obj){
+        inv.setResult(obj);
+      }
+    }
+);
+    runLocally(partitionId,op,nonBlocking);
+  }
+ else {
+    final Packet packet=new Packet();
+    packet.operation=REMOTE_CALL;
+    packet.blockId=partitionId;
+    packet.name=serviceName;
+    packet.longValue=nonBlocking ? 1 : 0;
+    Data valueData=toData(op);
+    packet.setValue(valueData);
+    TheCall call=new TheCall(target,inv);
+    boolean sent=node.concurrentMapManager.registerAndSend(target,packet,call);
+    if (!sent) {
+      inv.setResult(new IOException("Packet not sent!"));
+    }
+  }
+}

@@ -1,46 +1,64 @@
 {
   final int partitionId=packet.blockId;
-  final boolean backup=packet.longValue == 1;
+  final boolean nonBlocking=packet.longValue == 1;
   final Data data=packet.getValueData();
   final long callId=packet.callId;
   final Address caller=packet.conn.getEndPoint();
   final String serviceName=packet.name;
-  final Executor executor=getExecutor(partitionId,backup);
+  final Executor executor=getExecutor(partitionId,nonBlocking);
   executor.execute(new Runnable(){
     public void run(){
       try {
-        Object response=null;
         final Operation op=(Operation)toObject(data);
-        setOperationContext(op,serviceName,caller,callId,partitionId);
+        setOperationContext(op,serviceName,caller,callId,partitionId).setConnection(packet.conn);
+        ResponseHandler responseHandler=new ResponseHandler(){
+          public void sendResponse(          Object response){
+            if (!(op instanceof NoReply)) {
+              if (!(response instanceof Operation)) {
+                response=new Response(response);
+              }
+              packet.clearForResponse();
+              packet.blockId=partitionId;
+              packet.callId=callId;
+              packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
+              packet.setValue(toData(response));
+              packet.name=serviceName;
+              node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
+            }
+          }
+        }
+;
+        op.getOperationContext().setResponseHandler(responseHandler);
         try {
           if (partitionId != -1) {
             PartitionInfo partitionInfo=getPartitionInfo(partitionId);
             Address owner=partitionInfo.getOwner();
             if (!(op instanceof NonBlockingOperation) && !getThisAddress().equals(owner)) {
-              throw new WrongTargetException(getThisAddress(),owner);
+              throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),serviceName);
             }
           }
-          response=op.call();
+          op.run();
         }
  catch (        Exception e) {
-          e.printStackTrace();
-          response=e;
-        }
-        if (!(op instanceof NoReply)) {
-          if (!(response instanceof Operation)) {
-            response=new Response(response);
+          if (e instanceof RetryableException) {
+            logger.log(Level.WARNING,e.getClass() + ": " + e.getMessage());
+            logger.log(Level.FINEST,e.getMessage(),e);
           }
-          packet.clearForResponse();
-          packet.blockId=partitionId;
-          packet.callId=callId;
-          packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
-          packet.setValue(toData(response));
-          packet.name=serviceName;
-          node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
+ else {
+            logger.log(Level.SEVERE,e.getMessage(),e);
+          }
+          op.getOperationContext().getResponseHandler().sendResponse(e);
         }
       }
  catch (      Exception e) {
-        e.printStackTrace();
+        logger.log(Level.SEVERE,e.getMessage(),e);
+        packet.clearForResponse();
+        packet.blockId=partitionId;
+        packet.callId=callId;
+        packet.longValue=1;
+        packet.setValue(toData(e));
+        packet.name=serviceName;
+        node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
       }
     }
   }

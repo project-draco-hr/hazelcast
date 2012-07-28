@@ -36,21 +36,23 @@
     Util.throwUncheckedException(e);
   }
   securityContext=config.getSecurityConfig().isEnabled() ? initializer.getSecurityContext() : null;
-  clusterImpl=new ClusterImpl(this);
-  baseVariables=new NodeBaseVariables(address,localMember);
+  executorManager=new ExecutorManager(this);
+  nodeService=new NodeService(this);
+  baseVariables=new NodeBaseVariables();
   clusterService=new ClusterService(this);
   clusterService.start();
   connectionManager=new ConnectionManager(new NodeIOService(this),serverSocketChannel);
-  clusterManager=new ClusterManager(this);
-  executorManager=new ExecutorManager(this);
+  clusterImpl=new ClusterImpl(this);
+  partitionManager=new PartitionManager(this);
   clientHandlerService=new ClientHandlerService(this);
   concurrentMapManager=new ConcurrentMapManager(this);
+  nodeService.registerService(MapService.MAP_SERVICE_NAME,new MapService(nodeService,concurrentMapManager.partitionManager.getPartitions()));
   blockingQueueManager=new BlockingQueueManager(this);
   listenerManager=new ListenerManager(this);
   clientService=new ClientServiceImpl(concurrentMapManager);
   topicManager=new TopicManager(this);
   textCommandService=new TextCommandServiceImpl(this);
-  clusterManager.addMember(false,localMember);
+  clusterImpl.addMember(localMember);
   initializer.printNodeInfo(this);
   buildNumber=initializer.getBuildNumber();
   VersionCheck.check(this,initializer.getBuild(),initializer.getVersion());

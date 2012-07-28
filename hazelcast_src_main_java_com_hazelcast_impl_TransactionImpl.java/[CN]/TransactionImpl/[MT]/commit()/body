@@ -5,8 +5,22 @@
   status=TXN_STATUS_COMMITTING;
   try {
     ThreadContext.get().setCurrentFactory(factory);
-    for (    TransactionRecord transactionRecord : transactionRecords) {
-      transactionRecord.commit();
+    List<Future> futures=new ArrayList<Future>(participants.size());
+    futures=new ArrayList<Future>(participants.size());
+    for (    TxnParticipant t : participants) {
+      Operation op=new PrepareOperation(txnId);
+      futures.add(factory.node.nodeService.createSingleInvocation(t.serviceName,op,t.partitionId).build().invoke());
+    }
+    for (    Future future : futures) {
+      future.get(300,TimeUnit.SECONDS);
+    }
+    futures.clear();
+    for (    TxnParticipant t : participants) {
+      Operation op=new CommitOperation(txnId);
+      futures.add(factory.node.nodeService.createSingleInvocation(t.serviceName,op,t.partitionId).build().invoke());
+    }
+    for (    Future future : futures) {
+      future.get(300,TimeUnit.SECONDS);
     }
   }
  catch (  RuntimeException e) {

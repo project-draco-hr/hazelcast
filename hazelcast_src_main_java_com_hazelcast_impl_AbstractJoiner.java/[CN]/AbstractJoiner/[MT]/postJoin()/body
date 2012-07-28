@@ -23,7 +23,7 @@
         allConnected=true;
         for (        Member member : members) {
           MemberImpl memberImpl=(MemberImpl)member;
-          if (!memberImpl.localMember() && node.connectionManager.getConnection(memberImpl.getAddress()) == null) {
+          if (!memberImpl.localMember() && node.connectionManager.getOrConnect(memberImpl.getAddress()) == null) {
             allConnected=false;
             systemLogService.logJoin("Not-connected to " + memberImpl.getAddress());
           }
@@ -49,19 +49,14 @@
       return;
     }
  else {
-      node.clusterManager.finalizeJoin();
+      node.clusterImpl.finalizeJoin();
     }
   }
   tryCount.set(0);
-  node.clusterManager.enqueueAndWait(new Processable(){
-    public void process(){
-      if (node.baseVariables.lsMembers.size() == 1) {
-        final StringBuilder sb=new StringBuilder();
-        sb.append("\n");
-        sb.append(node.clusterManager);
-        logger.log(Level.INFO,sb.toString());
-      }
-    }
+  if (node.getClusterImpl().getSize() == 1) {
+    final StringBuilder sb=new StringBuilder();
+    sb.append("\n");
+    sb.append(node.clusterImpl);
+    logger.log(Level.INFO,sb.toString());
   }
-,5);
 }

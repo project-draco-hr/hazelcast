@@ -1,27 +1,18 @@
 {
-  final BlockingQueue<MemberImpl> responseQ=ResponseQueueFactory.newResponseQueue();
-  concurrentMapManager.enqueueAndReturn(new Processable(){
-    public void process(){
-      MemberImpl memberOwner=null;
-      try {
-        Address ownerAddress=concurrentMapManager.getPartitionManager().getOwner(partitionId);
-        if (ownerAddress != null) {
-          if (concurrentMapManager.thisAddress.equals(ownerAddress)) {
-            memberOwner=concurrentMapManager.thisMember;
-          }
+  MemberImpl memberOwner=null;
+  try {
+    Address ownerAddress=concurrentMapManager.getPartitionManager().getOwner(partitionId);
+    if (ownerAddress != null) {
+      if (concurrentMapManager.thisAddress.equals(ownerAddress)) {
+        memberOwner=concurrentMapManager.thisMember;
+      }
  else {
-            memberOwner=concurrentMapManager.getMember(ownerAddress);
-          }
-        }
-      }
- catch (      Exception e) {
-        logger.log(Level.SEVERE,e.getMessage(),e);
-      }
- finally {
-        responseQ.offer(memberOwner);
+        memberOwner=concurrentMapManager.getMember(ownerAddress);
       }
     }
   }
-);
-  return responseQ.poll(10,TimeUnit.SECONDS);
+ catch (  Exception e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
+  }
+  return memberOwner;
 }

@@ -1,0 +1,77 @@
+{
+  if (!node.joined() || !node.isActive())   return;
+  long now=Clock.currentTimeMillis();
+  final Collection<MemberImpl> members=getMemberList();
+  if (isMaster()) {
+    List<Address> lsDeadAddresses=null;
+    for (    MemberImpl memberImpl : members) {
+      final Address address=memberImpl.getAddress();
+      if (!thisAddress.equals(address)) {
+        try {
+          Connection conn=node.connectionManager.getOrConnect(address);
+          if (conn != null && conn.live()) {
+            if ((now - memberImpl.getLastRead()) >= (maxNoHeartbeatMillis)) {
+              if (lsDeadAddresses == null) {
+                lsDeadAddresses=new ArrayList<Address>();
+              }
+              logger.log(Level.WARNING,"Added " + address + " to list of dead addresses because of timeout since last read");
+              lsDeadAddresses.add(address);
+            }
+ else             if ((now - memberImpl.getLastRead()) >= 5000 && (now - memberImpl.getLastPing()) >= 5000) {
+              ping(memberImpl);
+            }
+            if ((now - memberImpl.getLastWrite()) > 500) {
+              sendHeartbeat(address);
+            }
+          }
+ else           if (conn == null && (now - memberImpl.getLastRead()) > 5000) {
+            logMissingConnection(address);
+            memberImpl.didRead();
+          }
+        }
+ catch (        Exception e) {
+          logger.log(Level.SEVERE,e.getMessage(),e);
+        }
+      }
+    }
+    if (lsDeadAddresses != null) {
+      for (      Address address : lsDeadAddresses) {
+        logger.log(Level.FINEST,"No heartbeat should remove " + address);
+        removeAddress(address);
+      }
+    }
+  }
+ else {
+    Address masterAddress=getMasterAddress();
+    if (masterAddress != null) {
+      node.connectionManager.getOrConnect(masterAddress);
+      MemberImpl masterMember=getMember(masterAddress);
+      boolean removed=false;
+      if (masterMember != null) {
+        if ((now - masterMember.getLastRead()) >= (maxNoHeartbeatMillis)) {
+          logger.log(Level.WARNING,"Master node has timed out its heartbeat and will be removed");
+          removeAddress(masterAddress);
+          removed=true;
+        }
+ else         if ((now - masterMember.getLastRead()) >= 5000 && (now - masterMember.getLastPing()) >= 5000) {
+          ping(masterMember);
+        }
+      }
+      if (!removed) {
+        sendHeartbeat(masterAddress);
+      }
+    }
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        Address address=member.getAddress();
+        Connection conn=node.connectionManager.getOrConnect(address);
+        if (conn != null) {
+          sendHeartbeat(address);
+        }
+ else {
+          logger.log(Level.FINEST,"could not connect to " + address + " to send heartbeat");
+        }
+      }
+    }
+  }
+}

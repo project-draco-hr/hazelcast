@@ -1,5 +1,5 @@
 {
-  if (!concurrentMapManager.isMaster() || !concurrentMapManager.isActive() || !concurrentMapManager.node.joined()) {
+  if (!node.isMaster() || !node.isActive() || !node.joined()) {
     return;
   }
   if (!migrationActive.get()) {
@@ -8,12 +8,22 @@
   if (!initialized) {
     return;
   }
-  final long clusterTime=concurrentMapManager.node.getClusterImpl().getClusterTime();
-  final List<MemberImpl> lsMembers=concurrentMapManager.lsMembers;
-  final List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(lsMembers.size());
-  for (  MemberImpl member : lsMembers) {
-    memberInfos.add(new MemberInfo(member.getAddress(),member.getNodeType(),member.getUuid()));
+  lock.lock();
+  try {
+    final long clusterTime=node.getClusterImpl().getClusterTime();
+    final Collection<MemberImpl> members=node.clusterImpl.getMemberList();
+    final List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(members.size());
+    for (    MemberImpl member : members) {
+      memberInfos.add(new MemberInfo(member.getAddress(),member.getNodeType(),member.getUuid()));
+    }
+    PartitionStateOperation operation=new PartitionStateOperation(memberInfos,partitions,clusterTime,version.get());
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,operation,-1).setTarget(member.getAddress()).setTryCount(1).build().invoke();
+      }
+    }
   }
-  PartitionStateProcessable processable=new PartitionStateProcessable(memberInfos,partitions,clusterTime,version.get());
-  concurrentMapManager.sendProcessableToAll(processable,false);
+  finally {
+    lock.unlock();
+  }
 }

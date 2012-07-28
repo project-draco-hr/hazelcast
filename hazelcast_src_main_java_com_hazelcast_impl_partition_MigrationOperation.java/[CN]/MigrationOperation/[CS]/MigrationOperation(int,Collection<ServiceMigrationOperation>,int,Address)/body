@@ -1,0 +1,21 @@
+{
+  this.partitionId=partitionId;
+  this.replicaIndex=replicaIndex;
+  this.from=from;
+  this.tasks=tasks;
+  this.taskCount=tasks.size();
+  ByteArrayOutputStream bos=new ByteArrayOutputStream(8192 * taskCount);
+  DataOutputStream out=null;
+  try {
+    out=new DataOutputStream(new DeflaterOutputStream(bos));
+    out.writeInt(taskCount);
+    for (    ServiceMigrationOperation task : tasks) {
+      out.writeUTF(task.getClass().getName());
+      task.writeData(out);
+    }
+  }
+  finally {
+    IOUtil.closeResource(out);
+  }
+  bytesRecordSet=bos.toByteArray();
+}

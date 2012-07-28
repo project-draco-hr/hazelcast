@@ -1,48 +1,54 @@
 {
-  if (!deadMember.isLiteMember() && concurrentMapManager.isMaster() && concurrentMapManager.isActive()) {
-    sendingDiffs.set(true);
-    logger.log(Level.INFO,"Starting to send partition replica diffs..." + sendingDiffs.get());
-    int diffCount=0;
-    final int maxBackupCount=getMaxBackupCount();
-    for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
-      int indexOfDead=indexesOfDead[partitionId];
-      if (indexOfDead != -1) {
-        PartitionInfo partition=partitions[partitionId];
-        Address owner=partition.getOwner();
-        if (owner == null) {
-          logger.log(Level.FINEST,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
-          logger.log(Level.FINEST,partition.toString());
-          continue;
-        }
-        for (int replicaIndex=indexOfDead; replicaIndex < maxBackupCount; replicaIndex++) {
-          Address target=partition.getReplicaAddress(replicaIndex);
-          if (target != null && !target.equals(owner)) {
-            if (getMember(target) != null) {
-              MigrationRequestTask mrt=new MigrationRequestTask(partitionId,owner,target,replicaIndex,false,true);
-              immediateTasksQueue.offer(new Migrator(mrt));
-              diffCount++;
-            }
+  if (!deadMember.isLiteMember() && node.isMaster() && node.isActive()) {
+    lock.lock();
+    try {
+      sendingDiffs.set(true);
+      logger.log(Level.INFO,"Starting to send partition replica diffs..." + sendingDiffs.get());
+      int diffCount=0;
+      final int maxBackupCount=getMaxBackupCount();
+      for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
+        int indexOfDead=indexesOfDead[partitionId];
+        if (indexOfDead != -1) {
+          PartitionInfo partition=partitions[partitionId];
+          Address owner=partition.getOwner();
+          if (owner == null) {
+            logger.log(Level.FINEST,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner "+ "could not be found either!");
+            logger.log(Level.FINEST,partition.toString());
+            continue;
+          }
+          for (int replicaIndex=indexOfDead; replicaIndex < maxBackupCount; replicaIndex++) {
+            Address target=partition.getReplicaAddress(replicaIndex);
+            if (target != null && !target.equals(owner)) {
+              if (getMember(target) != null) {
+                MigrationRequestOperation mrt=new MigrationRequestOperation(partitionId,owner,target,replicaIndex,false,true);
+                immediateTasksQueue.offer(new Migrator(mrt));
+                diffCount++;
+              }
  else {
-              logger.log(Level.WARNING,"Target member of replica diff task couldn't found! " + "Replica: " + replicaIndex + ", Dead: "+ deadMember+ "\n"+ partition);
+                logger.log(Level.WARNING,"Target member of replica diff task couldn't found! " + "Replica: " + replicaIndex + ", Dead: "+ deadMember+ "\n"+ partition);
+              }
+            }
+          }
+          if (indexOfDead <= maxBackupCount) {
+            for (int index=maxBackupCount; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
+              partition.setReplicaAddress(index,null);
             }
           }
         }
-        if (indexOfDead <= maxBackupCount) {
-          for (int index=maxBackupCount; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
-            partition.setReplicaAddress(index,null);
-          }
+      }
+      sendPartitionRuntimeState();
+      final int totalDiffCount=diffCount;
+      immediateTasksQueue.offer(new Runnable(){
+        public void run(){
+          logger.log(Level.INFO,"Total " + totalDiffCount + " partition replica diffs have been processed.");
+          sendingDiffs.set(false);
         }
       }
-    }
-    sendPartitionRuntimeState();
-    final int totalDiffCount=diffCount;
-    immediateTasksQueue.offer(new Runnable(){
-      public void run(){
-        logger.log(Level.INFO,"Total " + totalDiffCount + " partition replica diffs have been processed.");
-        sendingDiffs.set(false);
-      }
-    }
 );
-    immediateTasksQueue.offer(new PrepareRepartitioningTask());
+      immediateTasksQueue.offer(new PrepareRepartitioningTask());
+    }
+  finally {
+      lock.unlock();
+    }
   }
 }
