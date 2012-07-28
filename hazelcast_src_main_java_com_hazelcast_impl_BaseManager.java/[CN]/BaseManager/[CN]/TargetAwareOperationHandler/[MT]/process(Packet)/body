@@ -1,20 +1,20 @@
 {
-  Request remoteReq=Request.copyFromPacket(packet);
-  boolean isMigrating=isMigrating(remoteReq);
-  boolean rightRemoteTarget=isRightRemoteTarget(remoteReq);
-  SystemLogService css=node.getSystemLogService();
-  if (css.shouldLog(CS_INFO)) {
-    css.info(remoteReq,"IsMigrating/RightRemoteTarget",isMigrating,rightRemoteTarget);
+  Request request=Request.copyFromPacket(packet);
+  boolean isMigrating=isPartitionMigrating(request);
+  boolean rightRemoteTarget=isRightRemoteTarget(request);
+  boolean callerKnownMember=isCallerKnownMember(request);
+  if (request.redoCount > redoLogThreshold || systemLogService.shouldLog(INFO)) {
+    systemLogService.info(request,new SystemArgsLog("Migrating/CallerKnownMember/RightRemoteTarget",isMigrating,callerKnownMember,rightRemoteTarget));
   }
-  if (isMigrating || !rightRemoteTarget) {
-    remoteReq.clearForResponse();
-    returnRedoResponse(remoteReq);
+  if (isMigrating || !callerKnownMember || !rightRemoteTarget) {
+    final RedoType redoType=isMigrating ? REDO_PARTITION_MIGRATING : (!callerKnownMember ? REDO_MEMBER_UNKNOWN : REDO_TARGET_WRONG);
+    returnRedoResponse(request,redoType);
   }
  else {
-    if (css.shouldLog(CS_INFO)) {
-      css.info(remoteReq,"handle");
+    if (systemLogService.shouldLog(INFO)) {
+      systemLogService.info(request,"handle");
     }
-    handle(remoteReq);
+    handle(request);
   }
   releasePacket(packet);
 }

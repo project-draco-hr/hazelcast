@@ -1,0 +1,21 @@
+{
+  final Collection<SerializerConfig> serializerConfigs=config.getSerializerConfigs();
+  if (serializerConfigs != null) {
+    for (    SerializerConfig serializerConfig : serializerConfigs) {
+      TypeSerializer factory=serializerConfig.getImplementation();
+      if (factory == null) {
+        factory=(TypeSerializer)ClassLoaderUtil.newInstance(serializerConfig.getClassName());
+      }
+      if (serializerConfig.isGlobal()) {
+        serializerRegistry.registerGlobal(factory);
+      }
+ else {
+        Class typeClass=serializerConfig.getTypeClass();
+        if (typeClass == null) {
+          typeClass=ClassLoaderUtil.loadClass(serializerConfig.getTypeClassName());
+        }
+        serializerRegistry.register(factory,typeClass);
+      }
+    }
+  }
+}

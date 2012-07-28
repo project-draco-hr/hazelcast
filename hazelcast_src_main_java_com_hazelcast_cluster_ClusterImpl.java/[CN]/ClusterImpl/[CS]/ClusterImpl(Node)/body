@@ -1,4 +1,142 @@
 {
-  this.node=node;
-  this.setMembers(Arrays.asList(node.getLocalMember()));
+  super(node);
+  securityLogger=node.loggingService.getLogger("com.hazelcast.security");
+  waitMillisBeforeJoin=node.groupProperties.WAIT_SECONDS_BEFORE_JOIN.getInteger() * 1000L;
+  maxWaitSecondsBeforeJoin=node.groupProperties.MAX_WAIT_SECONDS_BEFORE_JOIN.getInteger();
+  maxNoHeartbeatMillis=node.groupProperties.MAX_NO_HEARTBEAT_SECONDS.getInteger() * 1000L;
+  heartbeatIntervalMillis=node.groupProperties.HEARTBEAT_INTERVAL_SECONDS.getInteger() * 1000L;
+  icmpEnabled=node.groupProperties.ICMP_ENABLED.getBoolean();
+  icmpTtl=node.groupProperties.ICMP_TTL.getInteger();
+  icmpTimeout=node.groupProperties.ICMP_TIMEOUT.getInteger();
+  heartbeatOperationData=toData(new HeartbeatOperation());
+  node.clusterService.registerPeriodicRunnable(new SplitBrainHandler(node));
+  node.nodeService.getScheduledExecutorService().scheduleWithFixedDelay(new Runnable(){
+    public void run(){
+      heartBeater();
+    }
+  }
+,heartbeatIntervalMillis,heartbeatIntervalMillis,TimeUnit.MILLISECONDS);
+  node.clusterService.registerPeriodicRunnable(new Runnable(){
+    public void run(){
+      checkScheduledActions();
+    }
+  }
+);
+  node.connectionManager.addConnectionListener(this);
+  registerPacketProcessor(ClusterOperation.RESPONSE,new PacketProcessor(){
+    public void process(    Packet packet){
+      handleResponse(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.HEARTBEAT,new PacketProcessor(){
+    public void process(    Packet packet){
+      releasePacket(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.LOG,new PacketProcessor(){
+    public void process(    Packet packet){
+      logger.log(Level.parse(packet.name),toObject(packet.getValueData()).toString());
+      releasePacket(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.JOIN_CHECK,new PacketProcessor(){
+    public void process(    Packet packet){
+      Connection conn=packet.conn;
+      Request request=Request.copyFromPacket(packet);
+      JoinInfo joinInfo=(JoinInfo)toObject(request.value);
+      request.clearForResponse();
+      if (joinInfo != null && node.joined() && node.isActive()) {
+        try {
+          node.validateJoinRequest(joinInfo);
+          request.response=toData(node.createJoinInfo());
+        }
+ catch (        Exception e) {
+          request.response=toData(e);
+        }
+      }
+      returnResponse(request,conn);
+      releasePacket(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.REMOTELY_PROCESS_AND_RESPOND,new PacketProcessor(){
+    public void process(    Packet packet){
+      Data data=packet.getValueData();
+      RemotelyProcessable rp=(RemotelyProcessable)toObject(data);
+      rp.setConnection(packet.conn);
+      rp.setNode(node);
+      rp.process();
+      sendResponse(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.REMOTELY_PROCESS,new PacketProcessor(){
+    public void process(    Packet packet){
+      Data data=packet.getValueData();
+      RemotelyProcessable rp=(RemotelyProcessable)toObject(data);
+      rp.setConnection(packet.conn);
+      rp.setNode(node);
+      rp.process();
+      releasePacket(packet);
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.REMOTELY_CALLABLE_BOOLEAN,new PacketProcessor(){
+    public void process(    Packet packet){
+      Boolean result;
+      AbstractRemotelyCallable<Boolean> callable=null;
+      try {
+        Data data=packet.getValueData();
+        callable=(AbstractRemotelyCallable<Boolean>)toObject(data);
+        System.out.println("callable = " + callable);
+        callable.setConnection(packet.conn);
+        callable.setNode(node);
+        result=callable.call();
+      }
+ catch (      Exception e) {
+        logger.log(Level.SEVERE,"Error processing " + callable,e);
+        result=Boolean.FALSE;
+      }
+      if (result == Boolean.TRUE) {
+        sendResponse(packet);
+      }
+ else {
+        sendResponseFailure(packet);
+      }
+    }
+  }
+);
+  registerPacketProcessor(ClusterOperation.REMOTELY_CALLABLE_OBJECT,new PacketProcessor(){
+    public void process(    Packet packet){
+      Object result;
+      AbstractRemotelyCallable<Boolean> callable=null;
+      try {
+        Data data=packet.getValueData();
+        callable=(AbstractRemotelyCallable)toObject(data);
+        callable.setConnection(packet.conn);
+        callable.setNode(node);
+        result=callable.call();
+      }
+ catch (      Exception e) {
+        logger.log(Level.SEVERE,"Error processing " + callable,e);
+        result=null;
+      }
+      if (result != null) {
+        Data value;
+        if (result instanceof Data) {
+          value=(Data)result;
+        }
+ else {
+          value=toData(result);
+        }
+        packet.setValue(value);
+      }
+      sendResponse(packet);
+    }
+  }
+);
+  node.nodeService.registerService(SERVICE_NAME,this);
 }

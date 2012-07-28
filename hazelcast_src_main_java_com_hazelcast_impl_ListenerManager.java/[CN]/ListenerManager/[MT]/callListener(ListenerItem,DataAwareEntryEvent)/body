@@ -31,7 +31,8 @@
       }
     }
   }
-  final EntryEvent event2=listenerItem.includeValue ? event : (event.getNewValueData() != null ? new DataAwareEntryEvent(event.getMember(),event.getEventType().getType(),event.getLongName(),event.getKeyData(),null,null,event.firedLocally) : event);
+  final SerializerRegistry serializerRegistry=node.factory.serializerRegistry;
+  final DataAwareEntryEvent event2=listenerItem.includeValue ? event : (event.getNewValueData() != null ? new DataAwareEntryEvent(event.getMember(),event.getEventType().getType(),event.getLongName(),event.getKeyData(),null,null,event.firedLocally,serializerRegistry) : event);
 switch (listenerItem.instanceType) {
 case MAP:
 case MULTIMAP:
@@ -56,25 +57,25 @@ case LIST:
 ItemListener itemListener=(ItemListener)listener;
 switch (entryEventType) {
 case ADDED:
-itemListener.itemAdded(new DataAwareItemEvent(listenerItem.name,ItemEventType.ADDED,event.getKeyData()));
+itemListener.itemAdded(new DataAwareItemEvent(listenerItem.name,ItemEventType.ADDED,event.getKeyData(),serializerRegistry));
 break;
 case REMOVED:
-itemListener.itemRemoved(new DataAwareItemEvent(listenerItem.name,ItemEventType.REMOVED,event.getKeyData()));
+itemListener.itemRemoved(new DataAwareItemEvent(listenerItem.name,ItemEventType.REMOVED,event.getKeyData(),serializerRegistry));
 break;
 }
 break;
 case TOPIC:
 MessageListener messageListener=(MessageListener)listener;
-messageListener.onMessage(new DataMessage(listenerItem.name,event.getNewValueData()));
+messageListener.onMessage(new DataMessage(listenerItem.name,event.getNewValueData(),serializerRegistry));
 break;
 case QUEUE:
 ItemListener queueItemListener=(ItemListener)listener;
 switch (entryEventType) {
 case ADDED:
-queueItemListener.itemAdded(new DataAwareItemEvent(listenerItem.name,ItemEventType.ADDED,event.getNewValueData()));
+queueItemListener.itemAdded(new DataAwareItemEvent(listenerItem.name,ItemEventType.ADDED,event.getNewValueData(),serializerRegistry));
 break;
 case REMOVED:
-queueItemListener.itemRemoved(new DataAwareItemEvent(listenerItem.name,ItemEventType.REMOVED,event.getNewValueData()));
+queueItemListener.itemRemoved(new DataAwareItemEvent(listenerItem.name,ItemEventType.REMOVED,event.getNewValueData(),serializerRegistry));
 break;
 }
 break;

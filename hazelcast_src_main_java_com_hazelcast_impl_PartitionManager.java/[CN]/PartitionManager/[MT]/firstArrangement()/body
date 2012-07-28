@@ -1,17 +1,23 @@
 {
-  concurrentMapManager.checkServiceThread();
-  if (!concurrentMapManager.isMaster() || !concurrentMapManager.isActive())   return;
+  if (!node.isMaster() || !node.isActive())   return;
   if (!hasStorageMember())   return;
   if (!initialized) {
-    PartitionStateGenerator psg=getPartitionStateGenerator();
-    logger.log(Level.INFO,"Initializing cluster partition table first arrangement...");
-    PartitionInfo[] newState=psg.initialize(concurrentMapManager.lsMembers,PARTITION_COUNT);
-    if (newState != null) {
-      for (      PartitionInfo partitionInfo : newState) {
-        partitions[partitionInfo.getPartitionId()].setPartitionInfo(partitionInfo);
+    lock.lock();
+    try {
+      if (initialized)       return;
+      PartitionStateGenerator psg=getPartitionStateGenerator();
+      logger.log(Level.INFO,"Initializing cluster partition table first arrangement...");
+      PartitionInfo[] newState=psg.initialize(node.getClusterImpl().getMembers(),partitionCount);
+      if (newState != null) {
+        for (        PartitionInfo partitionInfo : newState) {
+          partitions[partitionInfo.getPartitionId()].setPartitionInfo(partitionInfo);
+        }
       }
+      initialized=true;
+      sendPartitionRuntimeState();
     }
-    sendPartitionRuntimeState();
-    initialized=true;
+  finally {
+      lock.unlock();
+    }
   }
 }

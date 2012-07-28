@@ -1,41 +1,38 @@
 {
   CMap cmap=getOrCreateMap(request.name);
-  SystemLogService css=node.getSystemLogService();
-  if (css.shouldLog(CS_INFO)) {
-    css.logObject(request,CS_INFO,cmap);
+  SystemLogService css=systemLogService;
+  if (css.shouldLog(TRACE)) {
+    css.logObject(request,TRACE,cmap);
   }
   boolean checkCapacity=request.operation != CONCURRENT_MAP_REPLACE_IF_NOT_NULL;
   boolean overCapacity=checkCapacity && cmap.overCapacity();
   boolean cmapNotLocked=cmap.isNotLocked(request);
-  if (css.shouldLog(CS_TRACE)) {
+  if (css.shouldLog(TRACE)) {
     css.trace(request,"OverCapacity/CmapNotLocked",overCapacity,cmapNotLocked);
   }
   if (cmapNotLocked) {
     if (!overCapacity) {
       if (shouldSchedule(request)) {
         if (request.hasEnoughTimeToSchedule()) {
-          if (css.shouldLog(CS_INFO)) {
-            Record r=cmap.getRecord(request);
-            int scheduledActionCount=(r == null) ? 0 : r.getScheduledActionCount();
-            DistributedLock lock=(r == null) ? null : r.getLock();
-            css.info(request,MapSystemLogFactory.newScheduleRequest(lock,scheduledActionCount));
+          if (css.shouldLog(INFO)) {
+            css.info(request,MapSystemLogFactory.newScheduleRequest(request,cmap.getRecord(request)));
           }
           schedule(request);
         }
  else {
-          if (css.shouldLog(CS_INFO)) {
-            css.info(request,"NoTimeToSchedule");
+          if (css.shouldLog(INFO)) {
+            css.info(request,"NoTimeToSchedule",request.name,request.operation);
           }
           onNoTimeToSchedule(request);
         }
         return;
       }
       Record record=cmap.getRecord(request);
-      if (css.shouldLog(CS_TRACE)) {
+      if (css.shouldLog(TRACE)) {
         css.trace(request,"Record is",record);
       }
       if ((record == null || record.isLoadable()) && cmap.loader != null && request.operation != ClusterOperation.CONCURRENT_MAP_SET) {
-        if (css.shouldLog(CS_TRACE)) {
+        if (css.shouldLog(TRACE)) {
           css.trace(request,"Will Load");
         }
         storeExecutor.execute(new PutLoader(cmap,request),request.key.hashCode());
@@ -49,10 +46,10 @@
       returnResponse(request);
     }
  else {
-      returnRedoResponse(request);
+      returnRedoResponse(request,REDO_MAP_OVER_CAPACITY);
     }
   }
  else {
-    returnRedoResponse(request);
+    returnRedoResponse(request,REDO_MAP_LOCKED);
   }
 }

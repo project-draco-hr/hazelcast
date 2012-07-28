@@ -1,6 +1,7 @@
 {
   this.name=name;
   lifecycleService=new LifecycleServiceImpl(FactoryImpl.this);
+  registerConfigSerializers(config);
   managedContext=new HazelcastManagedContext(this,config.getManagedContext());
   node=new Node(this,config);
   lifecycleService.fireLifecycleEvent(STARTING);
@@ -10,6 +11,7 @@
   locksMapProxy=proxyFactory.createMapProxy(Prefix.LOCKS_MAP_HAZELCAST);
   node.start();
   if (!node.isActive()) {
+    node.connectionManager.shutdown();
     throw new IllegalStateException("Node failed to start!");
   }
   final Set<Member> members=node.getClusterImpl().getMembers();
@@ -22,24 +24,6 @@
       }
     }
     if (target != null) {
-      DistributedTask task=new DistributedTask(new GetAllProxyKeysCallable(),target);
-      Future f=getExecutorService().submit(task);
-      try {
-        final Set<ProxyKey> proxyKeys=(Set<ProxyKey>)f.get(10,TimeUnit.SECONDS);
-        for (        final ProxyKey proxyKey : proxyKeys) {
-          if (!proxies.containsKey(proxyKey)) {
-            node.clusterService.enqueueAndReturn(new Processable(){
-              public void process(){
-                createProxy(proxyKey);
-              }
-            }
-);
-          }
-        }
-      }
- catch (      Exception e) {
-        logger.log(Level.WARNING,e.getMessage(),e);
-      }
     }
   }
   managementService=new ManagementService(this);

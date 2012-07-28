@@ -1,11 +1,16 @@
 {
-  concurrentMapManager.checkServiceThread();
-  final MigratingPartition currentMigratingPartition=migratingPartition;
-  final MigratingPartition newMigratingPartition=new MigratingPartition(partitionId,replicaIndex,currentAddress,newAddress);
-  if (!newMigratingPartition.equals(currentMigratingPartition)) {
-    if (currentMigratingPartition != null) {
-      logger.log(Level.FINEST,"Replacing current " + currentMigratingPartition + " with "+ newMigratingPartition);
+  lock.lock();
+  try {
+    final MigratingPartition currentMigratingPartition=migratingPartition;
+    final MigratingPartition newMigratingPartition=new MigratingPartition(partitionId,replicaIndex,currentAddress,newAddress);
+    if (!newMigratingPartition.equals(currentMigratingPartition)) {
+      if (currentMigratingPartition != null) {
+        logger.log(Level.FINEST,"Replacing current " + currentMigratingPartition + " with "+ newMigratingPartition);
+      }
+      migratingPartition=newMigratingPartition;
     }
-    migratingPartition=newMigratingPartition;
+  }
+  finally {
+    lock.unlock();
   }
 }

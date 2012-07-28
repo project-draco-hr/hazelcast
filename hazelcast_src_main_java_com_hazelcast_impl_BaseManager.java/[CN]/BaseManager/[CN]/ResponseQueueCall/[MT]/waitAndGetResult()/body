@@ -1,15 +1,22 @@
 {
+  final long noResponseTimeout=(long)(request.timeout * 1.5f);
+  final long start=Clock.currentTimeMillis();
   while (true) {
     try {
-      Object obj=responses.poll(10,TimeUnit.SECONDS);
+      Object obj=responses.poll(operationResponsePollTimeout,TimeUnit.SECONDS);
       if (obj != null) {
+        if (obj instanceof DistributedTimeoutException) {
+          throw new OperationTimeoutException(request.operation.toString(),"Operation Timeout: " + request.timeout);
+        }
         return obj;
       }
       if (node.isActive()) {
-        logger.log(Level.FINEST,"Still no response! " + request);
-        SystemLogService css=node.getSystemLogService();
-        if (css.shouldTrace()) {
-          css.trace(this,"Still no response");
+        logger.log(Level.WARNING,"Still no response! " + request);
+        if (systemLogService.shouldTrace()) {
+          systemLogService.trace(this,"Still no response");
+        }
+        if (canTimeout() && noResponseTimeout <= (Clock.currentTimeMillis() - start)) {
+          throw new OperationTimeoutException(request.operation.toString(),"Operation Timeout: " + request.timeout);
         }
       }
       node.checkNodeState();

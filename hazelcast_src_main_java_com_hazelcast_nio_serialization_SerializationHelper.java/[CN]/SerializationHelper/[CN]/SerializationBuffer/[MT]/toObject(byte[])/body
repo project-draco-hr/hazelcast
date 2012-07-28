@@ -1,0 +1,21 @@
+{
+  int typeId=-1;
+  in.set(byteArray,byteArray.length);
+  try {
+    typeId=in.readInt();
+    final TypeSerializer serializer=getSerializerRegistry().serializerFor(typeId);
+    if (serializer == null) {
+      throw new IllegalArgumentException("There is no suitable de-serializer for type " + typeId);
+    }
+    return serializer.read(in);
+  }
+ catch (  Throwable e) {
+    if (e instanceof HazelcastSerializationException) {
+      throw (HazelcastSerializationException)e;
+    }
+    throw new HazelcastSerializationException("Problem while serializing type " + typeId,e);
+  }
+ finally {
+    in.set(null,0);
+  }
+}

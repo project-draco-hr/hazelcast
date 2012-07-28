@@ -1,0 +1,27 @@
+{
+  if (className == null) {
+    throw new IllegalArgumentException("ClassName cannot be null!");
+  }
+  if (className.length() <= MAX_PRIM_CLASSNAME_LENGTH && Character.isLowerCase(className.charAt(0))) {
+    final Class primitiveClass=PRIMITIVE_CLASSES.get(className);
+    if (primitiveClass != null) {
+      return primitiveClass;
+    }
+  }
+  ClassLoader theClassLoader=classLoader;
+  if (className.startsWith(HAZELCAST_BASE_PACKAGE) || className.startsWith(HAZELCAST_ARRAY)) {
+    theClassLoader=ClassLoaderUtil.class.getClassLoader();
+  }
+  if (theClassLoader == null) {
+    theClassLoader=Thread.currentThread().getContextClassLoader();
+  }
+  if (theClassLoader != null) {
+    if (className.startsWith("[")) {
+      return Class.forName(className,true,theClassLoader);
+    }
+ else {
+      return theClassLoader.loadClass(className);
+    }
+  }
+  return Class.forName(className);
+}
