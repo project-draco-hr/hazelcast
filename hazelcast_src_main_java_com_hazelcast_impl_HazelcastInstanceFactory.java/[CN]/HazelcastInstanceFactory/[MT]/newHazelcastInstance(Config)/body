@@ -1,0 +1,19 @@
+{
+  if (config == null) {
+    config=new XmlConfigBuilder().build();
+  }
+  String name=config.getInstanceName();
+  if (name == null || name.trim().length() == 0) {
+    name="_hzInstance_" + factoryIdGen.incrementAndGet() + "_"+ config.getGroupConfig().getName();
+    return newHazelcastInstance(config,name);
+  }
+ else {
+synchronized (INIT_LOCK) {
+      if (INSTANCE_MAP.containsKey(name)) {
+        throw new DuplicateInstanceNameException("HazelcastInstance with name '" + name + "' already exists!");
+      }
+      factoryIdGen.incrementAndGet();
+      return newHazelcastInstance(config,name);
+    }
+  }
+}

@@ -1,11 +1,12 @@
 {
   int threadCount=40;
   final Stats stats=new Stats();
+  final HazelcastInstance hazelcast=Hazelcast.newHazelcastInstance(null);
   ExecutorService es=Executors.newFixedThreadPool(threadCount);
   for (int i=0; i < threadCount; i++) {
     es.submit(new Runnable(){
       public void run(){
-        IMap map=Hazelcast.getMap("default");
+        IMap map=hazelcast.getMap("default");
         while (true) {
           int keyInt=(int)(Math.random() * ENTRY_COUNT);
           int operation=((int)(Math.random() * 1000)) % 20;
@@ -67,7 +68,7 @@
       while (true) {
         try {
           Thread.sleep(STATS_SECONDS * 1000);
-          System.out.println("cluster size:" + Hazelcast.getCluster().getMembers().size());
+          System.out.println("cluster size:" + hazelcast.getCluster().getMembers().size());
           Stats currentStats=stats.getAndReset();
           System.out.println(currentStats);
         }
