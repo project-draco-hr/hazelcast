@@ -9,7 +9,7 @@
   }
   lock.lock();
   try {
-    if (deadAddress.equals(getMasterAddress())) {
+    if (deadAddress.equals(node.getMasterAddress())) {
       if (node.joined()) {
         MemberImpl newMaster=getNextMemberAfter(deadAddress,false,1);
         if (newMaster != null) {
@@ -24,7 +24,7 @@
       }
       logger.log(Level.FINEST,"Now Master " + node.getMasterAddress());
     }
-    if (isMaster()) {
+    if (node.isMaster()) {
       setJoins.remove(new MemberInfo(deadAddress));
     }
     final Connection conn=node.connectionManager.getConnection(deadAddress);
@@ -35,12 +35,9 @@
     if (deadMember != null) {
       removeMember(deadMember);
       node.partitionManager.syncForDead(deadMember);
-      node.concurrentMapManager.syncForDead(deadMember);
-      node.blockingQueueManager.syncForDead(deadMember);
       node.listenerManager.syncForDead(deadAddress);
-      node.topicManager.syncForDead(deadAddress);
       disconnectExistingCalls(deadAddress);
-      if (isMaster()) {
+      if (node.isMaster()) {
         logger.log(Level.FINEST,deadAddress + " is dead. Sending remove to all other members.");
         sendRemoveMemberToOthers(deadAddress);
       }

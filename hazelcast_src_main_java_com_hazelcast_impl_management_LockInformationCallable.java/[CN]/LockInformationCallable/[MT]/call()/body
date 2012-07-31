@@ -9,22 +9,5 @@
     }
   }
   final ConcurrentHashMap<String,MapLockState> lockInformation=new ConcurrentHashMap<String,MapLockState>();
-  getClusterService().enqueueAndWait(new Processable(){
-    public void process(){
-      for (      String mapName : mapNames) {
-        final CMap cmap=getCMap(mapName);
-        Map<Object,DistributedLock> lockOwners=new HashMap<Object,DistributedLock>();
-        Map<Object,DistributedLock> lockRequested=new HashMap<Object,DistributedLock>();
-        cmap.collectScheduledLocks(lockOwners,lockRequested);
-        MapLockState mapLockState=new MapLockState();
-        mapLockState.setLockOwners(lockOwners);
-        mapLockState.setLockRequested(lockRequested);
-        mapLockState.setGlobalLock(mapName.equals(globalLockMapName));
-        mapLockState.setMapName(mapName);
-        lockInformation.put(mapName,mapLockState);
-      }
-    }
-  }
-,5);
   return lockInformation;
 }
