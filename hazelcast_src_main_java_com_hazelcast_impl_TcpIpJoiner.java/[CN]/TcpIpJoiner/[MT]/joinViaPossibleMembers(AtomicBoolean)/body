@@ -54,28 +54,42 @@
             }
           }
           if (masterCandidate) {
-            askingForApproval=true;
+            claimingMaster=true;
+            Collection<Future<Boolean>> responses=new LinkedList<Future<Boolean>>();
             for (            Address address : colPossibleAddresses) {
-              Connection conn=node.getConnectionManager().getConnection(address);
-              if (conn != null) {
-                responseCounter.incrementAndGet();
-                node.clusterImpl.sendProcessableTo(new MasterQuestion(),conn);
+              if (node.getConnectionManager().getConnection(address) != null) {
+                logger.log(Level.FINEST,"Claiming myself as master node!");
+                Invocation inv=node.nodeService.createSingleInvocation(ClusterImpl.SERVICE_NAME,new MasterClaim(),-1).setTarget(address).setTryCount(1).build();
+                responses.add(inv.invoke());
               }
             }
-            int waitCount=0;
-            while (node.isActive() && waitCount++ < 10) {
-              Thread.sleep(1000L);
-              if (responseCounter.get() == 0) {
-                if (approved) {
-                  logger.log(Level.FINEST,node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " possible addresses "+ colPossibleAddresses.size()+ ""+ colPossibleAddresses);
-                  node.setAsMaster();
-                  return;
-                }
- else {
-                  lookForMaster(colPossibleAddresses);
-                  break;
-                }
+            final long maxWait=TimeUnit.SECONDS.toMillis(10);
+            long waitTime=0L;
+            boolean allApprovedAsMaster=true;
+            for (            Future<Boolean> response : responses) {
+              if (!allApprovedAsMaster || waitTime > maxWait) {
+                allApprovedAsMaster=false;
+                break;
               }
+              long t=Clock.currentTimeMillis();
+              try {
+                allApprovedAsMaster&=response.get(1,TimeUnit.SECONDS);
+              }
+ catch (              Exception e) {
+                logger.log(Level.FINEST,e.getMessage(),e);
+                allApprovedAsMaster=false;
+              }
+ finally {
+                waitTime+=(Clock.currentTimeMillis() - t);
+              }
+            }
+            if (allApprovedAsMaster) {
+              logger.log(Level.FINEST,node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " possible addresses "+ colPossibleAddresses.size()+ ""+ colPossibleAddresses);
+              node.setAsMaster();
+              return;
+            }
+ else {
+              lookForMaster(colPossibleAddresses);
             }
           }
  else {

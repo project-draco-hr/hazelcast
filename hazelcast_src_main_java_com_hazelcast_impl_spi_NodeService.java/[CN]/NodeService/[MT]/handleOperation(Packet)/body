@@ -1,5 +1,4 @@
 {
-  ThreadContext.get().setCurrentFactory(node.factory);
   final int partitionId=packet.blockId;
   final boolean nonBlocking=packet.longValue == 1;
   final Data data=packet.getValueData();
@@ -10,7 +9,6 @@
   executor.execute(new Runnable(){
     public void run(){
       try {
-        ThreadContext.get().setCurrentFactory(node.factory);
         final Operation op=(Operation)toObject(data);
         setOperationContext(op,serviceName,caller,callId,partitionId).setConnection(packet.conn);
         final boolean noReply=(op instanceof NoReply);
@@ -26,7 +24,7 @@
               packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
               packet.setValue(toData(response));
               packet.name=serviceName;
-              node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
+              node.clusterImpl.send(packet,packet.conn);
             }
           }
 ;
@@ -63,7 +61,7 @@
         packet.longValue=1;
         packet.setValue(toData(e));
         packet.name=serviceName;
-        node.concurrentMapManager.sendOrReleasePacket(packet,packet.conn);
+        node.clusterImpl.send(packet,packet.conn);
       }
     }
   }
