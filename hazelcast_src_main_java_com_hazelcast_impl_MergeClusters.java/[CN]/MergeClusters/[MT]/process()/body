@@ -2,18 +2,19 @@
   if (conn == null) {
     return;
   }
-  Address endpoint=conn.getEndPoint();
-  if (endpoint == null || !endpoint.equals(getNode().getMasterAddress())) {
+  final Address endpoint=conn.getEndPoint();
+  final Address masterAddress=node.getMasterAddress();
+  final ILogger logger=node.loggingService.getLogger(this.getClass().getName());
+  if (endpoint == null || !endpoint.equals(masterAddress)) {
+    logger.log(Level.WARNING,"Merge instruction sent from non-master endpoint: " + endpoint);
     return;
   }
-  final ILogger logger=node.loggingService.getLogger(this.getClass().getName());
-  logger.log(Level.WARNING,node.address + " is merging [tcp/ip] to " + newTargetAddress+ ", because : instructed by master");
-  new Thread(new Runnable(){
+  node.getExecutorManager().executeNow(new Runnable(){
     public void run(){
-      ThreadContext.get().setCurrentFactory(node.factory);
+      logger.log(Level.WARNING,node.address + " is merging to " + newTargetAddress+ ", because: instructed by master "+ masterAddress);
       node.getJoiner().setTargetAddress(newTargetAddress);
       node.factory.restart();
     }
   }
-).start();
+);
 }
