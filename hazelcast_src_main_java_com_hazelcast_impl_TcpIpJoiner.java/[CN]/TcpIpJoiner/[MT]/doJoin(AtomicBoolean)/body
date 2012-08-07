@@ -1,6 +1,20 @@
 {
-  if (config.getNetworkConfig().getJoin().getTcpIpConfig().getRequiredMember() != null) {
-    joinViaRequiredMember(joined);
+  if (targetAddress != null) {
+    try {
+      long maxJoinMergeTargetMillis=node.getGroupProperties().MAX_JOIN_MERGE_TARGET_SECONDS.getInteger() * 1000;
+      joinViaTargetMember(joined,targetAddress,maxJoinMergeTargetMillis);
+    }
+  finally {
+      targetAddress=null;
+    }
+    if (!joined.get()) {
+      joinViaPossibleMembers(joined);
+    }
+  }
+ else   if (config.getNetworkConfig().getJoin().getTcpIpConfig().getRequiredMember() != null) {
+    Address requiredMember=getAddressFor(config.getNetworkConfig().getJoin().getTcpIpConfig().getRequiredMember());
+    long maxJoinMillis=node.getGroupProperties().MAX_JOIN_SECONDS.getInteger() * 1000;
+    joinViaTargetMember(joined,requiredMember,maxJoinMillis);
   }
  else {
     joinViaPossibleMembers(joined);

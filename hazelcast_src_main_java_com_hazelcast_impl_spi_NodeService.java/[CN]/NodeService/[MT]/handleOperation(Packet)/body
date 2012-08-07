@@ -11,25 +11,7 @@
       try {
         final Operation op=(Operation)toObject(data);
         setOperationContext(op,serviceName,caller,callId,partitionId).setConnection(packet.conn);
-        final boolean noReply=(op instanceof NoReply);
-        if (!noReply) {
-          ResponseHandler responseHandler=new ResponseHandler(){
-            public void sendResponse(            Object response){
-              if (!(response instanceof Operation)) {
-                response=new Response(response);
-              }
-              packet.clearForResponse();
-              packet.blockId=partitionId;
-              packet.callId=callId;
-              packet.longValue=(response instanceof NonBlockingOperation) ? 1 : 0;
-              packet.setValue(toData(response));
-              packet.name=serviceName;
-              node.clusterImpl.send(packet,packet.conn);
-            }
-          }
-;
-          op.getOperationContext().setResponseHandler(responseHandler);
-        }
+        op.getOperationContext().setResponseHandler(ResponseHandlerFactory.createRemoteResponseHandler(NodeService.this,op,packet,partitionId,callId,serviceName));
         try {
           if (partitionId != -1) {
             PartitionInfo partitionInfo=getPartitionInfo(partitionId);
@@ -48,20 +30,12 @@
  else {
             logger.log(Level.SEVERE,e.getMessage(),e);
           }
-          if (!noReply) {
-            op.getOperationContext().getResponseHandler().sendResponse(e);
-          }
+          op.getOperationContext().getResponseHandler().sendResponse(e);
         }
       }
  catch (      Exception e) {
         logger.log(Level.SEVERE,e.getMessage(),e);
-        packet.clearForResponse();
-        packet.blockId=partitionId;
-        packet.callId=callId;
-        packet.longValue=1;
-        packet.setValue(toData(e));
-        packet.name=serviceName;
-        node.clusterImpl.send(packet,packet.conn);
+        ResponseHandlerFactory.createRemoteResponseHandler(NodeService.this,null,packet,partitionId,callId,serviceName).sendResponse(e);
       }
     }
   }

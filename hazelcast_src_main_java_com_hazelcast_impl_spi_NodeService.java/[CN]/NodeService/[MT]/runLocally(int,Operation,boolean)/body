@@ -2,11 +2,12 @@
   final ExecutorService executor=getExecutor(partitionId,nonBlocking);
   executor.execute(new Runnable(){
     public void run(){
+      final ResponseHandler responseHandler=op.getOperationContext().getResponseHandler();
       if (partitionId != -1 && !nonBlocking) {
         PartitionInfo partitionInfo=getPartitionInfo(partitionId);
         Address owner=partitionInfo.getOwner();
         if (!getThisAddress().equals(owner)) {
-          op.getOperationContext().getResponseHandler().sendResponse(new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName()));
+          responseHandler.sendResponse(new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName()));
           return;
         }
       }
@@ -14,7 +15,9 @@
         op.run();
       }
  catch (      Throwable e) {
-        op.getOperationContext().getResponseHandler().sendResponse(e);
+        System.err.println("responseHandler = " + responseHandler);
+        e.printStackTrace();
+        responseHandler.sendResponse(e);
       }
     }
   }
