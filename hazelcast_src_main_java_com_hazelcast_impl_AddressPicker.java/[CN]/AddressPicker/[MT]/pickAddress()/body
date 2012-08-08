@@ -1,5 +1,5 @@
 {
-  if (address != null) {
+  if (returnAddress != null || bindAddress != null) {
     return;
   }
   try {
@@ -39,8 +39,17 @@
       }
     }
     serverSocketChannel.configureBlocking(false);
-    address=new Address(addressDef.host != null ? addressDef.host : addressDef.address,port);
-    log(Level.INFO,"Picked " + address + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
+    bindAddress=new Address(addressDef.host != null ? addressDef.host : addressDef.address,port);
+    log(Level.INFO,"Picked " + bindAddress + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
+    AddressDefinition natAddressDef=this.getSystemConfiguredAddress(config);
+    if (natAddressDef != null) {
+      returnAddress=new Address(natAddressDef.host != null ? natAddressDef.host : natAddressDef.address,port);
+      log(Level.INFO,"Picked " + returnAddress + ", using socket "+ serverSocket+ " as returning address (NAT?).");
+    }
+ else {
+      returnAddress=bindAddress;
+      log(Level.INFO,"Picked " + returnAddress + ", using socket "+ serverSocket+ " the same as the bind address.");
+    }
   }
  catch (  Exception e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
