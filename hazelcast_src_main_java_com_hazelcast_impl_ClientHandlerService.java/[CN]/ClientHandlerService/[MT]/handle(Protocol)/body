@@ -1,16 +1,16 @@
 {
   checkFirstCall();
-  ClientEndpoint clientEndpoint=getClientEndpoint(protocol.getConnection());
-  CallContext callContext=clientEndpoint.getCallContext(0);
-  CommandHandler handler=commandHandlers[protocol.getCommand().getId()];
+  ClientEndpoint clientEndpoint=getClientEndpoint(protocol.conn);
+  CallContext callContext=clientEndpoint.getCallContext(protocol.threadId != -1 ? protocol.threadId : clientEndpoint.hashCode());
+  CommandHandler handler=commandHandlers[protocol.command.getValue()];
   if (handler == null) {
     handler=unknownOperationHandler;
   }
-  if (!clientEndpoint.isAuthenticated() && !Command.AUTH.equals(protocol.getCommand())) {
-    checkAuth(protocol.getConnection());
+  if (!clientEndpoint.isAuthenticated() && !Command.AUTH.equals(protocol.command)) {
+    checkAuth(protocol.conn);
     return;
   }
-  ClientRequestHandler clientRequestHandler=new ClientProtocolRequestHandler(node,protocol,callContext,handler,clientEndpoint.getSubject(),protocol.getConnection());
+  ClientRequestHandler clientRequestHandler=new ClientProtocolRequestHandler(node,protocol,callContext,handler,clientEndpoint.getSubject(),protocol.conn);
   int hash=hash(callContext.getThreadId(),THREAD_COUNT);
   workers[hash].addWork(clientRequestHandler);
 }
