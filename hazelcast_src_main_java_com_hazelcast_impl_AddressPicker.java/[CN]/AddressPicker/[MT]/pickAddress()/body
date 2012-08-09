@@ -1,11 +1,11 @@
 {
-  if (address != null) {
+  if (publicAddress != null || bindAddress != null) {
     return;
   }
   try {
-    final Config config=node.getConfig();
-    final AddressDefinition addressDef=pickAddress(config);
-    final boolean reuseAddress=config.isReuseAddress();
+    final NetworkConfig networkConfig=node.getConfig().getNetworkConfig();
+    final AddressDefinition bindAddressDef=pickAddress(networkConfig);
+    final boolean reuseAddress=networkConfig.isReuseAddress();
     final boolean bindAny=node.getGroupProperties().SOCKET_BIND_ANY.getBoolean();
     serverSocketChannel=ServerSocketChannel.open();
     final ServerSocket serverSocket=serverSocketChannel.socket();
@@ -13,14 +13,14 @@
     serverSocket.setReuseAddress(reuseAddress);
     serverSocket.setSoTimeout(1000);
     InetSocketAddress isa;
-    int port=config.getPort();
+    int port=networkConfig.getPort();
     for (int i=0; i < 100; i++) {
       try {
         if (bindAny) {
           isa=new InetSocketAddress(port);
         }
  else {
-          isa=new InetSocketAddress(addressDef.inetAddress,port);
+          isa=new InetSocketAddress(bindAddressDef.inetAddress,port);
         }
         log(Level.FINEST,"Trying to bind inet socket address:" + isa);
         serverSocket.bind(isa,100);
@@ -28,7 +28,7 @@
         break;
       }
  catch (      final Exception e) {
-        if (config.isPortAutoIncrement()) {
+        if (networkConfig.isPortAutoIncrement()) {
           port++;
         }
  else {
@@ -39,13 +39,17 @@
       }
     }
     serverSocketChannel.configureBlocking(false);
-    if (addressDef.host != null) {
-      address=new Address(addressDef.host,port);
+    bindAddress=createAddress(bindAddressDef,port);
+    log(Level.INFO,"Picked " + bindAddress + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
+    AddressDefinition publicAddressDef=getPublicAddress(node.getConfig());
+    if (publicAddressDef != null) {
+      publicAddress=createAddress(publicAddressDef,port);
+      log(Level.INFO,"Using public address: " + publicAddress);
     }
  else {
-      address=new Address(addressDef.inetAddress,port);
+      publicAddress=bindAddress;
+      log(Level.FINEST,"Using public address the same as the bind address. " + publicAddress);
     }
-    log(Level.INFO,"Picked " + address + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
   }
  catch (  Exception e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
