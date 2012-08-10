@@ -10,9 +10,17 @@
         validJoinRequest=false;
       }
       if (validJoinRequest) {
-        if (node.isMaster() && node.isActive() && node.joined()) {
+        if (node.isActive() && node.joined()) {
           if (joinInfo.isRequest()) {
-            node.multicastService.send(joinInfo.copy(false,node.address,node.getClusterImpl().getMembers().size()));
+            if (node.isMaster()) {
+              node.multicastService.send(joinInfo.copy(false,node.address,node.getClusterImpl().getMembers().size()));
+            }
+ else             if (isMasterNode(joinInfo.address) && !checkMasterUuid(joinInfo.getUuid())) {
+              node.getLogger("NodeMulticastListener").log(Level.WARNING,"New join request has been received from current master. " + "Removing " + node.getMasterAddress());
+              AddOrRemoveConnection removeConnection=new AddOrRemoveConnection(node.getMasterAddress(),false);
+              removeConnection.setNode(node);
+              node.clusterManager.enqueueAndReturn(removeConnection);
+            }
           }
         }
  else {
