@@ -1,4 +1,5 @@
 {
+  ThreadContext.get().setCurrentFactory(node.factory);
   final Address target=inv.getTarget();
   final Operation op=inv.getOperation();
   final int partitionId=inv.getPartitionId();
@@ -23,15 +24,11 @@
     runLocally(partitionId,op,nonBlocking);
   }
  else {
-    final Packet packet=new Packet();
-    packet.operation=REMOTE_CALL;
-    packet.blockId=partitionId;
-    packet.name=serviceName;
-    packet.longValue=nonBlocking ? 1 : 0;
     Data valueData=toData(op);
-    packet.setValue(valueData);
     TheCall call=new TheCall(target,inv);
-    boolean sent=node.concurrentMapManager.registerAndSend(target,packet,call);
+    long callId=node.concurrentMapManager.registerCall(call);
+    SimpleSocketWritable ssw=new SimpleSocketWritable(REMOTE_CALL,serviceName,valueData,callId,partitionId,null,nonBlocking);
+    boolean sent=node.clusterImpl.send(ssw,target);
     if (!sent) {
       inv.setResult(new IOException("Packet not sent!"));
     }

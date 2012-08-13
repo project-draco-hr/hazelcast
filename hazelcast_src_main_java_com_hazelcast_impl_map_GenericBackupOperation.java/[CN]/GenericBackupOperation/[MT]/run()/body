@@ -1,0 +1,36 @@
+{
+  OperationContext context=getOperationContext();
+  MapService mapService=(MapService)context.getService();
+  int partitionId=context.getPartitionId();
+  MapPartition mapPartition=mapService.getMapPartition(partitionId,name);
+  if (backupOpType == BackupOpType.PUT) {
+    Record record=mapPartition.records.get(dataKey);
+    if (record == null) {
+      record=new DefaultRecord(null,mapPartition.partitionInfo.getPartitionId(),dataKey,dataValue,-1,-1,mapService.nextId());
+      mapPartition.records.put(dataKey,record);
+    }
+ else {
+      record.setValueData(dataValue);
+    }
+    record.setActive();
+    record.setDirty(true);
+  }
+ else   if (backupOpType == BackupOpType.REMOVE) {
+    Record record=mapPartition.records.get(dataKey);
+    if (record == null) {
+      record.markRemoved();
+    }
+  }
+ else   if (backupOpType == BackupOpType.LOCK) {
+    LockInfo lock=mapPartition.getOrCreateLock(getKey());
+    lock.lock(context.getCaller(),threadId,ttl);
+  }
+ else   if (backupOpType == BackupOpType.UNLOCK) {
+    LockInfo lock=mapPartition.getLock(getKey());
+    if (lock != null) {
+      lock.unlock(context.getCaller(),threadId);
+    }
+    lock.lock(context.getCaller(),threadId,ttl);
+  }
+  context.getNodeService().send(MapService.MAP_SERVICE_NAME,new BackupResponse(),partitionId,firstCallerId,firstCallerAddress);
+}

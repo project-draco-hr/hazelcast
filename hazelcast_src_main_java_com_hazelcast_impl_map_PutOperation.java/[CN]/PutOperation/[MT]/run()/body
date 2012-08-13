@@ -4,7 +4,6 @@
   }
   OperationContext context=getOperationContext();
   ResponseHandler responseHandler=context.getResponseHandler();
-  System.out.println(context.getNodeService().getThisAddress() + " Put txnId  " + txnId);
   MapService mapService=(MapService)context.getService();
   int partitionId=context.getPartitionId();
   PartitionContainer pc=mapService.getPartitionContainer(partitionId);
@@ -39,10 +38,18 @@
     }
     mapPartition.store.store(key,record.getValue());
   }
-  boolean callerBackup=takeBackup();
-  Operation preResponseBackupOp=null;
-  if (callerBackup) {
-    preResponseBackupOp=new PutBackupOperation(name,dataKey,dataValue,ttl,false);
+  int mapBackupCount=1;
+  int backupCount=0;
+  if (backupCount > 0) {
+    GenericBackupOperation op=new GenericBackupOperation(name,dataKey,dataValue,ttl);
+    op.setBackupOpType(GenericBackupOperation.BackupOpType.PUT);
+    op.setFirstCallerId(backupCallId,context.getCaller());
+    try {
+      getOperationContext().getNodeService().sendBackups(MapService.MAP_SERVICE_NAME,op,partitionId,mapBackupCount);
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
   }
-  responseHandler.sendResponse(new Response(preResponseBackupOp,oldValueData,false));
+  responseHandler.sendResponse(oldValueData);
 }

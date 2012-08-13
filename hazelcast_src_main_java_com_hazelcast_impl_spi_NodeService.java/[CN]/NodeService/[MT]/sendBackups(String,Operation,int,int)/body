@@ -1,0 +1,19 @@
+{
+  backupCount=Math.min(getClusterImpl().getSize() - 1,backupCount);
+  if (backupCount > 0) {
+    Data opData=toData(op);
+    PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+    for (int i=0; i < backupCount; i++) {
+      int replicaIndex=i + 1;
+      Address replicaTarget=partitionInfo.getReplicaAddress(replicaIndex);
+      if (replicaTarget != null) {
+        if (replicaTarget.equals(getThisAddress())) {
+        }
+ else {
+          SimpleSocketWritable ssw=new SimpleSocketWritable(REMOTE_CALL,serviceName,opData,-1,partitionId,null,true);
+          node.clusterImpl.send(ssw,replicaTarget);
+        }
+      }
+    }
+  }
+}
