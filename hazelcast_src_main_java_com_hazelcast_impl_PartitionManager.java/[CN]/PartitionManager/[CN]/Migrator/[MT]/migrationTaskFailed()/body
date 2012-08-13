@@ -1,0 +1,12 @@
+{
+  systemLogService.logPartition("Migration task has failed => " + migrationRequestTask);
+  concurrentMapManager.enqueueAndWait(new Processable(){
+    public void process(){
+      compareAndSetActiveMigratingPartition(migrationRequestTask,null);
+      if (migrationRequestTask.getReplicaIndex() == 0) {
+        sendMigrationEvent(MigrationStatus.FAILED,migrationRequestTask);
+      }
+    }
+  }
+);
+}

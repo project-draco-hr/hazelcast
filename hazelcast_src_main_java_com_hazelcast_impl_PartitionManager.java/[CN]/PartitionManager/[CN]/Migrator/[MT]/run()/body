@@ -6,7 +6,7 @@
     if (migrationRequestTask.isMigration() && migrationRequestTask.getReplicaIndex() == 0) {
       concurrentMapManager.enqueueAndWait(new Processable(){
         public void process(){
-          concurrentMapManager.sendMigrationEvent(true,migrationRequestTask);
+          sendMigrationEvent(MigrationStatus.STARTED,migrationRequestTask);
         }
       }
 ,100);
@@ -63,19 +63,13 @@
       }
  else {
         logger.log(Level.WARNING,"Migration task has failed => " + migrationRequestTask);
-        systemLogService.logPartition("Migration task has failed => " + migrationRequestTask);
-        concurrentMapManager.enqueueAndWait(new Processable(){
-          public void process(){
-            compareAndSetActiveMigratingPartition(migrationRequestTask,null);
-          }
-        }
-);
+        migrationTaskFailed();
       }
     }
   }
  catch (  Throwable t) {
     logger.log(Level.WARNING,"Error [" + t.getClass().getName() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestTask);
     logger.log(Level.FINEST,t.getMessage(),t);
-    systemLogService.logPartition("Failed! " + migrationRequestTask);
+    migrationTaskFailed();
   }
 }
