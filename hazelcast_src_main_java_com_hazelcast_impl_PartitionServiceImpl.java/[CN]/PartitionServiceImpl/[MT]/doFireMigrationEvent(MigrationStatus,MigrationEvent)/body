@@ -1,6 +1,6 @@
 {
   if (migrationEvent == null)   throw new IllegalArgumentException("MigrationEvent is null.");
-  if (!started) {
+  if (status == MigrationStatus.COMPLETED) {
     concurrentMapManager.node.executorManager.executeNow(new Runnable(){
       public void run(){
         if (migrationEvent.getOldOwner() != null && migrationEvent.getOldOwner().localMember()) {
@@ -19,14 +19,19 @@
   for (  final MigrationListener migrationListener : lsMigrationListeners) {
     concurrentMapManager.node.executorManager.executeNow(new Runnable(){
       public void run(){
-        if (started) {
+switch (status) {
+case STARTED:
           migrationListener.migrationStarted(migrationEvent);
-        }
- else {
-          migrationListener.migrationCompleted(migrationEvent);
-        }
-      }
-    }
+        break;
+case COMPLETED:
+      migrationListener.migrationCompleted(migrationEvent);
+    break;
+case FAILED:
+  migrationListener.migrationFailed(migrationEvent);
+break;
+}
+}
+}
 );
-  }
+}
 }
