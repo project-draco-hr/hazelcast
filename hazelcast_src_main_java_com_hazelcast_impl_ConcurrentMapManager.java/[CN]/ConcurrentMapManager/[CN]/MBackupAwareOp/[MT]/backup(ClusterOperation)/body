@@ -5,8 +5,8 @@
   if (localBackupCount <= 0 && localAsyncBackupCount <= 0) {
     return;
   }
-  if (totalBackupCount > MAX_BACKUP_COUNT) {
-    String msg="Max backup is " + MAX_BACKUP_COUNT + " but total backupCount is "+ totalBackupCount;
+  if (totalBackupCount > maxBackupCount) {
+    String msg="Max backup is " + maxBackupCount + " but total backupCount is "+ totalBackupCount;
     logger.log(Level.SEVERE,msg);
     throw new RuntimeException(msg);
   }
@@ -29,6 +29,13 @@
   }
   for (int i=0; i < localBackupCount; i++) {
     MBackup backupOp=backupOps[i];
-    backupOp.getResultAsBoolean();
+    try {
+      backupOp.getResultAsBoolean();
+    }
+ catch (    HazelcastException e) {
+      final Level level=backupRedoEnabled ? Level.WARNING : Level.FINEST;
+      logger.log(level,"Backup operation [" + operation + "] has failed! "+ e.getClass().getName()+ ": "+ e.getMessage());
+      logger.log(Level.FINEST,e.getMessage(),e);
+    }
   }
 }
