@@ -1,11 +1,14 @@
 {
   CMap cmap=getOrCreateMap(request.name);
-  if (cmap.overCapacity()) {
-    returnRedoResponse(request,REDO_MAP_OVER_CAPACITY);
+  if (!cmap.isNotLocked(request)) {
+    setRedoResponse(request,REDO_MAP_LOCKED);
+  }
+ else   if (cmap.overCapacity()) {
+    setRedoResponse(request,REDO_MAP_OVER_CAPACITY);
   }
  else {
     Record record=ensureRecord(request);
-    boolean dirty=(record == null) ? false : record.isDirty();
+    boolean dirty=(record != null) && record.isDirty();
     cmap.put(request);
     if (record != null) {
       record.setDirty(dirty);
