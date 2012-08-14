@@ -1,9 +1,19 @@
 {
   try {
-    if (connectionManager != null) {
-      connectionManager.shutdown();
-      shutdown(true,false);
+    new Thread(new Runnable(){
+      public void run(){
+        if (connectionManager != null) {
+          connectionManager.shutdown();
+          LifecycleServiceImpl lifecycleService=factory.lifecycleService;
+synchronized (lifecycleService.lifecycleLock) {
+            lifecycleService.fireLifecycleEvent(SHUTTING_DOWN);
+            doShutdown(true);
+            lifecycleService.fireLifecycleEvent(SHUTDOWN);
+          }
+        }
+      }
     }
+).start();
   }
  catch (  Throwable ignored) {
     logger.log(Level.FINEST,ignored.getMessage(),ignored);
