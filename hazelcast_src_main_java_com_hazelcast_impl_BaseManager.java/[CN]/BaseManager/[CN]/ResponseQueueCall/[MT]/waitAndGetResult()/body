@@ -1,10 +1,9 @@
 {
-  final long pollTimeout=(request.timeout == Long.MAX_VALUE || request.timeout < 0) ? maxResponsePollTimeout : Math.min((request.timeout / 5) + MIN_POLL_TIMEOUT,maxResponsePollTimeout);
-  final long noResponseTimeout=(request.timeout == Long.MAX_VALUE || request.timeout < 0) ? Long.MAX_VALUE : (request.timeout > 0 ? request.timeout * 2 + MIN_POLL_TIMEOUT : pollTimeout * 2);
+  final long noResponseTimeout=(request.timeout == Long.MAX_VALUE || request.timeout < 0) ? Long.MAX_VALUE : (request.timeout > 0 ? (request.timeout * 2) + MIN_POLL_TIMEOUT : responsePollTimeout);
   final long start=Clock.currentTimeMillis();
   while (true) {
     try {
-      Object obj=responses.poll(pollTimeout,TimeUnit.MILLISECONDS);
+      Object obj=responses.poll(responsePollTimeout,TimeUnit.MILLISECONDS);
       if (obj != null) {
         if (obj instanceof DistributedTimeoutException) {
           throw new OperationTimeoutException(request.operation.toString(),"Operation Timeout: " + request.timeout);
