@@ -3,7 +3,7 @@
     if (explicitVersionCheckEnabled && value instanceof CacheEntry) {
       try {
         final CacheEntry currentEntry=(CacheEntry)value;
-        final CacheEntry previousEntry=(CacheEntry)getCache().tryLockAndGet(key,500,TimeUnit.MILLISECONDS);
+        final CacheEntry previousEntry=(CacheEntry)getCache().tryLockAndGet(key,tryLockAndGetTimeout,TimeUnit.MILLISECONDS);
         if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
           getCache().putAndUnlock(key,value);
           return true;
@@ -14,6 +14,7 @@
         }
       }
  catch (      HazelcastException e) {
+        LOG.log(Level.FINEST,"Skipping version check and put: " + e.getMessage());
         return false;
       }
     }
