@@ -1,28 +1,28 @@
 {
-  while (running) {
-    try {
-      Runnable runnable=queue.poll();
-      if (runnable != null) {
-        runnable.run();
-        return;
-      }
-      final JoinInfo joinInfo=receive();
-      if (joinInfo != null) {
-        for (        MulticastListener multicastListener : lsListeners) {
-          try {
-            multicastListener.onMessage(joinInfo);
-          }
- catch (          Exception e) {
-            logger.log(Level.WARNING,e.getMessage(),e);
+  try {
+    while (running) {
+      try {
+        final JoinInfo joinInfo=receive();
+        if (joinInfo != null) {
+          for (          MulticastListener multicastListener : lsListeners) {
+            try {
+              multicastListener.onMessage(joinInfo);
+            }
+ catch (            Exception e) {
+              logger.log(Level.WARNING,e.getMessage(),e);
+            }
           }
         }
       }
+ catch (      OutOfMemoryError e) {
+        OutOfMemoryErrorDispatcher.onOutOfMemory(e);
+      }
+catch (      Exception e) {
+        logger.log(Level.WARNING,e.getMessage(),e);
+      }
     }
- catch (    OutOfMemoryError e) {
-      node.onOutOfMemory(e);
-    }
-catch (    Exception e) {
-      logger.log(Level.WARNING,e.getMessage(),e);
-    }
+  }
+  finally {
+    cleanup();
   }
 }
