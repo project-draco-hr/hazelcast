@@ -1,0 +1,61 @@
+{
+  int threadId=-1;
+  String flag=null;
+  Command command;
+  String[] args;
+  ByteBuffer[] buffers;
+  final DataInputStream dis=connection.getInputStream();
+  String commandLine=readLine(dis);
+  String[] split=SocketProtocolReader.fastSplit(commandLine,' ');
+  if (split.length == 0) {
+    throw new RuntimeException("Wrong command from server");
+  }
+  int commandIndex;
+  int specialArgCount;
+  if (numericPattern.matcher(split[0]).matches()) {
+    threadId=Integer.parseInt(split[0]);
+    commandIndex=1;
+    flag=split[2];
+    specialArgCount=3;
+  }
+ else {
+    commandIndex=0;
+    specialArgCount=1;
+  }
+  try {
+    command=Command.valueOf(split[commandIndex]);
+  }
+ catch (  IllegalArgumentException illegalArgException) {
+    command=Command.UNKNOWN;
+  }
+  int bufferCount=-1;
+  int argLength=split.length - specialArgCount;
+  if (split.length > 0 && split[split.length - 1].startsWith("#")) {
+    bufferCount=Integer.parseInt(split[split.length - 1].substring(1));
+  }
+  if (bufferCount >= 0)   argLength--;
+  args=new String[argLength];
+  for (int i=0; i < argLength; i++) {
+    args[i]=split[i + specialArgCount];
+  }
+  if (bufferCount < 0)   bufferCount=0;
+  buffers=new ByteBuffer[bufferCount];
+  if (bufferCount > 0) {
+    String sizeLine=readLine(dis);
+    String[] sizes=SocketProtocolReader.fastSplit(sizeLine,' ');
+    int i=0;
+    for (    String size : sizes) {
+      int length=Integer.parseInt(size);
+      byte[] bytes=new byte[length];
+      dis.readFully(bytes);
+      buffers[i++]=ByteBuffer.wrap(bytes);
+    }
+    dis.readByte();
+    dis.readByte();
+  }
+  if (command.equals(Command.UNKNOWN)) {
+    throw new RuntimeException("Unknown command: " + split[commandIndex]);
+  }
+  Protocol protocol=new Protocol(null,command,flag,threadId,false,args,buffers);
+  return protocol;
+}
