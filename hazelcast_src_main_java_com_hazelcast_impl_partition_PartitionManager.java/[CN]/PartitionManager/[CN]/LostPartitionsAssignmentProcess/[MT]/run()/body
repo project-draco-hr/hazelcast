@@ -2,18 +2,19 @@
   if (!node.isMaster() || !node.isActive())   return;
   lock.lock();
   try {
-    for (    MigrationRequestOperation migrationRequestTask : lostQ) {
-      int partitionId=migrationRequestTask.getPartitionId();
-      int replicaIndex=migrationRequestTask.getReplicaIndex();
+    for (    MigrationRequestOperation migrationRequestOp : lostQ) {
+      int partitionId=migrationRequestOp.getPartitionId();
+      int replicaIndex=migrationRequestOp.getReplicaIndex();
       if (replicaIndex != 0 || partitionId >= partitionCount) {
-        logger.log(Level.WARNING,"Wrong task for lost partitions assignment process" + " => " + migrationRequestTask);
+        logger.log(Level.WARNING,"Wrong task for lost partitions assignment process" + " => " + migrationRequestOp);
         continue;
       }
       PartitionInfo partition=partitions[partitionId];
-      Address newOwner=migrationRequestTask.getToAddress();
+      Address newOwner=migrationRequestOp.getToAddress();
       MemberImpl ownerMember=node.clusterImpl.getMember(newOwner);
       if (ownerMember != null) {
         partition.setReplicaAddress(replicaIndex,newOwner);
+        sendMigrationEvent(MigrationStatus.COMPLETED,migrationRequestOp.createMigratingPartition());
       }
     }
     sendPartitionRuntimeState();

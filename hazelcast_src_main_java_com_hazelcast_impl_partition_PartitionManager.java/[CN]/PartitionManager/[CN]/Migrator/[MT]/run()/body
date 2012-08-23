@@ -3,6 +3,9 @@
     if (!node.isActive() || !node.isMaster()) {
       return;
     }
+    if (migrationRequestOp.isMigration() && migrationRequestOp.getReplicaIndex() == 0) {
+      sendMigrationEvent(MigrationStatus.STARTED,migrationRequestOp.createMigratingPartition());
+    }
     if (migrationRequestOp.getToAddress() == null) {
       logger.log(Level.FINEST,"Fixing partition, " + migrationRequestOp.getReplicaIndex() + ". replica of partition["+ migrationRequestOp.getPartitionId()+ "] should be removed.");
       removeReplicaOwner();
@@ -36,14 +39,13 @@
       }
  else {
         logger.log(Level.WARNING,"Migration task has failed => " + migrationRequestOp);
-        systemLogService.logPartition("Migration task has failed => " + migrationRequestOp);
-        compareAndSetActiveMigratingPartition(migrationRequestOp.createMigratingPartition(),null);
+        migrationTaskFailed();
       }
     }
   }
  catch (  Throwable t) {
     logger.log(Level.WARNING,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestOp);
     logger.log(Level.FINEST,t.getMessage(),t);
-    systemLogService.logPartition("Failed! " + migrationRequestOp);
+    migrationTaskFailed();
   }
 }

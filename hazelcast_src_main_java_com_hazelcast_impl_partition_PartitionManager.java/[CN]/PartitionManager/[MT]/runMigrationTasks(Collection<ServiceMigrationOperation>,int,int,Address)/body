@@ -1,10 +1,11 @@
 {
   addActiveMigration(partitionId,replicaIndex,from,node.getThisAddress());
   boolean error=false;
-  for (  ServiceMigrationOperation task : tasks) {
+  for (  ServiceMigrationOperation op : operations) {
     try {
-      Invocation inv=node.nodeService.createSingleInvocation(task.getServiceName(),task,partitionId).setTryCount(1).setTarget(node.getThisAddress()).build();
-      inv.invoke().get();
+      nodeService.setOperationContext(op,op.getServiceName(),from,-1,partitionId,replicaIndex);
+      ResponseHandlerFactory.setNoReplyResponseHandler(nodeService,op);
+      op.run();
     }
  catch (    Throwable e) {
       error=true;
@@ -12,12 +13,12 @@
       break;
     }
   }
-  for (  ServiceMigrationOperation task : tasks) {
+  for (  ServiceMigrationOperation op : operations) {
     if (!error) {
-      task.onSuccess();
+      op.onSuccess();
     }
  else {
-      task.onError();
+      op.onError();
     }
   }
   return !error;

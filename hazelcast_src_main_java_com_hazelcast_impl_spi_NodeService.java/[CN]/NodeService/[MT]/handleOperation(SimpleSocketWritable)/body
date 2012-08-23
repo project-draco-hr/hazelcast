@@ -1,5 +1,4 @@
 {
-  ThreadContext.get().setCurrentInstance(node.hazelcastInstance);
   final int partitionId=ssw.getPartitionId();
   final int replicaIndex=ssw.getReplicaIndex();
   final Data data=ssw.getValue();
@@ -10,24 +9,10 @@
   executor.execute(new Runnable(){
     public void run(){
       try {
-        ThreadContext.get().setCurrentInstance(node.hazelcastInstance);
         final Operation op=(Operation)toObject(data);
         setOperationContext(op,op.getServiceName(),caller,callId,partitionId,replicaIndex);
         op.setConnection(ssw.getConn());
-        final boolean noReply=(op instanceof NoReply);
-        if (!noReply) {
-          ResponseHandler responseHandler=new ResponseHandler(){
-            public void sendResponse(            Object response){
-              if (!(response instanceof Operation)) {
-                response=new Response(response);
-              }
-              boolean nb=(response instanceof NonBlockingOperation);
-              node.clusterImpl.send(new SimpleSocketWritable(REMOTE_CALL,serviceName,toData(response),callId,partitionId,replicaIndex,null,nb),ssw.getConn());
-            }
-          }
-;
-          op.setResponseHandler(responseHandler);
-        }
+        ResponseHandlerFactory.setRemoteResponseHandler(NodeService.this,op,partitionId,replicaIndex,callId,serviceName);
         try {
           if (partitionId != -1) {
             PartitionInfo partitionInfo=getPartitionInfo(partitionId);
@@ -39,17 +24,8 @@
           op.run();
         }
  catch (        Throwable e) {
-          e.printStackTrace();
-          if (e instanceof RetryableException) {
-            logger.log(Level.WARNING,e.getClass() + ": " + e.getMessage());
-            logger.log(Level.FINEST,e.getMessage(),e);
-          }
- else {
-            logger.log(Level.SEVERE,e.getMessage(),e);
-          }
-          if (!noReply) {
-            op.getResponseHandler().sendResponse(e);
-          }
+          logOperationError(e);
+          op.getResponseHandler().sendResponse(e);
         }
       }
  catch (      Exception e) {
