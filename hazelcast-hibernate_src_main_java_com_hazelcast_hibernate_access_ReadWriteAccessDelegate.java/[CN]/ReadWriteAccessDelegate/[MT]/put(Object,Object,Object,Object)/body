@@ -1,14 +1,20 @@
 {
   if (versionComparator != null) {
     if (explicitVersionCheckEnabled && value instanceof CacheEntry) {
-      final CacheEntry currentEntry=(CacheEntry)value;
-      final CacheEntry previousEntry=(CacheEntry)getCache().tryLockAndGet(key,500,TimeUnit.MILLISECONDS);
-      if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
-        getCache().putAndUnlock(key,value);
-        return true;
-      }
+      try {
+        final CacheEntry currentEntry=(CacheEntry)value;
+        final CacheEntry previousEntry=(CacheEntry)getCache().tryLockAndGet(key,tryLockAndGetTimeout,TimeUnit.MILLISECONDS);
+        if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
+          getCache().putAndUnlock(key,value);
+          return true;
+        }
  else {
-        getCache().unlock(key);
+          getCache().unlock(key);
+          return false;
+        }
+      }
+ catch (      HazelcastException e) {
+        LOG.log(Level.FINEST,"Skipping version check and put: " + e.getMessage());
         return false;
       }
     }

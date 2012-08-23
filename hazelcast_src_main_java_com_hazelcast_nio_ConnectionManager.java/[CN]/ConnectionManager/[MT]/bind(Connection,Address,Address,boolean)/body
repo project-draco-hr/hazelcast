@@ -1,0 +1,32 @@
+{
+  log(Level.FINEST,"Binding " + connection + " to "+ remoteEndPoint+ ", replyBack is "+ replyBack);
+  final Address thisAddress=ioService.getThisAddress();
+  if (!connection.isClient() && !thisAddress.equals(localEndpoint)) {
+    log(Level.WARNING,"Wrong bind request from " + remoteEndPoint + "! This node is not requested endpoint: "+ localEndpoint);
+    connection.close();
+    return false;
+  }
+  connection.setEndPoint(remoteEndPoint);
+  if (replyBack) {
+    sendBindRequest(connection,remoteEndPoint,false);
+  }
+  final Connection existingConnection=mapConnections.get(remoteEndPoint);
+  if (existingConnection != null) {
+    if (existingConnection != connection) {
+      log(Level.WARNING,existingConnection + " is already bound  to " + remoteEndPoint);
+    }
+    return false;
+  }
+  if (!remoteEndPoint.equals(thisAddress)) {
+    if (!connection.isClient()) {
+      connection.setMonitor(getConnectionMonitor(remoteEndPoint,true));
+    }
+    mapConnections.put(remoteEndPoint,connection);
+    setConnectionInProgress.remove(remoteEndPoint);
+    for (    ConnectionListener listener : setConnectionListeners) {
+      listener.connectionAdded(connection);
+    }
+    return true;
+  }
+  return false;
+}

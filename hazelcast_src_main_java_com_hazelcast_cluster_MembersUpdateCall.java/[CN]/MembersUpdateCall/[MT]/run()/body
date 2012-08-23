@@ -1,6 +1,14 @@
 {
-  Node node=getNodeService().getNode();
-  node.getClusterImpl().setMasterTime(masterTime);
-  node.clusterImpl.updateMembers(getMemberInfos());
-  getResponseHandler().sendResponse(Boolean.TRUE);
+  final Node node=getNodeService().getNode();
+  final Connection conn=getConnection();
+  final Address masterAddress=conn != null ? conn.getEndPoint() : null;
+  final boolean accept=conn == null || (masterAddress != null && masterAddress.equals(node.getMasterAddress()));
+  if (accept) {
+    node.getClusterImpl().setMasterTime(masterTime);
+    node.clusterImpl.updateMembers(getMemberInfos());
+    getResponseHandler().sendResponse(Boolean.TRUE);
+  }
+ else {
+    getResponseHandler().sendResponse(Boolean.FALSE);
+  }
 }
