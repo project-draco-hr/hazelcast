@@ -1,0 +1,24 @@
+{
+  final boolean nonBlocking=op instanceof NonBlockingOperation;
+  final ExecutorService executor=getExecutor(partitionId);
+  executor.execute(new Runnable(){
+    public void run(){
+      if (partitionId != -1 && !nonBlocking) {
+        PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+        Address owner=partitionInfo.getOwner();
+        if (!getThisAddress().equals(owner)) {
+          op.getResponseHandler().sendResponse(new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName()));
+          return;
+        }
+      }
+      try {
+        op.run();
+      }
+ catch (      Throwable e) {
+        e.printStackTrace();
+        op.getResponseHandler().sendResponse(e);
+      }
+    }
+  }
+);
+}

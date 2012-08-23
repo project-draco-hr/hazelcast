@@ -1,6 +1,5 @@
 {
-  OperationContext context=getOperationContext();
-  PartitionManager pm=(PartitionManager)context.getService();
+  PartitionManager pm=(PartitionManager)getService();
   System.err.println("RUNNING ... TASK... " + this);
   DataInputStream in=null;
   try {
@@ -16,8 +15,8 @@
     if (taskCount != tasks.size()) {
       getLogger().log(Level.SEVERE,"Migration task count mismatch! => " + "expected-count: " + size + ", actual-count: "+ tasks.size()+ "\nfrom: "+ from+ ", partition: "+ partitionId+ ", replica: "+ replicaIndex);
     }
-    final boolean result=pm.runMigrationTasks(tasks,partitionId,replicaIndex,from);
-    context.getResponseHandler().sendResponse(result);
+    final boolean result=pm.runMigrationTasks(this,tasks,partitionId,replicaIndex,from);
+    getResponseHandler().sendResponse(result);
   }
  catch (  Throwable e) {
     Level level=Level.WARNING;
@@ -25,7 +24,7 @@
       level=Level.FINEST;
     }
     getLogger().log(level,e.getMessage(),e);
-    context.getResponseHandler().sendResponse(Boolean.FALSE);
+    getResponseHandler().sendResponse(Boolean.FALSE);
   }
  finally {
     IOUtil.closeResource(in);

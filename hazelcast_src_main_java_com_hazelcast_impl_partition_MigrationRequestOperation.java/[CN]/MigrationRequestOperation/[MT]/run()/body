@@ -1,6 +1,7 @@
 {
-  OperationContext context=getOperationContext();
-  final ResponseHandler responseHandler=context.getResponseHandler();
+  int partitionId=getPartitionId();
+  int replicaIndex=getReplicaIndex();
+  final ResponseHandler responseHandler=getResponseHandler();
   if (to.equals(from)) {
     getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
     responseHandler.sendResponse(Boolean.FALSE);
@@ -9,8 +10,8 @@
   if (from == null) {
     getLogger().log(Level.FINEST,"From address is null => " + toString());
   }
-  PartitionManager pm=(PartitionManager)context.getService();
-  System.err.println("RUNNING ... REQUEST TASK... " + this);
+  PartitionManager pm=(PartitionManager)getService();
+  System.err.println(getServiceName() + " RUNNING ... REQUEST TASK... " + this);
   try {
     Member target=pm.getMember(to);
     if (target == null) {
@@ -19,9 +20,9 @@
       return;
     }
     final Collection<ServiceMigrationOperation> tasks=pm.collectMigrationTasks(partitionId,replicaIndex,to,diffOnly);
-    Invocation inv=context.getNodeService().createSingleInvocation(PartitionManager.PARTITION_SERVICE_NAME,new MigrationOperation(partitionId,tasks,replicaIndex,from),-1).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
+    Invocation inv=getNodeService().createSingleInvocation(PartitionManager.PARTITION_SERVICE_NAME,new MigrationOperation(partitionId,tasks,replicaIndex,from),partitionId).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
     Future future=inv.invoke();
-    final long timeout=context.getNodeService().getNode().groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong();
+    final long timeout=getNodeService().getNode().groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong();
     Boolean result=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
     responseHandler.sendResponse(result);
   }

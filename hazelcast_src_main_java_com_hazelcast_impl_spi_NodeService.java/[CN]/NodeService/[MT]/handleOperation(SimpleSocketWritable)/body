@@ -1,18 +1,19 @@
 {
-  ThreadContext.get().setCurrentFactory(node.factory);
+  ThreadContext.get().setCurrentInstance(node.hazelcastInstance);
   final int partitionId=ssw.getPartitionId();
-  final boolean nonBlocking=ssw.isNonBlocking();
+  final int replicaIndex=ssw.getReplicaIndex();
   final Data data=ssw.getValue();
   final long callId=ssw.getCallId();
   final Address caller=ssw.getConn().getEndPoint();
   final String serviceName=ssw.getName();
-  final Executor executor=getExecutor(partitionId,nonBlocking);
+  final Executor executor=getExecutor(partitionId);
   executor.execute(new Runnable(){
     public void run(){
       try {
-        ThreadContext.get().setCurrentFactory(node.factory);
+        ThreadContext.get().setCurrentInstance(node.hazelcastInstance);
         final Operation op=(Operation)toObject(data);
-        setOperationContext(op,serviceName,caller,callId,partitionId).setConnection(ssw.getConn());
+        setOperationContext(op,op.getServiceName(),caller,callId,partitionId,replicaIndex);
+        op.setConnection(ssw.getConn());
         final boolean noReply=(op instanceof NoReply);
         if (!noReply) {
           ResponseHandler responseHandler=new ResponseHandler(){
@@ -21,11 +22,11 @@
                 response=new Response(response);
               }
               boolean nb=(response instanceof NonBlockingOperation);
-              node.clusterImpl.send(new SimpleSocketWritable(REMOTE_CALL,serviceName,toData(response),callId,partitionId,null,nb),ssw.getConn());
+              node.clusterImpl.send(new SimpleSocketWritable(REMOTE_CALL,serviceName,toData(response),callId,partitionId,replicaIndex,null,nb),ssw.getConn());
             }
           }
 ;
-          op.getOperationContext().setResponseHandler(responseHandler);
+          op.setResponseHandler(responseHandler);
         }
         try {
           if (partitionId != -1) {
@@ -37,7 +38,8 @@
           }
           op.run();
         }
- catch (        Exception e) {
+ catch (        Throwable e) {
+          e.printStackTrace();
           if (e instanceof RetryableException) {
             logger.log(Level.WARNING,e.getClass() + ": " + e.getMessage());
             logger.log(Level.FINEST,e.getMessage(),e);
@@ -46,13 +48,13 @@
             logger.log(Level.SEVERE,e.getMessage(),e);
           }
           if (!noReply) {
-            op.getOperationContext().getResponseHandler().sendResponse(e);
+            op.getResponseHandler().sendResponse(e);
           }
         }
       }
  catch (      Exception e) {
         logger.log(Level.SEVERE,e.getMessage(),e);
-        node.clusterImpl.send(new SimpleSocketWritable(REMOTE_CALL,serviceName,toData(e),callId,partitionId,null,true),ssw.getConn());
+        node.clusterImpl.send(new SimpleSocketWritable(REMOTE_CALL,serviceName,toData(e),callId,partitionId,replicaIndex,null,true),ssw.getConn());
       }
     }
   }
