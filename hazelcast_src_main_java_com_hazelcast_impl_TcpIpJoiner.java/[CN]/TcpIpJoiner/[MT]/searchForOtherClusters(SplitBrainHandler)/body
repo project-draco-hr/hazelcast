@@ -15,7 +15,7 @@
     return;
   }
   for (  Address possibleAddress : colPossibleAddresses) {
-    logger.log(Level.FINEST,node.getThisAddress() + " is connecting to " + possibleAddress);
+    logger.log(Level.WARNING,node.getThisAddress() + " is connecting to " + possibleAddress);
     node.connectionManager.getOrConnect(possibleAddress,true);
     try {
       Thread.sleep(1500);
@@ -25,9 +25,12 @@
     }
     final Connection conn=node.connectionManager.getConnection(possibleAddress);
     if (conn != null) {
-      final JoinInfo response=node.clusterImpl.checkJoin(conn);
+      final JoinInfo response=node.clusterImpl.checkJoin(possibleAddress);
+      System.out.println("response = " + response);
       if (response != null && shouldMerge(response)) {
         logger.log(Level.WARNING,node.address + " is merging [tcp/ip] to " + possibleAddress);
+        targetAddress=possibleAddress;
+        sendClusterMergeToOthers(targetAddress);
         splitBrainHandler.restart();
         return;
       }

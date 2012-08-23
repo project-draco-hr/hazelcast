@@ -1,0 +1,17 @@
+{
+  this.name=name;
+  lifecycleService=new LifecycleServiceImpl(this);
+  registerConfigSerializers(config);
+  managedContext=new HazelcastManagedContext(this,config.getManagedContext());
+  node=new Node(this,config);
+  logger=node.getLogger(getClass().getName());
+  lifecycleService.fireLifecycleEvent(STARTING);
+  proxyFactory=node.initializer.getProxyFactory();
+  node.start();
+  if (!node.isActive()) {
+    node.connectionManager.shutdown();
+    throw new IllegalStateException("Node failed to start!");
+  }
+  managementService=new ManagementService(this);
+  managementService.register();
+}

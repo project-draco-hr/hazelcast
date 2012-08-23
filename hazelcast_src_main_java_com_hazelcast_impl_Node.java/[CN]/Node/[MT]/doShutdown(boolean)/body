@@ -11,7 +11,7 @@
  catch (      InterruptedException e) {
       }
     }
- while (concurrentMapManager.partitionManager.hasActiveBackupTask() && ++waitSeconds < maxWaitSeconds);
+ while (partitionManager.hasActiveBackupTask() && ++waitSeconds < maxWaitSeconds);
     if (waitSeconds >= maxWaitSeconds) {
       logger.log(Level.WARNING,"Graceful shutdown could not be completed in " + maxWaitSeconds + " seconds!");
     }
@@ -29,14 +29,8 @@
     if (managementCenterService != null) {
       managementCenterService.shutdown();
     }
-    logger.log(Level.FINEST,"Shutting down the clientHandlerService");
-    clientHandlerService.shutdown();
     logger.log(Level.FINEST,"Shutting down the partitionManager");
     partitionManager.shutdown();
-    logger.log(Level.FINEST,"Shutting down the concurrentMapManager");
-    concurrentMapManager.shutdown();
-    logger.log(Level.FINEST,"Shutting down the cluster service");
-    clusterService.stop();
     logger.log(Level.FINEST,"Shutting down the nodeService");
     nodeService.shutdown();
     if (multicastService != null) {
@@ -45,8 +39,6 @@
     }
     logger.log(Level.FINEST,"Shutting down the connection manager");
     connectionManager.shutdown();
-    logger.log(Level.FINEST,"Shutting down the executorManager");
-    executorManager.stop();
     textCommandService.stop();
     masterAddress=null;
     if (securityContext != null) {
@@ -64,7 +56,7 @@
     failedConnections.clear();
     serviceThreadPacketQueue.clear();
     systemLogService.shutdown();
-    ThreadContext.get().shutdown(factory);
+    ThreadContext.get().shutdown(hazelcastInstance);
     logger.log(Level.INFO,"Hazelcast Shutdown is completed in " + (Clock.currentTimeMillis() - start) + " ms.");
   }
 }
