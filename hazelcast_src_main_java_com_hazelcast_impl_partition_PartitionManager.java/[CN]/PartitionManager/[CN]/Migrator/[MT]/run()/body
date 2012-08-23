@@ -17,7 +17,7 @@
       if (fromMember != null) {
         migrationRequestOp.setFromAddress(fromMember.getAddress());
         Invocation inv=node.nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,migrationRequestOp,migrationRequestOp.getPartitionId()).setTryCount(3).setTryPauseMillis(1000).setTarget(migrationRequestOp.getFromAddress()).setReplicaIndex(migrationRequestOp.getReplicaIndex()).build();
-        addActiveMigration(migrationRequestOp);
+        addActiveMigration(migrationRequestOp.createMigratingPartition());
         Future future=inv.invoke();
         try {
           result=(Boolean)IOUtil.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));
@@ -37,7 +37,7 @@
  else {
         logger.log(Level.WARNING,"Migration task has failed => " + migrationRequestOp);
         systemLogService.logPartition("Migration task has failed => " + migrationRequestOp);
-        compareAndSetActiveMigratingPartition(migrationRequestOp,null);
+        compareAndSetActiveMigratingPartition(migrationRequestOp.createMigratingPartition(),null);
       }
     }
   }
