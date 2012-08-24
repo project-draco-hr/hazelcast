@@ -11,6 +11,14 @@
       if (newState != null) {
         for (        PartitionInfo partitionInfo : newState) {
           partitions[partitionInfo.getPartitionId()].setPartitionInfo(partitionInfo);
+          for (int index=0; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
+            Address to=partitionInfo.getReplicaAddress(index);
+            if (to != null) {
+              MigratingPartition mp=new MigratingPartition(partitionInfo.getPartitionId(),index,null,to);
+              sendMigrationEvent(MigrationStatus.STARTED,mp);
+              sendMigrationEvent(MigrationStatus.COMPLETED,mp);
+            }
+          }
         }
       }
       initialized=true;
