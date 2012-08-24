@@ -18,14 +18,15 @@
       responseHandler.sendResponse(Boolean.FALSE);
       return;
     }
+    final NodeService nodeService=getNodeService();
+    final long timeout=nodeService.getNode().groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong();
     pm.lockPartition(partitionId);
     final Collection<ServiceMigrationOperation> tasks=pm.collectMigrationTasks(partitionId,replicaIndex,to,diffOnly);
-    getNodeService().getExecutorService().execute(new Runnable(){
+    nodeService.getExecutorService().execute(new Runnable(){
       public void run(){
         try {
-          Invocation inv=getNodeService().createSingleInvocation(PartitionManager.PARTITION_SERVICE_NAME,new MigrationOperation(partitionId,tasks,replicaIndex,from),partitionId).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
+          Invocation inv=nodeService.createSingleInvocation(PartitionManager.PARTITION_SERVICE_NAME,new MigrationOperation(partitionId,tasks,replicaIndex,from),partitionId).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
           Future future=inv.invoke();
-          final long timeout=getNodeService().getNode().groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong();
           Boolean result=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
           responseHandler.sendResponse(result);
         }

@@ -1,8 +1,8 @@
 {
-  Data key=toData(k);
-  int partitionId=nodeService.getPartitionId(key);
   ThreadContext threadContext=ThreadContext.get();
   threadContext.setCurrentInstance(nodeService.getNode().hazelcastInstance);
+  Data key=toData(k);
+  int partitionId=nodeService.getPartitionId(key);
   TransactionImpl txn=threadContext.getTransaction();
   String txnId=null;
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
@@ -11,7 +11,6 @@
   }
   PutOperation putOperation=new PutOperation(name,toData(k),v,txnId,ttl);
   long backupCallId=mapService.createNewBackupCallQueue();
-  System.out.println(nodeService.getThisAddress() + " map.put() with BACKUP ID " + backupCallId);
   try {
     putOperation.setBackupCallId(backupCallId);
     putOperation.setServiceName(MAP_SERVICE_NAME);
@@ -20,9 +19,6 @@
     Object response=f.get();
     BlockingQueue backupResponses=mapService.getBackupCallQueue(backupCallId);
     Object backupResponse=backupResponses.poll(10,TimeUnit.SECONDS);
-    if (backupResponse == null) {
-      System.out.println(nodeService.getThisAddress() + " Has Null backup " + backupCallId);
-    }
     Object returnObj=null;
     if (response instanceof Response) {
       Response r=(Response)response;
