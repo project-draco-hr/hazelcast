@@ -1,0 +1,27 @@
+{
+  final Address target=inv.getTarget();
+  final Operation op=inv.getOperation();
+  final int partitionId=inv.getPartitionId();
+  final int replicaIndex=inv.getReplicaIndex();
+  final String serviceName=inv.getServiceName();
+  setOperationContext(op,serviceName,node.getThisAddress(),-1,partitionId,replicaIndex);
+  if (target == null) {
+    throw new NullPointerException(inv.getOperation() + ": Target is null");
+  }
+  if (!(op instanceof NonMemberOperation) && getClusterImpl().getMember(target) == null) {
+    throw new TargetNotMemberException(target,partitionId,op.getClass().getName(),serviceName);
+  }
+  if (getThisAddress().equals(target)) {
+    ResponseHandlerFactory.setLocalResponseHandler(this,inv);
+    runLocally(op);
+  }
+ else {
+    TheCall call=new TheCall(target,inv);
+    long callId=node.clusterImpl.registerCall(call);
+    op.setCallId(callId);
+    boolean sent=send(op,partitionId,target);
+    if (!sent) {
+      inv.setResult(new IOException("Packet not sent!"));
+    }
+  }
+}
