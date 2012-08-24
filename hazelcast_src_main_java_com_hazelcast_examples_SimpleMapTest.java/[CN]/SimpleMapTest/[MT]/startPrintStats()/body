@@ -1,18 +1,12 @@
 {
-  final IMap<String,byte[]> map=INSTANCE.getMap("default");
-  Executors.newSingleThreadExecutor().execute(new Runnable(){
+  Executors.newSingleThreadExecutor().submit(new Runnable(){
     public void run(){
       while (true) {
         try {
           Thread.sleep(STATS_SECONDS * 1000);
-          logger.log(Level.INFO,"cluster size:" + INSTANCE.getCluster().getMembers().size());
-          LocalMapOperationStats mapOpStats=map.getLocalMapStats().getOperationStats();
-          long period=((mapOpStats.getPeriodEnd() - mapOpStats.getPeriodStart()) / 1000);
-          if (period == 0) {
-            continue;
-          }
-          logger.log(Level.INFO,mapOpStats.toString());
-          logger.log(Level.INFO,"Operations per Second : " + mapOpStats.total() / period);
+          Stats statsNow=stats.getAndReset();
+          System.out.println(statsNow);
+          System.out.println("Operations per Second : " + statsNow.total() / STATS_SECONDS);
         }
  catch (        InterruptedException ignored) {
           return;
