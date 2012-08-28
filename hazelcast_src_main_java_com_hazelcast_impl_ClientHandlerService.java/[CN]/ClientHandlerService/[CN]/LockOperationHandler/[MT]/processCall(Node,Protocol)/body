@@ -1,17 +1,31 @@
 {
-  String name=protocol.args[0];
-  ILock lock=node.factory.getLock(name);
+  Object object;
+  long time=-1;
+  if (protocol.hasBuffer()) {
+    object=new Data(protocol.buffers[0].array());
+    if (protocol.args.length > 0) {
+      time=Long.valueOf(protocol.args[0]);
+    }
+  }
+ else {
+    object=protocol.args[0];
+    if (protocol.args.length > 1) {
+      time=Long.valueOf(protocol.args[1]);
+    }
+  }
+  ILock lock=node.factory.getLock(object);
   try {
-    if (Command.LOCK_TRYLOCK.equals(protocol.command)) {
-      if (protocol.args.length > 1) {
-        return protocol.success(String.valueOf(lock.tryLock(Long.valueOf(protocol.args[1]),TimeUnit.MILLISECONDS)));
+    if (Command.TRYLOCK.equals(protocol.command)) {
+      System.out.println("calling tryLock with " + protocol.args.length);
+      if (time != -1) {
+        return protocol.success(String.valueOf(lock.tryLock(time,TimeUnit.MILLISECONDS)));
       }
  else {
         return protocol.success(String.valueOf(lock.tryLock()));
       }
     }
  else {
-      lock.unlock();
+      lock.lock();
       return protocol.success();
     }
   }
