@@ -1,14 +1,15 @@
 {
   String name=protocol.args[0];
-  int size=protocol.buffers != null && protocol.buffers.length > 0 ? protocol.buffers.length : 0;
+  int size=protocol.hasBuffer() ? protocol.buffers.length : 0;
   Set<Object> set=new HashSet<Object>();
   for (int i=0; i < size; i++) {
     set.add(new Data(protocol.buffers[i].array()));
   }
   Map<Object,Object> map=node.factory.getMap(name).getAll(set);
-  ByteBuffer[] buffers=new ByteBuffer[size];
+  ByteBuffer[] buffers=new ByteBuffer[size * 2];
   int i=0;
   for (  Object k : set) {
+    buffers[i++]=ByteBuffer.wrap(((Data)k).buffer);
     Object v=map.get(k);
     if (v == null) {
       buffers[i++]=ByteBuffer.wrap(new byte[0]);

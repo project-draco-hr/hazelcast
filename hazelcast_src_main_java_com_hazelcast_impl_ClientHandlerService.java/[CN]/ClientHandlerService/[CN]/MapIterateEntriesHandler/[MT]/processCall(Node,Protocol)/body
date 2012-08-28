@@ -1,19 +1,22 @@
 {
-  String type=protocol.args[0];
-  String name=protocol.args[1];
-  if ("map".equals(type)) {
-    Entries entries=(Entries)node.factory.getMap(name).entrySet();
-    Collection<Map.Entry> colEntries=entries.getKeyValues();
-    ByteBuffer[] buffers=new ByteBuffer[colEntries.size() * 2];
-    int i=0;
-    for (    Object obj : colEntries) {
-      KeyValue entry=(KeyValue)obj;
-      Data key=entry.getKeyData();
-      Data value=entry.getValueData();
-      buffers[i++]=key == null ? ByteBuffer.allocate(0) : ByteBuffer.wrap(entry.getKeyData().buffer);
-      buffers[i++]=value == null ? ByteBuffer.allocate(0) : ByteBuffer.wrap(entry.getValueData().buffer);
-    }
-    return protocol.success(buffers);
+  String name=protocol.args[0];
+  Entries entries;
+  if (protocol.hasBuffer()) {
+    Predicate predicate=(Predicate)toObject(new Data(protocol.buffers[0].array()));
+    entries=(Entries)node.factory.getMap(name).entrySet(predicate);
   }
-  return protocol;
+ else {
+    entries=(Entries)node.factory.getMap(name).entrySet();
+  }
+  Collection<Map.Entry> colEntries=entries.getKeyValues();
+  ByteBuffer[] buffers=new ByteBuffer[colEntries.size() * 2];
+  int i=0;
+  for (  Object obj : colEntries) {
+    KeyValue entry=(KeyValue)obj;
+    Data key=entry.getKeyData();
+    Data value=entry.getValueData();
+    buffers[i++]=key == null ? ByteBuffer.allocate(0) : ByteBuffer.wrap(entry.getKeyData().buffer);
+    buffers[i++]=value == null ? ByteBuffer.allocate(0) : ByteBuffer.wrap(entry.getValueData().buffer);
+  }
+  return protocol.success(buffers);
 }

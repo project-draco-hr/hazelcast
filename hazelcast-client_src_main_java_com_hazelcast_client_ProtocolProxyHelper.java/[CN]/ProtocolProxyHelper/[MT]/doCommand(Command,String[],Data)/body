@@ -1,24 +1,5 @@
 {
-  ByteBuffer[] buffers=new ByteBuffer[data == null ? 0 : data.length];
-  int index=0;
-  for (  Data d : data) {
-    buffers[index++]=ByteBuffer.wrap(d.buffer);
-  }
-  if (args == null)   args=new String[]{};
-  long id=newCallId();
-  Protocol protocol=new Protocol(null,command,String.valueOf(id),getCurrentThreadId(),false,args,buffers);
-  Call call=new Call(id,protocol){
-    @Override public void onDisconnect(    Member member){
-      if (!client.getOutRunnable().queue.contains(this)) {
-        logger.log(Level.FINEST,"Re enqueue " + this);
-        client.getOutRunnable().enQueue(this);
-      }
-    }
-  }
-;
+  Call call=createCall(command,args,data);
   Protocol response=(Protocol)doCall(call);
-  if (response.buffers != null && response.buffers.length > 0 && response.buffers[0] != null) {
-    return IOUtil.toObject(response.buffers[0].array());
-  }
- else   return null;
+  return response;
 }

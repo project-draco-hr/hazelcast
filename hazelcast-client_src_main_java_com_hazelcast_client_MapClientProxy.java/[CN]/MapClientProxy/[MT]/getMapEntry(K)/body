@@ -1,8 +1,19 @@
 {
-  PacketProxyHelper.check(key);
-  CMapEntry cMapEntry=(CMapEntry)proxyHelper.doOp(ClusterOperation.CONCURRENT_MAP_GET_MAP_ENTRY,key,null);
-  if (cMapEntry == null) {
+  check(key);
+  Protocol protocol=protocolProxyHelper.doCommand(Command.MGETENTRY,new String[]{getName()},toData(key));
+  if (!protocol.hasBuffer()) {
     return null;
   }
-  return new ClientMapEntry(cMapEntry,key,this);
+  ClientMapEntry<K,V> clientMapEntry=new ClientMapEntry<K,V>(key,this);
+  clientMapEntry.setCost(Long.valueOf(protocol.args[0]));
+  clientMapEntry.setCreationTime(Long.valueOf(protocol.args[1]));
+  clientMapEntry.setExpirationTime(Long.valueOf(protocol.args[2]));
+  clientMapEntry.setHits(Integer.valueOf(protocol.args[3]));
+  clientMapEntry.setLastAccessTime(Long.valueOf(protocol.args[4]));
+  clientMapEntry.setLastStoredTime(Long.valueOf(protocol.args[5]));
+  clientMapEntry.setLastUpdateTime(Long.valueOf(protocol.args[6]));
+  clientMapEntry.setVersion(Long.valueOf(protocol.args[7]));
+  clientMapEntry.setValid(Boolean.valueOf(protocol.args[8]));
+  clientMapEntry.setV((V)toObject(new Data(protocol.buffers[0].array())));
+  return clientMapEntry;
 }
