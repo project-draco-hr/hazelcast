@@ -1,0 +1,28 @@
+{
+  long timeout=unit.toMillis(time);
+  if (timeout < 0)   timeout=0;
+  Object obj=(timeout == Long.MAX_VALUE) ? responseQ.take() : responseQ.poll(timeout,unit);
+  if (obj instanceof RetryableException) {
+    if (invokeCount < tryCount) {
+      Thread.sleep(tryPauseMillis);
+      if (timeout != Long.MAX_VALUE) {
+        timeout-=tryPauseMillis;
+      }
+      invoke();
+      return doGet(timeout,TimeUnit.MILLISECONDS);
+    }
+ else {
+      done=true;
+      throw new ExecutionException((Throwable)obj);
+    }
+  }
+ else {
+    done=true;
+    if (obj instanceof Exception) {
+      throw new ExecutionException((Throwable)obj);
+    }
+ else {
+      return obj;
+    }
+  }
+}
