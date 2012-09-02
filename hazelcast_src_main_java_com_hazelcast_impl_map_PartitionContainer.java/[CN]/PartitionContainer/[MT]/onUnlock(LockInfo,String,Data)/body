@@ -1,0 +1,25 @@
+{
+  if (lock != null && !lock.isLocked()) {
+    ScheduledOperationKey scheduledOperationKey=new ScheduledOperationKey(name,key);
+    Queue<ScheduledOperation> scheduledOps=mapScheduledOperations.get(scheduledOperationKey);
+    ScheduledOperation scheduledOp=scheduledOps.peek();
+    LockAwareOperation op=scheduledOp.getOperation();
+    while (!scheduledOp.isValid() || lock.testLock(op.getThreadId(),op.getCaller())) {
+      scheduledOps.poll();
+      if (scheduledOp.isValid()) {
+        if (scheduledOp.expired()) {
+          op.onExpire();
+        }
+ else {
+          op.doRun();
+        }
+        scheduledOp.setValid(false);
+      }
+      scheduledOp=scheduledOps.peek();
+      op=scheduledOp.getOperation();
+    }
+    if (scheduledOps.isEmpty()) {
+      mapScheduledOperations.remove(scheduledOperationKey);
+    }
+  }
+}
