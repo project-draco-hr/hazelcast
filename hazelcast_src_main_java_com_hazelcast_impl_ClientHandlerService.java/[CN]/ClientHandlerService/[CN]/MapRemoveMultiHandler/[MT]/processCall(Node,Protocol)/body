@@ -4,7 +4,12 @@
   Data value=null;
   if (protocol.buffers.length > 1) {
     value=new Data(protocol.buffers[1].array());
-    return protocol.success(String.valueOf(node.factory.getMap(name).remove(key,value)));
+    return protocol.success(String.valueOf(node.factory.getMultiMap(name).remove(key,value)));
   }
-  return protocol.success(String.valueOf(node.factory.getMap(name).remove(key)));
+  Collection<Object> collection=node.factory.getMultiMap(name).remove(key);
+  List<ByteBuffer> list=new ArrayList<ByteBuffer>(collection.size());
+  for (  Object o : collection) {
+    list.add(ByteBuffer.wrap(((Data)o).buffer));
+  }
+  return protocol.success(list.toArray(new ByteBuffer[0]));
 }
