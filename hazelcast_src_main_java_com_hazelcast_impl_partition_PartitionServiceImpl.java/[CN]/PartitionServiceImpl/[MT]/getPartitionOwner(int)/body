@@ -1,18 +1,14 @@
 {
-  MemberImpl memberOwner=null;
-  try {
-    Address ownerAddress=partitionManager.getOwner(partitionId);
-    if (ownerAddress != null) {
-      if (partitionManager.node.getThisAddress().equals(ownerAddress)) {
-        memberOwner=partitionManager.node.getLocalMember();
-      }
- else {
-        memberOwner=partitionManager.getMember(ownerAddress);
+  if (!initialized) {
+    firstArrangement();
+  }
+  if (partitions[partitionId].getOwner() == null && !node.isMaster() && node.getMasterAddress() != null) {
+    nodeService.getExecutorService().execute(new Runnable(){
+      public void run(){
+        nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,new AssignPartitions(),-1).setTarget(node.getMasterAddress()).setTryCount(1).build().invoke();
       }
     }
+);
   }
- catch (  Exception e) {
-    logger.log(Level.SEVERE,e.getMessage(),e);
-  }
-  return memberOwner;
+  return partitions[partitionId].getOwner();
 }

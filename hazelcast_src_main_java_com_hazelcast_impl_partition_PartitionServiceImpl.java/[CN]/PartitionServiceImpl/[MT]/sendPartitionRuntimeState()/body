@@ -1,0 +1,25 @@
+{
+  if (!node.isMaster() || !node.isActive() || !node.joined()) {
+    return;
+  }
+  if (!migrationActive.get()) {
+    return;
+  }
+  if (!initialized) {
+    return;
+  }
+  lock.lock();
+  try {
+    final long clusterTime=node.getClusterService().getClusterTime();
+    final Collection<MemberImpl> members=node.clusterService.getMemberList();
+    PartitionStateOperation op=new PartitionStateOperation(members,partitions,activeMigrationInfo,clusterTime,version.get());
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,op,-1).setTarget(member.getAddress()).setTryCount(1).build().invoke();
+      }
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

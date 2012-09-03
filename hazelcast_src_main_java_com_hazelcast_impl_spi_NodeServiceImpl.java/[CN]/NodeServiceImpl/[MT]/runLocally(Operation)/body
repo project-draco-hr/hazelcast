@@ -1,19 +1,11 @@
 {
-  final boolean shouldValidateTarget=op.shouldValidateTarget();
   final int partitionId=op.getPartitionId();
   final ExecutorService executor=getExecutor(partitionId);
   executor.execute(new Runnable(){
     public void run(){
       ThreadContext.get().setCurrentOperation(op);
-      if (partitionId != -1 && shouldValidateTarget) {
-        PartitionInfo partitionInfo=getPartitionInfo(partitionId);
-        Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
-        if (!getThisAddress().equals(owner)) {
-          op.getResponseHandler().sendResponse(new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName()));
-          return;
-        }
-      }
       try {
+        checkOperation(op);
         op.run();
       }
  catch (      Throwable e) {

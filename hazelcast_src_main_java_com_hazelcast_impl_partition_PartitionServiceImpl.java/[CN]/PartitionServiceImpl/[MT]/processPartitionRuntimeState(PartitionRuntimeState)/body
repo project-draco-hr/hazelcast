@@ -1,0 +1,36 @@
+{
+  lock.lock();
+  try {
+    final Address sender=partitionState.getEndpoint();
+    if (node.isMaster()) {
+      logger.log(Level.WARNING,"This is the master node and received a PartitionRuntimeState from " + sender + ". Ignoring incoming state! ");
+      return;
+    }
+ else {
+      final Address master=node.getMasterAddress();
+      if (sender == null || master == null || !master.equals(sender)) {
+        logger.log(Level.WARNING,"Received a PartitionRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+      }
+    }
+    PartitionInfo[] newPartitions=partitionState.getPartitions();
+    for (    PartitionInfo newPartition : newPartitions) {
+      PartitionInfo currentPartition=partitions[newPartition.getPartitionId()];
+      for (int index=0; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
+        Address address=newPartition.getReplicaAddress(index);
+        if (address != null && getMember(address) == null) {
+          logger.log(Level.WARNING,"Unknown " + address + " is found in received partition table from master "+ sender+ ". Probably it is dead. Partition: "+ newPartition);
+        }
+      }
+      currentPartition.setPartitionInfo(newPartition);
+    }
+    final MigrationInfo masterMigrationInfo=partitionState.getMigrationInfo();
+    if (masterMigrationInfo == null && activeMigrationInfo != null) {
+      checkAndFinalizeActiveMigration();
+    }
+    initialized=true;
+    version.set(partitionState.getVersion());
+  }
+  finally {
+    lock.unlock();
+  }
+}

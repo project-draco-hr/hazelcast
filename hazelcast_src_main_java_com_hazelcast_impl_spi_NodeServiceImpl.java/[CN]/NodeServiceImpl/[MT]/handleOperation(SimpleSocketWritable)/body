@@ -14,14 +14,7 @@
         op.setConnection(ssw.getConn());
         ResponseHandlerFactory.setRemoteResponseHandler(NodeServiceImpl.this,op,partitionId,callId);
         try {
-          if (partitionId != -1) {
-            PartitionInfo partitionInfo=getPartitionInfo(partitionId);
-            Address owner=partitionInfo.getOwner();
-            final boolean shouldValidateTarget=op.shouldValidateTarget();
-            if (shouldValidateTarget && !getThisAddress().equals(owner)) {
-              throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
-            }
-          }
+          checkOperation(op);
           op.run();
         }
  catch (        Throwable e) {
@@ -31,7 +24,7 @@
       }
  catch (      Exception e) {
         logger.log(Level.SEVERE,e.getMessage(),e);
-        node.clusterImpl.send(new SimpleSocketWritable(toData(e),callId,partitionId,replicaIndex,null,true),ssw.getConn());
+        node.clusterService.send(new SimpleSocketWritable(toData(e),callId,partitionId,replicaIndex,null,true),ssw.getConn());
       }
     }
   }

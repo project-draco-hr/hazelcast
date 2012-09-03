@@ -4,13 +4,13 @@
     hazelcastInstance=new HazelcastInstanceImpl(instanceName,config);
     INSTANCE_MAP.put(instanceName,hazelcastInstance);
     final Node node=hazelcastInstance.node;
-    boolean firstMember=(node.getClusterImpl().getMembers().iterator().next().localMember());
+    boolean firstMember=(node.getClusterService().getMembers().iterator().next().localMember());
     int initialWaitSeconds=node.groupProperties.INITIAL_WAIT_SECONDS.getInteger();
     if (initialWaitSeconds > 0) {
       try {
         Thread.sleep(initialWaitSeconds * 1000);
         if (firstMember) {
-          node.partitionManager.firstArrangement();
+          node.partitionService.firstArrangement();
         }
  else {
           Thread.sleep(4 * 1000);
@@ -20,7 +20,7 @@
       }
     }
     int initialMinClusterSize=node.groupProperties.INITIAL_MIN_CLUSTER_SIZE.getInteger();
-    while (node.getClusterImpl().getMembers().size() < initialMinClusterSize) {
+    while (node.getClusterService().getMembers().size() < initialMinClusterSize) {
       try {
         Thread.sleep(1000);
       }
@@ -29,7 +29,7 @@
     }
     if (initialMinClusterSize > 0) {
       if (firstMember) {
-        node.partitionManager.firstArrangement();
+        node.partitionService.firstArrangement();
       }
  else {
         Thread.sleep(4 * 1000);
