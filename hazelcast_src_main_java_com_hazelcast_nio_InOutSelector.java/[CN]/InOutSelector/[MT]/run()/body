@@ -2,7 +2,6 @@
   try {
     connectionManager.ioService.onIOThreadStart();
     while (live) {
-      threadWatcher.incrementRunCount();
       long currentMillis=Clock.currentTimeMillis();
       if ((currentMillis - lastPublish) > TEN_SECOND_MILLIS) {
         publishUtilization();
@@ -12,10 +11,7 @@
       if (!live)       return;
       int selectedKeyCount;
       try {
-        long startWait=System.nanoTime();
         selectedKeyCount=selector.select(waitTime);
-        long now=System.nanoTime();
-        threadWatcher.addWait((now - startWait),now);
         if (Thread.interrupted()) {
           connectionManager.ioService.handleInterruptedException(Thread.currentThread(),new RuntimeException());
           return;
