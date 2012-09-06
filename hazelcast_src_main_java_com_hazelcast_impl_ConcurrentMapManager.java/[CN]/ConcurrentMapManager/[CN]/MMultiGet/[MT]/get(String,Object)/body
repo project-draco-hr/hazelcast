@@ -5,7 +5,13 @@
   if (value instanceof AddressAwareException) {
     rethrowException(request.operation,(AddressAwareException)value);
   }
-  Collection currentValues=(Collection)value;
+  Collection currentValues;
+  if (ThreadContext.get().isClient()) {
+    currentValues=(Values)toObject((Data)value);
+  }
+ else {
+    currentValues=(Collection)value;
+  }
   if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
     List allValues=new ArrayList();
     if (currentValues != null) {
