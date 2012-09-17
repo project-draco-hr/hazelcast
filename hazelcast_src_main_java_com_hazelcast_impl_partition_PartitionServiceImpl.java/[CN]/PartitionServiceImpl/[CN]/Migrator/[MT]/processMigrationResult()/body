@@ -1,7 +1,7 @@
 {
-  int partitionId=migrationRequestOp.getPartitionId();
-  int replicaIndex=migrationRequestOp.getReplicaIndex();
-  PartitionInfo partition=partitions[partitionId];
+  final int partitionId=migrationRequestOp.getPartitionId();
+  final int replicaIndex=migrationRequestOp.getReplicaIndex();
+  final PartitionInfo partition=partitions[partitionId];
   if (PartitionInfo.MAX_REPLICA_COUNT < replicaIndex) {
     String msg="Migrated [" + partitionId + ":"+ replicaIndex+ "] but cannot assign. Length:"+ PartitionInfo.MAX_REPLICA_COUNT;
     logger.log(Level.WARNING,msg);
@@ -14,13 +14,10 @@
       if (ownerMember == null)       return;
       partition.setReplicaAddress(replicaIndex,newOwner);
       if (migrationRequestOp.getSelfCopyReplicaIndex() > -1) {
-        partition.setReplicaAddress(migrationRequestOp.getSelfCopyReplicaIndex(),migrationRequestOp.getFromAddress());
+        partition.setReplicaAddress(migrationRequestOp.getSelfCopyReplicaIndex(),migrationInfo.getFromAddress());
       }
-      checkAndFinalizeActiveMigration();
-      sendPartitionRuntimeState();
-      if (migrationRequestOp.getReplicaIndex() == 0) {
-        sendMigrationEvent(migrationRequestOp.createMigrationInfo(),MigrationStatus.COMPLETED);
-      }
+      finalizeMigration();
+      fireMigrationEvent(MigrationStatus.COMPLETED);
     }
   finally {
       lock.unlock();

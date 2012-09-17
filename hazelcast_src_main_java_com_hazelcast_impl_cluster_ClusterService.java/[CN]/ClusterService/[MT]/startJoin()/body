@@ -1,0 +1,33 @@
+{
+  logger.log(Level.FINEST,"Starting Join.");
+  lock.lock();
+  try {
+    joinInProgress=true;
+    final FinalizeJoinOperation finalizeJoinOp=new FinalizeJoinOperation(getMemberList(),getClusterTime());
+    if (setJoins != null && setJoins.size() > 0) {
+      for (      MemberInfo memberJoined : setJoins) {
+        finalizeJoinOp.addMemberInfo(memberJoined);
+      }
+    }
+    Collection<MemberInfo> members=finalizeJoinOp.getMemberInfos();
+    List<Future> calls=new ArrayList<Future>(members.size());
+    for (    final MemberInfo member : members) {
+      if (!member.getAddress().equals(thisAddress)) {
+        Invocation inv=nodeService.createSingleInvocation(SERVICE_NAME,finalizeJoinOp,-1).setTarget(member.getAddress()).setTryCount(1).build();
+        calls.add(inv.invoke());
+      }
+    }
+    updateMembers(members);
+    for (    Future future : calls) {
+      try {
+        future.get(5,TimeUnit.SECONDS);
+      }
+ catch (      Exception e) {
+        logger.log(Level.WARNING,e.getMessage(),e);
+      }
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

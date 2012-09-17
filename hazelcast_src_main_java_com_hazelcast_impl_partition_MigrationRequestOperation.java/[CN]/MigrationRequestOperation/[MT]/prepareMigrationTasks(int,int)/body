@@ -1,0 +1,17 @@
+{
+  NodeServiceImpl nodeService=(NodeServiceImpl)getNodeService();
+  final MigrationType migrationType=isMoving() ? MigrationType.MOVE : MigrationType.COPY;
+  final MigrationServiceEvent event=new MigrationServiceEvent(MigrationEndpoint.SOURCE,partitionId,replicaIndex,migrationType);
+  final Collection<Operation> tasks=new LinkedList<Operation>();
+  for (  Object serviceObject : nodeService.getServices()) {
+    if (serviceObject instanceof MigrationAwareService) {
+      MigrationAwareService service=(MigrationAwareService)serviceObject;
+      final Operation op=service.prepareMigrationOperation(event);
+      if (op != null) {
+        service.beforeMigration(event);
+        tasks.add(op);
+      }
+    }
+  }
+  return tasks;
+}

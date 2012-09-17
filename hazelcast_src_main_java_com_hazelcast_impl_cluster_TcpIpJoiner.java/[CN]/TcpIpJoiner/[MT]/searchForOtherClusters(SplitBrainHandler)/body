@@ -1,0 +1,39 @@
+{
+  final Collection<Address> colPossibleAddresses;
+  try {
+    colPossibleAddresses=getPossibleAddresses();
+  }
+ catch (  Throwable e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
+    return;
+  }
+  colPossibleAddresses.remove(node.getThisAddress());
+  for (  Member member : node.getClusterService().getMembers()) {
+    colPossibleAddresses.remove(((MemberImpl)member).getAddress());
+  }
+  if (colPossibleAddresses.isEmpty()) {
+    return;
+  }
+  for (  Address possibleAddress : colPossibleAddresses) {
+    logger.log(Level.FINEST,node.getThisAddress() + " is connecting to " + possibleAddress);
+    node.connectionManager.getOrConnect(possibleAddress,true);
+    try {
+      Thread.sleep(1500);
+    }
+ catch (    InterruptedException e) {
+      return;
+    }
+    final Connection conn=node.connectionManager.getConnection(possibleAddress);
+    if (conn != null) {
+      final JoinInfo response=node.clusterService.checkJoinInfo(possibleAddress);
+      System.out.println("response = " + response);
+      if (response != null && shouldMerge(response)) {
+        logger.log(Level.WARNING,node.getThisAddress() + " is merging [tcp/ip] to " + possibleAddress);
+        targetAddress=possibleAddress;
+        sendClusterMergeToOthers(targetAddress);
+        splitBrainHandler.restart();
+        return;
+      }
+    }
+  }
+}

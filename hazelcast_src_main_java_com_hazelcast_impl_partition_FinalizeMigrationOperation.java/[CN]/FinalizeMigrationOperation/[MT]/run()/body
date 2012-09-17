@@ -1,12 +1,21 @@
 {
-  Collection<MigrationAwareService> services=getServices();
+  final Collection<MigrationAwareService> services=getServices();
+  final MigrationEndpoint endpoint=source ? SOURCE : DESTINATION;
+  final MigrationType type=move ? MOVE : COPY;
+  final MigrationServiceEvent event=new MigrationServiceEvent(endpoint,getPartitionId(),getReplicaIndex(),type);
   for (  MigrationAwareService service : services) {
-    if (success) {
-      service.commitMigration(endpoint,getPartitionId(),getReplicaIndex());
-    }
+    try {
+      if (success) {
+        service.commitMigration(event);
+      }
  else {
-      service.rollbackMigration(endpoint,getPartitionId(),getReplicaIndex());
+        service.rollbackMigration(event);
+      }
+    }
+ catch (    Throwable e) {
+      getNodeService().getLogger(FinalizeMigrationOperation.class.getName()).log(Level.WARNING,"Error while finalizing migration -> " + event,e);
     }
   }
-  getResponseHandler().sendResponse(null);
+  PartitionServiceImpl partitionService=getService();
+  partitionService.removeActiveMigration(getPartitionId());
 }

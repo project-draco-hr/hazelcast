@@ -1,0 +1,19 @@
+{
+  final Address deadAddress=deadMember.getAddress();
+  final Collection<Future> responses=new LinkedList<Future>();
+  for (  MemberImpl member : getMemberList()) {
+    Address address=member.getAddress();
+    if (!thisAddress.equals(address) && !address.equals(deadAddress)) {
+      Future f=node.nodeService.createSingleInvocation(SERVICE_NAME,new MemberRemoveOperation(deadAddress),-1).setTarget(address).setTryCount(10).setTryPauseMillis(100).build().invoke();
+      responses.add(f);
+    }
+  }
+  for (  Future response : responses) {
+    try {
+      response.get(1,TimeUnit.SECONDS);
+    }
+ catch (    Throwable e) {
+      logger.log(Level.FINEST,e.getMessage(),e);
+    }
+  }
+}

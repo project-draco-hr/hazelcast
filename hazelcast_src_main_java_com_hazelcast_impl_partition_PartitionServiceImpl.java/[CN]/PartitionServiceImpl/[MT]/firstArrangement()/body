@@ -14,18 +14,10 @@
       if (newState != null) {
         for (        PartitionInfo partitionInfo : newState) {
           partitions[partitionInfo.getPartitionId()].setPartitionInfo(partitionInfo);
-          for (int index=0; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
-            Address to=partitionInfo.getReplicaAddress(index);
-            if (to != null) {
-              MigrationInfo mp=new MigrationInfo(partitionInfo.getPartitionId(),index,null,to);
-              sendMigrationEvent(mp,MigrationStatus.STARTED);
-              sendMigrationEvent(mp,MigrationStatus.COMPLETED);
-            }
-          }
         }
+        initialized=true;
+        sendPartitionRuntimeState();
       }
-      initialized=true;
-      sendPartitionRuntimeState();
     }
   finally {
       lock.unlock();

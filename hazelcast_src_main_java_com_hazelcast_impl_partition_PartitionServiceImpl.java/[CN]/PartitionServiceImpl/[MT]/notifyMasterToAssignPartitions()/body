@@ -1,0 +1,26 @@
+{
+  lock.lock();
+  try {
+    if (!initialized && !node.isMaster() && node.getMasterAddress() != null && node.joined()) {
+      final Future f=nodeService.submit(new Runnable(){
+        public void run(){
+          try {
+            Future f=nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,new AssignPartitions(),-1).setTarget(node.getMasterAddress()).setTryCount(1).build().invoke();
+            f.get(750,TimeUnit.MILLISECONDS);
+          }
+ catch (          Exception e) {
+            logger.log(Level.FINEST,e.getMessage(),e);
+          }
+        }
+      }
+);
+      f.get(1,TimeUnit.SECONDS);
+    }
+  }
+ catch (  Exception e) {
+    logger.log(Level.FINEST,e.getMessage(),e);
+  }
+ finally {
+    lock.unlock();
+  }
+}

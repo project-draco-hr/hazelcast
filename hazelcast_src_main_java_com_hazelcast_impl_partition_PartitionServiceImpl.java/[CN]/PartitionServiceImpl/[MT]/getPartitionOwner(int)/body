@@ -2,13 +2,8 @@
   if (!initialized) {
     firstArrangement();
   }
-  if (partitions[partitionId].getOwner() == null && !node.isMaster() && node.getMasterAddress() != null) {
-    nodeService.getExecutorService().execute(new Runnable(){
-      public void run(){
-        nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,new AssignPartitions(),-1).setTarget(node.getMasterAddress()).setTryCount(1).build().invoke();
-      }
-    }
-);
+  if (partitions[partitionId].getOwner() == null && !node.isMaster() && node.joined()) {
+    notifyMasterToAssignPartitions();
   }
   return partitions[partitionId].getOwner();
 }

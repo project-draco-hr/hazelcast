@@ -8,14 +8,19 @@
   if (!initialized) {
     return;
   }
+  final Collection<MemberImpl> members=node.clusterService.getMemberList();
   lock.lock();
   try {
     final long clusterTime=node.getClusterService().getClusterTime();
-    final Collection<MemberImpl> members=node.clusterService.getMemberList();
-    PartitionStateOperation op=new PartitionStateOperation(members,partitions,activeMigrationInfo,clusterTime,version.get());
+    PartitionStateOperation op=new PartitionStateOperation(members,partitions,new ArrayList<MigrationInfo>(completedMigrations),clusterTime,version.get());
     for (    MemberImpl member : members) {
       if (!member.localMember()) {
-        nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,op,-1).setTarget(member.getAddress()).setTryCount(1).build().invoke();
+        try {
+          nodeService.createSingleInvocation(PARTITION_SERVICE_NAME,op,NodeService.EXECUTOR_THREAD_ID).setTarget(member.getAddress()).setTryCount(1).build().invoke();
+        }
+ catch (        Exception e) {
+          logger.log(Level.FINEST,e.getMessage(),e);
+        }
       }
     }
   }

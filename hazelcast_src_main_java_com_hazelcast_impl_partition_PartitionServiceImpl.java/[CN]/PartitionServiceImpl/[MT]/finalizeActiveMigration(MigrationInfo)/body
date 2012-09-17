@@ -1,0 +1,30 @@
+{
+  if (activeMigrations.containsKey(migrationInfo.getPartitionId())) {
+    lock.lock();
+    try {
+      if (activeMigrations.containsValue(migrationInfo)) {
+        try {
+          final Address thisAddress=node.getThisAddress();
+          final boolean source=thisAddress.equals(migrationInfo.getFromAddress());
+          final boolean destination=thisAddress.equals(migrationInfo.getToAddress());
+          if (source || destination) {
+            final int partitionId=migrationInfo.getPartitionId();
+            final int replicaIndex=migrationInfo.getReplicaIndex();
+            final PartitionInfo migratingPartition=getPartition(partitionId);
+            final Address address=migratingPartition.getReplicaAddress(replicaIndex);
+            final boolean success=migrationInfo.getToAddress().equals(address);
+            final FinalizeMigrationOperation op=new FinalizeMigrationOperation(source,migrationInfo.isMoving(),success);
+            op.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setNodeService(nodeService).setValidateTarget(false).setService(this);
+            nodeService.runLocally(op);
+          }
+        }
+ catch (        Exception e) {
+          logger.log(Level.WARNING,e.getMessage(),e);
+        }
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

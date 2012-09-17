@@ -1,0 +1,32 @@
+{
+  logger.log(Level.INFO,"Removing Address " + deadAddress);
+  if (!node.joined()) {
+    node.failedConnection(deadAddress);
+    return;
+  }
+  if (deadAddress.equals(thisAddress)) {
+    return;
+  }
+  lock.lock();
+  try {
+    if (deadAddress.equals(node.getMasterAddress())) {
+      assignNewMaster();
+    }
+    if (node.isMaster()) {
+      setJoins.remove(new MemberInfo(deadAddress));
+    }
+    final Connection conn=node.connectionManager.getConnection(deadAddress);
+    if (destroyConnection && conn != null) {
+      node.connectionManager.destroyConnection(conn);
+    }
+    MemberImpl deadMember=getMember(deadAddress);
+    if (deadMember != null) {
+      removeMember(deadMember);
+      disconnectExistingCalls(deadAddress);
+      logger.log(Level.INFO,this.toString());
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}
