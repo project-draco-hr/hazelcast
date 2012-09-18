@@ -1,0 +1,44 @@
+{
+  final int partitionId=getPartitionId();
+  final int replicaIndex=getReplicaIndex();
+  final ResponseHandler responseHandler=getResponseHandler();
+  if (to.equals(from)) {
+    getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
+    responseHandler.sendResponse(Boolean.FALSE);
+    return;
+  }
+  if (from == null) {
+    getLogger().log(Level.FINEST,"From address is null => " + toString());
+  }
+  final PartitionService pm=(PartitionService)getService();
+  try {
+    Member target=pm.getMember(to);
+    if (target == null) {
+      getLogger().log(Level.WARNING,"Target member of task could not be found! => " + toString());
+      responseHandler.sendResponse(Boolean.FALSE);
+      return;
+    }
+    PartitionService partitionService=getService();
+    partitionService.addActiveMigration(createMigrationInfo());
+    final NodeService nodeService=getNodeService();
+    final long timeout=nodeService.getGroupProperties().PARTITION_MIGRATION_TIMEOUT.getLong();
+    final Collection<Operation> tasks=prepareMigrationTasks(partitionId,replicaIndex);
+    nodeService.execute(new Runnable(){
+      public void run(){
+        try {
+          Invocation inv=nodeService.createSingleInvocation(PartitionService.PARTITION_SERVICE_NAME,new MigrationOperation(partitionId,replicaIndex,isMoving(),tasks,from),partitionId).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
+          Future future=inv.invoke();
+          Boolean result=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
+          responseHandler.sendResponse(result);
+        }
+ catch (        Throwable e) {
+          onError(responseHandler,e);
+        }
+      }
+    }
+);
+  }
+ catch (  Throwable e) {
+    onError(responseHandler,e);
+  }
+}
