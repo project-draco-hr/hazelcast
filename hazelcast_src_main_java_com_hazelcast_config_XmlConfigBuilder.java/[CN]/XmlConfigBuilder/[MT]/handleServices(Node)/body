@@ -1,0 +1,26 @@
+{
+  final Node attDefaults=node.getAttributes().getNamedItem("enable-defaults");
+  final boolean enableDefaults=attDefaults == null || checkTrue(getTextContent(attDefaults));
+  Services services=config.getServicesConfig();
+  services.setEnableDefaults(enableDefaults);
+  for (  Node child : new IterableNodeList(node.getChildNodes())) {
+    final String nodeName=cleanNodeName(child.getNodeName());
+    if ("service".equals(nodeName)) {
+      CustomServiceConfig serviceConfig=new CustomServiceConfig();
+      NamedNodeMap attrs=child.getAttributes();
+      Node attName=attrs.getNamedItem("name");
+      String name=attName != null ? getTextContent(attName) : "";
+      Node attClassName=attrs.getNamedItem("class-name");
+      String className=attClassName != null ? getTextContent(attClassName) : "";
+      Node attEnabled=attrs.getNamedItem("enabled");
+      boolean enabled=attEnabled != null && checkTrue(getTextContent(attEnabled));
+      serviceConfig.setEnabled(enabled).setName(name).setClassName(className);
+      services.addServiceConfig(serviceConfig);
+    }
+ else     if ("map-service".equals(nodeName)) {
+      Node attEnabled=child.getAttributes().getNamedItem("enabled");
+      boolean enabled=attEnabled != null && checkTrue(getTextContent(attEnabled));
+      services.addServiceConfig(new MapServiceConfig().setEnabled(enabled));
+    }
+  }
+}
