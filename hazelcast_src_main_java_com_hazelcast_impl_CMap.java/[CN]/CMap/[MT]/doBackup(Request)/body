@@ -24,14 +24,16 @@
     }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_REMOVE) {
-    Record record=toRecord(req);
-    if (record.isActive()) {
-      markAsEvicted(record);
+    Record record=getRecord(req);
+    if (record != null) {
+      if (record.isActive()) {
+        markAsRemoved(record);
+      }
+      if (req.txnId != -1) {
+        unlock(record,req);
+      }
+      record.setVersion(req.version);
     }
-    if (req.txnId != -1) {
-      unlock(record,req);
-    }
-    record.setVersion(req.version);
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_LOCK) {
     if (req.lockCount == 0) {
