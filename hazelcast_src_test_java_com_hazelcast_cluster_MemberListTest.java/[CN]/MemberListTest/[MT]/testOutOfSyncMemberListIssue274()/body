@@ -1,0 +1,57 @@
+{
+  Config c1=buildConfig(false);
+  Config c2=buildConfig(false);
+  Config c3=buildConfig(false);
+  c1.getNetworkConfig().setPort(35701);
+  c2.getNetworkConfig().setPort(35702);
+  c3.getNetworkConfig().setPort(35703);
+  List<String> allMembers=Arrays.asList("127.0.0.1:35701, 127.0.0.1:35702, 127.0.0.1:35703");
+  c1.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  c2.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  c3.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(c3);
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+  final AtomicBoolean doingWork=new AtomicBoolean(true);
+  Thread workThread=new Thread(new Runnable(){
+    @Override public void run(){
+      while (doingWork.get()) {
+        Set<Member> members=new HashSet<Member>(h1.getCluster().getMembers());
+        members.remove(h1.getCluster().getLocalMember());
+        MultiTask<String> task=new MultiTask<String>(new PingCallable(),members);
+        h1.getExecutorService().execute(task);
+        try {
+          task.get();
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+        try {
+          Thread.sleep(2000);
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+);
+  workThread.start();
+  final Node n3=TestUtil.getNode(h3);
+  n3.clusterManager.enqueueAndWait(new Processable(){
+    public void process(){
+      n3.clusterManager.doRemoveAddress(((MemberImpl)h1.getCluster().getLocalMember()).getAddress());
+      assertEquals(2,n3.clusterManager.getMembers().size());
+    }
+  }
+,5);
+  Thread.sleep(30 * 1000);
+  doingWork.set(false);
+  workThread.join();
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+}
