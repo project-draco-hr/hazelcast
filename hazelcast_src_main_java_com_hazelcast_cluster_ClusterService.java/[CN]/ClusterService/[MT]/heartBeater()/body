@@ -3,7 +3,7 @@
   long now=Clock.currentTimeMillis();
   final Collection<MemberImpl> members=getMemberList();
   if (node.isMaster()) {
-    List<Address> lsDeadAddresses=null;
+    List<Address> deadAddresses=null;
     for (    MemberImpl memberImpl : members) {
       final Address address=memberImpl.getAddress();
       if (!thisAddress.equals(address)) {
@@ -11,17 +11,25 @@
           Connection conn=node.connectionManager.getOrConnect(address);
           if (conn != null && conn.live()) {
             if ((now - memberImpl.getLastRead()) >= (maxNoHeartbeatMillis)) {
-              if (lsDeadAddresses == null) {
-                lsDeadAddresses=new ArrayList<Address>();
+              if (deadAddresses == null) {
+                deadAddresses=new ArrayList<Address>();
               }
               logger.log(Level.WARNING,"Added " + address + " to list of dead addresses because of timeout since last read");
-              lsDeadAddresses.add(address);
+              deadAddresses.add(address);
             }
  else             if ((now - memberImpl.getLastRead()) >= 5000 && (now - memberImpl.getLastPing()) >= 5000) {
               ping(memberImpl);
             }
             if ((now - memberImpl.getLastWrite()) > 500) {
               sendHeartbeat(address);
+            }
+            Long lastConfirmation=masterConfirmationTimes.get(memberImpl);
+            if (lastConfirmation == null || (now - lastConfirmation > maxNoMasterConfirmationMillis)) {
+              if (deadAddresses == null) {
+                deadAddresses=new ArrayList<Address>();
+              }
+              logger.log(Level.WARNING,"Added " + address + " to list of dead addresses because it has not sent a master confirmation recently");
+              deadAddresses.add(address);
             }
           }
  else           if (conn == null && (now - memberImpl.getLastRead()) > 5000) {
@@ -34,8 +42,8 @@
         }
       }
     }
-    if (lsDeadAddresses != null) {
-      for (      Address address : lsDeadAddresses) {
+    if (deadAddresses != null) {
+      for (      Address address : deadAddresses) {
         logger.log(Level.FINEST,"No heartbeat should remove " + address);
         removeAddress(address);
       }
