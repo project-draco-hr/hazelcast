@@ -18,6 +18,7 @@
         if (joinRequest.getUuid().equals(member.getUuid())) {
           String message="Ignoring join request, member already exists.. => " + joinRequest;
           logger.log(Level.FINEST,message);
+          invokeClusterOperation(new FinalizeJoinOperation(getMemberList(),getClusterTime()),member.getAddress());
           return;
         }
         if (node.isMaster() || member.getAddress().equals(node.getMasterAddress())) {
@@ -36,7 +37,7 @@
           final Credentials cr=joinRequest.getCredentials();
           if (cr == null) {
             securityLogger.log(Level.SEVERE,"Expecting security credentials " + "but credentials could not be found in JoinRequest!");
-            sendAuthFail(joinRequest.address);
+            invokeClusterOperation(new AuthenticationFailureOperation(),joinRequest.address);
             return;
           }
  else {
@@ -47,7 +48,7 @@
  catch (            LoginException e) {
               securityLogger.log(Level.SEVERE,"Authentication has failed for " + cr.getPrincipal() + '@'+ cr.getEndpoint()+ " => ("+ e.getMessage()+ ")");
               securityLogger.log(Level.FINEST,e.getMessage(),e);
-              sendAuthFail(joinRequest.address);
+              invokeClusterOperation(new AuthenticationFailureOperation(),joinRequest.address);
               return;
             }
           }
