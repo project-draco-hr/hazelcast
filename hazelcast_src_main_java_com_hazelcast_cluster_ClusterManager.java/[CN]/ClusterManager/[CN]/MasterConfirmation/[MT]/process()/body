@@ -1,10 +1,22 @@
 {
-  node.clusterManager.checkServiceThread();
-  if (!getNode().isMaster()) {
+  final Address endPoint=conn.getEndPoint();
+  if (endPoint == null) {
     return;
   }
-  MemberImpl m=node.clusterManager.getMember(conn.getEndPoint());
-  if (m != null) {
-    node.clusterManager.memberMasterConfirmations.put(m,Clock.currentTimeMillis());
+  final ILogger logger=node.getLogger(MasterConfirmation.class.getName());
+  if (!getNode().isMaster()) {
+    logger.log(Level.WARNING,endPoint + " has sent MasterConfirmation, but this node is not master!");
+    return;
+  }
+  final ClusterManager clusterManager=node.clusterManager;
+  MemberImpl member=clusterManager.getMember(endPoint);
+  if (member != null) {
+    if (logger.isLoggable(Level.FINEST)) {
+      logger.log(Level.FINEST,"MasterConfirmation has been received from " + member);
+    }
+    clusterManager.memberMasterConfirmations.put(member,Clock.currentTimeMillis());
+  }
+ else {
+    logger.log(Level.WARNING,"MasterConfirmation has been received from " + endPoint + ", but it is not a member of this cluster!");
   }
 }
