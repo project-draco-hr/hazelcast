@@ -1,16 +1,19 @@
 {
-  final ILogger logger=getLogger();
   logger.log(Level.FINEST,"Registering service: '" + serviceName + "'");
-  Object oldService=services.put(serviceName,service);
+  Object oldService=services.putIfAbsent(serviceName,service);
   if (oldService != null) {
-    logger.log(Level.WARNING,"Overriding '" + serviceName + "' using "+ service);
+    logger.log(Level.WARNING,"Replacing " + serviceName + ": "+ oldService+ " with "+ service);
     if (oldService instanceof CoreService) {
-      services.put(serviceName,oldService);
       throw new HazelcastException("Can not replace a CoreService! Name: " + serviceName + ", Service: "+ oldService);
     }
+    if (oldService instanceof ManagedService) {
+      destroyService((ManagedService)oldService);
+    }
+    services.put(serviceName,service);
   }
   if (service instanceof ManagedService) {
     try {
+      logger.log(Level.FINEST,"Initializing service -> " + serviceName + ": "+ service);
       ((ManagedService)service).init(nodeService,new Properties());
     }
  catch (    Throwable t) {
