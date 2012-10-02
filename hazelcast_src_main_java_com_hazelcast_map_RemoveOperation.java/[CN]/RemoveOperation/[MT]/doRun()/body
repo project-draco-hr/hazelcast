@@ -1,0 +1,39 @@
+{
+  ResponseHandler responseHandler=getResponseHandler();
+  MapService mapService=(MapService)getService();
+  int partitionId=getPartitionId();
+  PartitionContainer pc=mapService.getPartitionContainer(partitionId);
+  MapPartition mapPartition=pc.getMapPartition(name);
+  if (txnId != null) {
+    pc.addTransactionLogItem(txnId,new TransactionLogItem(name,dataKey,null,false,true));
+    responseHandler.sendResponse(null);
+    return;
+  }
+  Record record=mapPartition.records.get(dataKey);
+  Object key=toObject(dataKey);
+  Object oldValue=null;
+  Data oldValueData=null;
+  if (record == null) {
+    if (mapPartition.loader != null) {
+      oldValue=mapPartition.loader.load(key);
+      oldValueData=toData(oldValue);
+    }
+  }
+ else {
+    oldValueData=record.getValueData();
+  }
+  mapPartition.records.remove(dataKey);
+  if (mapPartition.store != null && mapPartition.writeDelayMillis == 0) {
+    mapPartition.store.delete(key);
+  }
+  int mapBackupCount=mapPartition.getBackupCount();
+  int backupCount=Math.min(getClusterSize() - 1,mapBackupCount);
+  long version=pc.incrementAndGetVersion();
+  if (backupCount > 0) {
+    GenericBackupOperation op=new GenericBackupOperation(name,dataKey,dataValue,ttl,version);
+    op.setBackupOpType(GenericBackupOperation.BackupOpType.REMOVE);
+    op.setFirstCallerId(backupCallId,getCaller());
+    getNodeService().sendBackups(MapService.MAP_SERVICE_NAME,op,partitionId,mapBackupCount);
+  }
+  getResponseHandler().sendResponse(record == null ? null : new UpdateResponse(oldValueData,version,backupCount));
+}
