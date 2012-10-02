@@ -1,29 +1,23 @@
 {
   long timeout=unit.toMillis(time);
   if (timeout < 0)   timeout=0;
-  Object obj=(timeout == Long.MAX_VALUE) ? responseQ.take() : responseQ.poll(timeout,TimeUnit.MILLISECONDS);
-  if (obj == NULL)   obj=null;
-  if (obj instanceof RetryableException) {
-    if (invokeCount < tryCount) {
+  while (timeout >= 0) {
+    final Object response=pollResponse(timeout);
+    if (response == NULL) {
+      return null;
+    }
+ else     if (response == RETRY) {
       Thread.sleep(tryPauseMillis);
       if (timeout != Long.MAX_VALUE) {
         timeout-=tryPauseMillis;
       }
-      invoke();
-      return doGet(timeout,TimeUnit.MILLISECONDS);
+      if (timeout > 0) {
+        invoke();
+      }
     }
  else {
-      done=true;
-      throw new ExecutionException((Throwable)obj);
+      return response;
     }
   }
- else {
-    done=true;
-    if (obj instanceof Throwable) {
-      throw new ExecutionException((Throwable)obj);
-    }
- else {
-      return obj;
-    }
-  }
+  throw new TimeoutException();
 }
