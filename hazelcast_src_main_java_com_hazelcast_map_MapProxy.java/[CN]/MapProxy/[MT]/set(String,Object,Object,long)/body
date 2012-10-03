@@ -2,16 +2,15 @@
   Data key=nodeService.toData(k);
   int partitionId=nodeService.getPartitionId(key);
   String txnId=prepareTransaction(partitionId);
-  PutOperation putOperation=new PutOperation(name,toData(k),v,txnId,ttl);
-  putOperation.setValidateTarget(true);
+  SetOperation setOperation=new SetOperation(name,toData(k),v,txnId,ttl);
+  setOperation.setValidateTarget(true);
   long backupCallId=mapService.createNewBackupCallQueue();
-  putOperation.setBackupCallId(backupCallId);
-  putOperation.setServiceName(MAP_SERVICE_NAME);
+  setOperation.setBackupCallId(backupCallId);
+  setOperation.setServiceName(MAP_SERVICE_NAME);
   try {
-    Object returnObj=invokeSingleInvocation(putOperation,partitionId);
+    Object returnObj=invokeSingleInvocation(setOperation,partitionId);
     UpdateResponse updateResponse=(UpdateResponse)returnObj;
-    checkBackups(name,partitionId,putOperation,updateResponse);
-    return toObject(updateResponse.getOldValue());
+    checkBackups(name,partitionId,setOperation,updateResponse);
   }
  catch (  Throwable throwable) {
     throw (RuntimeException)throwable;
