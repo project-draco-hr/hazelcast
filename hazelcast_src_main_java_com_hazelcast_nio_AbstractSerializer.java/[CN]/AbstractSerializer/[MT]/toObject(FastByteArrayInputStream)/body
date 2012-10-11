@@ -6,6 +6,13 @@
     return ts.read(bis);
   }
  catch (  Throwable e) {
-    throw new HazelcastSerializationException("Problem when serializing type " + typeId,e);
+    if (e instanceof OutOfMemoryError) {
+      final OutOfMemoryError oom=(OutOfMemoryError)e;
+      OutOfMemoryErrorDispatcher.onOutOfMemory(oom);
+      throw oom;
+    }
+ else {
+      throw new HazelcastSerializationException("Problem when serializing type " + typeId,e);
+    }
   }
 }

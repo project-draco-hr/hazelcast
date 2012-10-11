@@ -1,0 +1,42 @@
+{
+  final AtomicInteger counter=new AtomicInteger();
+  final int k=5;
+  final String name="test";
+  HazelcastInstance hazelcast=Hazelcast.newHazelcastInstance(null);
+  IMap map=hazelcast.getMap(name);
+  map.addEntryListener(new NamedEntryListener(name,counter),true);
+  for (int i=0; i < k; i++) {
+    map.put(i,i);
+  }
+  Thread.sleep(1000);
+  assertEquals(k,counter.get());
+  map.removeEntryListener(new NamedEntryListener(name));
+  map.put(k,k);
+  Thread.sleep(500);
+  assertEquals(k,counter.get());
+  counter.set(0);
+  ITopic t=hazelcast.getTopic(name);
+  t.addMessageListener(new NamedMessageListener(name,counter));
+  for (int i=0; i < k; i++) {
+    t.publish(i);
+  }
+  Thread.sleep(1000);
+  assertEquals(k,counter.get());
+  t.removeMessageListener(new NamedMessageListener(name));
+  t.publish(k);
+  Thread.sleep(500);
+  assertEquals(k,counter.get());
+  counter.set(0);
+  IQueue q=hazelcast.getQueue(name);
+  q.addItemListener(new NamedItemListener(name,counter),true);
+  for (int i=0; i < k; i++) {
+    q.offer(i);
+  }
+  Thread.sleep(1000);
+  assertEquals(k,counter.get());
+  q.removeItemListener(new NamedItemListener(name));
+  q.offer(k);
+  Thread.sleep(500);
+  assertEquals(k,counter.get());
+  counter.set(0);
+}

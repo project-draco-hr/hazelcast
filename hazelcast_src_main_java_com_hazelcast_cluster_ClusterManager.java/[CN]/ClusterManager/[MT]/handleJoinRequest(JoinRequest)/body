@@ -16,6 +16,9 @@
       if (joinRequest.getUuid().equals(member.getUuid())) {
         String message="Ignoring join request, member already exists.. => " + joinRequest;
         logger.log(Level.FINEST,message);
+        final long clusterTime=node.getClusterImpl().getClusterTime();
+        sendProcessableTo(new MembersUpdateCall(lsMembers,clusterTime),conn);
+        sendProcessableTo(new SyncProcess(),conn);
         return;
       }
       if (isMaster() || member.getAddress().equals(getMasterAddress())) {
@@ -31,6 +34,7 @@
     if (isMaster() && node.joined() && node.isActive()) {
       final MemberInfo newMemberInfo=new MemberInfo(joinRequest.address,joinRequest.nodeType,joinRequest.getUuid());
       if (node.securityContext != null && !setJoins.contains(newMemberInfo)) {
+        final ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
         final Credentials cr=joinRequest.getCredentials();
         if (cr == null) {
           securityLogger.log(Level.SEVERE,"Expecting security credentials " + "but credentials could not be found in JoinRequest!");

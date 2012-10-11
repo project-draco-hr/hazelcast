@@ -23,6 +23,14 @@
             if ((now - memberImpl.getLastWrite()) > 500) {
               sendHeartbeat(conn);
             }
+            Long lastConfirmation=memberMasterConfirmationTimes.get(memberImpl);
+            if (lastConfirmation == null || (now - lastConfirmation > MAX_NO_MASTER_CONFIRMATION_MILLIS)) {
+              if (lsDeadAddresses == null) {
+                lsDeadAddresses=new ArrayList<Address>();
+              }
+              logger.log(Level.WARNING,"Added " + address + " to list of dead addresses because it has not sent a master confirmation recently");
+              lsDeadAddresses.add(address);
+            }
           }
  else           if (conn == null && (now - memberImpl.getLastRead()) > 5000) {
             logMissingConnection(address);

@@ -1,6 +1,6 @@
 {
   if (req.key == null || req.key.size() == 0) {
-    throw new RuntimeException("Backup key size cannot be zero! " + req.key);
+    throw new HazelcastException("Backup key size cannot be zero! " + req.key);
   }
   if (req.operation == CONCURRENT_MAP_BACKUP_PUT || req.operation == CONCURRENT_MAP_BACKUP_PUT_AND_UNLOCK) {
     Record record=toRecord(req);
@@ -11,10 +11,10 @@
     record.setVersion(req.version);
     if (req.indexes != null) {
       if (req.indexTypes == null) {
-        throw new RuntimeException("index types cannot be null!");
+        throw new HazelcastException("index types cannot be null!");
       }
       if (req.indexes.length != req.indexTypes.length) {
-        throw new RuntimeException("index and type lengths do not match");
+        throw new HazelcastException("index and type lengths do not match");
       }
       record.setIndexes(req.indexes,req.indexTypes);
     }
@@ -24,14 +24,16 @@
     }
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_REMOVE) {
-    Record record=toRecord(req);
-    if (record.isActive()) {
-      markAsEvicted(record);
+    Record record=getRecord(req);
+    if (record != null) {
+      if (record.isActive()) {
+        markAsRemoved(record);
+      }
+      if (req.txnId != -1) {
+        unlock(record,req);
+      }
+      record.setVersion(req.version);
     }
-    if (req.txnId != -1) {
-      unlock(record,req);
-    }
-    record.setVersion(req.version);
   }
  else   if (req.operation == CONCURRENT_MAP_BACKUP_LOCK) {
     if (req.lockCount == 0) {

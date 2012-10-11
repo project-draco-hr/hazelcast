@@ -15,12 +15,14 @@
         InputStream inputStream=connection.getInputStream();
         DataInputStream input=new DataInputStream(inputStream);
         final int taskId=input.readInt();
-        final int requestType=input.readInt();
-        if (taskId > 0 && requestType < consoleRequests.length) {
-          final ConsoleRequest request=consoleRequests[requestType];
-          if (request != null) {
-            request.readData(input);
-            sendResponse(taskId,request);
+        if (taskId > 0) {
+          final int requestType=input.readInt();
+          if (requestType < consoleRequests.length) {
+            final ConsoleRequest request=consoleRequests[requestType];
+            if (request != null) {
+              request.readData(input);
+              sendResponse(taskId,request);
+            }
           }
         }
       }
@@ -31,6 +33,9 @@
     }
   }
  catch (  Throwable throwable) {
+    if (throwable instanceof OutOfMemoryError) {
+      OutOfMemoryErrorDispatcher.onOutOfMemory((OutOfMemoryError)throwable);
+    }
     logger.log(Level.FINEST,"Problem on management center while polling task.",throwable);
   }
 }
