@@ -1,0 +1,32 @@
+{
+  final NetworkConfig networkConfig=node.getConfig().getNetworkConfig();
+  final Collection<String> portDefinitions=networkConfig.getOutboundPortDefinitions() == null ? Collections.<String>emptySet() : networkConfig.getOutboundPortDefinitions();
+  final Set<Integer> ports=networkConfig.getOutboundPorts() == null ? new HashSet<Integer>() : new HashSet<Integer>(networkConfig.getOutboundPorts());
+  if (portDefinitions.isEmpty() && ports.isEmpty()) {
+    return Collections.emptySet();
+  }
+  if (portDefinitions.contains("*") || portDefinitions.contains("0")) {
+    return Collections.emptySet();
+  }
+  for (  String portDef : portDefinitions) {
+    String[] portDefs=portDef.split("[,; ]");
+    for (    String def : portDefs) {
+      def=def.trim();
+      final int dashPos=def.indexOf('-');
+      if (dashPos > 0) {
+        final int start=Integer.parseInt(def.substring(0,dashPos));
+        final int end=Integer.parseInt(def.substring(dashPos + 1));
+        for (int port=start; port <= end; port++) {
+          ports.add(port);
+        }
+      }
+ else {
+        ports.add(Integer.parseInt(def));
+      }
+    }
+  }
+  if (ports.contains(0)) {
+    return Collections.emptySet();
+  }
+  return ports;
+}

@@ -1,0 +1,32 @@
+{
+  final InetAddress inetAddress;
+  if (connectionManager.ioService.isSocketBindAny()) {
+    inetAddress=null;
+  }
+ else {
+    final Address thisAddress=connectionManager.ioService.getThisAddress();
+    inetAddress=thisAddress.getInetAddress();
+  }
+  final Socket socket=socketChannel.socket();
+  if (connectionManager.useAnyOutboundPort()) {
+    final SocketAddress socketAddress=new InetSocketAddress(inetAddress,0);
+    socket.bind(socketAddress);
+  }
+ else {
+    IOException ex=null;
+    final int retryCount=connectionManager.getOutboundPortCount() * 2;
+    for (int i=0; i < retryCount; i++) {
+      final int port=connectionManager.acquireOutboundPort();
+      final SocketAddress socketAddress=new InetSocketAddress(inetAddress,port);
+      try {
+        socket.bind(socketAddress);
+        return;
+      }
+ catch (      IOException e) {
+        ex=e;
+        log(Level.FINEST,"Could not bind port[ " + port + "]: "+ e.getMessage());
+      }
+    }
+    throw new IOException("Could not bind any of allowed ports!",ex);
+  }
+}
