@@ -1,54 +1,16 @@
 {
   Data key=nodeService.toData(k);
   int partitionId=nodeService.getPartitionId(key);
-  TransactionImpl txn=nodeService.getTransaction();
-  String txnId=null;
-  if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
-    txnId=txn.getTxnId();
-    txn.attachParticipant(MAP_SERVICE_NAME,partitionId);
-  }
-  PutOperation putOperation=new PutOperation(name,toData(k),v,txnId,ttl);
+  String txnId=prepareTransaction(partitionId);
+  PutOperation putOperation=new PutOperation(name,key,v,txnId,ttl);
   putOperation.setValidateTarget(true);
   long backupCallId=mapService.createNewBackupCallQueue();
+  putOperation.setBackupCallId(backupCallId);
+  putOperation.setServiceName(MAP_SERVICE_NAME);
   try {
-    putOperation.setBackupCallId(backupCallId);
-    putOperation.setServiceName(MAP_SERVICE_NAME);
-    Invocation invocation=nodeService.createInvocationBuilder(MAP_SERVICE_NAME,putOperation,partitionId).build();
-    Future f=invocation.invoke();
-    Object response=f.get();
-    Object returnObj=null;
-    if (response instanceof Response) {
-      Response r=(Response)response;
-      returnObj=r.getResult();
-    }
- else {
-      returnObj=toObject(response);
-    }
-    if (returnObj instanceof Throwable) {
-      throw (Throwable)returnObj;
-    }
+    Object returnObj=invokeSingleInvocation(putOperation,partitionId);
     UpdateResponse updateResponse=(UpdateResponse)returnObj;
-    int backupCount=updateResponse.getBackupCount();
-    if (backupCount > 0) {
-      boolean backupsComplete=true;
-      for (int i=0; i < backupCount; i++) {
-        BlockingQueue backupResponses=mapService.getBackupCallQueue(backupCallId);
-        Object backupResponse=backupResponses.poll(3,TimeUnit.SECONDS);
-        if (backupResponse == null) {
-          backupsComplete=false;
-        }
-      }
-      if (!backupsComplete) {
-        for (int i=0; i < backupCount; i++) {
-          Data dataValue=putOperation.getValue();
-          GenericBackupOperation backupOp=new GenericBackupOperation(name,key,dataValue,ttl,updateResponse.getVersion());
-          backupOp.setInvocation(true);
-          Invocation backupInv=nodeService.createInvocationBuilder(MAP_SERVICE_NAME,backupOp,partitionId).setReplicaIndex(i).build();
-          f=backupInv.invoke();
-          f.get(5,TimeUnit.SECONDS);
-        }
-      }
-    }
+    checkBackups(name,partitionId,putOperation,updateResponse);
     return toObject(updateResponse.getOldValue());
   }
  catch (  Throwable throwable) {
