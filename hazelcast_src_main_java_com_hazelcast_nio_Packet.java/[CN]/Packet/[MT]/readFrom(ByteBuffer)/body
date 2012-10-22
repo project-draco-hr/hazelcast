@@ -1,0 +1,28 @@
+{
+  if (!isStatusSet(ST_PARTITION)) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    partitionId=source.getInt();
+    setStatus(ST_PARTITION);
+  }
+  if (!isStatusSet(ST_SIZE)) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    final int size=source.getInt();
+    if (value == null || value.size() < size) {
+      value=new DataHolder(size);
+    }
+    setStatus(ST_SIZE);
+  }
+  if (isStatusSet(ST_SIZE) && !isStatusSet(ST_VALUE)) {
+    IOUtil.copyToHeapBuffer(source,value.buffer);
+    if (value.shouldRead()) {
+      return false;
+    }
+    value.postRead();
+    setStatus(ST_VALUE);
+  }
+  return true;
+}

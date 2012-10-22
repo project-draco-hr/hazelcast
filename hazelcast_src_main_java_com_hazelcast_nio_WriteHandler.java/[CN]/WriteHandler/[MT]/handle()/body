@@ -5,31 +5,31 @@
   }
   if (lastWritable == null) {
     lastWritable=poll();
-    if (lastWritable == null && socketBB.position() == 0) {
+    if (lastWritable == null && buffer.position() == 0) {
       ready=true;
       return;
     }
   }
   if (!connection.live())   return;
   try {
-    while (socketBB.hasRemaining()) {
+    while (buffer.hasRemaining()) {
       if (lastWritable == null) {
         lastWritable=poll();
       }
       if (lastWritable != null) {
-        boolean complete=socketWriter.write(lastWritable,socketBB);
+        boolean complete=socketWriter.write(lastWritable,buffer);
         if (complete) {
           if (lastWritable instanceof Packet) {
             Packet packet=(Packet)lastWritable;
             connection.releasePacket(packet);
             if (systemLogService.shouldTrace()) {
-              systemLogService.trace(packet,new SystemArgsLog("WrittenOut ",connection.getEndPoint(),packet.operation));
+              systemLogService.trace(packet,new SystemArgsLog("WrittenOut ",connection.getEndPoint()));
             }
           }
           lastWritable=null;
         }
  else {
-          if (socketBB.hasRemaining()) {
+          if (buffer.hasRemaining()) {
             break;
           }
         }
@@ -38,21 +38,21 @@
         break;
       }
     }
-    if (socketBB.position() > 0) {
-      socketBB.flip();
+    if (buffer.position() > 0) {
+      buffer.flip();
       try {
-        socketChannel.write(socketBB);
+        socketChannel.write(buffer);
       }
  catch (      Exception e) {
         lastWritable=null;
         handleSocketException(e);
         return;
       }
-      if (socketBB.hasRemaining()) {
-        socketBB.compact();
+      if (buffer.hasRemaining()) {
+        buffer.compact();
       }
  else {
-        socketBB.clear();
+        buffer.clear();
       }
     }
   }
