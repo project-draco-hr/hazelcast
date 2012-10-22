@@ -1,18 +1,16 @@
 {
-  final int partitionId=ssw.getPartitionId();
-  final int replicaIndex=ssw.getReplicaIndex();
-  final Data data=ssw.getValue();
-  final long callId=ssw.getCallId();
-  final Address caller=ssw.getConn().getEndPoint();
+  final int partitionId=packet.getPartitionId();
+  final Data data=packet.getValue();
+  final Address caller=packet.getConn().getEndPoint();
   try {
     setOp((Operation)toObject(data));
-    setOperationContext(op,op.getServiceName(),caller,callId,partitionId,replicaIndex);
-    op.setConnection(ssw.getConn());
-    ResponseHandlerFactory.setRemoteResponseHandler(NodeServiceImpl.this,op,partitionId,callId);
+    op.setNodeService(NodeServiceImpl.this).setCaller(caller).setPartitionId(partitionId);
+    op.setConnection(packet.getConn());
+    ResponseHandlerFactory.setRemoteResponseHandler(NodeServiceImpl.this,op);
     super.run();
   }
  catch (  Throwable e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
-    node.clusterService.send(new SimpleSocketWritable(toData(e),callId,partitionId,replicaIndex,null),ssw.getConn());
+    send(new ErrorResponse(getThisAddress(),e),EXECUTOR_THREAD_ID,packet.getConn());
   }
 }
