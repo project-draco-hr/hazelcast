@@ -1,0 +1,21 @@
+{
+  int partitionId=nodeService.getPartitionId(key);
+  String txnId=prepareTransaction(partitionId);
+  PutOperation putOperation=new PutOperation(name,key,value,txnId,getTTLInMillis(ttl,timeunit));
+  putOperation.setValidateTarget(true);
+  long backupCallId=mapService.createNewBackupCallQueue();
+  putOperation.setBackupCallId(backupCallId);
+  putOperation.setServiceName(MAP_SERVICE_NAME);
+  try {
+    Object returnObj=invoke(putOperation,partitionId);
+    UpdateResponse updateResponse=(UpdateResponse)returnObj;
+    checkBackups(partitionId,putOperation,updateResponse);
+    return updateResponse.getOldValue();
+  }
+ catch (  Throwable throwable) {
+    throw (RuntimeException)throwable;
+  }
+ finally {
+    mapService.removeBackupCallQueue(backupCallId);
+  }
+}
