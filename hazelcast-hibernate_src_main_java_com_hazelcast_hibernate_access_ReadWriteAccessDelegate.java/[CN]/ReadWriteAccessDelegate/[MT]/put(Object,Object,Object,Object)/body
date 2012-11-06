@@ -3,13 +3,22 @@
     if (explicitVersionCheckEnabled && value instanceof CacheEntry) {
       try {
         final CacheEntry currentEntry=(CacheEntry)value;
-        final CacheEntry previousEntry=(CacheEntry)getCache().tryLockAndGet(key,tryLockAndGetTimeout,TimeUnit.MILLISECONDS);
-        if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
-          getCache().putAndUnlock(key,value);
-          return true;
+        if (getCache().tryLock(key,tryLockAndGetTimeout,TimeUnit.MILLISECONDS)) {
+          try {
+            final CacheEntry previousEntry=(CacheEntry)getCache().get(key);
+            if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
+              getCache().put(key,value);
+              return true;
+            }
+ else {
+              return false;
+            }
+          }
+  finally {
+            getCache().unlock(key);
+          }
         }
  else {
-          getCache().unlock(key);
           return false;
         }
       }

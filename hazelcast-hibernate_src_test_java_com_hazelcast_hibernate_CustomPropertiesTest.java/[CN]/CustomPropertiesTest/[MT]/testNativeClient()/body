@@ -1,6 +1,7 @@
 {
   HazelcastInstance main=Hazelcast.newHazelcastInstance(new ClasspathXmlConfig("hazelcast-custom.xml"));
   Properties props=getDefaultProperties();
+  props.setProperty(Environment.CACHE_REGION_FACTORY,HazelcastCacheRegionFactory.class.getName());
   props.setProperty(CacheEnvironment.USE_NATIVE_CLIENT,"true");
   props.setProperty(CacheEnvironment.NATIVE_CLIENT_GROUP,"dev-custom");
   props.setProperty(CacheEnvironment.NATIVE_CLIENT_PASSWORD,"dev-pass");
@@ -18,6 +19,11 @@
   main.getLifecycleService().shutdown();
   Thread.sleep(1000 * 2);
   assertEquals(1,hz.getCluster().getMembers().size());
+  Session session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  session.save(new DummyEntity(1L,"dummy",0,new Date()));
+  tx.commit();
+  session.close();
   sf.close();
   Hazelcast.shutdownAll();
 }
