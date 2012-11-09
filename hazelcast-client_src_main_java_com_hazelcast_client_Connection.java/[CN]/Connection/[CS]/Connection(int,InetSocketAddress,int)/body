@@ -1,2 +1,24 @@
 {
+  this.id=id;
+  this.address=address;
+  this.timeout=timeout;
+  try {
+    final InetSocketAddress isa=new InetSocketAddress(address.getAddress(),address.getPort());
+    final Socket socket=new Socket();
+    try {
+      socket.setKeepAlive(true);
+      socket.setSoLinger(true,5);
+      socket.connect(isa,timeout);
+    }
+ catch (    IOException e) {
+      socket.close();
+      throw e;
+    }
+    this.socket=socket;
+    this.dos=new DataOutputStream(new BufferedOutputStream(this.socket.getOutputStream(),BUFFER_SIZE));
+    this.dis=new DataInputStream(new BufferedInputStream(this.socket.getInputStream(),BUFFER_SIZE));
+  }
+ catch (  Exception e) {
+    throw new ClusterClientException(e);
+  }
 }
