@@ -1,0 +1,16 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_SYSTEM_LOG_ENABLED,"true");
+  config.getGroupConfig().setName("testDisablingSystemLogs");
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance instance2=Hazelcast.newHazelcastInstance(config);
+  instance.getMap("map").put("key","value");
+  Node node=TestUtil.getNode(instance);
+  assertTrue(node.getSystemLogService().getLogBundle().size() > 0);
+  Hazelcast.shutdownAll();
+  config.setProperty(GroupProperties.PROP_SYSTEM_LOG_ENABLED,"false");
+  instance=Hazelcast.newHazelcastInstance(config);
+  instance2=Hazelcast.newHazelcastInstance(config);
+  instance.getMap("map").put("key2","value2");
+  assertTrue(node.getSystemLogService().getLogBundle().size() == 0);
+}
