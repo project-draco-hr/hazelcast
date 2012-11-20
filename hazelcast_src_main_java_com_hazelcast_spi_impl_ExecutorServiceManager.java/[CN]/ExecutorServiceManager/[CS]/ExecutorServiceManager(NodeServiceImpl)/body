@@ -1,0 +1,19 @@
+{
+  this.nodeService=nodeService;
+  final Node node=nodeService.getNode();
+  final ClassLoader classLoader=node.getConfig().getClassLoader();
+  cachedExecutorService=new ThreadPoolExecutor(3,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("cached"),classLoader));
+  eventExecutorService=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("event"),node.getConfig().getClassLoader()));
+  scheduledExecutorService=Executors.newScheduledThreadPool(2,new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("scheduled"),classLoader));
+  final int count=node.groupProperties.PARTITION_THREAD_COUNT.getInteger();
+  partitionThreadCount=count > 0 ? count : Runtime.getRuntime().availableProcessors();
+  partitionExecutors=new ExecutorService[partitionThreadCount];
+  final ThreadFactory partitionThreadFactory=new PartitionThreadFactory("partition");
+  for (int i=0; i < partitionThreadCount; i++) {
+    partitionExecutors[i]=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(),partitionThreadFactory,new RejectedExecutionHandler(){
+      public void rejectedExecution(      Runnable r,      ThreadPoolExecutor executor){
+      }
+    }
+);
+  }
+}
