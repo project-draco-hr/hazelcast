@@ -9,6 +9,13 @@
         enqueueEvent(eventType,name,key,value,callerAddress,true);
       }
  else {
+        final Connection conn=node.connectionManager.getConnection(toAddress);
+        if (conn != null && conn.getWriteHandler().size() > 1000) {
+          if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST,"Event[" + eventType + "] for "+ name+ " could not be send, connection queue of "+ toAddress+ " is full!");
+          }
+          continue;
+        }
         final Packet packet=obtainPacket();
         packet.set(name,ClusterOperation.EVENT,key,(includeValue) ? value : null);
         packet.lockAddress=callerAddress;
