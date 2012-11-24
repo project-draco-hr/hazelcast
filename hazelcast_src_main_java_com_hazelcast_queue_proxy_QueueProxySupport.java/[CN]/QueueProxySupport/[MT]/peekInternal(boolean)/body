@@ -1,0 +1,26 @@
+{
+  try {
+    int backupCount=getBackupCount();
+    final Future<Data>[] futures=new Future[backupCount + 1];
+    for (int i=0; i <= backupCount; i++) {
+      PeekOperation peekOperation=new PeekOperation(name,poll);
+      peekOperation.setValidateTarget(true);
+      peekOperation.setServiceName(QueueService.NAME);
+      InvocationBuilder builder=nodeService.createInvocationBuilder(QueueService.NAME,peekOperation,getPartitionId());
+      builder.setReplicaIndex(i);
+      Invocation inv=builder.build();
+      futures[i]=inv.invoke();
+    }
+    Data result=null;
+    for (int i=0; i <= backupCount; i++) {
+      Data r=futures[i].get();
+      if (i == 0) {
+        result=r;
+      }
+    }
+    return result;
+  }
+ catch (  Throwable throwable) {
+    throw new RuntimeException(throwable);
+  }
+}

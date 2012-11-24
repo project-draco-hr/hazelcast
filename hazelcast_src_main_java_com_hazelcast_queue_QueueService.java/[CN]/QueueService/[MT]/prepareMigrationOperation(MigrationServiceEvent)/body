@@ -1,0 +1,15 @@
+{
+  System.out.println(event.getPartitionId() + " - " + event.getReplicaIndex());
+  if (event.getPartitionId() < 0 || event.getPartitionId() >= nodeService.getPartitionCount()) {
+    return null;
+  }
+  Map<String,QueueContainer> migrationData=new HashMap<String,QueueContainer>();
+  for (  Entry<String,QueueContainer> entry : containerMap.entrySet()) {
+    String name=entry.getKey();
+    QueueContainer container=entry.getValue();
+    if (container.partitionId == event.getPartitionId()) {
+      migrationData.put(name,container);
+    }
+  }
+  return new QueueMigrationOperation(migrationData,event.getPartitionId(),event.getReplicaIndex());
+}
