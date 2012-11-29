@@ -1,15 +1,14 @@
 {
   boolean error=false;
   final NodeServiceImpl nodeService=(NodeServiceImpl)getNodeService();
-  final MigrationType migrationType=move ? MigrationType.MOVE : MigrationType.COPY;
   final PartitionService partitionService=getService();
-  partitionService.addActiveMigration(new MigrationInfo(getPartitionId(),getReplicaIndex(),move,from,nodeService.getThisAddress()));
+  partitionService.addActiveMigration(new MigrationInfo(getPartitionId(),getReplicaIndex(),copyBackReplicaIndex,migrationType,from,nodeService.getThisAddress()));
   for (  Operation op : tasks) {
     try {
       nodeService.setOperationContext(op,op.getServiceName(),from,-1).setPartitionId(getPartitionId());
       ResponseHandlerFactory.setNoReplyResponseHandler(nodeService,op);
       MigrationAwareService service=op.getService();
-      service.beforeMigration(new MigrationServiceEvent(MigrationEndpoint.DESTINATION,getPartitionId(),getReplicaIndex(),migrationType));
+      service.beforeMigration(new MigrationServiceEvent(MigrationEndpoint.DESTINATION,getPartitionId(),getReplicaIndex(),migrationType,copyBackReplicaIndex));
       op.run();
     }
  catch (    Throwable e) {
