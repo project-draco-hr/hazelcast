@@ -1,3 +1,25 @@
 {
-  return false;
+  int partitionId=nodeService.getPartitionId(key);
+  TransactionImpl txn=nodeService.getTransaction();
+  String txnId=prepareTransaction(partitionId);
+  RemoveIfSameOperation removeOperation=new RemoveIfSameOperation(name,key,value,txnId);
+  removeOperation.setValidateTarget(true);
+  long backupCallId=mapService.createNewBackupCallQueue();
+  removeOperation.setBackupCallId(backupCallId);
+  removeOperation.setServiceName(MAP_SERVICE_NAME);
+  try {
+    Object returnObj=invoke(removeOperation,partitionId);
+    if (returnObj == null) {
+      return false;
+    }
+    SuccessResponse response=(SuccessResponse)returnObj;
+    if (response.isSuccess())     checkBackups(partitionId,removeOperation,response);
+    return response.isSuccess();
+  }
+ catch (  Throwable throwable) {
+    throw (RuntimeException)throwable;
+  }
+ finally {
+    mapService.removeBackupCallQueue(backupCallId);
+  }
 }
