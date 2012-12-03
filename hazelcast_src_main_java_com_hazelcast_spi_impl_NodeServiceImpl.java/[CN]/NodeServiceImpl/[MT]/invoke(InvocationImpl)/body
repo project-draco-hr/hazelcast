@@ -1,9 +1,10 @@
 {
-  if (executorServiceManager.isPartitionThread()) {
-    throw new HazelcastException(Thread.currentThread() + " cannot make remote call: " + inv.getOperation()+ " currentOp:"+ ThreadContext.get().getCurrentOperation());
+  final Operation currentOp=(Operation)ThreadContext.get().getCurrentOperation();
+  final Operation op=inv.getOperation();
+  if (currentOp != null && currentOp instanceof KeyOperation && op instanceof KeyOperation) {
+    throw new HazelcastException(Thread.currentThread() + " cannot make remote call: " + inv.getOperation()+ " currentOp:"+ currentOp);
   }
   final Address target=inv.getTarget();
-  final Operation op=inv.getOperation();
   final int partitionId=inv.getPartitionId();
   final int replicaIndex=inv.getReplicaIndex();
   final String serviceName=inv.getServiceName();
@@ -11,7 +12,7 @@
   checkInvocation(inv);
   if (getThisAddress().equals(target)) {
     ResponseHandlerFactory.setLocalResponseHandler(inv);
-    runLocally(op);
+    executeOperation(op);
   }
  else {
     Call call=new Call(target,inv);

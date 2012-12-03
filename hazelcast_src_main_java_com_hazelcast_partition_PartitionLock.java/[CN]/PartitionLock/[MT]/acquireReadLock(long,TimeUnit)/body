@@ -1,0 +1,15 @@
+{
+  final long timeInMillis=unit.toMillis(time);
+  long elapsed=0L;
+  while (locked.get()) {
+    Thread.sleep(sleepTime);
+    if ((elapsed+=sleepTime) > timeInMillis) {
+      throw new TimeoutException();
+    }
+  }
+  readCount.incrementAndGet();
+  if (locked.get()) {
+    readCount.decrementAndGet();
+    acquireReadLock(timeInMillis - elapsed,TimeUnit.MILLISECONDS);
+  }
+}

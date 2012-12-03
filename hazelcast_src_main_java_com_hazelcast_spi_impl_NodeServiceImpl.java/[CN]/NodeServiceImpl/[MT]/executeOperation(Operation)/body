@@ -1,0 +1,73 @@
+{
+  Lock partitionLock=null;
+  Lock keyLock=null;
+  final ThreadContext threadContext=ThreadContext.get();
+  threadContext.setCurrentOperation(op);
+  try {
+    final int partitionId=op.getPartitionId();
+    if (op instanceof PartitionOperation) {
+      if (partitionId < 0) {
+        throw new IllegalArgumentException();
+      }
+      PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+      if (op instanceof PartitionWriteOperation) {
+        partitionLock=partitionInfo.getWriteLock();
+        partitionLock.lock();
+      }
+ else {
+        Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
+        partitionLock=partitionInfo.getReadLock();
+        if (!partitionLock.tryLock()) {
+          partitionLock=null;
+          throw new PartitionMigratingException(getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
+        }
+        final boolean shouldValidateTarget=op.shouldValidateTarget();
+        if (shouldValidateTarget && !getThisAddress().equals(owner)) {
+          throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
+        }
+        if (!(op instanceof BackupOperation) && op instanceof KeyOperation) {
+          final int hash=((KeyOperation)op).getKeyHash();
+          keyLock=locks[Math.abs(hash) % locks.length];
+          keyLock.lock();
+        }
+      }
+    }
+    final ResponseHandler original=op.getResponseHandler();
+    final AtomicReference<Object> response=new AtomicReference<Object>();
+    final ResponseHandler rh=new ResponseHandler(){
+      public void sendResponse(      final Object obj){
+        response.set(obj);
+      }
+    }
+;
+    op.setResponseHandler(rh);
+    op.run();
+    if (op instanceof BackupAwareOperation) {
+      final BackupAwareOperation bao=(BackupAwareOperation)op;
+      BackupOperation backupOp=bao.createBackupOperation();
+    }
+    original.sendResponse(response.get());
+  }
+ catch (  Throwable e) {
+    if (e instanceof RetryableException) {
+      logger.log(Level.WARNING,e.getClass() + ": " + e.getMessage());
+      logger.log(Level.FINEST,e.getMessage(),e);
+    }
+ else {
+      logger.log(Level.SEVERE,e.getMessage(),e);
+    }
+    final ResponseHandler responseHandler=op.getResponseHandler();
+    if (responseHandler != null) {
+      responseHandler.sendResponse(e);
+    }
+  }
+ finally {
+    if (keyLock != null) {
+      keyLock.unlock();
+    }
+    if (partitionLock != null) {
+      partitionLock.unlock();
+    }
+    threadContext.setCurrentOperation(null);
+  }
+}
