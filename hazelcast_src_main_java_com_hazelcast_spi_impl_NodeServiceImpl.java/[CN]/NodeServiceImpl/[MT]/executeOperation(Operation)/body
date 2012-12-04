@@ -1,4 +1,5 @@
 {
+  final ResponseHandler responseHandler=op.getResponseHandler();
   Lock partitionLock=null;
   Lock keyLock=null;
   final ThreadContext threadContext=ThreadContext.get();
@@ -35,7 +36,19 @@
         }
       }
     }
+    op.beforeRun();
     op.run();
+    if (op.needsBackup()) {
+      final int syncBackup=op.getSyncBackupCount();
+      final int asyncBackup=op.getAsyncBackupCount();
+      final BackupOperation backupOp=op.getBackupOperation();
+      if (backupOp != null) {
+      }
+    }
+    if (responseHandler != null && op.returnsResponse()) {
+      responseHandler.sendResponse(op.getResponse());
+    }
+    op.afterRun();
   }
  catch (  Throwable e) {
     if (e instanceof RetryableException) {
@@ -45,8 +58,7 @@
  else {
       logger.log(Level.SEVERE,e.getMessage(),e);
     }
-    final ResponseHandler responseHandler=op.getResponseHandler();
-    if (responseHandler != null) {
+    if (responseHandler != null && op.returnsResponse()) {
       responseHandler.sendResponse(e);
     }
   }

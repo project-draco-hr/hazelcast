@@ -1,10 +1,9 @@
 {
   final int partitionId=getPartitionId();
   final int replicaIndex=getReplicaIndex();
-  final ResponseHandler responseHandler=getResponseHandler();
   if (to.equals(from)) {
     getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
-    responseHandler.sendResponse(Boolean.FALSE);
+    success=false;
     return;
   }
   if (from == null) {
@@ -15,7 +14,7 @@
     Member target=partitionService.getMember(to);
     if (target == null) {
       getLogger().log(Level.WARNING,"Target member of task could not be found! => " + toString());
-      responseHandler.sendResponse(Boolean.FALSE);
+      success=false;
       return;
     }
     partitionService.addActiveMigration(createMigrationInfo());
@@ -24,10 +23,9 @@
     final Collection<Operation> tasks=prepareMigrationTasks(partitionId,replicaIndex);
     Invocation inv=nodeService.createInvocationBuilder(PartitionService.SERVICE_NAME,new MigrationOperation(partitionId,replicaIndex,copyBackReplicaIndex,getMigrationType(),tasks,from),partitionId).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
     Future future=inv.invoke();
-    Boolean result=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
-    responseHandler.sendResponse(result);
+    success=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
   }
  catch (  Throwable e) {
-    onError(responseHandler,e);
+    onError(e);
   }
 }
