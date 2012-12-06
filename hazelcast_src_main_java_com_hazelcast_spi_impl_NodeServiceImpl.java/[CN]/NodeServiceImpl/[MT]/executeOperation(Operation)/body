@@ -10,7 +10,7 @@
       if (partitionId < 0) {
         throw new IllegalArgumentException();
       }
-      if (!isPartitionLockFreeOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
+      if (!isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
         throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
       }
       PartitionInfo partitionInfo=getPartitionInfo(partitionId);
@@ -25,8 +25,8 @@
           throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
         }
         final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
-        final boolean shouldValidateTarget=op.shouldValidateTarget();
-        if (shouldValidateTarget && !getThisAddress().equals(owner)) {
+        final boolean validatesTarget=op.validatesTarget();
+        if (validatesTarget && !getThisAddress().equals(owner)) {
           throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
         }
         if (!(op instanceof BackupOperation) && op instanceof KeyBasedOperation) {
@@ -39,24 +39,29 @@
     op.beforeRun();
     op.run();
     if (op.needsBackup()) {
-      final int syncBackup=op.getSyncBackupCount();
-      final int asyncBackup=op.getAsyncBackupCount();
-      final BackupOperation backupOp=op.getBackupOperation();
-      if (backupOp != null) {
+      final Collection<Future> sync=new LinkedList<Future>();
+      final Collection<Future> async=new LinkedList<Future>();
+      final Object response=sendBackups(op,sync,async);
+      waitResponses(sync);
+      if (responseHandler != null && op.returnsResponse()) {
+        responseHandler.sendResponse(response);
       }
+      waitResponses(async);
     }
-    if (responseHandler != null && op.returnsResponse()) {
-      responseHandler.sendResponse(op.getResponse());
+ else {
+      if (responseHandler != null && op.returnsResponse()) {
+        responseHandler.sendResponse(op.getResponse());
+      }
     }
     op.afterRun();
   }
  catch (  Throwable e) {
     if (e instanceof RetryableException) {
-      logger.log(Level.WARNING,e.getClass() + ": " + e.getMessage());
+      logger.log(Level.WARNING,"While executing op: " + op + " -> "+ e.getClass()+ ": "+ e.getMessage());
       logger.log(Level.FINEST,e.getMessage(),e);
     }
  else {
-      logger.log(Level.SEVERE,e.getMessage(),e);
+      logger.log(Level.SEVERE,"While executing op: " + op + " -> "+ e.getMessage(),e);
     }
     if (responseHandler != null && op.returnsResponse()) {
       responseHandler.sendResponse(e);

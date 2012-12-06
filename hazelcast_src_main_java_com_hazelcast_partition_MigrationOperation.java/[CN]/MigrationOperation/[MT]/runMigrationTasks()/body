@@ -5,14 +5,17 @@
   partitionService.addActiveMigration(new MigrationInfo(getPartitionId(),getReplicaIndex(),copyBackReplicaIndex,migrationType,from,nodeService.getThisAddress()));
   for (  Operation op : tasks) {
     try {
-      nodeService.setOperationContext(op,op.getServiceName(),from,-1).setPartitionId(getPartitionId());
+      op.setNodeService(nodeService).setCaller(from).setPartitionId(getPartitionId()).setReplicaIndex(getReplicaIndex());
+      op.setResponseHandler(ERROR_RESPONSE_HANDLER);
       MigrationAwareService service=op.getService();
       service.beforeMigration(new MigrationServiceEvent(MigrationEndpoint.DESTINATION,getPartitionId(),getReplicaIndex(),migrationType,copyBackReplicaIndex));
-      nodeService.runOperation(op);
+      op.beforeRun();
+      op.run();
+      op.afterRun();
     }
  catch (    Throwable e) {
       error=true;
-      getLogger().log(Level.SEVERE,e.getMessage(),e);
+      getLogger().log(Level.SEVERE,"While executing " + op,e);
       break;
     }
   }
