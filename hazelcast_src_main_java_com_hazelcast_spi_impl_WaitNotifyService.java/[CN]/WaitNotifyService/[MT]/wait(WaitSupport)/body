@@ -1,0 +1,18 @@
+{
+  final Object key=so.getWaitKey();
+  Queue<WaitingOp> q=mapWaitingOps.get(key);
+  if (q == null) {
+    q=new ConcurrentLinkedQueue<WaitingOp>();
+    Queue<WaitingOp> qExisting=mapWaitingOps.putIfAbsent(key,q);
+    if (qExisting != null) {
+      q=qExisting;
+    }
+  }
+  long timeout=so.getWaitTimeoutMillis();
+  WaitingOp waitingOp=new WaitingOp(q,so);
+  if (timeout > -1 && timeout < 1500) {
+    delayQueue.offer(waitingOp);
+  }
+  q.offer(waitingOp);
+  System.out.println(delayQueue.size() + " scheduled " + q.size());
+}

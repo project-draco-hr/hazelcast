@@ -1,9 +1,9 @@
 {
-  final ResponseHandler responseHandler=op.getResponseHandler();
-  Lock partitionLock=null;
-  Lock keyLock=null;
   final ThreadContext threadContext=ThreadContext.get();
   threadContext.setCurrentOperation(op);
+  ResponseHandler responseHandler=op.getResponseHandler();
+  Lock partitionLock=null;
+  Lock keyLock=null;
   try {
     final int partitionId=op.getPartitionId();
     if (op instanceof PartitionAwareOperation) {
@@ -36,24 +36,7 @@
         }
       }
     }
-    op.beforeRun();
-    op.run();
-    if (op instanceof BackupAwareOperation) {
-      final Collection<Future> sync=new LinkedList<Future>();
-      final Collection<Future> async=new LinkedList<Future>();
-      final Object response=sendBackups(op,sync,async);
-      waitResponses(sync);
-      if (responseHandler != null && op.returnsResponse()) {
-        responseHandler.sendResponse(response);
-      }
-      waitResponses(async);
-    }
- else {
-      if (responseHandler != null && op.returnsResponse()) {
-        responseHandler.sendResponse(op.getResponse());
-      }
-    }
-    op.afterRun();
+    processUnderExistingLock(op);
   }
  catch (  Throwable e) {
     if (e instanceof RetryableException) {

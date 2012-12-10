@@ -1,0 +1,50 @@
+{
+  this.waitingOpProcessor=waitingOpProcessor;
+  expirationTask=esExpirationTaskExecutor.submit(new Runnable(){
+    public void run(){
+      while (true) {
+        if (Thread.interrupted()) {
+          return;
+        }
+        try {
+          long waitTime=1000;
+          while (waitTime > 0) {
+            long begin=System.currentTimeMillis();
+            System.out.println(delayQueue.size() + " waiting for " + waitTime);
+            WaitingOp waitingOp=(WaitingOp)delayQueue.poll(waitTime,TimeUnit.MILLISECONDS);
+            System.out.println("delayed-running  " + waitingOp);
+            if (waitingOp != null) {
+              if (waitingOp.isValid()) {
+                waitingOpProcessor.process(waitingOp);
+              }
+            }
+            long end=System.currentTimeMillis();
+            waitTime-=(end - begin);
+            if (waitTime > 1000) {
+              waitTime=0;
+            }
+          }
+          for (          Queue<WaitingOp> q : mapWaitingOps.values()) {
+            Iterator<WaitingOp> it=q.iterator();
+            while (it.hasNext()) {
+              if (Thread.interrupted()) {
+                return;
+              }
+              WaitingOp waitingOp=it.next();
+              if (waitingOp.isValid() && waitingOp.expired()) {
+                waitingOpProcessor.process(waitingOp);
+              }
+            }
+          }
+        }
+ catch (        InterruptedException e) {
+          return;
+        }
+catch (        Throwable t) {
+          t.printStackTrace();
+        }
+      }
+    }
+  }
+);
+}
