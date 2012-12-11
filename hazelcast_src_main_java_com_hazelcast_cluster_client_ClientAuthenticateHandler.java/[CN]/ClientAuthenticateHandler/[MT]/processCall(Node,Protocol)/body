@@ -1,0 +1,16 @@
+{
+  logger=node.loggingService.getLogger(this.getClass().getName());
+  Credentials credentials;
+  String[] args=protocol.args;
+  if (node.securityContext == null) {
+    if (args.length < 2) {
+      throw new RuntimeException("Should provide both username and password");
+    }
+    credentials=new UsernamePasswordCredentials(args[0],args[1]);
+  }
+ else {
+    credentials=(Credentials)node.nodeService.toObject(new Data(protocol.buffers[0].array()));
+  }
+  boolean authenticated=doAuthenticate(node,credentials,protocol.conn);
+  return authenticated ? protocol.success() : protocol.error(null);
+}

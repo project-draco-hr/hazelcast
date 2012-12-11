@@ -1,0 +1,42 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_INITIAL_MIN_CLUSTER_SIZE,"2");
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastReplicatedMap<Integer,Integer> hzrm1=new HazelcastReplicatedMap<Integer,Integer>(h1,"test");
+  Thread.sleep(10000);
+  ExecutorService executorService=Executors.newFixedThreadPool(10);
+  int threadCount=2;
+  final CountDownLatch latch=new CountDownLatch(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    final int id=i;
+    executorService.submit(new Runnable(){
+      public void run(){
+        try {
+          Thread.sleep(1);
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+        HazelcastReplicatedMap<Integer,Integer> hzrm;
+        hzrm=hzrm1;
+        Random random=new Random();
+        int count=100;
+        for (int j=0; j < count; j++) {
+          if (random.nextInt(count) % 2 == 0)           hzrm.put(random.nextInt(count),random.nextInt(count));
+ else           hzrm.remove(random.nextInt(count));
+        }
+        latch.countDown();
+      }
+    }
+);
+  }
+  assertTrue(latch.await(threadCount * 10 + 10,TimeUnit.SECONDS));
+  Thread.sleep(20000);
+  List<Integer> keys1=new ArrayList<Integer>(hzrm1.keySet());
+  Collections.sort(keys1);
+  for (  int i : keys1) {
+    System.out.print(i + ": " + hzrm1.get(i)+ ", ");
+  }
+  System.out.println();
+  Thread.sleep(1000000000);
+}
