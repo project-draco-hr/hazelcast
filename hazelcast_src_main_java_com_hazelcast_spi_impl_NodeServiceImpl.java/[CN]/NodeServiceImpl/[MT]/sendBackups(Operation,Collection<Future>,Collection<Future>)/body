@@ -1,11 +1,11 @@
 {
-  final BackupAwareOperation backupAwareOperation=(BackupAwareOperation)op;
+  final BackupAwareOperation backupAwareOp=(BackupAwareOperation)op;
   final int maxBackups=getClusterService().getSize() - 1;
-  final int syncBackupCount=backupAwareOperation.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOperation.getSyncBackupCount()) : 0;
-  final int asyncBackupCount=backupAwareOperation.getAsyncBackupCount() > 0 ? Math.min(maxBackups - syncBackupCount,backupAwareOperation.getAsyncBackupCount()) : 0;
+  final int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
+  final int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
   if (syncBackupCount + asyncBackupCount > 0) {
     Operation backupResponse=null;
-    final Operation backupOp=backupAwareOperation.getBackupOperation();
+    final Operation backupOp=backupAwareOp.getBackupOperation();
     if (backupOp == null) {
       throw new NullPointerException();
     }
