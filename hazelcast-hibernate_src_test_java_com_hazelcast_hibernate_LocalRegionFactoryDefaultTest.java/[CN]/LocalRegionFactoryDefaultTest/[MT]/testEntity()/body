@@ -1,0 +1,43 @@
+{
+  final HazelcastInstance hz=getHazelcastInstance();
+  assertNotNull(hz);
+  assertEquals(Hazelcast.getDefaultInstance(),hz);
+  final int count=100;
+  final int childCount=3;
+  insertDummyEntities(count,childCount);
+  sleep(1);
+  List<DummyEntity> list=new ArrayList<DummyEntity>(count);
+  Session session=sf.openSession();
+  try {
+    for (int i=0; i < count; i++) {
+      DummyEntity e=(DummyEntity)session.get(DummyEntity.class,new Long(i));
+      session.evict(e);
+      list.add(e);
+    }
+  }
+  finally {
+    session.close();
+  }
+  session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  try {
+    for (    DummyEntity dummy : list) {
+      dummy.setDate(new Date());
+      session.update(dummy);
+    }
+    tx.commit();
+  }
+ catch (  Exception e) {
+    tx.rollback();
+    e.printStackTrace();
+  }
+ finally {
+    session.close();
+  }
+  assertEquals((childCount + 1) * count,stats.getEntityInsertCount());
+  assertEquals((childCount + 1) * count * 2 + count,stats.getSecondLevelCachePutCount());
+  assertEquals(childCount * count,stats.getEntityLoadCount());
+  assertEquals(count,stats.getSecondLevelCacheHitCount());
+  assertEquals(count,stats.getSecondLevelCacheMissCount());
+  stats.logSummary();
+}
