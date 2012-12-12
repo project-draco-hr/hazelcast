@@ -12,7 +12,13 @@
  else {
     final Address master=concurrentMapManager.getMasterAddress();
     if (sender == null || !sender.equals(master)) {
-      logger.log(Level.WARNING,"Received a ClusterRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+      if (concurrentMapManager.getMember(sender) == null) {
+        logger.log(Level.SEVERE,"Received a ClusterRuntimeState from an unknown member!" + " => Sender: " + sender + ", Master: "+ master+ "! ");
+        return;
+      }
+ else {
+        logger.log(Level.WARNING,"Received a ClusterRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+      }
     }
   }
   PartitionInfo[] newPartitions=runtimeState.getPartitions();
