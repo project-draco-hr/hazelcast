@@ -1,16 +1,21 @@
 {
-  final int partitionId=packet.getPartitionId();
   final Data data=packet.getValue();
   final Address caller=packet.getConn().getEndPoint();
   try {
     final Operation op=(Operation)toObject(data);
-    op.setNodeService(NodeServiceImpl.this).setCaller(caller).setPartitionId(partitionId);
+    op.setNodeService(NodeServiceImpl.this).setCaller(caller);
     op.setConnection(packet.getConn());
-    ResponseHandlerFactory.setRemoteResponseHandler(NodeServiceImpl.this,op);
-    runOperation(op);
+    if (packet.isHeaderSet(Packet.HEADER_EVENT)) {
+      op.setResponseHandler(ResponseHandlerFactory.NO_RESPONSE_HANDLER);
+      eventService.onEvent((EventOperation)op);
+    }
+ else {
+      ResponseHandlerFactory.setRemoteResponseHandler(NodeServiceImpl.this,op);
+      runOperation(op);
+    }
   }
  catch (  Throwable e) {
     logger.log(Level.SEVERE,e.getMessage(),e);
-    send(new ErrorResponse(getThisAddress(),e),EXECUTOR_THREAD_ID,packet.getConn());
+    send(new ErrorResponse(getThisAddress(),e),packet.getConn());
   }
 }

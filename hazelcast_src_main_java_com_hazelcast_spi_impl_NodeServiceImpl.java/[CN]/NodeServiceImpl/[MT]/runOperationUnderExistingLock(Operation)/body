@@ -13,14 +13,23 @@
     }
     op.run();
     if (op instanceof BackupAwareOperation) {
-      handleBackupAndSendResponse(op);
+      final BackupAwareOperation backupAwareOp=(BackupAwareOperation)op;
+      if (backupAwareOp.shouldBackup()) {
+        handleBackupAndSendResponse(backupAwareOp);
+      }
+ else {
+        sendResponse(op,null);
+      }
     }
  else {
-      sendResponse(op,op.getResponse());
+      sendResponse(op,null);
     }
     op.afterRun();
     if (op instanceof Notifier) {
-      waitNotifyService.notify((Notifier)op);
+      final Notifier notifier=(Notifier)op;
+      if (notifier.shouldNotify()) {
+        waitNotifyService.notify(notifier);
+      }
     }
   }
  catch (  Throwable e) {

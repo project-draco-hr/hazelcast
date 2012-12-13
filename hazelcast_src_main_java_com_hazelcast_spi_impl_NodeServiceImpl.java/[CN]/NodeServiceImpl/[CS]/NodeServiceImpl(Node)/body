@@ -14,19 +14,6 @@
   eventExecutorService=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("event"),node.getConfig().getClassLoader()));
   scheduledExecutorService=Executors.newScheduledThreadPool(2,new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("scheduled"),classLoader));
   serviceManager=new ServiceManager(this);
-  waitNotifyService=new WaitNotifyService(new WaitNotifyService.WaitingOpProcessor(){
-    public void process(    final WaitNotifyService.WaitingOp so) throws Exception {
-      cachedExecutorService.execute(new Runnable(){
-        public void run(){
-          runOperation(so);
-        }
-      }
-);
-    }
-    public void processUnderExistingLock(    Operation operation){
-      final NodeServiceImpl nodeService=NodeServiceImpl.this;
-      nodeService.runOperationUnderExistingLock(operation);
-    }
-  }
-);
+  waitNotifyService=new WaitNotifyService(new WaitingOpProcessorImpl());
+  eventService=new EventService(this);
 }
