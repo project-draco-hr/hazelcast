@@ -19,7 +19,7 @@
       }
  else {
         partitionLock=partitionInfo.getReadLock();
-        if (!partitionLock.tryLock()) {
+        if (!partitionLock.tryLock(500,TimeUnit.MILLISECONDS)) {
           partitionLock=null;
           throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
         }
@@ -28,9 +28,13 @@
         if (validatesTarget && !getThisAddress().equals(owner)) {
           throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
         }
-        if (!(op instanceof BackupOperation) && op instanceof KeyBasedOperation) {
+        if (op instanceof KeyBasedOperation) {
           final int hash=((KeyBasedOperation)op).getKeyHash();
-          keyLock=locks[Math.abs(hash) % locks.length];
+          Lock[] lockGroup=ownerLocks;
+          if (op instanceof BackupOperation) {
+            lockGroup=backupLocks;
+          }
+          keyLock=lockGroup[Math.abs(hash) % lockGroup.length];
           keyLock.lock();
         }
       }

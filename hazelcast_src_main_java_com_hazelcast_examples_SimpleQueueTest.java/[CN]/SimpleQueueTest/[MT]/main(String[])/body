@@ -1,13 +1,16 @@
 {
-  int threadCount=20;
-  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(null);
+  System.setProperty("hazelcast.config","/java/workspace/hazelcast/hazelcast/src/main/resources/hazelcast.xml");
+  int threadCount=10;
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance();
   final Stats stats=new Stats();
   ExecutorService es=Executors.newFixedThreadPool(threadCount);
   for (int i=0; i < threadCount; i++) {
     es.submit(new Runnable(){
       public void run(){
-        Queue<byte[]> queue=hz.getQueue("default");
+        Random random=new Random();
         while (true) {
+          int ran=random.nextInt(100);
+          Queue<byte[]> queue=hz.getQueue("default" + ran);
           for (int j=0; j < 1000; j++) {
             queue.offer(new byte[VALUE_SIZE]);
             stats.offers.incrementAndGet();
