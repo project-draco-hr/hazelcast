@@ -1,0 +1,46 @@
+{
+  final int maxSize;
+  final long timeToLive;
+  if (config != null) {
+    maxSize=config.getMaxSizeConfig().getSize();
+    timeToLive=config.getTimeToLiveSeconds() * 1000L;
+  }
+ else {
+    maxSize=100000;
+    timeToLive=CacheEnvironment.getDefaultCacheTimeoutInMillis();
+  }
+  if ((maxSize > 0 && maxSize != Integer.MAX_VALUE) || timeToLive > 0) {
+    final Iterator<Entry<Object,Value>> iter=cache.entrySet().iterator();
+    SortedSet<EvictionEntry> entries=null;
+    final long now=Clock.currentTimeMillis();
+    while (iter.hasNext()) {
+      final Entry<Object,Value> e=iter.next();
+      final Object k=e.getKey();
+      final Value v=e.getValue();
+      if (v.getLock() == LOCK_SUCCESS) {
+        continue;
+      }
+      if (v.getCreationTime() + timeToLive > now) {
+        iter.remove();
+      }
+ else       if (maxSize > 0 && maxSize != Integer.MAX_VALUE) {
+        if (entries == null) {
+          entries=new TreeSet<EvictionEntry>();
+        }
+        entries.add(new EvictionEntry(k,v));
+      }
+    }
+    final int diff=cache.size() - maxSize;
+    final int k=diff >= 0 ? (diff + maxSize * 20 / 100) : 0;
+    if (k > 0 && entries != null) {
+      int i=0;
+      for (      EvictionEntry entry : entries) {
+        if (cache.remove(entry.key,entry.value)) {
+          if (++i == k) {
+            break;
+          }
+        }
+      }
+    }
+  }
+}
