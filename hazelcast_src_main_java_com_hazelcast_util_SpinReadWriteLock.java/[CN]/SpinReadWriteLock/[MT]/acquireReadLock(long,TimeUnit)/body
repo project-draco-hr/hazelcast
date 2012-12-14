@@ -1,0 +1,16 @@
+{
+  final long timeInMillis=unit.toMillis(time);
+  long elapsed=0L;
+  while (locked.get()) {
+    Thread.sleep(spinInterval);
+    if ((elapsed+=spinInterval) > timeInMillis) {
+      return false;
+    }
+  }
+  readCount.incrementAndGet();
+  if (locked.get()) {
+    readCount.decrementAndGet();
+    return acquireReadLock(timeInMillis - elapsed,TimeUnit.MILLISECONDS);
+  }
+  return true;
+}

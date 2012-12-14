@@ -1,29 +1,23 @@
 {
   this.node=node;
   logger=node.getLogger(NodeService.class.getName());
-  for (int i=0; i < locks.length; i++) {
-    locks[i]=new ReentrantLock();
+  for (int i=0; i < ownerLocks.length; i++) {
+    ownerLocks[i]=new ReentrantLock();
+  }
+  for (int i=0; i < backupLocks.length; i++) {
+    backupLocks[i]=new ReentrantLock();
   }
   partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
+  partitionLocks=new SpinReadWriteLock[partitionCount];
+  for (int i=0; i < partitionCount; i++) {
+    partitionLocks[i]=new SpinReadWriteLock(1,TimeUnit.MILLISECONDS);
+  }
   final ClassLoader classLoader=node.getConfig().getClassLoader();
   final ExecutorThreadFactory threadFactory=new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("cached"),classLoader);
   cachedExecutorService=new ThreadPoolExecutor(3,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory);
   eventExecutorService=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("event"),node.getConfig().getClassLoader()));
   scheduledExecutorService=Executors.newScheduledThreadPool(2,new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("scheduled"),classLoader));
   serviceManager=new ServiceManager(this);
-  waitNotifyService=new WaitNotifyService(new WaitNotifyService.WaitingOpProcessor(){
-    public void process(    final WaitNotifyService.WaitingOp so) throws Exception {
-      cachedExecutorService.execute(new Runnable(){
-        public void run(){
-          runOperation(so);
-        }
-      }
-);
-    }
-    public void processUnderExistingLock(    Operation operation){
-      final NodeServiceImpl nodeService=NodeServiceImpl.this;
-      nodeService.runOperationUnderExistingLock(operation);
-    }
-  }
-);
+  waitNotifyService=new WaitNotifyService(new WaitingOpProcessorImpl());
+  eventService=new EventService(this);
 }

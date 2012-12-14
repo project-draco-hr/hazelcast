@@ -1,7 +1,7 @@
 {
   final ThreadContext threadContext=ThreadContext.get();
   threadContext.setCurrentOperation(op);
-  Lock partitionLock=null;
+  SpinLock partitionLock=null;
   Lock keyLock=null;
   try {
     final int partitionId=op.getPartitionId();
@@ -12,25 +12,30 @@
       if (!isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
         throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
       }
-      PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+      SpinReadWriteLock migrationLock=partitionLocks[partitionId];
       if (op instanceof PartitionLevelOperation) {
-        partitionLock=partitionInfo.getWriteLock();
+        partitionLock=migrationLock.writeLock();
         partitionLock.lock();
       }
  else {
-        partitionLock=partitionInfo.getReadLock();
-        if (!partitionLock.tryLock()) {
+        partitionLock=migrationLock.readLock();
+        if (!partitionLock.tryLock(500,TimeUnit.MILLISECONDS)) {
           partitionLock=null;
           throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
         }
+        PartitionInfo partitionInfo=getPartitionInfo(partitionId);
         final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
         final boolean validatesTarget=op.validatesTarget();
         if (validatesTarget && !getThisAddress().equals(owner)) {
           throw new WrongTargetException(getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
         }
-        if (!(op instanceof BackupOperation) && op instanceof KeyBasedOperation) {
+        if (op instanceof KeyBasedOperation) {
           final int hash=((KeyBasedOperation)op).getKeyHash();
-          keyLock=locks[Math.abs(hash) % locks.length];
+          Lock[] lockGroup=ownerLocks;
+          if (op instanceof BackupOperation) {
+            lockGroup=backupLocks;
+          }
+          keyLock=lockGroup[Math.abs(hash) % lockGroup.length];
           keyLock.lock();
         }
       }
