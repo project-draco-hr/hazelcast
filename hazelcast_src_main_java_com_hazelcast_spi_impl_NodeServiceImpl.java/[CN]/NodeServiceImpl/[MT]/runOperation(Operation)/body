@@ -12,17 +12,18 @@
       if (!isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
         throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
       }
-      PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+      SpinReadWriteLock migrationLock=partitionLocks[partitionId];
       if (op instanceof PartitionLevelOperation) {
-        partitionLock=partitionInfo.getWriteLock();
+        partitionLock=migrationLock.writeLock();
         partitionLock.lock();
       }
  else {
-        partitionLock=partitionInfo.getReadLock();
+        partitionLock=migrationLock.readLock();
         if (!partitionLock.tryLock(500,TimeUnit.MILLISECONDS)) {
           partitionLock=null;
           throw new PartitionMigratingException(getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
         }
+        PartitionInfo partitionInfo=getPartitionInfo(partitionId);
         final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
         final boolean validatesTarget=op.validatesTarget();
         if (validatesTarget && !getThisAddress().equals(owner)) {
