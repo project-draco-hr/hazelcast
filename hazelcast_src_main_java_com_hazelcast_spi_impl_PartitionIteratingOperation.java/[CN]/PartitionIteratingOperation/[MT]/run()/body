@@ -1,0 +1,26 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  try {
+    Map<Integer,ResponseQueue> responses=new HashMap<Integer,ResponseQueue>(partitions.size());
+    for (    final int partitionId : partitions) {
+      final Operation op=(Operation)nodeEngine.toObject(operationData);
+      ResponseQueue responseQueue=new ResponseQueue();
+      op.setNodeEngine(getNodeEngine()).setCaller(getCaller()).setPartitionId(partitionId).setReplicaIndex(getReplicaIndex()).setResponseHandler(responseQueue).setService(getService());
+      responses.put(partitionId,responseQueue);
+      nodeEngine.getExecutionService().execute(new Runnable(){
+        public void run(){
+          nodeEngine.getOperationService().runOperation(op);
+        }
+      }
+);
+    }
+    for (    Map.Entry<Integer,ResponseQueue> responseQueueEntry : responses.entrySet()) {
+      final ResponseQueue queue=responseQueueEntry.getValue();
+      final Object result=queue.get();
+      results.put(responseQueueEntry.getKey(),result);
+    }
+  }
+ catch (  Exception e) {
+    nodeEngine.getLogger(PartitionIteratingOperation.class.getName()).log(Level.SEVERE,e.getMessage(),e);
+  }
+}
