@@ -1,0 +1,40 @@
+{
+  final Node node=nodeService.getNode();
+  logger.log(Level.FINEST,"Registering core services...");
+  registerService(ClusterService.SERVICE_NAME,node.getClusterService());
+  registerService(PartitionService.SERVICE_NAME,node.getPartitionService());
+  final Services servicesConfig=node.getConfig().getServicesConfig();
+  if (servicesConfig != null) {
+    if (servicesConfig.isEnableDefaults()) {
+      logger.log(Level.FINEST,"Registering default services...");
+      registerService(MapService.MAP_SERVICE_NAME,new MapService(nodeService));
+      registerService(QueueService.NAME,new QueueService(nodeService));
+    }
+    final Collection<ServiceConfig> serviceConfigs=servicesConfig.getServiceConfigs();
+    for (    ServiceConfig serviceConfig : serviceConfigs) {
+      if (serviceConfig.isEnabled()) {
+        Object service=null;
+        if (serviceConfig instanceof CustomServiceConfig) {
+          final CustomServiceConfig customServiceConfig=(CustomServiceConfig)serviceConfig;
+          service=customServiceConfig.getServiceImpl();
+          if (service == null) {
+            try {
+              service=ClassLoaderUtil.newInstance(customServiceConfig.getClassName());
+            }
+ catch (            Throwable e) {
+              logger.log(Level.SEVERE,e.getMessage(),e);
+            }
+          }
+        }
+ else         if (serviceConfig instanceof MapServiceConfig) {
+          if (!services.containsKey(MapServiceConfig.SERVICE_NAME)) {
+            service=new MapService(nodeService);
+          }
+        }
+        if (service != null) {
+          registerService(serviceConfig.getName(),service);
+        }
+      }
+    }
+  }
+}
