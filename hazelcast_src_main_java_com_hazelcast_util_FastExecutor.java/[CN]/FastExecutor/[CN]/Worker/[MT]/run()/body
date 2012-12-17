@@ -1,0 +1,29 @@
+{
+  try {
+    ThreadContext.get().setCurrentInstance(node.hazelcastInstance);
+    setContextClassLoader(node.getConfig().getClassLoader());
+    while (!isInterrupted() && live) {
+      try {
+        Task task=queue.take();
+        task.run();
+      }
+ catch (      InterruptedException e) {
+        break;
+      }
+catch (      Exception e) {
+        logger.log(Level.WARNING,e.getMessage(),e);
+      }
+catch (      OutOfMemoryError e) {
+        OutOfMemoryErrorDispatcher.onOutOfMemory(e);
+      }
+    }
+  }
+  finally {
+    try {
+      ThreadContext.shutdown(this);
+    }
+ catch (    Throwable e) {
+      logger.log(Level.SEVERE,e.getMessage(),e);
+    }
+  }
+}
