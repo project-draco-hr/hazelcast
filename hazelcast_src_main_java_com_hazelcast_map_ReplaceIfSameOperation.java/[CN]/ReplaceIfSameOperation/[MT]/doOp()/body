@@ -1,0 +1,21 @@
+{
+  if (prepareTransaction()) {
+    return;
+  }
+  record=mapPartition.records.get(dataKey);
+  if (record == null) {
+    load();
+    record=new DefaultRecord(getPartitionId(),dataKey,dataValue,-1,-1,mapService.nextId());
+    mapPartition.records.put(dataKey,record);
+  }
+  System.out.println("value:" + record.getValue());
+  System.out.println("testObject2:" + IOUtil.toObject(testValue));
+  System.out.println("testValue2:" + testValue);
+  if (record != null && record.getValue().equals(IOUtil.toObject(testValue))) {
+    record.setValueData(dataValue);
+    record.setActive();
+    record.setDirty(true);
+    store();
+    replaced=true;
+  }
+}
