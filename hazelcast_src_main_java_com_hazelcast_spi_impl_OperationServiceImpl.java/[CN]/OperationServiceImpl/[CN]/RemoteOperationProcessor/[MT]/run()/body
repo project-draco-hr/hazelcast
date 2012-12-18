@@ -1,0 +1,15 @@
+{
+  final Data data=packet.getValue();
+  final Address caller=packet.getConn().getEndPoint();
+  try {
+    final Operation op=(Operation)IOUtil.toObject(data);
+    op.setNodeEngine(nodeEngine).setCaller(caller);
+    op.setConnection(packet.getConn());
+    ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
+    runOperation(op);
+  }
+ catch (  Throwable e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
+    send(new ErrorResponse(node.getThisAddress(),e),packet.getConn());
+  }
+}

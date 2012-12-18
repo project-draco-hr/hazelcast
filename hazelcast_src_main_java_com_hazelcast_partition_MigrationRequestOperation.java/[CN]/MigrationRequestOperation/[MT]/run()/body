@@ -1,6 +1,6 @@
 {
-  final int partitionId=getPartitionId();
-  final int replicaIndex=getReplicaIndex();
+  final Address from=migrationInfo.getFromAddress();
+  final Address to=migrationInfo.getToAddress();
   if (to.equals(from)) {
     getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
     success=false;
@@ -17,11 +17,11 @@
       success=false;
       return;
     }
-    partitionService.addActiveMigration(createMigrationInfo());
+    partitionService.addActiveMigration(migrationInfo);
     final NodeEngine nodeEngine=getNodeEngine();
     final long timeout=nodeEngine.getGroupProperties().PARTITION_MIGRATION_TIMEOUT.getLong();
-    final Collection<Operation> tasks=prepareMigrationTasks(partitionId,replicaIndex);
-    Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(PartitionService.SERVICE_NAME,new MigrationOperation(partitionId,replicaIndex,copyBackReplicaIndex,getMigrationType(),tasks,from),to).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).build();
+    final Collection<Operation> tasks=prepareMigrationTasks();
+    Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(PartitionService.SERVICE_NAME,new MigrationOperation(migrationInfo,tasks),to).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(getReplicaIndex()).build();
     Future future=inv.invoke();
     success=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
   }

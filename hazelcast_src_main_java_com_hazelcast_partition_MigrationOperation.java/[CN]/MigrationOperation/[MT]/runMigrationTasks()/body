@@ -2,13 +2,13 @@
   boolean error=false;
   final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
   final PartitionService partitionService=getService();
-  partitionService.addActiveMigration(new MigrationInfo(getPartitionId(),getReplicaIndex(),copyBackReplicaIndex,migrationType,from,nodeEngine.getThisAddress()));
+  partitionService.addActiveMigration(migrationInfo);
   for (  Operation op : tasks) {
     try {
-      op.setNodeEngine(nodeEngine).setCaller(from).setPartitionId(getPartitionId()).setReplicaIndex(getReplicaIndex());
+      op.setNodeEngine(nodeEngine).setCaller(migrationInfo.getFromAddress()).setPartitionId(getPartitionId()).setReplicaIndex(getReplicaIndex());
       op.setResponseHandler(ERROR_RESPONSE_HANDLER);
       MigrationAwareService service=op.getService();
-      service.beforeMigration(new MigrationServiceEvent(MigrationEndpoint.DESTINATION,getPartitionId(),getReplicaIndex(),migrationType,copyBackReplicaIndex));
+      service.beforeMigration(new MigrationServiceEvent(MigrationEndpoint.DESTINATION,migrationInfo));
       op.beforeRun();
       op.run();
       op.afterRun();
