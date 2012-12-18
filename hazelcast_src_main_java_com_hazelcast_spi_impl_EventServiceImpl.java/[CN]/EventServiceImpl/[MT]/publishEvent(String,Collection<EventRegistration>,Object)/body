@@ -1,0 +1,21 @@
+{
+  final Iterator<EventRegistration> iter=registrations.iterator();
+  final Data eventData=IOUtil.toData(event);
+  while (iter.hasNext()) {
+    EventRegistration registration=iter.next();
+    if (!(registration instanceof Registration)) {
+      throw new IllegalArgumentException();
+    }
+    final Registration reg=(Registration)registration;
+    if (reg.isLocal()) {
+      eventExecutorService.execute(new LocalEventDispatcher(serviceName,event,reg.listener));
+    }
+ else {
+      final Address subscriber=registration.getSubscriber();
+      final Data data=IOUtil.toData(new EventPacket(registration.getId(),serviceName,eventData));
+      final Packet packet=new Packet(data);
+      packet.setHeader(Packet.HEADER_EVENT,true);
+      nodeEngine.getClusterService().send(packet,subscriber);
+    }
+  }
+}
