@@ -1,0 +1,25 @@
+{
+  final IMap<Object,Object> map=getInstance().getMap("testMapTryPut");
+  map.lock("key1");
+  Thread thread=new Thread(new Runnable(){
+    public void run(){
+      try {
+        assertFalse(map.tryPut("key1","value1",1,TimeUnit.SECONDS));
+        assertNull(map.get("key1"));
+        assertTrue(map.tryPut("key","value",1,TimeUnit.SECONDS));
+        assertEquals(map.get("key"),"value");
+        assertTrue(map.tryPut("key1","value1",30,TimeUnit.SECONDS));
+        assertEquals(map.get("key1"),"value1");
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+      }
+    }
+  }
+);
+  thread.start();
+  Thread.sleep(3000);
+  map.unlock("key1");
+  thread.join();
+}
