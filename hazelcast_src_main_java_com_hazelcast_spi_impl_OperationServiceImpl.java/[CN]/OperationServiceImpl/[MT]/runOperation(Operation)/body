@@ -1,0 +1,57 @@
+{
+  final ThreadContext threadContext=ThreadContext.get();
+  threadContext.setCurrentOperation(op);
+  SpinLock partitionLock=null;
+  Lock keyLock=null;
+  try {
+    final int partitionId=op.getPartitionId();
+    if (op instanceof PartitionAwareOperation) {
+      if (partitionId < 0) {
+        throw new IllegalArgumentException();
+      }
+      if (!isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
+        throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+      }
+      SpinReadWriteLock migrationLock=partitionLocks[partitionId];
+      if (op instanceof PartitionLevelOperation) {
+        partitionLock=migrationLock.writeLock();
+        partitionLock.lock();
+      }
+ else {
+        partitionLock=migrationLock.readLock();
+        if (!partitionLock.tryLock(500,TimeUnit.MILLISECONDS)) {
+          partitionLock=null;
+          throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+        }
+        PartitionInfo partitionInfo=nodeEngine.getPartitionInfo(partitionId);
+        final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
+        final boolean validatesTarget=op.validatesTarget();
+        if (validatesTarget && !node.getThisAddress().equals(owner)) {
+          throw new WrongTargetException(node.getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
+        }
+        if (op instanceof KeyBasedOperation) {
+          final int hash=((KeyBasedOperation)op).getKeyHash();
+          Lock[] lockGroup=ownerLocks;
+          if (op instanceof BackupOperation) {
+            lockGroup=backupLocks;
+          }
+          keyLock=lockGroup[Math.abs(hash) % lockGroup.length];
+          keyLock.lock();
+        }
+      }
+    }
+    runOperationUnderExistingLock(op);
+  }
+ catch (  Throwable e) {
+    handleOperationError(op,e);
+  }
+ finally {
+    if (keyLock != null) {
+      keyLock.unlock();
+    }
+    if (partitionLock != null) {
+      partitionLock.unlock();
+    }
+    threadContext.setCurrentOperation(null);
+  }
+}

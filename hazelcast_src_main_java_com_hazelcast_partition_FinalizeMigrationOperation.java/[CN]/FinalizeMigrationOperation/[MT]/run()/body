@@ -11,9 +11,13 @@
       }
     }
  catch (    Throwable e) {
-      getNodeService().getLogger(FinalizeMigrationOperation.class.getName()).log(Level.WARNING,"Error while finalizing migration -> " + event,e);
+      getNodeEngine().getLogger(FinalizeMigrationOperation.class.getName()).log(Level.WARNING,"Error while finalizing migration -> " + event,e);
     }
   }
   PartitionService partitionService=getService();
-  partitionService.removeActiveMigration(getPartitionId());
+  MigrationInfo migrationInfo=partitionService.removeActiveMigration(getPartitionId());
+  if (success) {
+    NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+    nodeEngine.onPartitionMigrate(migrationInfo);
+  }
 }

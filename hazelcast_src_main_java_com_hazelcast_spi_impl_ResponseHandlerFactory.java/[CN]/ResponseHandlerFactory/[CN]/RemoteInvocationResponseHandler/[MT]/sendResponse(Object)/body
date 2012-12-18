@@ -1,8 +1,15 @@
 {
-  if (!(response instanceof Operation)) {
-    response=new Response(response);
+  if (!sent.compareAndSet(false,true)) {
+    throw new IllegalStateException("Response already sent for call: " + callId + " to "+ conn.getEndPoint());
   }
-  Operation responseOp=(Operation)response;
-  responseOp.setCallId(callId);
-  nodeService.send(responseOp,partitionId,conn);
+  final Operation response;
+  if (obj instanceof Operation) {
+    response=(Operation)obj;
+  }
+ else {
+    response=new Response(obj);
+  }
+  response.setCallId(callId);
+  response.setPartitionId(partitionId);
+  nodeEngine.getOperationService().send(response,conn);
 }

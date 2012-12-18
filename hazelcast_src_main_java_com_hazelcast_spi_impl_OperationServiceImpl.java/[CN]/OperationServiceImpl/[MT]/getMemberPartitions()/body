@@ -1,0 +1,22 @@
+{
+  final int members=node.getClusterService().getSize();
+  Map<Address,ArrayList<Integer>> memberPartitions=new HashMap<Address,ArrayList<Integer>>(members);
+  for (int i=0; i < nodeEngine.getPartitionCount(); i++) {
+    Address owner=node.partitionService.getPartitionOwner(i);
+    while (owner == null) {
+      try {
+        Thread.sleep(1);
+      }
+ catch (      InterruptedException ignored) {
+      }
+      owner=node.partitionService.getPartitionOwner(i);
+    }
+    ArrayList<Integer> ownedPartitions=memberPartitions.get(owner);
+    if (ownedPartitions == null) {
+      ownedPartitions=new ArrayList<Integer>();
+      memberPartitions.put(owner,ownedPartitions);
+    }
+    ownedPartitions.add(i);
+  }
+  return memberPartitions;
+}

@@ -1,6 +1,7 @@
 {
   lock.lock();
   try {
+    final Address thisAddress=nodeEngine.getThisAddress();
     final Address sender=partitionState.getEndpoint();
     if (node.isMaster()) {
       logger.log(Level.WARNING,"This is the master node and received a PartitionRuntimeState from " + sender + ". Ignoring incoming state! ");
@@ -8,8 +9,14 @@
     }
  else {
       final Address master=node.getMasterAddress();
-      if (sender == null || master == null || !master.equals(sender)) {
-        logger.log(Level.WARNING,"Received a PartitionRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+      if (sender == null || !sender.equals(master)) {
+        if (node.clusterService.getMember(sender) == null) {
+          logger.log(Level.SEVERE,"Received a ClusterRuntimeState from an unknown member!" + " => Sender: " + sender + ", Master: "+ master+ "! ");
+          return;
+        }
+ else {
+          logger.log(Level.WARNING,"Received a ClusterRuntimeState, but its sender doesn't seem master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+        }
       }
     }
     PartitionInfo[] newPartitions=partitionState.getPartitions();

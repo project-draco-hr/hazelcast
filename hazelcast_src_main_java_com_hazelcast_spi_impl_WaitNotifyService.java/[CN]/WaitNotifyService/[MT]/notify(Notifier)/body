@@ -1,0 +1,22 @@
+{
+  Object key=notifier.getNotifiedKey();
+  Queue<WaitingOp> q=mapWaitingOps.get(key);
+  if (q == null)   return;
+  WaitingOp so=q.peek();
+  while (so != null) {
+    if (so.isValid()) {
+      if (so.expired()) {
+        so.expire();
+      }
+ else {
+        if (so.shouldWait()) {
+          return;
+        }
+        waitingOpProcessor.processUnderExistingLock(so.getOperation());
+      }
+      so.setValid(false);
+    }
+    q.poll();
+    so=q.peek();
+  }
+}

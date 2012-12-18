@@ -1,21 +1,14 @@
 {
-  int partitionId=nodeService.getPartitionId(key);
+  int partitionId=nodeEngine.getPartitionId(key);
   String txnId=prepareTransaction(partitionId);
-  PutOperation putOperation=new PutOperation(name,key,value,txnId,getTTLInMillis(ttl,timeunit));
-  putOperation.setValidateTarget(true);
-  long backupCallId=mapService.createNewBackupCallQueue();
-  putOperation.setBackupCallId(backupCallId);
-  putOperation.setServiceName(MAP_SERVICE_NAME);
+  PutOperation operation=new PutOperation(name,key,value,txnId,getTTLInMillis(ttl,timeunit));
+  operation.setThreadId(ThreadContext.get().getThreadId());
   try {
-    Object returnObj=invoke(putOperation,partitionId);
-    UpdateResponse updateResponse=(UpdateResponse)returnObj;
-    checkBackups(partitionId,putOperation,updateResponse);
-    return updateResponse.getOldValue();
+    Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(MAP_SERVICE_NAME,operation,partitionId).build();
+    Future f=invocation.invoke();
+    return (Data)f.get();
   }
  catch (  Throwable throwable) {
-    throw (RuntimeException)throwable;
-  }
- finally {
-    mapService.removeBackupCallQueue(backupCallId);
+    throw new HazelcastException(throwable);
   }
 }

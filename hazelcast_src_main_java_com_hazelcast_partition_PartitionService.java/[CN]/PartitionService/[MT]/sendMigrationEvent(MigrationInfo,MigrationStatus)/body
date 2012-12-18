@@ -1,14 +1,7 @@
 {
-  final Collection<MemberImpl> members=node.clusterService.getMemberList();
-  for (  MemberImpl member : members) {
-    if (!member.localMember()) {
-      nodeService.createInvocationBuilder(SERVICE_NAME,new MigrationEventOperation(status,migrationInfo),NodeService.EVENT_THREAD_ID).setTarget(member.getAddress()).setTryCount(1).build().invoke();
-    }
-  }
-  nodeService.getEventService().execute(new Runnable(){
-    public void run(){
-      fireMigrationEvent(migrationInfo,status);
-    }
-  }
-);
+  final MemberImpl current=getMember(migrationInfo.getFromAddress());
+  final MemberImpl newOwner=getMember(migrationInfo.getToAddress());
+  final MigrationEvent event=new MigrationEvent(migrationInfo.getPartitionId(),current,newOwner,status);
+  Collection<EventRegistration> registrations=nodeEngine.getEventService().getRegistrations(SERVICE_NAME,SERVICE_NAME);
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrations,event);
 }

@@ -2,21 +2,20 @@
   if (!node.isMaster() || !node.isActive())   return;
   lock.lock();
   try {
-    for (    MigrationRequestOperation migrationRequestOp : lostQ) {
-      int partitionId=migrationRequestOp.getPartitionId();
-      int replicaIndex=migrationRequestOp.getReplicaIndex();
+    for (    MigrationInfo migrationInfo : lostQ) {
+      int partitionId=migrationInfo.getPartitionId();
+      int replicaIndex=migrationInfo.getReplicaIndex();
       if (replicaIndex != 0 || partitionId >= partitionCount) {
-        logger.log(Level.WARNING,"Wrong task for lost partitions assignment process" + " => " + migrationRequestOp);
+        logger.log(Level.WARNING,"Wrong task for lost partitions assignment process" + " => " + migrationInfo);
         continue;
       }
       PartitionInfo partition=partitions[partitionId];
-      Address newOwner=migrationRequestOp.getToAddress();
+      Address newOwner=migrationInfo.getToAddress();
       MemberImpl ownerMember=node.clusterService.getMember(newOwner);
       if (ownerMember != null) {
         partition.setReplicaAddress(replicaIndex,newOwner);
-        final MigrationInfo mp=migrationRequestOp.createMigrationInfo();
-        sendMigrationEvent(mp,MigrationStatus.STARTED);
-        sendMigrationEvent(mp,MigrationStatus.COMPLETED);
+        sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
+        sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
       }
     }
     sendPartitionRuntimeState();
