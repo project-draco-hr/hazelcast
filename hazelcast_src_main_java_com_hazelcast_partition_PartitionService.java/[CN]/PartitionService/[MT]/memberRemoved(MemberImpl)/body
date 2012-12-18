@@ -1,3 +1,34 @@
 {
-  syncForDead(member);
+  final Address deadAddress=member.getAddress();
+  final Address thisAddress=node.getThisAddress();
+  if (deadAddress == null || deadAddress.equals(thisAddress)) {
+    return;
+  }
+  if (!hasStorageMember()) {
+    reset();
+  }
+  if (!member.isLiteMember()) {
+    clearTaskQueues();
+    lock.lock();
+    try {
+      final boolean migrationStatus=migrationActive.getAndSet(false);
+      int[] indexesOfDead=new int[partitions.length];
+      for (      PartitionInfo partition : partitions) {
+        final int replicaIndexOfDead=partition.getReplicaIndexOf(deadAddress);
+        indexesOfDead[partition.getPartitionId()]=replicaIndexOfDead;
+        while (partition.onDeadAddress(deadAddress))         ;
+      }
+      fixPartitionsForDead(member,indexesOfDead);
+      final long waitBeforeMigrationActivate=node.groupProperties.CONNECTION_MONITOR_INTERVAL.getLong() * node.groupProperties.CONNECTION_MONITOR_MAX_FAULTS.getInteger() * 10;
+      nodeEngine.getExecutionService().schedule(new Runnable(){
+        public void run(){
+          migrationActive.compareAndSet(false,migrationStatus);
+        }
+      }
+,waitBeforeMigrationActivate,TimeUnit.MILLISECONDS);
+    }
+  finally {
+      lock.unlock();
+    }
+  }
 }
