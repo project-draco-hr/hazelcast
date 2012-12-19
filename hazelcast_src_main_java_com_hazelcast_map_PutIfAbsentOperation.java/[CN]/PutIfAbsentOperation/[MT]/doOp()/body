@@ -2,21 +2,5 @@
   if (prepareTransaction()) {
     return;
   }
-  record=mapPartition.records.get(dataKey);
-  if (record == null) {
-    load();
-    if (absent) {
-      record=new DefaultRecord(getPartitionId(),dataKey,dataValue,-1,-1,mapService.nextId());
-      mapPartition.records.put(dataKey,record);
-      record.setActive();
-      record.setDirty(true);
-    }
-  }
- else {
-    oldValueData=record.getValueData();
-    absent=false;
-  }
-  if (absent) {
-    store();
-  }
+  oldValueData=recordStore.putIfAbsent(dataKey,dataValue,ttl);
 }
