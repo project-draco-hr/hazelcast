@@ -1,0 +1,18 @@
+{
+  Iterator<QueueItem> iter=itemQueue.iterator();
+  Set<Long> keySet=new HashSet<Long>();
+  while (iter.hasNext()) {
+    QueueItem item=iter.next();
+    Data data=item.getData();
+    if (data == null && store.isEnabled()) {
+      data=store.load(item.getItemId());
+      item.setData(data);
+    }
+    boolean contains=dataSet.contains(data);
+    if ((retain && !contains) || (!retain && contains)) {
+      keySet.add(item.getItemId());
+      iter.remove();
+    }
+  }
+  return keySet;
+}
