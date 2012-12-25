@@ -1,9 +1,16 @@
 {
   final ThreadContext threadContext=ThreadContext.get();
-  threadContext.setCurrentOperation(op);
   SpinLock partitionLock=null;
   Lock keyLock=null;
+  CallKey callKey=null;
   try {
+    if (isCallTimedOut(op)) {
+      Object response=new CallTimeoutException("Call timed out for " + op.getClass().getName() + ", call-time: "+ op.getInvocationTime()+ ", timeout: "+ op.getCallTimeout());
+      op.getResponseHandler().sendResponse(response);
+      return;
+    }
+    threadContext.setCurrentOperation(op);
+    callKey=beforeCallExecution(op);
     final int partitionId=op.getPartitionId();
     if (op instanceof PartitionAwareOperation) {
       if (partitionId < 0) {
@@ -40,12 +47,13 @@
         }
       }
     }
-    runOperationUnderExistingLock(op);
+    doRunOperation(op);
   }
  catch (  Throwable e) {
     handleOperationError(op,e);
   }
  finally {
+    afterCallExecution(op,callKey);
     if (keyLock != null) {
       keyLock.unlock();
     }

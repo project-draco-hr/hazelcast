@@ -1,0 +1,29 @@
+{
+  invokeCount++;
+  final Address target=getTarget();
+  final Address thisAddress=nodeEngine.getThisAddress();
+  op.setNodeEngine(nodeEngine).setServiceName(serviceName).setCaller(thisAddress).setPartitionId(partitionId).setReplicaIndex(replicaIndex);
+  if (target == null) {
+    setResult(new WrongTargetException(thisAddress,target,partitionId,op.getClass().getName(),serviceName));
+  }
+ else   if (!isJoinOperation(op) && nodeEngine.getClusterService().getMember(target) == null) {
+    setResult(new TargetNotMemberException(target,partitionId,op.getClass().getName(),serviceName));
+  }
+ else {
+    OperationAccessor.setInvocationTime(op,nodeEngine.getClusterTime());
+    final OperationServiceImpl operationService=nodeEngine.operationService;
+    if (thisAddress.equals(target)) {
+      ResponseHandlerFactory.setLocalResponseHandler(this);
+      operationService.runOperation(op);
+    }
+ else {
+      Call call=new Call(target,this);
+      final long callId=operationService.registerCall(call);
+      OperationAccessor.setCallId(op,callId);
+      boolean sent=operationService.send(op,target);
+      if (!sent) {
+        setResult(new RetryableException(new IOException("Packet not sent!")));
+      }
+    }
+  }
+}
