@@ -1,0 +1,54 @@
+{
+  if (!(op instanceof PartitionAwareOperation)) {
+    throw new IllegalArgumentException("Operation must be PartitionAwareOperation!");
+  }
+  final Map<Address,ArrayList<Integer>> memberPartitions=getMemberPartitions(local);
+  final Map<Address,Future> responses=new HashMap<Address,Future>(memberPartitions.size());
+  final Data operationData=nodeEngine.toData(op);
+  for (  Map.Entry<Address,ArrayList<Integer>> mp : memberPartitions.entrySet()) {
+    final Address target=mp.getKey();
+    final List<Integer> partitions=mp.getValue();
+    final PartitionIteratingOperation pi=new PartitionIteratingOperation(partitions,operationData);
+    Invocation inv=createInvocationBuilder(serviceName,pi,target).setTryCount(5).setTryPauseMillis(300).build();
+    Future future=inv.invoke();
+    responses.put(target,future);
+  }
+  final Map<Integer,Object> partitionResults=new HashMap<Integer,Object>(nodeEngine.getPartitionCount());
+  for (  Map.Entry<Address,Future> response : responses.entrySet()) {
+    try {
+      PartitionResponse result=(PartitionResponse)IOUtil.toObject(response.getValue().get());
+      partitionResults.putAll(result.asMap());
+    }
+ catch (    Throwable t) {
+      if (logger.isLoggable(Level.FINEST)) {
+        logger.log(Level.WARNING,t.getMessage(),t);
+      }
+ else {
+        logger.log(Level.WARNING,t.getMessage());
+      }
+      List<Integer> partitions=memberPartitions.get(response.getKey());
+      for (      Integer partition : partitions) {
+        partitionResults.put(partition,t);
+      }
+    }
+  }
+  final List<Integer> failedPartitions=new LinkedList<Integer>();
+  for (  Map.Entry<Integer,Object> partitionResult : partitionResults.entrySet()) {
+    int partitionId=partitionResult.getKey();
+    Object result=partitionResult.getValue();
+    if (result instanceof Throwable) {
+      failedPartitions.add(partitionId);
+    }
+  }
+  for (  Integer failedPartition : failedPartitions) {
+    Invocation inv=createInvocationBuilder(serviceName,new OperationWrapper(operationData),failedPartition).build();
+    Future f=inv.invoke();
+    partitionResults.put(failedPartition,f);
+  }
+  for (  Integer failedPartition : failedPartitions) {
+    Future f=(Future)partitionResults.get(failedPartition);
+    Object result=f.get();
+    partitionResults.put(failedPartition,result);
+  }
+  return partitionResults;
+}
