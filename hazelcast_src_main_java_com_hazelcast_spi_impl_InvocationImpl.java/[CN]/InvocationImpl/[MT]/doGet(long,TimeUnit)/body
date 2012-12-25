@@ -1,22 +1,73 @@
 {
   long timeout=unit.toMillis(time);
   if (timeout < 0)   timeout=0;
+  final long maxCallTimeout=callTimeout * 2 > 0 ? callTimeout * 2 : Long.MAX_VALUE;
+  final boolean longPolling=timeout > maxCallTimeout;
+  int pollCount=0;
   while (timeout >= 0) {
-    final Object response=pollResponse(timeout);
-    if (response == NULL) {
+    final long pollTimeout=Math.min(maxCallTimeout,timeout);
+    final long start=Clock.currentTimeMillis();
+    final Object response;
+    try {
+      response=responseQ.poll(pollTimeout,TimeUnit.MILLISECONDS);
+      timeout=decrementTimeout(timeout,Clock.currentTimeMillis() - start);
+    }
+ catch (    InterruptedException e) {
+      logger.log(Level.FINEST,Thread.currentThread().getName() + " is interrupted while waiting " + "response for operation "+ op);
+      continue;
+    }
+    pollCount++;
+    if (response instanceof RetryableException) {
+      final int localInvokeCount=invokeCount;
+      if (localInvokeCount < tryCount && timeout > 0) {
+        Thread.sleep(tryPauseMillis);
+        timeout=decrementTimeout(timeout,tryPauseMillis);
+        if (localInvokeCount > 5 && localInvokeCount % 10 == 0) {
+          logger.log(Level.WARNING,"Still invoking: " + toString());
+        }
+        doInvoke();
+      }
+ else {
+        done=true;
+        throw new ExecutionException((Throwable)response);
+      }
+    }
+ else     if (response == NULL_RESPONSE) {
       return null;
     }
- else     if (response == RETRY) {
-      Thread.sleep(tryPauseMillis);
-      if (timeout != Long.MAX_VALUE) {
-        timeout-=tryPauseMillis;
+ else     if (response != null) {
+      done=true;
+      if (response instanceof Throwable) {
+        throw new ExecutionException((Throwable)response);
       }
-      if (timeout > 0) {
-        invoke();
+ else {
+        return response;
       }
     }
- else {
-      return response;
+ else     if (longPolling) {
+      final Address target=getTarget();
+      if (nodeEngine.getThisAddress().equals(target)) {
+        continue;
+      }
+      logger.log(Level.WARNING,"No response for " + pollTimeout + " ms. "+ toString());
+      Boolean executing=Boolean.FALSE;
+      try {
+        final InvocationImpl inv=new TargetInvocationImpl(nodeEngine,serviceName,new IsStillExecuting(op.getCallId()),target,0,0,5000);
+        inv.invoke();
+        logger.log(Level.WARNING,"Asking if operation execution has been started: " + toString());
+        executing=(Boolean)IOUtil.toObject(inv.get(5000,TimeUnit.MILLISECONDS));
+      }
+ catch (      Exception ignored) {
+        logger.log(Level.WARNING,"While asking 'is-executing': " + toString(),ignored);
+      }
+      logger.log(Level.WARNING,"'is-executing': " + executing + " -> "+ toString());
+      if (!executing) {
+        Object obj=responseQ.poll();
+        if (obj != null) {
+          return obj;
+        }
+        throw new OperationTimeoutException("No response for " + (pollTimeout * pollCount) + " ms. Aborting invocation! "+ toString());
+      }
     }
   }
   throw new TimeoutException();

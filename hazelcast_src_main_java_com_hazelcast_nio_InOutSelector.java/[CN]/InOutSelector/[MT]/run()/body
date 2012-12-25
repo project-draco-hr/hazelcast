@@ -9,13 +9,14 @@
       }
       processSelectionQueue();
       if (!live)       return;
+      if (isInterrupted()) {
+        connectionManager.ioService.handleInterruptedException(this,new RuntimeInterruptedException());
+        live=false;
+        return;
+      }
       int selectedKeyCount;
       try {
         selectedKeyCount=selector.select(waitTime);
-        if (Thread.interrupted()) {
-          connectionManager.ioService.handleInterruptedException(Thread.currentThread(),new RuntimeException());
-          return;
-        }
       }
  catch (      Throwable exp) {
         continue;

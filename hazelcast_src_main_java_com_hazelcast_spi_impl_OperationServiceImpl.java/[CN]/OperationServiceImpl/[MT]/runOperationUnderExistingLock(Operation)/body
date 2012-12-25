@@ -2,40 +2,12 @@
   final ThreadContext threadContext=ThreadContext.get();
   final Object parentOperation=threadContext.getCurrentOperation();
   threadContext.setCurrentOperation(op);
+  final CallKey callKey=beforeCallExecution(op);
   try {
-    op.beforeRun();
-    if (op instanceof WaitSupport) {
-      WaitSupport so=(WaitSupport)op;
-      if (so.shouldWait()) {
-        nodeEngine.waitNotifyService.wait(so);
-        return;
-      }
-    }
-    op.run();
-    if (op instanceof BackupAwareOperation) {
-      final BackupAwareOperation backupAwareOp=(BackupAwareOperation)op;
-      if (backupAwareOp.shouldBackup()) {
-        handleBackupAndSendResponse(backupAwareOp);
-      }
- else {
-        sendResponse(op,null);
-      }
-    }
- else {
-      sendResponse(op,null);
-    }
-    op.afterRun();
-    if (op instanceof Notifier) {
-      final Notifier notifier=(Notifier)op;
-      if (notifier.shouldNotify()) {
-        nodeEngine.waitNotifyService.notify(notifier);
-      }
-    }
+    doRunOperation(op);
   }
- catch (  Throwable e) {
-    handleOperationError(op,e);
-  }
- finally {
+  finally {
+    afterCallExecution(op,callKey);
     threadContext.setCurrentOperation(parentOperation);
   }
 }

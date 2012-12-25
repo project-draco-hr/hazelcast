@@ -1,36 +1,3 @@
 {
-  if (listener == null) {
-    throw new IllegalArgumentException("Listener required!");
-  }
-  if (filter == null) {
-    throw new IllegalArgumentException("Filter required");
-  }
-  EventServiceSegment segment=getSegment(serviceName,true);
-  Registration reg=new Registration(createId(serviceName),serviceName,filter,nodeEngine.getThisAddress(),listener);
-  if (segment.addRegistration(topic,reg)) {
-    Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
-    Collection<Future> calls=new ArrayList<Future>(members.size());
-    for (    MemberImpl member : members) {
-      if (!member.localMember()) {
-        Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(serviceName,new RegistrationOperation(topic,reg),member.getAddress()).build();
-        calls.add(inv.invoke());
-      }
-    }
-    for (    Future f : calls) {
-      try {
-        f.get(5,TimeUnit.SECONDS);
-      }
- catch (      InterruptedException ignored) {
-      }
-catch (      TimeoutException ignored) {
-      }
-catch (      ExecutionException e) {
-        throw new HazelcastException(e);
-      }
-    }
-    return reg;
-  }
- else {
-    return null;
-  }
+  return registerListenerInternal(serviceName,topic,filter,listener,false);
 }
