@@ -18,7 +18,7 @@
         if (joinRequest.getUuid().equals(member.getUuid())) {
           String message="Ignoring join request, member already exists.. => " + joinRequest;
           logger.log(Level.FINEST,message);
-          invokeClusterOperation(new FinalizeJoinOperation(getMemberList(),getClusterTime()),member.getAddress());
+          invokeClusterOperation(new FinalizeJoinOperation(createMemberInfos(getMemberList()),getClusterTime()),member.getAddress());
           return;
         }
         if (node.isMaster() || member.getAddress().equals(node.getMasterAddress())) {
@@ -26,10 +26,9 @@
           doRemoveAddress(member.getAddress(),false);
         }
       }
-      if (!node.getConfig().getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
-        if (node.isActive() && node.joined() && node.getMasterAddress() != null && !node.isMaster()) {
-          sendMasterAnswer(joinRequest);
-        }
+      final boolean multicastEnabled=node.getConfig().getNetworkConfig().getJoin().getMulticastConfig().isEnabled();
+      if (!multicastEnabled && node.isActive() && node.joined()&& node.getMasterAddress() != null && !node.isMaster()) {
+        sendMasterAnswer(joinRequest);
       }
       if (node.isMaster() && node.joined() && node.isActive()) {
         final MemberInfo newMemberInfo=new MemberInfo(joinRequest.address,joinRequest.nodeType,joinRequest.getUuid());
