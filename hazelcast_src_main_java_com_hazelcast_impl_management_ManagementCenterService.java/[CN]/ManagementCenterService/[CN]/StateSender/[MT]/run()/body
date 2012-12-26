@@ -4,7 +4,12 @@
     return;
   }
   try {
+    boolean firstError=true;
     while (running.get()) {
+      if (versionMismatch) {
+        Thread.sleep(1000 * 60);
+        versionMismatch=false;
+      }
       try {
         URL url=new URL(webServerUrl + "collector.do");
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
@@ -14,12 +19,21 @@
         connection.setReadTimeout(1000);
         final DataOutputStream out=new DataOutputStream(connection.getOutputStream());
         TimedMemberState ts=getTimedMemberState();
+        out.writeUTF(getHazelcastInstance().node.initializer.getVersion());
+        factory.node.getThisAddress().writeData(out);
+        out.writeUTF(factory.getConfig().getGroupConfig().getName());
         ts.writeData(out);
         out.flush();
         connection.getInputStream();
       }
  catch (      Exception e) {
-        logger.log(Level.FINEST,e.getMessage(),e);
+        if (firstError) {
+          logger.log(Level.SEVERE,"Can not connect to Management Center. Check url connectivity:" + webServerUrl);
+          firstError=false;
+        }
+ else {
+          logger.log(Level.FINEST,e.getMessage(),e);
+        }
       }
       Thread.sleep(updateIntervalMs);
     }

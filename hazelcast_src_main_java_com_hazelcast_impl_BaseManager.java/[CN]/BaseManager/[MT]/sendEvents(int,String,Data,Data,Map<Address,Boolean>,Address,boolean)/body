@@ -1,0 +1,38 @@
+{
+  if (mapListeners != null) {
+    checkServiceThread();
+    final Set<Map.Entry<Address,Boolean>> listeners=mapListeners.entrySet();
+    for (    final Map.Entry<Address,Boolean> listener : listeners) {
+      final Address toAddress=listener.getKey();
+      final boolean includeValue=listener.getValue();
+      if (toAddress.equals(thisAddress)) {
+        enqueueEvent(eventType,name,key,value,callerAddress,true);
+      }
+ else {
+        final Connection conn=node.connectionManager.getConnection(toAddress);
+        if (conn != null && conn.getWriteHandler().size() > 10000) {
+          if (fireAndForget) {
+            if (logger.isLoggable(Level.FINEST)) {
+              logger.log(Level.FINEST,"Event[" + eventType + "] for "+ name+ " could not be send, packet queue of "+ toAddress+ " is full!");
+            }
+            continue;
+          }
+ else {
+            while (conn.getWriteHandler().size() > 10000) {
+              try {
+                Thread.sleep(10);
+              }
+ catch (              InterruptedException ignored) {
+              }
+            }
+          }
+        }
+        final Packet packet=obtainPacket();
+        packet.set(name,ClusterOperation.EVENT,key,(includeValue) ? value : null);
+        packet.lockAddress=callerAddress;
+        packet.longValue=eventType;
+        sendOrReleasePacket(packet,toAddress);
+      }
+    }
+  }
+}
