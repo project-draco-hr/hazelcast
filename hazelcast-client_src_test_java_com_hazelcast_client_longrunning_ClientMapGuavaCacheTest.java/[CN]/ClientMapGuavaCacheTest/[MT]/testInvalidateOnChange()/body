@@ -1,0 +1,22 @@
+{
+  Config config=new Config();
+  NearCacheConfig nearCacheConfig=new NearCacheConfig();
+  nearCacheConfig.setMaxSize(1000);
+  nearCacheConfig.setInvalidateOnChange(true);
+  config.getMapConfig("default").setNearCacheConfig(nearCacheConfig);
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+  String mapName="testInvalidateOnChange";
+  IMap<String,String> mapH=h.getMap(mapName);
+  mapH.put("a","a");
+  HazelcastClient client=HazelcastClient.newHazelcastClient(new ClientConfig());
+  Map<Object,Object> mapC=client.getMap(mapName);
+  int hit=mapH.getMapEntry("a").getHits();
+  assertEquals("a",mapC.get("a"));
+  assertEquals(mapH.getMapEntry("a").getHits(),++hit);
+  mapC.get("a");
+  assertEquals(mapH.getMapEntry("a").getHits(),hit);
+  mapH.put("a","b");
+  Thread.sleep(100);
+  assertEquals("b",mapC.get("a"));
+  assertEquals(mapH.getMapEntry("a").getHits(),++hit);
+}
