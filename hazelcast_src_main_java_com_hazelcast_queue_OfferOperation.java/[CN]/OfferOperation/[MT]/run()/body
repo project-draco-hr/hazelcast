@@ -3,9 +3,15 @@
   QueueContainer container=getContainer();
   item=container.offer(data);
   if (item != null) {
-    response=true;
-    if (!container.isStoreAsync()) {
-      container.getStore().store(item.getItemId(),item.getData());
+    if (container.isStoreEnabled() && !container.isStoreAsync()) {
+      try {
+        container.getStore().store(item.getItemId(),data);
+      }
+ catch (      Exception e) {
+        container.pollBackup();
+        throw new RetryableException(e);
+      }
     }
+    response=true;
   }
 }

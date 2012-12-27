@@ -7,18 +7,19 @@
  else   if (bulkLoad > 1) {
     ListIterator<QueueItem> iter=itemQueue.listIterator();
     HashSet<Long> keySet=new HashSet<Long>(bulkLoad);
-    for (int i=0; i < bulkLoad - 1; i++) {
-      keySet.add(iter.next().getItemId());
-    }
-    if (!keySet.add(item.getItemId())) {
+    for (int i=0; i < bulkLoad; i++) {
       keySet.add(iter.next().getItemId());
     }
     Map<Long,QueueStoreValue> values=store.loadAll(keySet);
+    if (values == null) {
+      System.err.println("something wrong!");
+      return;
+    }
     for (    Map.Entry<Long,QueueStoreValue> entry : values.entrySet()) {
       long id=entry.getKey();
       Data data=entry.getValue().getData();
       dataMap.put(id,data);
     }
-    item.setData(dataMap.get(item.getItemId()));
+    item.setData(getData(item.getItemId()));
   }
 }

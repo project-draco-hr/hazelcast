@@ -1,10 +1,16 @@
 {
   QueueContainer container=getContainer();
-  item=container.poll();
-  if (item != null) {
-    response=item.getData();
-    if (!container.isStoreAsync()) {
-      container.getStore().delete(item.getItemId());
+  try {
+    item=container.peek();
+    if (item != null) {
+      response=item.getData();
+      if (container.isStoreEnabled() && !container.isStoreAsync()) {
+        container.getStore().delete(item.getItemId());
+      }
+      container.pollBackup();
     }
+  }
+ catch (  Exception e) {
+    throw new RetryableException(e);
   }
 }

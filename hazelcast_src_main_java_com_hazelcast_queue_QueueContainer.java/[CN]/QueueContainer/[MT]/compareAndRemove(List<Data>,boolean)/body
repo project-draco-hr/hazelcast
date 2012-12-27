@@ -1,0 +1,25 @@
+{
+  Iterator<QueueItem> iter=itemQueue.iterator();
+  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>();
+  while (iter.hasNext()) {
+    QueueItem item=iter.next();
+    if (item.getData() == null && store.isEnabled()) {
+      try {
+        load(item);
+      }
+ catch (      Exception e) {
+        int index=0;
+        for (        Map.Entry<Long,Data> entry : map.entrySet()) {
+          itemQueue.add(index++,new QueueItem(this,entry.getKey(),entry.getValue()));
+        }
+        throw e;
+      }
+    }
+    boolean contains=dataList.contains(item.getData());
+    if ((retain && !contains) || (!retain && contains)) {
+      map.put(item.getItemId(),item.getData());
+      iter.remove();
+    }
+  }
+  return map;
+}
