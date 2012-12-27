@@ -1,0 +1,18 @@
+{
+  final Object key=so.getWaitKey();
+  Queue<WaitingOp> q=mapWaitingOps.get(key);
+  if (q == null) {
+    q=new ConcurrentLinkedQueue<WaitingOp>();
+    Queue<WaitingOp> qExisting=mapWaitingOps.putIfAbsent(key,q);
+    if (qExisting != null) {
+      q=qExisting;
+    }
+  }
+  long timeout=so.getWaitTimeoutMillis();
+  WaitingOp waitingOp=(so instanceof KeyBasedOperation) ? new KeyBasedWaitingOp(q,so) : new WaitingOp(q,so);
+  waitingOp.setNodeEngine(nodeEngine);
+  if (timeout > -1 && timeout < 1500) {
+    delayQueue.offer(waitingOp);
+  }
+  q.offer(waitingOp);
+}

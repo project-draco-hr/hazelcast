@@ -2,12 +2,6 @@
   super(hazelcastRegion,props);
   lockTimeout=CacheEnvironment.getLockTimeoutInSeconds(props);
   explicitVersionCheckEnabled=CacheEnvironment.isExplicitVersionCheckEnabled(props);
-  Config config=hazelcastRegion.getInstance().getConfig();
-  final String maxOpTimeoutProp=config.getProperty(GroupProperties.PROP_MAX_OPERATION_TIMEOUT);
-  if (maxOpTimeoutProp != null && maxOpTimeoutProp.length() > 0) {
-    tryLockAndGetTimeout=Math.min(Long.parseLong(maxOpTimeoutProp),TRY_LOCK_AND_GET_TIMEOUT);
-  }
- else {
-    tryLockAndGetTimeout=TRY_LOCK_AND_GET_TIMEOUT;
-  }
+  final long maxOperationTimeout=HazelcastTimestamper.getMaxOperationTimeout(hazelcastRegion.getInstance());
+  tryLockAndGetTimeout=Math.min(maxOperationTimeout,TRY_LOCK_AND_GET_TIMEOUT);
 }

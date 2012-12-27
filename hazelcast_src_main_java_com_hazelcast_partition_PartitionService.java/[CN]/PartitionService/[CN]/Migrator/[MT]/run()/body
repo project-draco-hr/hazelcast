@@ -4,7 +4,7 @@
       return;
     }
     fireMigrationEvent(MigrationStatus.STARTED);
-    if (migrationRequestOp.getToAddress() == null) {
+    if (migrationInfo.getToAddress() == null) {
       logger.log(Level.FINEST,"Fixing partition, " + migrationRequestOp.getReplicaIndex() + ". replica of partition["+ migrationRequestOp.getPartitionId()+ "] should be removed.");
       removeReplicaOwner();
     }
@@ -12,7 +12,7 @@
       MemberImpl fromMember=null;
       Boolean result=Boolean.FALSE;
       if (migrationRequestOp.isMigration()) {
-        fromMember=getMember(migrationRequestOp.getFromAddress());
+        fromMember=getMember(migrationInfo.getFromAddress());
       }
  else {
         final int partitionId=migrationRequestOp.getPartitionId();
@@ -21,8 +21,8 @@
       logger.log(Level.FINEST,"Started Migration : " + migrationRequestOp);
       systemLogService.logPartition("Started Migration : " + migrationRequestOp);
       if (fromMember != null) {
-        migrationRequestOp.setFromAddress(fromMember.getAddress());
-        Invocation inv=node.nodeService.createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationRequestOp.getPartitionId()).setTryCount(3).setTryPauseMillis(1000).setTarget(migrationRequestOp.getFromAddress()).setReplicaIndex(migrationRequestOp.getReplicaIndex()).build();
+        migrationInfo.setFromAddress(fromMember.getAddress());
+        Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getFromAddress()).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(migrationRequestOp.getReplicaIndex()).build();
         Future future=inv.invoke();
         try {
           result=(Boolean)IOUtil.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));

@@ -1,0 +1,65 @@
+{
+  final ThreadContext threadContext=ThreadContext.get();
+  SpinLock partitionLock=null;
+  Lock keyLock=null;
+  CallKey callKey=null;
+  try {
+    if (isCallTimedOut(op)) {
+      Object response=new CallTimeoutException("Call timed out for " + op.getClass().getName() + ", call-time: "+ op.getInvocationTime()+ ", timeout: "+ op.getCallTimeout());
+      op.getResponseHandler().sendResponse(response);
+      return;
+    }
+    threadContext.setCurrentOperation(op);
+    callKey=beforeCallExecution(op);
+    final int partitionId=op.getPartitionId();
+    if (op instanceof PartitionAwareOperation) {
+      if (partitionId < 0) {
+        throw new IllegalArgumentException();
+      }
+      if (!isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
+        throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+      }
+      SpinReadWriteLock migrationLock=partitionLocks[partitionId];
+      if (op instanceof PartitionLevelOperation) {
+        partitionLock=migrationLock.writeLock();
+        partitionLock.lock();
+      }
+ else {
+        partitionLock=migrationLock.readLock();
+        if (!partitionLock.tryLock(500,TimeUnit.MILLISECONDS)) {
+          partitionLock=null;
+          throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+        }
+        PartitionInfo partitionInfo=nodeEngine.getPartitionInfo(partitionId);
+        final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
+        final boolean validatesTarget=op.validatesTarget();
+        if (validatesTarget && !node.getThisAddress().equals(owner)) {
+          throw new WrongTargetException(node.getThisAddress(),owner,partitionId,op.getClass().getName(),op.getServiceName());
+        }
+        if (op instanceof KeyBasedOperation) {
+          final int hash=((KeyBasedOperation)op).getKeyHash();
+          Lock[] lockGroup=ownerLocks;
+          if (op instanceof BackupOperation) {
+            lockGroup=backupLocks;
+          }
+          keyLock=lockGroup[Math.abs(hash) % lockGroup.length];
+          keyLock.lock();
+        }
+      }
+    }
+    doRunOperation(op);
+  }
+ catch (  Throwable e) {
+    handleOperationError(op,e);
+  }
+ finally {
+    afterCallExecution(op,callKey);
+    if (keyLock != null) {
+      keyLock.unlock();
+    }
+    if (partitionLock != null) {
+      partitionLock.unlock();
+    }
+    threadContext.setCurrentOperation(null);
+  }
+}

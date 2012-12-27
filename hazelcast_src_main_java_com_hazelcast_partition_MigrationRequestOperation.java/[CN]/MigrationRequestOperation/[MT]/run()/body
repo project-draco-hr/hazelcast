@@ -1,44 +1,36 @@
 {
-  final int partitionId=getPartitionId();
-  final int replicaIndex=getReplicaIndex();
-  final ResponseHandler responseHandler=getResponseHandler();
+  final Address from=migrationInfo.getFromAddress();
+  final Address to=migrationInfo.getToAddress();
   if (to.equals(from)) {
     getLogger().log(Level.FINEST,"To and from addresses are same! => " + toString());
-    responseHandler.sendResponse(Boolean.FALSE);
+    success=false;
     return;
   }
   if (from == null) {
     getLogger().log(Level.FINEST,"From address is null => " + toString());
   }
-  final PartitionService pm=(PartitionService)getService();
+  final PartitionService partitionService=getService();
   try {
-    Member target=pm.getMember(to);
+    Member target=partitionService.getMember(to);
     if (target == null) {
       getLogger().log(Level.WARNING,"Target member of task could not be found! => " + toString());
-      responseHandler.sendResponse(Boolean.FALSE);
+      success=false;
       return;
     }
-    PartitionService partitionService=getService();
-    partitionService.addActiveMigration(createMigrationInfo());
-    final NodeService nodeService=getNodeService();
-    final long timeout=nodeService.getGroupProperties().PARTITION_MIGRATION_TIMEOUT.getLong();
-    final Collection<Operation> tasks=prepareMigrationTasks(partitionId,replicaIndex);
-    nodeService.execute(new Runnable(){
-      public void run(){
-        try {
-          Invocation inv=nodeService.createInvocationBuilder(PartitionService.SERVICE_NAME,new MigrationOperation(partitionId,replicaIndex,isMoving(),tasks,from),partitionId).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(replicaIndex).setTarget(to).build();
-          Future future=inv.invoke();
-          Boolean result=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
-          responseHandler.sendResponse(result);
-        }
- catch (        Throwable e) {
-          onError(responseHandler,e);
-        }
-      }
+    partitionService.addActiveMigration(migrationInfo);
+    final NodeEngine nodeEngine=getNodeEngine();
+    final long timeout=nodeEngine.getGroupProperties().PARTITION_MIGRATION_TIMEOUT.getLong();
+    final Collection<Operation> tasks=prepareMigrationTasks();
+    if (tasks.size() > 0) {
+      Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(PartitionService.SERVICE_NAME,new MigrationOperation(migrationInfo,tasks),to).setTryCount(3).setTryPauseMillis(1000).setReplicaIndex(getReplicaIndex()).build();
+      Future future=inv.invoke();
+      success=(Boolean)IOUtil.toObject(future.get(timeout,TimeUnit.SECONDS));
     }
-);
+ else {
+      success=true;
+    }
   }
  catch (  Throwable e) {
-    onError(responseHandler,e);
+    onError(e);
   }
 }

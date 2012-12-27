@@ -1,0 +1,27 @@
+{
+  final long mergeFirstRunDelay=node.getGroupProperties().MERGE_FIRST_RUN_DELAY_SECONDS.getLong();
+  final long mergeNextRunDelay=node.getGroupProperties().MERGE_NEXT_RUN_DELAY_SECONDS.getLong();
+  nodeEngine.getExecutionService().scheduleWithFixedDelay(new SplitBrainHandler(node),mergeFirstRunDelay,mergeNextRunDelay,TimeUnit.SECONDS);
+  final long heartbeatInterval=node.groupProperties.HEARTBEAT_INTERVAL_SECONDS.getInteger();
+  nodeEngine.getExecutionService().scheduleWithFixedDelay(new Runnable(){
+    public void run(){
+      heartBeater();
+    }
+  }
+,heartbeatInterval,heartbeatInterval,TimeUnit.SECONDS);
+  final long masterConfirmationInterval=node.groupProperties.MASTER_CONFIRMATION_INTERVAL_SECONDS.getInteger();
+  nodeEngine.getExecutionService().scheduleWithFixedDelay(new Runnable(){
+    public void run(){
+      sendMasterConfirmation();
+    }
+  }
+,masterConfirmationInterval,masterConfirmationInterval,TimeUnit.SECONDS);
+  final long memberListPublishInterval=node.groupProperties.MEMBER_LIST_PUBLISH_INTERVAL_SECONDS.getInteger();
+  nodeEngine.getExecutionService().scheduleWithFixedDelay(new Runnable(){
+    public void run(){
+      sendMemberListToOthers();
+    }
+  }
+,memberListPublishInterval,memberListPublishInterval,TimeUnit.SECONDS);
+  registerClientOperationHandlers();
+}

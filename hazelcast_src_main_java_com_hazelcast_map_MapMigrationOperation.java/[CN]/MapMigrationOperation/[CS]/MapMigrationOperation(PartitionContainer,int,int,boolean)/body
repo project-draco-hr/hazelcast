@@ -2,11 +2,15 @@
   this.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
   this.diff=diff;
   data=new HashMap<String,Map<Data,DataRecordEntry>>(container.maps.size());
-  for (  Entry<String,MapPartition> entry : container.maps.entrySet()) {
+  for (  Entry<String,DefaultRecordStore> entry : container.maps.entrySet()) {
     String name=entry.getKey();
-    MapPartition mapPartition=entry.getValue();
+    final MapConfig mapConfig=container.getMapConfig(name);
+    if (mapConfig.getTotalBackupCount() < replicaIndex) {
+      continue;
+    }
+    DefaultRecordStore mapPartition=entry.getValue();
     Map<Data,DataRecordEntry> map=new HashMap<Data,DataRecordEntry>(mapPartition.records.size());
-    for (    Entry<Data,Record> recordEntry : mapPartition.records.entrySet()) {
+    for (    Entry<Data,DefaultRecord> recordEntry : mapPartition.records.entrySet()) {
       map.put(recordEntry.getKey(),new DataRecordEntry(recordEntry.getValue(),true));
     }
     data.put(name,map);

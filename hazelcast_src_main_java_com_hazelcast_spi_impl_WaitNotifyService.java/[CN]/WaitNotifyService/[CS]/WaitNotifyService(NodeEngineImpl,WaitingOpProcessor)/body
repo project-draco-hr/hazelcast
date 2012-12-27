@@ -1,0 +1,54 @@
+{
+  this.nodeEngine=nodeEngine;
+  this.waitingOpProcessor=waitingOpProcessor;
+  final Node node=nodeEngine.getNode();
+  logger=node.getLogger(WaitNotifyService.class.getName());
+  expirationExecutor=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadNamePrefix("wait-notify"),node.getConfig().getClassLoader()));
+  expirationTask=expirationExecutor.submit(new Runnable(){
+    public void run(){
+      while (true) {
+        if (Thread.interrupted()) {
+          return;
+        }
+        try {
+          long waitTime=1000;
+          while (waitTime > 0) {
+            long begin=System.currentTimeMillis();
+            WaitingOp waitingOp=(WaitingOp)delayQueue.poll(waitTime,TimeUnit.MILLISECONDS);
+            if (waitingOp != null) {
+              if (waitingOp.isValid()) {
+                waitingOpProcessor.process(waitingOp);
+              }
+            }
+            long end=System.currentTimeMillis();
+            waitTime-=(end - begin);
+            if (waitTime > 1000) {
+              waitTime=0;
+            }
+          }
+          for (          Queue<WaitingOp> q : mapWaitingOps.values()) {
+            Iterator<WaitingOp> it=q.iterator();
+            while (it.hasNext()) {
+              if (Thread.interrupted()) {
+                return;
+              }
+              WaitingOp waitingOp=it.next();
+              if (waitingOp.isValid()) {
+                if (waitingOp.expired() || waitingOp.timedOut()) {
+                  waitingOpProcessor.process(waitingOp);
+                }
+              }
+            }
+          }
+        }
+ catch (        InterruptedException e) {
+          return;
+        }
+catch (        Throwable t) {
+          logger.log(Level.WARNING,t.getMessage(),t);
+        }
+      }
+    }
+  }
+);
+}

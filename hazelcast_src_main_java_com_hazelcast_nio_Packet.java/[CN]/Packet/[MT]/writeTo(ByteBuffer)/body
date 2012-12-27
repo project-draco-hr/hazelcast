@@ -1,14 +1,16 @@
 {
-  if (!isStatusSet(ST_PARTITION)) {
-    if (!writeInt(destination,partitionId)) {
+  if (!isStatusSet(ST_HEADER)) {
+    if (!destination.hasRemaining()) {
       return false;
     }
-    setStatus(ST_PARTITION);
+    destination.put(header);
+    setStatus(ST_HEADER);
   }
   if (!isStatusSet(ST_SIZE)) {
-    if (!writeInt(destination,value != null ? value.size() : 0)) {
+    if (destination.remaining() < 4) {
       return false;
     }
+    destination.putInt(value != null ? value.size() : 0);
     setStatus(ST_SIZE);
   }
   if (isStatusSet(ST_SIZE) && !isStatusSet(ST_VALUE)) {

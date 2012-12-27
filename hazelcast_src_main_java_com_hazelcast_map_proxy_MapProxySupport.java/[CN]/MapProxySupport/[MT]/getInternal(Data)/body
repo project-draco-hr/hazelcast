@@ -1,14 +1,13 @@
 {
-  int partitionId=nodeService.getPartitionId(key);
-  GetOperation getOperation=new GetOperation(name,key);
-  getOperation.setValidateTarget(true);
-  getOperation.setServiceName(MAP_SERVICE_NAME);
+  int partitionId=nodeEngine.getPartitionId(key);
+  GetOperation operation=new GetOperation(name,key);
+  operation.setThreadId(ThreadContext.get().getThreadId());
   try {
-    Invocation invocation=nodeService.createInvocationBuilder(MAP_SERVICE_NAME,getOperation,partitionId).build();
-    Future f=invocation.invoke();
-    return (Data)f.get();
+    Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(MAP_SERVICE_NAME,operation,partitionId).build();
+    Future invoke=invocation.invoke();
+    return (Data)invoke.get();
   }
  catch (  Throwable throwable) {
-    throw new RuntimeException(throwable);
+    throw new HazelcastException(throwable);
   }
 }

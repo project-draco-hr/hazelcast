@@ -1,18 +1,24 @@
 {
-  if (listeners.size() > 0) {
-    nodeService.getEventService().execute(new Runnable(){
+  final int eventType=added ? MembershipEvent.MEMBER_ADDED : MembershipEvent.MEMBER_REMOVED;
+  final MembershipEvent membershipEvent=new MembershipEvent(member,eventType);
+  final EventService eventService=nodeEngine.getEventService();
+  final Collection<MembershipAwareService> membershipAwareServices=nodeEngine.getServices(MembershipAwareService.class);
+  if (membershipAwareServices != null && !membershipAwareServices.isEmpty()) {
+    eventService.executeEvent(new Runnable(){
+      final MembershipServiceEvent event=new MembershipServiceEvent(member,eventType);
       public void run(){
-        MembershipEvent membershipEvent=new MembershipEvent(getClusterProxy(),member,(added ? MembershipEvent.MEMBER_ADDED : MembershipEvent.MEMBER_REMOVED));
-        for (        MembershipListener listener : listeners) {
+        for (        MembershipAwareService service : membershipAwareServices) {
           if (added) {
-            listener.memberAdded(membershipEvent);
+            service.memberAdded(event);
           }
  else {
-            listener.memberRemoved(membershipEvent);
+            service.memberRemoved(event);
           }
         }
       }
     }
 );
   }
+  Collection<EventRegistration> registrations=eventService.getRegistrations(SERVICE_NAME,SERVICE_NAME);
+  eventService.publishEvent(SERVICE_NAME,registrations,membershipEvent);
 }

@@ -1,6 +1,17 @@
 {
   logger.log(Level.FINEST,"Committing " + event);
-  if (event.getMigrationEndpoint() == MigrationEndpoint.SOURCE && event.getMigrationType() == MigrationType.MOVE) {
-    clearPartitionData(event.getPartitionId());
+  if (event.getMigrationEndpoint() == MigrationEndpoint.SOURCE) {
+    if (event.getMigrationType() == MigrationType.MOVE) {
+      clearPartitionData(event.getPartitionId());
+    }
+ else     if (event.getMigrationType() == MigrationType.MOVE_COPY_BACK) {
+      final PartitionContainer container=partitionContainers[event.getPartitionId()];
+      for (      DefaultRecordStore mapPartition : container.maps.values()) {
+        final MapConfig mapConfig=container.getMapConfig(mapPartition.name);
+        if (mapConfig.getTotalBackupCount() < event.getCopyBackReplicaIndex()) {
+          mapPartition.clear();
+        }
+      }
+    }
   }
 }

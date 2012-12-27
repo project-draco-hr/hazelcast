@@ -1,0 +1,18 @@
+{
+  this.nodeEngine=nodeEngine;
+  this.node=nodeEngine.getNode();
+  this.logger=node.getLogger(OperationService.class.getName());
+  defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+  executor=new FastExecutor(5,new ExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("operation"),node.getConfig().getClassLoader()));
+  for (int i=0; i < ownerLocks.length; i++) {
+    ownerLocks[i]=new ReentrantLock();
+  }
+  for (int i=0; i < backupLocks.length; i++) {
+    backupLocks[i]=new ReentrantLock();
+  }
+  int partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
+  partitionLocks=new SpinReadWriteLock[partitionCount];
+  for (int i=0; i < partitionCount; i++) {
+    partitionLocks[i]=new SpinReadWriteLock(1,TimeUnit.MILLISECONDS);
+  }
+}

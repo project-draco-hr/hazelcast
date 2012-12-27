@@ -3,26 +3,37 @@
   lock.lock();
   try {
     joinInProgress=true;
-    final FinalizeJoinOperation finalizeJoinOp=new FinalizeJoinOperation(getMemberList(),getClusterTime());
-    if (setJoins != null && setJoins.size() > 0) {
-      for (      MemberInfo memberJoined : setJoins) {
-        finalizeJoinOp.addMemberInfo(memberJoined);
-      }
+    final Collection<MemberImpl> members=getMemberList();
+    final Collection<MemberInfo> memberInfos=createMemberInfos(members);
+    for (    MemberImpl member : members) {
+      memberInfos.add(new MemberInfo(member.getAddress(),member.getNodeType(),member.getUuid()));
     }
-    Collection<MemberInfo> members=finalizeJoinOp.getMemberInfos();
-    List<Future> calls=new ArrayList<Future>(members.size());
-    for (    final MemberInfo member : members) {
+    for (    MemberInfo memberJoining : setJoins) {
+      memberInfos.add(memberJoining);
+    }
+    final long time=getClusterTime();
+    final MemberInfoUpdateOperation memberInfoUpdateOp=new MemberInfoUpdateOperation(memberInfos,time,true);
+    final Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
+    final PostJoinOperation postJoinOp=postJoinOps != null && postJoinOps.length > 0 ? new PostJoinOperation(postJoinOps) : null;
+    final FinalizeJoinOperation finalizeJoinOp=new FinalizeJoinOperation(memberInfos,postJoinOp,time);
+    final List<Future> calls=new ArrayList<Future>(members.size());
+    for (    MemberInfo member : setJoins) {
+      calls.add(invokeClusterOperation(finalizeJoinOp,member.getAddress()));
+    }
+    for (    MemberImpl member : members) {
       if (!member.getAddress().equals(thisAddress)) {
-        calls.add(invokeClusterOperation(finalizeJoinOp,member.getAddress()));
+        calls.add(invokeClusterOperation(memberInfoUpdateOp,member.getAddress()));
       }
     }
-    updateMembers(members);
+    updateMembers(memberInfos);
     for (    Future future : calls) {
       try {
-        future.get(5,TimeUnit.SECONDS);
+        future.get(3,TimeUnit.SECONDS);
       }
- catch (      Exception e) {
-        logger.log(Level.WARNING,e.getMessage(),e);
+ catch (      TimeoutException ignored) {
+      }
+catch (      Exception e) {
+        logger.log(Level.WARNING,"While waiting finalize join calls...",e);
       }
     }
   }
