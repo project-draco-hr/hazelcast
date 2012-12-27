@@ -1,0 +1,24 @@
+{
+  int bulkLoad=store.getBulkLoad();
+  bulkLoad=Math.min(itemQueue.size(),bulkLoad);
+  if (bulkLoad == 1) {
+    item.setData(store.load(item.getItemId()));
+  }
+ else   if (bulkLoad > 1) {
+    ListIterator<QueueItem> iter=itemQueue.listIterator();
+    HashSet<Long> keySet=new HashSet<Long>(bulkLoad);
+    for (int i=0; i < bulkLoad - 1; i++) {
+      keySet.add(iter.next().getItemId());
+    }
+    if (!keySet.add(item.getItemId())) {
+      keySet.add(iter.next().getItemId());
+    }
+    Map<Long,QueueStoreValue> values=store.loadAll(keySet);
+    for (    Map.Entry<Long,QueueStoreValue> entry : values.entrySet()) {
+      long id=entry.getKey();
+      Data data=entry.getValue().getData();
+      dataMap.put(id,data);
+    }
+    item.setData(dataMap.get(item.getItemId()));
+  }
+}

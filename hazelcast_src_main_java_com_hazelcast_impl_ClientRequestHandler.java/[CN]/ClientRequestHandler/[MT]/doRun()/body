@@ -1,0 +1,23 @@
+{
+  runningThread=Thread.currentThread();
+  ThreadContext.get().setCallContext(callContext);
+  try {
+    if (!valid)     return;
+    final PrivilegedExceptionAction<Void> action=createAction();
+    if (node.securityContext == null) {
+      action.run();
+    }
+ else {
+      node.securityContext.doAsPrivileged(subject,action);
+    }
+  }
+ catch (  Throwable e) {
+    logger.log(Level.WARNING,e.getMessage(),e);
+    if (node.isActive()) {
+      throw (RuntimeException)e;
+    }
+  }
+ finally {
+    runningThread=null;
+  }
+}

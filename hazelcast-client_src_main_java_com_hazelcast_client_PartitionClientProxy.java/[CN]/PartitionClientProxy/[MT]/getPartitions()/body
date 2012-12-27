@@ -1,8 +1,12 @@
 {
-  Keys partitions=(Keys)proxyHelper.doOp(ClusterOperation.CLIENT_GET_PARTITIONS,null,null);
+  Protocol protocol=protocolProxyHelper.doCommand(Command.PARTITIONS,new String[]{},null);
   Set<Partition> set=new LinkedHashSet<Partition>();
-  for (  Data d : partitions.getKeys()) {
-    set.add((Partition)IOUtil.toObject(d.buffer));
+  int i=protocol.args.length;
+  while (i > 0) {
+    final int partitionId=Integer.valueOf(protocol.args[i]);
+    String owner=protocol.args[++i];
+    Partition partition=partition(partitionId,owner);
+    set.add(partition);
   }
   return set;
 }

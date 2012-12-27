@@ -1,8 +1,10 @@
 {
-  Keys keys=(Keys)proxyHelper.doOp(ClusterOperation.BLOCKING_QUEUE_ENTRIES,null,null);
+  Protocol protocol=protocolProxyHelper.doCommand(Command.QENTRIES,new String[]{getName()},null);
   List<E> list=new ArrayList<E>();
-  for (  Data d : keys) {
-    list.add((E)toObject(d.buffer));
+  if (protocol.hasBuffer()) {
+    for (    ByteBuffer bb : protocol.buffers) {
+      list.add((E)toObject(new Data(bb.array())));
+    }
   }
   return new QueueItemIterator(list.toArray(),this);
 }
