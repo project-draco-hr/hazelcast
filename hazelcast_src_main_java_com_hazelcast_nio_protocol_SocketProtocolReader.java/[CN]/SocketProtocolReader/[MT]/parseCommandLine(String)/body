@@ -1,0 +1,45 @@
+{
+  if (commandLineIsParsed || sizeLineIsRead())   return;
+  if (line.length() == 0) {
+    commandLineIsParsed=false;
+    commandLineRead.set(false);
+    return;
+  }
+  String[] split=fastSplit(line,' ');
+  int commandIndex;
+  int specialArgCount;
+  if (numericPattern.matcher(split[0]).matches()) {
+    threadId=Integer.parseInt(split[0]);
+    commandIndex=1;
+    flag=split[2];
+    specialArgCount=3;
+  }
+ else {
+    commandIndex=0;
+    specialArgCount=1;
+  }
+  try {
+    command=Command.valueOf(split[commandIndex]);
+  }
+ catch (  IllegalArgumentException illegalArgException) {
+    command=Command.UNKNOWN;
+  }
+  int bufferCount=-1;
+  int argLength=split.length - specialArgCount;
+  if (split.length > 0 && split[split.length - 1].startsWith("#")) {
+    bufferCount=Integer.parseInt(split[split.length - 1].substring(1));
+    noreply=split.length > 1 && NOREPLY.equals(split[split.length - 2]);
+  }
+ else {
+    noreply=split.length > 1 && NOREPLY.equals(split[split.length - 1]);
+  }
+  if (bufferCount >= 0)   argLength--;
+  if (noreply)   argLength--;
+  args=new String[argLength];
+  for (int i=0; i < argLength; i++) {
+    args[i]=split[i + specialArgCount];
+  }
+  if (bufferCount < 0)   bufferCount=0;
+  bufferSize=new int[bufferCount];
+  commandLineIsParsed=true;
+}
