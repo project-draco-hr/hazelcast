@@ -1,23 +1,15 @@
 {
-  boolean oldHibernateVersion=false;
-  try {
-    sessionFactory.getSettings().getClass().getMethod(METHOD_GET_REGION_FACTORY);
+  final Settings settings=sessionFactory.getSettings();
+  final RegionFactory rf=settings.getRegionFactory();
+  if (rf == null) {
+    logger.log(Level.SEVERE,"Hibernate 2nd level cache has not been enabled!");
+    return null;
   }
- catch (  NoSuchMethodException ignore) {
-    oldHibernateVersion=true;
+  if (rf instanceof AbstractHazelcastCacheRegionFactory) {
+    return ((AbstractHazelcastCacheRegionFactory)rf).getHazelcastInstance();
   }
-  final HazelcastAccessor accessor;
-  try {
-    if (oldHibernateVersion) {
-      accessor=getAccessor(OLD_HIBERNATE_ACCESSOR,CLASS_CACHE_PROVIDER_ACCESSOR);
-    }
  else {
-      accessor=getAccessor(HIBERNATE_ACCESSOR,CLASS_REGION_FACTORY_ACCESSOR);
-    }
-    return accessor.getHazelcastInstance(sessionFactory.getSettings());
-  }
- catch (  Exception e) {
-    logger.log(Level.SEVERE,e.getMessage(),e);
+    logger.log(Level.WARNING,"Current 2nd level cache implementation is not HazelcastCacheRegionFactory!");
   }
   return null;
 }
