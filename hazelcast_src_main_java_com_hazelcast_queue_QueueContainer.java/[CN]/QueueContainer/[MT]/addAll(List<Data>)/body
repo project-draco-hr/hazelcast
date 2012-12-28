@@ -1,10 +1,19 @@
 {
-  List<QueueItem> itemSet=new ArrayList<QueueItem>(dataSet.size());
-  for (  Data data : dataSet) {
-    QueueItem item=offer(data);
-    if (item != null) {
-      itemSet.add(item);
+  Map<Long,Data> dataMap=new HashMap<Long,Data>(dataList.size());
+  for (  Data data : dataList) {
+    QueueItem item=offerBackup(data);
+    dataMap.put(item.getItemId(),data);
+  }
+  if (store.isEnabled()) {
+    try {
+      store.storeAll(dataMap);
+    }
+ catch (    Exception e) {
+      for (int i=0; i < dataList.size(); i++) {
+        itemQueue.poll();
+        idGen--;
+      }
+      throw new RetryableException(e);
     }
   }
-  return itemSet;
 }
