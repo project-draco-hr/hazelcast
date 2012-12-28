@@ -1,0 +1,10 @@
+{
+  ClientEndpoint clientEndpoint=getClientEndpoint(protocol.conn);
+  CallContext callContext=clientEndpoint.getCallContext(protocol.threadId != -1 ? protocol.threadId : clientEndpoint.hashCode());
+  if (!clientEndpoint.isAuthenticated() && !Command.AUTH.equals(protocol.command)) {
+    checkAuth(protocol.conn);
+    return;
+  }
+  ClientRequestHandler clientRequestHandler=new ClientRequestHandler(node,protocol,callContext,clientEndpoint.getSubject());
+  node.nodeEngine.getExecutionService().execute(clientRequestHandler);
+}

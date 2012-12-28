@@ -1,4 +1,11 @@
 {
-  final Collection<K> collection=proxyHelper.keys(predicate);
-  return new LightKeySet<K>(this,new HashSet<K>(collection));
+  Protocol protocol;
+  if (predicate == null)   protocol=protocolProxyHelper.doCommand(Command.KEYSET,new String[]{"map",getName()},null);
+ else   protocol=protocolProxyHelper.doCommand(Command.KEYSET,new String[]{"map",getName()},toData(predicate));
+  if (!protocol.hasBuffer())   return Collections.emptySet();
+  Set<K> set=new HashSet<K>(protocol.buffers.length);
+  for (  ByteBuffer b : protocol.buffers) {
+    set.add((K)toObject(new Data(b.array())));
+  }
+  return set;
 }

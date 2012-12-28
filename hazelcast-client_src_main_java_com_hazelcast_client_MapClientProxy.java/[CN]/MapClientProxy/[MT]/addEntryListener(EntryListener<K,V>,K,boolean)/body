@@ -1,13 +1,14 @@
 {
   check(listener);
-  Boolean noEntryListenerRegistered=listenerManager().noListenerRegistered(key,name,includeValue);
+  Boolean noEntryListenerRegistered=listenerManager().noListenerRegistered(key,getName(),includeValue);
+  Data dKey=toData(key);
+  Data[] datas=dKey == null ? new Data[]{} : new Data[]{dKey};
   if (noEntryListenerRegistered == null) {
-    proxyHelper.doOp(ClusterOperation.REMOVE_LISTENER,key,null);
+    protocolProxyHelper.doCommand(Command.MREMOVELISTENER,getName(),datas);
     noEntryListenerRegistered=Boolean.TRUE;
   }
   if (noEntryListenerRegistered) {
-    Call c=listenerManager().createNewAddListenerCall(proxyHelper,key,includeValue);
-    proxyHelper.doCall(c);
+    protocolProxyHelper.doCommand(Command.MADDLISTENER,new String[]{getName(),String.valueOf(includeValue)},datas);
   }
-  listenerManager().registerListener(name,key,includeValue,listener);
+  listenerManager().registerListener(getName(),key,includeValue,listener);
 }

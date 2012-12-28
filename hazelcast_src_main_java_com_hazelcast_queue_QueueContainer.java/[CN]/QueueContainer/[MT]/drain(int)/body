@@ -2,12 +2,30 @@
   if (maxSize < 0 || maxSize > itemQueue.size()) {
     maxSize=itemQueue.size();
   }
-  Set<Long> keySet=new HashSet<Long>(maxSize);
-  List<Data> dataList=new ArrayList<Data>(maxSize);
+  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(maxSize);
+  Iterator<QueueItem> iter=itemQueue.iterator();
   for (int i=0; i < maxSize; i++) {
-    QueueItem item=poll();
-    keySet.add(item.getItemId());
-    dataList.add(item.getData());
+    QueueItem item=iter.next();
+    if (store.isEnabled() && item.getData() == null) {
+      try {
+        load(item);
+      }
+ catch (      Exception e) {
+        throw new RetryableException(e);
+      }
+    }
+    map.put(item.getItemId(),item.getData());
   }
-  return new Pair<Set<Long>,List<Data>>(keySet,dataList);
+  if (store.isEnabled()) {
+    try {
+      store.deleteAll(map.keySet());
+    }
+ catch (    Exception e) {
+      throw new RetryableException(e);
+    }
+  }
+  for (int i=0; i < maxSize; i++) {
+    itemQueue.poll();
+  }
+  return map.values();
 }

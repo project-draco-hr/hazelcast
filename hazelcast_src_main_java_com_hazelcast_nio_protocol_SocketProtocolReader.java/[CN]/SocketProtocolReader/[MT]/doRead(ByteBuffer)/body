@@ -1,0 +1,41 @@
+{
+  try {
+    while (firstNewLineRead.hasRemaining()) {
+      firstNewLineRead.put(bb.get());
+    }
+    readLineIfNotRead(bb,commandLineRead,binaryCommandLine);
+    if (commandLineIsRead()) {
+      String stringCommandLine=SocketTextReader.toStringAndClear(binaryCommandLine);
+      parseCommandLine(stringCommandLine);
+      if (commandLineIsParsed) {
+        if (hasSizeLine()) {
+          int sizeCount=bufferSize.length;
+          if (sizeCount * 11 > sizeLine.array().length)           sizeLine=ByteBuffer.allocate(sizeCount * 11);
+          readLineIfNotRead(bb,sizeLineRead,sizeLine);
+        }
+ else         sizeLineRead.set(true);
+      }
+      if (commandLineIsParsed && !hasSizeLine() || sizeLineIsRead()) {
+        parseSizeLine(SocketTextReader.toStringAndClear(sizeLine));
+        for (int i=0; bb.hasRemaining() && i < buffers.length; i++) {
+          if (buffers[i].hasRemaining()) {
+            copy(bb,buffers[i]);
+          }
+          if (i == buffers.length - 1) {
+            if (endOfTheCommand.hasRemaining())             copy(bb,endOfTheCommand);
+          }
+        }
+        if ((buffers.length == 0 || !buffers[buffers.length - 1].hasRemaining())) {
+          Protocol protocol=new Protocol(connection,command,flag,threadId,noreply,args,buffers);
+          connection.setType(Connection.Type.PROTOCOL_CLIENT);
+          ioService.handleClientCommand(protocol);
+          reset();
+        }
+      }
+    }
+  }
+ catch (  Exception e) {
+    connection.getWriteHandler().enqueueSocketWritable(new Protocol(connection,Command.ERROR,flag,threadId,false,new String[]{"Malformed_request",e.toString()}));
+    logger.log(Level.SEVERE,e.toString(),e);
+  }
+}

@@ -1,0 +1,34 @@
+{
+  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>();
+  for (  QueueItem item : itemQueue) {
+    if (item.getData() == null && store.isEnabled()) {
+      try {
+        load(item);
+      }
+ catch (      Exception e) {
+        throw new RetryableException(e);
+      }
+    }
+    boolean contains=dataList.contains(item.getData());
+    if ((retain && !contains) || (!retain && contains)) {
+      map.put(item.getItemId(),item.getData());
+    }
+  }
+  if (map.size() > 0) {
+    if (store.isEnabled()) {
+      try {
+        store.deleteAll(map.keySet());
+      }
+ catch (      Exception e) {
+        throw new RetryableException(e);
+      }
+    }
+    Iterator<QueueItem> iter=itemQueue.iterator();
+    for (QueueItem item=null; iter.hasNext(); item=iter.next()) {
+      if (map.containsKey(item.getItemId())) {
+        iter.remove();
+      }
+    }
+  }
+  return map;
+}

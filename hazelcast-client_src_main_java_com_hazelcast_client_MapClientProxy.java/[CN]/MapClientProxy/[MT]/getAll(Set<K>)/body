@@ -1,14 +1,22 @@
 {
-  Keys keys=new Keys();
+  check(setKeys);
+  List<Data> dataList=new ArrayList<Data>(setKeys.size());
   for (  K key : setKeys) {
-    keys.add(toData(key));
+    dataList.add(toData(key));
   }
-  Pairs pairs=(Pairs)proxyHelper.doOp(ClusterOperation.CONCURRENT_MAP_GET_ALL,keys,null);
-  List<KeyValue> lsKeyValues=pairs.getKeyValues();
-  Map map=new HashMap();
-  if (lsKeyValues != null) {
-    for (    KeyValue keyValue : lsKeyValues) {
-      map.put(toObject(keyValue.getKeyData()),toObject(keyValue.getValueData()));
+  Map<K,V> map=new HashMap<K,V>(setKeys.size());
+  Protocol protocol=protocolProxyHelper.doCommand(Command.MGETALL,new String[]{getName()},dataList.toArray(new Data[]{}));
+  if (protocol.hasBuffer()) {
+    int i=0;
+    System.out.println("Get all and buffer length is " + protocol.buffers.length);
+    while (i < protocol.buffers.length) {
+      K key=protocol.buffers[i].array().length == 0 ? null : (K)toObject(new Data(protocol.buffers[i].array()));
+      i++;
+      V value=protocol.buffers[i].array().length == 0 ? null : (V)toObject(new Data(protocol.buffers[i].array()));
+      i++;
+      if (value != null) {
+        map.put(key,value);
+      }
     }
   }
   return map;
