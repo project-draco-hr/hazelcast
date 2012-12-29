@@ -6,15 +6,16 @@
       Object oldValue=loader.load(toObject(dataKey));
       oldValueData=toData(oldValue);
     }
-    record=mapService.createRecord(dataKey,dataValue,ttl,-1);
+    record=mapService.createRecord(name,dataKey,dataValue,ttl);
     records.put(dataKey,record);
   }
  else {
     oldValueData=record.getValueData();
     record.setValueData(dataValue);
+    record.setTtl(ttl);
   }
   record.setActive(true);
-  record.setDirty(true);
+  if (ttl > 0)   mapService.notifyMapTtl(name);
   if (store != null && writeDelayMillis == 0) {
     store.store(record.getKey(),record.getValue());
   }
