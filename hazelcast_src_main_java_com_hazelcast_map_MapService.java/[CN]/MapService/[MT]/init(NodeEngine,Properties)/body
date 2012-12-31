@@ -5,7 +5,10 @@
     PartitionInfo partition=nodeEngine.getPartitionInfo(i);
     partitionContainers[i]=new PartitionContainer(config,this,partition);
   }
-  mapsWithTTL.add("mapp");
+  for (  String mapName : proxies.keySet()) {
+    MapConfig mapConfig=nodeEngine.getConfig().getMapConfig(mapName);
+    if (mapConfig.getTimeToLiveSeconds() > 0 || mapConfig.getMaxIdleSeconds() > 0)     mapsWithTTL.add(mapName);
+  }
   nodeEngine.getExecutionService().scheduleAtFixedRate(new CleanupTask(),1,1,TimeUnit.SECONDS);
   registerClientOperationHandlers();
 }

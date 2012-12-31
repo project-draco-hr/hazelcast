@@ -1,0 +1,20 @@
+{
+  if (mapsWithTTL.isEmpty())   return;
+  for (int i=0; i < nodeEngine.getPartitionCount(); i++) {
+    Node node=nodeEngine.getNode();
+    Address owner=node.partitionService.getPartitionOwner(i);
+    if (node.address.equals(owner)) {
+      for (      String mapName : mapsWithTTL) {
+        PartitionContainer pc=partitionContainers[i];
+        RecordStore recordStore=pc.getRecordStore(mapName);
+        Set<Map.Entry<Data,Record>> recordEntries=recordStore.getRecords().entrySet();
+        List<Data> keysToRemoved=new ArrayList<Data>();
+        for (        Map.Entry<Data,Record> entry : recordEntries) {
+          Record record=entry.getValue();
+          if (!record.isActive())           keysToRemoved.add(entry.getKey());
+        }
+        recordStore.removeAll(keysToRemoved);
+      }
+    }
+  }
+}

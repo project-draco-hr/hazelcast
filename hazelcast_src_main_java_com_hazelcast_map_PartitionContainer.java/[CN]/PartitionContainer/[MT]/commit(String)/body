@@ -3,16 +3,16 @@
   if (txnLog == null)   return;
   for (  TransactionLogItem txnLogItem : txnLog.changes.values()) {
     System.out.println(mapService.getNodeEngine().getThisAddress() + " pc.commit " + txnLogItem);
-    DefaultRecordStore mapPartition=getMapPartition(txnLogItem.getName());
+    RecordStore recordStore=getRecordStore(txnLogItem.getName());
     Data key=txnLogItem.getKey();
     if (txnLogItem.isRemoved()) {
-      mapPartition.records.remove(key);
+      recordStore.remove(key);
     }
  else {
-      Record record=mapPartition.records.get(key);
+      Record record=recordStore.getRecords().get(key);
       if (record == null) {
-        record=mapService.createRecord(key,txnLogItem.getValue(),-1,-1);
-        mapPartition.records.put(key,record);
+        record=mapService.createRecord(txnLogItem.getName(),key,txnLogItem.getValue(),-1);
+        recordStore.getRecords().put(key,record);
       }
  else {
         record.setValueData(txnLogItem.getValue());
