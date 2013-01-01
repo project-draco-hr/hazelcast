@@ -1,14 +1,15 @@
 {
-  DefaultRecord record=records.get(dataKey);
+  Record record=records.get(dataKey);
   if (record == null) {
-    record=new DefaultRecord(mapService.nextId(),dataKey,dataValue,ttl,-1);
+    record=mapService.createRecord(name,dataKey,dataValue,ttl);
     records.put(dataKey,record);
   }
  else {
     record.setValueData(dataValue);
+    record.setTtl(ttl);
   }
   record.setActive(true);
-  record.setDirty(true);
+  if (ttl > 0)   mapService.notifyMapTtl(name);
   if (store != null && writeDelayMillis == 0) {
     store.store(record.getKey(),record.getValue());
   }

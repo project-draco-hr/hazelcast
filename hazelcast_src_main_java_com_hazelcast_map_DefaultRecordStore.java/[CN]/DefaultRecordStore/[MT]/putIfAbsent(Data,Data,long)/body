@@ -1,22 +1,21 @@
 {
-  DefaultRecord record=records.get(dataKey);
+  Record record=records.get(dataKey);
   Data oldValueData=null;
   boolean absent=true;
   if (record == null) {
     if (loader != null) {
       Object oldValue=loader.load(toObject(dataKey));
       oldValueData=toData(oldValue);
-      absent=false;
+      absent=oldValueData == null;
     }
     if (absent) {
-      record=new DefaultRecord(mapService.nextId(),dataKey,dataValue,ttl,-1);
+      record=mapService.createRecord(name,dataKey,dataValue,ttl);
       records.put(dataKey,record);
-      record.setValueData(dataValue);
       record.setActive(true);
-      record.setDirty(true);
       if (store != null && writeDelayMillis == 0) {
         store.store(record.getKey(),record.getValue());
       }
+      if (ttl > 0)       mapService.notifyMapTtl(name);
     }
   }
  else {

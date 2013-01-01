@@ -1,10 +1,17 @@
 {
   QueueItem item=new QueueItem(this,idGen++);
+  if (store.isEnabled()) {
+    try {
+      store.store(item.getItemId(),data);
+    }
+ catch (    Exception e) {
+      idGen--;
+      throw new RetryableException(e);
+    }
+  }
   if (!store.isEnabled() || store.getMemoryLimit() > itemQueue.size()) {
     item.setData(data);
   }
-  if (itemQueue.offer(item)) {
-    return item;
-  }
-  return null;
+  itemQueue.offer(item);
+  return item;
 }

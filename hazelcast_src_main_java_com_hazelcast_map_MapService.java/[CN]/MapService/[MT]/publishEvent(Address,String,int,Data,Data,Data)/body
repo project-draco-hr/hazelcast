@@ -1,0 +1,23 @@
+{
+  Collection<EventRegistration> candidates=nodeEngine.getEventService().getRegistrations(MAP_SERVICE_NAME,mapName);
+  Set<EventRegistration> registrationsWithValue=new HashSet<EventRegistration>();
+  Set<EventRegistration> registrationsWithoutValue=new HashSet<EventRegistration>();
+  for (  EventRegistration candidate : candidates) {
+    EntryEventFilter filter=(EntryEventFilter)candidate.getFilter();
+    if (filter.eval(dataKey)) {
+      if (filter.isIncludeValue()) {
+        registrationsWithValue.add(candidate);
+      }
+ else {
+        registrationsWithoutValue.add(candidate);
+      }
+    }
+  }
+  if (registrationsWithValue.isEmpty() && registrationsWithoutValue.isEmpty())   return;
+  String source=nodeEngine.getNode().address.toString();
+  final SerializerRegistry serializerRegistry=nodeEngine.getNode().hazelcastInstance.getSerializerRegistry();
+  Member callerMember=nodeEngine.getClusterService().getMember(caller);
+  EntryEvent event=new DataAwareEntryEvent(callerMember,eventType,source,dataKey,dataValue,dataOldValue,false,serializerRegistry);
+  nodeEngine.getEventService().publishEvent(MAP_SERVICE_NAME,registrationsWithValue,event);
+  nodeEngine.getEventService().publishEvent(MAP_SERVICE_NAME,registrationsWithoutValue,event.cloneWithoutValues());
+}
