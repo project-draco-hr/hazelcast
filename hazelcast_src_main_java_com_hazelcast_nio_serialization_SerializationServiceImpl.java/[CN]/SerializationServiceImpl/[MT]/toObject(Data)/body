@@ -9,6 +9,9 @@
     if (serializer == null) {
       throw new IllegalArgumentException("There is no suitable de-serializer for type " + typeId);
     }
+    if (data.type == SerializationConstants.SERIALIZER_TYPE_PORTABLE) {
+      serializationContext.registerClassDefinition(data.cd);
+    }
     in=new ContextAwareDataInput(data,this);
     Object obj=serializer.read(in);
     if (managedContext != null) {
@@ -26,8 +29,6 @@
     throw new HazelcastSerializationException(e);
   }
  finally {
-    if (in != null) {
-      in.close();
-    }
+    IOUtil.closeResource(in);
   }
 }

@@ -1,0 +1,20 @@
+{
+  if (cd == null)   return;
+  final ClassDefinitionImpl cdImpl=(ClassDefinitionImpl)cd;
+  final long versionedClassId=combineToLong(cdImpl.getClassId(),cdImpl.getVersion());
+  if (versionedDefinitions.putIfAbsent(versionedClassId,cdImpl) == null) {
+    if (cdImpl.getBinary() == null) {
+      final ContextAwareDataOutput out=pop();
+      try {
+        cdImpl.writeData(out);
+        final byte[] binary=out.toByteArray();
+        out.reset();
+        compress(binary,out);
+        cdImpl.setBinary(out.toByteArray());
+      }
+  finally {
+        push(out);
+      }
+    }
+  }
+}
