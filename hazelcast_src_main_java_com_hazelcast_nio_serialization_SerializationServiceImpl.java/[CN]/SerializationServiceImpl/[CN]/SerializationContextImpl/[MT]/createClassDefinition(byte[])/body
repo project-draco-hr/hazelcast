@@ -1,0 +1,17 @@
+{
+  final ContextAwareDataOutput out=pop();
+  final byte[] binary;
+  try {
+    decompress(compressedBinary,out);
+    binary=out.toByteArray();
+  }
+  finally {
+    push(out);
+  }
+  ClassDefinitionImpl cd=new ClassDefinitionImpl();
+  cd.readData(new ContextAwareDataInput(binary,SerializationServiceImpl.this));
+  cd.setBinary(binary);
+  versionedDefinitions.putIfAbsent(combineToLong(cd.classId,cd.version),cd);
+  registerNestedDefinitions(cd);
+  return cd;
+}

@@ -1,0 +1,33 @@
+{
+  if (obj == null) {
+    return null;
+  }
+  if (obj instanceof Data) {
+    return (Data)obj;
+  }
+  final ContextAwareDataOutput out=pop();
+  try {
+    final TypeSerializer serializer=serializerFor(obj.getClass());
+    if (serializer == null) {
+      throw new NotSerializableException("There is no suitable serializer for " + obj.getClass());
+    }
+    serializer.write(out,obj);
+    final Data data=new Data(serializer.getTypeId(),out.toByteArray());
+    if (serializer instanceof PortableSerializer) {
+      data.cd=((PortableSerializer)serializer).getClassDefinition((Portable)obj);
+    }
+    return data;
+  }
+ catch (  Throwable e) {
+    if (e instanceof OutOfMemoryError) {
+      OutOfMemoryErrorDispatcher.onOutOfMemory((OutOfMemoryError)e);
+    }
+    if (e instanceof HazelcastSerializationException) {
+      throw (HazelcastSerializationException)e;
+    }
+    throw new HazelcastSerializationException(e);
+  }
+ finally {
+    push(out);
+  }
+}

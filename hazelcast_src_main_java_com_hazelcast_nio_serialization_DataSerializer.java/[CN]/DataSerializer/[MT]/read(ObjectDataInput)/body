@@ -1,0 +1,25 @@
+{
+  final DataSerializable ds;
+  final boolean identified=in.readBoolean();
+  int id=-1;
+  String className=null;
+  try {
+    if (identified) {
+      id=in.readInt();
+      final DataSerializableFactory dsf=factories.get(id);
+      if (dsf == null) {
+        throw new IllegalArgumentException("No DataSerializer factory for id: " + id);
+      }
+      ds=dsf.create();
+    }
+ else {
+      className=in.readUTF();
+      ds=(DataSerializable)newInstance(className);
+    }
+    ds.readData(in);
+    return ds;
+  }
+ catch (  final Exception e) {
+    throw new HazelcastSerializationException("Problem while reading DataSerializable " + "id: " + id + ", class: "+ className+ ", exception: "+ e.getMessage(),e);
+  }
+}

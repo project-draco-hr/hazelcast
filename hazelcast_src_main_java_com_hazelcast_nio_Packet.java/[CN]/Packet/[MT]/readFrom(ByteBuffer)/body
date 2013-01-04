@@ -1,28 +1,89 @@
 {
-  if (!isStatusSet(ST_HEADER)) {
+  if (!stHeader) {
     if (!source.hasRemaining()) {
       return false;
     }
     header=source.get();
-    setStatus(ST_HEADER);
+    stHeader=true;
   }
-  if (!isStatusSet(ST_SIZE)) {
+  if (value == null) {
+    value=new Data();
+  }
+  if (!stType) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    value.type=source.getInt();
+    stType=true;
+  }
+  if (!stClassId) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    classId=source.getInt();
+    stClassId=true;
+    if (classId == Data.NO_CLASS_ID) {
+      stVersion=true;
+      stClassDefSize=true;
+      stClassDef=true;
+    }
+  }
+  if (!stVersion) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    version=source.getInt();
+    stVersion=true;
+  }
+  if (!stClassDef) {
+    ClassDefinition cd;
+    if ((cd=context.lookup(classId,version)) != null) {
+      value.cd=cd;
+      stClassDefSize=true;
+      stClassDef=true;
+    }
+ else {
+      if (!stClassDefSize) {
+        if (source.remaining() < 4) {
+          return false;
+        }
+        classDefSize=source.getInt();
+        stClassDefSize=true;
+      }
+      if (!stClassDef) {
+        if (source.remaining() < classDefSize) {
+          return false;
+        }
+        final byte[] binary=new byte[classDefSize];
+        source.get(binary);
+        value.cd=new ClassDefinitionBinaryProxy(classId,version,binary);
+        stClassDef=true;
+      }
+    }
+  }
+  if (!stSize) {
     if (source.remaining() < 4) {
       return false;
     }
     final int size=source.getInt();
-    if (value == null || value.size() < size) {
-      value=new DataHolder(size);
-    }
-    setStatus(ST_SIZE);
+    buffer=ByteBuffer.allocate(size);
+    stSize=true;
   }
-  if (isStatusSet(ST_SIZE) && !isStatusSet(ST_VALUE)) {
-    IOUtil.copyToHeapBuffer(source,value.buffer);
-    if (value.shouldRead()) {
+  if (!stValue) {
+    IOUtil.copyToHeapBuffer(source,buffer);
+    if (buffer.hasRemaining()) {
       return false;
     }
-    value.postRead();
-    setStatus(ST_VALUE);
+    buffer.flip();
+    value.buffer=buffer.array();
+    stValue=true;
+  }
+  if (!stHash) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    value.setPartitionHash(source.getInt());
+    stHash=true;
   }
   return true;
 }

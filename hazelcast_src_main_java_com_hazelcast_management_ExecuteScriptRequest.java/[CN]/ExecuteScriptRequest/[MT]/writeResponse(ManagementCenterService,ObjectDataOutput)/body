@@ -1,0 +1,35 @@
+{
+  Object result=null;
+  ScriptExecutorCallable callable=new ScriptExecutorCallable(engine,script);
+  callable.setHazelcastInstance(mcs.getHazelcastInstance());
+  callable.setBindings(bindings);
+  if (targetAllMembers) {
+    result=mcs.callOnAllMembers(callable);
+  }
+ else   if (targets.isEmpty()) {
+    result=mcs.call(callable);
+  }
+ else   if (targets.size() == 1) {
+    result=mcs.call(targets.iterator().next(),callable);
+  }
+ else {
+    result=mcs.callOnMembers(targets,callable);
+  }
+  if (result != null) {
+    if (result instanceof Map) {
+      dos.writeByte(MAP);
+      writeMap(dos,(Map)result);
+    }
+ else     if (result instanceof Collection) {
+      dos.writeByte(COLLECTION);
+      writeCollection(dos,(Collection)result);
+    }
+ else {
+      dos.writeByte(OTHER);
+      dos.writeObject(result);
+    }
+  }
+ else {
+    dos.writeByte(NULL);
+  }
+}
