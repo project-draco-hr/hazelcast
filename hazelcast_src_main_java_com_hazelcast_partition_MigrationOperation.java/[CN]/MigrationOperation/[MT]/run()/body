@@ -1,12 +1,14 @@
 {
-  DataInputStream in=null;
+  NodeEngine nodeEngine=getNodeEngine();
+  SerializationService serializationService=nodeEngine.getSerializationService();
+  ObjectDataInput in=null;
   try {
-    ByteArrayInputStream bais=new ByteArrayInputStream(bytesRecordSet);
-    in=new DataInputStream(new InflaterInputStream(bais));
+    final byte[] taskData=IOUtil.decompress(zippedTaskData);
+    in=serializationService.createObjectDataInput(taskData);
     int size=in.readInt();
     tasks=new ArrayList<Operation>(size);
     for (int i=0; i < size; i++) {
-      Operation task=IOUtil.readObject(in);
+      Operation task=(Operation)serializationService.readObject(in);
       tasks.add(task);
     }
     if (taskCount != tasks.size()) {

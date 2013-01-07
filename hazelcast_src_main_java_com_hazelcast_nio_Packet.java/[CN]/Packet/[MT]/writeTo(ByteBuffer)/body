@@ -1,26 +1,88 @@
 {
-  if (!isStatusSet(ST_HEADER)) {
+  if (!stHeader) {
     if (!destination.hasRemaining()) {
       return false;
     }
     destination.put(header);
-    setStatus(ST_HEADER);
+    stHeader=true;
   }
-  if (!isStatusSet(ST_SIZE)) {
+  if (!stType) {
     if (destination.remaining() < 4) {
       return false;
     }
-    destination.putInt(value != null ? value.size() : 0);
-    setStatus(ST_SIZE);
+    destination.putInt(value.type);
+    stType=true;
   }
-  if (isStatusSet(ST_SIZE) && !isStatusSet(ST_VALUE)) {
-    if (value != null) {
-      IOUtil.copyToHeapBuffer(value.buffer,destination);
-      if (value.buffer.hasRemaining()) {
-        return false;
-      }
+  if (!stClassId) {
+    if (destination.remaining() < 4) {
+      return false;
     }
-    setStatus(ST_VALUE);
+    final int classId=value.cd == null ? Data.NO_CLASS_ID : value.cd.getClassId();
+    destination.putInt(classId);
+    if (classId == Data.NO_CLASS_ID) {
+      stVersion=true;
+      stClassDefSize=true;
+      stClassDef=true;
+    }
+    stClassId=true;
+  }
+  if (!stVersion) {
+    if (destination.remaining() < 4) {
+      return false;
+    }
+    final int version=value.cd.getVersion();
+    destination.putInt(version);
+    stVersion=true;
+  }
+  if (!stClassDefSize) {
+    if (destination.remaining() < 4) {
+      return false;
+    }
+    final byte[] binary=value.cd.getBinary();
+    classDefSize=binary == null ? 0 : binary.length;
+    destination.putInt(classDefSize);
+    stClassDefSize=true;
+    if (classDefSize == 0) {
+      stClassDef=true;
+    }
+ else {
+      buffer=ByteBuffer.wrap(binary);
+    }
+  }
+  if (!stClassDef) {
+    IOUtil.copyToHeapBuffer(buffer,destination);
+    if (buffer.hasRemaining()) {
+      return false;
+    }
+    stClassDef=true;
+  }
+  if (!stSize) {
+    if (destination.remaining() < 4) {
+      return false;
+    }
+    final int size=value.size();
+    destination.putInt(size);
+    stSize=true;
+    if (size <= 0) {
+      stValue=true;
+    }
+ else {
+      buffer=ByteBuffer.wrap(value.buffer);
+    }
+  }
+  if (!stValue) {
+    IOUtil.copyToHeapBuffer(buffer,destination);
+    if (buffer.hasRemaining()) {
+      return false;
+    }
+    stValue=true;
+  }
+  if (!stHash) {
+    if (destination.remaining() < 4) {
+      return false;
+    }
+    destination.putInt(value.getPartitionHash());
+    stHash=true;
   }
   return true;
 }
