@@ -1,16 +1,13 @@
 {
   MapService mapService=(MapService)getService();
-  System.out.println(getNodeEngine().getThisAddress() + " backup " + txnId+ " response "+ sendResponse);
-  RecordStore mapPartition=mapService.getRecordStore(getPartitionId(),name);
-  Record record=mapPartition.getRecords().get(dataKey);
+  int partitionId=getPartitionId();
+  RecordStore recordStore=mapService.getRecordStore(partitionId,name);
+  Record record=recordStore.getRecords().get(dataKey);
   if (record == null) {
-    record=new DefaultRecord(mapService.nextId(),dataKey,dataValue,-1,-1);
-    mapPartition.getRecords().put(dataKey,record);
+    record=mapService.createRecord(name,dataKey,dataValue,ttl);
+    recordStore.getRecords().put(dataKey,record);
   }
  else {
     record.setValueData(dataValue);
   }
-  record.setActive(true);
-  record.setDirty(true);
-  if (sendResponse)   getResponseHandler().sendResponse(null);
 }

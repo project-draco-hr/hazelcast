@@ -2,22 +2,29 @@
   Record record=records.get(dataKey);
   Data oldValueData=null;
   if (record == null) {
-    if (loader != null) {
-      Object oldValue=loader.load(mapService.getNodeEngine().toObject(dataKey));
-      oldValueData=mapService.getNodeEngine().toData(oldValue);
+    if (mapInfo.getStore() != null) {
+      Object oldValue=mapInfo.getStore().load(toObject(dataKey));
+      oldValueData=toData(oldValue);
     }
     record=mapService.createRecord(name,dataKey,dataValue,ttl);
+    if (ttl <= 0 && mapInfo.getMapConfig().getTimeToLiveSeconds() > 0) {
+      record.getState().updateTtlExpireTime(mapInfo.getMapConfig().getTimeToLiveSeconds());
+      mapService.scheduleOperation(name,dataKey,record.getState().getTtlExpireTime());
+    }
+    if (mapInfo.getMapConfig().getMaxIdleSeconds() > 0) {
+      record.getState().updateIdleExpireTime(mapInfo.getMapConfig().getMaxIdleSeconds());
+      mapService.scheduleOperation(name,dataKey,record.getState().getIdleExpireTime());
+    }
     records.put(dataKey,record);
   }
  else {
     oldValueData=record.getValueData();
     record.setValueData(dataValue);
-    record.setTtl(ttl);
   }
-  record.setActive(true);
-  if (ttl > 0)   mapService.notifyMapTtl(name);
-  if (store != null && writeDelayMillis == 0) {
-    store.store(record.getKey(),record.getValue());
+  if (ttl > 0) {
+    record.getState().updateTtlExpireTime(ttl);
+    mapService.scheduleOperation(name,dataKey,record.getState().getTtlExpireTime());
   }
+  mapStoreWrite(record);
   return oldValueData;
 }

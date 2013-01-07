@@ -1,8 +1,13 @@
 {
-  MapConfig mapConfig=nodeEngine.getConfig().getMapConfig(mapName);
-  long maxIdleMillis=mapConfig.getMaxIdleSeconds() * 1000;
-  if (ttl == -1) {
-    ttl=mapConfig.getTimeToLiveSeconds() * 1000;
+  DefaultRecord record=new DefaultRecord(nextId(),dataKey,valueData);
+  MapInfo mapInfo=getMapInfo(name);
+  if (ttl <= 0 && mapInfo.getMapConfig().getTimeToLiveSeconds() > 0) {
+    record.getState().updateTtlExpireTime(mapInfo.getMapConfig().getTimeToLiveSeconds());
+    scheduleOperation(name,dataKey,record.getState().getTtlExpireTime());
   }
-  return new DefaultRecord(nextId(),keyData,valueData,ttl,maxIdleMillis);
+  if (mapInfo.getMapConfig().getMaxIdleSeconds() > 0) {
+    record.getState().updateIdleExpireTime(mapInfo.getMapConfig().getMaxIdleSeconds());
+    scheduleOperation(name,dataKey,record.getState().getIdleExpireTime());
+  }
+  return record;
 }
