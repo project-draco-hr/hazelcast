@@ -25,4 +25,15 @@
   registerPacketProcessor(EXECUTE,new ExecutionOperationHandler());
   registerPacketProcessor(CANCEL_EXECUTION,new ExecutionCancelOperationHandler());
   started=true;
+  esScheduled.scheduleAtFixedRate(new Runnable(){
+    public void run(){
+      node.clusterService.enqueuePriorityAndReturn(new Processable(){
+        public void process(){
+          node.clusterService.checkPeriodics();
+        }
+      }
+);
+    }
+  }
+,0,1,TimeUnit.SECONDS);
 }
