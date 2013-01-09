@@ -1,8 +1,18 @@
 {
-  ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
-  ClassDefinitionImpl cd=context.lookup(ctxIn.getLocalClassId(),ctxIn.getLocalVersionId());
-  PortableReaderImpl reader=new PortableReaderImpl(this,in,cd);
-  Portable p=context.createPortable(cd.classId);
+  final ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
+  final int dataClassId=ctxIn.getDataClassId();
+  final int dataVersion=ctxIn.getDataVersion();
+  final Portable p=context.createPortable(dataClassId);
+  final PortableReader reader;
+  final ClassDefinitionImpl cd;
+  if (context.getVersion() == dataVersion) {
+    cd=context.lookup(dataClassId);
+    reader=new DefaultPortableReader(this,in,cd);
+  }
+ else {
+    cd=context.lookup(dataClassId,dataVersion);
+    reader=new MorphingPortableReader(this,in,cd);
+  }
   p.readPortable(reader);
   return p;
 }

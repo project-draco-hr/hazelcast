@@ -8,10 +8,15 @@
   finally {
     push(out);
   }
-  ClassDefinitionImpl cd=new ClassDefinitionImpl();
+  final ClassDefinitionImpl cd=new ClassDefinitionImpl();
   cd.readData(new ContextAwareDataInput(binary,SerializationServiceImpl.this));
   cd.setBinary(binary);
-  versionedDefinitions.putIfAbsent(combineToLong(cd.classId,cd.version),cd);
-  registerNestedDefinitions(cd);
-  return cd;
+  final ClassDefinitionImpl currentCD=versionedDefinitions.putIfAbsent(combineToLong(cd.classId,version),cd);
+  if (currentCD == null) {
+    registerNestedDefinitions(cd);
+    return cd;
+  }
+ else {
+    return currentCD;
+  }
 }
