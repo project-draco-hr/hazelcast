@@ -1,0 +1,28 @@
+{
+  Record record=recordStore.getRecords().get(dataKey);
+  if (record != null) {
+    if (record.getState().isDirty()) {
+      MapStore store=recordStore.getMapInfo().getStore();
+      if (store != null) {
+        Object value=record.getValue();
+        if (value == null)         value=nodeEngine.getSerializationService().toObject(record.getValueData());
+        store.store(nodeEngine.getSerializationService().toObject(dataKey),value);
+      }
+      record.getState().resetStoreTime();
+    }
+    if (record.getState().isExpired()) {
+      System.out.println("!!!!! expired");
+      record.getState().resetExpiration();
+      dataValue=record.getValueData();
+      recordStore.evict(dataKey);
+      evicted=true;
+    }
+  }
+ else   if (recordStore.getRemovedDelayedKeys().contains(record.getKey())) {
+    MapStore store=recordStore.getMapInfo().getStore();
+    if (store != null) {
+      store.delete(nodeEngine.getSerializationService().toObject(record.getKey()));
+    }
+    recordStore.getRemovedDelayedKeys().remove(record.getKey());
+  }
+}
