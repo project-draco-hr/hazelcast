@@ -1,3 +1,16 @@
 {
-  return null;
+  setThreadContext();
+  try {
+    MapEntrySetOperation mapEntrySetOperation=new MapEntrySetOperation(name);
+    Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(MAP_SERVICE_NAME,mapEntrySetOperation,false);
+    Set<Entry<Data,Data>> entrySet=new HashSet<Entry<Data,Data>>();
+    for (    Object result : results.values()) {
+      Set entries=((MapEntrySet)nodeEngine.toObject(result)).getEntrySet();
+      if (entries != null)       entrySet.addAll(entries);
+    }
+    return entrySet;
+  }
+ catch (  Throwable throwable) {
+    throw new HazelcastException(throwable);
+  }
 }
