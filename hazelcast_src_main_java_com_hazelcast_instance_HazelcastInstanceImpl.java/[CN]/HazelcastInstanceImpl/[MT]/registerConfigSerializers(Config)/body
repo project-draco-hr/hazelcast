@@ -1,2 +1,21 @@
 {
+  final Collection<SerializerConfig> serializerConfigs=config.getSerializerConfigs();
+  if (serializerConfigs != null) {
+    for (    SerializerConfig serializerConfig : serializerConfigs) {
+      TypeSerializer serializer=serializerConfig.getImplementation();
+      if (serializer == null) {
+        serializer=(TypeSerializer)ClassLoaderUtil.newInstance(serializerConfig.getClassName());
+      }
+      if (serializerConfig.isGlobal()) {
+        registerFallbackSerializer(serializer);
+      }
+ else {
+        Class typeClass=serializerConfig.getTypeClass();
+        if (typeClass == null) {
+          typeClass=ClassLoaderUtil.loadClass(serializerConfig.getTypeClassName());
+        }
+        registerSerializer(serializer,typeClass);
+      }
+    }
+  }
 }

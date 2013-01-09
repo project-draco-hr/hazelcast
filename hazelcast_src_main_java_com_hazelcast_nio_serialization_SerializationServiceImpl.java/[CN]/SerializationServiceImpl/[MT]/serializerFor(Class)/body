@@ -1,34 +1,37 @@
 {
-  TypeSerializer serializer=null;
   if (DataSerializable.class.isAssignableFrom(type)) {
-    serializer=dataSerializer;
+    return dataSerializer;
   }
  else   if (Portable.class.isAssignableFrom(type)) {
-    serializer=portableSerializer;
+    return portableSerializer;
   }
  else {
-    serializer=typeMap.get(type);
+    final TypeSerializer serializer;
+    if ((serializer=constantsTypeMap.get(type)) != null) {
+      return serializer;
+    }
+  }
+  TypeSerializer serializer=typeMap.get(type);
+  if (serializer == null) {
+    Class typeSuperclass=type.getSuperclass();
+    List<Class> interfaces=new LinkedList<Class>();
+    Collections.addAll(interfaces,type.getInterfaces());
+    while (typeSuperclass != null) {
+      if ((serializer=registerFromSuperType(type,typeSuperclass)) != null) {
+        break;
+      }
+      Collections.addAll(interfaces,typeSuperclass.getInterfaces());
+      typeSuperclass=typeSuperclass.getSuperclass();
+    }
     if (serializer == null) {
-      Class typeSuperclass=type.getSuperclass();
-      List<Class> interfaces=new LinkedList<Class>();
-      Collections.addAll(interfaces,type.getInterfaces());
-      while (typeSuperclass != null) {
-        if ((serializer=registerFromSuperType(type,typeSuperclass)) != null) {
+      for (      Class typeInterface : interfaces) {
+        if ((serializer=registerFromSuperType(type,typeInterface)) != null) {
           break;
         }
-        Collections.addAll(interfaces,typeSuperclass.getInterfaces());
-        typeSuperclass=typeSuperclass.getSuperclass();
       }
-      if (serializer == null) {
-        for (        Class typeInterface : interfaces) {
-          if ((serializer=registerFromSuperType(type,typeInterface)) != null) {
-            break;
-          }
-        }
-      }
-      if (serializer == null && (serializer=fallback.get()) != null) {
-        safeRegister(type,serializer);
-      }
+    }
+    if (serializer == null && (serializer=fallback.get()) != null) {
+      safeRegister(type,serializer);
     }
   }
   return serializer;
