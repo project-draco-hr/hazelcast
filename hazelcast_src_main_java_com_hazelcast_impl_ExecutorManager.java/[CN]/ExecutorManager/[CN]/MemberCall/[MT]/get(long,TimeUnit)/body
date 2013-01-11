@@ -3,7 +3,7 @@
   boolean done=true;
   try {
     result=doGetResult((time == -1) ? -1 : unit.toMillis(time));
-    if (result == OBJECT_NO_RESPONSE) {
+    if (result == OBJECT_NO_RESPONSE || result == OBJECT_REDO) {
       done=false;
       innerFutureTask.innerSetException(new TimeoutException(),false);
     }
@@ -21,6 +21,9 @@
     }
   }
  catch (  Exception e) {
+    if (time > 0 && e instanceof OperationTimeoutException) {
+      e=new TimeoutException();
+    }
     innerFutureTask.innerSetException(e,done);
   }
  finally {
