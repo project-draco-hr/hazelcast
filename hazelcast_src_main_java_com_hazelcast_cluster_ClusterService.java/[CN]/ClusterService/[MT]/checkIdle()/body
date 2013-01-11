@@ -1,12 +1,12 @@
 {
   final long now=Clock.currentTimeMillis();
-  if (RESTART_ON_MAX_IDLE && (now - lastCheck) > MAX_IDLE_MILLIS) {
+  if (RESTART_ON_MAX_IDLE && (now - lastIdleCheck) > MAX_IDLE_MILLIS) {
     if (logger.isLoggable(Level.INFO)) {
       final StringBuilder sb=new StringBuilder("Hazelcast ServiceThread is blocked for ");
-      sb.append((now - lastCheck));
+      sb.append((now - lastIdleCheck));
       sb.append(" ms. Restarting Hazelcast!");
       sb.append("\n\tnow:").append(now);
-      sb.append("\n\tlastCheck:").append(lastCheck);
+      sb.append("\n\tlastIdleCheck:").append(lastIdleCheck);
       sb.append("\n\tmaxIdleMillis:").append(MAX_IDLE_MILLIS);
       sb.append("\n\tRESTART_ON_MAX_IDLE:").append(RESTART_ON_MAX_IDLE);
       sb.append("\n");
@@ -19,14 +19,6 @@
     }
 ,"hz.RestartThread").start();
   }
-  lastCheck=now;
-  if ((now - lastPeriodicCheck) > PERIODIC_CHECK_INTERVAL_MILLIS) {
-    publishUtilization();
-    for (    Runnable runnable : periodicRunnables) {
-      if (runnable != null) {
-        runnable.run();
-      }
-    }
-    lastPeriodicCheck=now;
-  }
+  lastIdleCheck=now;
+  publishUtilization();
 }
