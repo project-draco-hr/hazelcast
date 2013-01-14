@@ -1,16 +1,13 @@
 {
-  if (DataSerializable.class.isAssignableFrom(type) && serializer.getClass() != DataSerializer.class) {
-    throw new IllegalArgumentException("Internal DataSerializable[" + type + "] "+ "serializer cannot be overridden!");
+  if (constantTypesMap.containsKey(type)) {
+    throw new IllegalArgumentException("[" + type + "] serializer cannot be overridden!");
   }
-  if (Portable.class.isAssignableFrom(type) && serializer.getClass() != PortableSerializer.class) {
-    throw new IllegalArgumentException("Internal DataSerializable[" + type + "] "+ "serializer cannot be overridden!");
+  TypeSerializer ts=typeMap.putIfAbsent(type,serializer);
+  if (ts != null && ts.getClass() != serializer.getClass()) {
+    throw new IllegalStateException("Serializer[" + ts + "] has been already registered for type: "+ type);
   }
-  TypeSerializer f=typeMap.putIfAbsent(type,serializer);
-  if (f != null && f.getClass() != serializer.getClass()) {
-    throw new IllegalStateException("Serializer[" + f + "] has been already registered for type: "+ type);
-  }
-  f=idMap.putIfAbsent(serializer.getTypeId(),serializer);
-  if (f != null && f.getClass() != serializer.getClass()) {
-    throw new IllegalStateException("Serializer [" + f + "] has been already registered for type-id: "+ serializer.getTypeId());
+  ts=idMap.putIfAbsent(serializer.getTypeId(),serializer);
+  if (ts != null && ts.getClass() != serializer.getClass()) {
+    throw new IllegalStateException("Serializer [" + ts + "] has been already registered for type-id: "+ serializer.getTypeId());
   }
 }
