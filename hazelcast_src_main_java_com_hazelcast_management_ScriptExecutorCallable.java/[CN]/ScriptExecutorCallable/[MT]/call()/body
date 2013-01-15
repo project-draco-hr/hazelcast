@@ -1,21 +1,16 @@
 {
-  if (scriptEngineLoadError != null) {
-    throw new ExecutionException("ScriptEngineManager could not be loaded!",scriptEngineLoadError);
-  }
-  Object engine=mGetEngineByName.invoke(scriptEngineManager,engineName);
+  ScriptEngine engine=scriptEngineManager.getEngineByName(engineName);
   if (engine == null) {
     throw new IllegalArgumentException("Could not find ScriptEngine named '" + engineName + "'.");
   }
-  Method put=engine.getClass().getMethod("put",new Class[]{String.class,Object.class});
-  put.invoke(engine,"hazelcast",hazelcast);
+  engine.put("hazelcast",hazelcast);
   if (bindings != null) {
     Set<Entry<String,Object>> entries=bindings.entrySet();
     for (    Entry<String,Object> entry : entries) {
-      put.invoke(engine,entry.getKey(),entry.getValue());
+      engine.put(entry.getKey(),entry.getValue());
     }
   }
-  Method eval=engine.getClass().getMethod("eval",new Class[]{String.class});
-  Object result=eval.invoke(engine,script);
+  Object result=engine.eval(script);
   if (result == null) {
     return null;
   }

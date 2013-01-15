@@ -1,4 +1,19 @@
 {
+  final Collection<Operation> postJoinOps=new LinkedList<Operation>();
   final Operation eventPostJoinOp=eventService.getPostJoinOperation();
-  return eventPostJoinOp != null ? new Operation[]{eventPostJoinOp} : null;
+  if (eventPostJoinOp != null) {
+    postJoinOps.add(eventPostJoinOp);
+  }
+  Collection<PostJoinAwareService> services=getServices(PostJoinAwareService.class);
+  for (  PostJoinAwareService service : services) {
+    final Operation pjOp=service.getPostJoinOperation();
+    if (pjOp != null) {
+      if (pjOp instanceof PartitionAwareOperation) {
+        logger.log(Level.SEVERE,"Post-join operations cannot implement PartitionAwareOperation!" + " Service: " + service + ", Operation: "+ pjOp);
+        continue;
+      }
+      postJoinOps.add(pjOp);
+    }
+  }
+  return postJoinOps.isEmpty() ? null : postJoinOps.toArray(new Operation[postJoinOps.size()]);
 }

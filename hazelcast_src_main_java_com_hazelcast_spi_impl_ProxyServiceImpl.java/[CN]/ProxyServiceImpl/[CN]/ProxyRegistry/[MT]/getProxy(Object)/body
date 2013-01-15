@@ -1,0 +1,23 @@
+{
+  ServiceProxy proxy=proxies.get(proxyId);
+  if (proxy == null) {
+    proxy=service.createProxy(proxyId);
+    ServiceProxy current=proxies.putIfAbsent(proxyId,proxy);
+    if (current == null) {
+      final DistributedObjectEvent event=createEvent(proxyId,CREATED);
+      publish(event);
+      nodeEngine.getEventService().executeEvent(new Runnable(){
+        public void run(){
+          for (          DistributedObjectListener listener : listeners) {
+            listener.distributedObjectCreated(event);
+          }
+        }
+      }
+);
+    }
+ else {
+      proxy=current;
+    }
+  }
+  return proxy;
+}
