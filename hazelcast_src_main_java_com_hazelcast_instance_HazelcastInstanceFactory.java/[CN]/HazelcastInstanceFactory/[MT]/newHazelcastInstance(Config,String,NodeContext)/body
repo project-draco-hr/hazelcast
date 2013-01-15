@@ -1,0 +1,52 @@
+{
+  if (instanceName == null || instanceName.trim().length() == 0) {
+    instanceName=createInstanceName(config);
+  }
+  HazelcastInstanceImpl hazelcastInstance=null;
+  try {
+    hazelcastInstance=new HazelcastInstanceImpl(instanceName,config,nodeContext);
+    INSTANCE_MAP.put(instanceName,hazelcastInstance);
+    final Node node=hazelcastInstance.node;
+    boolean firstMember=(node.getClusterService().getMembers().iterator().next().localMember());
+    int initialWaitSeconds=node.groupProperties.INITIAL_WAIT_SECONDS.getInteger();
+    if (initialWaitSeconds > 0) {
+      try {
+        Thread.sleep(initialWaitSeconds * 1000);
+        if (firstMember) {
+          node.partitionService.firstArrangement();
+        }
+ else {
+          Thread.sleep(4 * 1000);
+        }
+      }
+ catch (      InterruptedException ignored) {
+      }
+    }
+    int initialMinClusterSize=node.groupProperties.INITIAL_MIN_CLUSTER_SIZE.getInteger();
+    while (node.getClusterService().getMembers().size() < initialMinClusterSize) {
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException ignored) {
+      }
+    }
+    if (initialMinClusterSize > 0) {
+      if (firstMember) {
+        node.partitionService.firstArrangement();
+      }
+ else {
+        Thread.sleep(4 * 1000);
+      }
+      hazelcastInstance.logger.log(Level.INFO,"HazelcastInstance starting after waiting for cluster size of " + initialMinClusterSize);
+    }
+    hazelcastInstance.lifecycleService.fireLifecycleEvent(STARTED);
+    return hazelcastInstance;
+  }
+ catch (  Throwable t) {
+    if (hazelcastInstance != null) {
+      hazelcastInstance.logger.log(Level.SEVERE,t.getMessage(),t);
+    }
+    Util.throwUncheckedException(t);
+    return null;
+  }
+}
