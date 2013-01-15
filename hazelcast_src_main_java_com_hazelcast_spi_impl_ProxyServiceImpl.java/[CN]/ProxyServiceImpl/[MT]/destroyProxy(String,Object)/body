@@ -1,4 +1,20 @@
 {
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  Collection<Future> calls=new ArrayList<Future>(members.size());
+  for (  MemberImpl member : members) {
+    if (member.localMember())     continue;
+    Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(NAME,new DistributedObjectDestroyOperation(serviceName,proxyId),member.getAddress()).setTryCount(10).build();
+    calls.add(inv.invoke());
+  }
+  destroyDistributedObject(serviceName,proxyId);
+  for (  Future f : calls) {
+    try {
+      f.get(3,TimeUnit.SECONDS);
+    }
+ catch (    Exception e) {
+      logger.log(Level.FINEST,e.getMessage(),e);
+    }
+  }
   ProxyRegistry registry=registries.get(serviceName);
   if (registry != null) {
     registry.destroyProxy(proxyId);

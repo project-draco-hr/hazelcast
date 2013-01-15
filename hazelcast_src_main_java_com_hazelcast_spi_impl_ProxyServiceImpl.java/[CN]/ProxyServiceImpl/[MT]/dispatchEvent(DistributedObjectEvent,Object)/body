@@ -1,19 +1,19 @@
 {
-  nodeEngine.getExecutionService().execute(new Runnable(){
-    public void run(){
-      final String serviceName=event.getServiceName();
-      final RemoteService service=nodeEngine.serviceManager.getService(serviceName);
-      if (service == null) {
-        nodeEngine.getLogger(ProxyServiceImpl.class.getName()).log(Level.WARNING,"Service: " + serviceName + " could not be found!");
-        return;
-      }
-      if (event.getEventType() == CREATED) {
-        service.onProxyCreate(event.getObjectId());
-      }
- else {
-        service.onProxyDestroy(event.getObjectId());
+  final String serviceName=event.getServiceName();
+  final ProxyRegistry registry=registries.get(serviceName);
+  if (event.getEventType() == CREATED) {
+    if (registry == null || !registry.contains(event.getObjectId())) {
+      for (      DistributedObjectListener listener : listeners) {
+        listener.distributedObjectCreated(event);
       }
     }
   }
-);
+ else {
+    if (registry != null) {
+      registry.removeProxy(event.getObjectId());
+    }
+    for (    DistributedObjectListener listener : listeners) {
+      listener.distributedObjectDestroyed(event);
+    }
+  }
 }
