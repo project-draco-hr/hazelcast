@@ -1,26 +1,24 @@
 {
   Record record=records.get(dataKey);
-  Data oldValueData=null;
-  boolean absent=true;
+  Object oldValue=null;
   if (record == null) {
     if (mapInfo.getStore() != null) {
-      Object oldValue=mapInfo.getStore().load(toObject(dataKey));
-      oldValueData=toData(oldValue);
-      absent=oldValueData == null;
-    }
-    if (absent) {
-      record=mapService.createRecord(name,dataKey,dataValue,ttl);
-      records.put(dataKey,record);
-      if (ttl > 0) {
-        record.getState().updateTtlExpireTime(ttl);
-        mapService.scheduleOperation(name,dataKey,ttl);
+      oldValue=mapInfo.getStore().load(mapService.toObject(dataKey));
+      if (oldValue != null) {
+        record=mapService.createRecord(name,dataKey,oldValue,-1);
+        records.put(dataKey,record);
       }
-      mapStoreWrite(record);
     }
   }
  else {
-    record.access();
-    oldValueData=record.getValueData();
+    accessRecord(record);
+    oldValue=record.getValue();
   }
-  return oldValueData;
+  if (oldValue == null) {
+    record=mapService.createRecord(name,dataKey,value,ttl);
+    records.put(dataKey,record);
+    updateTtl(record,ttl);
+    mapStoreWrite(record);
+  }
+  return mapService.toData(oldValue);
 }

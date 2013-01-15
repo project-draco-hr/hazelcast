@@ -1,0 +1,23 @@
+{
+  Record record=null;
+  MapInfo mapInfo=getMapInfo(name);
+  if (mapInfo.getMapConfig().getRecordType().equals("DATA")) {
+    record=new DataRecord(dataKey,toData(value));
+  }
+ else   if (mapInfo.getMapConfig().getRecordType().equals("OBJECT")) {
+    record=new ObjectRecord(dataKey,toObject(value));
+  }
+  if (ttl <= 0 && mapInfo.getMapConfig().getTimeToLiveSeconds() > 0) {
+    record.getState().updateTtlExpireTime(mapInfo.getMapConfig().getTimeToLiveSeconds());
+    scheduleOperation(name,dataKey,mapInfo.getMapConfig().getTimeToLiveSeconds());
+  }
+  if (ttl > 0) {
+    record.getState().updateTtlExpireTime(ttl);
+    scheduleOperation(name,record.getKey(),ttl);
+  }
+  if (mapInfo.getMapConfig().getMaxIdleSeconds() > 0) {
+    record.getState().updateIdleExpireTime(mapInfo.getMapConfig().getMaxIdleSeconds());
+    scheduleOperation(name,dataKey,mapInfo.getMapConfig().getMaxIdleSeconds());
+  }
+  return record;
+}

@@ -1,24 +1,19 @@
 {
   Record record=records.get(dataKey);
-  Data oldValueData=null;
   boolean removed=false;
+  boolean evicted=false;
   if (record == null) {
-    if (mapInfo.getStore() != null) {
-      Object oldValue=mapInfo.getStore().load(toObject(dataKey));
-      oldValueData=toData(oldValue);
+    if (mapInfo.getStore() != null && mapInfo.getStore().load(mapService.toObject(dataKey)) != null) {
+      evicted=true;
     }
   }
  else {
-    record.access();
-    oldValueData=record.getValueData();
+    accessRecord(record);
     records.remove(dataKey);
     removed=true;
   }
-  if (oldValueData != null && mapInfo.getStore() != null && mapInfo.getWriteDelayMillis() == 0) {
-    Object key=record.getKey();
-    mapInfo.getStore().delete(key);
+  if ((removed || evicted) && mapInfo.getStore() != null) {
     mapStoreDelete(record);
-    removed=true;
   }
   return removed;
 }
