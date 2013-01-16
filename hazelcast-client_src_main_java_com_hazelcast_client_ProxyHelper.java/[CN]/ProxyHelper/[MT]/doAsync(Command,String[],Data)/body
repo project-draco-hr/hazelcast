@@ -1,0 +1,46 @@
+{
+  Protocol protocol=createProtocol(command,args,data);
+  try {
+    final Connection connection=connectionPool.takeConnection();
+    writer.write(connection,protocol);
+    return new Future<V>(){
+      public boolean cancel(      boolean mayInterruptIfRunning){
+        return false;
+      }
+      public boolean isCancelled(){
+        return false;
+      }
+      public boolean isDone(){
+        return false;
+      }
+      public V get() throws InterruptedException, ExecutionException {
+        Protocol protocol=null;
+        try {
+          protocol=reader.read(connection);
+        }
+ catch (        IOException e) {
+          throw new ExecutionException(e);
+        }
+        return (V)ProxyHelper.this.getSingleObjectFromResponse(protocol);
+      }
+      public V get(      long timeout,      TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        Protocol protocol=null;
+        try {
+          protocol=reader.read(connection,timeout,unit);
+        }
+ catch (        IOException e) {
+          throw new ExecutionException(e);
+        }
+        return (V)ProxyHelper.this.getSingleObjectFromResponse(protocol);
+      }
+    }
+;
+  }
+ catch (  IOException e) {
+    e.printStackTrace();
+    throw new RuntimeException(e);
+  }
+catch (  InterruptedException e) {
+    throw new RuntimeException(e);
+  }
+}
