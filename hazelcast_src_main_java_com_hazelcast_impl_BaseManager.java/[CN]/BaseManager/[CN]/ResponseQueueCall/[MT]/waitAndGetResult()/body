@@ -1,5 +1,5 @@
 {
-  final long noResponseTimeout=(request.timeout == Long.MAX_VALUE || request.timeout < 0) ? Long.MAX_VALUE : request.timeout > 0 ? (long)(request.timeout * 1.5f) + MIN_POLL_TIMEOUT : responsePollTimeout;
+  final long noResponseTimeout=(request.timeout == Long.MAX_VALUE || request.timeout < 0) ? Long.MAX_VALUE : maxOperationTimeout;
   final long start=Clock.currentTimeMillis();
   while (true) {
     try {
@@ -18,7 +18,7 @@
           systemLogService.trace(this,"Still no response");
         }
         if (canTimeout() && noResponseTimeout <= (Clock.currentTimeMillis() - start)) {
-          throw new OperationTimeoutException(request.operation.toString(),"Operation Timeout (with no response!): " + request.timeout);
+          throw new OperationTimeoutException(request.operation.toString(),"Operation Timeout (with no response!): " + noResponseTimeout);
         }
       }
       node.checkNodeState();

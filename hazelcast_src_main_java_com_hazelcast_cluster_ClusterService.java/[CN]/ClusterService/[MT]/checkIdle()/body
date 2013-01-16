@@ -1,0 +1,24 @@
+{
+  final long now=Clock.currentTimeMillis();
+  if (RESTART_ON_MAX_IDLE && (now - lastIdleCheck) > MAX_IDLE_MILLIS) {
+    if (logger.isLoggable(Level.INFO)) {
+      final StringBuilder sb=new StringBuilder("Hazelcast ServiceThread is blocked for ");
+      sb.append((now - lastIdleCheck));
+      sb.append(" ms. Restarting Hazelcast!");
+      sb.append("\n\tnow:").append(now);
+      sb.append("\n\tlastIdleCheck:").append(lastIdleCheck);
+      sb.append("\n\tmaxIdleMillis:").append(MAX_IDLE_MILLIS);
+      sb.append("\n\tRESTART_ON_MAX_IDLE:").append(RESTART_ON_MAX_IDLE);
+      sb.append("\n");
+      logger.log(Level.INFO,sb.toString());
+    }
+    new Thread(new Runnable(){
+      public void run(){
+        node.factory.restart();
+      }
+    }
+,"hz.RestartThread").start();
+  }
+  lastIdleCheck=now;
+  publishUtilization();
+}

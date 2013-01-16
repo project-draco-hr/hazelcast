@@ -10,20 +10,15 @@
       return null;
     }
     IMap imap=getStorageMap(name);
-    try {
-      removedItem=imap.tryRemove(key,0,TimeUnit.MILLISECONDS);
-      if (removedItem != null) {
-        ThreadContext threadContext=ThreadContext.get();
-        TransactionImpl txn=threadContext.getCallContext().getTransaction();
-        final Data removedItemData=toData(removedItem);
-        if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
-          txn.attachRemoveOp(name,key,removedItemData,true);
-        }
-        fireQueueEvent(name,EntryEventType.REMOVED,removedItemData);
+    removedItem=imap.remove(key);
+    if (removedItem != null) {
+      ThreadContext threadContext=ThreadContext.get();
+      TransactionImpl txn=threadContext.getCallContext().getTransaction();
+      final Data removedItemData=toData(removedItem);
+      if (txn != null && txn.getStatus() == Transaction.TXN_STATUS_ACTIVE) {
+        txn.attachRemoveOp(name,key,removedItemData,true);
       }
-    }
- catch (    TimeoutException e) {
-      throw new OperationTimeoutException(e);
+      fireQueueEvent(name,EntryEventType.REMOVED,removedItemData);
     }
     long now=Clock.currentTimeMillis();
     timeout-=(now - start);
