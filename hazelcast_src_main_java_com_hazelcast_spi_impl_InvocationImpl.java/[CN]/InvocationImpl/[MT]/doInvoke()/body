@@ -7,7 +7,12 @@
   final Address thisAddress=nodeEngine.getThisAddress();
   op.setNodeEngine(nodeEngine).setServiceName(serviceName).setCaller(thisAddress).setPartitionId(partitionId).setReplicaIndex(replicaIndex);
   if (target == null) {
-    setResult(new WrongTargetException(thisAddress,target,partitionId,op.getClass().getName(),serviceName));
+    if (isActive()) {
+      setResult(new WrongTargetException(thisAddress,target,partitionId,op.getClass().getName(),serviceName));
+    }
+ else {
+      setResult(new IllegalStateException("Hazelcast instance is not active!"));
+    }
   }
  else   if (!isJoinOperation(op) && nodeEngine.getClusterService().getMember(target) == null) {
     setResult(new TargetNotMemberException(target,partitionId,op.getClass().getName(),serviceName));
