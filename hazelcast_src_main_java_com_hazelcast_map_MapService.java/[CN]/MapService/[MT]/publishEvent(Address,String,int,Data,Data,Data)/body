@@ -2,9 +2,23 @@
   Collection<EventRegistration> candidates=nodeEngine.getEventService().getRegistrations(MAP_SERVICE_NAME,mapName);
   Set<EventRegistration> registrationsWithValue=new HashSet<EventRegistration>();
   Set<EventRegistration> registrationsWithoutValue=new HashSet<EventRegistration>();
+  Object key=toObject(dataKey);
+  Object value=toObject(dataValue);
   for (  EventRegistration candidate : candidates) {
     EntryEventFilter filter=(EntryEventFilter)candidate.getFilter();
-    if (filter.eval(dataKey)) {
+    if (filter instanceof QueryEventFilter) {
+      Object testValue=eventType == EntryEvent.TYPE_REMOVED ? toObject(dataOldValue) : value;
+      QueryEventFilter qfilter=(QueryEventFilter)filter;
+      if (qfilter.eval(new SimpleMapEntry(key,testValue))) {
+        if (filter.isIncludeValue()) {
+          registrationsWithValue.add(candidate);
+        }
+ else {
+          registrationsWithoutValue.add(candidate);
+        }
+      }
+    }
+ else     if (filter.eval(dataKey)) {
       if (filter.isIncludeValue()) {
         registrationsWithValue.add(candidate);
       }
