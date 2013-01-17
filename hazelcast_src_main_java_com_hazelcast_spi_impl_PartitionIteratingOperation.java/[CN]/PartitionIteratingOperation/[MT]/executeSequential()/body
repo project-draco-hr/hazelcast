@@ -1,0 +1,18 @@
+{
+  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  final Operation op=operationFactory.createSequentialOperation();
+  op.setNodeEngine(nodeEngine).setCaller(getCaller()).setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler()).setService(getService());
+  nodeEngine.operationService.acquirePartitionReadLocks(partitions);
+  try {
+    op.beforeRun();
+    op.run();
+    op.afterRun();
+    results=(Map<Integer,Object>)op.getResponse();
+  }
+ catch (  Exception e) {
+    getLogger(nodeEngine).log(Level.SEVERE,e.getMessage(),e);
+  }
+ finally {
+    nodeEngine.operationService.releasePartitionReadLocks(partitions);
+  }
+}
