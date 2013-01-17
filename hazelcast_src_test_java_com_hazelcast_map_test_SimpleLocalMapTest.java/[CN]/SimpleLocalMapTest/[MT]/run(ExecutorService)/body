@@ -1,0 +1,32 @@
+{
+  final IMap<String,byte[]> map=instance.getMap(NAMESPACE);
+  for (int i=0; i < threadCount; i++) {
+    es.execute(new Runnable(){
+      public void run(){
+        try {
+          while (true) {
+            int key=(int)(Math.random() * entryCount);
+            int operation=((int)(Math.random() * 100));
+            long start=System.nanoTime();
+            if (operation < getPercentage) {
+              map.get(String.valueOf(key));
+              stats.incGet(start);
+            }
+ else             if (operation < getPercentage + putPercentage) {
+              map.put(String.valueOf(key),new byte[valueSize]);
+              stats.incPut(start);
+            }
+ else {
+              map.remove(String.valueOf(key));
+              stats.incRem(start);
+            }
+          }
+        }
+ catch (        Exception ignored) {
+          ignored.printStackTrace();
+        }
+      }
+    }
+);
+  }
+}
