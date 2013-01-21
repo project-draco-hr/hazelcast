@@ -1,0 +1,34 @@
+{
+  out.writeInt(map.size());
+  for (  Map.Entry<CollectionProxyId,Map[]> entry : map.entrySet()) {
+    CollectionProxyId proxyId=entry.getKey();
+    proxyId.writeData(out);
+    Map<Data,Object> objects=entry.getValue()[0];
+    out.writeInt(objects.size());
+    for (    Map.Entry<Data,Object> objectEntry : objects.entrySet()) {
+      Data key=objectEntry.getKey();
+      key.writeData(out);
+      Object object=objectEntry.getValue();
+      if (object instanceof Collection) {
+        out.writeBoolean(true);
+        Collection coll=(Collection)object;
+        out.writeInt(coll.size());
+        for (        Object obj : coll) {
+          out.writeObject(obj);
+        }
+      }
+ else {
+        out.writeBoolean(false);
+        out.writeObject(object);
+      }
+    }
+    Map<Data,LockInfo> locks=entry.getValue()[1];
+    out.writeInt(locks.size());
+    for (    Map.Entry<Data,LockInfo> lockEntry : locks.entrySet()) {
+      Data key=lockEntry.getKey();
+      key.writeData(out);
+      LockInfo lockInfo=lockEntry.getValue();
+      lockInfo.writeData(out);
+    }
+  }
+}
