@@ -1,0 +1,17 @@
+{
+  setThreadContext();
+  String id=mapService.removeInterceptor(name,interceptor);
+  RemoveInterceptorOperation operation=new RemoveInterceptorOperation(interceptor,name,id);
+  Set<Member> members=nodeEngine.getCluster().getMembers();
+  for (  Member member : members) {
+    try {
+      if (member.localMember())       continue;
+      MemberImpl memberImpl=(MemberImpl)member;
+      Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(MAP_SERVICE_NAME,operation,memberImpl.getAddress()).build();
+      invocation.invoke().get();
+    }
+ catch (    Throwable throwable) {
+      throw new HazelcastException(throwable);
+    }
+  }
+}

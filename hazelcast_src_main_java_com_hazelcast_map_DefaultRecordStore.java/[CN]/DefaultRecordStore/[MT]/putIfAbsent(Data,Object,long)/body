@@ -1,0 +1,25 @@
+{
+  Record record=records.get(dataKey);
+  Object oldValue=null;
+  if (record == null) {
+    if (mapInfo.getStore() != null) {
+      oldValue=mapInfo.getStore().load(mapService.toObject(dataKey));
+      if (oldValue != null) {
+        record=mapService.createRecord(name,dataKey,oldValue,-1);
+        records.put(dataKey,record);
+      }
+    }
+  }
+ else {
+    accessRecord(record);
+    oldValue=record.getValue();
+  }
+  if (oldValue == null) {
+    value=mapService.intercept(name,MapOperationType.PUT,dataKey,value,null);
+    record=mapService.createRecord(name,dataKey,value,ttl);
+    records.put(dataKey,record);
+    updateTtl(record,ttl);
+    mapStoreWrite(record);
+  }
+  return oldValue;
+}
