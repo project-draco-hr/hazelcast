@@ -15,46 +15,35 @@
  catch (    InterruptedException e) {
       logger.log(Level.FINEST,Thread.currentThread().getName() + " is interrupted while waiting " + "response for operation "+ op);
       if (!isActive()) {
-        throw e;
+        return e;
       }
       continue;
     }
     pollCount++;
-    if (response instanceof RetryableException) {
+    if (response instanceof Throwable) {
+      final InvocationAction action=op.onException((Throwable)response);
       final int localInvokeCount=invokeCount;
-      if (localInvokeCount < tryCount && timeout > 0) {
-        Thread.sleep(tryPauseMillis);
+      if (action == InvocationAction.RETRY_INVOCATION && localInvokeCount < tryCount && timeout > 0) {
+        try {
+          Thread.sleep(tryPauseMillis);
+        }
+ catch (        InterruptedException e) {
+          return e;
+        }
         timeout=decrementTimeout(timeout,tryPauseMillis);
         if (localInvokeCount > 5 && localInvokeCount % 10 == 0) {
           logger.log(Level.WARNING,"Still invoking: " + toString());
         }
         doInvoke();
       }
- else {
-        done=true;
-        throw new ExecutionException((Throwable)response);
-      }
-    }
- else     if (response == NULL_RESPONSE) {
-      return null;
-    }
- else     if (response != null) {
-      done=true;
-      if (response instanceof Throwable) {
-        if (response instanceof RuntimeException) {
-          throw (RuntimeException)response;
-        }
-        if (response instanceof Error) {
-          throw (Error)response;
-        }
-        if (response instanceof ExecutionException) {
-          throw (ExecutionException)response;
-        }
-        throw new ExecutionException((Throwable)response);
+ else       if (action == InvocationAction.CONTINUE_WAIT) {
       }
  else {
         return response;
       }
+    }
+ else     if (response != null) {
+      return response;
     }
  else     if (longPolling) {
       final Address target=getTarget();
@@ -68,9 +57,9 @@
         if (obj != null) {
           return obj;
         }
-        throw new OperationTimeoutException("No response for " + (pollTimeout * pollCount) + " ms. Aborting invocation! "+ toString());
+        return new OperationTimeoutException("No response for " + (pollTimeout * pollCount) + " ms. Aborting invocation! "+ toString());
       }
     }
   }
-  throw new TimeoutException();
+  return TIMEOUT_RESPONSE;
 }

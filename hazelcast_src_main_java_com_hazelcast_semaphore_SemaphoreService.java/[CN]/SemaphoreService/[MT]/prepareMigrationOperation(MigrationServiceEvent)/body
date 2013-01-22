@@ -1,0 +1,17 @@
+{
+  if (event.getPartitionId() < 0 || event.getPartitionId() >= nodeEngine.getPartitionCount()) {
+    return null;
+  }
+  Map<String,Permit> migrationData=new HashMap<String,Permit>();
+  for (  Map.Entry<String,Permit> entry : permitMap.entrySet()) {
+    String name=entry.getKey();
+    Permit permit=entry.getValue();
+    if (permit.getPartitionId() == event.getPartitionId() && permit.getConfig().getTotalBackupCount() >= event.getReplicaIndex()) {
+      migrationData.put(name,permit);
+    }
+  }
+  if (migrationData.isEmpty()) {
+    return null;
+  }
+  return new SemaphoreMigrationOperation();
+}
