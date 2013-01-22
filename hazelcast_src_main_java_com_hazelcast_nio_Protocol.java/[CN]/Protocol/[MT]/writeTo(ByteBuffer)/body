@@ -1,8 +1,16 @@
 {
   totalWritten+=IOUtil.copyToHeapBuffer(response,destination);
   if (hasBuffer()) {
-    for (    ByteBuffer buffer : buffers) {
-      totalWritten+=IOUtil.copyToHeapBuffer(buffer,destination);
+    for (    Data buffer : buffers) {
+      ByteArrayOutputStream backing=new ByteArrayOutputStream(buffer.totalSize());
+      DataOutput foo=new DataOutputStream(backing);
+      try {
+        buffer.writeData(foo);
+      }
+ catch (      IOException e) {
+        e.printStackTrace();
+      }
+      totalWritten+=IOUtil.copyToHeapBuffer(ByteBuffer.wrap(backing.toByteArray()),destination);
     }
     totalWritten+=IOUtil.copyToHeapBuffer(ByteBuffer.wrap("\r\n".getBytes()),destination);
   }

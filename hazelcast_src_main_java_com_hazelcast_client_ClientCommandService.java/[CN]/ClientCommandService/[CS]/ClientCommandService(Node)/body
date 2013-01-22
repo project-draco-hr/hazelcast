@@ -1,5 +1,12 @@
 {
   this.node=node;
   logger=node.getLogger(ClientCommandService.class.getName());
-  executorService=node.nodeEngine.getExecutionService().getExecutorService("client");
+  executor=node.nodeEngine.getExecutionService().getExecutor("client");
+  services=new ConcurrentHashMap<Command,ClientCommandHandler>();
+  services.put(Command.UNKNOWN,new ClientCommandHandler(node.nodeEngine){
+    @Override public Protocol processCall(    Node node,    Protocol protocol){
+      return protocol.error(null,"unknown","command");
+    }
+  }
+);
 }

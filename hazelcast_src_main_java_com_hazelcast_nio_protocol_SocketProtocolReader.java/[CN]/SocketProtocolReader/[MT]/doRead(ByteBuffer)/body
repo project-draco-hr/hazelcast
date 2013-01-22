@@ -26,7 +26,13 @@
           }
         }
         if ((buffers.length == 0 || !buffers[buffers.length - 1].hasRemaining())) {
-          Protocol protocol=new Protocol(connection,command,flag,threadId,noreply,args,buffers);
+          Data[] datas=new Data[buffers.length];
+          for (int i=0; i < buffers.length; i++) {
+            datas[i]=new Data();
+            ByteArrayInputStream bis=new ByteArrayInputStream(buffers[i].array());
+            datas[i].readData(new DataInputStream(bis));
+          }
+          Protocol protocol=new Protocol(connection,command,flag,threadId,noreply,args,datas);
           connection.setType(TcpIpConnection.Type.PROTOCOL_CLIENT);
           ioService.handleClientCommand(protocol);
           reset();

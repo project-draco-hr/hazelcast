@@ -1,0 +1,30 @@
+{
+  StaticNodeFactory factory=new StaticNodeFactory(2);
+  HazelcastInstance hz1=factory.newInstance(new Config());
+  HazelcastInstance hz2=factory.newInstance(new Config());
+  final ICountDownLatch latch=hz1.getCountDownLatch("test");
+  latch.setCount(2);
+  new Thread(){
+    public void run(){
+      try {
+        sleep(100);
+      }
+ catch (      InterruptedException e) {
+        return;
+      }
+      latch.destroy();
+    }
+  }
+.start();
+  try {
+    hz2.getCountDownLatch("test").await(200,TimeUnit.MILLISECONDS);
+  }
+ catch (  MemberLeftException e) {
+    e.printStackTrace();
+    Assert.fail();
+  }
+catch (  InterruptedException e) {
+    e.printStackTrace();
+    Assert.fail();
+  }
+}
