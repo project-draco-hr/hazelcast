@@ -1,0 +1,37 @@
+{
+  int mapSize=in.readInt();
+  map=new HashMap<CollectionProxyId,Map[]>(mapSize);
+  for (int i=0; i < mapSize; i++) {
+    CollectionProxyId proxyId=new CollectionProxyId();
+    proxyId.readData(in);
+    int objectSize=in.readInt();
+    Map<Data,Object> objects=new HashMap<Data,Object>();
+    for (int j=0; j < objectSize; j++) {
+      Data key=new Data();
+      key.readData(in);
+      boolean isCollection=in.readBoolean();
+      if (isCollection) {
+        int collSize=in.readInt();
+        Collection coll=new ArrayList(collSize);
+        for (int k=0; k < collSize; k++) {
+          Object obj=in.readObject();
+          coll.add(obj);
+        }
+        objects.put(key,coll);
+      }
+ else {
+        objects.put(key,in.readObject());
+      }
+    }
+    int lockSize=in.readInt();
+    Map<Data,LockInfo> locks=new HashMap<Data,LockInfo>(lockSize);
+    for (int j=0; j < lockSize; j++) {
+      Data key=new Data();
+      key.readData(in);
+      LockInfo lockInfo=new LockInfo();
+      lockInfo.readData(in);
+      locks.put(key,lockInfo);
+    }
+    map.put(proxyId,new Map[]{objects,locks});
+  }
+}
