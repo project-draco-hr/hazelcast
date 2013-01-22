@@ -1,13 +1,12 @@
 {
-  final Map<Address,ArrayList<Integer>> memberPartitions=getMemberPartitions(local);
   final Map<Address,Future> responses=new HashMap<Address,Future>(memberPartitions.size());
-  for (  Map.Entry<Address,ArrayList<Integer>> mp : memberPartitions.entrySet()) {
-    final Address target=mp.getKey();
+  for (  Map.Entry<Address,List<Integer>> mp : memberPartitions.entrySet()) {
+    final Address address=mp.getKey();
     final List<Integer> partitions=mp.getValue();
     final PartitionIteratingOperation pi=new PartitionIteratingOperation(partitions,operationFactory);
-    Invocation inv=createInvocationBuilder(serviceName,pi,target).setTryCount(5).setTryPauseMillis(300).build();
+    Invocation inv=createInvocationBuilder(serviceName,pi,address).setTryCount(5).setTryPauseMillis(300).build();
     Future future=inv.invoke();
-    responses.put(target,future);
+    responses.put(address,future);
   }
   final Map<Integer,Object> partitionResults=new HashMap<Integer,Object>(nodeEngine.getPartitionCount());
   for (  Map.Entry<Address,Future> response : responses.entrySet()) {
