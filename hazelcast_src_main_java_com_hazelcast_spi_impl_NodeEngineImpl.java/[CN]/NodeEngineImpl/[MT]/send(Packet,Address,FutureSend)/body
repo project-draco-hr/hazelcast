@@ -1,0 +1,19 @@
+{
+  final ConnectionManager connectionManager=node.getConnectionManager();
+  final Connection connection=connectionManager.getConnection(target);
+  if (connection != null) {
+    return send(packet,connection);
+  }
+ else {
+    if (futureSend == null) {
+      futureSend=new FutureSend(packet,target);
+    }
+    final int retries=futureSend.retries;
+    if (retries < 5) {
+      connectionManager.getOrConnect(target);
+      executionService.schedule(futureSend,(retries + 1) * 100,TimeUnit.MILLISECONDS);
+      return true;
+    }
+    return false;
+  }
+}

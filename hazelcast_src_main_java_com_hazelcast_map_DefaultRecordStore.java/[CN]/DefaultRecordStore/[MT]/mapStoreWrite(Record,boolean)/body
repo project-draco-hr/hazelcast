@@ -1,0 +1,14 @@
+{
+  if (mapInfo.getStore() != null) {
+    long writeDelayMillis=mapInfo.getWriteDelayMillis();
+    if (writeDelayMillis <= 0 || flush) {
+      mapInfo.getStore().store(mapService.toObject(record.getKey()),mapService.toObject(record.getValue()));
+    }
+ else {
+      if (record.getState().getStoreTime() <= 0) {
+        record.getState().updateStoreTime(writeDelayMillis);
+        mapService.scheduleOperation(name,record.getKey(),writeDelayMillis);
+      }
+    }
+  }
+}
