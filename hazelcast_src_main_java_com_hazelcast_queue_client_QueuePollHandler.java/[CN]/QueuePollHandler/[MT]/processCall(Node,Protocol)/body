@@ -1,0 +1,26 @@
+{
+  String name=protocol.args[0];
+  DataQueueProxy queue=qService.createDistributedObjectForClient(name);
+  Data result;
+  try {
+    if (Command.QTAKE.equals(protocol.command)) {
+      result=queue.take();
+    }
+ else     if (Command.QPEEK.equals(protocol.command)) {
+      result=queue.peek();
+    }
+ else {
+      long timeout=Long.valueOf(protocol.args[1]);
+      if (timeout == 0) {
+        result=queue.poll();
+      }
+ else {
+        result=queue.poll(timeout,TimeUnit.MILLISECONDS);
+      }
+    }
+    return protocol.success(result);
+  }
+ catch (  InterruptedException e) {
+    throw new RuntimeException(e);
+  }
+}
