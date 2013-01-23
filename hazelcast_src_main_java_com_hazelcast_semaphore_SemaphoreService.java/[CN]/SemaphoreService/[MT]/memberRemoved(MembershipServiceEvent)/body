@@ -1,7 +1,12 @@
 {
   System.out.println("removed: " + event);
   Address caller=event.getMember().getAddress();
-  for (  Permit permit : permitMap.values()) {
-    permit.memberRemoved(caller);
+  for (  String name : permitMap.keySet()) {
+    int partitionId=nodeEngine.getPartitionId(name);
+    PartitionInfo info=nodeEngine.getPartitionInfo(partitionId);
+    if (nodeEngine.getThisAddress().equals(info.getOwner())) {
+      Operation op=new DeadMemberOperation(name,caller).setPartitionId(partitionId).setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler()).setService(this).setNodeEngine(nodeEngine).setServiceName(SEMAPHORE_SERVICE_NAME);
+      nodeEngine.getOperationService().runOperation(op);
+    }
   }
 }
