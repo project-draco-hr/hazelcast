@@ -1,0 +1,20 @@
+{
+  check(setKeys);
+  List<Data> dataList=new ArrayList<Data>(setKeys.size());
+  for (  K key : setKeys) {
+    dataList.add(proxyHelper.toData(key));
+  }
+  Map<K,V> map=new HashMap<K,V>(setKeys.size());
+  Protocol protocol=proxyHelper.doCommand(Command.MGETALL,new String[]{getName()},dataList.toArray(new Data[]{}));
+  if (protocol.hasBuffer()) {
+    int i=0;
+    while (i < protocol.buffers.length) {
+      K key=(K)proxyHelper.toObject(protocol.buffers[i++]);
+      V value=(V)proxyHelper.toObject(protocol.buffers[i++]);
+      if (value != null) {
+        map.put(key,value);
+      }
+    }
+  }
+  return map;
+}
