@@ -1,26 +1,3 @@
 {
-  logger.log(Level.FINEST,"Registering service: '" + serviceName + "'");
-  Object oldService=services.putIfAbsent(serviceName,service);
-  if (oldService != null) {
-    logger.log(Level.WARNING,"Replacing " + serviceName + ": "+ oldService+ " with "+ service);
-    if (oldService instanceof CoreService) {
-      throw new HazelcastException("Can not replace a CoreService! Name: " + serviceName + ", Service: "+ oldService);
-    }
-    if (oldService instanceof ManagedService) {
-      destroyService((ManagedService)oldService);
-    }
-    services.put(serviceName,service);
-  }
-  if (service instanceof ManagedService) {
-    try {
-      logger.log(Level.FINEST,"Initializing service -> " + serviceName + ": "+ service);
-      ((ManagedService)service).init(nodeEngine,new Properties());
-    }
- catch (    Throwable t) {
-      logger.log(Level.SEVERE,"Error while initializing service: " + t.getMessage(),t);
-    }
-  }
-  if (service instanceof ClientProtocolService) {
-    nodeEngine.getNode().clientCommandService.register((ClientProtocolService)service);
-  }
+  registerService(serviceName,service,new Properties());
 }

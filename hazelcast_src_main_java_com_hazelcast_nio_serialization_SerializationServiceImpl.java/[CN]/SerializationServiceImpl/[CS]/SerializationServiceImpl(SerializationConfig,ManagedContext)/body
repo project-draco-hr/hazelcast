@@ -1,0 +1,20 @@
+{
+  this(config.getPortableVersion(),createPortableFactory(config),managedContext);
+  final Collection<TypeSerializerConfig> typeSerializers=config.getTypeSerializers();
+  for (  TypeSerializerConfig typeSerializerConfig : typeSerializers) {
+    TypeSerializer serializer=typeSerializerConfig.getImplementation();
+    if (serializer == null) {
+      serializer=(TypeSerializer)ClassLoaderUtil.newInstance(typeSerializerConfig.getClassName());
+    }
+    if (typeSerializerConfig.isGlobal()) {
+      registerFallback(serializer);
+    }
+ else {
+      Class typeClass=typeSerializerConfig.getTypeClass();
+      if (typeClass == null) {
+        typeClass=ClassLoaderUtil.loadClass(typeSerializerConfig.getTypeClassName());
+      }
+      register(serializer,typeClass);
+    }
+  }
+}
