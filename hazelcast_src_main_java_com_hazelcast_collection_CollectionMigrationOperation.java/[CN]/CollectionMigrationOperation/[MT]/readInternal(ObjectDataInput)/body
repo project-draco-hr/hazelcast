@@ -4,24 +4,19 @@
   for (int i=0; i < mapSize; i++) {
     CollectionProxyId proxyId=new CollectionProxyId();
     proxyId.readData(in);
-    int objectSize=in.readInt();
-    Map<Data,Object> objects=new HashMap<Data,Object>();
-    for (int j=0; j < objectSize; j++) {
+    int collectionSize=in.readInt();
+    Map<Data,Collection<CollectionRecord>> collections=new HashMap<Data,Collection<CollectionRecord>>();
+    for (int j=0; j < collectionSize; j++) {
       Data key=new Data();
       key.readData(in);
-      boolean isCollection=in.readBoolean();
-      if (isCollection) {
-        int collSize=in.readInt();
-        Collection coll=new ArrayList(collSize);
-        for (int k=0; k < collSize; k++) {
-          Object obj=in.readObject();
-          coll.add(obj);
-        }
-        objects.put(key,coll);
+      int collSize=in.readInt();
+      Collection<CollectionRecord> coll=new ArrayList(collSize);
+      for (int k=0; k < collSize; k++) {
+        long recordId=in.readLong();
+        Object obj=in.readObject();
+        coll.add(new CollectionRecord(recordId,obj));
       }
- else {
-        objects.put(key,in.readObject());
-      }
+      collections.put(key,coll);
     }
     int lockSize=in.readInt();
     Map<Data,LockInfo> locks=new HashMap<Data,LockInfo>(lockSize);
@@ -32,6 +27,6 @@
       lockInfo.readData(in);
       locks.put(key,lockInfo);
     }
-    map.put(proxyId,new Map[]{objects,locks});
+    map.put(proxyId,new Map[]{collections,locks});
   }
 }
