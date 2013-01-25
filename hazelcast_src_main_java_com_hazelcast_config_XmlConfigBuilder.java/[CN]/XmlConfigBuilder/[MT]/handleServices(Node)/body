@@ -1,26 +1,51 @@
 {
   final Node attDefaults=node.getAttributes().getNamedItem("enable-defaults");
   final boolean enableDefaults=attDefaults == null || checkTrue(getTextContent(attDefaults));
-  Services services=config.getServicesConfig();
-  services.setEnableDefaults(enableDefaults);
+  ServicesConfig servicesConfig=config.getServicesConfigConfig();
+  servicesConfig.setEnableDefaults(enableDefaults);
   for (  Node child : new IterableNodeList(node.getChildNodes())) {
     final String nodeName=cleanNodeName(child.getNodeName());
     if ("service".equals(nodeName)) {
-      CustomServiceConfig serviceConfig=new CustomServiceConfig();
-      NamedNodeMap attrs=child.getAttributes();
-      Node attName=attrs.getNamedItem("name");
-      String name=attName != null ? getTextContent(attName) : "";
-      Node attClassName=attrs.getNamedItem("class-name");
-      String className=attClassName != null ? getTextContent(attClassName) : "";
-      Node attEnabled=attrs.getNamedItem("enabled");
-      boolean enabled=attEnabled != null && checkTrue(getTextContent(attEnabled));
-      serviceConfig.setEnabled(enabled).setName(name).setClassName(className);
-      services.addServiceConfig(serviceConfig);
+      ServiceConfig serviceConfig=new ServiceConfig();
+      String enabledValue=getAttribute(child,"enabled");
+      boolean enabled=checkTrue(enabledValue);
+      serviceConfig.setEnabled(enabled);
+      for (      org.w3c.dom.Node n : new IterableNodeList(child.getChildNodes())) {
+        final String value=cleanNodeName(child.getNodeName());
+        if ("name".equals(value)) {
+          String name=getTextContent(n);
+          serviceConfig.setName(name);
+        }
+ else         if ("class-name".equals(value)) {
+          String className=getTextContent(n);
+          serviceConfig.setClassName(className);
+        }
+ else         if ("properties".equals(value)) {
+          handleProperties(n,serviceConfig.getProperties());
+        }
+      }
+      servicesConfig.addServiceConfig(serviceConfig);
     }
  else     if ("map-service".equals(nodeName)) {
-      Node attEnabled=child.getAttributes().getNamedItem("enabled");
-      boolean enabled=attEnabled != null && checkTrue(getTextContent(attEnabled));
-      services.addServiceConfig(new MapServiceConfig().setEnabled(enabled));
+      servicesConfig.addServiceConfig(new MapServiceConfig().setEnabled(true));
+    }
+ else     if ("queue-service".equals(nodeName)) {
+      servicesConfig.addServiceConfig(new QueueServiceConfig().setEnabled(true));
+    }
+ else     if ("topic-service".equals(nodeName)) {
+      servicesConfig.addServiceConfig(new TopicServiceConfig().setEnabled(true));
+    }
+ else     if ("collection-service".equals(nodeName)) {
+      servicesConfig.addServiceConfig(new CollectionServiceConfig().setEnabled(true));
+    }
+ else     if ("atomicnumber-service".equals(nodeName)) {
+      servicesConfig.addServiceConfig(new AtomicNumberServiceConfig().setEnabled(true));
+    }
+ else     if ("semaphore-service".equals(nodeName)) {
+      servicesConfig.addServiceConfig(new SemaphoreServiceConfig().setEnabled(true));
+    }
+ else     if ("countdownlatch-service".equals(nodeName)) {
+      servicesConfig.addServiceConfig(new CountDownLatchServiceConfig().setEnabled(true));
     }
   }
 }

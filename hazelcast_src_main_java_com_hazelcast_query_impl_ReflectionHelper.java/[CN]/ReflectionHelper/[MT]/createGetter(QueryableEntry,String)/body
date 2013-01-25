@@ -1,0 +1,66 @@
+{
+  Object obj=entry.getValue();
+  Getter getter=null;
+  try {
+    Getter parent=null;
+    Class clazz=obj.getClass();
+    List<String> possibleMethodNames=new ArrayList<String>(3);
+    for (    final String name : attribute.split("\\.")) {
+      Getter localGetter=null;
+      possibleMethodNames.clear();
+      possibleMethodNames.add(name);
+      final String camelName=Character.toUpperCase(name.charAt(0)) + name.substring(1);
+      possibleMethodNames.add("get" + camelName);
+      possibleMethodNames.add("is" + camelName);
+      if (name.equals("this")) {
+        localGetter=new ThisGetter(parent,obj);
+      }
+ else {
+        for (        String methodName : possibleMethodNames) {
+          try {
+            final Method method=clazz.getMethod(methodName,null);
+            method.setAccessible(true);
+            localGetter=new MethodGetter(parent,method);
+            clazz=method.getReturnType();
+            break;
+          }
+ catch (          NoSuchMethodException ignored) {
+          }
+        }
+        if (localGetter == null) {
+          try {
+            final Field field=clazz.getField(name);
+            localGetter=new FieldGetter(parent,field);
+            clazz=field.getType();
+          }
+ catch (          NoSuchFieldException ignored) {
+          }
+        }
+        if (localGetter == null) {
+          Class c=clazz;
+          while (!Object.class.equals(c)) {
+            try {
+              final Field field=c.getDeclaredField(name);
+              field.setAccessible(true);
+              localGetter=new FieldGetter(parent,field);
+              clazz=field.getType();
+              break;
+            }
+ catch (            NoSuchFieldException ignored) {
+              c=c.getSuperclass();
+            }
+          }
+        }
+      }
+      if (localGetter == null) {
+        throw new RuntimeException("There is no suitable accessor for '" + name + "'");
+      }
+      parent=localGetter;
+    }
+    getter=parent;
+    return getter;
+  }
+ catch (  Throwable e) {
+    throw new QueryException(e);
+  }
+}

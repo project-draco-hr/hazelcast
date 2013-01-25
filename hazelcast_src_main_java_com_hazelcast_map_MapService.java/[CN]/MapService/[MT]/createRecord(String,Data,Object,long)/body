@@ -1,23 +1,27 @@
 {
   Record record=null;
-  MapInfo mapInfo=getMapInfo(name);
-  if (mapInfo.getMapConfig().getRecordType().equals("DATA")) {
+  MapContainer mapContainer=getMapInfo(name);
+  final MapConfig.RecordType recordType=mapContainer.getMapConfig().getRecordType();
+  if (recordType == MapConfig.RecordType.DATA) {
     record=new DataRecord(dataKey,toData(value));
   }
- else   if (mapInfo.getMapConfig().getRecordType().equals("OBJECT")) {
+ else   if (recordType == MapConfig.RecordType.OBJECT) {
     record=new ObjectRecord(dataKey,toObject(value));
   }
-  if (ttl <= 0 && mapInfo.getMapConfig().getTimeToLiveSeconds() > 0) {
-    record.getState().updateTtlExpireTime(mapInfo.getMapConfig().getTimeToLiveSeconds());
-    scheduleOperation(name,dataKey,mapInfo.getMapConfig().getTimeToLiveSeconds());
+ else {
+    throw new IllegalArgumentException("Should not happen!");
+  }
+  if (ttl <= 0 && mapContainer.getMapConfig().getTimeToLiveSeconds() > 0) {
+    record.getState().updateTtlExpireTime(mapContainer.getMapConfig().getTimeToLiveSeconds());
+    scheduleOperation(name,dataKey,mapContainer.getMapConfig().getTimeToLiveSeconds());
   }
   if (ttl > 0) {
     record.getState().updateTtlExpireTime(ttl);
     scheduleOperation(name,record.getKey(),ttl);
   }
-  if (mapInfo.getMapConfig().getMaxIdleSeconds() > 0) {
-    record.getState().updateIdleExpireTime(mapInfo.getMapConfig().getMaxIdleSeconds());
-    scheduleOperation(name,dataKey,mapInfo.getMapConfig().getMaxIdleSeconds());
+  if (mapContainer.getMapConfig().getMaxIdleSeconds() > 0) {
+    record.getState().updateIdleExpireTime(mapContainer.getMapConfig().getMaxIdleSeconds());
+    scheduleOperation(name,dataKey,mapContainer.getMapConfig().getMaxIdleSeconds());
   }
   return record;
 }

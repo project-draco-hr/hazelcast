@@ -1,0 +1,15 @@
+{
+  InvalidateNearCacheOperation operation=new InvalidateNearCacheOperation(mapName,key);
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  for (  MemberImpl member : members) {
+    try {
+      if (member.localMember())       continue;
+      Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,member.getAddress()).build();
+      invocation.invoke();
+    }
+ catch (    Throwable throwable) {
+      throw new HazelcastException(throwable);
+    }
+  }
+  invalidateNearCache(mapName,key);
+}
