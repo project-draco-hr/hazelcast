@@ -1,0 +1,49 @@
+{
+  List recordList=new ArrayList();
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
+    if (nodeEngine.getThisAddress().equals(owner)) {
+      String mapName=mapContainer.getName();
+      PartitionContainer pc=partitionContainers[i];
+      RecordStore recordStore=pc.getRecordStore(mapName);
+      Set<Map.Entry<Data,Record>> recordEntries=recordStore.getRecords().entrySet();
+      for (      Map.Entry<Data,Record> entry : recordEntries) {
+        recordList.add(entry.getValue());
+      }
+    }
+  }
+  String evictionPolicy=mapContainer.getMapConfig().getEvictionPolicy();
+  int evictSize=recordList.size() * mapContainer.getMapConfig().getEvictionPercentage() / 100;
+  if (evictSize == 0)   return;
+  if (evictionPolicy.equals("LRU")) {
+    Collections.sort(recordList,new Comparator<AbstractRecord>(){
+      public int compare(      AbstractRecord o1,      AbstractRecord o2){
+        return o1.getLastAccessTime().compareTo(o2.getLastAccessTime());
+      }
+    }
+);
+    for (    Object record : recordList) {
+      AbstractRecord arec=(AbstractRecord)record;
+    }
+  }
+ else   if (evictionPolicy.equals("LFU")) {
+    Collections.sort(recordList,new Comparator<AbstractRecord>(){
+      public int compare(      AbstractRecord o1,      AbstractRecord o2){
+        return o1.getHits().compareTo(o2.getHits());
+      }
+    }
+);
+  }
+  Set<Data> keySet=new HashSet();
+  for (int i=0; i < evictSize; i++) {
+    Record rec=(Record)recordList.get(i);
+    keySet.add(rec.getKey());
+  }
+  for (  Data key : keySet) {
+    EvictOperation evictOperation=new EvictOperation(mapContainer.getName(),key,null);
+    evictOperation.setPartitionId(nodeEngine.getPartitionService().getPartitionId(key));
+    evictOperation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+    evictOperation.setService(MapService.this);
+    nodeEngine.getOperationService().runOperation(evictOperation);
+  }
+}
