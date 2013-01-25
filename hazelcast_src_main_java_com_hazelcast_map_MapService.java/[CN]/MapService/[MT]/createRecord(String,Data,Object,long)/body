@@ -1,11 +1,15 @@
 {
   Record record=null;
   MapInfo mapInfo=getMapInfo(name);
-  if (mapInfo.getMapConfig().getRecordType().equals("DATA")) {
+  final MapConfig.RecordType recordType=mapInfo.getMapConfig().getRecordType();
+  if (recordType == MapConfig.RecordType.DATA) {
     record=new DataRecord(dataKey,toData(value));
   }
- else   if (mapInfo.getMapConfig().getRecordType().equals("OBJECT")) {
+ else   if (recordType == MapConfig.RecordType.OBJECT) {
     record=new ObjectRecord(dataKey,toObject(value));
+  }
+ else {
+    throw new IllegalArgumentException("Should not happen!");
   }
   if (ttl <= 0 && mapInfo.getMapConfig().getTimeToLiveSeconds() > 0) {
     record.getState().updateTtlExpireTime(mapInfo.getMapConfig().getTimeToLiveSeconds());

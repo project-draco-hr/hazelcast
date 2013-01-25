@@ -4,10 +4,9 @@
   String maxSizePolicy=maxSizeConfig.getMaxSizePolicy();
   if (maxSizePolicy.equals("CLUSTER_WIDE") || maxSizePolicy.equals("PER_JVM") || maxSizePolicy.equals("PER_PARTITION")) {
     int totalSize=0;
-    Node node=nodeEngine.getNode();
-    for (int i=0; i < nodeEngine.getPartitionCount(); i++) {
-      Address owner=node.partitionService.getPartitionOwner(i);
-      if (node.address.equals(owner)) {
+    for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+      Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
+      if (nodeEngine.getThisAddress().equals(owner)) {
         int size=partitionContainers[i].getRecordStore(mapName).getRecords().size();
         if (maxSizePolicy.equals("PER_PARTITION")) {
           if (size > maxSizeConfig.getSize())           return true;
@@ -18,7 +17,7 @@
       }
     }
     if (maxSizePolicy.equals("CLUSTER_WIDE")) {
-      return totalSize * nodeEngine.getClusterService().getMembers().size() >= maxSizeConfig.getSize();
+      return totalSize * nodeEngine.getClusterService().getSize() >= maxSizeConfig.getSize();
     }
  else     if (maxSizePolicy.equals("PER_JVM"))     return totalSize > maxSizeConfig.getSize();
  else     return false;
