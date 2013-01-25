@@ -1,8 +1,27 @@
 {
-  if (operationFactory.shouldRunParallel()) {
-    executeParallel();
+  final NodeEngine nodeEngine=getNodeEngine();
+  results=new HashMap<Integer,Object>(partitions != null ? partitions.size() : 0);
+  try {
+    Map<Integer,ResponseQueue> responses=new HashMap<Integer,ResponseQueue>(partitions.size());
+    for (    final int partitionId : partitions) {
+      ResponseQueue responseQueue=new ResponseQueue();
+      final Operation op=operationFactory.createOperation();
+      op.setNodeEngine(nodeEngine).setCaller(getCaller()).setPartitionId(partitionId).setReplicaIndex(getReplicaIndex()).setResponseHandler(responseQueue).setService(getService());
+      responses.put(partitionId,responseQueue);
+      nodeEngine.getExecutionService().execute("hz:system",new Runnable(){
+        public void run(){
+          nodeEngine.getOperationService().runOperation(op);
+        }
+      }
+);
+    }
+    for (    Map.Entry<Integer,ResponseQueue> responseQueueEntry : responses.entrySet()) {
+      final ResponseQueue queue=responseQueueEntry.getValue();
+      final Object result=queue.get();
+      results.put(responseQueueEntry.getKey(),result);
+    }
   }
- else {
-    executeSequential();
+ catch (  Exception e) {
+    getLogger(nodeEngine).log(Level.SEVERE,e.getMessage(),e);
   }
 }
