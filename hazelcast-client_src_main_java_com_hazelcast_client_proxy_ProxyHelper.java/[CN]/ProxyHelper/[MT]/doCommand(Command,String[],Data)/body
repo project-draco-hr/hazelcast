@@ -1,13 +1,16 @@
 {
   Protocol protocol=createProtocol(command,args,data);
   try {
-    Connection connection=cp.takeConnection();
     protocol.onEnqueue();
+    Connection connection=cp.takeConnection();
     writer.write(connection,protocol);
     writer.flush(connection);
     Protocol response=reader.read(connection);
     cp.releaseConnection(connection);
-    return response;
+    if (Command.OK.equals(response.command))     return response;
+ else {
+      throw new RuntimeException(response.args[0]);
+    }
   }
  catch (  IOException e) {
     e.printStackTrace();
