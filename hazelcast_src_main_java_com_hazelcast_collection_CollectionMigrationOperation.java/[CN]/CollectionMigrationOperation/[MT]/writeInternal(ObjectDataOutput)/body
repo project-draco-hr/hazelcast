@@ -3,23 +3,16 @@
   for (  Map.Entry<CollectionProxyId,Map[]> entry : map.entrySet()) {
     CollectionProxyId proxyId=entry.getKey();
     proxyId.writeData(out);
-    Map<Data,Object> objects=entry.getValue()[0];
-    out.writeInt(objects.size());
-    for (    Map.Entry<Data,Object> objectEntry : objects.entrySet()) {
-      Data key=objectEntry.getKey();
+    Map<Data,Collection<CollectionRecord>> collections=entry.getValue()[0];
+    out.writeInt(collections.size());
+    for (    Map.Entry<Data,Collection<CollectionRecord>> collectionEntry : collections.entrySet()) {
+      Data key=collectionEntry.getKey();
       key.writeData(out);
-      Object object=objectEntry.getValue();
-      if (object instanceof Collection) {
-        out.writeBoolean(true);
-        Collection coll=(Collection)object;
-        out.writeInt(coll.size());
-        for (        Object obj : coll) {
-          out.writeObject(obj);
-        }
-      }
- else {
-        out.writeBoolean(false);
-        out.writeObject(object);
+      Collection<CollectionRecord> coll=collectionEntry.getValue();
+      out.writeInt(coll.size());
+      for (      CollectionRecord record : coll) {
+        out.writeLong(record.getRecordId());
+        out.writeObject(record.getObject());
       }
     }
     Map<Data,LockInfo> locks=entry.getValue()[1];

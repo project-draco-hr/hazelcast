@@ -1,11 +1,20 @@
 {
+  final boolean nearCacheEnabled=mapService.getMapContainer(name).isNearCacheEnabled();
+  if (nearCacheEnabled) {
+    Data cachedData=mapService.getFromNearCache(name,key);
+    if (cachedData != null)     return cachedData;
+  }
   int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
   GetOperation operation=new GetOperation(name,key);
   operation.setThreadId(ThreadContext.getThreadId());
   try {
     Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
     Future invoke=invocation.invoke();
-    return (Data)invoke.get();
+    Data value=(Data)invoke.get();
+    if (nearCacheEnabled) {
+      mapService.putNearCache(name,key,value);
+    }
+    return value;
   }
  catch (  Throwable throwable) {
     throw new HazelcastException(throwable);
