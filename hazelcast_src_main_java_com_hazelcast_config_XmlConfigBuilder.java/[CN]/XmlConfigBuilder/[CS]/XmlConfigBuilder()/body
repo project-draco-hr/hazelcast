@@ -4,28 +4,37 @@
     if (configFile != null) {
       if (configFile.startsWith("classpath:")) {
         String s=configFile.substring("classpath:".length());
-        URL url=Config.class.getClassLoader().getResource(s);
-        configurationFile=new File(url.toURI());
+        URL resource=getClass().getClassLoader().getResource(s);
+        if (resource == null) {
+          String msg="Config file at '" + configFile + "' doesn't exist.";
+          msg+="\nHazelcast will try to use the hazelcast.xml config file in the working directory.";
+          logger.log(Level.WARNING,msg);
+        }
+ else {
+          logger.log(Level.INFO,"Using configuration file at " + resource);
+          configurationFile=new File(resource.getFile());
+          in=resource.openStream();
+        }
       }
  else {
         configurationFile=new File(configFile);
-      }
-      logger.log(Level.INFO,"Using configuration file at " + configurationFile.getAbsolutePath());
-      if (!configurationFile.exists()) {
-        String msg="Config file at '" + configurationFile.getAbsolutePath() + "' doesn't exist.";
-        msg+="\nHazelcast will try to use the hazelcast.xml config file in the working directory.";
-        logger.log(Level.WARNING,msg);
-        configurationFile=null;
+        logger.log(Level.INFO,"Using configuration file at " + configurationFile.getAbsolutePath());
+        if (!configurationFile.exists()) {
+          String msg="Config file at '" + configurationFile.getAbsolutePath() + "' doesn't exist.";
+          msg+="\nHazelcast will try to use the hazelcast.xml config file in the working directory.";
+          logger.log(Level.WARNING,msg);
+          configurationFile=null;
+        }
       }
     }
-    if (configurationFile == null) {
+    if (in == null && configurationFile == null) {
       configFile="hazelcast.xml";
       configurationFile=new File("hazelcast.xml");
       if (!configurationFile.exists()) {
         configurationFile=null;
       }
     }
-    if (configurationFile != null) {
+    if (in == null && configurationFile != null) {
       logger.log(Level.INFO,"Using configuration file at " + configurationFile.getAbsolutePath());
       try {
         in=new FileInputStream(configurationFile);
@@ -33,6 +42,7 @@
         usingSystemConfig=true;
       }
  catch (      final Exception e) {
+        e.printStackTrace();
         String msg="Having problem reading config file at '" + configFile + "'.";
         msg+="\nException message: " + e.getMessage();
         msg+="\nHazelcast will try to use the hazelcast.xml config file in classpath.";
@@ -53,11 +63,11 @@
       }
       logger.log(Level.INFO,"Using configuration file " + configurationUrl.getFile() + " in the classpath.");
       in=configurationUrl.openStream();
-      if (in == null) {
-        String msg="Having problem reading config file hazelcast-default.xml in the classpath.";
-        msg+="\nHazelcast will start with default configuration.";
-        logger.log(Level.WARNING,msg);
-      }
+    }
+    if (in == null) {
+      String msg="Having problem reading config file hazelcast-default.xml in the classpath.";
+      msg+="\nHazelcast will start with default configuration.";
+      logger.log(Level.WARNING,msg);
     }
   }
  catch (  final Throwable e) {
