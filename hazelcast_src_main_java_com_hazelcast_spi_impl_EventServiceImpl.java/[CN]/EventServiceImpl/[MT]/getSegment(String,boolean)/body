@@ -1,9 +1,12 @@
 {
   EventServiceSegment segment=segments.get(service);
   if (segment == null && forceCreate) {
-    segment=new EventServiceSegment(service);
-    EventServiceSegment current=segments.putIfAbsent(service,segment);
-    segment=current == null ? segment : current;
+    return ConcurrencyUtil.getOrPutIfAbsent(segments,service,new ConstructorFunction<String,EventServiceSegment>(){
+      public EventServiceSegment createNew(      String key){
+        return new EventServiceSegment(key);
+      }
+    }
+);
   }
   return segment;
 }

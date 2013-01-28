@@ -1,0 +1,23 @@
+{
+  this.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
+  data=new HashMap<String,Map<Data,Record>>(container.maps.size());
+  locks=new HashMap<String,Map<Data,LockInfo>>(container.maps.size());
+  for (  Entry<String,DefaultRecordStore> entry : container.maps.entrySet()) {
+    String name=entry.getKey();
+    final MapConfig mapConfig=entry.getValue().getMapContainer().getMapConfig();
+    if (mapConfig.getTotalBackupCount() < replicaIndex) {
+      continue;
+    }
+    RecordStore recordStore=entry.getValue();
+    Map<Data,Record> map=new HashMap<Data,Record>(recordStore.getRecords().size());
+    for (    Entry<Data,Record> recordEntry : recordStore.getRecords().entrySet()) {
+      map.put(recordEntry.getKey(),recordEntry.getValue());
+    }
+    data.put(name,map);
+    Map<Data,LockInfo> lockmap=new HashMap<Data,LockInfo>();
+    for (    Entry<Data,LockInfo> lockEntry : recordStore.getLocks().entrySet()) {
+      lockmap.put(lockEntry.getKey(),lockEntry.getValue());
+    }
+    locks.put(name,lockmap);
+  }
+}
