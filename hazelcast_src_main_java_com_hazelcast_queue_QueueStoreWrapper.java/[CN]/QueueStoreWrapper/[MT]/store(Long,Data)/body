@@ -1,5 +1,19 @@
 {
   if (enabled) {
-    store.store(key,binary ? value.buffer : serializationService.toObject(value));
+    final Object actualValue;
+    if (binary) {
+      BufferObjectDataOutput out=(BufferObjectDataOutput)serializationService.createObjectDataOutput(value.totalSize());
+      try {
+        value.writeData(out);
+      }
+ catch (      IOException e) {
+        throw new HazelcastException(e);
+      }
+      actualValue=out.getBuffer();
+    }
+ else {
+      actualValue=serializationService.toObject(value);
+    }
+    store.store(key,actualValue);
   }
 }
