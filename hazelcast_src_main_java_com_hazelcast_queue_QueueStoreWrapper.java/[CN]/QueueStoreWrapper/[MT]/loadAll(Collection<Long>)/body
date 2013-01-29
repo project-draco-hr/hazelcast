@@ -1,12 +1,29 @@
 {
   if (enabled) {
-    Map<Long,?> map=store.loadAll(keys);
+    final Map<Long,?> map=store.loadAll(keys);
+    if (map == null) {
+      return Collections.emptyMap();
+    }
+    final Map<Long,Data> dataMap=new HashMap<Long,Data>(map.size());
     if (binary) {
+      for (      Map.Entry<Long,?> entry : map.entrySet()) {
+        byte[] dataBuffer=(byte[])entry.getValue();
+        ObjectDataInput in=serializationService.createObjectDataInput(dataBuffer);
+        Data data=new Data();
+        try {
+          data.readData(in);
+        }
+ catch (        IOException e) {
+          throw new HazelcastException(e);
+        }
+        dataMap.put(entry.getKey(),data);
+      }
       return (Map<Long,Data>)map;
     }
-    Map<Long,Data> dataMap=new HashMap<Long,Data>(map.size());
-    for (    Map.Entry<Long,?> entry : map.entrySet()) {
-      dataMap.put(entry.getKey(),serializationService.toData(entry.getValue()));
+ else {
+      for (      Map.Entry<Long,?> entry : map.entrySet()) {
+        dataMap.put(entry.getKey(),serializationService.toData(entry.getValue()));
+      }
     }
     return dataMap;
   }

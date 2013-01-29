@@ -1,9 +1,12 @@
 {
   Collection<Registration> listenerList=registrations.get(topic);
   if (listenerList == null && forceCreate) {
-    listenerList=Collections.newSetFromMap(new ConcurrentHashMap<Registration,Boolean>());
-    Collection<Registration> current=registrations.putIfAbsent(topic,listenerList);
-    listenerList=current == null ? listenerList : current;
+    return ConcurrencyUtil.getOrPutIfAbsent(registrations,topic,new ConstructorFunction<String,Collection<Registration>>(){
+      public Collection<Registration> createNew(      String key){
+        return Collections.newSetFromMap(new ConcurrentHashMap<Registration,Boolean>());
+      }
+    }
+);
   }
   return listenerList;
 }
