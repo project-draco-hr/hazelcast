@@ -1,7 +1,6 @@
 {
   MapConfig mapConfig=mapContainer.getMapConfig();
   MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
-  final String mapName=mapContainer.getName();
   Comparator comparator=null;
   if (evictionPolicy == MapConfig.EvictionPolicy.LRU) {
     comparator=new Comparator<AbstractRecord>(){
@@ -32,44 +31,8 @@
     maxPartitionSize=mapConfig.getMaxSizeConfig().getSize();
     targetSizePerPartition=Double.valueOf(maxPartitionSize * ((100 - evictionPercentage) / 100.0)).intValue();
   }
-  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
-    Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
-    if (nodeEngine.getThisAddress().equals(owner)) {
-      PartitionContainer pc=partitionContainers[i];
-      final RecordStore recordStore=pc.getRecordStore(mapName);
-      final int finalI=i;
-      final Comparator finalComparator=comparator;
-      final int finalTargetSizePerPartition=targetSizePerPartition;
-      nodeEngine.getExecutionService().execute("map-eviction",new Runnable(){
-        public void run(){
-          SortedSet sortedRecords=new TreeSet(finalComparator);
-          Set<Map.Entry<Data,Record>> recordEntries=recordStore.getRecords().entrySet();
-          for (          Map.Entry<Data,Record> entry : recordEntries) {
-            sortedRecords.add(entry.getValue());
-          }
-          int evictSize=0;
-          if (maxSizePolicy == MaxSizeConfig.MaxSizePolicy.PER_JVM || maxSizePolicy == MaxSizeConfig.MaxSizePolicy.PER_PARTITION) {
-            evictSize=sortedRecords.size() - finalTargetSizePerPartition;
-          }
- else {
-            evictSize=sortedRecords.size() * evictionPercentage / 100;
-          }
-          if (evictSize == 0)           return;
-          Set<Data> keySet=new HashSet();
-          Iterator iterator=sortedRecords.iterator();
-          while (iterator.hasNext() && evictSize-- > 0) {
-            Record rec=(Record)iterator.next();
-            keySet.add(rec.getKey());
-          }
-          ClearOperation clearOperation=new ClearOperation(mapName,keySet);
-          clearOperation.setNodeEngine(nodeEngine);
-          clearOperation.setServiceName(SERVICE_NAME);
-          clearOperation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
-          clearOperation.setPartitionId(finalI);
-          nodeEngine.getOperationService().runOperation(clearOperation);
-        }
-      }
-);
-    }
+  for (int i=0; i < ExecutorConfig.DEFAULT_MAX_POOL_SIZE; i++) {
+    int mod=i + 1;
+    nodeEngine.getExecutionService().execute("map-evict",new EvictRunner(mod,mapConfig,targetSizePerPartition,comparator));
   }
 }
