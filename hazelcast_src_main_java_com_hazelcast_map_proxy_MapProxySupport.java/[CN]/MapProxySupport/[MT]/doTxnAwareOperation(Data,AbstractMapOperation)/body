@@ -1,11 +1,11 @@
 {
   int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-  String txnId=attachTxnParticipant(partitionId);
-  PutOperation operation=new PutOperation(name,key,value,txnId,-1);
+  operation.setTxnId(getCurrentTransactionId());
   operation.setThreadId(ThreadContext.getThreadId());
   try {
     Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
-    return nodeEngine.getAsyncInvocationService().invoke(invocation);
+    Future f=invocation.invoke();
+    return f.get();
   }
  catch (  Throwable throwable) {
     throw new HazelcastException(throwable);
