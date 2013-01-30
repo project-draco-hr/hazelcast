@@ -1,57 +1,22 @@
 {
-  final Data dKey=key == null ? null : proxyHelper.toData(key);
-  Thread thread=new Thread(new Runnable(){
-    public void run(){
-      Protocol request=proxyHelper.createProtocol(Command.MADDLISTENER,new String[]{getName(),String.valueOf(includeValue)},new Data[]{dKey});
-      try {
-        request.onEnqueue();
-        Connection connection=dKey == null ? proxyHelper.cp.takeConnection() : proxyHelper.cp.takeConnection(dKey);
-        proxyHelper.writer.write(connection,request);
-        proxyHelper.writer.flush(connection);
-        while (true) {
-          Protocol response=proxyHelper.reader.read(connection);
-          if (Command.EVENT.equals(response.command)) {
-            String eventType=response.args[2];
-            EntryEventType entryEventType=EntryEventType.valueOf(eventType);
-            String eventInitiaterAddress=response.args[3];
-            String[] address=eventInitiaterAddress.split(":");
-            Member source=new MemberImpl(new Address(address[0],Integer.valueOf(address[1])),false);
-            final Data value=includeValue && response.buffers.length > 1 ? response.buffers[1] : null;
-            final Data oldValue=response.buffers.length > 2 && includeValue ? response.buffers[2] : null;
-            EntryEvent<K,V> event=new DataAwareEntryEvent(source,entryEventType.getType(),name,response.buffers[0],value,oldValue,false,client.getSerializationService());
-switch (entryEventType) {
-case ADDED:
-              listener.entryAdded(event);
-            break;
-case REMOVED:
-          listener.entryRemoved(event);
-        break;
-case UPDATED:
-      listener.entryUpdated(event);
-    break;
-case EVICTED:
-  listener.entryEvicted(event);
-break;
-}
-}
- else {
-throw new RuntimeException(response.args[0]);
-}
-}
-}
- catch (EOFException e) {
-addEntryListener(listener,key,includeValue);
-return;
-}
-catch (IOException e) {
-e.printStackTrace();
-throw new RuntimeException(e);
-}
-catch (InterruptedException e) {
-throw new RuntimeException(e);
-}
-}
-}
-);
-thread.start();
+  Data dKey=key == null ? null : proxyHelper.toData(key);
+  Protocol request=proxyHelper.createProtocol(Command.MADDLISTENER,new String[]{name,String.valueOf(includeValue)},new Data[]{dKey});
+  InetSocketAddress isa=client.getCluster().getMembers().iterator().next().getInetSocketAddress();
+  final Connection connection=new Connection(new Address(isa),0,client.getSerializationService());
+  try {
+    client.getConnectionManager().bindConnection(connection);
+  }
+ catch (  IOException e) {
+  }
+  ListenerThread thread=new ListenerThread(request,new EntryEventLRH(listener),connection,client.getSerializationService());
+synchronized (listenerMap) {
+    Map<Object,ListenerThread> map=listenerMap.get(listener);
+    if (map == null) {
+      map=new HashMap<Object,ListenerThread>();
+      listenerMap.put(listener,map);
+    }
+    map.put(key,thread);
+  }
+  thread.start();
+  System.out.println("Started the thread!");
 }
