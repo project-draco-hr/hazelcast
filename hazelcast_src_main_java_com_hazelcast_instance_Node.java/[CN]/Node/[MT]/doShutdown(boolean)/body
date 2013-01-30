@@ -17,6 +17,7 @@
     }
   }
   if (isActive()) {
+    clusterService.sendShutdownMessage();
     joined.set(false);
     setActive(false);
     setMasterAddress(null);
@@ -49,8 +50,10 @@
     numThreads=threadGroup.enumerate(threads,false);
     for (int i=0; i < numThreads; i++) {
       Thread thread=threads[i];
-      logger.log(Level.FINEST,"Shutting down thread " + thread.getName());
-      thread.interrupt();
+      if (thread.isAlive()) {
+        logger.log(Level.FINEST,"Shutting down thread " + thread.getName());
+        thread.interrupt();
+      }
     }
     failedConnections.clear();
     systemLogService.shutdown();
