@@ -1,8 +1,17 @@
 {
   if (enabled) {
-    Object val=store.load(key);
+    final Object val=store.load(key);
     if (binary) {
-      return (Data)val;
+      byte[] dataBuffer=(byte[])val;
+      ObjectDataInput in=serializationService.createObjectDataInput(dataBuffer);
+      Data data=new Data();
+      try {
+        data.readData(in);
+      }
+ catch (      IOException e) {
+        throw new HazelcastException(e);
+      }
+      return data;
     }
     return serializationService.toData(val);
   }
