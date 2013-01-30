@@ -1,13 +1,12 @@
 {
   final int eventType=added ? MembershipEvent.MEMBER_ADDED : MembershipEvent.MEMBER_REMOVED;
   final MembershipEvent membershipEvent=new MembershipEvent(member,eventType);
-  final EventService eventService=nodeEngine.getEventService();
   final Collection<MembershipAwareService> membershipAwareServices=nodeEngine.getServices(MembershipAwareService.class);
   if (membershipAwareServices != null && !membershipAwareServices.isEmpty()) {
-    eventService.executeEvent(new Runnable(){
-      final MembershipServiceEvent event=new MembershipServiceEvent(member,eventType);
-      public void run(){
-        for (        MembershipAwareService service : membershipAwareServices) {
+    final MembershipServiceEvent event=new MembershipServiceEvent(member,eventType);
+    for (    final MembershipAwareService service : membershipAwareServices) {
+      nodeEngine.getExecutionService().execute("hz:system",new Runnable(){
+        public void run(){
           if (added) {
             service.memberAdded(event);
           }
@@ -16,9 +15,10 @@
           }
         }
       }
-    }
 );
+    }
   }
+  final EventService eventService=nodeEngine.getEventService();
   Collection<EventRegistration> registrations=eventService.getRegistrations(SERVICE_NAME,SERVICE_NAME);
   eventService.publishEvent(SERVICE_NAME,registrations,membershipEvent);
 }
