@@ -1,0 +1,30 @@
+{
+  String name=protocol.args[0];
+  boolean includeValue=Boolean.valueOf(protocol.args[1]);
+  final DataQueueProxy queue=qService.createDistributedObjectForClient(name);
+  final TcpIpConnection connection=protocol.conn;
+  ItemListener<Data> listener=new ItemListener<Data>(){
+    public void itemAdded(    ItemEvent<Data> item){
+      sendEvent(item);
+    }
+    public void itemRemoved(    ItemEvent<Data> item){
+      sendEvent(item);
+    }
+    public void sendEvent(    ItemEvent<Data> itemEvent){
+      System.out.println("Sending the event");
+      if (connection.live()) {
+        String[] args=new String[]{queue.getName(),itemEvent.getEventType().toString(),itemEvent.getMember().getInetSocketAddress().getHostName() + ":" + itemEvent.getMember().getInetSocketAddress().getPort()};
+        Protocol event=new Protocol(connection,Command.EVENT,args,node.serializationService.toData(itemEvent.getItem()));
+        System.out.println("Connection is " + connection);
+        sendResponse(node,event,connection);
+      }
+ else {
+        System.out.println("on Server removing the listener");
+        queue.removeItemListener(this);
+      }
+    }
+  }
+;
+  queue.addItemListener(listener,includeValue);
+  return null;
+}
