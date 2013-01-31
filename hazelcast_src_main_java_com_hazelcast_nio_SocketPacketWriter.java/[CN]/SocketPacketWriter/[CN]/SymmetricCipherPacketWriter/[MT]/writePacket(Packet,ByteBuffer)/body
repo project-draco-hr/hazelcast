@@ -1,0 +1,44 @@
+{
+  if (!sizeWritten) {
+    if (packetBuffer.capacity() < packet.size()) {
+      packetBuffer=ByteBuffer.allocate(packet.size());
+    }
+    if (!packet.writeTo(packetBuffer)) {
+      throw new RuntimeException("Packet didn't fit into the buffer");
+    }
+    packetBuffer.flip();
+  }
+  if (cipherBuffer.position() > 0 && socketBB.hasRemaining()) {
+    cipherBuffer.flip();
+    copyToDirectBuffer(cipherBuffer,socketBB);
+    if (cipherBuffer.hasRemaining()) {
+      cipherBuffer.compact();
+    }
+ else {
+      cipherBuffer.clear();
+    }
+  }
+  if (!sizeWritten) {
+    if (socketBB.remaining() > 4) {
+      int cipherSize=cipher.getOutputSize(packet.size());
+      socketBB.putInt(cipherSize);
+      sizeWritten=true;
+    }
+ else {
+      return false;
+    }
+  }
+  encryptAndWriteToSocket(packetBuffer,socketBB);
+  boolean complete=!packetBuffer.hasRemaining();
+  if (complete) {
+    if (socketBB.remaining() >= cipher.getOutputSize(0)) {
+      sizeWritten=false;
+      socketBB.put(cipher.doFinal());
+      packetBuffer.clear();
+    }
+ else {
+      return false;
+    }
+  }
+  return complete;
+}

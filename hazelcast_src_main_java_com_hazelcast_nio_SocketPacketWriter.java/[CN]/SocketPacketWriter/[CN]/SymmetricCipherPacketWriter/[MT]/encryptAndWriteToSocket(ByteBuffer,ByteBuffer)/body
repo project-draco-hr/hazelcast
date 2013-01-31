@@ -1,0 +1,32 @@
+{
+  int remaining=src.remaining();
+  if (src.hasRemaining() && cipherBuffer.hasRemaining()) {
+    int outputSize=cipher.getOutputSize(src.remaining());
+    if (outputSize <= cipherBuffer.remaining()) {
+      cipher.update(src,cipherBuffer);
+    }
+ else {
+      int min=Math.min(src.remaining(),cipherBuffer.remaining());
+      int len=min / 2;
+      if (len > 0) {
+        int limitOld=src.limit();
+        src.limit(src.position() + len);
+        cipher.update(src,cipherBuffer);
+        src.limit(limitOld);
+      }
+ else {
+        return 0;
+      }
+    }
+    cipherBuffer.flip();
+    copyToDirectBuffer(cipherBuffer,socketBB);
+    if (cipherBuffer.hasRemaining()) {
+      cipherBuffer.compact();
+    }
+ else {
+      cipherBuffer.clear();
+    }
+    return remaining - src.remaining();
+  }
+  return 0;
+}
