@@ -1,32 +1,31 @@
 {
-  final BlockingQueue q=new LinkedBlockingQueue();
+  final BlockingQueue<JoinMessage> q=new LinkedBlockingQueue<JoinMessage>();
   MulticastListener listener=new MulticastListener(){
     public void onMessage(    Object msg){
       systemLogService.logJoin("MulticastListener onMessage " + msg);
-      if (msg != null && msg instanceof JoinInfo) {
-        JoinInfo joinInfo=(JoinInfo)msg;
-        if (node.getThisAddress() != null && !node.getThisAddress().equals(joinInfo.address)) {
-          q.offer(msg);
+      if (msg != null && msg instanceof JoinMessage) {
+        JoinMessage joinRequest=(JoinMessage)msg;
+        if (node.getThisAddress() != null && !node.getThisAddress().equals(joinRequest.getAddress())) {
+          q.offer(joinRequest);
         }
       }
     }
   }
 ;
   node.multicastService.addMulticastListener(listener);
-  node.multicastService.send(node.createJoinInfo());
+  node.multicastService.send(node.createJoinRequest());
   systemLogService.logJoin("Sent multicast join request");
   try {
-    JoinInfo joinInfo=(JoinInfo)q.poll(3,TimeUnit.SECONDS);
+    JoinMessage joinInfo=q.poll(3,TimeUnit.SECONDS);
     if (joinInfo != null) {
       if (joinInfo.getMemberCount() == 1) {
         Thread.sleep(node.groupProperties.WAIT_SECONDS_BEFORE_JOIN.getInteger() * 1000L * 2);
       }
       if (shouldMerge(joinInfo)) {
-        logger.log(Level.WARNING,node.getThisAddress() + " is merging [multicast] to " + joinInfo.address);
-        targetAddress=joinInfo.address;
+        logger.log(Level.WARNING,node.getThisAddress() + " is merging [multicast] to " + joinInfo.getAddress());
+        targetAddress=joinInfo.getAddress();
         sendClusterMergeToOthers(targetAddress);
         splitBrainHandler.restart();
-        return;
       }
     }
   }

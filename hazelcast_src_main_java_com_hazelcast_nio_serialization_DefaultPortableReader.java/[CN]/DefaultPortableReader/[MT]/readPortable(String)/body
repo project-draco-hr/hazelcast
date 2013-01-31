@@ -3,18 +3,24 @@
   if (fd == null) {
     throw throwUnknownFieldException(fieldName);
   }
-  int pos=getPosition(fd);
-  in.position(pos);
-  final boolean NULL=in.readBoolean();
-  if (!NULL) {
-    final ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
-    try {
-      ctxIn.setDataClassId(fd.getClassId());
-      return serializer.read(in);
-    }
+  final int currentPos=in.position();
+  try {
+    int pos=getPosition(fd);
+    in.position(pos);
+    final boolean NULL=in.readBoolean();
+    if (!NULL) {
+      final ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
+      try {
+        ctxIn.setDataClassId(fd.getClassId());
+        return serializer.read(in);
+      }
   finally {
-      ctxIn.setDataClassId(cd.classId);
+        ctxIn.setDataClassId(cd.classId);
+      }
     }
+    return null;
   }
-  return null;
+  finally {
+    in.position(currentPos);
+  }
 }

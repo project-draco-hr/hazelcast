@@ -1,0 +1,20 @@
+{
+  final Collection<Future> responses=new LinkedList<Future>();
+  for (  MemberImpl member : getMemberList()) {
+    Address address=member.getAddress();
+    if (!thisAddress.equals(address) && !address.equals(deadAddress)) {
+      Future f=invokeClusterOperation(new MemberRemoveOperation(deadAddress),address);
+      responses.add(f);
+    }
+  }
+  if (!fireAndForget) {
+    for (    Future response : responses) {
+      try {
+        response.get(1,TimeUnit.SECONDS);
+      }
+ catch (      Throwable e) {
+        logger.log(Level.FINEST,e.getMessage(),e);
+      }
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  lock.lock();
+  try {
+    final JoinRequest joinMessage=joinRequest.getMessage();
+    final long now=Clock.currentTimeMillis();
+    String msg="Handling join from " + joinMessage.getAddress() + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
+    logger.log(Level.FINEST,msg);
+    boolean validJoinRequest;
+    try {
+      validJoinRequest=validateJoinMessage(joinMessage);
+    }
+ catch (    Exception e) {
+      validJoinRequest=false;
+    }
+    if (validJoinRequest) {
+      final MemberImpl member=getMember(joinMessage.getAddress());
+      if (member != null) {
+        if (joinMessage.getUuid().equals(member.getUuid())) {
+          String message="Ignoring join request, member already exists.. => " + joinMessage;
+          logger.log(Level.FINEST,message);
+          invokeClusterOperation(new FinalizeJoinOperation(createMemberInfos(getMemberList()),getClusterTime()),member.getAddress());
+          return;
+        }
+        if (node.isMaster() || member.getAddress().equals(node.getMasterAddress())) {
+          logger.log(Level.WARNING,"New join request has been received from an existing endpoint! => " + member + " Removing old member and processing join request...");
+          doRemoveAddress(member.getAddress(),false);
+        }
+      }
+      final boolean multicastEnabled=node.getConfig().getNetworkConfig().getJoin().getMulticastConfig().isEnabled();
+      if (!multicastEnabled && node.isActive() && node.joined()&& node.getMasterAddress() != null && !node.isMaster()) {
+        sendMasterAnswer(joinMessage);
+      }
+      if (node.isMaster() && node.joined() && node.isActive()) {
+        final MemberInfo newMemberInfo=new MemberInfo(joinMessage.getAddress(),joinMessage.getNodeType(),joinMessage.getUuid());
+        if (node.securityContext != null && !setJoins.contains(newMemberInfo)) {
+          final Credentials cr=joinMessage.getCredentials();
+          ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
+          if (cr == null) {
+            securityLogger.log(Level.SEVERE,"Expecting security credentials " + "but credentials could not be found in JoinRequest!");
+            invokeClusterOperation(new AuthenticationFailureOperation(),joinMessage.getAddress());
+            return;
+          }
+ else {
+            try {
+              LoginContext lc=node.securityContext.createMemberLoginContext(cr);
+              lc.login();
+            }
+ catch (            LoginException e) {
+              securityLogger.log(Level.SEVERE,"Authentication has failed for " + cr.getPrincipal() + '@'+ cr.getEndpoint()+ " => ("+ e.getMessage()+ ")");
+              securityLogger.log(Level.FINEST,e.getMessage(),e);
+              invokeClusterOperation(new AuthenticationFailureOperation(),joinMessage.getAddress());
+              return;
+            }
+          }
+        }
+        if (!joinInProgress) {
+          if (firstJoinRequest != 0 && now - firstJoinRequest >= maxWaitSecondsBeforeJoin * 1000) {
+            startJoin();
+          }
+ else {
+            if (setJoins.add(newMemberInfo)) {
+              sendMasterAnswer(joinMessage);
+              if (firstJoinRequest == 0) {
+                firstJoinRequest=now;
+              }
+              if (now - firstJoinRequest < maxWaitSecondsBeforeJoin * 1000) {
+                timeToStartJoin=now + waitMillisBeforeJoin;
+              }
+            }
+            if (now > timeToStartJoin) {
+              startJoin();
+            }
+          }
+        }
+      }
+    }
+ else {
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

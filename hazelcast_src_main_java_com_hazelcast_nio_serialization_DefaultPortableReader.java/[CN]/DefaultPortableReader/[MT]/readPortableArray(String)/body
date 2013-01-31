@@ -3,19 +3,30 @@
   if (fd == null) {
     throw throwUnknownFieldException(fieldName);
   }
-  int pos=getPosition(fd);
-  in.position(pos);
-  final int len=in.readInt();
-  final Portable[] portables=new Portable[len];
-  final ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
+  final int currentPos=in.position();
   try {
-    ctxIn.setDataClassId(fd.getClassId());
-    for (int i=0; i < len; i++) {
-      portables[i]=serializer.read(in);
+    int pos=getPosition(fd);
+    in.position(pos);
+    final int len=in.readInt();
+    final Portable[] portables=new Portable[len];
+    if (len > 0) {
+      final int offset=in.position();
+      final ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
+      try {
+        ctxIn.setDataClassId(fd.getClassId());
+        for (int i=0; i < len; i++) {
+          final int start=in.readInt(offset + i * 4);
+          in.position(start);
+          portables[i]=serializer.read(in);
+        }
+      }
+  finally {
+        ctxIn.setDataClassId(cd.classId);
+      }
     }
+    return portables;
   }
   finally {
-    ctxIn.setDataClassId(cd.classId);
+    in.position(currentPos);
   }
-  return portables;
 }

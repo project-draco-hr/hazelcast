@@ -17,6 +17,7 @@
     }
   }
   if (isActive()) {
+    clusterService.sendShutdownMessage();
     joined.set(false);
     setActive(false);
     setMasterAddress(null);
@@ -29,13 +30,15 @@
     if (managementCenterService != null) {
       managementCenterService.shutdown();
     }
-    logger.log(Level.FINEST,"Shutting down the node engine");
+    logger.log(Level.FINEST,"Shutting down client command service");
+    clientCommandService.shutdown();
+    logger.log(Level.FINEST,"Shutting down node engine");
     nodeEngine.shutdown();
     if (multicastService != null) {
-      logger.log(Level.FINEST,"Shutting down the multicast service");
+      logger.log(Level.FINEST,"Shutting down multicast service");
       multicastService.stop();
     }
-    logger.log(Level.FINEST,"Shutting down the connection manager");
+    logger.log(Level.FINEST,"Shutting down connection manager");
     connectionManager.shutdown();
     textCommandService.stop();
     masterAddress=null;
@@ -49,8 +52,10 @@
     numThreads=threadGroup.enumerate(threads,false);
     for (int i=0; i < numThreads; i++) {
       Thread thread=threads[i];
-      logger.log(Level.FINEST,"Shutting down thread " + thread.getName());
-      thread.interrupt();
+      if (thread.isAlive()) {
+        logger.log(Level.FINEST,"Shutting down thread " + thread.getName());
+        thread.interrupt();
+      }
     }
     failedConnections.clear();
     systemLogService.shutdown();
