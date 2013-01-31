@@ -1,22 +1,7 @@
 {
   Data dKey=key == null ? null : proxyHelper.toData(key);
-  Protocol request=proxyHelper.createProtocol(Command.MADDLISTENER,new String[]{name,String.valueOf(includeValue)},new Data[]{dKey});
-  InetSocketAddress isa=client.getCluster().getMembers().iterator().next().getInetSocketAddress();
-  final Connection connection=new Connection(new Address(isa),0,client.getSerializationService());
-  try {
-    client.getConnectionManager().bindConnection(connection);
-  }
- catch (  IOException e) {
-  }
-  ListenerThread thread=new ListenerThread(request,new EntryEventLRH(listener),connection,client.getSerializationService());
-synchronized (listenerMap) {
-    Map<Object,ListenerThread> map=listenerMap.get(listener);
-    if (map == null) {
-      map=new HashMap<Object,ListenerThread>();
-      listenerMap.put(listener,map);
-    }
-    map.put(key,thread);
-  }
+  Protocol request=proxyHelper.createProtocol(Command.MADDLISTENER,new String[]{name,valueOf(includeValue)},new Data[]{dKey});
+  ListenerThread thread=proxyHelper.createAListenerThread(client,request,new EntryEventLRH<K,V>(listener));
+  storeListener(listener,key,thread);
   thread.start();
-  System.out.println("Started the thread!");
 }

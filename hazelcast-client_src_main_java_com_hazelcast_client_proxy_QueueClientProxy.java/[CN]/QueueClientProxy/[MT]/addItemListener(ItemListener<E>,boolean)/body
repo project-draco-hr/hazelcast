@@ -1,10 +1,7 @@
 {
   check(listener);
-synchronized (lock) {
-    boolean shouldCall=listenerManager().noListenerRegistered(getName());
-    listenerManager().registerListener(getName(),listener,includeValue);
-    if (shouldCall) {
-      proxyHelper.doCommand(null,Command.QADDLISTENER,new String[]{getName(),String.valueOf(includeValue)},null);
-    }
-  }
+  Protocol request=proxyHelper.createProtocol(Command.QADDLISTENER,new String[]{getName(),String.valueOf(includeValue)},null);
+  ListenerThread thread=proxyHelper.createAListenerThread(client,request,new ItemEventLRH<E>(listener));
+  listenerMap.put(listener,thread);
+  thread.start();
 }
