@@ -1,10 +1,6 @@
 {
-  check(messageListener);
-synchronized (lock) {
-    boolean shouldCall=messageListenerManager().noListenerRegistered(getName());
-    messageListenerManager().registerListener(getName(),messageListener);
-    if (shouldCall) {
-      proxyHelper.doCommand(null,Command.TADDLISTENER,getName(),null);
-    }
-  }
+  Protocol request=proxyHelper.createProtocol(Command.TLISTEN,new String[]{getName()},null);
+  ListenerThread thread=proxyHelper.createAListenerThread("hz.client.topicListener.",client,request,new MessageLRH(messageListener,this));
+  listenerMap.put(messageListener,thread);
+  thread.start();
 }
