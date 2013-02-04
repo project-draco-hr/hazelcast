@@ -2,7 +2,9 @@
   Protocol protocol=createProtocol(command,args,data);
   try {
     protocol.onEnqueue();
-    Connection connection=cp.takeConnection(key);
+    Context context=threadLocal.get();
+    Connection connection=context == null ? null : context.getConnection();
+    if (connection == null)     connection=cp.takeConnection(key);
     writer.write(connection,protocol);
     writer.flush(connection);
     Protocol response=reader.read(connection);
