@@ -1,0 +1,26 @@
+{
+  String name=protocol.args[0];
+  final ObjectSetProxy proxy=(ObjectSetProxy)collectionService.createDistributedObjectForClient(name);
+  boolean includeValue=Boolean.valueOf(protocol.args[1]);
+  final TcpIpConnection connection=protocol.conn;
+  proxy.addItemListener(new ItemListener<Object>(){
+    public void itemAdded(    ItemEvent<Object> item){
+      sendEvent(item);
+    }
+    public void itemRemoved(    ItemEvent<Object> item){
+      sendEvent(item);
+    }
+    public void sendEvent(    ItemEvent<Object> itemEvent){
+      if (connection.live()) {
+        String[] args=new String[]{proxy.getName(),itemEvent.getEventType().toString(),itemEvent.getMember().getInetSocketAddress().getHostName() + ":" + itemEvent.getMember().getInetSocketAddress().getPort()};
+        Protocol event=new Protocol(connection,Command.EVENT,args,node.serializationService.toData(itemEvent.getItem()));
+        sendResponse(node,event,connection);
+      }
+ else {
+        proxy.removeItemListener(this);
+      }
+    }
+  }
+,includeValue);
+  return null;
+}
