@@ -1,0 +1,20 @@
+{
+  String name=protocol.args[0];
+  long time=Long.valueOf(protocol.args[1]);
+  CountDownLatchProxy cdlp=countDownLatchService.createDistributedObjectForClient(name);
+  try {
+    boolean result=cdlp.await(time,TimeUnit.MILLISECONDS);
+    return protocol.success(String.valueOf(result));
+  }
+ catch (  MemberLeftException e) {
+    MemberImpl m=(MemberImpl)e.getMember();
+    String[] args=new String[3];
+    args[0]="member.left.exception";
+    args[1]=m.getAddress().getHost();
+    args[2]=String.valueOf(m.getAddress().getPort());
+    return protocol.success(args);
+  }
+catch (  InterruptedException e) {
+    throw new RuntimeException(e);
+  }
+}
