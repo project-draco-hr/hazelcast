@@ -1,12 +1,7 @@
 {
-  check(listener);
-  Boolean noEntryListenerRegistered=entryListenerManager().noListenerRegistered(key,name,includeValue);
-  if (noEntryListenerRegistered == null) {
-    if (key == null)     proxyHelper.doCommand(null,Command.MMREMOVELISTENER,getName(),null);
- else     proxyHelper.doCommand(null,Command.MMREMOVELISTENER,getName(),client.getSerializationService().toData(key));
-    noEntryListenerRegistered=Boolean.TRUE;
-  }
-  if (noEntryListenerRegistered.booleanValue()) {
-  }
-  entryListenerManager().registerListener(name,key,includeValue,listener);
+  Data dKey=key == null ? null : proxyHelper.toData(key);
+  Protocol request=proxyHelper.createProtocol(Command.MMLISTEN,new String[]{name,valueOf(includeValue)},new Data[]{dKey});
+  ListenerThread thread=proxyHelper.createAListenerThread("hz.client.multiMapListener.",client,request,new EntryEventLRH<K,V>(listener,key,includeValue,this));
+  storeListener(listener,key,thread);
+  thread.start();
 }

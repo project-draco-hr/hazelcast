@@ -1,0 +1,13 @@
+{
+  Context context=threadLocal.get();
+  if (context == null) {
+    throw new IllegalStateException("You don't seem to have a lock to unlock.");
+  }
+  Protocol response=doCommand(key,command,args,data);
+  if (context.decrementAndGet(name,key.hashCode()) == 0 && context.noMoreLocks()) {
+    Connection connection=context.getConnection();
+    cp.releaseConnection(connection,key);
+    threadLocal.remove();
+  }
+  return response;
+}

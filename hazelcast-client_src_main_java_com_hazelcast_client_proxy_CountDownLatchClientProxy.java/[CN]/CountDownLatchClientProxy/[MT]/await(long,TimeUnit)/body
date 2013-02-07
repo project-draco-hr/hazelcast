@@ -1,18 +1,18 @@
 {
-  try {
-    return false;
+  String[] args=new String[]{getName(),String.valueOf(unit.toMillis(timeout))};
+  Protocol response=proxyHelper.doCommand(null,Command.CDLAWAIT,args,null);
+  if ("member.left.exception".equalsIgnoreCase(response.args[0])) {
+    String hostname=response.args[1];
+    String port=response.args[2];
+    Member member=null;
+    try {
+      member=new MemberImpl(new Address(hostname,Integer.valueOf(port)),false);
+    }
+ catch (    UnknownHostException e) {
+    }
+    throw new MemberLeftException(member);
   }
- catch (  RuntimeException re) {
-    Throwable e=re.getCause();
-    if (e instanceof MemberLeftException) {
-      throw (MemberLeftException)e;
-    }
- else     if (e instanceof InterruptedException) {
-      throw (InterruptedException)e;
-    }
- else     if (re instanceof NoMemberAvailableException) {
-      throw new IllegalStateException();
-    }
-    throw re;
+ else {
+    return Boolean.valueOf(response.args[0]);
   }
 }
