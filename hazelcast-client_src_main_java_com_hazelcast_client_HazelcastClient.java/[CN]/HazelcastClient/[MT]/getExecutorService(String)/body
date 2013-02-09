@@ -1,12 +1,8 @@
 {
-  if (name == null)   throw new IllegalArgumentException("ExecutorService name cannot be null");
-  ExecutorServiceClientProxy executorServiceProxy=mapExecutors.get(name);
-  if (executorServiceProxy == null) {
-    executorServiceProxy=new ExecutorServiceClientProxy(this,name);
-    ExecutorServiceClientProxy old=mapExecutors.putIfAbsent(name,executorServiceProxy);
-    if (old != null) {
-      executorServiceProxy=old;
-    }
+  Map<Object,DistributedObject> innerProxyMap=getProxiesMap("ExecutorService");
+  DistributedObject proxy=innerProxyMap.get(name);
+  if (proxy == null) {
+    proxy=putAndReturnProxy(name,innerProxyMap,new ExecutorServiceClientProxy(this,name));
   }
-  return null;
+  return (IExecutorService)proxy;
 }
