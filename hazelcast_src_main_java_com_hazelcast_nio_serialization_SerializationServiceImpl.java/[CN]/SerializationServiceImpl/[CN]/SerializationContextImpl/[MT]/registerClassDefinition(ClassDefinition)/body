@@ -1,8 +1,9 @@
 {
-  if (cd == null)   return;
+  if (cd == null)   return null;
+  final long versionedClassId=combineToLong(cd.getClassId(),cd.getVersion());
   final ClassDefinitionImpl cdImpl=(ClassDefinitionImpl)cd;
-  final long versionedClassId=combineToLong(cdImpl.getClassId(),cdImpl.getVersion());
-  if (versionedDefinitions.putIfAbsent(versionedClassId,cdImpl) == null) {
+  final ClassDefinitionImpl currentClassDef=versionedDefinitions.putIfAbsent(versionedClassId,cdImpl);
+  if (currentClassDef == null) {
     if (cdImpl.getBinary() == null) {
       final ContextAwareDataOutput out=pop();
       try {
@@ -12,9 +13,14 @@
         compress(binary,out);
         cdImpl.setBinary(out.toByteArray());
       }
-  finally {
+ catch (      IOException e) {
+        throw new HazelcastSerializationException(e);
+      }
+ finally {
         push(out);
       }
     }
+    return cd;
   }
+  return currentClassDef;
 }

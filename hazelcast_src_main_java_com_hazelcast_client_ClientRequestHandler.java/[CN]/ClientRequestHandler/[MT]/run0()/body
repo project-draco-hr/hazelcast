@@ -1,31 +1,26 @@
 {
   runningThread=Thread.currentThread();
+  final ThreadContext threadContext=ThreadContext.getOrCreate();
+  threadContext.setCallerUuid(clientEndpoint.uuid);
   try {
     if (!valid)     return;
-    final PrivilegedExceptionAction<Void> action=new PrivilegedExceptionAction<Void>(){
-      public Void run(){
-        TcpIpConnection connection=protocol.conn;
-        ClientCommandHandler clientOperationHandler=node.clientCommandService.getService(protocol);
-        clientOperationHandler.handle(node,protocol);
-        node.clientCommandService.getClientEndpoint(connection).removeRequest(ClientRequestHandler.this);
-        return null;
-      }
-    }
-;
     if (node.securityContext == null) {
-      action.run();
+      handleCommand();
     }
  else {
+      final Subject subject=clientEndpoint.getSubject();
+      final PrivilegedExceptionAction<Void> action=new ClientPrivilegedAction();
       node.securityContext.doAsPrivileged(subject,action);
     }
   }
  catch (  Throwable e) {
     logger.log(Level.WARNING,e.getMessage(),e);
     if (node.isActive()) {
-      Util.throwUncheckedException(e);
+      ExceptionUtil.rethrow(e);
     }
   }
  finally {
     runningThread=null;
+    threadContext.setCallerUuid(null);
   }
 }

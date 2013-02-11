@@ -1,0 +1,34 @@
+{
+synchronized (lifecycleLock) {
+    fireLifecycleEvent(MERGING);
+    final Node node=instance.node;
+    final NodeEngineImpl nodeEngine=node.nodeEngine;
+    final Collection<SplitBrainHandlerService> services=nodeEngine.getServices(SplitBrainHandlerService.class);
+    final Collection<Runnable> tasks=new LinkedList<Runnable>();
+    for (    SplitBrainHandlerService service : services) {
+      final Runnable runnable=service.prepareMergeRunnable();
+      if (runnable != null) {
+        tasks.add(runnable);
+      }
+    }
+    node.onRestart();
+    node.connectionManager.restart();
+    node.clusterService.onRestart();
+    node.partitionService.onRestart();
+    node.rejoin();
+    final Collection<Future> futures=new LinkedList<Future>();
+    for (    Runnable task : tasks) {
+      Future f=nodeEngine.getExecutionService().submit("hz:system",task);
+      futures.add(f);
+    }
+    for (    Future f : futures) {
+      try {
+        f.get();
+      }
+ catch (      Exception e) {
+        getLogger().log(Level.SEVERE,"While merging...",e);
+      }
+    }
+    fireLifecycleEvent(MERGED);
+  }
+}
