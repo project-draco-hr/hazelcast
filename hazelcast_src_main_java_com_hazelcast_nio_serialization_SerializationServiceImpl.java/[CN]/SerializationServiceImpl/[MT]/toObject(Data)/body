@@ -8,7 +8,7 @@
     final TypeSerializer serializer=serializerFor(typeId);
     if (serializer == null) {
       if (active) {
-        throw new IllegalArgumentException("There is no suitable de-serializer for type " + typeId);
+        throw new HazelcastSerializationException("There is no suitable de-serializer for type " + typeId);
       }
       throw new HazelcastInstanceNotActiveException();
     }
@@ -23,15 +23,10 @@
     return obj;
   }
  catch (  Throwable e) {
-    if (e instanceof OutOfMemoryError) {
-      OutOfMemoryErrorDispatcher.onOutOfMemory((OutOfMemoryError)e);
-    }
-    if (e instanceof HazelcastSerializationException) {
-      throw (HazelcastSerializationException)e;
-    }
-    throw new HazelcastSerializationException(e);
+    handleException(e);
   }
  finally {
     IOUtil.closeResource(in);
   }
+  return null;
 }

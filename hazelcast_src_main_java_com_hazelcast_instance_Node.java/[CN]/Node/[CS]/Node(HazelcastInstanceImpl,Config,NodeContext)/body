@@ -10,7 +10,7 @@
     ss=new SerializationServiceImpl(config.getSerializationConfig(),hazelcastInstance.managedContext);
   }
  catch (  Exception e) {
-    Util.throwUncheckedException(e);
+    ExceptionUtil.rethrow(e);
   }
   serializationService=ss;
   systemLogService=new SystemLogService(this);
@@ -19,11 +19,11 @@
     addressPicker.pickAddress();
   }
  catch (  Throwable e) {
-    Util.throwUncheckedException(e);
+    ExceptionUtil.rethrow(e);
   }
   final ServerSocketChannel serverSocketChannel=addressPicker.getServerSocketChannel();
   address=addressPicker.getPublicAddress();
-  localMember=new MemberImpl(address,true,localNodeType,UUID.randomUUID().toString());
+  localMember=new MemberImpl(address,true,localNodeType,UuidUtil.createMemberUuid(address));
   String loggingType=groupProperties.LOGGING_TYPE.getString();
   loggingService=new LoggingServiceImpl(systemLogService,config.getGroupConfig().getName(),loggingType,localMember);
   logger=loggingService.getLogger(Node.class.getName());
@@ -37,7 +37,7 @@
     }
  catch (    Throwable ignored) {
     }
-    Util.throwUncheckedException(e);
+    ExceptionUtil.rethrow(e);
   }
   securityContext=config.getSecurityConfig().isEnabled() ? initializer.getSecurityContext() : null;
   nodeEngine=new NodeEngineImpl(this);

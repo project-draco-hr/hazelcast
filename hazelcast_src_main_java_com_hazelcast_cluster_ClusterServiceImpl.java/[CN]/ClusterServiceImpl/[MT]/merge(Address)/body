@@ -1,0 +1,40 @@
+{
+  if (preparingToMerge.compareAndSet(true,false)) {
+    node.getJoiner().setTargetAddress(newTargetAddress);
+    final LifecycleServiceImpl lifecycleService=node.hazelcastInstance.getLifecycleService();
+    lifecycleService.runUnderLifecycleLock(new Runnable(){
+      public void run(){
+        lifecycleService.fireLifecycleEvent(MERGING);
+        final NodeEngineImpl nodeEngine=node.nodeEngine;
+        final Collection<SplitBrainHandlerService> services=nodeEngine.getServices(SplitBrainHandlerService.class);
+        final Collection<Runnable> tasks=new LinkedList<Runnable>();
+        for (        SplitBrainHandlerService service : services) {
+          final Runnable runnable=service.prepareMergeRunnable();
+          if (runnable != null) {
+            tasks.add(runnable);
+          }
+        }
+        node.onRestart();
+        node.connectionManager.restart();
+        node.clusterService.onRestart();
+        node.partitionService.onRestart();
+        node.rejoin();
+        final Collection<Future> futures=new LinkedList<Future>();
+        for (        Runnable task : tasks) {
+          Future f=nodeEngine.getExecutionService().submit("hz:system",task);
+          futures.add(f);
+        }
+        for (        Future f : futures) {
+          try {
+            f.get();
+          }
+ catch (          Exception e) {
+            logger.log(Level.SEVERE,"While merging...",e);
+          }
+        }
+        lifecycleService.fireLifecycleEvent(MERGED);
+      }
+    }
+);
+  }
+}

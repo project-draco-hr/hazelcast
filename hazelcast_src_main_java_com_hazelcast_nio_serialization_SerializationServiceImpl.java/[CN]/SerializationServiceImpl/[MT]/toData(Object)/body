@@ -10,7 +10,7 @@
     final TypeSerializer serializer=serializerFor(obj.getClass());
     if (serializer == null) {
       if (active) {
-        throw new NotSerializableException("There is no suitable serializer for " + obj.getClass());
+        throw new HazelcastSerializationException("There is no suitable serializer for " + obj.getClass());
       }
       throw new HazelcastInstanceNotActiveException();
     }
@@ -28,15 +28,10 @@
     return data;
   }
  catch (  Throwable e) {
-    if (e instanceof OutOfMemoryError) {
-      OutOfMemoryErrorDispatcher.onOutOfMemory((OutOfMemoryError)e);
-    }
-    if (e instanceof HazelcastSerializationException) {
-      throw (HazelcastSerializationException)e;
-    }
-    throw new HazelcastSerializationException(e);
+    handleException(e);
   }
  finally {
     push(out);
   }
+  return null;
 }

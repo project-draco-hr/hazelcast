@@ -2,9 +2,15 @@
   if (invokeCount > 0) {
     throw new IllegalStateException("An invocation can not be invoked more than once!");
   }
+  final ThreadContext threadContext=ThreadContext.getOrCreate();
+  checkOperationType(op,threadContext);
   try {
-    checkOperationType(op);
     OperationAccessor.setCallTimeout(op,callTimeout);
+    op.setNodeEngine(nodeEngine).setServiceName(serviceName).setCallerAddress(nodeEngine.getThisAddress()).setPartitionId(partitionId).setReplicaIndex(replicaIndex);
+    op.setCallerUuid(threadContext.getCallerUuid());
+    if (op.getCallerUuid() == null) {
+      op.setCallerUuid(nodeEngine.getLocalMember().getUuid());
+    }
     doInvoke();
   }
  catch (  Exception e) {
@@ -12,7 +18,7 @@
       setResult(e);
     }
  else {
-      Util.throwUncheckedException(e);
+      ExceptionUtil.rethrow(e);
     }
   }
   return this;

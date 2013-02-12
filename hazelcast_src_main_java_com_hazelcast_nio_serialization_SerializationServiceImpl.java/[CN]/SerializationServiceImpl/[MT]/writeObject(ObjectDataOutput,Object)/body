@@ -5,18 +5,15 @@
   try {
     final TypeSerializer serializer=serializerFor(obj.getClass());
     if (serializer == null) {
-      throw new NotSerializableException("There is no suitable serializer for " + obj.getClass());
+      if (active) {
+        throw new HazelcastSerializationException("There is no suitable serializer for " + obj.getClass());
+      }
+      throw new HazelcastInstanceNotActiveException();
     }
     out.writeInt(serializer.getTypeId());
     serializer.write(out,obj);
   }
  catch (  Throwable e) {
-    if (e instanceof OutOfMemoryError) {
-      OutOfMemoryErrorDispatcher.onOutOfMemory((OutOfMemoryError)e);
-    }
-    if (e instanceof HazelcastSerializationException) {
-      throw (HazelcastSerializationException)e;
-    }
-    throw new HazelcastSerializationException(e);
+    handleException(e);
   }
 }
