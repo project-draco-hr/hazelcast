@@ -1,0 +1,29 @@
+{
+  try {
+    Protocol protocol=createProtocol(command,args,data);
+    protocol.onEnqueue();
+    Context context=Context.get();
+    Connection connection=context == null ? null : context.getConnection();
+    if (connection == null) {
+      connection=cp.takeConnection(member);
+    }
+    writer.write(connection,protocol);
+    writer.flush(connection);
+    Protocol response=reader.read(connection);
+    cp.releaseConnection(connection,member);
+    if (Command.OK.equals(response.command))     return response;
+ else {
+      throw new RuntimeException(response.command + ": " + Arrays.asList(response.args));
+    }
+  }
+ catch (  EOFException e) {
+    return doCommand(member,command,args,data);
+  }
+catch (  IOException e) {
+    e.printStackTrace();
+    throw new RuntimeException(e);
+  }
+catch (  InterruptedException e) {
+    throw new RuntimeException(e);
+  }
+}
