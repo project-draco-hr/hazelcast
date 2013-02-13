@@ -4,12 +4,14 @@
   map.lock("key2");
   map.lock("key3");
   map.lock("key0");
+  final AtomicBoolean check1=new AtomicBoolean(false);
+  final AtomicBoolean check2=new AtomicBoolean(false);
   final CountDownLatch latch=new CountDownLatch(3);
   Thread thread=new Thread(new Runnable(){
     public void run(){
       try {
-        assertFalse(map.tryLock("key0"));
-        assertTrue(map.tryLock("key0",1500,TimeUnit.MILLISECONDS));
+        check1.set(map.tryLock("key0"));
+        check2.set(map.tryLock("key0",1500,TimeUnit.MILLISECONDS));
         map.put("key1","value1");
         latch.countDown();
         map.put("key2","value2");
@@ -35,4 +37,6 @@
   assertEquals(1,latch.getCount());
   map.unlock("key3");
   assertTrue(latch.await(3,TimeUnit.SECONDS));
+  assertFalse(check1.get());
+  assertTrue(check2.get());
 }
