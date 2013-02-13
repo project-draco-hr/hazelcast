@@ -1,4 +1,16 @@
 {
   logger.log(Level.FINEST,"Stopping tasks...");
   expirationTask.cancel(true);
+  for (  Queue<WaitingOp> q : mapWaitingOps.values()) {
+    for (    WaitingOp waitingOp : q) {
+      if (waitingOp.isValid()) {
+        final Operation op=waitingOp.getOperation();
+        if (op.getCallId() < 0) {
+          op.getResponseHandler().sendResponse(new HazelcastInstanceNotActiveException());
+        }
+      }
+    }
+    q.clear();
+  }
+  mapWaitingOps.clear();
 }
