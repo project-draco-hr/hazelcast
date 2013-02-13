@@ -3,8 +3,6 @@
   this.threadGroup=hazelcastInstance.threadGroup;
   this.config=config;
   this.groupProperties=new GroupProperties(config);
-  this.liteMember=config.isLiteMember();
-  this.localNodeType=(liteMember) ? NodeType.LITE_MEMBER : NodeType.MEMBER;
   SerializationServiceImpl ss=null;
   try {
     ss=new SerializationServiceImpl(config.getSerializationConfig(),hazelcastInstance.managedContext);
@@ -23,7 +21,7 @@
   }
   final ServerSocketChannel serverSocketChannel=addressPicker.getServerSocketChannel();
   address=addressPicker.getPublicAddress();
-  localMember=new MemberImpl(address,true,localNodeType,UuidUtil.createMemberUuid(address));
+  localMember=new MemberImpl(address,true,UuidUtil.createMemberUuid(address));
   String loggingType=groupProperties.LOGGING_TYPE.getString();
   loggingService=new LoggingServiceImpl(systemLogService,config.getGroupConfig().getName(),loggingType,localMember);
   logger=loggingService.getLogger(Node.class.getName());
@@ -61,7 +59,9 @@
       multicastSocket.setTimeToLive(multicastConfig.getMulticastTimeToLive());
       try {
         final Address bindAddress=addressPicker.getBindAddress();
-        multicastSocket.setInterface(bindAddress.getInetAddress());
+        if (!bindAddress.getInetAddress().isLoopbackAddress()) {
+          multicastSocket.setInterface(bindAddress.getInetAddress());
+        }
       }
  catch (      Exception e) {
         logger.log(Level.WARNING,e.getMessage(),e);
