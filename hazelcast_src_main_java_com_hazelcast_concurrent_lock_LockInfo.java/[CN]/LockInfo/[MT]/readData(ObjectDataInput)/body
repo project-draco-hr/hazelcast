@@ -1,7 +1,34 @@
 {
-  owner=IOUtil.readNullableString(in);
+  key=new Data();
+  key.readData(in);
+  owner=in.readUTF();
   threadId=in.readInt();
   lockCount=in.readInt();
   expirationTime=in.readLong();
   acquireTime=in.readLong();
+  int len=in.readInt();
+  if (len > 0) {
+    conditions=new HashMap<String,ConditionInfo>(len);
+    for (int i=0; i < len; i++) {
+      ConditionInfo condition=new ConditionInfo();
+      condition.readData(in);
+      conditions.put(condition.getConditionId(),condition);
+    }
+  }
+  len=in.readInt();
+  if (len > 0) {
+    signalKeys=new ArrayList<ConditionKey>(len);
+    for (int i=0; i < len; i++) {
+      signalKeys.add(new ConditionKey(key,in.readUTF()));
+    }
+  }
+  len=in.readInt();
+  if (len > 0) {
+    expiredAwaitOps=new ArrayList<AwaitOperation>(len);
+    for (int i=0; i < len; i++) {
+      AwaitOperation op=new AwaitOperation();
+      op.readData(in);
+      expiredAwaitOps.add(op);
+    }
+  }
 }

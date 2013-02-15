@@ -1,3 +1,21 @@
 {
-  getLockStore().lock(key,getCallerUuid(),threadId);
+  final LockStore lockStore=getLockStore();
+  if (!awaiting) {
+    lockStore.addAwait(key,conditionId,getCallerUuid(),threadId);
+    lockStore.unlock(key,getCallerUuid(),threadId);
+    getNodeEngine().getWaitNotifyService().await(this);
+  }
+ else {
+    if (!lockStore.lock(key,getCallerUuid(),threadId)) {
+      throw new IllegalMonitorStateException("Current thread is not owner of the lock!");
+    }
+    if (!expired) {
+      lockStore.removeSignalKey(getWaitKey());
+      lockStore.removeAwait(key,conditionId,getCallerUuid(),threadId);
+      response=true;
+    }
+ else {
+      response=false;
+    }
+  }
 }
