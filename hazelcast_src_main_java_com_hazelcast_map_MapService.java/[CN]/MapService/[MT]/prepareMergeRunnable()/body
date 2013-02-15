@@ -1,3 +1,15 @@
 {
-  return null;
+  List<Integer> memberPartitions=nodeEngine.getPartitionService().getMemberPartitions(nodeEngine.getClusterService().getThisAddress());
+  Map<MapContainer,Collection<Record>> recordMap=new HashMap<MapContainer,Collection<Record>>(mapContainers.size());
+  for (  MapContainer mapContainer : mapContainers.values()) {
+    for (    Integer partitionId : memberPartitions) {
+      RecordStore recordStore=getPartitionContainer(partitionId).getRecordStore(mapContainer.getName());
+      if (!recordMap.containsKey(mapContainer)) {
+        recordMap.put(mapContainer,new ArrayList<Record>());
+      }
+      recordMap.get(mapContainer).addAll(recordStore.getRecords().values());
+      recordStore.reset();
+    }
+  }
+  return new Merger(recordMap);
 }
