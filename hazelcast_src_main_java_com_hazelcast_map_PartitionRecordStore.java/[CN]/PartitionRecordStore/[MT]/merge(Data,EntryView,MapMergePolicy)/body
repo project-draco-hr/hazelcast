@@ -1,0 +1,20 @@
+{
+  Record record=records.get(dataKey);
+  Object newValue=null;
+  if (record == null) {
+    newValue=mergingEntry.getValue();
+    record=mapService.createRecord(name,dataKey,newValue,-1);
+    records.put(dataKey,record);
+  }
+ else {
+    EntryView existingEntry=new SimpleEntryView(mapService.toObject(record.getKey()),mapService.toObject(record.getValue()),record);
+    newValue=mergePolicy.merge(name,mergingEntry,existingEntry);
+    if (newValue == null) {
+      return false;
+    }
+    if (record instanceof DataRecord)     ((DataRecord)record).setValue(mapService.toData(newValue));
+ else     if (record instanceof ObjectRecord)     ((ObjectRecord)record).setValue(mapService.toObject(newValue));
+  }
+  mapStoreWrite(record);
+  return newValue != null;
+}

@@ -1,0 +1,31 @@
+{
+  for (  MapContainer mapContainer : recordMap.keySet()) {
+    MapMergePolicy mergePolicy=null;
+    MapMergePolicyConfig mergePolicyConfig=mapContainer.getMapConfig().getMergePolicyConfig();
+    if (mergePolicyConfig != null) {
+      mergePolicy=mergePolicyConfig.getImplementation();
+      if (mergePolicy == null) {
+        String mergeClassName=mergePolicyConfig.getClassName();
+        try {
+          mergePolicy=ClassLoaderUtil.newInstance(mergeClassName);
+        }
+ catch (        Exception e) {
+          logger.log(Level.SEVERE,e.getMessage(),e);
+        }
+      }
+    }
+    Collection<Record> recordList=recordMap.get(mapContainer);
+    for (    Record record : recordList) {
+      SimpleEntryView entryView=new SimpleEntryView(record.getKey(),getNodeEngine().toData(record.getValue()),record);
+      MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,mergePolicy);
+      try {
+        int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
+        Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
+        invocation.invoke().get();
+      }
+ catch (      Throwable t) {
+        ExceptionUtil.rethrow(t);
+      }
+    }
+  }
+}

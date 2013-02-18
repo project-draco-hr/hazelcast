@@ -1,0 +1,41 @@
+{
+  log("starting");
+  final IMap map=getInstance(0).getMap("testMapSize");
+  final int putSize=50000;
+  final CountDownLatch latch=new CountDownLatch(2);
+  new Thread(){
+    public void run(){
+      for (int i=0; i < putSize; i++) {
+        map.put("key" + i,"value" + i);
+      }
+      latch.countDown();
+    }
+  }
+.start();
+  final AtomicInteger removed=new AtomicInteger();
+  new Thread(){
+    public void run(){
+      for (int i=0; i < putSize * 2; i++) {
+        Random ran=new Random(System.currentTimeMillis());
+        Object o=map.remove("key" + ran.nextInt(putSize));
+        if (o != null) {
+          removed.incrementAndGet();
+        }
+      }
+      latch.countDown();
+    }
+  }
+.start();
+  Thread.sleep(5000);
+  log("remove instance");
+  removeInstance(1);
+  Thread.sleep(5000);
+  log("new instance");
+  newInstance();
+  Thread.sleep(5000);
+  log("remove instance");
+  removeInstance(2);
+  assertTrue(latch.await(100,TimeUnit.SECONDS));
+  assertEquals(map.size(),putSize - removed.get());
+  log("size: " + (putSize - removed.get()));
+}

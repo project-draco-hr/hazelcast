@@ -1,0 +1,16 @@
+{
+  Config config=new Config();
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,2);
+  final HazelcastInstance h1=instances[0];
+  final HazelcastInstance h2=instances[1];
+  IQueue q1=h1.getQueue("default");
+  IQueue q2=h2.getQueue("default");
+  q1.offer("item");
+  assertEquals(1,q1.size());
+  assertEquals(1,q2.size());
+  assertEquals("item",q2.take());
+  assertEquals(0,q1.size());
+  assertEquals(0,q2.size());
+  h2.getLifecycleService().shutdown();
+  assertEquals(0,q1.size());
+}
