@@ -1,0 +1,11 @@
+{
+  final WaitNotifyKey key=waitSupport.getWaitKey();
+  final Queue<WaitingOp> q=ConcurrencyUtil.getOrPutIfAbsent(mapWaitingOps,key,waitQueueConstructor);
+  long timeout=waitSupport.getWaitTimeoutMillis();
+  WaitingOp waitingOp=(waitSupport instanceof KeyBasedOperation) ? new KeyBasedWaitingOp(q,waitSupport) : new WaitingOp(q,waitSupport);
+  waitingOp.setNodeEngine(nodeEngine);
+  if (timeout > -1 && timeout < 1500) {
+    delayQueue.offer(waitingOp);
+  }
+  q.offer(waitingOp);
+}

@@ -1,0 +1,19 @@
+{
+  for (  LockStoreContainer container : containers) {
+    for (    LockStore lockStore : container.getLockStores()) {
+      Map<Data,LockInfo> locks=lockStore.getLocks();
+      for (      Map.Entry<Data,LockInfo> entry : locks.entrySet()) {
+        final Data key=entry.getKey();
+        final LockInfo lock=entry.getValue();
+        if (lock.getOwner().equals(uuid)) {
+          UnlockOperation op=new UnlockOperation(lockStore.getNamespace(),key,-1,true);
+          op.setNodeEngine(nodeEngine);
+          op.setServiceName(SERVICE_NAME);
+          op.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+          op.setPartitionId(container.getPartitionId());
+          nodeEngine.getOperationService().runOperation(op);
+        }
+      }
+    }
+  }
+}

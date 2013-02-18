@@ -7,21 +7,24 @@
   Object value=null;
   Object oldValue=null;
   for (  EventRegistration candidate : candidates) {
-    EntryEventFilter filter=(EntryEventFilter)candidate.getFilter();
-    if (filter instanceof QueryEventFilter) {
+    EventFilter filter=candidate.getFilter();
+    if (filter instanceof EventServiceImpl.EmptyFilter) {
+      registrationsWithValue.add(candidate);
+    }
+ else     if (filter instanceof QueryEventFilter) {
       Object testValue;
       if (eventType == EntryEvent.TYPE_REMOVED) {
         oldValue=oldValue != null ? oldValue : toObject(dataOldValue);
         testValue=oldValue;
       }
  else {
-        value=value != null ? value : toObject(value);
+        value=value != null ? value : toObject(dataValue);
         testValue=value;
       }
       key=key != null ? key : toObject(key);
-      QueryEventFilter qfilter=(QueryEventFilter)filter;
-      if (qfilter.eval(new SimpleMapEntry(key,testValue))) {
-        if (filter.isIncludeValue()) {
+      QueryEventFilter queryEventFilter=(QueryEventFilter)filter;
+      if (queryEventFilter.eval(new SimpleMapEntry(key,testValue))) {
+        if (queryEventFilter.isIncludeValue()) {
           registrationsWithValue.add(candidate);
         }
  else {
@@ -30,7 +33,8 @@
       }
     }
  else     if (filter.eval(dataKey)) {
-      if (filter.isIncludeValue()) {
+      EntryEventFilter eventFilter=(EntryEventFilter)filter;
+      if (eventFilter.isIncludeValue()) {
         registrationsWithValue.add(candidate);
       }
  else {
@@ -40,7 +44,7 @@
   }
   if (registrationsWithValue.isEmpty() && registrationsWithoutValue.isEmpty())   return;
   String source=nodeEngine.getThisAddress().toString();
-  EventData event=new EventData(source,caller,dataKey,dataValue,dataOldValue,eventType);
+  EventData event=new EventData(source,mapName,caller,dataKey,dataValue,dataOldValue,eventType);
   nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithValue,event);
   nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithoutValue,event.cloneWithoutValues());
 }

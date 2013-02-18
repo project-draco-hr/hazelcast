@@ -2,5 +2,18 @@
   if (config == null) {
     config=new XmlConfigBuilder().build();
   }
-  return newHazelcastInstance(config,config.isLiteMember());
+  String name=config.getInstanceName();
+  if (name == null || name.trim().length() == 0) {
+    name=createInstanceName(config);
+    return newHazelcastInstance(config,name);
+  }
+ else {
+synchronized (INIT_LOCK) {
+      if (INSTANCE_MAP.containsKey(name)) {
+        throw new DuplicateInstanceNameException("HazelcastInstance with name '" + name + "' already exists!");
+      }
+      factoryIdGen.incrementAndGet();
+      return newHazelcastInstance(config,name);
+    }
+  }
 }
