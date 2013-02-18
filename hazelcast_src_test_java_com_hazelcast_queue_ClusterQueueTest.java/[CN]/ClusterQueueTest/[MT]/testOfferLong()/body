@@ -1,0 +1,70 @@
+{
+  Config config=new Config();
+  config.getQueueConfig("default").setMaxSize(200);
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,2);
+  final HazelcastInstance h1=instances[0];
+  final HazelcastInstance h2=instances[1];
+  final IQueue q1=h1.getQueue("default");
+  final IQueue q2=h2.getQueue("default");
+  for (int i=0; i < 100; i++) {
+    assertTrue(q1.offer("item" + i,100,TimeUnit.SECONDS));
+    assertTrue(q2.offer("item" + i,100,TimeUnit.SECONDS));
+  }
+  assertFalse(q1.offer("item"));
+  assertFalse(q2.offer("item"));
+  assertFalse(q1.offer("item",2,TimeUnit.SECONDS));
+  assertFalse(q2.offer("item",2,TimeUnit.SECONDS));
+  final CountDownLatch pollLatch=new CountDownLatch(200);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(3000);
+        for (int i=0; i < 100; i++) {
+          if (("item" + i).equals(q1.poll(2,TimeUnit.SECONDS))) {
+            pollLatch.countDown();
+          }
+          if (("item" + i).equals(q2.poll(2,TimeUnit.SECONDS))) {
+            pollLatch.countDown();
+          }
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+).start();
+  assertTrue(pollLatch.await(100,TimeUnit.SECONDS));
+  final ExecutorService es=Executors.newFixedThreadPool(50);
+  final CountDownLatch latch=new CountDownLatch(200);
+  for (int i=0; i < 100; i++) {
+    es.execute(new Runnable(){
+      public void run(){
+        try {
+          if (q1.offer("item",30,TimeUnit.SECONDS)) {
+            latch.countDown();
+          }
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+);
+    es.execute(new Runnable(){
+      public void run(){
+        try {
+          if (q2.offer("item",30,TimeUnit.SECONDS)) {
+            latch.countDown();
+          }
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+);
+  }
+  assertTrue(latch.await(100,TimeUnit.SECONDS));
+  es.shutdown();
+}
