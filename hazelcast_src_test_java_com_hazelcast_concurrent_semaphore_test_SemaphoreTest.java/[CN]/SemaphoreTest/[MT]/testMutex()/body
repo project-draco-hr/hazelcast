@@ -1,0 +1,40 @@
+{
+  final int k=5;
+  final Config config=new Config();
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,k);
+  final Object sync=new Object();
+  final AtomicBoolean atomicBoolean=new AtomicBoolean(false);
+  final CountDownLatch latch=new CountDownLatch(k);
+  for (int i=0; i < k; i++) {
+    final ISemaphore semaphore=instances[i].getSemaphore("test");
+    semaphore.init(1);
+    new Thread(){
+      public void run(){
+        for (int j=0; j < 1000; j++) {
+          try {
+            semaphore.acquire();
+          }
+ catch (          InterruptedException e) {
+            System.out.println("Acquire : " + e.getMessage());
+          }
+synchronized (sync) {
+            Assert.assertEquals(atomicBoolean.compareAndSet(false,true),true);
+          }
+synchronized (sync) {
+            semaphore.release();
+            atomicBoolean.set(false);
+          }
+        }
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  try {
+    Assert.assertEquals(latch.await(15,TimeUnit.SECONDS),true);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+    Assert.fail(e.getMessage());
+  }
+}

@@ -1,0 +1,66 @@
+{
+  log("starting");
+  final IMap map=getInstance(0).getMap("testMapSize");
+  final int putSize=80 * 1000;
+  final int removeSize=putSize * 25;
+  final AtomicInteger putCount=new AtomicInteger(putSize);
+  final AtomicBoolean putException=new AtomicBoolean(false);
+  final AtomicBoolean removeException=new AtomicBoolean(false);
+  new Thread(){
+    public void run(){
+      try {
+        for (int i=0; i < putSize; i++) {
+          map.put("key" + i,"value" + i);
+          putCount.decrementAndGet();
+        }
+      }
+ catch (      Exception e) {
+        putException.set(true);
+        log("exexex");
+        log(e.getMessage());
+      }
+    }
+  }
+.start();
+  final AtomicInteger removed=new AtomicInteger();
+  final AtomicInteger removeCount=new AtomicInteger(removeSize);
+  new Thread(){
+    public void run(){
+      try {
+        for (int i=0; i < removeSize; i++) {
+          Random ran=new Random(System.currentTimeMillis());
+          Object o=map.remove("key" + ran.nextInt(putSize));
+          if (o != null) {
+            removed.incrementAndGet();
+          }
+          removeCount.decrementAndGet();
+        }
+      }
+ catch (      Exception e) {
+        removeException.set(true);
+        log("exexex");
+        log(e.getMessage());
+      }
+    }
+  }
+.start();
+  Thread.sleep(500);
+  for (int i=0; i < 3; i++) {
+    log("remove instance");
+    removeInstance(2);
+    Thread.sleep(4000);
+    log("new instance");
+    newInstance();
+    Thread.sleep(2000);
+    log("putCount: " + putCount.get() + "  removeCount: "+ removeCount.get());
+    Thread.sleep(2000);
+  }
+  while (putCount.get() != 0 || removeCount.get() != 0) {
+    Thread.sleep(1000);
+    log("putCount: " + putCount.get() + "  removeCount: "+ removeCount.get());
+    assertFalse(putException.get());
+    assertFalse(removeException.get());
+  }
+  assertEquals(putSize - removed.get(),map.size());
+  log("size: " + (putSize - removed.get()));
+}

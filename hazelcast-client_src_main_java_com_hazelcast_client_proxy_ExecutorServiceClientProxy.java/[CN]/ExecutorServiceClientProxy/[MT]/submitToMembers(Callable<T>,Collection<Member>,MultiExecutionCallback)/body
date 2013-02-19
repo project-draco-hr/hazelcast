@@ -1,2 +1,27 @@
 {
+  final Map<Member,Object> results=new ConcurrentHashMap<Member,Object>(members.size());
+  final AtomicBoolean done=new AtomicBoolean(false);
+  for (  final Member member : members) {
+    submitToMember(task,member,new ExecutionCallback<T>(){
+      public void onResponse(      T response){
+        done(response);
+      }
+      public void onFailure(      Throwable t){
+        done(t);
+      }
+      private void done(      Object response){
+        results.put(member,response);
+        try {
+          callback.onResponse(member,response);
+        }
+ catch (        Throwable e) {
+          results.put(member,e);
+        }
+        if (results.size() == members.size() && !done.compareAndSet(false,true)) {
+          callback.onComplete(results);
+        }
+      }
+    }
+);
+  }
 }
