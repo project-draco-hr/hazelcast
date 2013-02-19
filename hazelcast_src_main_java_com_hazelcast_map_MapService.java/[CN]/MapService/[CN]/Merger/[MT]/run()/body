@@ -1,5 +1,5 @@
 {
-  for (  MapContainer mapContainer : recordMap.keySet()) {
+  for (  final MapContainer mapContainer : recordMap.keySet()) {
     MapMergePolicy mergePolicy=null;
     MapMergePolicyConfig mergePolicyConfig=mapContainer.getMapConfig().getMergePolicyConfig();
     if (mergePolicyConfig != null) {
@@ -15,17 +15,23 @@
       }
     }
     Collection<Record> recordList=recordMap.get(mapContainer);
-    for (    Record record : recordList) {
-      SimpleEntryView entryView=new SimpleEntryView(record.getKey(),getNodeEngine().toData(record.getValue()),record);
-      MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,mergePolicy);
-      try {
-        int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
-        Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
-        invocation.invoke().get();
+    for (    final Record record : recordList) {
+      final MapMergePolicy finalMergePolicy=mergePolicy;
+      nodeEngine.getExecutionService().submit("hz:map-merge",new Runnable(){
+        @Override public void run(){
+          SimpleEntryView entryView=new SimpleEntryView(record.getKey(),getNodeEngine().toData(record.getValue()),record);
+          MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,finalMergePolicy);
+          try {
+            int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
+            Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
+            invocation.invoke().get();
+          }
+ catch (          Throwable t) {
+            ExceptionUtil.rethrow(t);
+          }
+        }
       }
- catch (      Throwable t) {
-        ExceptionUtil.rethrow(t);
-      }
+);
     }
   }
 }

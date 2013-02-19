@@ -1,0 +1,36 @@
+{
+  MapStore storeTemp=null;
+  this.name=name;
+  this.mapConfig=mapConfig;
+  this.mapService=mapService;
+  MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+  if (mapStoreConfig != null) {
+    try {
+      MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
+      if (factory == null) {
+        String factoryClassName=mapStoreConfig.getFactoryClassName();
+        if (factoryClassName != null && !"".equals(factoryClassName)) {
+          factory=(MapStoreFactory)ClassLoaderUtil.newInstance(factoryClassName);
+        }
+      }
+      storeTemp=(MapStore)(factory == null ? mapStoreConfig.getImplementation() : factory.newMapStore(name,mapStoreConfig.getProperties()));
+      if (storeTemp == null) {
+        String mapStoreClassName=mapStoreConfig.getClassName();
+        storeTemp=ClassLoaderUtil.newInstance(mapStoreClassName);
+      }
+    }
+ catch (    Exception e) {
+      ExceptionUtil.rethrow(e);
+      storeTemp=null;
+    }
+  }
+  store=storeTemp;
+  if (store != null) {
+    loadMapFromStore();
+  }
+  interceptors=new CopyOnWriteArrayList<MapInterceptor>();
+  interceptorMap=new ConcurrentHashMap<String,MapInterceptor>();
+  interceptorIdMap=new ConcurrentHashMap<MapInterceptor,String>();
+  nearCacheEnabled=mapConfig.getNearCacheConfig() != null;
+  creationTime=Clock.currentTimeMillis();
+}
