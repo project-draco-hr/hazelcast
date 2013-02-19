@@ -1,0 +1,17 @@
+{
+  NodeEngine nodeEngine=mapService.getNodeEngine();
+  Map values=store.loadAll(keys.values());
+  for (  Data dataKey : keys.keySet()) {
+    Object key=keys.get(dataKey);
+    Data dataValue=mapService.toData(values.get(key));
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(dataKey);
+    PutTransientOperation operation=new PutTransientOperation(name,dataKey,dataValue,null,-1);
+    try {
+      Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(mapService.getServiceName(),operation,partitionId).build();
+      invocation.invoke().get();
+    }
+ catch (    Throwable t) {
+      ExceptionUtil.rethrow(t);
+    }
+  }
+}
