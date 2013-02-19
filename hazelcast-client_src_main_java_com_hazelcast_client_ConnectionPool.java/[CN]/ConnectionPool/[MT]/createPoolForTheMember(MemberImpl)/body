@@ -1,15 +1,16 @@
 {
-  try {
-    Address address=member.getAddress();
-    ObjectPool<Connection> pool=new QueueBasedObjectPool<Connection>(POOL_SIZE);
-    mPool.put(address,pool);
-    while (pool.size() < POOL_SIZE) {
+  final Address address=member.getAddress();
+  ObjectPool<Connection> pool=new QueueBasedObjectPool<Connection>(POOL_SIZE,new com.hazelcast.client.util.pool.Factory<Connection>(){
+    @Override public Connection create() throws IOException {
       Connection connection=new Connection(address,0,serializationService);
       connectionManager.bindConnection(connection);
-      pool.add(connection);
+      return connection;
     }
   }
- catch (  IOException e) {
-    e.printStackTrace();
+);
+  if (mPool.putIfAbsent(address,pool) != null) {
+    return mPool.get(address);
   }
+  if (address.equals(initialConnection.getAddress()))   pool.add(initialConnection);
+  return pool;
 }

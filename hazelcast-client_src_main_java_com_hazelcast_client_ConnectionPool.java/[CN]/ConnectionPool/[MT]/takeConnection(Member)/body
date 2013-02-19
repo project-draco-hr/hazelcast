@@ -1,6 +1,14 @@
 {
+  if (!initialized.get())   return initialConnection;
   if (member == null) {
     member=router.next();
+    if (member == null) {
+      throw new RuntimeException("Router shouldn't return null member");
+    }
   }
-  return mPool.get(member.getInetSocketAddress()).take();
+  ObjectPool<Connection> pool=mPool.get(member.getInetSocketAddress());
+  if (pool == null) {
+    pool=createPoolForTheMember((MemberImpl)member);
+  }
+  return pool.take();
 }
