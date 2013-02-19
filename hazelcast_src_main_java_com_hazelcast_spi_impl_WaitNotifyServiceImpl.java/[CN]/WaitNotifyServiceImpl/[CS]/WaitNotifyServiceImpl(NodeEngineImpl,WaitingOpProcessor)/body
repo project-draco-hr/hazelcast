@@ -3,7 +3,13 @@
   this.waitingOpProcessor=waitingOpProcessor;
   final Node node=nodeEngine.getNode();
   logger=node.getLogger(WaitNotifyService.class.getName());
-  expirationTask=nodeEngine.getExecutionService().submit("hz:system",new Runnable(){
+  expirationService=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,node.getConfig().getClassLoader()){
+    protected String newThreadName(){
+      return node.getThreadNamePrefix("wait-notify");
+    }
+  }
+);
+  expirationTask=expirationService.submit(new Runnable(){
     public void run(){
       while (true) {
         if (Thread.interrupted()) {
