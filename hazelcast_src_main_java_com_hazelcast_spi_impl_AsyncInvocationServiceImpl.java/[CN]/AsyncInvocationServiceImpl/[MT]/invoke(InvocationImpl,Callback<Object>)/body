@@ -1,10 +1,9 @@
 {
-  if (size.get() >= CAPACITY) {
-    logger.log(Level.WARNING,"Capacity overloaded! Executing " + invocation + " in current thread, instead of invoking asynchronously.");
-    invokeInCurrentThread(invocation,responseCallback);
-  }
- else {
-    size.incrementAndGet();
+  try {
     executor.execute(new AsyncInvocation(invocation,responseCallback));
+  }
+ catch (  RejectedExecutionException e) {
+    logger.log(Level.WARNING,"Capacity overloaded! Executing " + invocation.getOperation() + " in current thread, instead of invoking async.");
+    invokeInCurrentThread(invocation,responseCallback);
   }
 }
