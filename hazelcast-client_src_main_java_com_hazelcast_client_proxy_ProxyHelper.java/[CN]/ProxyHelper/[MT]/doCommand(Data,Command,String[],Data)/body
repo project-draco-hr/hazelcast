@@ -1,27 +1,4 @@
 {
-  Protocol protocol=createProtocol(command,args,data);
-  try {
-    protocol.onEnqueue();
-    Context context=Context.get();
-    Connection connection=context == null ? null : context.getConnection();
-    if (connection == null)     connection=cp.takeConnection(key);
-    writer.write(connection,protocol);
-    writer.flush(connection);
-    Protocol response=reader.read(connection);
-    cp.releaseConnection(connection,key);
-    if (Command.OK.equals(response.command))     return response;
- else {
-      throw new RuntimeException(response.command + ": " + Arrays.asList(response.args));
-    }
-  }
- catch (  EOFException e) {
-    return doCommand(key,command,args,data);
-  }
-catch (  IOException e) {
-    e.printStackTrace();
-    throw new RuntimeException(e);
-  }
-catch (  InterruptedException e) {
-    throw new RuntimeException(e);
-  }
+  Member member=key2Member(key);
+  return doCommand(member,command,args,data);
 }

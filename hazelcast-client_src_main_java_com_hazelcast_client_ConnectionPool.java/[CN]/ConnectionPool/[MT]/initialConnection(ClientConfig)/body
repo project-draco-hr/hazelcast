@@ -1,21 +1,15 @@
 {
-  Connection initialConnection=null;
+  Connection initialConnection;
   for (  InetSocketAddress isa : config.getAddressList()) {
     try {
-      int i=0;
-      while (i++ < POOL_SIZE) {
-        initialConnection=new Connection(new Address(isa),0,this.serializationService);
-        System.out.println("Intial connection " + initialConnection);
-        this.connectionManager.bindConnection(initialConnection);
-        singlePool.offer(initialConnection);
-      }
-      break;
+      Address address=new Address(isa);
+      initialConnection=new Connection(address,0,this.serializationService);
+      this.connectionManager.bindConnection(initialConnection);
+      return initialConnection;
     }
  catch (    IOException e) {
       continue;
     }
   }
-  if (initialConnection == null) {
-    throw new RuntimeException("Couldn't connect to any address in the config");
-  }
+  throw new RuntimeException("Couldn't connect to any address in the config");
 }
