@@ -12,7 +12,7 @@
   msc.setSize(size);
   mc.setMaxSizeConfig(msc);
   Hazelcast.shutdownAll();
-  final HazelcastInstance[] instances=new HazelcastInstance[k];
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,k);
   instances[0]=Hazelcast.newHazelcastInstance(cfg);
   instances[1]=Hazelcast.newHazelcastInstance(cfg);
   instances[2]=Hazelcast.newHazelcastInstance(cfg);
@@ -27,10 +27,6 @@
       }
       while (latch.getCount() != 0) {
         try {
-          System.out.println("Checking");
-          System.out.println("Actual Size " + map.size());
-          System.out.println("Max Eviction Size " + size * k);
-          System.out.println("Fault tolerant Size " + (size * k + size * k * 20 / 100));
           assertTrue(map.size() <= (size * k + size * k * 20 / 100));
           Thread.sleep(4000);
         }
@@ -45,10 +41,9 @@
     final IMap map=instances[i].getMap(mapName);
     new Thread(){
       public void run(){
-        for (int j=0; j < 1000000; j++) {
+        for (int j=0; j < 100000; j++) {
           map.put(j + k * 1000000,j);
         }
-        System.out.println("done");
         latch.countDown();
       }
     }

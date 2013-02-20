@@ -1,0 +1,29 @@
+{
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(new Config(),1);
+  final HazelcastInstance instance=instances[0];
+  final int k=10;
+  final CountDownLatch countDownLatch=new CountDownLatch(k);
+  final IAtomicLong atomicLong=instance.getAtomicLong("testMultipleThreadAtomicLong");
+  for (int i=0; i < k; i++) {
+    new Thread(){
+      public void run(){
+        long delta=(long)(Math.random() * 1000);
+        for (int j=0; j < 10000; j++) {
+          atomicLong.addAndGet(delta);
+        }
+        for (int j=0; j < 10000; j++) {
+          atomicLong.addAndGet(-1 * delta);
+        }
+        countDownLatch.countDown();
+      }
+    }
+.start();
+  }
+  try {
+    countDownLatch.await(5,TimeUnit.SECONDS);
+    Assert.assertEquals(0,atomicLong.get());
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+  }
+}
