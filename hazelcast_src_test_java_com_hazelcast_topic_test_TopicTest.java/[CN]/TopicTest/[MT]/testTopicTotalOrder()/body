@@ -1,22 +1,25 @@
 {
-  final Config cfg=new Config();
-  Map<String,TopicConfig> tpCfgs=cfg.getTopicConfigs();
+  final Config config=new Config();
   TopicConfig topicConfig=new TopicConfig();
-  topicConfig.setGlobalOrderingEnabled(true);
-  tpCfgs.put("*",topicConfig);
+  topicConfig.setGlobalOrderingEnabled(false);
+  topicConfig.setName("default");
+  config.addTopicConfig(topicConfig);
+  final int k=4;
   final Map<Long,String> stringMap=new HashMap<Long,String>();
-  final CountDownLatch countDownLatch=new CountDownLatch(4);
-  final CountDownLatch mainLatch=new CountDownLatch(4);
-  for (int i=0; i < 4; i++) {
+  final CountDownLatch countDownLatch=new CountDownLatch(k);
+  final CountDownLatch mainLatch=new CountDownLatch(k);
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,k);
+  Assert.assertEquals(false,instances[0].getConfig().getTopicConfig("default").isGlobalOrderingEnabled());
+  for (int i=0; i < k; i++) {
+    final HazelcastInstance hazelcastInstance=instances[i];
     new Thread(new Runnable(){
       public void run(){
-        HazelcastInstance hazelcastInstance=Hazelcast.newHazelcastInstance(cfg);
         ITopic<Long> topic=hazelcastInstance.getTopic("first");
-        final long x=Thread.currentThread().getId();
+        final long threadId=Thread.currentThread().getId();
         topic.addMessageListener(new MessageListener<Long>(){
           public void onMessage(          Message<Long> message){
-            String str=stringMap.get(x) + message.getMessageObject().toString();
-            stringMap.put(x,str);
+            String str=stringMap.get(threadId) + message.getMessageObject().toString();
+            stringMap.put(threadId,str);
           }
         }
 );
@@ -28,7 +31,7 @@
           e.printStackTrace();
         }
         for (int j=0; j < 20; j++) {
-          if (x % 2 == 0)           topic.publish((long)j);
+          if (threadId % 2 == 0)           topic.publish((long)j);
  else           topic.publish(Long.valueOf(-1));
         }
         mainLatch.countDown();
