@@ -1,4 +1,14 @@
 {
+  TopicService service=getService();
   TopicEvent topicEvent=new TopicEvent(name,message);
-  getNodeEngine().getEventService().publishEvent(TopicService.SERVICE_NAME,getNodeEngine().getEventService().getRegistrations(TopicService.SERVICE_NAME,name),topicEvent);
+  final EventService eventService=getNodeEngine().getEventService();
+  final Collection<EventRegistration> registrations=eventService.getRegistrations(TopicService.SERVICE_NAME,name);
+  final Lock lock=service.getOrderLock(name);
+  lock.lock();
+  try {
+    eventService.publishEvent(TopicService.SERVICE_NAME,registrations,topicEvent);
+  }
+  finally {
+    lock.unlock();
+  }
 }
