@@ -1,17 +1,28 @@
 {
+  final NewThreadInterceptor threadInterceptor=interceptor;
+  long currentBacklogInterval=backlogInterval;
   final Thread thread=Thread.currentThread();
   while (!thread.isInterrupted() && live) {
     final Task task=queue.peek();
     if (task != null) {
-      if (task.creationTime + backlogInterval < System.currentTimeMillis()) {
-        addThread();
-        if (++threadSize == maxSize) {
-          return;
+      if (task.creationTime + currentBacklogInterval < Clock.currentTimeMillis()) {
+        if (++threadSize > maxSize) {
+          if (threadInterceptor != null) {
+            threadInterceptor.onPoolExhaust();
+          }
+ else {
+            throw new HazelcastException("FastExecutor thread pool reached max-size: " + maxSize + "! Cannot create additional threads!");
+          }
         }
+        if (threadInterceptor != null) {
+          threadInterceptor.beforeNewThread();
+        }
+        addThread(true);
+        currentBacklogInterval+=backlogInterval;
       }
     }
     try {
-      Thread.sleep(5);
+      Thread.sleep(100);
     }
  catch (    InterruptedException e) {
       return;
