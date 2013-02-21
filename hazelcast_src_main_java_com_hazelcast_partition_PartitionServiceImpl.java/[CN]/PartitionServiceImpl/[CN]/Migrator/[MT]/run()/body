@@ -28,7 +28,7 @@
           result=(Boolean)nodeEngine.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));
         }
  catch (        Throwable e) {
-          final Level level=node.isActive() ? Level.WARNING : Level.FINEST;
+          final Level level=node.isActive() && valid ? Level.WARNING : Level.FINEST;
           logger.log(level,"Failed migrating from " + fromMember,e);
         }
       }
@@ -41,13 +41,15 @@
         processMigrationResult();
       }
  else {
-        logger.log(Level.WARNING,"Migration task has failed => " + migrationRequestOp);
+        final Level level=valid ? Level.WARNING : Level.FINEST;
+        logger.log(level,"Migration task has failed => " + migrationRequestOp);
         migrationTaskFailed();
       }
     }
   }
  catch (  Throwable t) {
-    logger.log(Level.WARNING,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestOp);
+    final Level level=valid ? Level.WARNING : Level.FINEST;
+    logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestOp);
     logger.log(Level.FINEST,t.getMessage(),t);
     migrationTaskFailed();
   }

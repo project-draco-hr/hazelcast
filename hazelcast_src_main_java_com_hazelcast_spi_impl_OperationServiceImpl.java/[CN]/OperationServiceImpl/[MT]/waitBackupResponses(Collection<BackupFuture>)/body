@@ -1,0 +1,29 @@
+{
+  while (futures != null && !futures.isEmpty()) {
+    final Iterator<BackupFuture> iter=futures.iterator();
+    while (iter.hasNext()) {
+      final BackupFuture f=iter.next();
+      try {
+        if (f.canRetry()) {
+          f.get(250,TimeUnit.MILLISECONDS);
+        }
+        iter.remove();
+      }
+ catch (      InterruptedException ignored) {
+      }
+catch (      TimeoutException ignored) {
+      }
+catch (      ExecutionException e) {
+        if (!ExceptionUtil.isRetryableException(e)) {
+          throw e;
+        }
+ else         if (nodeEngine.getClusterService().getSize() <= f.replicaIndex) {
+          iter.remove();
+        }
+ else         if (f.retries > 10) {
+          logger.log(Level.WARNING,"----LOGGING BACKUP EXCEPTION HERE----\n",new HazelcastException(e));
+        }
+      }
+    }
+  }
+}

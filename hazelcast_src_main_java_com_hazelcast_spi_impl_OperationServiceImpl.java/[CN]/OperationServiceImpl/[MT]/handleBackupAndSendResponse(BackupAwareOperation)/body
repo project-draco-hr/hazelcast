@@ -1,4 +1,5 @@
 {
+  final int maxRetryCount=50;
   final int maxBackups=node.getClusterService().getSize() - 1;
   final int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
   final int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
@@ -26,9 +27,9 @@
               backupResponse=backupOp;
             }
  else {
-              final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(20).build().invoke();
+              final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
               if (returnsResponse) {
-                syncBackups.add(new BackupFuture(f,partitionId,replicaIndex));
+                syncBackups.add(new BackupFuture(f,partitionId,replicaIndex,maxRetryCount));
               }
             }
           }
@@ -44,9 +45,9 @@
             throw new IllegalStateException("Normally shouldn't happen!!");
           }
  else {
-            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(10).build().invoke();
+            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
             if (returnsResponse) {
-              asyncBackups.add(new BackupFuture(f,partitionId,replicaIndex));
+              asyncBackups.add(new BackupFuture(f,partitionId,replicaIndex,maxRetryCount));
             }
           }
         }
@@ -54,7 +55,7 @@
     }
   }
   final Object response=op.returnsResponse() ? (backupResponse == null ? op.getResponse() : new MultiResponse(nodeEngine.getSerializationService(),backupResponse,op.getResponse())) : null;
-  waitFutureResponses(syncBackups);
+  waitBackupResponses(syncBackups);
   sendResponse(op,response);
-  waitFutureResponses(asyncBackups);
+  waitBackupResponses(asyncBackups);
 }
