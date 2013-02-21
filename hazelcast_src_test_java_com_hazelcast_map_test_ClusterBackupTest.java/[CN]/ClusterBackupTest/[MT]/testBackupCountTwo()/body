@@ -1,0 +1,26 @@
+{
+  Config config=new Config();
+  config.getProperties().put(GroupProperties.PROP_PARTITION_MIGRATION_INTERVAL,"0");
+  MapConfig mapConfig=config.getMapConfig("default");
+  mapConfig.setBackupCount(2);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  IMap map1=h1.getMap("default");
+  IMap map2=h2.getMap("default");
+  int size=10000;
+  for (int i=0; i < size; i++) {
+    map1.put(i,i);
+  }
+  assertEquals(size,getTotalOwnedEntryCount(map1,map2));
+  assertEquals(size,getTotalBackupEntryCount(map1,map2));
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  IMap map3=h3.getMap("default");
+  Thread.sleep(3000);
+  assertEquals(size,getTotalOwnedEntryCount(map1,map2,map3));
+  assertEquals(2 * size,getTotalBackupEntryCount(map1,map2,map3));
+  HazelcastInstance h4=Hazelcast.newHazelcastInstance(config);
+  IMap map4=h4.getMap("default");
+  Thread.sleep(3000);
+  assertEquals(size,getTotalOwnedEntryCount(map1,map2,map3,map4));
+  assertEquals(2 * size,getTotalBackupEntryCount(map1,map2,map3,map4));
+}
