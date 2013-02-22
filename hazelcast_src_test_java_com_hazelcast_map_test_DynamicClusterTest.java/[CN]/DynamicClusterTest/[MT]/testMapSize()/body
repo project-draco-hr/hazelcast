@@ -1,63 +1,41 @@
 {
   log("starting");
   final IMap map=getInstance(0).getMap("testMapSize");
-  final int putSize=80 * 1000;
-  final int removeSize=putSize * 5;
+  final int putSize=20 * 1000;
+  final int removeSize=1;
   final AtomicInteger putCount=new AtomicInteger(putSize);
   final AtomicBoolean putException=new AtomicBoolean(false);
   final AtomicBoolean removeException=new AtomicBoolean(false);
-  new Thread(){
-    public void run(){
-      try {
-        for (int i=0; i < putSize; i++) {
-          map.put("key" + i,"value" + i);
-          putCount.decrementAndGet();
-        }
-      }
- catch (      Exception e) {
-        putException.set(true);
-        log("exexex");
-        log(e.getMessage());
-      }
+  try {
+    for (int i=0; i < putSize; i++) {
+      map.put("key" + i,"value" + i);
+      putCount.decrementAndGet();
     }
   }
-.start();
+ catch (  Exception e) {
+    putException.set(true);
+    log("exexex");
+    log(e.getMessage());
+  }
   final AtomicInteger removed=new AtomicInteger();
   final AtomicInteger removeCount=new AtomicInteger(removeSize);
-  new Thread(){
-    public void run(){
-      try {
-        for (int i=0; i < removeSize; i++) {
-          Random ran=new Random(System.currentTimeMillis());
-          Object o=map.remove("key" + ran.nextInt(putSize));
-          if (o != null) {
-            removed.incrementAndGet();
-          }
-          removeCount.decrementAndGet();
-        }
+  try {
+    for (int i=0; i < removeSize; i++) {
+      Random ran=new Random(System.currentTimeMillis());
+      Object o=map.remove("key" + ran.nextInt(putSize));
+      if (o != null) {
+        removed.incrementAndGet();
       }
- catch (      Exception e) {
-        removeException.set(true);
-        log("exexex");
-        log(e.getMessage());
-      }
+      removeCount.decrementAndGet();
     }
   }
-.start();
-  Thread.sleep(500);
-  for (int i=0; i < 3; i++) {
-    while (getInstance(0).getPartitionService().hasOngoingMigration()) {
-      Thread.sleep(100);
-    }
-    log("remove instance");
-    removeInstance(2);
-    Thread.sleep(2000);
-    log("new instance");
-    newInstance();
-    Thread.sleep(1000);
-    log("putCount: " + putCount.get() + "  removeCount: "+ removeCount.get());
-    Thread.sleep(1000);
+ catch (  Exception e) {
+    removeException.set(true);
+    log("exexex");
+    log(e.getMessage());
   }
+  Thread.sleep(1000);
+  removeInstance(1);
   while (putCount.get() != 0 || removeCount.get() != 0) {
     Thread.sleep(1000);
     log("putCount: " + putCount.get() + "  removeCount: "+ removeCount.get());
