@@ -1,8 +1,8 @@
 {
-  SecondExecutorFactory secondExecutorFactory=new SecondExecutorFactory(){
-    public SecondExecutor newSecondExecutor(){
-      return new SecondBulkExecutor(){
-        public void executeAll(        ConcurrentMap<Object,Object> entries){
+  SecondTaskFactory secondTaskFactory=new SecondTaskFactory(){
+    public SecondTask newSecondTask(){
+      return new SecondBulkTask(){
+        public void executeAll(        SecondExecutorService ses,        ConcurrentMap<Object,Object> entries,        int delaySecond){
           for (          Object o : entries.values()) {
             System.out.println(o);
           }
@@ -15,11 +15,11 @@
   }
 ;
   final ScheduledExecutorService ses=Executors.newScheduledThreadPool(10);
-  final KeyScheduler keyScheduler=new KeyScheduler(ses,secondExecutorFactory);
+  final SecondScheduler secondScheduler=new SecondScheduler(ses,secondTaskFactory);
   new Thread(){
     @Override public synchronized void run(){
       while (true) {
-        System.out.println(keyScheduler);
+        System.out.println(secondScheduler);
         try {
           Thread.sleep(1000);
         }
@@ -32,7 +32,7 @@
 .start();
   while (true) {
     for (int i=0; i < 10; i++) {
-      schedule(true,keyScheduler,i,100);
+      schedule(true,secondScheduler,i,100);
     }
   }
 }
