@@ -1,10 +1,11 @@
 {
-  SecondTaskFactory secondTaskFactory=new SecondTaskFactory(){
-    public SecondTask newSecondTask(){
+  final ScheduledExecutorService se=Executors.newScheduledThreadPool(10);
+  final SecondBulkTaskFactory sbtf=new SecondBulkTaskFactory(){
+    @Override public SecondBulkTask newSecondTask(){
       return new SecondBulkTask(){
         public void executeAll(        SecondExecutorService ses,        ConcurrentMap<Object,Object> entries,        int delaySecond){
           for (          Object o : entries.values()) {
-            System.out.println(o);
+            System.out.println("bulk execute: " + o);
           }
         }
         public void endSecond(){
@@ -14,12 +15,24 @@
     }
   }
 ;
-  final ScheduledExecutorService ses=Executors.newScheduledThreadPool(10);
-  final SecondScheduler secondScheduler=new SecondScheduler(ses,secondTaskFactory);
+  final SecondEntryTaskFactory setf=new SecondEntryTaskFactory(){
+    @Override public SecondEntryTask newSecondTask(){
+      return new SecondEntryTask(){
+        @Override public void executeEntry(        SecondExecutorService ses,        Map.Entry entry,        int delaySeconds){
+          System.out.println("entry execute: " + entry.getValue());
+        }
+        public void endSecond(){
+        }
+      }
+;
+    }
+  }
+;
+  final SecondExecutorService ses=SecondExecutorServiceFactory.newSecondBulkExecutor(se,sbtf);
   new Thread(){
     @Override public synchronized void run(){
       while (true) {
-        System.out.println(secondScheduler);
+        System.out.println(ses);
         try {
           Thread.sleep(1000);
         }
@@ -30,9 +43,14 @@
     }
   }
 .start();
-  while (true) {
-    for (int i=0; i < 10; i++) {
-      schedule(true,secondScheduler,i,100);
-    }
+  for (int i=0; i < 10; i++) {
+    ses.schedule(100,i,"value" + i);
+    ses.schedule(100,i,"value" + i);
+    ses.schedule(100,i,"value" + i);
+  }
+  for (int i=10; i < 20; i++) {
+    ses.schedule(3330,i,"value" + i);
+    ses.schedule(4330,i,"value" + i);
+    ses.schedule(5330,i,"value" + i);
   }
 }
