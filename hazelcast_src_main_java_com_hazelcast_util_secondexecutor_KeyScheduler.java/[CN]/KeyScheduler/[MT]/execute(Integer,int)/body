@@ -1,0 +1,35 @@
+{
+  ses.schedule(new Runnable(){
+    public void run(){
+      final ConcurrentMap<Object,Object> scheduledKeys=secondObjects.remove(second);
+      final SecondExecutor secondExecutor=secondExecutorFactory.newSecondExecutor();
+      try {
+        if (secondExecutor instanceof SecondEntryExecutor) {
+          final SecondEntryExecutor see=(SecondEntryExecutor)secondExecutor;
+          for (          Map.Entry<Object,Object> object : scheduledKeys.entrySet()) {
+            final Object scheduleKey=object.getKey();
+            if (keySeconds.remove(scheduleKey,second)) {
+              try {
+                see.executeEntry(object);
+              }
+ catch (              Exception ignored) {
+              }
+            }
+          }
+        }
+ else {
+          final SecondBulkExecutor sbe=(SecondBulkExecutor)secondExecutor;
+          for (          Object o : scheduledKeys.keySet()) {
+            keySeconds.remove(o);
+          }
+          sbe.executeAll(scheduledKeys);
+        }
+      }
+  finally {
+        secondExecutor.endSecond();
+      }
+    }
+  }
+,delaySecond,TimeUnit.SECONDS);
+  System.out.println("Scheduled for " + second);
+}
