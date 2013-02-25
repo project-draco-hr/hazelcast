@@ -1,32 +1,27 @@
 {
   Config cfg=new Config();
   MapConfig mc=cfg.getMapConfig("testMapRecordIdleEviction");
-  mc.setMaxIdleSeconds(20);
+  int maxIdleSeconds=8;
+  int size=100;
+  int nsize=size / 10;
+  int waitBetween=maxIdleSeconds / 2;
+  int waitMore=2;
+  mc.setMaxIdleSeconds(maxIdleSeconds);
   HazelcastInstance instance=Hazelcast.newHazelcastInstance(cfg);
   HazelcastInstance instance2=Hazelcast.newHazelcastInstance(cfg);
   IMap map=instance.getMap("testMapRecordIdleEviction");
-  int size=100;
   long cur=System.currentTimeMillis();
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
   long lasts=System.currentTimeMillis() - cur;
-  System.out.println("lasts:" + lasts);
-  Thread.sleep(3000 - lasts);
-  int nsize=20;
-  for (int i=0; i < 20; i++) {
+  long wait1=((maxIdleSeconds - waitBetween) * 1000) - lasts;
+  Thread.sleep(wait1);
+  for (int i=0; i < nsize; i++) {
     map.get(i);
   }
-  Thread.sleep(1000);
-  for (int i=0; i < 3000; i++) {
-    System.out.println("turn:" + i + " size:"+ nsize+ ":"+ map.size());
-    cur=System.currentTimeMillis();
-    for (int j=0; j < 1; j++) {
-      map.get(i);
-    }
-    lasts=System.currentTimeMillis() - cur;
-    System.out.println("lasts: " + lasts);
-    Thread.sleep(1000 - lasts);
-  }
+  Thread.sleep(waitBetween * 1000);
+  Thread.sleep(waitMore * 1000);
+  Assert.assertEquals(nsize,map.size());
   Hazelcast.shutdownAll();
 }
