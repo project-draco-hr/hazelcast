@@ -1,0 +1,20 @@
+{
+  final ConcurrentMap<K,ScheduledEntry<K,V>> entries=scheduledEntries.remove(second);
+  if (entries == null || entries.isEmpty())   return;
+  if (bulk) {
+    final BulkScheduledEntryProcessor<K,V> bulkEntryProcessor=(BulkScheduledEntryProcessor)entryProcessor;
+    for (    K key : entries.keySet()) {
+      secondsOfKeys.remove(key);
+    }
+    bulkEntryProcessor.processAll(SecondsBasedEntryTaskScheduler.this,entries.values());
+  }
+ else {
+    final ScheduledEntryProcessor<K,V> singleEntryProcessor=(ScheduledEntryProcessor)entryProcessor;
+    for (    ScheduledEntry<K,V> entry : entries.values()) {
+      final Object scheduleKey=entry.getKey();
+      if (secondsOfKeys.remove(scheduleKey,second)) {
+        singleEntryProcessor.process(SecondsBasedEntryTaskScheduler.this,entry);
+      }
+    }
+  }
+}
