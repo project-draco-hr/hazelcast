@@ -1,0 +1,18 @@
+{
+  ConcurrentMap<K,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
+  boolean shouldSchedule=false;
+  if (entries == null) {
+    entries=new ConcurrentHashMap<K,ScheduledEntry<K,V>>(10);
+    ConcurrentMap<K,ScheduledEntry<K,V>> existingScheduleKeys=scheduledEntries.putIfAbsent(second,entries);
+    if (existingScheduleKeys != null) {
+      entries=existingScheduleKeys;
+    }
+ else {
+      shouldSchedule=true;
+    }
+  }
+  entries.put(entry.getKey(),entry);
+  if (shouldSchedule) {
+    schedule(second,entry.getActualDelaySeconds());
+  }
+}
