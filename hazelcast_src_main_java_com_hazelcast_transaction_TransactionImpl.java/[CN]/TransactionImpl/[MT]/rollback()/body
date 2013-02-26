@@ -1,8 +1,8 @@
 {
-  if (status == TXN_STATUS_NO_TXN) {
+  if (state == NO_TXN || state == ROLLED_BACK) {
     throw new IllegalStateException("Transaction is not active");
   }
-  status=TXN_STATUS_ROLLING_BACK;
+  state=ROLLING_BACK;
   try {
     List<Future> futures=new ArrayList<Future>(participants.size());
     for (    TxnParticipant t : participants) {
@@ -13,14 +13,10 @@
       future.get(300,TimeUnit.SECONDS);
     }
   }
- catch (  RuntimeException e) {
-    throw e;
-  }
-catch (  Exception e) {
-    throw new RuntimeException(e);
+ catch (  Throwable e) {
+    throw ExceptionUtil.rethrow(e);
   }
  finally {
-    status=TXN_STATUS_ROLLED_BACK;
-    finalizeTxn();
+    state=ROLLED_BACK;
   }
 }
