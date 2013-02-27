@@ -1,36 +1,37 @@
 {
-  if (status != TXN_STATUS_ACTIVE) {
+  if (state != ACTIVE) {
     throw new IllegalStateException("Transaction is not active");
   }
   try {
-    status=TXN_STATUS_PREPARING;
-    List<Future> futures=new ArrayList<Future>(participants.size());
-    for (    TxnParticipant t : participants) {
-      Operation op=new PrepareOperation(txnId);
-      futures.add(nodeEngine.getOperationService().createInvocationBuilder(t.serviceName,op,t.partitionId).build().invoke());
+    state=PREPARING;
+    final List<Future> futures=new ArrayList<Future>(participants.size());
+    final OperationService operationService=nodeEngine.getOperationService();
+    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
+      final int partitionId=entry.getKey();
+      PrepareOperation op=new PrepareOperation(txnId,getServicesArray(entry.getValue()));
+      futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
-      future.get(300,TimeUnit.SECONDS);
+      future.get(timeoutSeconds,TimeUnit.SECONDS);
     }
-    status=TXN_STATUS_PREPARED;
+    state=PREPARED;
     futures.clear();
-    status=TXN_STATUS_COMMITTING;
-    for (    TxnParticipant t : participants) {
-      Operation op=new CommitOperation(txnId);
-      futures.add(nodeEngine.getOperationService().createInvocationBuilder(t.serviceName,op,t.partitionId).build().invoke());
+    state=COMMITTING;
+    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
+      final int partitionId=entry.getKey();
+      CommitOperation op=new CommitOperation(txnId,getServicesArray(entry.getValue()));
+      futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
-      future.get(300,TimeUnit.SECONDS);
+      future.get(timeoutSeconds,TimeUnit.SECONDS);
     }
+    state=COMMITTED;
   }
- catch (  RuntimeException e) {
-    throw e;
-  }
-catch (  Exception e) {
-    throw new RuntimeException(e);
-  }
- finally {
-    status=TXN_STATUS_COMMITTED;
-    finalizeTxn();
+ catch (  Throwable e) {
+    state=COMMIT_FAILED;
+    if (e instanceof ExecutionException && e.getCause() instanceof TransactionException) {
+      throw (TransactionException)e.getCause();
+    }
+    throw ExceptionUtil.rethrow(e);
   }
 }

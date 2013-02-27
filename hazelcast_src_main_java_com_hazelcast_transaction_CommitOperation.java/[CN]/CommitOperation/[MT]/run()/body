@@ -1,9 +1,19 @@
 {
-  TransactionalService txnalService=(TransactionalService)getService();
-  try {
-    txnalService.commit(txnId,getPartitionId());
-  }
- catch (  TransactionException e) {
-    response=e;
+  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  TransactionManagerService txService=getService();
+  txService.commit(getCallerUuid(),txnId,getPartitionId(),services);
+  final ILogger logger=nodeEngine.getLogger(getClass());
+  for (  String serviceName : services) {
+    final TransactionalService service=nodeEngine.getService(serviceName);
+    if (service == null) {
+      logger.log(Level.WARNING,"Unknown service: " + serviceName);
+      continue;
+    }
+    try {
+      service.commit(txnId,getPartitionId());
+    }
+ catch (    Throwable e) {
+      logger.log(Level.WARNING,"Problem while service[" + serviceName + "] committing the transaction["+ txnId+ "]!",e);
+    }
   }
 }
