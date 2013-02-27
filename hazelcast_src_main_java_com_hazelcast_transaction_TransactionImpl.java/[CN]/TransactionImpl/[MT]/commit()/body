@@ -6,9 +6,10 @@
     state=PREPARING;
     final List<Future> futures=new ArrayList<Future>(participants.size());
     final OperationService operationService=nodeEngine.getOperationService();
-    for (    TxnParticipant t : participants) {
-      PrepareOperation op=new PrepareOperation(txnId);
-      futures.add(operationService.createInvocationBuilder(t.serviceName,op,t.partitionId).build().invoke());
+    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
+      final int partitionId=entry.getKey();
+      PrepareOperation op=new PrepareOperation(txnId,getServicesArray(entry.getValue()));
+      futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
       future.get(timeoutSeconds,TimeUnit.SECONDS);
@@ -16,9 +17,10 @@
     state=PREPARED;
     futures.clear();
     state=COMMITTING;
-    for (    TxnParticipant t : participants) {
-      Operation op=new CommitOperation(txnId);
-      futures.add(operationService.createInvocationBuilder(t.serviceName,op,t.partitionId).build().invoke());
+    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
+      final int partitionId=entry.getKey();
+      CommitOperation op=new CommitOperation(txnId,getServicesArray(entry.getValue()));
+      futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
       future.get(timeoutSeconds,TimeUnit.SECONDS);

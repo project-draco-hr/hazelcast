@@ -5,12 +5,13 @@
   state=ROLLING_BACK;
   try {
     List<Future> futures=new ArrayList<Future>(participants.size());
-    for (    TxnParticipant t : participants) {
-      Operation op=new RollbackOperation(txnId);
-      futures.add(nodeEngine.getOperationService().createInvocationBuilder(t.serviceName,op,t.partitionId).build().invoke());
+    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
+      final int partitionId=entry.getKey();
+      RollbackOperation op=new RollbackOperation(txnId,getServicesArray(entry.getValue()));
+      futures.add(nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
-      future.get(300,TimeUnit.SECONDS);
+      future.get(timeoutSeconds,TimeUnit.SECONDS);
     }
   }
  catch (  Throwable e) {

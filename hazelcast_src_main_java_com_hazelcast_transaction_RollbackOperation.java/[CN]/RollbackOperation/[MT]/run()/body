@@ -1,4 +1,19 @@
 {
-  TransactionalService txnalService=getService();
-  txnalService.rollback(txnId,getPartitionId());
+  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  TransactionManagerService txService=getService();
+  txService.rollback(getCallerUuid(),txnId,getPartitionId(),services);
+  final ILogger logger=nodeEngine.getLogger(getClass());
+  for (  String serviceName : services) {
+    final TransactionalService service=nodeEngine.getService(serviceName);
+    if (service == null) {
+      logger.log(Level.WARNING,"Unknown service: " + serviceName);
+      continue;
+    }
+    try {
+      service.rollback(txnId,getPartitionId());
+    }
+ catch (    Throwable e) {
+      logger.log(Level.WARNING,"Problem while service[" + serviceName + "] rolling-back the transaction["+ txnId+ "]!",e);
+    }
+  }
 }
