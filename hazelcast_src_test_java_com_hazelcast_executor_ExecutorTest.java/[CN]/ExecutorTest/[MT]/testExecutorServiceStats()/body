@@ -1,0 +1,28 @@
+{
+  final IExecutorService executorService=StaticNodeFactory.newInstances(new Config(),1)[0].getExecutorService("testExecutorServiceStats");
+  final int k=10;
+  final CountDownLatch latch=new CountDownLatch(k);
+  final int executionTime=200;
+  for (int i=0; i < k; i++) {
+    executorService.execute(new Runnable(){
+      public void run(){
+        try {
+          Thread.sleep(executionTime);
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+        latch.countDown();
+      }
+    }
+);
+  }
+  latch.await(2,TimeUnit.MINUTES);
+  Assert.assertEquals(k,executorService.getLocalExecutorStats().getTotalStarted());
+  Assert.assertEquals(k,executorService.getLocalExecutorStats().getTotalFinished());
+  Assert.assertEquals(k,executorService.getLocalExecutorStats().getOperationStats().getStarted());
+  Assert.assertEquals(k,executorService.getLocalExecutorStats().getOperationStats().getCompleted());
+  Assert.assertTrue(executionTime <= executorService.getLocalExecutorStats().getOperationStats().getAverageExecutionTime());
+  Assert.assertTrue(executionTime <= executorService.getLocalExecutorStats().getOperationStats().getMinExecutionTime());
+  Assert.assertTrue(executionTime <= executorService.getLocalExecutorStats().getOperationStats().getMaxExecutionTime());
+}
