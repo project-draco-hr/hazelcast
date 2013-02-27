@@ -4,6 +4,7 @@
   this.mapConfig=mapConfig;
   this.mapService=mapService;
   MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+  NodeEngine nodeEngine=mapService.getNodeEngine();
   if (mapStoreConfig != null) {
     try {
       MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
@@ -26,7 +27,6 @@
   }
   store=storeTemp;
   if (store != null) {
-    NodeEngine nodeEngine=mapService.getNodeEngine();
     if (nodeEngine.getClusterService().isMaster() && initialLoaded.compareAndSet(false,true)) {
       loadMapFromStore(true);
       Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
@@ -46,9 +46,26 @@
  else {
       mapReady=true;
     }
+    if (mapStoreConfig.getWriteDelaySeconds() > 0) {
+      mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),false);
+      mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreDeleteProcessor(this,mapService),false);
+    }
+ else {
+      mapStoreDeleteScheduler=null;
+      mapStoreWriteScheduler=null;
+    }
   }
  else {
     mapReady=true;
+    mapStoreDeleteScheduler=null;
+    mapStoreWriteScheduler=null;
+  }
+  ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),true);
+  if (mapConfig.getMaxIdleSeconds() > 0) {
+    idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),true);
+  }
+ else {
+    idleEvictionScheduler=null;
   }
   interceptors=new CopyOnWriteArrayList<MapInterceptor>();
   interceptorMap=new ConcurrentHashMap<String,MapInterceptor>();
