@@ -1,30 +1,3 @@
 {
-  Record record=null;
-  MapContainer mapContainer=getMapContainer(name);
-  final MapConfig.RecordType recordType=mapContainer.getMapConfig().getRecordType();
-  if (recordType == MapConfig.RecordType.DATA) {
-    record=new DataRecord(dataKey,toData(value));
-  }
- else   if (recordType == MapConfig.RecordType.OBJECT) {
-    record=new ObjectRecord(dataKey,toObject(value));
-  }
- else   if (recordType == MapConfig.RecordType.CACHED) {
-    record=new CachedDataRecord(dataKey,toData(value));
-  }
- else {
-    throw new IllegalArgumentException("Should not happen!");
-  }
-  if (ttl <= 0 && mapContainer.getMapConfig().getTimeToLiveSeconds() > 0) {
-    record.getState().updateTtlExpireTime(mapContainer.getMapConfig().getTimeToLiveSeconds() * 1000);
-    scheduleTtlEviction(name,dataKey,mapContainer.getMapConfig().getTimeToLiveSeconds() * 1000);
-  }
-  if (ttl > 0) {
-    record.getState().updateTtlExpireTime(ttl);
-    scheduleTtlEviction(name,record.getKey(),ttl);
-  }
-  if (mapContainer.getMapConfig().getMaxIdleSeconds() > 0) {
-    record.getState().updateIdleExpireTime(mapContainer.getMapConfig().getMaxIdleSeconds() * 1000);
-    scheduleIdleEviction(name,dataKey,mapContainer.getMapConfig().getMaxIdleSeconds() * 1000);
-  }
-  return record;
+  return createRecord(name,dataKey,value,ttl,false);
 }
