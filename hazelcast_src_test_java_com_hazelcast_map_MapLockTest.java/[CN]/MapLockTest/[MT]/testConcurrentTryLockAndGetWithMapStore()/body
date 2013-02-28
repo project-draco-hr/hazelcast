@@ -1,0 +1,57 @@
+{
+  Config config=new Config();
+  final String name="test";
+  config.getMapConfig(name).setMapStoreConfig(new MapStoreConfig().setEnabled(true).setImplementation(new MapStoreTest.MapStoreAdaptor()));
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  final IMap map=hz.getMap(name);
+  final String key="key";
+  final int taskCount=25;
+  final CountDownLatch latch=new CountDownLatch(taskCount);
+class TryLockAndGetRunnable implements Runnable {
+    volatile boolean gotTheLock=false;
+    boolean gotTheLock(){
+      return gotTheLock;
+    }
+    public void run(){
+      try {
+        gotTheLock=map.tryLock(key,50,TimeUnit.MILLISECONDS);
+        try {
+          Thread.sleep(1000);
+        }
+ catch (        InterruptedException ignored) {
+        }
+ finally {
+          if (gotTheLock) {
+            map.unlock(key);
+          }
+        }
+      }
+  finally {
+        latch.countDown();
+      }
+    }
+  }
+  TryLockAndGetRunnable[] tasks=new TryLockAndGetRunnable[taskCount];
+  for (int i=0; i < tasks.length; i++) {
+    tasks[i]=new TryLockAndGetRunnable();
+  }
+  ExecutorService executorService=Executors.newCachedThreadPool();
+  for (  TryLockAndGetRunnable task : tasks) {
+    executorService.execute(task);
+  }
+  try {
+    assertTrue("TryLockAndGetRunnable tasks stuck: " + latch.getCount(),latch.await(10,TimeUnit.SECONDS));
+    int lockCount=0;
+    for (    TryLockAndGetRunnable task : tasks) {
+      lockCount+=(task.gotTheLock() ? 1 : 0);
+    }
+    assertEquals("Multiple threads got the lock!",1,lockCount);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+    fail(e.getMessage());
+  }
+ finally {
+    executorService.shutdownNow();
+  }
+}
