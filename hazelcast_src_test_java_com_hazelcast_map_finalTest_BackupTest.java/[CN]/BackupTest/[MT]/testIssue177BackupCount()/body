@@ -1,0 +1,63 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(10);
+  final Config config=new Config();
+  config.setProperty("hazelcast.partition.migration.interval","0");
+  config.setProperty("hazelcast.wait.seconds.before.join","1");
+  final String name="test";
+  config.getMapConfig(name).setBackupCounts(1,0);
+  final Random rand=new Random(System.currentTimeMillis());
+  final AtomicReferenceArray<HazelcastInstance> instances=new AtomicReferenceArray<HazelcastInstance>(10);
+  final int count=10000;
+  final int totalCount=count * (instances.length() - 1);
+  final Thread[] threads=new Thread[instances.length()];
+  for (int i=0; i < instances.length(); i++) {
+    final int finalI=i;
+    Thread thread=new Thread(){
+      public void run(){
+        try {
+          Thread.sleep(3000 * finalI);
+          HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+          instances.set(finalI,instance);
+          Thread.sleep(rand.nextInt(100));
+          if (finalI != 0) {
+            for (int j=0; j < 10000; j++) {
+              instance.getMap(name).put(getName() + "-" + j,"value");
+            }
+          }
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+;
+    threads[i]=thread;
+    thread.start();
+  }
+  for (  Thread thread : threads) {
+    thread.join();
+  }
+  final int trials=10;
+  for (int i=0; i < trials; i++) {
+    long totalOwned=0L;
+    long totalBackup=0L;
+    for (int j=0; j < instances.length(); j++) {
+      HazelcastInstance hz=instances.get(j);
+      LocalMapStats stats=hz.getMap(name).getLocalMapStats();
+      totalOwned+=stats.getOwnedEntryCount();
+      totalBackup+=stats.getBackupEntryCount();
+    }
+    System.out.println("totalOwned = " + totalOwned);
+    System.out.println("totalBackup = " + totalBackup);
+    assertEquals("Owned entry count is wrong! ",totalCount,totalOwned);
+    if (i < trials - 1) {
+      if (totalBackup == totalCount) {
+        break;
+      }
+      Thread.sleep(1000);
+    }
+ else {
+      assertEquals("Backup entry count is wrong! ",totalCount,totalBackup);
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   this.nodeEngine=nodeEngine;
-  Node node=nodeEngine.getNode();
+  final Node node=nodeEngine.getNode();
   logger=node.getLogger(ExecutionService.class.getName());
   final ClassLoader classLoader=node.getConfig().getClassLoader();
   final ExecutorThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("cached"),classLoader);
@@ -10,7 +10,13 @@
     }
   }
 );
-  scheduledExecutorService=Executors.newScheduledThreadPool(2,new PoolExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("scheduled"),classLoader));
+  final String scheduledThreadName=node.getThreadNamePrefix("scheduled");
+  scheduledExecutorService=Executors.newSingleThreadScheduledExecutor(new ExecutorThreadFactory(node.threadGroup,classLoader){
+    protected String newThreadName(){
+      return scheduledThreadName;
+    }
+  }
+);
   register("hz:system",30,Integer.MAX_VALUE);
-  register("hz:scheduled",10,Integer.MAX_VALUE);
+  register("hz:scheduled",20,Integer.MAX_VALUE);
 }

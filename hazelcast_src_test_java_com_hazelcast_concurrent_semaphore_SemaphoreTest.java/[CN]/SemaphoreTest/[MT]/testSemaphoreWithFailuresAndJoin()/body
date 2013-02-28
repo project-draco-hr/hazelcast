@@ -1,0 +1,35 @@
+{
+  final Config config=new Config();
+  final StaticNodeFactory staticNodeFactory=new StaticNodeFactory(3);
+  final HazelcastInstance instance1=staticNodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=staticNodeFactory.newHazelcastInstance(config);
+  final ISemaphore semaphore=instance1.getSemaphore("test");
+  final CountDownLatch countDownLatch=new CountDownLatch(1);
+  semaphore.init(0);
+  new Thread(){
+    public void run(){
+      for (int i=0; i < 2; i++) {
+        try {
+          semaphore.acquire();
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      countDownLatch.countDown();
+    }
+  }
+.start();
+  instance2.getLifecycleService().shutdown();
+  semaphore.release();
+  HazelcastInstance instance3=staticNodeFactory.newHazelcastInstance(config);
+  ISemaphore semaphore1=instance3.getSemaphore("test");
+  semaphore1.release();
+  try {
+    countDownLatch.await(2,TimeUnit.SECONDS);
+  }
+ catch (  InterruptedException e) {
+    Assert.assertTrue("FAIL",true);
+    e.printStackTrace();
+  }
+}

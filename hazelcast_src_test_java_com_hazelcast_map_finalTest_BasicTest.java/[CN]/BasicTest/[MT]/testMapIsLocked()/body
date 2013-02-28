@@ -1,0 +1,27 @@
+{
+  final IMap<Object,Object> map=getInstance().getMap("testMapIsLocked");
+  map.lock("key1");
+  assertTrue(map.isLocked("key1"));
+  assertFalse(map.isLocked("key2"));
+  final CountDownLatch latch=new CountDownLatch(1);
+  final AtomicBoolean b1=new AtomicBoolean();
+  final AtomicBoolean b2=new AtomicBoolean();
+  Thread thread=new Thread(new Runnable(){
+    public void run(){
+      try {
+        b1.set(map.isLocked("key1"));
+        b2.set(map.isLocked("key2"));
+        latch.countDown();
+      }
+ catch (      Exception e) {
+        fail(e.getMessage());
+      }
+    }
+  }
+);
+  thread.start();
+  latch.await();
+  assertTrue(b1.get());
+  assertFalse(b2.get());
+  thread.join();
+}

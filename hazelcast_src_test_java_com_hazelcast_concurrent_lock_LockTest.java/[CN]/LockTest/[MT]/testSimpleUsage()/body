@@ -1,0 +1,47 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(1);
+  final Config config=new Config();
+  final HazelcastInstance instance=nodeFactory.newInstance(config);
+  final AtomicInteger atomicInteger=new AtomicInteger(0);
+  final ILock lock=instance.getLock("testSimpleUsage");
+  Assert.assertEquals("testSimpleUsage",lock.getName());
+  final Runnable tryLockRunnable=new Runnable(){
+    public void run(){
+      if (lock.tryLock())       atomicInteger.incrementAndGet();
+    }
+  }
+;
+  final Runnable lockRunnable=new Runnable(){
+    public void run(){
+      lock.lock();
+    }
+  }
+;
+  Assert.assertEquals(false,lock.isLocked());
+  lock.lock();
+  Assert.assertEquals(true,lock.isLocked());
+  Assert.assertEquals(true,lock.tryLock());
+  lock.unlock();
+  Thread thread1=new Thread(tryLockRunnable);
+  thread1.start();
+  thread1.join();
+  Assert.assertEquals(0,atomicInteger.get());
+  lock.unlock();
+  Thread thread2=new Thread(tryLockRunnable);
+  thread2.start();
+  thread2.join();
+  Assert.assertEquals(1,atomicInteger.get());
+  Assert.assertEquals(true,lock.isLocked());
+  lock.forceUnlock();
+  Thread thread3=new Thread(lockRunnable);
+  thread3.start();
+  thread3.join();
+  Assert.assertEquals(true,lock.isLocked());
+  Assert.assertEquals(false,lock.tryLock(2,TimeUnit.SECONDS));
+  Thread thread4=new Thread(lockRunnable);
+  thread4.start();
+  Thread.sleep(1000);
+  Assert.assertEquals(true,lock.isLocked());
+  lock.forceUnlock();
+  thread4.join();
+}
