@@ -1,0 +1,14 @@
+{
+  final int maxSize=10;
+  final ConcurrentMap<Integer,String> STORE=new ConcurrentHashMap<Integer,String>();
+  for (int i=0; i < 30; i++) {
+    STORE.put(i,"value" + i);
+  }
+  Config config=new Config();
+  config.getMapConfig("map").setMapStoreConfig(new MapStoreConfig().setWriteDelaySeconds(1).setImplementation(new SimpleMapStore<Integer,String>(STORE)));
+  config.getMapConfig("map").setMaxSizeConfig(new MaxSizeConfig().setSize(maxSize).setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_JVM));
+  HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+  IMap map=h.getMap("map");
+  System.out.println(map.size());
+  assertTrue(map.size() <= maxSize);
+}

@@ -1,0 +1,40 @@
+{
+  TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  testMapStore.setLoadAllKeys(true);
+  Map store=testMapStore.getStore();
+  Set keys=new HashSet();
+  int size=10000;
+  for (int i=0; i < size; i++) {
+    store.put(i,"value" + i);
+    keys.add(i);
+  }
+  final String mapName="mymap";
+  Config config=newConfig(mapName,testMapStore,2);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance[] instances=new HazelcastInstance[]{h1,h2,h3};
+  final Random random=new Random();
+  final CountDownLatch latch=new CountDownLatch(50);
+  for (int i=0; i < 50; i++) {
+    new Thread(new Runnable(){
+      public void run(){
+        instances[random.nextInt(3)].getMap(mapName);
+        latch.countDown();
+      }
+    }
+).start();
+  }
+  assertTrue(latch.await(100,TimeUnit.SECONDS));
+  instances[0].getMap(mapName);
+  instances[1].getMap(mapName);
+  instances[2].getMap(mapName);
+  assertEquals("After load:",15,testMapStore.callCount.get());
+  IMap map1=h1.getMap(mapName);
+  IMap map2=h2.getMap(mapName);
+  IMap map3=h3.getMap(mapName);
+  for (int i=0; i < size; i++) {
+    assertEquals("value" + i,map3.get(i));
+  }
+  assertEquals("After gets:",15,testMapStore.callCount.get());
+}
