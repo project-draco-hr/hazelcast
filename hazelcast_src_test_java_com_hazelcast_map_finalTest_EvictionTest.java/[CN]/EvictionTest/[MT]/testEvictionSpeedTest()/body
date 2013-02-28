@@ -1,0 +1,56 @@
+{
+  final int k=3;
+  final int size=10000;
+  final CountDownLatch latch=new CountDownLatch(k);
+  final String mapName="testEvictionSpeedTest";
+  Config cfg=new Config();
+  MapConfig mc=cfg.getMapConfig(mapName);
+  mc.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
+  mc.setEvictionPercentage(25);
+  MaxSizeConfig msc=new MaxSizeConfig();
+  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_JVM);
+  msc.setSize(size);
+  mc.setMaxSizeConfig(msc);
+  Hazelcast.shutdownAll();
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,k);
+  new Thread(){
+    final IMap map=instances[0].getMap(mapName);
+    public void run(){
+      try {
+        Thread.sleep(1000);
+        while (latch.getCount() != 0) {
+          try {
+            System.out.println("size:" + map.size() + " max size:"+ (size * k));
+            Thread.sleep(1000);
+          }
+ catch (          InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  for (int i=0; i < k; i++) {
+    final IMap map=instances[i].getMap(mapName);
+    new Thread(){
+      public void run(){
+        for (int j=0; j < 100000; j++) {
+          map.put("k" + j,j);
+        }
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  try {
+    Assert.assertEquals(latch.await(10,TimeUnit.MINUTES),true);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+    Assert.fail(e.getMessage());
+  }
+}

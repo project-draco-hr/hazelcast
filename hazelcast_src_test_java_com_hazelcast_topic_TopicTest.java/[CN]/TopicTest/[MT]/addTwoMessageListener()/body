@@ -1,0 +1,24 @@
+{
+  HazelcastInstance hazelcastInstance=new StaticNodeFactory(1).newHazelcastInstance(new Config());
+  ITopic<String> topic=hazelcastInstance.getTopic("addTwoMessageListener");
+  final CountDownLatch latch=new CountDownLatch(2);
+  final String message="Hazelcast Rocks!";
+  topic.addMessageListener(new MessageListener<String>(){
+    public void onMessage(    Message<String> msg){
+      if (msg.getMessageObject().equals(message)) {
+        latch.countDown();
+      }
+    }
+  }
+);
+  topic.addMessageListener(new MessageListener<String>(){
+    public void onMessage(    Message<String> msg){
+      if (msg.getMessageObject().equals(message)) {
+        latch.countDown();
+      }
+    }
+  }
+);
+  topic.publish(message);
+  assertTrue(latch.await(10000,TimeUnit.MILLISECONDS));
+}
