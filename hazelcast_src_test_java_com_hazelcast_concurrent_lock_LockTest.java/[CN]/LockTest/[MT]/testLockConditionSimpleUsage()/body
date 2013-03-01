@@ -1,0 +1,42 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final Config config=new Config();
+  final String name="testLockConditionSimpleUsage";
+  final ILock lock=nodeFactory.newHazelcastInstance(config).getLock(name);
+  final ICondition condition=lock.newCondition(name + "c");
+  final AtomicInteger count=new AtomicInteger(0);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      try {
+        lock.lock();
+        if (lock.isLocked() && lock.tryLock()) {
+          count.incrementAndGet();
+          lock.unlock();
+        }
+        condition.await();
+        if (lock.isLocked() && lock.tryLock()) {
+          count.incrementAndGet();
+          lock.unlock();
+        }
+      }
+ catch (      InterruptedException e) {
+        return;
+      }
+ finally {
+        lock.unlock();
+      }
+    }
+  }
+);
+  t.start();
+  Thread.sleep(1000);
+  final ILock lock1=nodeFactory.newHazelcastInstance(config).getLock(name);
+  final ICondition condition1=lock1.newCondition(name + "c");
+  Assert.assertEquals(false,lock1.isLocked());
+  lock1.lock();
+  Assert.assertEquals(true,lock1.isLocked());
+  condition1.signal();
+  lock1.unlock();
+  t.join();
+  Assert.assertEquals(2,count.get());
+}

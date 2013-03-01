@@ -1,0 +1,18 @@
+{
+  LocalQueueStatsImpl stats=new LocalQueueStatsImpl();
+  QueueContainer container=containerMap.get(name);
+  if (container == null) {
+    return stats;
+  }
+  Address thisAddress=nodeEngine.getClusterService().getThisAddress();
+  PartitionInfo info=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
+  if (thisAddress.equals(info.getOwner())) {
+    stats.setOwnedItemCount(container.size());
+  }
+ else {
+    stats.setBackupItemCount(container.size());
+  }
+  container.setStats(stats);
+  stats.setOperationStats(container.getOperationsCounter().getPublishedStats());
+  return stats;
+}

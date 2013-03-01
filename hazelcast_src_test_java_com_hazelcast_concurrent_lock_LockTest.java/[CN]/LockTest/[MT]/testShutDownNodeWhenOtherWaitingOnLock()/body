@@ -1,0 +1,27 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
+  nodeFactory.newHazelcastInstance(new Config());
+  final ILock lock=instance.getLock("testLockDestroyWhenWaitingLock");
+  final Thread thread=new Thread(new Runnable(){
+    public void run(){
+      lock.lock();
+    }
+  }
+);
+  thread.start();
+  thread.join();
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instance.getLifecycleService().shutdown();
+    }
+  }
+).start();
+  lock.lock();
+}

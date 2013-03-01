@@ -1,0 +1,25 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(1);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
+  final ILock lock=instance.getLock("testDestroyLockWhenOtherWaitingOnConditionAwait");
+  final ICondition condition=lock.newCondition("condition");
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      lock.destroy();
+    }
+  }
+).start();
+  lock.lock();
+  try {
+    condition.await();
+  }
+ catch (  InterruptedException e) {
+  }
+  lock.unlock();
+}
