@@ -7,14 +7,11 @@
     if (nodeEngine.getThisAddress().equals(owner)) {
       PartitionContainer pc=partitionContainers[i];
       final RecordStore recordStore=pc.getRecordStore(mapName);
-      SortedSet sortedRecords=new TreeSet(comparator);
-      Set<Map.Entry<Data,Record>> recordEntries=recordStore.getRecords().entrySet();
-      for (      Map.Entry<Data,Record> entry : recordEntries) {
-        sortedRecords.add(entry.getValue());
-      }
+      List<Record> sortedRecords=new ArrayList<Record>(recordStore.getRecords().values());
+      Collections.sort(sortedRecords,comparator);
       int evictSize=0;
       if (maxSizePolicy == MaxSizeConfig.MaxSizePolicy.PER_NODE || maxSizePolicy == MaxSizeConfig.MaxSizePolicy.PER_PARTITION) {
-        evictSize=sortedRecords.size() - targetSizePerPartition;
+        evictSize=Math.max((sortedRecords.size() - targetSizePerPartition),(sortedRecords.size() * evictionPercentage / 100 + 1));
       }
  else {
         evictSize=sortedRecords.size() * evictionPercentage / 100;
