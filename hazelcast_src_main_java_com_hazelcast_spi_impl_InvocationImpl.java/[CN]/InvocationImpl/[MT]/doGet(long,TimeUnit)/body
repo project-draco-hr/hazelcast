@@ -24,21 +24,26 @@
       final InvocationAction action=op.onException((Throwable)response);
       final int localInvokeCount=invokeCount;
       if (action == InvocationAction.RETRY_INVOCATION && localInvokeCount < tryCount && timeout > 0) {
-        try {
-          Thread.sleep(tryPauseMillis);
-        }
- catch (        InterruptedException e) {
-          return e;
+        if (localInvokeCount > 3) {
+          try {
+            Thread.sleep(tryPauseMillis);
+          }
+ catch (          InterruptedException e) {
+            return e;
+          }
         }
         timeout=decrementTimeout(timeout,tryPauseMillis);
         if (localInvokeCount > 5 && localInvokeCount % 10 == 0) {
-          logger.log(Level.WARNING,"Still invoking: " + toString());
+          logger.log(Level.WARNING,"Retrying invocation: " + toString());
         }
         doInvoke();
       }
  else       if (action == InvocationAction.CONTINUE_WAIT) {
       }
  else {
+        if (remote) {
+          ExceptionUtil.fixRemoteStackTrace((Throwable)response,Thread.currentThread().getStackTrace());
+        }
         return response;
       }
     }

@@ -1,0 +1,13 @@
+{
+  Config cfg=new Config();
+  HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,2);
+  final IMap map=instances[0].getMap("testMapEvictionTtl");
+  for (int i=0; i < 5; i++) {
+    int ttl=(int)(Math.random() * 5000);
+    for (int j=0; j < 100000; j++) {
+      map.put(j,j,ttl,TimeUnit.MILLISECONDS);
+    }
+    Thread.sleep(ttl + 2000);
+    Assert.assertEquals(0,map.size());
+  }
+}

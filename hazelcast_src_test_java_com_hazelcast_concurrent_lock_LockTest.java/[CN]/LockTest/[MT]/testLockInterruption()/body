@@ -1,0 +1,33 @@
+{
+  Config config=new Config();
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  final Lock lock=hz.getLock("test");
+  Random rand=new Random();
+  for (int i=0; i < 30; i++) {
+    Thread t=new Thread(){
+      public void run(){
+        try {
+          lock.lock();
+          sleep(1);
+        }
+ catch (        InterruptedException e) {
+        }
+ finally {
+          lock.unlock();
+        }
+      }
+    }
+;
+    t.start();
+    Thread.sleep(rand.nextInt(3));
+    t.interrupt();
+    t.join();
+    if (!lock.tryLock(3,TimeUnit.SECONDS)) {
+      fail("Could not acquire lock!");
+    }
+ else {
+      lock.unlock();
+    }
+    Thread.sleep(100);
+  }
+}

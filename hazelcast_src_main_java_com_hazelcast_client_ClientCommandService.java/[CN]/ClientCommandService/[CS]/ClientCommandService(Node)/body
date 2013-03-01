@@ -1,8 +1,9 @@
 {
   this.node=node;
   logger=node.getLogger(ClientCommandService.class.getName());
+  final String poolNamePrefix=node.getThreadPoolNamePrefix("client");
+  executor=new FastExecutor(3,100,1 << 16,250L,poolNamePrefix,new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,node.getConfig().getClassLoader()),TimeUnit.MINUTES.toMillis(3),true,false);
   node.getConnectionManager().addConnectionListener(this);
-  executor=node.nodeEngine.getExecutionService().getExecutor("hz:client");
   services=new ConcurrentHashMap<Command,ClientCommandHandler>();
   unknownCommandHandler=new ClientCommandHandler(){
     @Override public Protocol processCall(    Node node,    Protocol protocol){

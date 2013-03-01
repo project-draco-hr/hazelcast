@@ -3,7 +3,12 @@
     final String name=serviceName != null ? serviceName : getServiceName();
     service=((NodeEngineImpl)nodeEngine).getService(name);
     if (service == null) {
-      throw new HazelcastException("Service with name '" + name + "' not found!");
+      if (nodeEngine.isActive()) {
+        throw new HazelcastException("Service with name '" + name + "' not found!");
+      }
+ else {
+        throw new RetryableHazelcastException("HazelcastInstance[" + nodeEngine.getThisAddress() + "] is not active!");
+      }
     }
   }
   return (T)service;

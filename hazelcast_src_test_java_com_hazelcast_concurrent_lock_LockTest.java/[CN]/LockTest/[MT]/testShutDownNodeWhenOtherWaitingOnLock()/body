@@ -1,0 +1,16 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
+  nodeFactory.newHazelcastInstance(new Config());
+  final ILock lock=instance.getLock("testLockDestroyWhenWaitingLock");
+  lock.lock();
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      lock.lock();
+    }
+  }
+);
+  t.start();
+  instance.getLifecycleService().shutdown();
+  t.join();
+}

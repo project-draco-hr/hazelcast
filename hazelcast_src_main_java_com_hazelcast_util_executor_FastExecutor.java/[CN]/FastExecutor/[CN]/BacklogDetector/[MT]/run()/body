@@ -1,0 +1,29 @@
+{
+  final NewThreadInterceptor threadInterceptor=interceptor;
+  long currentBacklogInterval=backlogInterval;
+  final Thread thread=Thread.currentThread();
+  while (!thread.isInterrupted() && live) {
+    long sleep=100;
+    final WorkerTask task=queue.peek();
+    if (task != null) {
+      if (task.creationTime + currentBacklogInterval < Clock.currentTimeMillis()) {
+        if (activeThreadCount < maxThreadSize) {
+          if (threadInterceptor != null) {
+            threadInterceptor.beforeNewThread();
+          }
+          addThread(true);
+          currentBacklogInterval+=100;
+        }
+ else {
+          sleep=1000;
+        }
+      }
+    }
+    try {
+      Thread.sleep(sleep);
+    }
+ catch (    InterruptedException e) {
+      return;
+    }
+  }
+}

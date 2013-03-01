@@ -1,0 +1,23 @@
+{
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(new Config());
+  final ILock lock1=h1.getLock("default");
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(new Config());
+  final ILock lock2=h2.getLock("default");
+  assertTrue(lock1.tryLock());
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        lock2.lock();
+        fail("Shouldn't be able to lock!");
+      }
+ catch (      Throwable e) {
+      }
+    }
+  }
+).start();
+  Thread.sleep(2000);
+  h2.getLifecycleService().shutdown();
+  Thread.sleep(2000);
+  lock1.unlock();
+  assertTrue(lock1.tryLock());
+}

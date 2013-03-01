@@ -1,6 +1,5 @@
 {
   LocalMapStatsImpl localMapStats=new LocalMapStatsImpl();
-  long now=Clock.currentTimeMillis();
   long ownedEntryCount=0;
   long backupEntryCount=0;
   long dirtyCount=0;
@@ -9,7 +8,7 @@
   long hits=0;
   long lockedEntryCount=0;
   MapContainer mapContainer=getMapContainer(mapName);
-  int backupCount=mapContainer.getBackupCount();
+  int backupCount=mapContainer.getTotalBackupCount();
   ClusterServiceImpl clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
   Address thisAddress=clusterService.getThisAddress();
   for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
@@ -35,8 +34,20 @@
       }
     }
  else {
-      for (int j=1; j < backupCount; j++) {
-        if (partitionInfo.getReplicaAddress(i).equals(thisAddress)) {
+      for (int j=1; j <= backupCount; j++) {
+        Address replicaAddress=partitionInfo.getReplicaAddress(j);
+        int memberSize=nodeEngine.getClusterService().getMembers().size();
+        int tryCount=3;
+        while (memberSize > backupCount && replicaAddress == null && tryCount-- > 0) {
+          try {
+            Thread.sleep(1000);
+          }
+ catch (          InterruptedException e) {
+            ExceptionUtil.rethrow(e);
+          }
+          replicaAddress=partitionInfo.getReplicaAddress(j);
+        }
+        if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
           PartitionContainer partitionContainer=getPartitionContainer(i);
           RecordStore recordStore=partitionContainer.getRecordStore(mapName);
           ConcurrentMap<Data,Record> records=recordStore.getRecords();
@@ -48,13 +59,14 @@
       }
     }
   }
-  localMapStats.setDirtyEntryCount(Util.zeroOrPositive(dirtyCount));
-  localMapStats.setLockedEntryCount(Util.zeroOrPositive(lockedEntryCount));
-  localMapStats.setHits(Util.zeroOrPositive(hits));
-  localMapStats.setOwnedEntryCount(Util.zeroOrPositive(ownedEntryCount));
-  localMapStats.setBackupEntryCount(Util.zeroOrPositive(backupEntryCount));
-  localMapStats.setOwnedEntryMemoryCost(Util.zeroOrPositive(ownedEntryMemoryCost));
-  localMapStats.setBackupEntryMemoryCost(Util.zeroOrPositive(backupEntryMemoryCost));
-  localMapStats.setCreationTime(Util.zeroOrPositive(clusterService.getClusterTimeFor(mapContainer.getCreationTime())));
+  localMapStats.setDirtyEntryCount(zeroOrPositive(dirtyCount));
+  localMapStats.setLockedEntryCount(zeroOrPositive(lockedEntryCount));
+  localMapStats.setHits(zeroOrPositive(hits));
+  localMapStats.setOwnedEntryCount(zeroOrPositive(ownedEntryCount));
+  localMapStats.setBackupEntryCount(zeroOrPositive(backupEntryCount));
+  localMapStats.setOwnedEntryMemoryCost(zeroOrPositive(ownedEntryMemoryCost));
+  localMapStats.setBackupEntryMemoryCost(zeroOrPositive(backupEntryMemoryCost));
+  localMapStats.setCreationTime(zeroOrPositive(clusterService.getClusterTimeFor(mapContainer.getCreationTime())));
+  localMapStats.setOperationStats(getMapContainer(mapName).getMapOperationCounter().getPublishedStats());
   return localMapStats;
 }

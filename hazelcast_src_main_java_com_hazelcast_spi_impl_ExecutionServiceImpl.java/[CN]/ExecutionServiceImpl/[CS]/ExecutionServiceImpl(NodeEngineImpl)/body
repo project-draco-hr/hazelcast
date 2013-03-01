@@ -1,18 +1,22 @@
 {
   this.nodeEngine=nodeEngine;
-  Node node=nodeEngine.getNode();
+  final Node node=nodeEngine.getNode();
   logger=node.getLogger(ExecutionService.class.getName());
   final ClassLoader classLoader=node.getConfig().getClassLoader();
-  final ExecutorThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("cached"),classLoader);
-  cachedExecutorService=new ThreadPoolExecutor(1,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory,new RejectedExecutionHandler(){
+  final ExecutorThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("cached"),classLoader);
+  cachedExecutorService=new ThreadPoolExecutor(5,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory,new RejectedExecutionHandler(){
     public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
       logger.log(Level.FINEST,"Node is shutting down; discarding the task: " + r);
     }
   }
 );
-  scheduledExecutorService=Executors.newScheduledThreadPool(2,new PoolExecutorThreadFactory(node.threadGroup,node.hazelcastInstance,node.getThreadPoolNamePrefix("scheduled"),classLoader));
-  register("hz:system",30);
-  register("hz:client",40);
-  register("hz:scheduled",10);
-  register("hz:async-service",20);
+  final String scheduledThreadName=node.getThreadNamePrefix("scheduled");
+  scheduledExecutorService=Executors.newSingleThreadScheduledExecutor(new ExecutorThreadFactory(node.threadGroup,classLoader){
+    protected String newThreadName(){
+      return scheduledThreadName;
+    }
+  }
+);
+  register("hz:system",30,Integer.MAX_VALUE);
+  register("hz:scheduled",20,Integer.MAX_VALUE);
 }

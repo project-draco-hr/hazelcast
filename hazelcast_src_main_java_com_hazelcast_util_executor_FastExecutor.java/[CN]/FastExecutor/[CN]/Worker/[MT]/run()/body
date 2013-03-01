@@ -1,0 +1,30 @@
+{
+  final Thread currentThread=Thread.currentThread();
+  final boolean take=keepAliveMillis <= 0 || keepAliveMillis == Long.MAX_VALUE;
+  final long timeout=keepAliveMillis;
+  while (!currentThread.isInterrupted() && live) {
+    try {
+      final WorkerTask task=take ? queue.take() : queue.poll(timeout,TimeUnit.MILLISECONDS);
+      if (task != null) {
+        task.run();
+      }
+ else {
+        final int activeCount=activeThreadCount;
+        if (activeCount > coreThreadSize || allowCoreThreadTimeout) {
+          lock.lockInterruptibly();
+          try {
+            threads.remove(currentThread);
+            activeThreadCount--;
+            return;
+          }
+  finally {
+            lock.unlock();
+          }
+        }
+      }
+    }
+ catch (    InterruptedException e) {
+      break;
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  NodeEngine nodeEngine=mapService.getNodeEngine();
+  Map values=store.loadAll(keys.values());
+  for (  Data dataKey : keys.keySet()) {
+    Object key=keys.get(dataKey);
+    Data dataValue=mapService.toData(values.get(key));
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(dataKey);
+    PutFromLoadOperation operation=new PutFromLoadOperation(name,dataKey,dataValue,null,-1);
+    operation.setNodeEngine(nodeEngine);
+    operation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+    operation.setPartitionId(partitionId);
+    operation.setServiceName(MapService.SERVICE_NAME);
+    try {
+      nodeEngine.getOperationService().runOperation(operation);
+    }
+ catch (    Throwable t) {
+      ExceptionUtil.rethrow(t);
+    }
+  }
+  if (counter.decrementAndGet() <= 0) {
+    mapReady=true;
+  }
+}

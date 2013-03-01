@@ -1,0 +1,17 @@
+{
+  final int k=3;
+  final Config config=new Config();
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,k);
+  ICountDownLatch latch=instances[0].getCountDownLatch("test");
+  latch.trySetCount(k - 1);
+  try {
+    long t=System.currentTimeMillis();
+    Assert.assertFalse(latch.await(100,TimeUnit.MILLISECONDS));
+    final long elapsed=System.currentTimeMillis() - t;
+    Assert.assertTrue(elapsed >= 100);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    Assert.fail(e.getMessage());
+  }
+}

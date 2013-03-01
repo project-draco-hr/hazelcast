@@ -1,0 +1,33 @@
+{
+  log("starting");
+  Thread.sleep(1000);
+  final String name="testMultiMapSize";
+  final MultiMap multiMap=getInstance(0).getMultiMap(name);
+  final int putSize=1000;
+  final int removeSize=0;
+  final AtomicInteger removed=new AtomicInteger();
+  try {
+    for (int i=0; i < putSize; i++) {
+      multiMap.put("key" + i,"value" + i);
+    }
+  }
+ catch (  Exception e) {
+    Assert.fail(e.getMessage());
+  }
+  try {
+    for (int i=0; i < removeSize; i++) {
+      Random ran=new Random(System.currentTimeMillis());
+      Collection coll=multiMap.remove("key" + ran.nextInt(putSize));
+      if (!coll.isEmpty()) {
+        removed.incrementAndGet();
+      }
+    }
+  }
+ catch (  Exception e) {
+    Assert.fail(e.getMessage());
+  }
+  Thread.sleep(100);
+  removeInstance(1);
+  assertEquals(putSize - removed.get(),multiMap.size());
+  log("size: " + (putSize - removed.get()));
+}

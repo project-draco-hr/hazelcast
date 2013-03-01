@@ -2,6 +2,7 @@
   Record record=records.get(dataKey);
   boolean removed=false;
   boolean evicted=false;
+  Object oldValue=null;
   if (record == null) {
     if (mapContainer.getStore() != null && mapContainer.getStore().load(mapService.toObject(dataKey)) != null) {
       evicted=true;
@@ -10,11 +11,12 @@
  else {
     accessRecord(record);
     mapService.intercept(name,MapOperationType.REMOVE,dataKey,record.getValue(),record.getValue());
-    records.remove(dataKey);
+    Record removedRecord=records.remove(dataKey);
+    oldValue=removedRecord.getValue();
     removed=true;
   }
   if ((removed || evicted) && mapContainer.getStore() != null) {
     mapStoreDelete(record);
   }
-  return removed;
+  return oldValue;
 }

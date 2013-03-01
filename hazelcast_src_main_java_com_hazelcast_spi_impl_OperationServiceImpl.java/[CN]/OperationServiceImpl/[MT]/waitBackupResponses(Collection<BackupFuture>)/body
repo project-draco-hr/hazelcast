@@ -1,0 +1,34 @@
+{
+  while (futures != null && !futures.isEmpty()) {
+    final Iterator<BackupFuture> iter=futures.iterator();
+    ExecutionException lastError=null;
+    while (iter.hasNext()) {
+      final BackupFuture f=iter.next();
+      try {
+        if (f.canRetry()) {
+          f.get(500,TimeUnit.MILLISECONDS);
+          lastError=null;
+        }
+        iter.remove();
+        if (lastError != null) {
+          logger.log(Level.WARNING,"While backing up -> " + lastError.getMessage(),lastError);
+        }
+      }
+ catch (      InterruptedException ignored) {
+      }
+catch (      TimeoutException ignored) {
+      }
+catch (      ExecutionException e) {
+        if (!ExceptionUtil.isRetryableException(e)) {
+          throw e;
+        }
+ else         if (nodeEngine.getClusterService().getSize() <= f.replicaIndex) {
+          iter.remove();
+        }
+ else {
+          lastError=e;
+        }
+      }
+    }
+  }
+}

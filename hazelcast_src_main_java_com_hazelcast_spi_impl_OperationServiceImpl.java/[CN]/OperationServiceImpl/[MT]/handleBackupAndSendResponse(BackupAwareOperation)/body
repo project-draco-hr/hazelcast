@@ -1,22 +1,26 @@
 {
+  final int maxRetryCount=50;
   final int maxBackups=node.getClusterService().getSize() - 1;
   final int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
   final int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
-  Collection<Future> syncBackups=null;
-  Collection<Future> asyncBackups=null;
+  Collection<BackupFuture> syncBackups=null;
+  Collection<BackupFuture> asyncBackups=null;
   final Operation op=(Operation)backupAwareOp;
   final boolean returnsResponse=op.returnsResponse();
-  final Operation backupOp;
   Operation backupResponse=null;
-  if ((syncBackupCount + asyncBackupCount > 0) && (backupOp=backupAwareOp.getBackupOperation()) != null) {
+  if (syncBackupCount + asyncBackupCount > 0) {
     final String serviceName=op.getServiceName();
     final int partitionId=op.getPartitionId();
     final PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
     if (syncBackupCount > 0) {
-      syncBackups=new ArrayList<Future>(syncBackupCount);
+      syncBackups=new ArrayList<BackupFuture>(syncBackupCount);
       for (int replicaIndex=1; replicaIndex <= syncBackupCount; replicaIndex++) {
         final Address target=partitionInfo.getReplicaAddress(replicaIndex);
         if (target != null) {
+          final Operation backupOp=backupAwareOp.getBackupOperation();
+          if (backupOp == null) {
+            throw new IllegalArgumentException("Backup operation should not be null!");
+          }
           if (target.equals(node.getThisAddress())) {
             throw new IllegalStateException("Normally shouldn't happen!!");
           }
@@ -26,9 +30,9 @@
               backupResponse=backupOp;
             }
  else {
-              final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(20).build().invoke();
+              final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
               if (returnsResponse) {
-                syncBackups.add(f);
+                syncBackups.add(new BackupFuture(f,partitionId,replicaIndex,maxRetryCount));
               }
             }
           }
@@ -36,17 +40,21 @@
       }
     }
     if (asyncBackupCount > 0) {
-      asyncBackups=new ArrayList<Future>(asyncBackupCount);
+      asyncBackups=new ArrayList<BackupFuture>(asyncBackupCount);
       for (int replicaIndex=syncBackupCount + 1; replicaIndex <= asyncBackupCount; replicaIndex++) {
         final Address target=partitionInfo.getReplicaAddress(replicaIndex);
         if (target != null) {
+          final Operation backupOp=backupAwareOp.getBackupOperation();
+          if (backupOp == null) {
+            throw new IllegalArgumentException("Backup operation should not be null!");
+          }
           if (target.equals(node.getThisAddress())) {
             throw new IllegalStateException("Normally shouldn't happen!!");
           }
  else {
-            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(10).build().invoke();
+            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
             if (returnsResponse) {
-              asyncBackups.add(f);
+              asyncBackups.add(new BackupFuture(f,partitionId,replicaIndex,maxRetryCount));
             }
           }
         }
@@ -54,7 +62,7 @@
     }
   }
   final Object response=op.returnsResponse() ? (backupResponse == null ? op.getResponse() : new MultiResponse(nodeEngine.getSerializationService(),backupResponse,op.getResponse())) : null;
-  waitFutureResponses(syncBackups);
+  waitBackupResponses(syncBackups);
   sendResponse(op,response);
-  waitFutureResponses(asyncBackups);
+  waitBackupResponses(asyncBackups);
 }

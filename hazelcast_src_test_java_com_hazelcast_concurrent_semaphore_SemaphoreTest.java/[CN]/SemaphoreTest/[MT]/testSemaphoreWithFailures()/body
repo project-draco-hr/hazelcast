@@ -1,0 +1,24 @@
+{
+  final int k=4;
+  final Config config=new Config();
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,k + 1);
+  final ISemaphore semaphore=instances[k].getSemaphore("test");
+  int initialPermits=20;
+  semaphore.init(initialPermits);
+  for (int i=0; i < k; i++) {
+    int rand=(int)(Math.random() * 5) + 1;
+    semaphore.acquire(rand);
+    initialPermits-=rand;
+    Assert.assertEquals(initialPermits,semaphore.availablePermits());
+    semaphore.release(rand);
+    initialPermits+=rand;
+    Assert.assertEquals(initialPermits,semaphore.availablePermits());
+    instances[i].getLifecycleService().shutdown();
+    semaphore.acquire(rand);
+    initialPermits-=rand;
+    Assert.assertEquals(initialPermits,semaphore.availablePermits());
+    semaphore.release(rand);
+    initialPermits+=rand;
+    Assert.assertEquals(initialPermits,semaphore.availablePermits());
+  }
+}

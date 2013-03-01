@@ -1,0 +1,35 @@
+{
+  Config cfg=new Config();
+  HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,2);
+  int k=10;
+  final CountDownLatch countDownLatch=new CountDownLatch(k);
+  final IMap map=instances[0].getMap("testMapEvictionTtlWithListener");
+  map.addEntryListener(new EntryListener(){
+    public void entryAdded(    EntryEvent event){
+    }
+    public void entryRemoved(    EntryEvent event){
+    }
+    public void entryUpdated(    EntryEvent event){
+    }
+    public void entryEvicted(    EntryEvent event){
+      long timeDifference=System.currentTimeMillis() - (Long)(event.getValue());
+      Assert.assertTrue(2000 > timeDifference && timeDifference >= 0);
+    }
+  }
+,true);
+  for (int i=0; i < k; i++) {
+    final int threadId=i;
+    new Thread(){
+      public void run(){
+        int ttl=(int)(Math.random() * 5000 + 1000);
+        for (int j=0; j < 10000; j++) {
+          map.put(j + 10000 * threadId,ttl + System.currentTimeMillis(),ttl,TimeUnit.MILLISECONDS);
+        }
+        countDownLatch.countDown();
+      }
+    }
+.start();
+  }
+  countDownLatch.await();
+  Thread.sleep(7000);
+}
