@@ -1,0 +1,22 @@
+{
+  Config config=new Config();
+  final int count=100;
+  final int insCount=4;
+  final String name="defQueue";
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  final Random rnd=new Random(System.currentTimeMillis());
+  for (int i=0; i < count; i++) {
+    int index=rnd.nextInt(insCount);
+    IQueue<String> queue=instances[index].getQueue(name);
+    queue.offer("item" + i);
+  }
+  assertEquals(100,instances[0].getQueue(name).size());
+  for (int i=0; i < count; i++) {
+    int index=rnd.nextInt(insCount);
+    IQueue<String> queue=instances[index].getQueue(name);
+    String item=queue.poll();
+    assertEquals(item,"item" + i);
+  }
+  assertEquals(0,instances[0].getQueue(name).size());
+  assertNull(instances[0].getQueue(name).poll());
+}
