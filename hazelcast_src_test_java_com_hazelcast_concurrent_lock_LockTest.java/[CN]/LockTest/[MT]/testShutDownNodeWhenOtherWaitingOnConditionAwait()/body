@@ -1,0 +1,27 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
+  nodeFactory.newHazelcastInstance(new Config());
+  final String name="testShutDownNodeWhenOtherWaitingOnConditionAwait";
+  final ILock lock=instance.getLock(name);
+  final ICondition condition=lock.newCondition("s");
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instance.getLifecycleService().shutdown();
+    }
+  }
+).start();
+  lock.lock();
+  try {
+    condition.await();
+  }
+ catch (  InterruptedException e) {
+  }
+  lock.unlock();
+}
