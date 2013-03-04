@@ -1,17 +1,18 @@
 {
-  final int k=3;
-  final int size=10000;
+  final int k=2;
+  final int size=100;
   final CountDownLatch latch=new CountDownLatch(k);
-  final String mapName="testEvictionSpeedTest";
+  final String mapName="testEvictionSpeedTestPerPartition";
   Config cfg=new Config();
   final MapConfig mc=cfg.getMapConfig(mapName);
   mc.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
   mc.setEvictionPercentage(25);
   final MaxSizeConfig msc=new MaxSizeConfig();
-  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
+  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_PARTITION);
   msc.setSize(size);
   mc.setMaxSizeConfig(msc);
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,k);
+  final int pnum=instances[0].getPartitionService().getPartitions().size();
   new Thread(){
     final IMap map=instances[0].getMap(mapName);
     public void run(){
@@ -20,7 +21,7 @@
         while (latch.getCount() != 0) {
           try {
             int msize=map.size();
-            assertTrue(msize <= (size * k + size * k * 10 / 100));
+            assertTrue(msize <= (size * pnum + size * pnum * 10 / 100));
             Thread.sleep(1000);
           }
  catch (          InterruptedException e) {
