@@ -1,0 +1,32 @@
+{
+  try {
+    final int k=2;
+    final int size=10000;
+    final String mapName="testEvictionLFU2";
+    Config cfg=new Config();
+    MapConfig mc=cfg.getMapConfig(mapName);
+    mc.setEvictionPolicy(MapConfig.EvictionPolicy.LFU);
+    mc.setEvictionPercentage(90);
+    MaxSizeConfig msc=new MaxSizeConfig();
+    msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
+    msc.setSize(size);
+    mc.setMaxSizeConfig(msc);
+    final HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,k);
+    IMap<Object,Object> map=instances[0].getMap(mapName);
+    for (int i=0; i < size; i++) {
+      map.put(i,i);
+    }
+    for (int i=0; i < 3; i++) {
+      for (int j=0; j < 100; j++) {
+        assertNotNull(map.get(j));
+      }
+      for (int j=size - 100; j < size; j++) {
+        assertNotNull(map.get(j));
+      }
+      Thread.sleep(1000);
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}
