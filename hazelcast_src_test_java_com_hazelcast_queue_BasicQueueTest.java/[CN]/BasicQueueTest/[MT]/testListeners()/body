@@ -5,15 +5,27 @@
   config.getQueueConfig(name).setMaxSize(count);
   final int insCount=4;
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  final CountDownLatch latch=new CountDownLatch(20);
+  final AtomicBoolean notCalled=new AtomicBoolean(true);
   IQueue q=getQueue(instances,name);
   ItemListener listener=new ItemListener(){
     int offer;
     int poll;
     public void itemAdded(    ItemEvent item){
-      assertEquals(item.getItem(),"item" + offer++);
+      if (item.getItem().equals("item" + offer++)) {
+        latch.countDown();
+      }
+ else {
+        notCalled.set(false);
+      }
     }
     public void itemRemoved(    ItemEvent item){
-      assertEquals(item.getItem(),"item" + poll++);
+      if (item.getItem().equals("item" + poll++)) {
+        latch.countDown();
+      }
+ else {
+        notCalled.set(false);
+      }
     }
   }
 ;
@@ -24,7 +36,10 @@
   for (int i=0; i < 10; i++) {
     getQueue(instances,name).poll();
   }
+  assertTrue(latch.await(5,TimeUnit.SECONDS));
   q.removeItemListener(listener);
   getQueue(instances,name).offer("item-a");
   getQueue(instances,name).poll();
+  Thread.sleep(2 * 1000);
+  assertTrue(notCalled.get());
 }
