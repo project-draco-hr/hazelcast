@@ -1,0 +1,22 @@
+{
+  int size=10000;
+  TestMapStore testMapStore=new TestMapStore(size * 2,1,1);
+  testMapStore.setLoadAllKeys(false);
+  Config config=newConfig(testMapStore,0);
+  MaxSizeConfig maxSizeConfig=new MaxSizeConfig();
+  maxSizeConfig.setSize(size);
+  MapConfig mapConfig=config.getMapConfig("default");
+  mapConfig.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
+  mapConfig.setMaxSizeConfig(maxSizeConfig);
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(3);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
+  IMap map=h1.getMap("default");
+  for (int i=0; i < size * 2; i++) {
+    map.put(i,new Employee("joe",i,true,100.00));
+  }
+  assertEquals(testMapStore.getStore().size(),size * 2);
+  Thread.sleep(1000);
+  assertTrue(map.size() > size / 2);
+  assertTrue(map.size() <= size);
+  assertEquals(testMapStore.getStore().size(),size * 2);
+}
