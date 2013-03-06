@@ -1,0 +1,30 @@
+{
+  Config config=new Config();
+  final String name="defMM";
+  config.getMultiMapConfig(name).setValueCollectionType(MultiMapConfig.ValueCollectionType.SET);
+  final int count=100;
+  final int insCount=4;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  assertTrue(getMultiMap(instances,name).put("key1","key1_value1"));
+  assertTrue(getMultiMap(instances,name).put("key1","key1_value2"));
+  assertTrue(getMultiMap(instances,name).put("key2","key2_value1"));
+  assertFalse(getMultiMap(instances,name).put("key2","key2_value1"));
+  assertEquals(getMultiMap(instances,name).valueCount("key1"),2);
+  assertEquals(getMultiMap(instances,name).valueCount("key2"),1);
+  assertEquals(getMultiMap(instances,name).size(),3);
+  Collection coll=getMultiMap(instances,name).get("key2");
+  assertEquals(coll.size(),1);
+  Iterator iter=coll.iterator();
+  Object o=iter.next();
+  assertEquals(o,"key2_value1");
+  assertTrue(getMultiMap(instances,name).remove("key1","key1_value1"));
+  assertFalse(getMultiMap(instances,name).remove("key1","key1_value1"));
+  assertTrue(getMultiMap(instances,name).remove("key1","key1_value2"));
+  coll=getMultiMap(instances,name).get("key1");
+  assertEquals(coll.size(),0);
+  coll=getMultiMap(instances,name).remove("key2");
+  assertEquals(coll.size(),1);
+  iter=coll.iterator();
+  o=iter.next();
+  assertEquals(o,"key2_value1");
+}
