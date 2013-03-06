@@ -1,0 +1,38 @@
+{
+  Config config=new Config();
+  final String name="defMM";
+  config.getMultiMapConfig(name).setValueCollectionType(MultiMapConfig.ValueCollectionType.LIST);
+  final int insCount=4;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      instances[0].getMultiMap(name).lock("alo");
+      latch.countDown();
+      try {
+        Thread.sleep(5 * 1000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instances[0].getMultiMap(name).unlock("alo");
+    }
+  }
+.start();
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertFalse(getMultiMap(instances,name).tryLock("alo"));
+  assertTrue(instances[0].getMultiMap(name).tryLock("alo",20,TimeUnit.SECONDS));
+  new Thread(){
+    public void run(){
+      try {
+        Thread.sleep(3000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instances[0].getLifecycleService().shutdown();
+    }
+  }
+.start();
+  assertTrue(instances[1].getMultiMap(name).tryLock("alo",20,TimeUnit.SECONDS));
+}
