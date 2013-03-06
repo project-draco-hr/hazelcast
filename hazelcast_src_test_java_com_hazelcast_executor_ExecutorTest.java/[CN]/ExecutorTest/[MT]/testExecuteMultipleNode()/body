@@ -1,16 +1,12 @@
 {
-  final int k=4;
+  final int k=simpleTestNodeCount;
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(new Config(),k);
   for (int i=0; i < k; i++) {
-    final IExecutorService service=instances[i].getExecutorService("testExecuteOnMember");
+    final IExecutorService service=instances[i].getExecutorService("testExecuteMultipleNode");
     final String script="hazelcast.getAtomicLong('count').incrementAndGet();";
-    service.execute(new ScriptRunnable(script,null));
-  }
-  try {
-    Thread.sleep(2000);
-  }
- catch (  InterruptedException e) {
-    e.printStackTrace();
+    final int rand=new Random().nextInt(100);
+    final Future<Integer> future=service.submit(new ScriptRunnable(script,null),rand);
+    Assert.assertEquals(Integer.valueOf(rand),future.get());
   }
   final IAtomicLong count=instances[0].getAtomicLong("count");
   Assert.assertEquals(k,count.get());
