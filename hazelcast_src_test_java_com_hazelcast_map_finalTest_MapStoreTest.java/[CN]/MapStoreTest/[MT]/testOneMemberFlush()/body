@@ -1,0 +1,27 @@
+{
+  TestMapStore testMapStore=new TestMapStore(1,1,1);
+  testMapStore.setLoadAllKeys(false);
+  int size=100;
+  Config config=newConfig(testMapStore,200);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  IMap map=h1.getMap("default");
+  assertEquals(0,map.size());
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  assertEquals(size,map.size());
+  assertEquals(0,testMapStore.getStore().size());
+  assertEquals(size,map.getLocalMapStats().getDirtyEntryCount());
+  map.flush();
+  assertEquals(size,testMapStore.getStore().size());
+  assertEquals(0,map.getLocalMapStats().getDirtyEntryCount());
+  assertEquals(size,map.size());
+  for (int i=0; i < size / 2; i++) {
+    map.remove(i);
+  }
+  assertEquals(size / 2,map.size());
+  assertEquals(size,testMapStore.getStore().size());
+  map.flush();
+  assertEquals(size / 2,testMapStore.getStore().size());
+  assertEquals(size / 2,map.size());
+}
