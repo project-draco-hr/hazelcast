@@ -1,0 +1,23 @@
+{
+  final String name="defQueue";
+  Config config=new Config();
+  final int count=100;
+  config.getQueueConfig(name).setMaxSize(count);
+  final int insCount=4;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  for (int i=0; i < 10; i++) {
+    getQueue(instances,name).offer("item" + i);
+  }
+  assertTrue(getQueue(instances,name).contains("item4"));
+  assertFalse(getQueue(instances,name).contains("item10"));
+  assertTrue(getQueue(instances,name).remove("item4"));
+  assertFalse(getQueue(instances,name).contains("item4"));
+  assertEquals(getQueue(instances,name).size(),9);
+  List<String> list=new ArrayList<String>(3);
+  list.add("item1");
+  list.add("item2");
+  list.add("item3");
+  assertTrue(getQueue(instances,name).containsAll(list));
+  list.add("item4");
+  assertFalse(getQueue(instances,name).containsAll(list));
+}

@@ -3,14 +3,25 @@
   final HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
   nodeFactory.newHazelcastInstance(new Config());
   final ILock lock=instance.getLock("testLockDestroyWhenWaitingLock");
-  lock.lock();
-  Thread t=new Thread(new Runnable(){
+  final Thread thread=new Thread(new Runnable(){
     public void run(){
       lock.lock();
     }
   }
 );
-  t.start();
-  instance.getLifecycleService().shutdown();
-  t.join();
+  thread.start();
+  thread.join();
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(1000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instance.getLifecycleService().shutdown();
+    }
+  }
+).start();
+  lock.lock();
 }

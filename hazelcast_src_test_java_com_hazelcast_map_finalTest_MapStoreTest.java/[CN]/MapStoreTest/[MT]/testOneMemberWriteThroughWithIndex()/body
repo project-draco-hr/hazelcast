@@ -1,0 +1,29 @@
+{
+  TestMapStore testMapStore=new TestMapStore(1,1,1);
+  testMapStore.setLoadAllKeys(false);
+  Config config=newConfig(testMapStore,0);
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(3);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
+  testMapStore.insert("1","value1");
+  IMap map=h1.getMap("default");
+  assertEquals(0,map.size());
+  Assert.assertTrue(map.tryLock("1",1,TimeUnit.SECONDS));
+  assertEquals("value1",map.get("1"));
+  map.unlock("1");
+  assertEquals("value1",map.put("1","value2"));
+  assertEquals("value2",map.get("1"));
+  assertEquals("value2",testMapStore.getStore().get("1"));
+  assertEquals(1,map.size());
+  Assert.assertTrue(map.evict("1"));
+  assertEquals(0,map.size());
+  assertEquals(1,testMapStore.getStore().size());
+  assertEquals("value2",map.get("1"));
+  assertEquals(1,map.size());
+  map.remove("1");
+  assertEquals(0,map.size());
+  assertEquals(0,testMapStore.getStore().size());
+  testMapStore.assertAwait(1);
+  assertEquals(1,testMapStore.getInitCount());
+  assertEquals("default",testMapStore.getMapName());
+  assertEquals(TestUtil.getNode((HazelcastInstanceProxy)h1),TestUtil.getNode(testMapStore.getHazelcastInstance()));
+}

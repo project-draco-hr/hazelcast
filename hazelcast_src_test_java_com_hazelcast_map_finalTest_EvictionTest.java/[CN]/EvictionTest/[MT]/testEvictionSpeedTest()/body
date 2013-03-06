@@ -4,14 +4,13 @@
   final CountDownLatch latch=new CountDownLatch(k);
   final String mapName="testEvictionSpeedTest";
   Config cfg=new Config();
-  MapConfig mc=cfg.getMapConfig(mapName);
+  final MapConfig mc=cfg.getMapConfig(mapName);
   mc.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
   mc.setEvictionPercentage(25);
-  MaxSizeConfig msc=new MaxSizeConfig();
+  final MaxSizeConfig msc=new MaxSizeConfig();
   msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
   msc.setSize(size);
   mc.setMaxSizeConfig(msc);
-  Hazelcast.shutdownAll();
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,k);
   new Thread(){
     final IMap map=instances[0].getMap(mapName);
@@ -20,7 +19,8 @@
         Thread.sleep(1000);
         while (latch.getCount() != 0) {
           try {
-            System.out.println("size:" + map.size() + " max size:"+ (size * k));
+            int msize=map.size();
+            assertTrue(msize <= (size * k + size * k * 10 / 100));
             Thread.sleep(1000);
           }
  catch (          InterruptedException e) {
@@ -39,7 +39,7 @@
     new Thread(){
       public void run(){
         for (int j=0; j < 100000; j++) {
-          map.put("k" + j,j);
+          map.put(k + "-" + j,j);
         }
         latch.countDown();
       }
