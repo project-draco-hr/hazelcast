@@ -1,0 +1,24 @@
+{
+  final int k=simpleTestNodeCount;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(new Config(),k);
+  final AtomicInteger count=new AtomicInteger(0);
+  final CountDownLatch countDownLatch=new CountDownLatch(k * k);
+  final MultiExecutionCallback callback=new MultiExecutionCallback(){
+    public void onResponse(    Member member,    Object value){
+      count.incrementAndGet();
+      countDownLatch.countDown();
+    }
+    public void onComplete(    Map<Member,Object> values){
+    }
+  }
+;
+  for (int i=0; i < k; i++) {
+    final IExecutorService service=instances[i].getExecutorService("testSubmitToAllMembersCallable");
+    final String script="hazelcast.getAtomicLong('testSubmitToAllMembersCallable').incrementAndGet();";
+    service.submitToAllMembers(new ScriptCallable(script,null),callback);
+  }
+  countDownLatch.await(10,TimeUnit.SECONDS);
+  final IAtomicLong result=instances[0].getAtomicLong("testSubmitToAllMembersCallable");
+  Assert.assertEquals(k * k,result.get());
+  Assert.assertEquals(k * k,count.get());
+}

@@ -1,0 +1,47 @@
+{
+  Config config=new Config();
+  final String name="defMM";
+  config.getMultiMapConfig(name).setValueCollectionType(MultiMapConfig.ValueCollectionType.LIST);
+  final int insCount=4;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  getMultiMap(instances,name).put("key1","key1_val1");
+  getMultiMap(instances,name).put("key1","key1_val2");
+  getMultiMap(instances,name).put("key1","key1_val3");
+  getMultiMap(instances,name).put("key2","key2_val1");
+  getMultiMap(instances,name).put("key2","key2_val2");
+  getMultiMap(instances,name).put("key3","key3_val1");
+  getMultiMap(instances,name).put("key3","key3_val2");
+  getMultiMap(instances,name).put("key3","key3_val3");
+  getMultiMap(instances,name).put("key3","key3_val4");
+  Set totalKeySet=new HashSet();
+  Set localKeySet=instances[0].getMultiMap(name).localKeySet();
+  totalKeySet.addAll(localKeySet);
+  localKeySet=instances[1].getMultiMap(name).localKeySet();
+  totalKeySet.addAll(localKeySet);
+  localKeySet=instances[2].getMultiMap(name).localKeySet();
+  totalKeySet.addAll(localKeySet);
+  localKeySet=instances[3].getMultiMap(name).localKeySet();
+  totalKeySet.addAll(localKeySet);
+  assertEquals(3,totalKeySet.size());
+  Set keySet=getMultiMap(instances,name).keySet();
+  assertEquals(keySet.size(),3);
+  for (  Object key : keySet) {
+    assertTrue(totalKeySet.contains(key));
+  }
+  Set<Map.Entry> entrySet=getMultiMap(instances,name).entrySet();
+  assertEquals(entrySet.size(),9);
+  for (  Map.Entry entry : entrySet) {
+    String key=(String)entry.getKey();
+    String val=(String)entry.getValue();
+    assertTrue(val.startsWith(key));
+  }
+  Collection values=getMultiMap(instances,name).values();
+  assertEquals(values.size(),9);
+  assertTrue(getMultiMap(instances,name).containsKey("key2"));
+  assertFalse(getMultiMap(instances,name).containsKey("key4"));
+  assertTrue(getMultiMap(instances,name).containsEntry("key3","key3_val3"));
+  assertFalse(getMultiMap(instances,name).containsEntry("key3","key3_val7"));
+  assertFalse(getMultiMap(instances,name).containsEntry("key2","key3_val3"));
+  assertTrue(getMultiMap(instances,name).containsValue("key2_val2"));
+  assertFalse(getMultiMap(instances,name).containsValue("key2_val4"));
+}

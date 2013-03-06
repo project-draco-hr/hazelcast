@@ -1,0 +1,27 @@
+{
+  Config config=new Config();
+  final String name="defSet";
+  final int count=10;
+  final int insCount=4;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  final CountDownLatch latchAdd=new CountDownLatch(count);
+  final CountDownLatch latchRemove=new CountDownLatch(count);
+  ItemListener listener=new ItemListener(){
+    public void itemAdded(    ItemEvent item){
+      latchAdd.countDown();
+    }
+    public void itemRemoved(    ItemEvent item){
+      latchRemove.countDown();
+    }
+  }
+;
+  getSet(instances,name).addItemListener(listener,true);
+  for (int i=0; i < count; i++) {
+    assertTrue(getSet(instances,name).add("item" + i));
+  }
+  for (int i=0; i < count; i++) {
+    assertTrue(getSet(instances,name).remove("item" + i));
+  }
+  assertTrue(latchAdd.await(5,TimeUnit.SECONDS));
+  assertTrue(latchRemove.await(5,TimeUnit.SECONDS));
+}
