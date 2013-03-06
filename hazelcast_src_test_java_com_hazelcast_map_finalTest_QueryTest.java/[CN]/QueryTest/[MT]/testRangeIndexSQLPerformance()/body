@@ -1,0 +1,58 @@
+{
+  Config cfg=new Config();
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(4);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(cfg);
+  IMap imap=h1.getMap("employees");
+  for (int i=0; i < 50000; i++) {
+    imap.put(String.valueOf(i),new Employee("name" + i,i % 60,((i & 1) == 1),Double.valueOf(i)));
+  }
+  long start=Clock.currentTimeMillis();
+  Set<Map.Entry> entries=imap.entrySet(new SqlPredicate("active and salary between 4010.99 and 4032.01"));
+  long tookWithout=(Clock.currentTimeMillis() - start);
+  assertEquals(11,entries.size());
+  for (  Map.Entry entry : entries) {
+    Employee c=(Employee)entry.getValue();
+    assertTrue(c.getAge() < 4033);
+    assertTrue(c.isActive());
+  }
+  imap.clear();
+  imap=h1.getMap("employees2");
+  imap.addIndex("name",false);
+  imap.addIndex("salary",false);
+  imap.addIndex("active",false);
+  for (int i=0; i < 50000; i++) {
+    imap.put(String.valueOf(i),new Employee("name" + i,i % 60,((i & 1) == 1),Double.valueOf(i)));
+  }
+  imap.put(String.valueOf(10),new Employee("name" + 10,10,true,44010.99D));
+  imap.put(String.valueOf(11),new Employee("name" + 11,11,true,44032.01D));
+  start=Clock.currentTimeMillis();
+  entries=imap.entrySet(new SqlPredicate("active and salary between 44010.99 and 44032.01"));
+  long tookWithIndex=(Clock.currentTimeMillis() - start);
+  assertEquals(13,entries.size());
+  boolean foundFirst=false;
+  boolean foundLast=false;
+  for (  Map.Entry entry : entries) {
+    Employee c=(Employee)entry.getValue();
+    assertTrue(c.getAge() < 44033);
+    assertTrue(c.isActive());
+    if (c.getSalary() == 44010.99D) {
+      foundFirst=true;
+    }
+ else     if (c.getSalary() == 44032.01D) {
+      foundLast=true;
+    }
+  }
+  assertTrue(foundFirst);
+  assertTrue(foundLast);
+  System.out.println(tookWithIndex + " vs. " + tookWithout);
+  assertTrue(tookWithIndex < (tookWithout / 2));
+  for (int i=0; i < 50000; i++) {
+    imap.put(String.valueOf(i),new Employee("name" + i,i % 60,((i & 1) == 1),100.25D));
+  }
+  entries=imap.entrySet(new SqlPredicate("salary between 99.99 and 100.25"));
+  assertEquals(50000,entries.size());
+  for (  Map.Entry entry : entries) {
+    Employee c=(Employee)entry.getValue();
+    assertTrue(c.getSalary() == 100.25D);
+  }
+}

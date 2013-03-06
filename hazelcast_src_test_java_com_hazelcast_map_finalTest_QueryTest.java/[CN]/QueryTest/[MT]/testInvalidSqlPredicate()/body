@@ -1,0 +1,44 @@
+{
+  Config cfg=new Config();
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(1);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(cfg);
+  IMap map=instance.getMap("employee");
+  map.put(1,new Employee("e",1,false,0));
+  map.put(2,new Employee("e2",1,false,0));
+  try {
+    map.values(new SqlPredicate("invalid_sql"));
+    fail("Should fail because of invalid SQL!");
+  }
+ catch (  RuntimeException e) {
+    assertEquals("There is no suitable accessor for 'invalid_sql'",e.getMessage());
+  }
+  try {
+    map.values(new SqlPredicate("invalid sql"));
+    fail("Should fail because of invalid SQL!");
+  }
+ catch (  RuntimeException e) {
+    assertEquals("Invalid SQL: [invalid sql]",e.getMessage());
+  }
+  try {
+    map.values(new SqlPredicate("invalid and sql"));
+    fail("Should fail because of invalid SQL!");
+  }
+ catch (  RuntimeException e) {
+    assertEquals("There is no suitable accessor for 'invalid'",e.getMessage());
+  }
+  try {
+    map.values(new SqlPredicate("invalid sql and"));
+    fail("Should fail because of invalid SQL!");
+  }
+ catch (  RuntimeException e) {
+    assertEquals("There is no suitable accessor for 'invalid'",e.getMessage());
+  }
+  try {
+    map.values(new SqlPredicate(""));
+    fail("Should fail because of invalid SQL!");
+  }
+ catch (  RuntimeException e) {
+    assertEquals("Invalid SQL: []",e.getMessage());
+  }
+  assertEquals(2,map.values(new SqlPredicate("age=1 and name like 'e%'")).size());
+}
