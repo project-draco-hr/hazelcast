@@ -1,0 +1,33 @@
+{
+  Config config=new Config();
+  final String name="defSet";
+  final int count=100;
+  final int insCount=4;
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  for (int i=0; i < count; i++) {
+    assertTrue(getSet(instances,name).add("item" + i));
+  }
+  assertFalse(getSet(instances,name).add("item0"));
+  Iterator iter=getSet(instances,name).iterator();
+  int item=0;
+  while (iter.hasNext()) {
+    getSet(instances,name).contains(iter.next());
+    item++;
+  }
+  assertEquals(count,item);
+  assertEquals(count,getSet(instances,name).size());
+  assertTrue(getSet(instances,name).remove("item99"));
+  assertFalse(getSet(instances,name).remove("item99"));
+  List list=new ArrayList();
+  list.add("item-1");
+  list.add("item-2");
+  assertTrue(getSet(instances,name).addAll(list));
+  assertEquals(count + list.size() - 1,getSet(instances,name).size());
+  assertFalse(getSet(instances,name).addAll(list));
+  assertEquals(count + list.size() - 1,getSet(instances,name).size());
+  assertTrue(getSet(instances,name).containsAll(list));
+  list.add("asd");
+  assertFalse(getSet(instances,name).containsAll(list));
+  assertTrue(getSet(instances,name).contains("item98"));
+  assertFalse(getSet(instances,name).contains("item99"));
+}
