@@ -6,22 +6,27 @@
   if (versionComparator != null && currentVersion != null) {
     if (explicitVersionCheckEnabled && value instanceof CacheEntry) {
       final CacheEntry currentEntry=(CacheEntry)value;
-      if (map.tryLock(key,tryLockAndGetTimeout,TimeUnit.MILLISECONDS)) {
-        try {
-          final CacheEntry previousEntry=(CacheEntry)map.get(key);
-          if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
-            map.set(key,value,0,TimeUnit.MILLISECONDS);
-            return true;
-          }
+      try {
+        if (map.tryLock(key,tryLockAndGetTimeout,TimeUnit.MILLISECONDS)) {
+          try {
+            final CacheEntry previousEntry=(CacheEntry)map.get(key);
+            if (previousEntry == null || versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
+              map.set(key,value,0,TimeUnit.MILLISECONDS);
+              return true;
+            }
  else {
-            return false;
+              return false;
+            }
+          }
+  finally {
+            map.unlock(key);
           }
         }
-  finally {
-          map.unlock(key);
+ else {
+          return false;
         }
       }
- else {
+ catch (      InterruptedException e) {
         return false;
       }
     }
