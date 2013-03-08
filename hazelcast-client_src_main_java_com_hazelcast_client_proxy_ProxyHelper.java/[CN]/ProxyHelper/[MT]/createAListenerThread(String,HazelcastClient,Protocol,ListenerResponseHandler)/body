@@ -1,6 +1,15 @@
 {
-  InetSocketAddress isa=client.getCluster().getMembers().iterator().next().getInetSocketAddress();
-  final Connection connection=client.getConnectionManager().createAndBindConnection(isa);
-  ListenerThread thread=new ListenerThread(threadName,request,lrh,connection,ss);
-  return thread;
+  ConnectionPool cp=client.getConnectionPool();
+  Router rt=cp.getRouter();
+  Member member=rt.next();
+  InetSocketAddress isa;
+  if (member == null)   isa=client.getCluster().getMembers().iterator().next().getInetSocketAddress();
+ else   isa=member.getInetSocketAddress();
+  try {
+    Connection connection=cp.newConnection(new Address(isa));
+    return new ListenerThread(threadName,request,lrh,connection,ss);
+  }
+ catch (  IOException e) {
+    throw new RuntimeException(e);
+  }
 }
