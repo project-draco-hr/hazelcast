@@ -1,0 +1,16 @@
+{
+  if (event.getReplicaIndex() != 0) {
+    return;
+  }
+  if (event.getMigrationEndpoint() == MigrationEndpoint.SOURCE && event.getMigrationType() == MigrationType.MOVE) {
+    clearPartition(event.getPartitionId());
+  }
+ else   if (event.getMigrationEndpoint() == MigrationEndpoint.DESTINATION) {
+    for (    Map.Entry<TransactionKey,TransactionLog> entry : txLogs.entrySet()) {
+      final TransactionLog log=entry.getValue();
+      if (!log.isScheduled()) {
+        scheduler.schedule(getTimeout(log.getState()),entry.getKey(),DUMMY_OBJECT);
+      }
+    }
+  }
+}

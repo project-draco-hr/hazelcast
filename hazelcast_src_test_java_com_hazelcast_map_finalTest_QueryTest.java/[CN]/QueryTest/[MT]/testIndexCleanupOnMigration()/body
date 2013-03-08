@@ -1,0 +1,64 @@
+{
+  Config cfg=new Config();
+  final int n=6;
+  final int runCount=500;
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(n);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(cfg);
+  final Config config=new Config();
+  config.setProperty(GroupProperties.PROP_WAIT_SECONDS_BEFORE_JOIN,"0");
+  final String mapName="testIndexCleanupOnMigration";
+  config.getMapConfig(mapName).addMapIndexConfig(new MapIndexConfig("name",false));
+  ExecutorService ex=Executors.newFixedThreadPool(n);
+  final CountDownLatch latch=new CountDownLatch(n);
+  final AtomicInteger countdown=new AtomicInteger(n * runCount);
+  final Random rand=new Random();
+  for (int i=0; i < n; i++) {
+    Thread.sleep(rand.nextInt((i + 1) * 100) + 10);
+    ex.execute(new Runnable(){
+      public void run(){
+        final HazelcastInstance hz=nodeFactory.newHazelcastInstance(config);
+        final String name=UUID.randomUUID().toString();
+        final IMap<Object,Value> map=hz.getMap(mapName);
+        map.put(name,new Value(name,0));
+        try {
+          for (int j=1; j <= runCount; j++) {
+            Value v=map.get(name);
+            v.setIndex(j);
+            map.put(name,v);
+            try {
+              Thread.sleep(rand.nextInt(100) + 1);
+            }
+ catch (            InterruptedException e) {
+              break;
+            }
+            EntryObject e=new PredicateBuilder().getEntryObject();
+            Predicate<?,?> predicate=e.get("name").equal(name);
+            final Collection<Value> values=map.values(predicate);
+            assertEquals(1,values.size());
+            Value v1=values.iterator().next();
+            Value v2=map.get(name);
+            assertEquals(v1,v2);
+            countdown.decrementAndGet();
+          }
+        }
+ catch (        AssertionError e) {
+          e.printStackTrace();
+        }
+catch (        Throwable e) {
+          System.err.println(e.getClass().getName() + "-> " + e.getMessage());
+        }
+ finally {
+          latch.countDown();
+        }
+      }
+    }
+);
+  }
+  try {
+    assertTrue(latch.await(60,TimeUnit.SECONDS));
+    assertEquals(0,countdown.get());
+  }
+  finally {
+    ex.shutdownNow();
+  }
+}

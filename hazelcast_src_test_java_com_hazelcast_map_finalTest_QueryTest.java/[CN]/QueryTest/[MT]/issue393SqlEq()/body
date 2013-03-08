@@ -1,0 +1,21 @@
+{
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(1);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
+  final IMap<String,Value> map=instance.getMap("default");
+  map.addIndex("name",true);
+  for (int i=0; i < 4; i++) {
+    final Value v=new Value("name" + i);
+    map.put("" + i,v);
+  }
+  final Predicate predicate=new SqlPredicate("name='name0'");
+  final Collection<Value> values=map.values(predicate);
+  final String[] expectedValues=new String[]{"name0"};
+  assertEquals(expectedValues.length,values.size());
+  final List<String> names=new ArrayList<String>();
+  for (  final Value configObject : values) {
+    names.add(configObject.name);
+  }
+  final String[] array=names.toArray(new String[0]);
+  Arrays.sort(array);
+  assertArrayEquals(names.toString(),expectedValues,array);
+}

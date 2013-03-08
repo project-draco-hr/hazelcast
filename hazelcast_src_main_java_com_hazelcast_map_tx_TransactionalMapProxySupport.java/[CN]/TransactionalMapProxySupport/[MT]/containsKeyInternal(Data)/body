@@ -1,0 +1,16 @@
+{
+  if (tx.getState() != Transaction.State.ACTIVE) {
+    throw new IllegalStateException("Transaction is not active!");
+  }
+  ContainsKeyOperation operation=new ContainsKeyOperation(name,key,tx.getTxnId());
+  final NodeEngine nodeEngine=getNodeEngine();
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  try {
+    Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(MapService.SERVICE_NAME,operation,partitionId).build();
+    Future f=invocation.invoke();
+    return (Boolean)f.get();
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t,TransactionException.class);
+  }
+}

@@ -1,0 +1,27 @@
+{
+  final TransactionKey key=new TransactionKey(txnId,partitionId);
+  final TransactionLog log=txLogs.get(key);
+  if (log == null) {
+    throw new TransactionException("No tx available!");
+  }
+  if (!log.beginProcess()) {
+    throw new TransactionException("Tx log is already being processed!");
+  }
+  try {
+    log.setCallerUuid(caller);
+    log.setState(Transaction.State.ROLLED_BACK);
+    for (    TransactionalOperation op : log.getOperationRecords()) {
+      try {
+        op.rollback();
+      }
+ catch (      Throwable e) {
+        logger.log(Level.WARNING,"Problem while rolling-back the transaction[" + txnId + "]!",e);
+      }
+    }
+    scheduler.schedule(ONE_MIN_MS,key,DUMMY_OBJECT);
+    log.setScheduled(true);
+  }
+  finally {
+    log.endProcess();
+  }
+}

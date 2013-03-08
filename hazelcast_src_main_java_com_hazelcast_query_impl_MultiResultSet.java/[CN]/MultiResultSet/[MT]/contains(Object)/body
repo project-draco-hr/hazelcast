@@ -1,9 +1,25 @@
 {
   QueryableEntry entry=(QueryableEntry)o;
-  for (  ConcurrentMap<Data,QueryableEntry> resultSet : resultSets) {
-    if (resultSet.containsKey(entry.getIndexKey())) {
-      return true;
+  if (index != null) {
+    return checkFromIndex(entry);
+  }
+ else {
+    if (resultSets.size() > 3) {
+      index=new HashSet<Object>();
+      for (      ConcurrentMap<Data,QueryableEntry> result : resultSets) {
+        for (        QueryableEntry queryableEntry : result.values()) {
+          index.add(queryableEntry.getIndexKey());
+        }
+      }
+      return checkFromIndex(entry);
+    }
+ else {
+      for (      ConcurrentMap<Data,QueryableEntry> resultSet : resultSets) {
+        if (resultSet.containsKey(entry.getIndexKey())) {
+          return true;
+        }
+      }
+      return false;
     }
   }
-  return false;
 }

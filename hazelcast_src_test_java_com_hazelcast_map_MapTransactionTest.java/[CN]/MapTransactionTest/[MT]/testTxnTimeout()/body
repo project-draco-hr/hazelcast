@@ -5,30 +5,9 @@
   HazelcastInstance h2=factory.newHazelcastInstance(config);
   IMap map1=h1.getMap("default");
   IMap map2=h2.getMap("default");
-  Transaction txn=h1.getTransaction();
-  txn.setTransactionTimeout(1);
-  txn.begin();
-  try {
-    map1.put("1","value");
-    Thread.sleep(1010);
-    map1.put("13","value");
-    fail();
-  }
- catch (  Throwable e) {
-  }
-  try {
-    txn.commit();
-    fail();
-  }
- catch (  IllegalStateException e) {
-  }
-  map2.lock("1");
-  txn=h1.getTransaction();
-  txn.setTransactionTimeout(1);
-  txn.begin();
-  try {
-    map1.put("1","value");
-  }
- catch (  Exception e) {
-  }
+  assertNull(map1.get("1"));
+  assertFalse(map1.isLocked("1"));
+  assertTrue(map1.tryLock("1"));
+  assertEquals("value",map1.get("1"));
+  assertTrue(map1.isLocked("1"));
 }
