@@ -1,0 +1,52 @@
+{
+  for (  ScheduledEntry<TransactionKey,Object> entry : scheduledEntries) {
+    final TransactionLog log=txLogs.get(entry.getKey());
+    final PartitionService partitionService=nodeEngine.getPartitionService();
+    if (log != null) {
+      if (log.isBeingProcessed() || partitionService.isPartitionMigrating(log.getPartitionId())) {
+        scheduler.schedule(ONE_MIN_MS / 2,entry.getKey(),DUMMY_OBJECT);
+      }
+ else       if (nodeEngine.getClusterService().getMember(log.getCallerUuid()) == null) {
+        txLogs.remove(entry.getKey());
+        final OperationService operationService=nodeEngine.getOperationService();
+        Operation op=null;
+        boolean broadcast=false;
+switch (log.getState()) {
+case PREPARED:
+          logger.log(Level.WARNING,"Rolling-back previously prepared transaction[" + log.getTxnId() + "], because caller is not a member of the cluster anymore!");
+        for (        TransactionalOperation txOp : log.getOperationRecords()) {
+          try {
+            txOp.rollback();
+          }
+ catch (          Throwable e) {
+            logger.log(Level.WARNING,"Problem while rolling-back the transaction[" + log.getTxnId() + "]!",e);
+          }
+        }
+      break;
+case COMMITTED:
+    logger.log(Level.INFO,"Broadcasting COMMIT message for transaction[" + log.getTxnId() + "], because caller is not a member of the cluster anymore!");
+  op=new BroadcastCommitOperation(log.getTxnId());
+broadcast=true;
+break;
+case ROLLED_BACK:
+logger.log(Level.INFO,"Broadcasting ROLLBACK message for transaction[" + log.getTxnId() + "], because caller is not a member of the cluster anymore!");
+op=new BroadcastRollbackOperation(log.getTxnId());
+broadcast=true;
+}
+if (broadcast) {
+op.setNodeEngine(nodeEngine).setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+final Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+for (MemberImpl member : members) {
+if (member.localMember()) {
+operationService.executeOperation(op);
+}
+ else {
+final Invocation inv=operationService.createInvocationBuilder(SERVICE_NAME,op,member.getAddress()).build();
+inv.invoke();
+}
+}
+}
+}
+}
+}
+}
