@@ -1,0 +1,26 @@
+{
+  Config config=new Config();
+  StaticNodeFactory factory=new StaticNodeFactory(2);
+  HazelcastInstance h1=factory.newInstance(config);
+  HazelcastInstance h2=factory.newInstance(config);
+  final IMap map2=h2.getMap("default");
+  boolean b=h1.executeTransaction(new TransactionalTask<Boolean>(){
+    public Boolean execute(    TransactionContext context) throws TransactionException {
+      final TransactionalMap<Object,Object> txMap=context.getMap("default");
+      txMap.put("1","value");
+      txMap.put("13","value");
+      assertEquals("value",txMap.get("1"));
+      assertEquals("value",txMap.get("13"));
+      assertNull(map2.get("1"));
+      assertNull(map2.get("13"));
+      return true;
+    }
+  }
+);
+  assertTrue(b);
+  IMap map1=h1.getMap("default");
+  assertEquals("value",map1.get("1"));
+  assertEquals("value",map1.get("13"));
+  assertEquals("value",map2.get("1"));
+  assertEquals("value",map2.get("13"));
+}

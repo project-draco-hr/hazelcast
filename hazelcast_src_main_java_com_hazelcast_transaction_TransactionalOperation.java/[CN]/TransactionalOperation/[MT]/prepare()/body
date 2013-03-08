@@ -1,0 +1,23 @@
+{
+  state=Transaction.State.PREPARED;
+  ResponseHandlerFactory.FutureResponseHandler f=new ResponseHandlerFactory.FutureResponseHandler();
+  setResponseHandler(f);
+  getNodeEngine().getOperationService().runOperation(this);
+  try {
+    f.get(1,TimeUnit.MILLISECONDS);
+  }
+ catch (  InterruptedException e) {
+    throw new TransactionException(e);
+  }
+catch (  ExecutionException e) {
+    Throwable t=e.getCause();
+    if (t instanceof TransactionException) {
+      throw (TransactionException)t;
+    }
+ else {
+      throw new TransactionException(t);
+    }
+  }
+catch (  TimeoutException ignored) {
+  }
+}

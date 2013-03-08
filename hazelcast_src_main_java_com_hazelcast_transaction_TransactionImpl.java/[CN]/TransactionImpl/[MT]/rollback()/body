@@ -4,14 +4,13 @@
   }
   state=ROLLING_BACK;
   try {
-    List<Future> futures=new ArrayList<Future>(participants.size());
-    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
-      final int partitionId=entry.getKey();
-      RollbackOperation op=new RollbackOperation(txnId,getServicesArray(entry.getValue()));
+    List<Future> futures=new ArrayList<Future>(partitions.size());
+    for (    Integer partitionId : partitions) {
+      RollbackOperation op=new RollbackOperation(txnId);
       futures.add(nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
-      future.get(timeoutSeconds,TimeUnit.SECONDS);
+      future.get(timeoutMillis,TimeUnit.MILLISECONDS);
     }
   }
  catch (  Throwable e) {

@@ -2,28 +2,27 @@
   if (state != ACTIVE) {
     throw new IllegalStateException("Transaction is not active");
   }
+  checkTimeout();
   try {
     state=PREPARING;
-    final List<Future> futures=new ArrayList<Future>(participants.size());
+    final List<Future> futures=new ArrayList<Future>(partitions.size());
     final OperationService operationService=nodeEngine.getOperationService();
-    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
-      final int partitionId=entry.getKey();
-      PrepareOperation op=new PrepareOperation(txnId,getServicesArray(entry.getValue()));
+    for (    Integer partitionId : partitions) {
+      PrepareOperation op=new PrepareOperation(txnId);
       futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
-      future.get(timeoutSeconds,TimeUnit.SECONDS);
+      future.get(timeoutMillis,TimeUnit.MILLISECONDS);
     }
     state=PREPARED;
     futures.clear();
     state=COMMITTING;
-    for (    Map.Entry<Integer,Collection<String>> entry : participants.entrySet()) {
-      final int partitionId=entry.getKey();
-      CommitOperation op=new CommitOperation(txnId,getServicesArray(entry.getValue()));
+    for (    Integer partitionId : partitions) {
+      CommitOperation op=new CommitOperation(txnId);
       futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
     }
     for (    Future future : futures) {
-      future.get(timeoutSeconds,TimeUnit.SECONDS);
+      future.get(timeoutMillis,TimeUnit.MILLISECONDS);
     }
     state=COMMITTED;
   }
