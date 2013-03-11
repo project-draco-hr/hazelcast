@@ -1,0 +1,19 @@
+{
+  Config config=new Config();
+  final int count=100;
+  final int insCount=4;
+  final String name="defQueue";
+  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
+  boolean b=instances[0].executeTransaction(new TransactionalTask<Boolean>(){
+    public Boolean execute(    TransactionContext context) throws TransactionException {
+      TransactionalQueue<String> q=context.getQueue(name);
+      assertTrue(q.offer("ali"));
+      String s=q.poll();
+      assertEquals("ali",s);
+      return true;
+    }
+  }
+);
+  assertTrue(b);
+  assertEquals(0,getQueue(instances,name).size());
+}
