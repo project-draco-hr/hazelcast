@@ -3,13 +3,19 @@
   logger.log(Level.FINEST,"Starting ExecutorManager");
   GroupProperties gp=node.groupProperties;
   ClassLoader classLoader=node.getConfig().getClassLoader();
-  threadPoolExecutor=new ThreadPoolExecutor(5,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue(),new ExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("cached"),classLoader),new RejectionHandler()){
+  ExecutorThreadFactory.ThreadCleanup cleanup=new ExecutorThreadFactory.ThreadCleanup(){
+    public void cleanup(    Thread t){
+      mapThreadCallContexts.remove(t);
+    }
+  }
+;
+  threadPoolExecutor=new ThreadPoolExecutor(5,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue(),new ExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("cached"),classLoader,cleanup),new RejectionHandler()){
     protected void beforeExecute(    Thread t,    Runnable r){
       threadPoolBeforeExecute(t,r);
     }
   }
 ;
-  esScheduled=new ScheduledThreadPoolExecutor(3,new ExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("scheduled"),classLoader),new RejectionHandler()){
+  esScheduled=new ScheduledThreadPoolExecutor(3,new ExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("scheduled"),classLoader,cleanup),new RejectionHandler()){
     protected void beforeExecute(    Thread t,    Runnable r){
       threadPoolBeforeExecute(t,r);
     }
