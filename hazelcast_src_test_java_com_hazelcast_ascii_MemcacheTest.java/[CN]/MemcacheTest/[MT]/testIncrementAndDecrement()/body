@@ -1,0 +1,30 @@
+{
+  final HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+  MemcachedClient client=getMemcacheClient(instance);
+  for (int i=0; i < 100; i++) {
+    final OperationFuture<Boolean> future=client.set(String.valueOf(i),0,i);
+    future.get();
+  }
+  for (int i=0; i < 100; i++) {
+    Assert.assertEquals(i * 2,client.incr(String.valueOf(i),i));
+  }
+  for (int i=100; i < 120; i++) {
+    Assert.assertEquals(-1,client.incr(String.valueOf(i),i));
+  }
+  for (int i=0; i < 100; i++) {
+    Assert.assertEquals(i,client.decr(String.valueOf(i),i));
+  }
+  for (int i=100; i < 130; i++) {
+    Assert.assertEquals(-1,client.decr(String.valueOf(i),i));
+  }
+  for (int i=0; i < 100; i++) {
+    Assert.assertEquals(i,client.get(String.valueOf(i)));
+  }
+  final Map<String,String> stats=client.getStats().get(instance.getCluster().getLocalMember().getInetSocketAddress());
+  Assert.assertEquals("100",stats.get("cmd_set"));
+  Assert.assertEquals("100",stats.get("cmd_get"));
+  Assert.assertEquals("100",stats.get("incr_hits"));
+  Assert.assertEquals("20",stats.get("incr_misses"));
+  Assert.assertEquals("100",stats.get("decr_hits"));
+  Assert.assertEquals("30",stats.get("decr_misses"));
+}
