@@ -1,9 +1,9 @@
 {
-  if (maxSize < 0 || maxSize > itemQueue.size()) {
-    maxSize=itemQueue.size();
+  if (maxSize < 0 || maxSize > getItemQueue().size()) {
+    maxSize=getItemQueue().size();
   }
   LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(maxSize);
-  Iterator<QueueItem> iter=itemQueue.iterator();
+  Iterator<QueueItem> iter=getItemQueue().iterator();
   for (int i=0; i < maxSize; i++) {
     QueueItem item=iter.next();
     if (store.isEnabled() && item.getData() == null) {
@@ -11,7 +11,7 @@
         load(item);
       }
  catch (      Exception e) {
-        throw new RetryableHazelcastException(e);
+        throw new HazelcastException(e);
       }
     }
     map.put(item.getItemId(),item.getData());
@@ -21,13 +21,17 @@
       store.deleteAll(map.keySet());
     }
  catch (    Exception e) {
-      throw new RetryableHazelcastException(e);
+      throw new HazelcastException(e);
     }
   }
   long current=Clock.currentTimeMillis();
   for (int i=0; i < maxSize; i++) {
-    QueueItem item=itemQueue.poll();
+    QueueItem item=getItemQueue().poll();
+    QueueItem removed=itemMap.remove(item.getItemId());
+    if (removed == null || removed.getItemId() != item.getItemId()) {
+      System.err.println("something wrong!!!");
+    }
     age(item,current);
   }
-  return map.values();
+  return map;
 }

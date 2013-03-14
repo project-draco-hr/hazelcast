@@ -8,10 +8,14 @@
       store.delete(item.getItemId());
     }
  catch (    Exception e) {
-      throw new RetryableHazelcastException(e);
+      throw new HazelcastException(e);
     }
   }
-  itemQueue.poll();
+  getItemQueue().poll();
+  QueueItem removed=itemMap.remove(item.getItemId());
+  if (removed == null || removed.getItemId() != item.getItemId()) {
+    System.err.println("something wrong!!!");
+  }
   age(item,Clock.currentTimeMillis());
-  return item.getData();
+  return item;
 }
