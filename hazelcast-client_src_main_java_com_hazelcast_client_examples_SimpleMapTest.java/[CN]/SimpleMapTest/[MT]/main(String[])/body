@@ -39,22 +39,28 @@
     es.submit(new Runnable(){
       public void run(){
         IMap<String,byte[]> map=hazelcast.getMap("default");
-        while (true) {
-          int key=(int)(Math.random() * ENTRY_COUNT);
-          byte[] value=String.valueOf(System.nanoTime()).getBytes();
-          int operation=((int)(Math.random() * 100));
-          if (operation < GET_PERCENTAGE) {
-            map.get(String.valueOf(key));
-            stats.gets.incrementAndGet();
-          }
- else           if (operation < GET_PERCENTAGE + PUT_PERCENTAGE) {
-            map.put(String.valueOf(key),value);
-            stats.puts.incrementAndGet();
-          }
+        try {
+          while (true) {
+            int key=(int)(Math.random() * ENTRY_COUNT);
+            byte[] value=String.valueOf(System.nanoTime()).getBytes();
+            int operation=((int)(Math.random() * 100));
+            if (operation < GET_PERCENTAGE) {
+              map.get(String.valueOf(key));
+              stats.gets.incrementAndGet();
+            }
+ else             if (operation < GET_PERCENTAGE + PUT_PERCENTAGE) {
+              map.put(String.valueOf(key),value);
+              stats.puts.incrementAndGet();
+            }
  else {
-            map.remove(String.valueOf(key));
-            stats.removes.incrementAndGet();
+              map.remove(String.valueOf(key));
+              stats.removes.incrementAndGet();
+            }
           }
+        }
+ catch (        Exception e) {
+          System.out.println(Thread.currentThread().getName() + ": Exception " + e.getMessage());
+          e.printStackTrace();
         }
       }
     }

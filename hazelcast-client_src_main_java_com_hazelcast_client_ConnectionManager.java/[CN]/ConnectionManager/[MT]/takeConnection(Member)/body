@@ -11,7 +11,15 @@
   }
   ObjectPool<Connection> pool=mPool.get(member.getInetSocketAddress());
   if (pool == null) {
-    pool=createPoolForTheMember((MemberImpl)member);
+synchronized (mPool) {
+      pool=mPool.get(member.getInetSocketAddress());
+      if (pool == null)       pool=createPoolForTheMember((MemberImpl)member);
+    }
   }
-  return pool.take();
+  Connection connection=pool.take();
+  if (connection == null) {
+    Thread.sleep(1000);
+    return takeConnection(null);
+  }
+  return connection;
 }
