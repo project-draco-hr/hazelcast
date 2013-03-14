@@ -1,0 +1,23 @@
+{
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(3);
+  Config cfg=new Config();
+  cfg.getMapConfig("default").setRecordType(MapConfig.RecordType.OBJECT);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(cfg);
+  IMap<Integer,Integer> map=instance1.getMap("testBackups");
+  for (int i=0; i < 1000; i++) {
+    map.put(i,i);
+  }
+  EntryProcessor entryProcessor=new IncrementorEntryProcessor();
+  for (int i=0; i < 1000; i++) {
+    map.executeOnKey(i,entryProcessor);
+  }
+  instance1.getLifecycleService().shutdown();
+  IMap<Integer,Integer> map3=instance3.getMap("testBackups");
+  for (int i=0; i < 1000; i++) {
+    assertEquals((Object)(i + 1),map3.get(i));
+  }
+  instance2.getLifecycleService().shutdown();
+  instance3.getLifecycleService().shutdown();
+}
