@@ -11,7 +11,17 @@
         }
  catch (        Exception e) {
           logger.log(Level.SEVERE,e.getMessage(),e);
+          ExceptionUtil.rethrow(e);
         }
+      }
+    }
+    if (mergePolicy == null) {
+      try {
+        mergePolicy=ClassLoaderUtil.newInstance(MapMergePolicyConfig.DEFAULT_POLICY);
+      }
+ catch (      Exception e) {
+        logger.log(Level.SEVERE,e.getMessage(),e);
+        ExceptionUtil.rethrow(e);
       }
     }
     Collection<Record> recordList=recordMap.get(mapContainer);
@@ -19,7 +29,7 @@
       final MapMergePolicy finalMergePolicy=mergePolicy;
       nodeEngine.getExecutionService().submit("hz:map-merge",new Runnable(){
         public void run(){
-          SimpleEntryView entryView=new SimpleEntryView(record.getKey(),getNodeEngine().toData(record.getValue()),record);
+          SimpleEntryView entryView=new SimpleEntryView(record.getKey(),toData(record.getValue()),record);
           MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,finalMergePolicy);
           try {
             int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
