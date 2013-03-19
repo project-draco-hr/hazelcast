@@ -6,6 +6,15 @@
   final int coreSize=Runtime.getRuntime().availableProcessors();
   final String poolNamePrefix=node.getThreadPoolNamePrefix("operation");
   executor=new FastExecutor(coreSize,poolNamePrefix,new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,node.getConfig().getClassLoader()));
+  executor.setInterceptor(new FastExecutor.WorkerLifecycleInterceptor(){
+    public void beforeWorkerStart(){
+      logger.log(Level.INFO,"Creating a new operation thread -> Core: " + executor.getCoreThreadSize() + ", Current: "+ (executor.getActiveThreadCount() + 1)+ ", Max: "+ executor.getMaxThreadSize());
+    }
+    public void afterWorkerTerminate(){
+      logger.log(Level.INFO,"Destroying an operation thread -> Core: " + executor.getCoreThreadSize() + ", Current: "+ executor.getActiveThreadCount()+ ", Max: "+ executor.getMaxThreadSize());
+    }
+  }
+);
   ownerLocks=new Lock[100000];
   for (int i=0; i < ownerLocks.length; i++) {
     ownerLocks[i]=new ReentrantLock();

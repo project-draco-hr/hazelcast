@@ -26,7 +26,8 @@
       if (interrupted != null) {
         return interrupted;
       }
-      final InvocationAction action=op.onException((Throwable)response);
+      final Throwable error=(Throwable)response;
+      final InvocationAction action=op.onException(error);
       final int localInvokeCount=invokeCount;
       if (action == InvocationAction.RETRY_INVOCATION && localInvokeCount < tryCount && timeout > 0) {
         if (localInvokeCount > 3) {
@@ -39,7 +40,7 @@
         }
         timeout=decrementTimeout(timeout,tryPauseMillis);
         if (localInvokeCount > 5 && localInvokeCount % 10 == 0) {
-          logger.log(Level.WARNING,"Retrying invocation: " + toString());
+          logger.log(Level.WARNING,"Retrying invocation: " + toString() + ", Reason: "+ error);
         }
         doInvoke();
       }
@@ -47,7 +48,7 @@
       }
  else {
         if (remote) {
-          ExceptionUtil.fixRemoteStackTrace((Throwable)response,Thread.currentThread().getStackTrace());
+          ExceptionUtil.fixRemoteStackTrace(error,Thread.currentThread().getStackTrace());
         }
         return response;
       }
