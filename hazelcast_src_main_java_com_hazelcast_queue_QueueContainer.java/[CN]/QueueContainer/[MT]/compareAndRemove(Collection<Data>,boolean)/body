@@ -1,12 +1,12 @@
 {
   LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>();
-  for (  QueueItem item : itemQueue) {
+  for (  QueueItem item : getItemQueue()) {
     if (item.getData() == null && store.isEnabled()) {
       try {
         load(item);
       }
  catch (      Exception e) {
-        throw new RetryableHazelcastException(e);
+        throw new HazelcastException(e);
       }
     }
     boolean contains=dataList.contains(item.getData());
@@ -20,16 +20,16 @@
         store.deleteAll(map.keySet());
       }
  catch (      Exception e) {
-        throw new RetryableHazelcastException(e);
+        throw new HazelcastException(e);
       }
     }
-    Iterator<QueueItem> iter=itemQueue.iterator();
+    Iterator<QueueItem> iter=getItemQueue().iterator();
     long current=Clock.currentTimeMillis();
     while (iter.hasNext()) {
       QueueItem item=iter.next();
       if (map.containsKey(item.getItemId())) {
         iter.remove();
-        age(item,current);
+        pollBackup(item.getItemId());
       }
     }
   }

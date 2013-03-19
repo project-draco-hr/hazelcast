@@ -1,16 +1,20 @@
 {
-  QueueItem item=new QueueItem(this,idGen++);
+  QueueItem item=new QueueItem(this,nextId());
   if (store.isEnabled()) {
     try {
       store.store(item.getItemId(),data);
     }
  catch (    Exception e) {
-      idGen--;
-      throw new RetryableHazelcastException(e);
+      throw new HazelcastException(e);
     }
   }
-  if (!store.isEnabled() || store.getMemoryLimit() > itemQueue.size()) {
+  if (!store.isEnabled() || store.getMemoryLimit() > getItemQueue().size()) {
     item.setData(data);
   }
-  return itemQueue.offer(item);
+  getItemQueue().offer(item);
+  QueueItem replaced=itemMap.put(item.getItemId(),item);
+  if (replaced != null) {
+    System.err.println("something wrong!!!");
+  }
+  return item.getItemId();
 }
