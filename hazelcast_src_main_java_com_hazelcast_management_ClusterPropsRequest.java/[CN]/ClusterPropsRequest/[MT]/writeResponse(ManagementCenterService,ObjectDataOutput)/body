@@ -1,0 +1,18 @@
+{
+  Map<String,String> properties=new LinkedHashMap<String,String>();
+  Runtime runtime=Runtime.getRuntime();
+  RuntimeMXBean runtimeMxBean=ManagementFactory.getRuntimeMXBean();
+  final PartitionServiceImpl partitionService=mcs.getHazelcastInstance().node.getPartitionService();
+  properties.put("hazelcast.cl_version",mcs.getHazelcastInstance().node.initializer.getVersion());
+  properties.put("date.cl_startTime",Long.toString(runtimeMxBean.getStartTime()));
+  properties.put("seconds.cl_upTime",Long.toString(runtimeMxBean.getUptime()));
+  properties.put("memory.cl_freeMemory",Long.toString(runtime.freeMemory()));
+  properties.put("memory.cl_totalMemory",Long.toString(runtime.totalMemory()));
+  properties.put("memory.cl_maxMemory",Long.toString(runtime.maxMemory()));
+  properties.put("data.cl_immediateTasksCount",Long.toString(partitionService.getImmediateTasksCount()));
+  properties.put("data.cl_scheduledTasksCount",Long.toString(partitionService.getScheduledTasksCount()));
+  dos.writeInt(properties.size());
+  for (  Object property : properties.keySet()) {
+    dos.writeUTF((String)property + ":#" + (String)properties.get(property));
+  }
+}

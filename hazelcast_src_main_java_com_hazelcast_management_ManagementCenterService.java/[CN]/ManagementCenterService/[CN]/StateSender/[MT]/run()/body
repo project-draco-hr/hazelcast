@@ -5,6 +5,10 @@
   }
   try {
     while (running.get()) {
+      if (versionMismatch) {
+        Thread.sleep(1000 * 60);
+        versionMismatch=false;
+      }
       try {
         URL url=new URL(webServerUrl + "collector.do");
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
@@ -13,7 +17,12 @@
         connection.setConnectTimeout(1000);
         connection.setReadTimeout(1000);
         final DataOutputStream out=new DataOutputStream(connection.getOutputStream());
+        final ObjectDataOutputWrapper wrappedOut=new ObjectDataOutputWrapper(out);
         TimedMemberState ts=getTimedMemberState();
+        out.writeUTF(instance.node.initializer.getVersion());
+        instance.node.address.writeData(wrappedOut);
+        out.writeUTF(instance.getConfig().getGroupConfig().getName());
+        ts.writeData(wrappedOut);
         out.flush();
         connection.getInputStream();
       }
