@@ -12,16 +12,26 @@
     Protocol response=reader.read(connection);
     cp.releaseConnection(connection);
     if (Command.OK.equals(response.command))     return response;
+ else     if (response.args.length > 0 && "HazelcastInstanceNotActiveException".equalsIgnoreCase(response.args[0])) {
+      throw new HazelcastInstanceNotActiveException();
+    }
  else {
       throw new RuntimeException(response.command + ": " + Arrays.asList(response.args));
     }
   }
- catch (  EOFException e) {
-    return doCommand(member,command,args,data);
+ catch (  HazelcastInstanceNotActiveException e) {
+    if (retry) {
+      sleep(1000);
+      return doCommand((Member)null,command,args,data);
+    }
+ else     throw e;
   }
 catch (  IOException e) {
-    e.printStackTrace();
-    throw new RuntimeException(e);
+    if (retry) {
+      sleep(1000);
+      return doCommand((Member)null,command,args,data);
+    }
+ else     throw new RuntimeException(e);
   }
 catch (  InterruptedException e) {
     throw new RuntimeException(e);

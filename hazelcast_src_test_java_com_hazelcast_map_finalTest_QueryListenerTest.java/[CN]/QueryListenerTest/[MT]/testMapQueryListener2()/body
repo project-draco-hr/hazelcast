@@ -1,0 +1,30 @@
+{
+  StaticNodeFactory nodeFactory=new StaticNodeFactory(3);
+  Config cfg=new Config();
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(cfg);
+  final IMap<Object,Object> map=instance1.getMap("testMapQueryListener2");
+  final AtomicInteger addCount=new AtomicInteger(0);
+  EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
+    public void entryAdded(    EntryEvent<Object,Object> event){
+      addCount.incrementAndGet();
+    }
+    public void entryRemoved(    EntryEvent<Object,Object> event){
+    }
+    public void entryUpdated(    EntryEvent<Object,Object> event){
+    }
+    public void entryEvicted(    EntryEvent<Object,Object> event){
+    }
+  }
+;
+  Predicate predicate=new SqlPredicate("age >= 50");
+  map.addEntryListener(listener,predicate,null,false);
+  int size=100;
+  for (int i=0; i < size; i++) {
+    Person person=new Person("name",i);
+    map.put(i,person);
+  }
+  Thread.sleep(1000);
+  assertEquals(50,addCount.get());
+}

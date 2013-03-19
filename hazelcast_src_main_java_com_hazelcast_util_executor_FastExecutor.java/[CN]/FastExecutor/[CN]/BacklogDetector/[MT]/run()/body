@@ -1,5 +1,4 @@
 {
-  final NewThreadInterceptor threadInterceptor=interceptor;
   long currentBacklogInterval=backlogInterval;
   final Thread thread=Thread.currentThread();
   while (!thread.isInterrupted() && live) {
@@ -8,14 +7,11 @@
     if (task != null) {
       if (task.creationTime + currentBacklogInterval < Clock.currentTimeMillis()) {
         if (activeThreadCount < maxThreadSize) {
-          if (threadInterceptor != null) {
-            threadInterceptor.beforeNewThread();
+          final WorkerLifecycleInterceptor workerInterceptor=interceptor;
+          if (workerInterceptor != null) {
+            workerInterceptor.beforeWorkerStart();
           }
-          addThread(true);
-          currentBacklogInterval+=100;
-        }
- else {
-          sleep=1000;
+          addWorker(true);
         }
       }
     }

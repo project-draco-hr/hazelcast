@@ -1,10 +1,11 @@
 {
+  ByteBuffer line=ByteBuffer.allocate(INITIAL_BUFFER_CAPACITY);
   int threadId=-1;
   String flag=null;
   Command command;
   String[] args;
   final ObjectDataInputStream dis=connection.getInputStream();
-  String commandLine=readLine(dis);
+  String commandLine=readLine(dis,line);
   String[] split=SocketProtocolReader.fastSplit(commandLine,' ');
   if (split.length == 0) {
     throw new RuntimeException("Wrong command from server");
@@ -43,7 +44,7 @@
     if (bufferCount * 11 > line.array().length) {
       line=ByteBuffer.allocate(bufferCount * 11);
     }
-    String sizeLine=readLine(dis);
+    String sizeLine=readLine(dis,line);
     String[] sizes=SocketProtocolReader.fastSplit(sizeLine,' ');
     int i=0;
     for (    String size : sizes) {
@@ -58,7 +59,7 @@
     dis.readByte();
   }
   if (command.equals(Command.UNKNOWN)) {
-    throw new RuntimeException("Unknown command: " + split[commandIndex]);
+    throw new RuntimeException("Unknown command: " + split[commandIndex] + ":: "+ Thread.currentThread().getName());
   }
   Protocol protocol=new Protocol(null,command,flag,threadId,false,args,datas);
   return protocol;
