@@ -7,7 +7,7 @@
   final Address thisAddress=nodeEngine.getThisAddress();
   if (target == null) {
     if (isActive()) {
-      setResult(new WrongTargetException(thisAddress,target,partitionId,op.getClass().getName(),serviceName));
+      setResult(new WrongTargetException(thisAddress,target,partitionId,replicaIndex,op.getClass().getName(),serviceName));
     }
  else {
       setResult(new HazelcastInstanceNotActiveException());
@@ -17,6 +17,14 @@
     setResult(new TargetNotMemberException(target,partitionId,op.getClass().getName(),serviceName));
   }
  else {
+    if (op.getPartitionId() != partitionId) {
+      setResult(new IllegalStateException("Partition id of operation: " + op.getPartitionId() + " is not equal to the partition id of invocation: "+ partitionId));
+      return;
+    }
+    if (op.getReplicaIndex() != replicaIndex) {
+      setResult(new IllegalStateException("Replica index of operation: " + op.getReplicaIndex() + " is not equal to the replica index of invocation: "+ replicaIndex));
+      return;
+    }
     OperationAccessor.setInvocationTime(op,nodeEngine.getClusterTime());
     final OperationServiceImpl operationService=nodeEngine.operationService;
     if (thisAddress.equals(target)) {

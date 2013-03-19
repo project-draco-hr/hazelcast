@@ -19,7 +19,7 @@
         if (joinMessage.getUuid().equals(member.getUuid())) {
           String message="Ignoring join request, member already exists.. => " + joinMessage;
           logger.log(Level.FINEST,message);
-          invokeClusterOperation(new FinalizeJoinOperation(createMemberInfos(getMemberList()),getClusterTime()),member.getAddress());
+          nodeEngine.getOperationService().send(new FinalizeJoinOperation(createMemberInfos(getMemberList()),getClusterTime(),false),member.getAddress());
           return;
         }
         if (node.isMaster() || member.getAddress().equals(node.getMasterAddress())) {
@@ -38,7 +38,7 @@
           ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
           if (cr == null) {
             securityLogger.log(Level.SEVERE,"Expecting security credentials " + "but credentials could not be found in JoinRequest!");
-            invokeClusterOperation(new AuthenticationFailureOperation(),joinMessage.getAddress());
+            nodeEngine.getOperationService().send(new AuthenticationFailureOperation(),joinMessage.getAddress());
             return;
           }
  else {
@@ -49,7 +49,7 @@
  catch (            LoginException e) {
               securityLogger.log(Level.SEVERE,"Authentication has failed for " + cr.getPrincipal() + '@'+ cr.getEndpoint()+ " => ("+ e.getMessage()+ ")");
               securityLogger.log(Level.FINEST,e.getMessage(),e);
-              invokeClusterOperation(new AuthenticationFailureOperation(),joinMessage.getAddress());
+              nodeEngine.getOperationService().send(new AuthenticationFailureOperation(),joinMessage.getAddress());
               return;
             }
           }
