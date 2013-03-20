@@ -9,9 +9,11 @@
     final long pollTimeout=Math.min(maxCallTimeout,timeout);
     final long start=Clock.currentTimeMillis();
     final Object response;
+    final long lastPollTime;
     try {
       response=responseQ.poll(pollTimeout,TimeUnit.MILLISECONDS);
-      timeout=decrementTimeout(timeout,Clock.currentTimeMillis() - start);
+      lastPollTime=Clock.currentTimeMillis() - start;
+      timeout=decrementTimeout(timeout,lastPollTime);
     }
  catch (    InterruptedException e) {
       logger.log(Level.FINEST,Thread.currentThread().getName() + " is interrupted while waiting " + "response for operation "+ op);
@@ -26,20 +28,22 @@
       if (interrupted != null) {
         return interrupted;
       }
-      final InvocationAction action=op.onException((Throwable)response);
+      final Throwable error=(Throwable)response;
+      final InvocationAction action=op.onException(error);
       final int localInvokeCount=invokeCount;
       if (action == InvocationAction.RETRY_INVOCATION && localInvokeCount < tryCount && timeout > 0) {
-        if (localInvokeCount > 3) {
+        if (localInvokeCount > 5) {
+          final long sleepTime=tryPauseMillis;
           try {
-            Thread.sleep(tryPauseMillis);
+            Thread.sleep(sleepTime);
+            timeout=decrementTimeout(timeout,sleepTime);
           }
  catch (          InterruptedException e) {
             return e;
           }
         }
-        timeout=decrementTimeout(timeout,tryPauseMillis);
-        if (localInvokeCount > 5 && localInvokeCount % 10 == 0) {
-          logger.log(Level.WARNING,"Retrying invocation: " + toString());
+        if (localInvokeCount > 99 && localInvokeCount % 10 == 0) {
+          logger.log(Level.WARNING,"Retrying invocation: " + toString() + ", Reason: "+ error);
         }
         doInvoke();
       }
@@ -47,7 +51,7 @@
       }
  else {
         if (remote) {
-          ExceptionUtil.fixRemoteStackTrace((Throwable)response,Thread.currentThread().getStackTrace());
+          ExceptionUtil.fixRemoteStackTrace(error,Thread.currentThread().getStackTrace());
         }
         return response;
       }
@@ -60,7 +64,7 @@
       if (nodeEngine.getThisAddress().equals(target)) {
         continue;
       }
-      logger.log(Level.WARNING,"No response for " + pollTimeout + " ms. "+ toString());
+      logger.log(Level.WARNING,"No response for " + lastPollTime + " ms. "+ toString());
       boolean executing=isOperationExecuting(target);
       if (!executing) {
         Object obj=responseQ.poll();

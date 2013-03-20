@@ -9,17 +9,20 @@
         task.run();
       }
  else {
-        final int activeCount=activeThreadCount;
-        if (activeCount > coreThreadSize || allowCoreThreadTimeout) {
-          lock.lockInterruptibly();
-          try {
+        lock.lockInterruptibly();
+        try {
+          if (activeThreadCount > coreThreadSize || allowCoreThreadTimeout) {
             threads.remove(currentThread);
             activeThreadCount--;
+            final WorkerLifecycleInterceptor workerInterceptor=interceptor;
+            if (workerInterceptor != null) {
+              workerInterceptor.afterWorkerTerminate();
+            }
             return;
           }
+        }
   finally {
-            lock.unlock();
-          }
+          lock.unlock();
         }
       }
     }
