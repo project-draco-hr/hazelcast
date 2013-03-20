@@ -25,9 +25,15 @@
             throw new IllegalStateException("Normally shouldn't happen!!");
           }
  else {
-            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
-            if (returnsResponse) {
-              syncBackups.add(new BackupFuture(f,partitionId,replicaIndex,maxRetryCount));
+            if (false && op.returnsResponse() && target.equals(op.getCallerAddress())) {
+              backupOp.setServiceName(serviceName).setReplicaIndex(replicaIndex).setPartitionId(partitionId);
+              backupResponse=backupOp;
+            }
+ else {
+              final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
+              if (returnsResponse) {
+                syncBackups.add(new BackupFuture(f,partitionInfo,replicaIndex,maxRetryCount));
+              }
             }
           }
         }
@@ -48,7 +54,7 @@
  else {
             final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
             if (returnsResponse) {
-              asyncBackups.add(new BackupFuture(f,partitionId,replicaIndex,maxRetryCount));
+              asyncBackups.add(new BackupFuture(f,partitionInfo,replicaIndex,maxRetryCount));
             }
           }
         }
