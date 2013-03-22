@@ -1,0 +1,17 @@
+{
+  Config config=new Config();
+  SimpleMapStore mapStore=new SimpleMapStore();
+  config.getMapConfig("testIssue187RemoveDoesNotWorkWithLock").setMapStoreConfig(new MapStoreConfig().setEnabled(true).setWriteDelaySeconds(1).setImplementation(mapStore));
+  IMap<String,String> map=Hazelcast.newHazelcastInstance(config).getMap("testIssue187RemoveDoesNotWorkWithLock");
+  map.put("key","value");
+  try {
+    Thread.sleep(2000);
+  }
+ catch (  InterruptedException e) {
+  }
+  map.remove("key");
+  map.lock("key");
+  String value=map.get("key");
+  assertNull(value);
+  map.unlock("key");
+}
