@@ -2,12 +2,12 @@
   lock.lock();
   try {
     final Address sender=partitionState.getEndpoint();
+    final Address master=node.getMasterAddress();
     if (node.isMaster()) {
       logger.log(Level.WARNING,"This is the master node and received a PartitionRuntimeState from " + sender + ". Ignoring incoming state! ");
       return;
     }
  else {
-      final Address master=node.getMasterAddress();
       if (sender == null || !sender.equals(master)) {
         if (node.clusterService.getMember(sender) == null) {
           logger.log(Level.SEVERE,"Received a ClusterRuntimeState from an unknown member!" + " => Sender: " + sender + ", Master: "+ master+ "! ");
@@ -43,7 +43,11 @@
     }
     Collection<MigrationInfo> completedMigrations=partitionState.getCompletedMigrations();
     for (    MigrationInfo completedMigration : completedMigrations) {
+      addCompletedMigration(completedMigration);
       finalizeActiveMigration(completedMigration);
+    }
+    if (!activeMigrations.isEmpty()) {
+      rollbackActiveMigrationsFromPreviousMaster(master);
     }
     version.set(partitionState.getVersion());
     initialized=true;

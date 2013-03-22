@@ -3,24 +3,38 @@
     lock.lock();
     try {
       if (activeMigrations.containsValue(migrationInfo)) {
-        try {
-          final Address thisAddress=node.getThisAddress();
-          final boolean source=thisAddress.equals(migrationInfo.getFromAddress());
-          final boolean destination=thisAddress.equals(migrationInfo.getToAddress());
-          if (source || destination) {
-            final int partitionId=migrationInfo.getPartitionId();
-            final int replicaIndex=migrationInfo.getReplicaIndex();
-            final PartitionInfo migratingPartition=getPartition(partitionId);
-            final Address replicaAddress=migratingPartition.getReplicaAddress(replicaIndex);
-            final boolean success=migrationInfo.getToAddress().equals(replicaAddress);
-            final MigrationEndpoint endpoint=source ? MigrationEndpoint.SOURCE : MigrationEndpoint.DESTINATION;
-            final FinalizeMigrationOperation op=new FinalizeMigrationOperation(endpoint,migrationInfo.getMigrationType(),migrationInfo.getCopyBackReplicaIndex(),success);
-            op.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
-            nodeEngine.getOperationService().runOperation(op);
+        if (migrationInfo.startProcessing()) {
+          try {
+            final Address thisAddress=node.getThisAddress();
+            final boolean source=thisAddress.equals(migrationInfo.getFromAddress());
+            final boolean destination=thisAddress.equals(migrationInfo.getToAddress());
+            if (source || destination) {
+              final int partitionId=migrationInfo.getPartitionId();
+              final int replicaIndex=migrationInfo.getReplicaIndex();
+              final PartitionInfo migratingPartition=getPartition(partitionId);
+              final Address replicaAddress=migratingPartition.getReplicaAddress(replicaIndex);
+              final boolean success=migrationInfo.getToAddress().equals(replicaAddress);
+              final MigrationEndpoint endpoint=source ? MigrationEndpoint.SOURCE : MigrationEndpoint.DESTINATION;
+              final FinalizeMigrationOperation op=new FinalizeMigrationOperation(endpoint,migrationInfo.getMigrationType(),migrationInfo.getCopyBackReplicaIndex(),success);
+              op.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
+              nodeEngine.getOperationService().runOperation(op);
+            }
+          }
+ catch (          Exception e) {
+            logger.log(Level.WARNING,e.getMessage(),e);
+          }
+ finally {
+            migrationInfo.doneProcessing();
           }
         }
- catch (        Exception e) {
-          logger.log(Level.WARNING,e.getMessage(),e);
+ else {
+          logger.log(Level.INFO,"Scheduling finalization of " + migrationInfo + ", because migration process is currently running.");
+          nodeEngine.getExecutionService().schedule(new Runnable(){
+            public void run(){
+              finalizeActiveMigration(migrationInfo);
+            }
+          }
+,3,TimeUnit.SECONDS);
         }
       }
     }
