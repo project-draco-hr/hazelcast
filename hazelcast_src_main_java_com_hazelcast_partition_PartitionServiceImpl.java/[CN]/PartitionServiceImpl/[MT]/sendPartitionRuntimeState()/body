@@ -1,11 +1,11 @@
 {
+  if (!initialized) {
+    return;
+  }
   if (!node.isMaster() || !node.isActive() || !node.joined()) {
     return;
   }
   if (!migrationActive.get()) {
-    return;
-  }
-  if (!initialized) {
     return;
   }
   final Collection<MemberImpl> members=node.clusterService.getMemberList();
@@ -16,7 +16,7 @@
     for (    MemberImpl member : members) {
       if (!member.localMember()) {
         try {
-          nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,op,member.getAddress()).setTryCount(1).build().invoke();
+          nodeEngine.getOperationService().send(op,member.getAddress());
         }
  catch (        Exception e) {
           logger.log(Level.FINEST,e.getMessage(),e);

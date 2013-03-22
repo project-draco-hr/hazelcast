@@ -5,7 +5,6 @@
       sendingDiffs.set(true);
       logger.log(Level.INFO,"Starting to send partition replica diffs..." + sendingDiffs.get());
       int diffCount=0;
-      final int maxBackupCount=getMaxBackupCount();
       for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
         int indexOfDead=indexesOfDead[partitionId];
         if (indexOfDead != -1) {
@@ -16,7 +15,7 @@
             logger.log(Level.FINEST,partition.toString());
             continue;
           }
-          for (int replicaIndex=indexOfDead; replicaIndex <= maxBackupCount; replicaIndex++) {
+          for (int replicaIndex=indexOfDead; replicaIndex < PartitionInfo.MAX_REPLICA_COUNT; replicaIndex++) {
             Address target=partition.getReplicaAddress(replicaIndex);
             if (target != null && !target.equals(owner)) {
               if (getMember(target) != null) {
@@ -26,11 +25,6 @@
  else {
                 logger.log(Level.WARNING,"Target member of replica diff task couldn't found! " + "Replica: " + replicaIndex + ", Dead: "+ deadMember+ "\n"+ partition);
               }
-            }
-          }
-          if (indexOfDead <= maxBackupCount) {
-            for (int index=maxBackupCount + 1; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
-              partition.setReplicaAddress(index,null);
             }
           }
         }

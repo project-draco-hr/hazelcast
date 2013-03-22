@@ -1,3 +1,15 @@
 {
-  activeMigrations.put(migrationInfo.getPartitionId(),migrationInfo);
+  lock.lock();
+  try {
+    final int partitionId=migrationInfo.getPartitionId();
+    final MigrationInfo currentMigrationInfo=activeMigrations.putIfAbsent(partitionId,migrationInfo);
+    if (currentMigrationInfo != null) {
+      logger.log(Level.INFO,"Rolling-back migration instantiated by the old master -> " + currentMigrationInfo);
+      finalizeActiveMigration(currentMigrationInfo);
+      activeMigrations.put(partitionId,migrationInfo);
+    }
+  }
+  finally {
+    lock.unlock();
+  }
 }
