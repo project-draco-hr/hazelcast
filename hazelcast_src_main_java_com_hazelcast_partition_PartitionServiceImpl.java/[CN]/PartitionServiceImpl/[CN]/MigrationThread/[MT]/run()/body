@@ -1,0 +1,41 @@
+{
+  try {
+    while (running) {
+      Runnable r=null;
+      while (isActive() && (r=immediateTasksQueue.poll()) != null) {
+        safeRunImmediate(r);
+      }
+      if (!running) {
+        break;
+      }
+      long totalWait=0L;
+      while (isActive() && (r != null || totalWait < partitionMigrationInterval)) {
+        long start=Clock.currentTimeMillis();
+        r=immediateTasksQueue.poll(1,TimeUnit.SECONDS);
+        safeRunImmediate(r);
+        totalWait+=(Clock.currentTimeMillis() - start);
+      }
+      if (isActive()) {
+        r=scheduledTasksQueue.poll();
+        safeRun(r);
+      }
+      final boolean hasNoTasks=hasNoTasks();
+      if (!migrationActive.get() || hasNoTasks) {
+        if (hasNoTasks && migrating) {
+          migrating=false;
+          logger.log(Level.INFO,"All migration tasks has been completed, queues are empty.");
+        }
+        evictCompletedMigrations();
+        Thread.sleep(250);
+        continue;
+      }
+    }
+  }
+ catch (  InterruptedException e) {
+    logger.log(Level.FINEST,"MigrationThread is interrupted: " + e.getMessage());
+    running=false;
+  }
+ finally {
+    clearTaskQueues();
+  }
+}

@@ -5,9 +5,12 @@
     return;
   }
   clearTaskQueues();
-  migrationService.onMemberRemove(deadAddress);
+  migrationThread.onMemberRemove(deadAddress);
   lock.lock();
   try {
+    if (!activeMigrations.isEmpty() && node.isMaster()) {
+      rollbackActiveMigrationsFromPreviousMaster(thisAddress);
+    }
     final boolean migrationStatus=migrationActive.getAndSet(false);
     int[] indexesOfDead=new int[partitions.length];
     for (    PartitionInfo partition : partitions) {
