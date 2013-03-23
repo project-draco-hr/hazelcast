@@ -1,8 +1,8 @@
 {
-  final long timeoutTime=Clock.currentTimeMillis() + config.getReConnectionTimeOut();
   int attempt=0;
   Connection initialConnection=null;
   while (initialConnection == null) {
+    final long timeoutTime=Clock.currentTimeMillis() + config.getReConnectionTimeOut();
     for (    InetSocketAddress isa : config.getAddressList()) {
       try {
         Address address=new Address(isa);
@@ -12,13 +12,16 @@
  catch (      IOException e) {
         continue;
       }
+catch (      ClusterClientException e) {
+        continue;
+      }
     }
     if (attempt >= config.getInitialConnectionAttemptLimit()) {
       break;
     }
     attempt++;
     final long remainingTimeout=timeoutTime - Clock.currentTimeMillis();
-    System.out.println(format("Unable to get alive cluster connection," + " try in {0} ms later, attempt {1} of {2}.",Math.max(0,remainingTimeout),attempt,config.getInitialConnectionAttemptLimit()));
+    System.out.println(format("Unable to get alive cluster connection," + " try in %d ms later, attempt %d of %d.",Math.max(0,remainingTimeout),attempt,config.getInitialConnectionAttemptLimit()));
     if (remainingTimeout > 0) {
       try {
         Thread.sleep(remainingTimeout);
