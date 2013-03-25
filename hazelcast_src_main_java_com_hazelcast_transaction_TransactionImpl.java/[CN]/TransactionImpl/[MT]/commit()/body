@@ -2,29 +2,44 @@
   if (state != ACTIVE) {
     throw new IllegalStateException("Transaction is not active");
   }
+  checkThread();
   checkTimeout();
   try {
     state=PREPARING;
-    final List<Future> futures=new ArrayList<Future>(partitions.size());
-    final OperationService operationService=nodeEngine.getOperationService();
-    for (    Integer partitionId : partitions) {
-      PrepareOperation op=new PrepareOperation(txnId);
-      futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
+    final List<Future> futures=new ArrayList<Future>(txLogs.size());
+    for (    TransactionLog txLog : txLogs) {
+      futures.add(txLog.prepare(nodeEngine));
     }
     for (    Future future : futures) {
       future.get(timeoutMillis,TimeUnit.MILLISECONDS);
     }
-    state=PREPARED;
     futures.clear();
+    state=PREPARED;
+    if (durability > 0) {
+      final OperationService operationService=nodeEngine.getOperationService();
+      for (      Address backupAddress : backupAddresses) {
+        final Invocation inv=operationService.createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new ReplicateTxOperation(txLogs,nodeEngine.getLocalMember().getUuid(),txnId,timeoutMillis),backupAddress).build();
+        futures.add(inv.invoke());
+      }
+      for (      Future future : futures) {
+        future.get(timeoutMillis,TimeUnit.MILLISECONDS);
+      }
+      futures.clear();
+    }
     state=COMMITTING;
-    for (    Integer partitionId : partitions) {
-      CommitOperation op=new CommitOperation(txnId);
-      futures.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
+    for (    TransactionLog txLog : txLogs) {
+      futures.add(txLog.commit(nodeEngine));
     }
     for (    Future future : futures) {
-      future.get(5,TimeUnit.MINUTES);
+      try {
+        future.get(5,TimeUnit.MINUTES);
+      }
+ catch (      Throwable e) {
+        nodeEngine.getLogger(getClass()).log(Level.WARNING,"Error during commit!",e);
+      }
     }
     state=COMMITTED;
+    purgeTxBackups();
   }
  catch (  Throwable e) {
     state=COMMIT_FAILED;
@@ -32,5 +47,8 @@
       throw (TransactionException)e.getCause();
     }
     throw ExceptionUtil.rethrow(e);
+  }
+ finally {
+    threadFlag.set(null);
   }
 }
