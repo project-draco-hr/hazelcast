@@ -1,0 +1,27 @@
+{
+  final MemberImpl member=event.getMember();
+  String uuid=member.getUuid();
+  if (!txBackupLogs.isEmpty()) {
+    for (    TxBackupLog log : txBackupLogs.values()) {
+      if (uuid.equals(log.callerUuid)) {
+        TransactionImpl tx=new TransactionImpl(this,nodeEngine,log.txnId,log.txLogs,log.timeoutMillis);
+        if (log.state == Transaction.State.COMMITTING) {
+          try {
+            tx.commit();
+          }
+ catch (          Throwable e) {
+            logger.log(Level.WARNING,"Error during committing from tx backup!",e);
+          }
+        }
+ else {
+          try {
+            tx.rollback();
+          }
+ catch (          Throwable e) {
+            logger.log(Level.WARNING,"Error during rolling-back from tx backup!",e);
+          }
+        }
+      }
+    }
+  }
+}
