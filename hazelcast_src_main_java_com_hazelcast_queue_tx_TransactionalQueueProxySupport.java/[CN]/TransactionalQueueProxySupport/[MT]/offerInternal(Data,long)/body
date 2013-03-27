@@ -1,14 +1,14 @@
 {
+  throwExceptionIfNull(data);
   TxnReserveOfferOperation operation=new TxnReserveOfferOperation(name,timeout);
   try {
     Invocation invocation=getNodeEngine().getOperationService().createInvocationBuilder(QueueService.SERVICE_NAME,operation,partitionId).build();
     Future<Long> f=invocation.invoke();
-    long itemId=f.get();
-    if (itemId != -1) {
-      offerQueue.offer(new QueueItem(null,itemId,data));
+    Long itemId=f.get();
+    if (itemId != null) {
       tx.addTransactionLog(new QueueTransactionLog(itemId,name,partitionId,new TxnOfferOperation(name,itemId,data)));
+      return true;
     }
-    return itemId != -1;
   }
  catch (  Throwable t) {
     ExceptionUtil.rethrow(t);
