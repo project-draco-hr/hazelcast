@@ -1,7 +1,8 @@
 {
   if (!recordStore.lock(getKey(),getCallerUuid(),getThreadId(),ttl)) {
-    throw new TransactionException(getCallerUuid() + " Lock failed " + getThreadId());
+    throw new TransactionException("Lock failed.");
   }
-  Data value=mapService.toData(recordStore.get(dataKey));
-  response=new VersionedValue(value,1);
+  Record record=recordStore.getRecords().get(dataKey);
+  Data value=record == null ? null : mapService.toData(record.getValue());
+  response=new VersionedValue(value,record == null ? 0 : record.getVersion());
 }
