@@ -1,0 +1,16 @@
+{
+  TxnReservePollOperation operation=new TxnReservePollOperation(name,timeout);
+  try {
+    Invocation invocation=getNodeEngine().getOperationService().createInvocationBuilder(QueueService.SERVICE_NAME,operation,partitionId).build();
+    Future<QueueItem> f=invocation.invoke();
+    QueueItem item=f.get();
+    if (item != null) {
+      tx.addTransactionLog(new QueueTransactionLog(item.getItemId(),name,partitionId,new TxnPollOperation(name,item.getItemId())));
+      return item.getData();
+    }
+  }
+ catch (  Throwable t) {
+    ExceptionUtil.rethrow(t);
+  }
+  return null;
+}
