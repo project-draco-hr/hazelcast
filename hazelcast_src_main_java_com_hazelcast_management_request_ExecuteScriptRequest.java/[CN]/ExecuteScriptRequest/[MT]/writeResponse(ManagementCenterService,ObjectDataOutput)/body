@@ -1,0 +1,33 @@
+{
+  Object result=null;
+  ScriptExecutorOperation operation=new ScriptExecutorOperation(engine,script,bindings);
+  if (targetAllMembers) {
+    result=mcs.callOnAllMembers(operation);
+  }
+ else   if (targets.isEmpty()) {
+    result=NULL;
+  }
+ else   if (targets.size() == 1) {
+    result=mcs.call(targets.iterator().next(),operation);
+  }
+ else {
+    result=mcs.callOnAddresses(targets,operation);
+  }
+  if (result != null) {
+    if (result instanceof Map) {
+      dos.writeByte(MAP);
+      writeMap(dos,(Map)result);
+    }
+ else     if (result instanceof Collection) {
+      dos.writeByte(COLLECTION);
+      writeCollection(dos,(Collection)result);
+    }
+ else {
+      dos.writeByte(OTHER);
+      dos.writeObject(result);
+    }
+  }
+ else {
+    dos.writeByte(NULL);
+  }
+}
