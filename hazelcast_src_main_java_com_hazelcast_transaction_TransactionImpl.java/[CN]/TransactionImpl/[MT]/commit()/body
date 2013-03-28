@@ -1,35 +1,11 @@
 {
-  if (state != ACTIVE) {
-    throw new IllegalStateException("Transaction is not active");
+  if (state != PREPARED) {
+    throw new IllegalStateException("Transaction is not prepared");
   }
   checkThread();
   checkTimeout();
   try {
     final List<Future> futures=new ArrayList<Future>(txLogs.size());
-    if (transactionType.equals(TransactionType.TWO_PHASE)) {
-      state=PREPARING;
-      for (      TransactionLog txLog : txLogs) {
-        futures.add(txLog.prepare(nodeEngine));
-      }
-      for (      Future future : futures) {
-        future.get(timeoutMillis,TimeUnit.MILLISECONDS);
-      }
-      futures.clear();
-      state=PREPARED;
-    }
-    if (durability > 0 && transactionType.equals(TransactionType.TWO_PHASE)) {
-      final OperationService operationService=nodeEngine.getOperationService();
-      for (      Address backupAddress : backupAddresses) {
-        if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
-          final Invocation inv=operationService.createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new ReplicateTxOperation(txLogs,nodeEngine.getLocalMember().getUuid(),txnId,timeoutMillis),backupAddress).build();
-          futures.add(inv.invoke());
-        }
-      }
-      for (      Future future : futures) {
-        future.get(timeoutMillis,TimeUnit.MILLISECONDS);
-      }
-      futures.clear();
-    }
     for (int i=0; i < 11; i++) {
       System.out.println("COMMITTING" + (10 - i));
       Thread.sleep(1000);
