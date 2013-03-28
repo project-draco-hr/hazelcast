@@ -5,17 +5,19 @@
   checkThread();
   checkTimeout();
   try {
-    state=PREPARING;
     final List<Future> futures=new ArrayList<Future>(txLogs.size());
-    for (    TransactionLog txLog : txLogs) {
-      futures.add(txLog.prepare(nodeEngine));
+    if (transactionType.equals(TransactionType.TWO_PHASE)) {
+      state=PREPARING;
+      for (      TransactionLog txLog : txLogs) {
+        futures.add(txLog.prepare(nodeEngine));
+      }
+      for (      Future future : futures) {
+        future.get(timeoutMillis,TimeUnit.MILLISECONDS);
+      }
+      futures.clear();
+      state=PREPARED;
     }
-    for (    Future future : futures) {
-      future.get(timeoutMillis,TimeUnit.MILLISECONDS);
-    }
-    futures.clear();
-    state=PREPARED;
-    if (durability > 0) {
+    if (durability > 0 && transactionType.equals(TransactionType.TWO_PHASE)) {
       final OperationService operationService=nodeEngine.getOperationService();
       for (      Address backupAddress : backupAddresses) {
         if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
