@@ -2,9 +2,17 @@
   if (transaction.getState() != Transaction.State.ACTIVE) {
     throw new IllegalStateException("Transaction is not active!");
   }
-  final Object service=nodeEngine.getService(serviceName);
-  if (service instanceof TransactionalService) {
-    return ((TransactionalService)service).createTransactionalObject(id,transaction);
+  TransactionalObjectKey key=new TransactionalObjectKey(MapService.SERVICE_NAME,id);
+  TransactionalObject obj=txnObjectMap.get(key);
+  if (obj == null) {
+    final Object service=nodeEngine.getService(serviceName);
+    if (service instanceof TransactionalService) {
+      obj=((TransactionalService)service).createTransactionalObject(id,transaction);
+      txnObjectMap.put(key,obj);
+    }
+ else {
+      throw new IllegalArgumentException("Service[" + serviceName + "] is not transactional!");
+    }
   }
-  throw new IllegalArgumentException("Service[" + serviceName + "] is not transactional!");
+  return obj;
 }

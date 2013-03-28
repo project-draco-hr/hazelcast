@@ -9,8 +9,10 @@
     final OperationService operationService=nodeEngine.getOperationService();
     if (durability > 0) {
       for (      Address backupAddress : backupAddresses) {
-        final Invocation inv=operationService.createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new RollbackTxBackupOperation(txnId),backupAddress).build();
-        futures.add(inv.invoke());
+        if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
+          final Invocation inv=operationService.createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new RollbackTxBackupOperation(txnId),backupAddress).build();
+          futures.add(inv.invoke());
+        }
       }
       for (      Future future : futures) {
         try {

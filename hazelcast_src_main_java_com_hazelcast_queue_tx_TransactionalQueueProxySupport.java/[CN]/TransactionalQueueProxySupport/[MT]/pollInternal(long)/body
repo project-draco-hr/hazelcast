@@ -5,6 +5,9 @@
     Future<QueueItem> f=invocation.invoke();
     QueueItem item=f.get();
     if (item != null) {
+      if (!itemIdSet.add(item.getItemId())) {
+        throw new TransactionException("Duplicate itemId: " + item.getItemId());
+      }
       tx.addTransactionLog(new QueueTransactionLog(item.getItemId(),name,partitionId,new TxnPollOperation(name,item.getItemId())));
       return item.getData();
     }
