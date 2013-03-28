@@ -5,6 +5,21 @@
   final String mapName="defMap";
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
   instances[0].getMap(mapName).lock("lock1");
+  try {
+    instances[1].executeTransaction(new TransactionalTask<Object>(){
+      public Object execute(      TransactionalTaskContext context) throws TransactionException {
+        boolean offered=context.getQueue(queueName).offer("item1");
+        assertTrue(offered);
+        context.getMap(mapName).put("lock1","value1");
+        fail();
+        return null;
+      }
+    }
+,new TransactionOptions().setTimeout(5,TimeUnit.SECONDS).setTransactionType(TransactionOptions.TransactionType.LOCAL));
+  }
+ catch (  TransactionException ex) {
+    ex.printStackTrace();
+  }
   assertEquals(0,instances[0].getQueue(queueName).size());
   assertNull(instances[0].getMap(mapName).get("lock1"));
 }

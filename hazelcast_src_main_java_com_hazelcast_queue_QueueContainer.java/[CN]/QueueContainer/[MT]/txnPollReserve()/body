@@ -1,0 +1,20 @@
+{
+  QueueItem item=getItemQueue().poll();
+  if (item == null) {
+    return null;
+  }
+  if (store.isEnabled() && item.getData() == null) {
+    try {
+      load(item);
+    }
+ catch (    Exception e) {
+      throw new HazelcastException(e);
+    }
+  }
+  QueueItem removed=itemMap.remove(item.getItemId());
+  if (removed == null || removed.getItemId() != item.getItemId()) {
+    System.err.println("something wrong!!!");
+  }
+  txMap.put(item.getItemId(),item);
+  return new QueueItem(null,item.getItemId(),item.getData());
+}

@@ -1,0 +1,33 @@
+{
+  final Map<Integer,DataSerializableFactory> map=new HashMap<Integer,DataSerializableFactory>();
+  try {
+    final Iterator<DataSerializerHook> hooks=ServiceLoader.iterator(DataSerializerHook.class,FACTORY_ID);
+    while (hooks.hasNext()) {
+      DataSerializerHook hook=hooks.next();
+      final Map<Integer,DataSerializableFactory> f=hook.getFactories();
+      if (f != null) {
+        for (        Map.Entry<Integer,DataSerializableFactory> entry : f.entrySet()) {
+          final DataSerializableFactory current=map.get(entry.getKey());
+          final DataSerializableFactory factory=entry.getValue();
+          if (current != null && current != factory) {
+            throw new IllegalArgumentException("DataSerializable ID[" + entry.getKey() + "] is already registered for "+ current);
+          }
+          final IdentifiedDataSerializable s=factory.create();
+          final Class<? extends IdentifiedDataSerializable> clazz=s.getClass();
+          final int mod=clazz.getModifiers();
+          if (!Modifier.isFinal(mod)) {
+            throw new IllegalArgumentException("Classes implementing IdentifiedDataSerializable " + "must be final -> " + clazz.getName());
+          }
+          map.put(entry.getKey(),factory);
+        }
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  factories=Collections.unmodifiableMap(map);
+  factories.values();
+  factories.keySet();
+  factories.entrySet();
+}

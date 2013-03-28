@@ -2,6 +2,12 @@
   if (state == ACTIVE) {
     throw new IllegalStateException("Transaction is already active");
   }
+  checkThread();
+  if (threadFlag.get() != null) {
+    throw new IllegalStateException("Nested transactions are not allowed!");
+  }
+  threadFlag.set(true);
   startTime=Clock.currentTimeMillis();
+  backupAddresses=transactionManagerService.pickBackupAddresses(durability);
   state=ACTIVE;
 }
