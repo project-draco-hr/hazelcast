@@ -1,0 +1,21 @@
+{
+  final Thread currentThread=Thread.currentThread();
+  final boolean take=keepAliveMillis <= 0 || keepAliveMillis == Long.MAX_VALUE;
+  final long timeout=keepAliveMillis;
+  while (!currentThread.isInterrupted() && isLive()) {
+    try {
+      final WorkerTask task=take ? queue.take() : queue.poll(timeout,TimeUnit.MILLISECONDS);
+      if (task != null) {
+        task.run();
+      }
+ else {
+        if (removeWorker(currentThread)) {
+          return;
+        }
+      }
+    }
+ catch (    InterruptedException e) {
+      break;
+    }
+  }
+}
