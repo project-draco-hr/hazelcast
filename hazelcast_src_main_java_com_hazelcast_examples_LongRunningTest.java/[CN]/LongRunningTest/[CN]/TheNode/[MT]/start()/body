@@ -21,7 +21,10 @@
               stats.mapRemoves.incrementAndGet();
             }
           }
- catch (          Throwable ignored) {
+ catch (          HazelcastInstanceNotActiveException ignored) {
+          }
+catch (          Throwable e) {
+            e.printStackTrace();
           }
         }
       }
@@ -30,14 +33,17 @@
   }
   esStats.submit(new Runnable(){
     public void run(){
+      final ILogger logger=hazelcast.getLoggingService().getLogger(hazelcast.getName());
       while (running) {
         try {
           Thread.sleep(STATS_SECONDS * 1000);
           int clusterSize=hazelcast.getCluster().getMembers().size();
           Stats currentStats=stats.getAndReset();
-          log("Cluster size: " + clusterSize + ", Operations per Second: "+ (currentStats.total() / STATS_SECONDS));
+          logger.log(Level.INFO,"Cluster size: " + clusterSize + ", Operations per Second: "+ (currentStats.total() / STATS_SECONDS));
         }
- catch (        Exception e) {
+ catch (        HazelcastInstanceNotActiveException ignored) {
+        }
+catch (        Exception e) {
           e.printStackTrace();
         }
       }

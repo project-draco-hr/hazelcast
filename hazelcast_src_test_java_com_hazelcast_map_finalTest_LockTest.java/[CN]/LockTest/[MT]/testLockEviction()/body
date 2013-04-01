@@ -1,0 +1,22 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final Config config=new Config();
+  final AtomicInteger integer=new AtomicInteger(0);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final String name="testLockEviction";
+  final IMap map=instance1.getMap(name);
+  map.lock(1,1,TimeUnit.SECONDS);
+  Assert.assertEquals(true,map.isLocked(1));
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      map.lock(1);
+      integer.incrementAndGet();
+    }
+  }
+);
+  t.start();
+  Assert.assertEquals(0,integer.get());
+  Thread.sleep(2000);
+  Assert.assertEquals(1,integer.get());
+}

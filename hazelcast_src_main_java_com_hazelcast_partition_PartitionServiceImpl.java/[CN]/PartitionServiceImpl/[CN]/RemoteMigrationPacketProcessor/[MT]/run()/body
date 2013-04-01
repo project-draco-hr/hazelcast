@@ -1,0 +1,25 @@
+{
+  final Connection conn=packet.getConn();
+  try {
+    final Address caller=conn.getEndPoint();
+    final Data data=packet.getData();
+    final Operation op=(Operation)nodeEngine.toObject(data);
+    op.setNodeEngine(nodeEngine);
+    OperationAccessor.setCallerAddress(op,caller);
+    OperationAccessor.setConnection(op,conn);
+    final ResponseHandler rh=ResponseHandlerFactory.createRemoteResponseHandler(nodeEngine,op);
+    if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
+      rh.sendResponse(new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName()));
+    }
+ else     if (node.joined()) {
+      op.setResponseHandler(rh);
+      nodeEngine.getOperationService().runOperation(op);
+    }
+ else {
+      rh.sendResponse(new RetryableHazelcastException("Node is not joined to the cluster yet!"));
+    }
+  }
+ catch (  Throwable e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
+  }
+}

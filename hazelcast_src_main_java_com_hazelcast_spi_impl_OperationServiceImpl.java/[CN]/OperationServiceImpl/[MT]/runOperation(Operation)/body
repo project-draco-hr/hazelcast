@@ -1,8 +1,8 @@
 {
   final ThreadContext threadContext=ThreadContext.getOrCreate();
-  SpinLock partitionLock=null;
+  Lock partitionLock=null;
   Lock keyLock=null;
-  CallKey callKey=null;
+  RemoteCallKey callKey=null;
   try {
     if (isCallTimedOut(op)) {
       Object response=new CallTimeoutException("Call timed out for " + op.getClass().getName() + ", call-time: "+ op.getInvocationTime()+ ", timeout: "+ op.getCallTimeout());
@@ -14,43 +14,41 @@
     final int partitionId=op.getPartitionId();
     if (op instanceof PartitionAwareOperation) {
       if (partitionId < 0) {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Partition id cannot be negative! -> " + partitionId);
       }
-      if (!isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
+      if (!OperationAccessor.isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
         throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
       }
-      SpinReadWriteLock migrationLock=partitionLocks[partitionId];
+      final ReadWriteLock migrationLock=partitionLocks[partitionId];
       if (op instanceof PartitionLevelOperation) {
-        partitionLock=migrationLock.writeLock();
-        partitionLock.lock();
+        final Lock tmpPartitionLock=migrationLock.writeLock();
+        tmpPartitionLock.lockInterruptibly();
+        partitionLock=tmpPartitionLock;
       }
  else {
-        partitionLock=migrationLock.readLock();
-        if (!partitionLock.tryLock(500,TimeUnit.MILLISECONDS)) {
-          partitionLock=null;
+        final Lock tmpPartitionLock=migrationLock.readLock();
+        if (!tmpPartitionLock.tryLock(100,TimeUnit.MILLISECONDS)) {
           throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
         }
-        PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
+        partitionLock=tmpPartitionLock;
+        final PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
+        if (partitionInfo == null) {
+          throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+        }
         final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
-        final boolean validatesTarget=op.validatesTarget();
-        if (validatesTarget && !node.getThisAddress().equals(owner)) {
+        if (op.validatesTarget() && !node.getThisAddress().equals(owner)) {
           throw new WrongTargetException(node.getThisAddress(),owner,partitionId,op.getReplicaIndex(),op.getClass().getName(),op.getServiceName());
         }
-        if (op instanceof KeyBasedOperation) {
+        if (op instanceof KeyBasedOperation && !(op instanceof BackupOperation)) {
           final int hash=((KeyBasedOperation)op).getKeyHash();
-          Lock[] lockGroup=ownerLocks;
-          if (op instanceof BackupOperation) {
-            lockGroup=backupLocks;
+          final Lock[] locks=ownerLocks;
+          final Lock tmpKeyLock=locks[Math.abs(hash) % locks.length];
+          if (!tmpKeyLock.tryLock(100,TimeUnit.MILLISECONDS)) {
+            throw new RetryableHazelcastException("Key lock cannot be acquired!");
           }
-          keyLock=lockGroup[Math.abs(hash) % lockGroup.length];
-          keyLock.lock();
+          keyLock=tmpKeyLock;
         }
       }
-    }
- else     if (op instanceof MultiPartitionAwareOperation) {
-      final int[] partitionIds=((MultiPartitionAwareOperation)op).getPartitionIds();
-      partitionLock=new MultiPartitionLock(partitionIds);
-      partitionLock.lock();
     }
     doRunOperation(op);
   }
