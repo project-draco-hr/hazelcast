@@ -1,12 +1,21 @@
 {
   begin=Clock.currentTimeMillis();
-  Collection<CollectionRecord> coll=getCollection();
-  if (coll == null) {
-    response=false;
+  response=false;
+  CollectionWrapper wrapper=getCollectionWrapper();
+  if (wrapper == null) {
     return;
   }
+  Collection<CollectionRecord> coll=wrapper.getCollection();
   CollectionRecord record=new CollectionRecord(isBinary() ? value : toObject(value));
-  response=coll.remove(record);
+  Iterator<CollectionRecord> iter=coll.iterator();
+  while (iter.hasNext()) {
+    CollectionRecord r=iter.next();
+    if (r.equals(record)) {
+      iter.remove();
+      recordId=r.getRecordId();
+      response=true;
+    }
+  }
   if (coll.isEmpty()) {
     removeCollection();
   }
