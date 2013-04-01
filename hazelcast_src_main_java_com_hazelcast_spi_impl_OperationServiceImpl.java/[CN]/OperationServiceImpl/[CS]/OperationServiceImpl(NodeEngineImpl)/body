@@ -4,9 +4,22 @@
   this.logger=node.getLogger(OperationService.class.getName());
   defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
   final int coreSize=Runtime.getRuntime().availableProcessors();
+  final boolean reallyMultiCore=coreSize >= 8;
+  remoteCalls=new ConcurrentHashMap<Long,RemoteCall>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16));
   final String poolNamePrefix=node.getThreadPoolNamePrefix("operation");
-  executor=new FastExecutor(coreSize,poolNamePrefix,new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,node.getConfig().getClassLoader()));
-  executor.setInterceptor(new FastExecutor.WorkerLifecycleInterceptor(){
+  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,node.getConfig().getClassLoader());
+  final String type=node.getGroupProperties().OPERATION_EXECUTOR_TYPE.getString();
+  final int coreThreadSize=coreSize * 2;
+  if ("blocking".equals(type)) {
+    executor=new BlockingFastExecutor(coreThreadSize,poolNamePrefix,threadFactory);
+  }
+ else   if ("spinning".equals(type)) {
+    executor=new SpinningFastExecutor(coreThreadSize,poolNamePrefix,threadFactory);
+  }
+ else {
+    executor=reallyMultiCore ? new SpinningFastExecutor(coreThreadSize,poolNamePrefix,threadFactory) : new BlockingFastExecutor(coreThreadSize,poolNamePrefix,threadFactory);
+  }
+  executor.setInterceptor(new BlockingFastExecutor.WorkerLifecycleInterceptor(){
     public void beforeWorkerStart(){
       logger.log(Level.INFO,"Creating a new operation thread -> Core: " + executor.getCoreThreadSize() + ", Current: "+ (executor.getActiveThreadCount() + 1)+ ", Max: "+ executor.getMaxThreadSize());
     }
@@ -19,13 +32,10 @@
   for (int i=0; i < ownerLocks.length; i++) {
     ownerLocks[i]=new ReentrantLock();
   }
-  backupLocks=new Lock[10000];
-  for (int i=0; i < backupLocks.length; i++) {
-    backupLocks[i]=new ReentrantLock();
-  }
   int partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
-  partitionLocks=new SpinReadWriteLock[partitionCount];
+  partitionLocks=new ReadWriteLock[partitionCount];
   for (int i=0; i < partitionCount; i++) {
-    partitionLocks[i]=new SpinReadWriteLock(1,TimeUnit.MILLISECONDS);
+    partitionLocks[i]=new ReentrantReadWriteLock();
   }
+  executingCalls=Collections.newSetFromMap(new ConcurrentHashMap<RemoteCallKey,Boolean>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16)));
 }

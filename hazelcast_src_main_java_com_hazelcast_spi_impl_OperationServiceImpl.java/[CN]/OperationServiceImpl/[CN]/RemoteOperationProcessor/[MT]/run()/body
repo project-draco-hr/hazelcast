@@ -4,14 +4,21 @@
     final Address caller=conn.getEndPoint();
     final Data data=packet.getData();
     final Operation op=(Operation)nodeEngine.toObject(data);
-    op.setNodeEngine(nodeEngine).setCallerAddress(caller);
-    op.setConnection(conn);
+    op.setNodeEngine(nodeEngine);
+    OperationAccessor.setCallerAddress(op,caller);
+    OperationAccessor.setConnection(op,conn);
     if (op instanceof ResponseOperation) {
       processResponse(op);
     }
  else {
-      ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
-      runOperation(op);
+      final ResponseHandler responseHandler=ResponseHandlerFactory.createRemoteResponseHandler(nodeEngine,op);
+      if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
+        responseHandler.sendResponse(new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName()));
+      }
+ else {
+        op.setResponseHandler(responseHandler);
+        runOperation(op);
+      }
     }
   }
  catch (  Throwable e) {
