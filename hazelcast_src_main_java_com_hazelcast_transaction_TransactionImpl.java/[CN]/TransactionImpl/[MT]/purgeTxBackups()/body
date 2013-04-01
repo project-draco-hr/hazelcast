@@ -1,13 +1,15 @@
 {
-  if (durability > 0) {
+  if (durability > 0 && transactionType.equals(TransactionType.TWO_PHASE)) {
     final OperationService operationService=nodeEngine.getOperationService();
     for (    Address backupAddress : backupAddresses) {
-      try {
-        final Invocation inv=operationService.createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new PurgeTxBackupOperation(txnId),backupAddress).build();
-        inv.invoke();
-      }
- catch (      Throwable e) {
-        nodeEngine.getLogger(getClass()).log(Level.WARNING,"Error during purging backups!",e);
+      if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
+        try {
+          final Invocation inv=operationService.createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new PurgeTxBackupOperation(txnId),backupAddress).build();
+          inv.invoke();
+        }
+ catch (        Throwable e) {
+          nodeEngine.getLogger(getClass()).log(Level.WARNING,"Error during purging backups!",e);
+        }
       }
     }
   }

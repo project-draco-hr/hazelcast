@@ -1,0 +1,25 @@
+{
+  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final Config config=new Config();
+  final AtomicInteger integer=new AtomicInteger(0);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final String name="testLockEviction2";
+  final IMap map=instance1.getMap(name);
+  Random rand=new Random(System.currentTimeMillis());
+  for (int i=0; i < 5; i++) {
+    map.lock(i,rand.nextInt(5),TimeUnit.SECONDS);
+  }
+  final CountDownLatch latch=new CountDownLatch(5);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      for (int i=0; i < 5; i++) {
+        map.lock(i);
+        latch.countDown();
+      }
+    }
+  }
+);
+  t.start();
+  assertTrue(latch.await(15,TimeUnit.SECONDS));
+}
