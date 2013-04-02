@@ -1,17 +1,16 @@
 {
   while (futures != null && !futures.isEmpty()) {
     final Iterator<BackupFuture> iter=futures.iterator();
-    ExecutionException lastError=null;
     while (iter.hasNext()) {
       final BackupFuture f=iter.next();
       try {
         if (f.canRetry()) {
           f.get(500,TimeUnit.MILLISECONDS);
-          lastError=null;
+          f.error=null;
         }
         iter.remove();
-        if (lastError != null) {
-          logger.log(Level.WARNING,"While backing up -> " + lastError.getMessage(),lastError);
+        if (f.error != null) {
+          logger.log(Level.WARNING,"While backing up -> " + f.error.getMessage(),f.error);
         }
       }
  catch (      InterruptedException ignored) {
@@ -24,11 +23,10 @@ catch (      ExecutionException e) {
           throw e;
         }
  else         if (t instanceof MemberLeftException || f.targetLeft()) {
-          System.err.println("Backup target left! -> " + e.getClass().getSimpleName() + ": "+ e.getMessage());
           iter.remove();
         }
  else {
-          lastError=e;
+          f.error=e;
         }
       }
     }
