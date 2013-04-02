@@ -3,20 +3,20 @@
     lock.lock();
     try {
       sendingDiffs.set(true);
-      logger.log(Level.INFO,"Starting to send partition replica diffs..." + sendingDiffs.get());
+      logger.log(Level.INFO,"Starting to send partition replica diffs...");
       int diffCount=0;
       for (int partitionId=0; partitionId < indexesOfDead.length; partitionId++) {
-        int indexOfDead=indexesOfDead[partitionId];
+        final int indexOfDead=indexesOfDead[partitionId];
         if (indexOfDead != -1) {
-          PartitionInfo partition=partitions[partitionId];
-          Address owner=partition.getOwner();
+          final PartitionInfo partition=partitions[partitionId];
+          final Address owner=partition.getOwner();
           if (owner == null) {
             logger.log(Level.FINEST,"Owner of one of the replicas of Partition[" + partitionId + "] is dead, but partition owner could not be found either!");
             logger.log(Level.FINEST,partition.toString());
             continue;
           }
           for (int replicaIndex=indexOfDead; replicaIndex < PartitionInfo.MAX_REPLICA_COUNT; replicaIndex++) {
-            Address target=partition.getReplicaAddress(replicaIndex);
+            final Address target=partition.getReplicaAddress(replicaIndex);
             if (target != null && !target.equals(owner)) {
               if (getMember(target) != null) {
                 immediateTasksQueue.offer(new Migrator(new MigrationInfo(partitionId,replicaIndex,MigrationType.COPY,owner,target)));

@@ -19,10 +19,12 @@
 catch (      TimeoutException ignored) {
       }
 catch (      ExecutionException e) {
-        if (!ExceptionUtil.isRetryableException(e)) {
+        final Throwable t=e.getCause() != null ? e.getCause() : e;
+        if (!(t instanceof RetryableException)) {
           throw e;
         }
- else         if (!f.hasTarget()) {
+ else         if (t instanceof MemberLeftException || f.targetLeft()) {
+          System.err.println("Backup target left! -> " + e.getClass().getSimpleName() + ": "+ e.getMessage());
           iter.remove();
         }
  else {

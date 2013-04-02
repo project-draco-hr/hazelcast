@@ -22,7 +22,12 @@
       final ReadWriteLock migrationLock=partitionLocks[partitionId];
       if (op instanceof PartitionLevelOperation) {
         final Lock tmpPartitionLock=migrationLock.writeLock();
+        final long t=System.currentTimeMillis();
         tmpPartitionLock.lockInterruptibly();
+        final long elapsed=System.currentTimeMillis() - t;
+        if (elapsed > 10) {
+          System.err.println("LOCK ACQ: " + elapsed);
+        }
         partitionLock=tmpPartitionLock;
       }
  else {
