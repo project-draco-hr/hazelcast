@@ -1,0 +1,19 @@
+{
+  final long spin=spinInterval;
+  final long timeInMillis=unit.toMillis(time > 0 ? time : 0);
+  long elapsed=0L;
+  while (!locked.compareAndSet(false,true)) {
+    Thread.sleep(spin);
+    if ((elapsed+=spin) > timeInMillis) {
+      return false;
+    }
+  }
+  while (readCount.get() > 0) {
+    Thread.sleep(spin);
+    if ((elapsed+=spin) > timeInMillis) {
+      locked.set(false);
+      return false;
+    }
+  }
+  return true;
+}

@@ -1,6 +1,9 @@
 {
   lock.lock();
   try {
+    if (!node.isActive() || !node.joined()) {
+      return;
+    }
     final Address sender=partitionState.getEndpoint();
     final Address master=node.getMasterAddress();
     if (node.isMaster()) {
@@ -47,7 +50,8 @@
       finalizeActiveMigration(completedMigration);
     }
     if (!activeMigrations.isEmpty()) {
-      rollbackActiveMigrationsFromPreviousMaster(master);
+      final MemberImpl masterMember=getMasterMember();
+      rollbackActiveMigrationsFromPreviousMaster(masterMember.getUuid());
     }
     version.set(partitionState.getVersion());
     initialized=true;

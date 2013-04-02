@@ -1,19 +1,27 @@
 {
-  Collection<CollectionRecord> coll=getOrCreateCollection();
-  Collection<CollectionRecord> recordList=new ArrayList<CollectionRecord>(dataList.size());
-  for (  Data data : dataList) {
-    recordList.add(new CollectionRecord(isBinary() ? data : toObject(data)));
-  }
-  if (index == -1) {
-    response=coll.addAll(recordList);
-  }
+  CollectionContainer container=getOrCreateContainer();
+  Collection<CollectionRecord> coll=container.getOrCreateCollectionWrapper(dataKey).getCollection();
+  List list=(List)coll;
+  recordList=new ArrayList<CollectionRecord>(dataList.size());
+  try {
+    int i=0;
+    for (    Data data : dataList) {
+      CollectionRecord record=new CollectionRecord(isBinary() ? data : toObject(data));
+      boolean added=true;
+      if (index == -1) {
+        added=coll.add(record);
+      }
  else {
-    List list=(List)coll;
-    try {
-      response=list.addAll(index,recordList);
+        list.add(index + (i++),record);
+      }
+      if (added) {
+        record.setRecordId(container.nextId());
+        recordList.add(record);
+      }
     }
- catch (    IndexOutOfBoundsException e) {
-      response=e;
-    }
+    response=recordList.size() != 0;
+  }
+ catch (  IndexOutOfBoundsException e) {
+    response=e;
   }
 }

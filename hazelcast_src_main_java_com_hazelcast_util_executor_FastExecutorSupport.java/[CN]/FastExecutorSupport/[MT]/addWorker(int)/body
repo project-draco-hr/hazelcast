@@ -1,0 +1,22 @@
+{
+  lock.lock();
+  try {
+    if (activeThreadCount < maxSize && live) {
+      final WorkerLifecycleInterceptor workerInterceptor=interceptor;
+      if (workerInterceptor != null) {
+        workerInterceptor.beforeWorkerStart();
+      }
+      if (backlogDetector.getState() == Thread.State.NEW) {
+        backlogDetector.start();
+      }
+      final Runnable worker=createWorker();
+      final Thread thread=threadFactory.newThread(worker);
+      thread.start();
+      activeThreadCount++;
+      threads.add(thread);
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}
