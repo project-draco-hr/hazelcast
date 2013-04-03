@@ -6,7 +6,7 @@
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
   instances[0].getMap(mapName).lock("lock1");
   try {
-    instances[1].executeTransaction(new TransactionalTask<Object>(){
+    instances[1].executeTransaction(new TransactionOptions().setTimeout(5,TimeUnit.SECONDS).setTransactionType(TransactionOptions.TransactionType.LOCAL),new TransactionalTask<Object>(){
       public Object execute(      TransactionalTaskContext context) throws TransactionException {
         boolean offered=context.getQueue(queueName).offer("item1");
         assertTrue(offered);
@@ -15,7 +15,7 @@
         return null;
       }
     }
-,new TransactionOptions().setTimeout(5,TimeUnit.SECONDS).setTransactionType(TransactionOptions.TransactionType.LOCAL));
+);
   }
  catch (  TransactionException ex) {
     ex.printStackTrace();
