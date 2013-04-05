@@ -1,0 +1,42 @@
+{
+  CollectionContainer container=getOrCreateContainer();
+  if (!container.txnLock(dataKey,getCallerUuid(),threadId,ttl)) {
+    throw new TransactionException("Lock failed.");
+  }
+  CollectionRecord record=new CollectionRecord(isBinary() ? value : toObject(value));
+  CollectionWrapper wrapper=null;
+  Collection<CollectionRecord> coll=null;
+  long recordId=-1;
+switch (operationType) {
+case PUT_OPERATION:
+    wrapper=getOrCreateCollectionWrapper();
+  coll=wrapper.getCollection();
+if (!(coll instanceof Set) || !coll.contains(record)) {
+  recordId=container.nextId();
+}
+response=recordId;
+break;
+case REMOVE_OPERATION:
+wrapper=getCollectionWrapper();
+if (wrapper != null) {
+coll=wrapper.getCollection();
+Iterator<CollectionRecord> iter=coll.iterator();
+while (iter.hasNext()) {
+CollectionRecord r=iter.next();
+if (r.equals(record)) {
+recordId=r.getRecordId();
+break;
+}
+}
+}
+response=recordId;
+break;
+case REMOVE_ALL_OPERATION:
+wrapper=getCollectionWrapper();
+if (wrapper != null) {
+coll=wrapper.getCollection();
+}
+response=new CollectionResponse(coll,getNodeEngine());
+break;
+}
+}

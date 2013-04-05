@@ -1,5 +1,13 @@
 {
   throwExceptionIfNull(key);
   throwExceptionIfNull(value);
-  return false;
+  long timeout=tx.getTimeoutMillis();
+  long ttl=timeout * 3 / 2;
+  Long recordId=(Long)lockAndGet(key,value,timeout,ttl);
+  if (recordId == null) {
+    throw new ConcurrentModificationException("Transaction couldn't obtain lock " + getThreadId());
+  }
+  TxnPutOperation operation=new TxnPutOperation(proxyId,key,value,recordId,getThreadId());
+  tx.addTransactionLog(new MultiMapTransactionLog(key,recordId,proxyId,ttl,getThreadId(),operation));
+  return recordId != -1;
 }
