@@ -1,7 +1,9 @@
 {
-  CollectionWrapper wrapper=getCollectionWrapper();
+  begin=Clock.currentTimeMillis();
+  CollectionContainer container=getOrCreateContainer();
+  CollectionWrapper wrapper=container.getCollectionWrapper(dataKey);
   response=false;
-  if (wrapper == null) {
+  if (wrapper == null || !wrapper.containsRecordId(recordId)) {
     return;
   }
   Collection<CollectionRecord> coll=wrapper.getCollection();
@@ -10,9 +12,11 @@
     if (iter.next().getRecordId() == recordId) {
       iter.remove();
       response=true;
+      notify=true;
       if (coll.isEmpty()) {
         removeCollection();
       }
+      container.unlock(dataKey,getCallerUuid(),threadId);
       break;
     }
   }
