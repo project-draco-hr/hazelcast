@@ -1,0 +1,35 @@
+{
+  Protocol response=null;
+  try {
+    String name=protocol.args[0];
+    Callable<Object> callable=(Callable<Object>)node.serializationService.toObject(protocol.buffers[0]);
+    ExecutorServiceProxy proxy=distributedExecutorService.createDistributedObject(name);
+    MyExecutionCallBack callBack=new MyExecutionCallBack(protocol,node);
+    if (protocol.args.length > 1) {
+      try {
+        String hostName=protocol.args[1];
+        int port=Integer.valueOf(protocol.args[2]);
+        Address address=new Address(hostName,port);
+        boolean local=node.getLocalMember().getAddress().equals(address);
+        MemberImpl member=new MemberImpl(address,local);
+        proxy.submitToMember(callable,member,callBack);
+      }
+ catch (      UnknownHostException e) {
+        response=protocol.error(null,"unknownhost");
+      }
+    }
+ else {
+      Data key=protocol.buffers[1];
+      proxy.submitToKeyOwner(callable,node.serializationService.toObject(key),callBack);
+    }
+  }
+ catch (  HazelcastInstanceNotActiveException e) {
+    response=new Protocol(protocol.conn,Command.ERROR,protocol.flag,protocol.threadId,false,new String[]{"HazelcastInstanceNotActiveException"});
+  }
+catch (  RuntimeException e) {
+    ILogger logger=node.getLogger(this.getClass().getName());
+    logger.log(Level.WARNING,"exception during handling " + protocol.command + ": "+ e.getMessage(),e);
+    response=new Protocol(protocol.conn,Command.ERROR,protocol.flag,protocol.threadId,false,new String[]{e.getMessage()});
+  }
+  if (response != null)   sendResponse(node,response,protocol.conn);
+}

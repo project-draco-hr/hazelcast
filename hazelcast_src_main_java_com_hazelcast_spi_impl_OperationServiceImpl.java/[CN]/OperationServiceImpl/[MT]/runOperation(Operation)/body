@@ -21,13 +21,12 @@
       }
       final ReadWriteLock migrationLock=partitionLocks[partitionId];
       if (op instanceof PartitionLevelOperation) {
-        final Lock tmpPartitionLock=migrationLock.writeLock();
-        tmpPartitionLock.lockInterruptibly();
-        partitionLock=tmpPartitionLock;
+        partitionLock=migrationLock.writeLock();
+        partitionLock.lockInterruptibly();
       }
  else {
         final Lock tmpPartitionLock=migrationLock.readLock();
-        if (!tmpPartitionLock.tryLock(100,TimeUnit.MILLISECONDS)) {
+        if (!tmpPartitionLock.tryLock(250,TimeUnit.MILLISECONDS)) {
           throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
         }
         partitionLock=tmpPartitionLock;

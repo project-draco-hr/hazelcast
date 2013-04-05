@@ -3,67 +3,51 @@
   final int maxBackups=node.getClusterService().getSize() - 1;
   final int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
   final int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
+  final int totalBackupCount=syncBackupCount + asyncBackupCount;
+  final Operation op=(Operation)backupAwareOp;
   Collection<BackupFuture> syncBackups=null;
   Collection<BackupFuture> asyncBackups=null;
-  final Operation op=(Operation)backupAwareOp;
-  Operation backupResponse=null;
-  if (syncBackupCount + asyncBackupCount > 0) {
+  if (totalBackupCount > 0) {
     final String serviceName=op.getServiceName();
     final int partitionId=op.getPartitionId();
     final PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
     if (syncBackupCount > 0) {
       syncBackups=new ArrayList<BackupFuture>(syncBackupCount);
-      for (int replicaIndex=1; replicaIndex <= syncBackupCount; replicaIndex++) {
-        final Address target=partitionInfo.getReplicaAddress(replicaIndex);
-        if (target != null) {
-          final Operation backupOp=backupAwareOp.getBackupOperation();
-          if (backupOp == null) {
-            throw new IllegalArgumentException("Backup operation should not be null!");
-          }
-          final boolean returnsResponse=backupOp.returnsResponse();
-          if (target.equals(node.getThisAddress())) {
-            throw new IllegalStateException("Normally shouldn't happen!!");
-          }
- else {
-            if (false && op.returnsResponse() && target.equals(op.getCallerAddress())) {
-              backupOp.setServiceName(serviceName).setReplicaIndex(replicaIndex).setPartitionId(partitionId);
-              backupResponse=backupOp;
-            }
- else {
-              final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
-              if (returnsResponse) {
-                syncBackups.add(new BackupFuture(f,partitionInfo,replicaIndex,maxRetryCount));
-              }
-            }
-          }
-        }
-      }
     }
     if (asyncBackupCount > 0) {
       asyncBackups=new ArrayList<BackupFuture>(asyncBackupCount);
-      for (int replicaIndex=syncBackupCount + 1; replicaIndex <= asyncBackupCount; replicaIndex++) {
-        final Address target=partitionInfo.getReplicaAddress(replicaIndex);
-        if (target != null) {
-          final Operation backupOp=backupAwareOp.getBackupOperation();
-          if (backupOp == null) {
-            throw new IllegalArgumentException("Backup operation should not be null!");
-          }
+    }
+    for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
+      final Address target=partitionInfo.getReplicaAddress(replicaIndex);
+      if (target != null) {
+        final Operation backupOp=backupAwareOp.getBackupOperation();
+        if (backupOp == null) {
+          throw new IllegalArgumentException("Backup operation should not be null!");
+        }
+        if (target.equals(node.getThisAddress())) {
+          throw new IllegalStateException("Normally shouldn't happen!!");
+        }
+ else {
           final boolean returnsResponse=backupOp.returnsResponse();
-          if (target.equals(node.getThisAddress())) {
-            throw new IllegalStateException("Normally shouldn't happen!!");
+          if (returnsResponse) {
+            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
+            final BackupFuture backupFuture=new BackupFuture(f,partitionInfo,replicaIndex,maxRetryCount);
+            if (replicaIndex <= syncBackupCount) {
+              syncBackups.add(backupFuture);
+            }
+ else {
+              asyncBackups.add(backupFuture);
+            }
           }
  else {
-            final Future f=createInvocationBuilder(serviceName,backupOp,partitionId).setReplicaIndex(replicaIndex).setTryCount(maxRetryCount).build().invoke();
-            if (returnsResponse) {
-              asyncBackups.add(new BackupFuture(f,partitionInfo,replicaIndex,maxRetryCount));
-            }
+            backupOp.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName);
+            send(backupOp,target);
           }
         }
       }
     }
   }
-  final Object response=op.returnsResponse() ? (backupResponse == null ? op.getResponse() : new MultiResponse(nodeEngine.getSerializationService(),backupResponse,op.getResponse())) : null;
   waitBackupResponses(syncBackups);
-  sendResponse(op,response);
+  sendResponse(op,null);
   waitBackupResponses(asyncBackups);
 }
