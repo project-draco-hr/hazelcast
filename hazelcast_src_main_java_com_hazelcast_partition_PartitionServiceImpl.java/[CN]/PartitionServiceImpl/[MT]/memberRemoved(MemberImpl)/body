@@ -5,11 +5,17 @@
     return;
   }
   clearTaskQueues();
-  migrationManagerThread.onMemberRemove(deadAddress);
   lock.lock();
   try {
-    if (!activeMigrations.isEmpty() && node.isMaster()) {
-      rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
+    if (!activeMigrations.isEmpty()) {
+      if (node.isMaster()) {
+        rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
+      }
+      for (      MigrationInfo migrationInfo : activeMigrations.values()) {
+        if (deadAddress.equals(migrationInfo.getFromAddress()) || deadAddress.equals(migrationInfo.getToAddress())) {
+          migrationInfo.invalidate();
+        }
+      }
     }
     final boolean migrationStatus=migrationActive.getAndSet(false);
     int[] indexesOfDead=new int[partitions.length];
