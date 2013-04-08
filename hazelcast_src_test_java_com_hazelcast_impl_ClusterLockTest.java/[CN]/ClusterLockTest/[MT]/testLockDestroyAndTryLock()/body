@@ -1,0 +1,18 @@
+{
+  final String lockObject="testLockDestroyAndTryLock";
+  final HazelcastInstance h=Hazelcast.newHazelcastInstance(new Config());
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(new Config());
+  ILock lock=h.getLock(lockObject);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      ILock lock=h2.getLock(lockObject);
+      lock.lock();
+      lock.unlock();
+      lock.destroy();
+    }
+  }
+);
+  t.start();
+  t.join();
+  assertTrue(lock.tryLock());
+}
