@@ -1,0 +1,37 @@
+{
+  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  final PartitionServiceImpl partitionService=(PartitionServiceImpl)nodeEngine.getPartitionService();
+  final int partitionId=getPartitionId();
+  final PartitionInfo partitionInfo=partitionService.getPartitionInfo(partitionId);
+  final Address owner=partitionInfo.getReplicaAddress(getReplicaIndex());
+  final ILogger logger=nodeEngine.getLogger(getClass());
+  if (nodeEngine.getThisAddress().equals(owner)) {
+    SerializationService serializationService=nodeEngine.getSerializationService();
+    ObjectDataInput in=null;
+    try {
+      final byte[] taskData=IOUtil.decompress(data);
+      in=serializationService.createObjectDataInput(taskData);
+      int size=in.readInt();
+      for (int i=0; i < size; i++) {
+        Operation op=(Operation)serializationService.readObject(in);
+        try {
+          op.setNodeEngine(nodeEngine).setPartitionId(partitionId).setReplicaIndex(getReplicaIndex());
+          op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(nodeEngine.getLogger(op.getClass())));
+          op.beforeRun();
+          op.run();
+          op.afterRun();
+        }
+ catch (        Throwable e) {
+          logger.log(Level.SEVERE,"While executing " + op,e);
+        }
+      }
+    }
+  finally {
+      IOUtil.closeResource(in);
+      partitionService.finalizeReplicaSync(partitionId,version);
+    }
+  }
+ else {
+    logger.log(Level.WARNING,"Ignoring sync response, since this node is not owner of " + "partition[" + partitionId + "] -> replica["+ getReplicaIndex()+ "]");
+  }
+}

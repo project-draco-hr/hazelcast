@@ -1,14 +1,11 @@
 {
   try {
-    while (running) {
+    while (!thread.isInterrupted()) {
       Runnable r;
-      while (isActive() && (r=migrationQueue.poll(1,TimeUnit.SECONDS)) != null) {
+      while (migrationActive.get() && (r=migrationQueue.poll(1,TimeUnit.SECONDS)) != null) {
         safeRun(r);
         if (partitionMigrationInterval > 0) {
           Thread.sleep(partitionMigrationInterval);
-        }
-        if (!running) {
-          break;
         }
       }
       final boolean hasNoTasks=migrationQueue.isEmpty();
@@ -22,8 +19,7 @@
     }
   }
  catch (  InterruptedException e) {
-    logger.log(Level.FINEST,"MigrationManagerThread is interrupted: " + e.getMessage());
-    running=false;
+    logger.log(Level.WARNING,"MigrationManagerThread is interrupted: " + e.getMessage());
   }
  finally {
     clearMigrationQueue();
