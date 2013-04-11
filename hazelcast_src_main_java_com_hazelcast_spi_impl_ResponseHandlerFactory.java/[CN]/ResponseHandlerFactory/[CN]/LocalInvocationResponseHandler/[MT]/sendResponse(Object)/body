@@ -1,6 +1,11 @@
 {
   if (!sent.compareAndSet(false,true)) {
-    throw new IllegalStateException("Response already sent for invocation: " + invocation);
+    throw new IllegalStateException("Response already sent for callback: " + callback);
   }
-  invocation.notify(obj);
+  if (obj instanceof Response) {
+    final Response response=(Response)obj;
+    OperationAccessor.setCallId(response,callId);
+    obj=response.getResponse();
+  }
+  callback.notify(obj);
 }

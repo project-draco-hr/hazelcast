@@ -1,33 +1,23 @@
 {
   try {
     while (running) {
-      Runnable r=null;
-      while (isActive() && (r=immediateTasksQueue.poll()) != null) {
-        safeRunImmediate(r);
-      }
-      if (!running) {
-        break;
-      }
-      long totalWait=0L;
-      while (isActive() && (r != null || totalWait < partitionMigrationInterval)) {
-        long start=Clock.currentTimeMillis();
-        r=immediateTasksQueue.poll(1,TimeUnit.SECONDS);
-        safeRunImmediate(r);
-        totalWait+=(Clock.currentTimeMillis() - start);
-      }
-      if (isActive()) {
-        r=scheduledTasksQueue.poll();
+      Runnable r;
+      while (isActive() && (r=migrationQueue.poll(1,TimeUnit.SECONDS)) != null) {
         safeRun(r);
+        if (partitionMigrationInterval > 0) {
+          Thread.sleep(partitionMigrationInterval);
+        }
+        if (!running) {
+          break;
+        }
       }
-      final boolean hasNoTasks=hasNoTasks();
+      final boolean hasNoTasks=migrationQueue.isEmpty();
       if (!migrationActive.get() || hasNoTasks) {
         if (hasNoTasks && migrating) {
           migrating=false;
           logger.log(Level.INFO,"All migration tasks has been completed, queues are empty.");
         }
         evictCompletedMigrations();
-        Thread.sleep(250);
-        continue;
       }
     }
   }
@@ -36,6 +26,6 @@
     running=false;
   }
  finally {
-    clearTaskQueues();
+    clearMigrationQueue();
   }
 }
