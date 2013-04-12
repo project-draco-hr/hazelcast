@@ -1,0 +1,23 @@
+{
+  if (object == null) {
+    throw new NullPointerException("Object is mandatory!");
+  }
+  try {
+    Class clazz=object.getClass();
+    String mKey=clazz.getName() + "." + methodName;
+    Method m=methods.get(mKey);
+    if (m == null) {
+      m=object.getClass().getMethod(methodName,types);
+      m.setAccessible(true);
+      final Method anotherMethod=methods.putIfAbsent(mKey,m);
+      if (anotherMethod != null) {
+        m=anotherMethod;
+      }
+    }
+    return (T)m.invoke(object,params);
+  }
+ catch (  Exception e) {
+    logger.log(Level.SEVERE,"While invoking method[" + methodName + "] of class["+ object.getClass().getName()+ "]",e);
+  }
+  return null;
+}
