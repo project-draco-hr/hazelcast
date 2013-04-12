@@ -4,7 +4,7 @@
   if (deadAddress == null || deadAddress.equals(thisAddress)) {
     return;
   }
-  clearTaskQueues();
+  clearMigrationQueue();
   lock.lock();
   try {
     if (!activeMigrations.isEmpty()) {
@@ -12,19 +12,16 @@
         rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
       }
       for (      MigrationInfo migrationInfo : activeMigrations.values()) {
-        if (deadAddress.equals(migrationInfo.getFromAddress()) || deadAddress.equals(migrationInfo.getToAddress())) {
+        if (deadAddress.equals(migrationInfo.getSource()) || deadAddress.equals(migrationInfo.getDestination())) {
           migrationInfo.invalidate();
         }
       }
     }
     final boolean migrationStatus=migrationActive.getAndSet(false);
-    int[] indexesOfDead=new int[partitions.length];
     for (    PartitionInfo partition : partitions) {
-      final int replicaIndexOfDead=partition.getReplicaIndexOf(deadAddress);
-      indexesOfDead[partition.getPartitionId()]=replicaIndexOfDead;
       while (partition.onDeadAddress(deadAddress))       ;
     }
-    fixPartitionsForDead(member,indexesOfDead);
+    migrationQueue.offer(new PrepareRepartitioningTask());
     final long waitBeforeMigrationActivate=node.groupProperties.CONNECTION_MONITOR_INTERVAL.getLong() * node.groupProperties.CONNECTION_MONITOR_MAX_FAULTS.getInteger() * 10;
     nodeEngine.getExecutionService().schedule(new Runnable(){
       public void run(){

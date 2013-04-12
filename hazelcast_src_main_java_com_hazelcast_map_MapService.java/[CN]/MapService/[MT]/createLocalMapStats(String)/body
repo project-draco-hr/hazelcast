@@ -12,10 +12,11 @@
   long hits=0;
   long lockedEntryCount=0;
   int backupCount=mapContainer.getTotalBackupCount();
-  ClusterServiceImpl clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
+  ClusterService clusterService=nodeEngine.getClusterService();
+  final PartitionService partitionService=nodeEngine.getPartitionService();
   Address thisAddress=clusterService.getThisAddress();
-  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
-    PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(i);
+  for (int i=0; i < partitionService.getPartitionCount(); i++) {
+    PartitionInfo partitionInfo=partitionService.getPartitionInfo(i);
     if (partitionInfo.getOwner().equals(thisAddress)) {
       PartitionContainer partitionContainer=getPartitionContainer(i);
       RecordStore recordStore=partitionContainer.getRecordStore(mapName);
@@ -38,14 +39,13 @@
  else {
       for (int j=1; j <= backupCount; j++) {
         Address replicaAddress=partitionInfo.getReplicaAddress(j);
-        int memberSize=nodeEngine.getClusterService().getMembers().size();
-        int tryCount=3;
-        while (memberSize > backupCount && replicaAddress == null && tryCount-- > 0) {
+        int tryCount=30;
+        while (replicaAddress == null && clusterService.getSize() > backupCount && tryCount-- > 0) {
           try {
             Thread.sleep(1000);
           }
  catch (          InterruptedException e) {
-            ExceptionUtil.rethrow(e);
+            throw ExceptionUtil.rethrow(e);
           }
           replicaAddress=partitionInfo.getReplicaAddress(j);
         }

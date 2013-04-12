@@ -1,0 +1,18 @@
+{
+  if (op instanceof BackupAwareOperation) {
+    try {
+      final boolean ok=nodeEngine.operationService.waitForBackups(response.callId,response.backupCount,5,TimeUnit.SECONDS);
+      if (!ok) {
+        if (logger.isLoggable(Level.FINEST)) {
+          logger.log(Level.FINEST,"Backup response cannot be received -> " + toString());
+        }
+        if (nodeEngine.getClusterService().getMember(target) == null) {
+          return RETRY_RESPONSE;
+        }
+      }
+    }
+ catch (    InterruptedException ignored) {
+    }
+  }
+  return response.response;
+}

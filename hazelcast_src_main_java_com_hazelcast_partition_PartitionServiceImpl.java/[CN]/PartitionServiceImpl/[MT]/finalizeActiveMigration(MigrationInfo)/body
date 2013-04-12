@@ -6,17 +6,16 @@
         if (migrationInfo.startProcessing()) {
           try {
             final Address thisAddress=node.getThisAddress();
-            final boolean source=thisAddress.equals(migrationInfo.getFromAddress());
-            final boolean destination=thisAddress.equals(migrationInfo.getToAddress());
+            final boolean source=thisAddress.equals(migrationInfo.getSource());
+            final boolean destination=thisAddress.equals(migrationInfo.getDestination());
             if (source || destination) {
               final int partitionId=migrationInfo.getPartitionId();
-              final int replicaIndex=migrationInfo.getReplicaIndex();
               final PartitionInfo migratingPartition=getPartition(partitionId);
-              final Address replicaAddress=migratingPartition.getReplicaAddress(replicaIndex);
-              final boolean success=migrationInfo.getToAddress().equals(replicaAddress);
+              final Address ownerAddress=migratingPartition.getOwner();
+              final boolean success=migrationInfo.getDestination().equals(ownerAddress);
               final MigrationEndpoint endpoint=source ? MigrationEndpoint.SOURCE : MigrationEndpoint.DESTINATION;
-              final FinalizeMigrationOperation op=new FinalizeMigrationOperation(endpoint,migrationInfo.getMigrationType(),migrationInfo.getCopyBackReplicaIndex(),success);
-              op.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
+              final FinalizeMigrationOperation op=new FinalizeMigrationOperation(endpoint,success);
+              op.setPartitionId(partitionId).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
               nodeEngine.getOperationService().runOperation(op);
             }
           }

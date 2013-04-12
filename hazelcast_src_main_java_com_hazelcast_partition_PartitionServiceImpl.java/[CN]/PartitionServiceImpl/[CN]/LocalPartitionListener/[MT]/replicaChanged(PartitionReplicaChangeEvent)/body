@@ -1,0 +1,21 @@
+{
+  if (event.getReplicaIndex() > 0) {
+    if (thisAddress.equals(event.getOldAddress())) {
+      final PartitionInfo partition=partitions[event.getPartitionId()];
+      if (!partition.isOwnerOrBackup(thisAddress)) {
+        clearPartitionReplica(event.getPartitionId(),event.getReplicaIndex());
+      }
+    }
+ else     if (thisAddress.equals(event.getNewAddress())) {
+      syncPartitionReplica(event.getPartitionId(),event.getReplicaIndex());
+    }
+  }
+  if (event.getReplicaIndex() == 0 && event.getNewAddress() == null && node.isActive() && node.joined()) {
+    final String warning="Owner of partition is being removed! " + "Possible data loss for partition[" + event.getPartitionId() + "]. "+ event;
+    logger.log(Level.WARNING,warning);
+    systemLogService.logPartition(warning);
+  }
+  if (node.isMaster()) {
+    stateVersion.incrementAndGet();
+  }
+}

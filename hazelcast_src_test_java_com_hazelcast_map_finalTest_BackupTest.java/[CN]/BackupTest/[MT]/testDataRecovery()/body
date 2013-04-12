@@ -1,28 +1,31 @@
 {
   StaticNodeFactory nodeFactory=new StaticNodeFactory(4);
   final int size=1000;
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(new Config());
-  IMap map1=h1.getMap("default");
+  final String name="default";
+  final Config config=new Config();
+  config.getMapConfig(name).setStatisticsEnabled(true);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
+  IMap map1=h1.getMap(name);
   for (int i=0; i < size; i++) {
     map1.put(i,"value" + i);
   }
   assertEquals(size,map1.size());
-  HazelcastInstance h2=nodeFactory.newHazelcastInstance(new Config());
-  IMap map2=h2.getMap("default");
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance(config);
+  IMap map2=h2.getMap(name);
   assertEquals(size,map1.size());
   assertEquals(size,map2.size());
-  HazelcastInstance h3=nodeFactory.newHazelcastInstance(new Config());
-  IMap map3=h3.getMap("default");
+  HazelcastInstance h3=nodeFactory.newHazelcastInstance(config);
+  IMap map3=h3.getMap(name);
   assertEquals(size,map1.size());
   assertEquals(size,map2.size());
   assertEquals(size,map3.size());
-  HazelcastInstance h4=nodeFactory.newHazelcastInstance(new Config());
-  IMap map4=h4.getMap("default");
+  HazelcastInstance h4=nodeFactory.newHazelcastInstance(config);
+  IMap map4=h4.getMap(name);
   assertEquals(size,map1.size());
   assertEquals(size,map2.size());
   assertEquals(size,map3.size());
   assertEquals(size,map4.size());
-  Thread.sleep(4000);
+  sleep(3000);
   long ownedSize=getTotalOwnedEntryCount(map1,map2,map3,map4);
   long backupSize=getTotalBackupEntryCount(map1,map2,map3,map4);
   assertEquals(size,ownedSize);
@@ -31,7 +34,7 @@
   assertEquals(size,map1.size());
   assertEquals(size,map2.size());
   assertEquals(size,map3.size());
-  sleep(4000);
+  sleep(3000);
   ownedSize=getTotalOwnedEntryCount(map1,map2,map3);
   backupSize=getTotalBackupEntryCount(map1,map2,map3);
   assertEquals(size,ownedSize);
@@ -39,7 +42,7 @@
   h1.getLifecycleService().shutdown();
   assertEquals(size,map2.size());
   assertEquals(size,map3.size());
-  sleep(4000);
+  sleep(3000);
   ownedSize=getTotalOwnedEntryCount(map2,map3);
   backupSize=getTotalBackupEntryCount(map2,map3);
   assertEquals(size,ownedSize);

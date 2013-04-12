@@ -1,0 +1,71 @@
+{
+  long timeout=unit.toMillis(time);
+  if (timeout < 0)   timeout=0;
+  final long maxCallTimeout=callTimeout * 2 > 0 ? callTimeout * 2 : Long.MAX_VALUE;
+  final boolean longPolling=timeout > maxCallTimeout;
+  int pollCount=0;
+  InterruptedException interrupted=null;
+  while (timeout >= 0) {
+    final long pollTimeout=Math.min(maxCallTimeout,timeout);
+    final long start=Clock.currentTimeMillis();
+    final Object response;
+    final long lastPollTime;
+    try {
+      response=responseQ.poll(pollTimeout,TimeUnit.MILLISECONDS);
+      lastPollTime=Clock.currentTimeMillis() - start;
+      timeout=decrementTimeout(timeout,lastPollTime);
+    }
+ catch (    InterruptedException e) {
+      logger.log(Level.FINEST,Thread.currentThread().getName() + " is interrupted while waiting " + "response for operation "+ op);
+      interrupted=e;
+      if (!nodeEngine.isActive()) {
+        return e;
+      }
+      continue;
+    }
+    pollCount++;
+    if (response == RETRY_RESPONSE) {
+      if (interrupted != null) {
+        return interrupted;
+      }
+      if (timeout > 0) {
+        if (invokeCount > 5) {
+          final long sleepTime=tryPauseMillis;
+          try {
+            Thread.sleep(sleepTime);
+            timeout=decrementTimeout(timeout,sleepTime);
+          }
+ catch (          InterruptedException e) {
+            return e;
+          }
+        }
+        doInvoke();
+      }
+ else {
+        return TIMEOUT_RESPONSE;
+      }
+    }
+ else     if (response == WAIT_RESPONSE) {
+      continue;
+    }
+ else     if (response != null) {
+      return response;
+    }
+ else     if (longPolling) {
+      final Address target=getTarget();
+      if (nodeEngine.getThisAddress().equals(target)) {
+        continue;
+      }
+      logger.log(Level.WARNING,"No response for " + lastPollTime + " ms. "+ toString());
+      boolean executing=isOperationExecuting(target);
+      if (!executing) {
+        Object obj=responseQ.peek();
+        if (obj != null) {
+          continue;
+        }
+        return new OperationTimeoutException("No response for " + (pollTimeout * pollCount) + " ms. Aborting invocation! "+ toString());
+      }
+    }
+  }
+  return TIMEOUT_RESPONSE;
+}
