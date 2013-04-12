@@ -2,32 +2,12 @@
   this.partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
   this.node=node;
   this.nodeEngine=node.nodeEngine;
-  this.logger=this.node.getLogger(PartitionService.class.getName());
-  this.partitions=new PartitionInfo[partitionCount];
+  this.logger=node.getLogger(PartitionService.class);
   this.systemLogService=node.getSystemLogService();
-  final Address thisAddress=node.getThisAddress();
+  this.partitions=new PartitionInfo[partitionCount];
+  final PartitionListener partitionListener=new LocalPartitionListener(node.getThisAddress());
   for (int i=0; i < partitionCount; i++) {
-    this.partitions[i]=new PartitionInfo(i,new PartitionListener(){
-      public void replicaChanged(      PartitionReplicaChangeEvent event){
-        if (event.getReplicaIndex() > 0) {
-          if (thisAddress.equals(event.getOldAddress())) {
-            clearPartitionReplica(event.getPartitionId(),event.getReplicaIndex());
-          }
- else           if (thisAddress.equals(event.getNewAddress())) {
-            syncPartitionReplica(event.getPartitionId(),event.getReplicaIndex());
-          }
-        }
-        if (event.getReplicaIndex() == 0 && event.getNewAddress() == null && node.isActive() && node.joined()) {
-          final String warning="Owner of partition is being removed! " + "Possible data loss for partition[" + event.getPartitionId() + "]. "+ event;
-          logger.log(Level.WARNING,warning);
-          systemLogService.logPartition(warning);
-        }
-        if (node.isMaster()) {
-          stateVersion.incrementAndGet();
-        }
-      }
-    }
-);
+    this.partitions[i]=new PartitionInfo(i,partitionListener);
   }
   partitionVersions=new PartitionVersion[partitionCount];
   for (int i=0; i < partitionVersions.length; i++) {
