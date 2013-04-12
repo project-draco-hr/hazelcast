@@ -2,8 +2,14 @@
   begin=Clock.currentTimeMillis();
   CollectionContainer container=getOrCreateContainer();
   CollectionWrapper wrapper=container.getCollectionWrapper(dataKey);
-  response=false;
+  response=true;
+  if (recordId == -1) {
+    container.unlock(dataKey,getCallerUuid(),threadId);
+    return;
+  }
   if (wrapper == null || !wrapper.containsRecordId(recordId)) {
+    response=false;
+    notify=false;
     return;
   }
   Collection<CollectionRecord> coll=wrapper.getCollection();
@@ -11,13 +17,11 @@
   while (iter.hasNext()) {
     if (iter.next().getRecordId() == recordId) {
       iter.remove();
-      response=true;
-      notify=true;
-      if (coll.isEmpty()) {
-        removeCollection();
-      }
-      container.unlock(dataKey,getCallerUuid(),threadId);
       break;
     }
   }
+  if (coll.isEmpty()) {
+    removeCollection();
+  }
+  container.unlock(dataKey,getCallerUuid(),threadId);
 }

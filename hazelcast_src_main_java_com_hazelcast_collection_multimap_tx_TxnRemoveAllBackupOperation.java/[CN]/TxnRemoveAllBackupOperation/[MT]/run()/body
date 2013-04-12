@@ -1,0 +1,26 @@
+{
+  CollectionContainer container=getOrCreateContainer();
+  CollectionWrapper wrapper=container.getOrCreateCollectionWrapper(dataKey);
+  response=true;
+  for (  Long recordId : recordIds) {
+    if (!wrapper.containsRecordId(recordId)) {
+      response=false;
+      return;
+    }
+  }
+  Collection<CollectionRecord> coll=wrapper.getCollection();
+  for (  Long recordId : recordIds) {
+    Iterator<CollectionRecord> iter=coll.iterator();
+    while (iter.hasNext()) {
+      CollectionRecord record=iter.next();
+      if (record.getRecordId() == recordId) {
+        iter.remove();
+        break;
+      }
+    }
+  }
+  if (coll.isEmpty()) {
+    removeCollection();
+  }
+  container.unlock(dataKey,caller,threadId);
+}
