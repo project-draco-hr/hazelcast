@@ -2,9 +2,17 @@
   final Object response=resolveResponse(waitForResponse(timeout,unit));
   done=true;
   if (response instanceof ResponseObj) {
-    final ResponseObj responseObj=(ResponseObj)response;
-    waitForBackups(responseObj);
-    return responseObj.response;
+    if (op instanceof BackupAwareOperation) {
+      final Object obj=waitForBackupsAndGetResponse((ResponseObj)response);
+      if (obj == RETRY_RESPONSE) {
+        final Future f=resetAndReInvoke();
+        return f.get(timeout,unit);
+      }
+      return obj;
+    }
+ else {
+      return ((ResponseObj)response).response;
+    }
   }
   return response;
 }

@@ -1,8 +1,16 @@
 {
   final int members=node.getClusterService().getSize();
   Map<Address,List<Integer>> memberPartitions=new HashMap<Address,List<Integer>>(members);
-  for (int i=0; i < getPartitionCount(); i++) {
-    Address owner=getPartitionOwner(i);
+  for (int i=0; i < partitionCount; i++) {
+    Address owner;
+    while ((owner=getPartitionOwner(i)) == null) {
+      try {
+        Thread.sleep(10);
+      }
+ catch (      InterruptedException e) {
+        throw new HazelcastException(e);
+      }
+    }
     List<Integer> ownedPartitions=memberPartitions.get(owner);
     if (ownedPartitions == null) {
       ownedPartitions=new ArrayList<Integer>();
