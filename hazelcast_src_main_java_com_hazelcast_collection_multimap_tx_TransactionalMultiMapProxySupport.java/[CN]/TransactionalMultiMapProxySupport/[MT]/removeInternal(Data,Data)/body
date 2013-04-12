@@ -4,15 +4,17 @@
   Collection<CollectionRecord> coll=txMap.get(key);
   long timeout=tx.getTimeoutMillis();
   long ttl=timeout * 3 / 2;
-  CollectionResponse response=lockAndGet(key,timeout,ttl,coll == null);
-  if (response == null) {
-    throw new ConcurrentModificationException("Transaction couldn't obtain lock " + getThreadId());
-  }
+  long version=-1;
   if (coll == null) {
-    coll=response.getRecordCollection(getNodeEngine());
+    CollectionResponse response=lockAndGet(key,timeout,ttl);
+    if (response == null) {
+      throw new ConcurrentModificationException("Transaction couldn't obtain lock " + getThreadId());
+    }
+    version=response.getTxVersion();
+    coll=createCollection(response.getRecordCollection(getNodeEngine()));
     txMap.put(key,coll);
   }
-  CollectionRecord record=new CollectionRecord(-1,config.isBinary() ? value : getNodeEngine().toObject(value));
+  CollectionRecord record=new CollectionRecord(config.isBinary() ? value : getNodeEngine().toObject(value));
   Iterator<CollectionRecord> iterator=coll.iterator();
   long recordId=-1;
   while (iterator.hasNext()) {
@@ -23,7 +25,17 @@
       break;
     }
   }
-  TxnRemoveOperation operation=new TxnRemoveOperation(proxyId,key,getThreadId(),recordId,value);
-  tx.addTransactionLog(new MultiMapTransactionLog(key,proxyId,ttl,getThreadId(),operation));
-  return recordId != -1;
+  if (recordId != -1) {
+    TxnRemoveOperation operation=new TxnRemoveOperation(proxyId,key,recordId,value);
+    MultiMapTransactionLog log=(MultiMapTransactionLog)tx.getTransactionLog(key);
+    if (log != null) {
+      log.addOperation(operation);
+    }
+ else {
+      log=new MultiMapTransactionLog(key,proxyId,ttl,getThreadId(),version,operation);
+      tx.addTransactionLog(log);
+    }
+    return true;
+  }
+  return false;
 }
