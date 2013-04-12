@@ -2,7 +2,7 @@
   Connection conn=null;
   while (running) {
     try {
-      RecordUpdate ru=(failureQ.size() > 0) ? failureQ.removeFirst() : q.take();
+      WanReplicationEvent operation=(failureQ.size() > 0) ? failureQ.removeFirst() : q.take();
       if (conn == null) {
         conn=getConnection();
         if (conn != null) {
@@ -17,10 +17,13 @@
         }
       }
       if (conn != null && conn.live()) {
-        ((TcpIpConnection)conn).getWriteHandler().enqueueSocketWritable(ru.toNewPacket());
+        Data data=node.nodeEngine.getSerializationService().toData(operation);
+        Packet operationPacket=new Packet(data,node.nodeEngine.getSerializationContext());
+        operationPacket.setHeader(Packet.HEADER_WAN_REPLICATION);
+        node.nodeEngine.send(operationPacket,conn);
       }
  else {
-        failureQ.addFirst(ru);
+        failureQ.addFirst(operation);
         conn=null;
       }
     }

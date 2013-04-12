@@ -7,8 +7,8 @@
   if (!masterAddress.equals(getCallerAddress())) {
     throw new RetryableHazelcastException("Caller is not master node! => " + toString());
   }
-  final Address from=migrationInfo.getFromAddress();
-  final Address to=migrationInfo.getToAddress();
+  final Address from=migrationInfo.getSource();
+  final Address to=migrationInfo.getDestination();
   if (to.equals(from)) {
     getLogger().log(Level.WARNING,"To and from addresses are the same! => " + toString());
     success=false;
@@ -37,7 +37,7 @@
           }
           final byte[] data=IOUtil.compress(out.toByteArray());
           final MigrationOperation migrationOperation=new MigrationOperation(migrationInfo,data,tasks.size());
-          Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(PartitionServiceImpl.SERVICE_NAME,migrationOperation,to).setTryCount(10).setTryPauseMillis(1000).setReplicaIndex(getReplicaIndex()).build();
+          Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(PartitionServiceImpl.SERVICE_NAME,migrationOperation,to).setTryPauseMillis(1000).setReplicaIndex(getReplicaIndex()).build();
           Future future=inv.invoke();
           success=(Boolean)nodeEngine.toObject(future.get(timeout,TimeUnit.SECONDS));
         }

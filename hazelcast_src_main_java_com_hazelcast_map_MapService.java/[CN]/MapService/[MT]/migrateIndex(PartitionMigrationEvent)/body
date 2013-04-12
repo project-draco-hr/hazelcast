@@ -1,0 +1,17 @@
+{
+  final PartitionContainer container=partitionContainers[event.getPartitionId()];
+  for (  PartitionRecordStore mapPartition : container.maps.values()) {
+    final MapContainer mapContainer=getMapContainer(mapPartition.name);
+    final IndexService indexService=mapContainer.getIndexService();
+    if (indexService.hasIndex()) {
+      for (      Record record : mapPartition.getRecords().values()) {
+        if (event.getMigrationEndpoint() == MigrationEndpoint.SOURCE) {
+          indexService.removeEntryIndex(record.getKey());
+        }
+ else {
+          indexService.saveEntryIndex(new QueryEntry(getSerializationService(),record.getKey(),record.getKey(),record.getValue()));
+        }
+      }
+    }
+  }
+}

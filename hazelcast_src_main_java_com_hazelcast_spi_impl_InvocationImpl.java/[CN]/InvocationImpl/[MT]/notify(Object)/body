@@ -1,7 +1,27 @@
 {
-  setResult(result);
-  final Callback<InvocationImpl> callbackLocal=callback;
-  if (callbackLocal != null) {
-    callbackLocal.notify(this);
+  final Object response;
+  if (obj == null) {
+    response=NULL_RESPONSE;
   }
+ else   if (obj instanceof Throwable) {
+    final Throwable error=(Throwable)obj;
+    final ExceptionAction action=op.onException(error);
+    final int localInvokeCount=invokeCount;
+    if (action == ExceptionAction.RETRY_INVOCATION && localInvokeCount < tryCount) {
+      response=RETRY_RESPONSE;
+      if (localInvokeCount > 99 && localInvokeCount % 10 == 0) {
+        logger.log(Level.WARNING,"Retrying invocation: " + toString() + ", Reason: "+ error);
+      }
+    }
+ else     if (action == ExceptionAction.CONTINUE_WAIT) {
+      response=WAIT_RESPONSE;
+    }
+ else {
+      response=obj;
+    }
+  }
+ else {
+    response=obj;
+  }
+  responseProcessor.process(response);
 }

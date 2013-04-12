@@ -1,0 +1,28 @@
+{
+  final PartitionInfo partitionInfo=getPartitionInfo(partitionId);
+  final Address target=partitionInfo.getOwner();
+  if (target != null) {
+    final ReplicaSyncRequest syncRequest=new ReplicaSyncRequest();
+    syncRequest.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
+    final ReplicaSyncInfo currentSyncInfo=replicaSyncRequests.get(partitionId);
+    final ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,target);
+    boolean sendRequest=false;
+    if (currentSyncInfo == null) {
+      sendRequest=replicaSyncRequests.putIfAbsent(partitionId,syncInfo) == null;
+    }
+ else     if (currentSyncInfo.requestTime < (Clock.currentTimeMillis() - 10000) || nodeEngine.getClusterService().getMember(currentSyncInfo.target) == null) {
+      sendRequest=replicaSyncRequests.replace(partitionId,currentSyncInfo,syncInfo);
+    }
+    if (sendRequest) {
+      if (logger.isLoggable(Level.FINEST)) {
+        logger.log(Level.FINEST,"Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
+      }
+      nodeEngine.getOperationService().send(syncRequest,target);
+    }
+  }
+ else {
+    if (logger.isLoggable(Level.FINEST)) {
+      logger.log(Level.FINEST,"Sync replica target is null, no need to sync -> partition: + " + partitionId + ", replica: "+ replicaIndex);
+    }
+  }
+}

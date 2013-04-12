@@ -3,52 +3,38 @@
     if (!node.isActive() || !node.isMaster()) {
       return;
     }
-    fireMigrationEvent(MigrationStatus.STARTED);
-    if (migrationInfo.getToAddress() == null) {
-      logger.log(Level.FINEST,"Fixing partition, " + migrationRequestOp.getReplicaIndex() + ". replica of partition["+ migrationRequestOp.getPartitionId()+ "] should be removed.");
-      removeReplicaOwner();
+    sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
+    Boolean result=Boolean.FALSE;
+    MemberImpl fromMember=getMember(migrationInfo.getSource());
+    logger.log(Level.FINEST,"Started Migration : " + migrationRequestOp);
+    systemLogService.logPartition("Started Migration : " + migrationRequestOp);
+    if (fromMember != null) {
+      Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(1000).build();
+      Future future=inv.invoke();
+      try {
+        result=(Boolean)nodeEngine.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));
+      }
+ catch (      Throwable e) {
+        final Level level=node.isActive() && migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
+        logger.log(level,"Failed migrating from " + fromMember,e);
+      }
     }
  else {
-      MemberImpl fromMember=null;
-      Boolean result=Boolean.FALSE;
-      if (migrationRequestOp.isMigration()) {
-        fromMember=getMember(migrationInfo.getFromAddress());
-      }
+      result=Boolean.TRUE;
+    }
+    logger.log(Level.FINEST,"Finished Migration : " + migrationRequestOp);
+    systemLogService.logPartition("Finished Migration : " + migrationRequestOp);
+    if (Boolean.TRUE.equals(result)) {
+      processMigrationResult();
+    }
  else {
-        final int partitionId=migrationRequestOp.getPartitionId();
-        fromMember=getMember(partitions[partitionId].getOwner());
-      }
-      logger.log(Level.FINEST,"Started Migration : " + migrationRequestOp);
-      systemLogService.logPartition("Started Migration : " + migrationRequestOp);
-      if (fromMember != null) {
-        migrationInfo.setFromAddress(fromMember.getAddress());
-        Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getFromAddress()).setTryCount(10).setTryPauseMillis(1000).setReplicaIndex(migrationRequestOp.getReplicaIndex()).build();
-        Future future=inv.invoke();
-        try {
-          result=(Boolean)nodeEngine.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));
-        }
- catch (        Throwable e) {
-          final Level level=node.isActive() && valid ? Level.WARNING : Level.FINEST;
-          logger.log(level,"Failed migrating from " + fromMember,e);
-        }
-      }
- else {
-        result=Boolean.TRUE;
-      }
-      logger.log(Level.FINEST,"Finished Migration : " + migrationRequestOp);
-      systemLogService.logPartition("Finished Migration : " + migrationRequestOp);
-      if (Boolean.TRUE.equals(result)) {
-        processMigrationResult();
-      }
- else {
-        final Level level=valid ? Level.WARNING : Level.FINEST;
-        logger.log(level,"Migration task has failed => " + migrationRequestOp);
-        migrationTaskFailed();
-      }
+      final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
+      logger.log(level,"Migration task has failed => " + migrationRequestOp);
+      migrationTaskFailed();
     }
   }
  catch (  Throwable t) {
-    final Level level=valid ? Level.WARNING : Level.FINEST;
+    final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
     logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] "+ "while executing "+ migrationRequestOp);
     logger.log(Level.FINEST,t.getMessage(),t);
     migrationTaskFailed();
