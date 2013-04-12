@@ -1,6 +1,6 @@
 {
   StaticNodeFactory nodeFactory=new StaticNodeFactory(3);
-  final int size=1000;
+  final int size=100000;
   final Config config=new Config();
   final String name="default";
   config.getMapConfig(name).setStatisticsEnabled(true);
@@ -17,4 +17,20 @@
   assertEquals(size,map2.size());
   assertEquals(size,getTotalOwnedEntryCount(map1,map2));
   assertEquals(size,getTotalBackupEntryCount(map1,map2));
+  HazelcastInstance h3=nodeFactory.newHazelcastInstance(config);
+  IMap map3=h3.getMap(name);
+  sleep(3000);
+  assertEquals(size,map1.size());
+  assertEquals(size,map2.size());
+  assertEquals(size,map3.size());
+  assertEquals(size,getTotalOwnedEntryCount(map1,map2,map3));
+  assertEquals(size,getTotalBackupEntryCount(map1,map2,map3));
+  h2.getLifecycleService().shutdown();
+  sleep(3000);
+  assertEquals(size,map1.size());
+  assertEquals(size,map3.size());
+  assertEquals(size,getTotalOwnedEntryCount(map1,map3));
+  assertEquals(size,getTotalBackupEntryCount(map1,map3));
+  h1.getLifecycleService().shutdown();
+  assertEquals(size,map3.size());
 }
