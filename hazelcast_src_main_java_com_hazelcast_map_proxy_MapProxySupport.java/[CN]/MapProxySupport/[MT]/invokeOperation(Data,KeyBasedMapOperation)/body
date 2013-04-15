@@ -4,8 +4,21 @@
   operation.setThreadId(ThreadContext.getThreadId());
   try {
     Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
-    Future f=invocation.invoke();
-    return f.get();
+    Future f;
+    Object o;
+    if (getNodeEngine().getConfig().getMapConfig(name).isStatisticsEnabled()) {
+      long time=System.currentTimeMillis();
+      f=invocation.invoke();
+      o=f.get();
+      if (operation instanceof BasePutOperation)       getService().getLocalMapStatsImpl(name).incrementPuts(System.currentTimeMillis() - time);
+ else       if (operation instanceof BaseRemoveOperation)       getService().getLocalMapStatsImpl(name).incrementRemoves(System.currentTimeMillis() - time);
+ else       if (operation instanceof GetOperation)       getService().getLocalMapStatsImpl(name).incrementGets(System.currentTimeMillis() - time);
+    }
+ else {
+      f=invocation.invoke();
+      o=f.get();
+    }
+    return o;
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
