@@ -1,5 +1,55 @@
 {
   if (node.isMaster() && node.isActive() && initialized) {
-    doRun();
+    PartitionStateGenerator psg=getPartitionStateGenerator();
+    List<MigrationInfo> migrationQ=new ArrayList<MigrationInfo>(partitionCount);
+    PartitionInfo[] newState=psg.reArrange(partitions,node.getClusterService().getMembers(),partitionCount,migrationQ);
+    Set<Integer> migratingPartitions=new HashSet<Integer>(migrationQ.size());
+    Map<Integer,BackupMigrationTask> backupTasks=new HashMap<Integer,BackupMigrationTask>();
+    for (    MigrationInfo info : migrationQ) {
+      migratingPartitions.add(info.getPartitionId());
+    }
+    int lostCount=0;
+    lock.lock();
+    try {
+      for (      final PartitionInfo newPartition : newState) {
+        final int partitionId=newPartition.getPartitionId();
+        final PartitionInfo currentPartition=partitions[partitionId];
+        if (currentPartition.getOwner() == null) {
+          lostCount++;
+          final Address owner=newPartition.getOwner();
+          currentPartition.setOwner(owner);
+          MigrationInfo migrationInfo=new MigrationInfo(partitionId,null,owner);
+          sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
+          sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
+        }
+        if (migratingPartitions.contains(partitionId)) {
+          backupTasks.put(partitionId,new BackupMigrationTask(partitionId,newPartition));
+        }
+ else {
+          for (int index=1; index < PartitionInfo.MAX_REPLICA_COUNT; index++) {
+            currentPartition.setReplicaAddress(index,newPartition.getReplicaAddress(index));
+          }
+        }
+      }
+      sendPartitionRuntimeState();
+    }
+  finally {
+      lock.unlock();
+      for (int i=0; i < partitionCount; i++) {
+        newState[i]=null;
+      }
+    }
+    if (lostCount > 0) {
+      logger.log(Level.WARNING,"Assigning new owners for " + lostCount + " LOST partitions!");
+    }
+    lastRepartitionTime.set(Clock.currentTimeMillis());
+    if (!migrationQ.isEmpty()) {
+      logger.log(Level.INFO,"Re-partitioning cluster data... Migration queue size: " + migrationQ.size());
+      for (      MigrationInfo migrationInfo : migrationQ) {
+        final Migrator migrator=new Migrator(migrationInfo,backupTasks.get(migrationInfo.getPartitionId()));
+        migrationQueue.offer(migrator);
+      }
+      migrationQ.clear();
+    }
   }
 }

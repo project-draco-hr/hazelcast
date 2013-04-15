@@ -1,0 +1,34 @@
+{
+  final Operation op=(Operation)backupAwareOp;
+  final int maxBackups=node.getClusterService().getSize() - 1;
+  final int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
+  final int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
+  final int totalBackupCount=syncBackupCount + asyncBackupCount;
+  if (totalBackupCount > 0) {
+    final String serviceName=op.getServiceName();
+    final int partitionId=op.getPartitionId();
+    final PartitionServiceImpl partitionService=(PartitionServiceImpl)nodeEngine.getPartitionService();
+    final long version=partitionService.incrementPartitionVersion(partitionId);
+    final PartitionInfo partitionInfo=partitionService.getPartitionInfo(partitionId);
+    for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
+      final Address target=partitionInfo.getReplicaAddress(replicaIndex);
+      if (target != null) {
+        final Operation backupOp=backupAwareOp.getBackupOperation();
+        if (backupOp == null) {
+          throw new IllegalArgumentException("Backup operation should not be null!");
+        }
+        if (target.equals(node.getThisAddress())) {
+          throw new IllegalStateException("Normally shouldn't happen!!");
+        }
+ else {
+          backupOp.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName);
+          Backup backup=new Backup(backupOp,op.getCallerAddress(),version,replicaIndex <= syncBackupCount);
+          backup.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName).setCallerUuid(nodeEngine.getLocalMember().getUuid());
+          OperationAccessor.setCallId(backup,op.getCallId());
+          send(backup,target);
+        }
+      }
+    }
+  }
+  return syncBackupCount;
+}

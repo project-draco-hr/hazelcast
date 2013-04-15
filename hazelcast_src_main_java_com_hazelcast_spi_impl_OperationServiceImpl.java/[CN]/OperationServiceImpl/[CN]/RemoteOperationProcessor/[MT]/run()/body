@@ -7,16 +7,16 @@
     op.setNodeEngine(nodeEngine);
     OperationAccessor.setCallerAddress(op,caller);
     OperationAccessor.setConnection(op,conn);
-    if (op instanceof ResponseOperation) {
-      processResponse(op);
+    if (op instanceof Response) {
+      processResponse((Response)op);
     }
  else {
-      final ResponseHandler responseHandler=ResponseHandlerFactory.createRemoteResponseHandler(nodeEngine,op);
+      ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
       if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
-        responseHandler.sendResponse(new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName()));
+        final Exception error=new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName());
+        handleOperationError(op,error);
       }
  else {
-        op.setResponseHandler(responseHandler);
         runOperation(op);
       }
     }

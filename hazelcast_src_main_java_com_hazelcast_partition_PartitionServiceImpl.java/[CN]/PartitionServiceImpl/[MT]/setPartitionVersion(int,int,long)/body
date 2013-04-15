@@ -1,0 +1,11 @@
+{
+  final PartitionVersion partitionVersion=partitionVersions[partitionId];
+  final long currentVersion=partitionVersion.get();
+  if (currentVersion < version && !partitionVersion.cas(currentVersion,version)) {
+    throw new IllegalStateException("Something is wrong! Backup ops are running concurrently on the same partition!");
+  }
+  partitionVersion.updated();
+  if (partitionVersion.isDirty()) {
+    syncPartitionReplica(partitionId,replicaIndex);
+  }
+}

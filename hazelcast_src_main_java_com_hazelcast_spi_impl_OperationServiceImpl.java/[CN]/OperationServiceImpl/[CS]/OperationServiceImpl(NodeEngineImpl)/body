@@ -7,17 +7,17 @@
   final boolean reallyMultiCore=coreSize >= 8;
   remoteCalls=new ConcurrentHashMap<Long,RemoteCall>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16));
   final String poolNamePrefix=node.getThreadPoolNamePrefix("operation");
-  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,node.getConfig().getClassLoader());
+  final ClassLoader classLoader=node.getConfig().getClassLoader();
+  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,classLoader);
   final String type=node.getGroupProperties().OPERATION_EXECUTOR_TYPE.getString();
-  final int coreThreadSize=coreSize * 2;
   if ("blocking".equals(type)) {
-    executor=new BlockingFastExecutor(coreThreadSize,poolNamePrefix,threadFactory);
+    executor=new BlockingFastExecutor(coreSize,poolNamePrefix,threadFactory);
   }
  else   if ("spinning".equals(type)) {
-    executor=new SpinningFastExecutor(coreThreadSize,poolNamePrefix,threadFactory);
+    executor=new SpinningFastExecutor(coreSize,poolNamePrefix,threadFactory);
   }
  else {
-    executor=reallyMultiCore ? new SpinningFastExecutor(coreThreadSize,poolNamePrefix,threadFactory) : new BlockingFastExecutor(coreThreadSize,poolNamePrefix,threadFactory);
+    executor=reallyMultiCore ? new SpinningFastExecutor(coreSize,poolNamePrefix,threadFactory) : new BlockingFastExecutor(coreSize,poolNamePrefix,threadFactory);
   }
   executor.setInterceptor(new BlockingFastExecutor.WorkerLifecycleInterceptor(){
     public void beforeWorkerStart(){
@@ -25,6 +25,12 @@
     }
     public void afterWorkerTerminate(){
       logger.log(Level.INFO,"Destroying an operation thread -> Core: " + executor.getCoreThreadSize() + ", Current: "+ executor.getActiveThreadCount()+ ", Max: "+ executor.getMaxThreadSize());
+    }
+  }
+);
+  backupExecutor=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,classLoader){
+    protected String newThreadName(){
+      return node.getThreadNamePrefix("backup-handler");
     }
   }
 );
@@ -38,4 +44,5 @@
     partitionLocks[i]=new ReentrantReadWriteLock();
   }
   executingCalls=Collections.newSetFromMap(new ConcurrentHashMap<RemoteCallKey,Boolean>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16)));
+  backupCalls=new ConcurrentHashMap<Long,Semaphore>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16));
 }

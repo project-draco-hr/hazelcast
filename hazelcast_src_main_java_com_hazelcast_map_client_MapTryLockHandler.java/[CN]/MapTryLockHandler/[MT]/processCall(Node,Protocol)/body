@@ -1,0 +1,24 @@
+{
+  String name=protocol.args[0];
+  long timeout;
+  if (protocol.args.length > 0)   timeout=Long.valueOf(protocol.args[1]);
+ else   timeout=0;
+  boolean locked=true;
+  Data key=null;
+  if (protocol.buffers != null && protocol.buffers.length > 0) {
+    key=protocol.buffers[0];
+  }
+  DataMapProxy dataMapProxy=getMapProxy(name);
+  if (timeout == 0) {
+    locked=dataMapProxy.tryLock(key);
+  }
+ else {
+    try {
+      locked=dataMapProxy.tryLock(key,timeout,TimeUnit.MILLISECONDS);
+    }
+ catch (    InterruptedException e) {
+      locked=false;
+    }
+  }
+  return protocol.success(String.valueOf(locked));
+}

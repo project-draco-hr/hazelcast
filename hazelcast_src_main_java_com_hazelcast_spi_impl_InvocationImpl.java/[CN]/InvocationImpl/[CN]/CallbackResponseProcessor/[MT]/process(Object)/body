@@ -1,0 +1,33 @@
+{
+  if (response == RETRY_RESPONSE) {
+    responseQ.offer(WAIT_RESPONSE);
+    final ExecutionService ex=nodeEngine.getExecutionService();
+    ex.schedule(new ScheduledTaskRunner(ex.getExecutor(ExecutionService.ASYNC_EXECUTOR),new ScheduledInv()),tryPauseMillis,TimeUnit.MILLISECONDS);
+  }
+ else   if (response == WAIT_RESPONSE) {
+    responseQ.offer(WAIT_RESPONSE);
+  }
+ else {
+    responseQ.offer(response);
+    final Callback<Object> callbackLocal=callback;
+    if (callbackLocal != null) {
+      try {
+        final Object realResponse;
+        if (response instanceof ResponseObj) {
+          final ResponseObj responseObj=(ResponseObj)response;
+          realResponse=responseObj.response;
+        }
+ else         if (response == NULL_RESPONSE) {
+          realResponse=null;
+        }
+ else {
+          realResponse=response;
+        }
+        callbackLocal.notify(realResponse);
+      }
+ catch (      Throwable e) {
+        logger.log(Level.SEVERE,e.getMessage(),e);
+      }
+    }
+  }
+}

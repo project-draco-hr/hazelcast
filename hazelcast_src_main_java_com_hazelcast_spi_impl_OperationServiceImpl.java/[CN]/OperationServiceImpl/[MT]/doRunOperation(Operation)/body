@@ -10,17 +10,26 @@
       }
     }
     op.run();
+    final boolean returnsResponse=op.returnsResponse();
+    Object response=null;
     if (op instanceof BackupAwareOperation) {
       final BackupAwareOperation backupAwareOp=(BackupAwareOperation)op;
       if (backupAwareOp.shouldBackup()) {
-        handleBackupAndSendResponse(backupAwareOp);
-      }
- else {
-        sendResponse(op,null);
+        int syncBackupCount=sendBackups(backupAwareOp);
+        if (returnsResponse) {
+          response=new ResponseObj(op.getResponse(),op.getCallId(),syncBackupCount);
+        }
       }
     }
- else {
-      sendResponse(op,null);
+    if (returnsResponse) {
+      if (response == null) {
+        response=op.getResponse();
+      }
+      ResponseHandler responseHandler=op.getResponseHandler();
+      if (responseHandler == null) {
+        throw new IllegalStateException("ResponseHandler should not be null!");
+      }
+      responseHandler.sendResponse(response);
     }
     op.afterRun();
     if (op instanceof Notifier) {

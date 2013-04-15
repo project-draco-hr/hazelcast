@@ -1,0 +1,13 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  TxnLockAndGetOperation operation=new TxnLockAndGetOperation(proxyId,key,timeout,ttl,getThreadId());
+  try {
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+    Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(CollectionService.SERVICE_NAME,operation,partitionId).build();
+    Future<CollectionResponse> f=invocation.invoke();
+    return f.get();
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}
