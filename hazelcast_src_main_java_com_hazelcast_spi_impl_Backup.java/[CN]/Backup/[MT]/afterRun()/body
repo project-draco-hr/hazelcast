@@ -1,8 +1,15 @@
 {
   if (sync) {
-    final OperationService operationService=getNodeEngine().getOperationService();
-    BackupResponse backupResponse=new BackupResponse();
-    OperationAccessor.setCallId(backupResponse,getCallId());
-    operationService.send(backupResponse,originalCaller);
+    final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+    final long callId=getCallId();
+    final OperationServiceImpl operationService=nodeEngine.operationService;
+    if (!nodeEngine.getThisAddress().equals(originalCaller)) {
+      BackupResponse backupResponse=new BackupResponse();
+      OperationAccessor.setCallId(backupResponse,callId);
+      operationService.send(backupResponse,originalCaller);
+    }
+ else {
+      operationService.notifyBackupCall(callId);
+    }
   }
 }

@@ -1,6 +1,30 @@
 {
-  OperationAccessor.setStartTime(op,Clock.currentTimeMillis());
+  RemoteCallKey callKey=null;
   try {
+    if (isCallTimedOut(op)) {
+      Object response=new CallTimeoutException("Call timed out for " + op.getClass().getName() + ", call-time: "+ op.getInvocationTime()+ ", timeout: "+ op.getCallTimeout());
+      op.getResponseHandler().sendResponse(response);
+      return;
+    }
+    callKey=beforeCallExecution(op);
+    final int partitionId=op.getPartitionId();
+    if (op instanceof PartitionAwareOperation) {
+      if (partitionId < 0) {
+        throw new IllegalArgumentException("Partition id cannot be negative! -> " + partitionId);
+      }
+      final PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
+      if (partitionInfo == null) {
+        throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+      }
+      if (!OperationAccessor.isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
+        throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+      }
+      final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
+      if (op.validatesTarget() && !node.getThisAddress().equals(owner)) {
+        throw new WrongTargetException(node.getThisAddress(),owner,partitionId,op.getReplicaIndex(),op.getClass().getName(),op.getServiceName());
+      }
+    }
+    OperationAccessor.setStartTime(op,Clock.currentTimeMillis());
     op.beforeRun();
     if (op instanceof WaitSupport) {
       WaitSupport waitSupport=(WaitSupport)op;
@@ -41,5 +65,8 @@
   }
  catch (  Throwable e) {
     handleOperationError(op,e);
+  }
+ finally {
+    afterCallExecution(op,callKey);
   }
 }
