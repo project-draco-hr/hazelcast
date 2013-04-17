@@ -1,0 +1,14 @@
+{
+  final PartitionServiceImpl partitionService=getService();
+  final int partitionId=getPartitionId();
+  final int replicaIndex=1;
+  final PartitionInfo partition=partitionService.getPartitionInfo(partitionId);
+  final Address firstReplica=partition.getReplicaAddress(replicaIndex);
+  if (firstReplica != null) {
+    final long currentVersion=partitionService.getPartitionVersion(partitionId);
+    final NodeEngine nodeEngine=getNodeEngine();
+    CheckReplicaVersion op=new CheckReplicaVersion(currentVersion);
+    op.setPartitionId(partitionId).setReplicaIndex(1).setServiceName(PartitionServiceImpl.SERVICE_NAME);
+    nodeEngine.getOperationService().send(op,firstReplica);
+  }
+}
