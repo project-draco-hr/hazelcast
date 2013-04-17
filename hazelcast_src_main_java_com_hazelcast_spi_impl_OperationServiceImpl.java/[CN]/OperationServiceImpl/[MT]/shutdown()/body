@@ -1,13 +1,18 @@
 {
   logger.log(Level.FINEST,"Stopping operation threads...");
-  executor.shutdown();
-  backupExecutor.shutdown();
+  for (  ExecutorService executor : opExecutors) {
+    executor.shutdown();
+  }
   final Object response=new HazelcastInstanceNotActiveException();
   for (  RemoteCall call : remoteCalls.values()) {
     call.offerResponse(response);
   }
   remoteCalls.clear();
-  for (int i=0; i < ownerLocks.length; i++) {
-    ownerLocks[i]=null;
+  for (  ExecutorService executor : opExecutors) {
+    try {
+      executor.awaitTermination(3,TimeUnit.SECONDS);
+    }
+ catch (    InterruptedException ignored) {
+    }
   }
 }
