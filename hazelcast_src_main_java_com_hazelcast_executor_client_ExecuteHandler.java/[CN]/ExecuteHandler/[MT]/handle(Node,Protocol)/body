@@ -15,7 +15,7 @@
         proxy.submitToMember(callable,member,callBack);
       }
  catch (      UnknownHostException e) {
-        response=protocol.error(null,"unknownhost");
+        response=protocol.error(new Data[]{node.serializationService.toData(e)},e.getClass().getName());
       }
     }
  else {
@@ -24,12 +24,14 @@
     }
   }
  catch (  HazelcastInstanceNotActiveException e) {
-    response=new Protocol(protocol.conn,Command.ERROR,protocol.flag,protocol.threadId,false,new String[]{"HazelcastInstanceNotActiveException"});
+    Data exception=node.serializationService.toData(e);
+    response=new Protocol(protocol.conn,Command.ERROR,protocol.flag,protocol.threadId,false,new String[]{e.getClass().getName()},exception);
   }
 catch (  RuntimeException e) {
     ILogger logger=node.getLogger(this.getClass().getName());
     logger.log(Level.WARNING,"exception during handling " + protocol.command + ": "+ e.getMessage(),e);
-    response=new Protocol(protocol.conn,Command.ERROR,protocol.flag,protocol.threadId,false,new String[]{e.getMessage()});
+    Data exception=node.serializationService.toData(e);
+    response=new Protocol(protocol.conn,Command.ERROR,protocol.flag,protocol.threadId,false,new String[]{e.getClass().getName()},exception);
   }
   if (response != null)   sendResponse(node,response,protocol.conn);
 }
