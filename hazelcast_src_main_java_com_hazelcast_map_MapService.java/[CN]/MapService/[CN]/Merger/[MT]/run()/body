@@ -1,30 +1,8 @@
 {
   for (  final MapContainer mapContainer : recordMap.keySet()) {
-    MapMergePolicy mergePolicy=null;
-    MapMergePolicyConfig mergePolicyConfig=mapContainer.getMapConfig().getMergePolicyConfig();
-    if (mergePolicyConfig != null) {
-      mergePolicy=mergePolicyConfig.getImplementation();
-      if (mergePolicy == null) {
-        String mergeClassName=mergePolicyConfig.getClassName();
-        try {
-          mergePolicy=ClassLoaderUtil.newInstance(mergeClassName);
-        }
- catch (        Exception e) {
-          logger.log(Level.SEVERE,e.getMessage(),e);
-          ExceptionUtil.rethrow(e);
-        }
-      }
-    }
-    if (mergePolicy == null) {
-      try {
-        mergePolicy=ClassLoaderUtil.newInstance(MapMergePolicyConfig.DEFAULT_POLICY);
-      }
- catch (      Exception e) {
-        logger.log(Level.SEVERE,e.getMessage(),e);
-        ExceptionUtil.rethrow(e);
-      }
-    }
     Collection<Record> recordList=recordMap.get(mapContainer);
+    String mergePolicyName=mapContainer.getMapConfig().getMergePolicy();
+    MapMergePolicy mergePolicy=getMergePolicy(mergePolicyName);
     for (    final Record record : recordList) {
       final MapMergePolicy finalMergePolicy=mergePolicy;
       nodeEngine.getExecutionService().submit("hz:map-merge",new Runnable(){

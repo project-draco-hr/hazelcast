@@ -15,13 +15,8 @@
   }
   partitionMigrationInterval=node.groupProperties.PARTITION_MIGRATION_INTERVAL.getInteger() * 1000;
   partitionMigrationTimeout=(long)(node.groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong() * 1.5f);
-  migrationManagerThread=new MigrationManagerThread(node);
-  migrationExecutor=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,node.getConfig().getClassLoader()){
-    protected String newThreadName(){
-      return node.getThreadNamePrefix("migration-executor");
-    }
-  }
-);
+  migrationThread=new MigrationThread(node);
   proxy=new PartitionServiceProxy(this);
   replicaSyncRequests=new ConcurrentHashMap<Integer,ReplicaSyncInfo>(partitionCount);
+  nodeEngine.getExecutionService().scheduleWithFixedDelay(new SyncReplicaVersionTask(),30,30,TimeUnit.SECONDS);
 }

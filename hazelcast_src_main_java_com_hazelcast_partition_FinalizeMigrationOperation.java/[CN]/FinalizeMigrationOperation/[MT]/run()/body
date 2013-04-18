@@ -1,23 +1,26 @@
 {
-  final Collection<MigrationAwareService> services=getServices();
-  final PartitionMigrationEvent event=new PartitionMigrationEvent(endpoint,getPartitionId());
-  for (  MigrationAwareService service : services) {
-    try {
-      if (success) {
-        service.commitMigration(event);
-      }
- else {
-        service.rollbackMigration(event);
-      }
-    }
- catch (    Throwable e) {
-      getNodeEngine().getLogger(FinalizeMigrationOperation.class.getName()).log(Level.WARNING,"Error while finalizing migration -> " + event,e);
-    }
-  }
   PartitionServiceImpl partitionService=getService();
-  MigrationInfo migrationInfo=partitionService.removeActiveMigration(getPartitionId());
-  if (success) {
-    NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-    nodeEngine.onPartitionMigrate(migrationInfo);
+  MigrationInfo migrationInfo=partitionService.getActiveMigration(getPartitionId());
+  NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  if (migrationInfo != null) {
+    final Collection<MigrationAwareService> services=nodeEngine.getServices(MigrationAwareService.class);
+    final PartitionMigrationEvent event=new PartitionMigrationEvent(endpoint,getPartitionId());
+    for (    MigrationAwareService service : services) {
+      try {
+        if (success) {
+          service.commitMigration(event);
+        }
+ else {
+          service.rollbackMigration(event);
+        }
+      }
+ catch (      Throwable e) {
+        getLogger().log(Level.WARNING,"Error while finalizing migration -> " + event,e);
+      }
+    }
+    partitionService.removeActiveMigration(getPartitionId());
+    if (success) {
+      nodeEngine.onPartitionMigrate(migrationInfo);
+    }
   }
 }

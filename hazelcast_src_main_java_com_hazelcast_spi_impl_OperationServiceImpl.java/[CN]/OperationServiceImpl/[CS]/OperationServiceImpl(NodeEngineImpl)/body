@@ -5,44 +5,15 @@
   defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
   final int coreSize=Runtime.getRuntime().availableProcessors();
   final boolean reallyMultiCore=coreSize >= 8;
-  remoteCalls=new ConcurrentHashMap<Long,RemoteCall>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16));
-  final String poolNamePrefix=node.getThreadPoolNamePrefix("operation");
-  final ClassLoader classLoader=node.getConfig().getClassLoader();
-  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,poolNamePrefix,classLoader);
-  final String type=node.getGroupProperties().OPERATION_EXECUTOR_TYPE.getString();
-  if ("blocking".equals(type)) {
-    executor=new BlockingFastExecutor(coreSize,poolNamePrefix,threadFactory);
+  final int concurrencyLevel=reallyMultiCore ? coreSize * 4 : 16;
+  remoteCalls=new ConcurrentHashMap<Long,RemoteCall>(1000,0.75f,concurrencyLevel);
+  final int opThreadCount=node.getGroupProperties().OPERATION_THREAD_COUNT.getInteger();
+  operationThreadCount=opThreadCount > 0 ? opThreadCount : coreSize * 2;
+  opExecutors=new ExecutorService[operationThreadCount];
+  for (int i=0; i < opExecutors.length; i++) {
+    opExecutors[i]=Executors.newSingleThreadExecutor(new OperationThreadFactory(i));
   }
- else   if ("spinning".equals(type)) {
-    executor=new SpinningFastExecutor(coreSize,poolNamePrefix,threadFactory);
-  }
- else {
-    executor=reallyMultiCore ? new SpinningFastExecutor(coreSize,poolNamePrefix,threadFactory) : new BlockingFastExecutor(coreSize,poolNamePrefix,threadFactory);
-  }
-  executor.setInterceptor(new BlockingFastExecutor.WorkerLifecycleInterceptor(){
-    public void beforeWorkerStart(){
-      logger.log(Level.INFO,"Creating a new operation thread -> Core: " + executor.getCoreThreadSize() + ", Current: "+ (executor.getActiveThreadCount() + 1)+ ", Max: "+ executor.getMaxThreadSize());
-    }
-    public void afterWorkerTerminate(){
-      logger.log(Level.INFO,"Destroying an operation thread -> Core: " + executor.getCoreThreadSize() + ", Current: "+ executor.getActiveThreadCount()+ ", Max: "+ executor.getMaxThreadSize());
-    }
-  }
-);
-  backupExecutor=Executors.newSingleThreadExecutor(new ExecutorThreadFactory(node.threadGroup,classLoader){
-    protected String newThreadName(){
-      return node.getThreadNamePrefix("backup-handler");
-    }
-  }
-);
-  ownerLocks=new Lock[100000];
-  for (int i=0; i < ownerLocks.length; i++) {
-    ownerLocks[i]=new ReentrantLock();
-  }
-  int partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
-  partitionLocks=new ReadWriteLock[partitionCount];
-  for (int i=0; i < partitionCount; i++) {
-    partitionLocks[i]=new ReentrantReadWriteLock();
-  }
-  executingCalls=Collections.newSetFromMap(new ConcurrentHashMap<RemoteCallKey,Boolean>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16)));
-  backupCalls=new ConcurrentHashMap<Long,Semaphore>(1000,0.75f,(reallyMultiCore ? coreSize * 4 : 16));
+  systemExecutor=nodeEngine.getExecutionService().getExecutor(ExecutionService.SYSTEM_EXECUTOR);
+  executingCalls=Collections.newSetFromMap(new ConcurrentHashMap<RemoteCallKey,Boolean>(1000,0.75f,concurrencyLevel));
+  backupCalls=new ConcurrentHashMap<Long,Semaphore>(1000,0.75f,concurrencyLevel);
 }

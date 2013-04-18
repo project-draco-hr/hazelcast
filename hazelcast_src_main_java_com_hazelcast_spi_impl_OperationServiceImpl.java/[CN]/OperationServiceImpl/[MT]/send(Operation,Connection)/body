@@ -1,14 +1,7 @@
 {
-  Data opData=nodeEngine.toData(op);
-  Packet packet=new Packet(opData,nodeEngine.getSerializationContext());
-  if (op instanceof Backup || op instanceof BackupOperation) {
-    packet.setHeader(Packet.HEADER_BACKUP);
-  }
- else   if (OperationAccessor.isMigrationOperation(op)) {
-    packet.setHeader(Packet.HEADER_MIGRATION);
-  }
- else {
-    packet.setHeader(Packet.HEADER_OP);
-  }
+  Data data=nodeEngine.toData(op);
+  final int partitionId=getPartitionIdForExecution(op);
+  Packet packet=new Packet(data,partitionId,nodeEngine.getSerializationContext());
+  packet.setHeader(Packet.HEADER_OP);
   return nodeEngine.send(packet,connection);
 }
