@@ -7,8 +7,16 @@
   for (  Member member : concurrentMapManager.node.getClusterImpl().getMembers()) {
     members.add((MemberImpl)member);
   }
-  MemberGroupFactory mgf=PartitionStateGeneratorFactory.newMemberGroupFactory(concurrentMapManager.node.config.getPartitionGroupConfig());
-  if (mgf.createMemberGroups(members).size() < 2)   return false;
+  MemberGroupFactory mgf=memberGroupFactory;
+  final Collection<MemberGroup> memberGroups=mgf.createMemberGroups(members);
+  if (memberGroups.size() < 2)   return false;
+  int groups=0;
+  for (  MemberGroup memberGroup : memberGroups) {
+    if (memberGroup.size() > 0) {
+      groups++;
+    }
+  }
+  if (groups < 2)   return false;
   final int size=immediateTasksQueue.size();
   if (size == 0) {
     for (    PartitionInfo partition : partitions) {
