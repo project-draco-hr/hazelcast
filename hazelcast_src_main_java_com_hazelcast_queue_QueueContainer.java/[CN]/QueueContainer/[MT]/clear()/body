@@ -1,20 +1,19 @@
 {
+  long current=Clock.currentTimeMillis();
+  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(getBackupMap().size());
+  for (  QueueItem item : getBackupMap().values()) {
+    map.put(item.getItemId(),item.getData());
+    age(item,current);
+  }
   if (store.isEnabled()) {
     try {
-      store.deleteAll(backupMap.keySet());
+      store.deleteAll(map.keySet());
     }
  catch (    Exception e) {
       throw new HazelcastException(e);
     }
   }
-  long current=Clock.currentTimeMillis();
-  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(backupMap.size());
-  for (  QueueItem item : backupMap.values()) {
-    map.put(item.getItemId(),item.getData());
-    age(item,current);
-  }
   getItemQueue().clear();
-  backupMap.clear();
   dataMap.clear();
   return map;
 }
