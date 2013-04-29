@@ -1,15 +1,28 @@
 {
   MapService mapService=(MapService)getService();
   if (data != null) {
-    for (    Entry<String,Set<Record>> dataEntry : data.entrySet()) {
-      Set<Record> recordSet=dataEntry.getValue();
+    for (    Entry<String,Set<RecordState>> dataEntry : data.entrySet()) {
+      Set<RecordState> recordStates=dataEntry.getValue();
       final String mapName=dataEntry.getKey();
       RecordStore recordStore=mapService.getRecordStore(getPartitionId(),mapName);
-      for (      Record recordEntry : recordSet) {
-        Record record=mapService.createRecord(mapName,recordEntry.getKey(),recordEntry.getValue(),-1);
-        record.setState(recordEntry.getState());
-        record.setStatistics(recordEntry.getStatistics());
-        recordStore.getRecords().put(recordEntry.getKey(),record);
+      for (      RecordState recordState : recordStates) {
+        Record inputRecord=recordState.getRecord();
+        Data key=inputRecord.getKey();
+        Record record=mapService.createRecord(mapName,key,inputRecord.getValue(),-1,false);
+        record.setStatistics(inputRecord.getStatistics());
+        recordStore.getRecords().put(key,record);
+        if (recordState.getIdleDelayMillis() >= 0) {
+          mapService.scheduleIdleEviction(mapName,key,recordState.getIdleDelayMillis());
+        }
+        if (recordState.getTtlDelayMillis() >= 0) {
+          mapService.scheduleTtlEviction(mapName,key,recordState.getTtlDelayMillis());
+        }
+        if (recordState.getMapstoreWriteDelayMillis() >= 0) {
+          mapService.scheduleMapStoreWrite(mapName,key,record.getValue(),recordState.getMapstoreWriteDelayMillis());
+        }
+        if (recordState.getMapstoreDeleteDelayMillis() >= 0) {
+          mapService.scheduleMapStoreDelete(mapName,key,recordState.getMapstoreDeleteDelayMillis());
+        }
       }
     }
   }
