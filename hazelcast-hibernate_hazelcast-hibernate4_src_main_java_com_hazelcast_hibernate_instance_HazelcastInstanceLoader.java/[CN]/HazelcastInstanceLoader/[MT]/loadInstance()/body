@@ -1,0 +1,35 @@
+{
+  if (instance != null && instance.getLifecycleService().isRunning()) {
+    logger.log(Level.WARNING,"Current HazelcastInstance is already loaded and running! " + "Returning current instance...");
+    return instance;
+  }
+  String configResourcePath=null;
+  instanceName=CacheEnvironment.getInstanceName(props);
+  configResourcePath=CacheEnvironment.getConfigFilePath(props);
+  if (!isEmpty(configResourcePath)) {
+    try {
+      config=ConfigLoader.load(configResourcePath);
+    }
+ catch (    IOException e) {
+      logger.log(Level.WARNING,"IOException: " + e.getMessage());
+    }
+    if (config == null) {
+      throw new CacheException("Could not find configuration file: " + configResourcePath);
+    }
+  }
+  if (instanceName != null) {
+    instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+    if (instance == null) {
+      try {
+        createOrGetInstance();
+      }
+ catch (      DuplicateInstanceNameException ignored) {
+        instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+      }
+    }
+  }
+ else {
+    createOrGetInstance();
+  }
+  return instance;
+}

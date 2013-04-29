@@ -1,0 +1,35 @@
+{
+  if (client != null && client.getLifecycleService().isRunning()) {
+    logger.log(Level.WARNING,"Current HazelcastClient is already active! Shutting it down...");
+    unloadInstance();
+  }
+  String address=ConfigurationHelper.getString(CacheEnvironment.NATIVE_CLIENT_ADDRESS,props,null);
+  String group=ConfigurationHelper.getString(CacheEnvironment.NATIVE_CLIENT_GROUP,props,null);
+  String pass=ConfigurationHelper.getString(CacheEnvironment.NATIVE_CLIENT_PASSWORD,props,null);
+  String configResourcePath=CacheEnvironment.getConfigFilePath(props);
+  ClientConfig clientConfig=null;
+  if (configResourcePath != null) {
+    try {
+      clientConfig=new ClientConfigBuilder(configResourcePath).build();
+    }
+ catch (    IOException e) {
+      logger.log(Level.WARNING,"Could not load client configuration: " + configResourcePath,e);
+    }
+  }
+  if (clientConfig == null) {
+    clientConfig=new ClientConfig();
+    clientConfig.setSmart(true);
+    clientConfig.setInitialConnectionAttemptLimit(3);
+    clientConfig.setReconnectionAttemptLimit(5);
+  }
+  if (group != null) {
+    clientConfig.getGroupConfig().setName(group);
+  }
+  if (pass != null) {
+    clientConfig.getGroupConfig().setPassword(pass);
+  }
+  if (address != null) {
+    clientConfig.addAddress(address);
+  }
+  return (client=HazelcastClient.newHazelcastClient(clientConfig));
+}
