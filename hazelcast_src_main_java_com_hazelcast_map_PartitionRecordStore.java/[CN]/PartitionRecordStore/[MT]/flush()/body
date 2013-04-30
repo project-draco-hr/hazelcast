@@ -3,9 +3,15 @@
   for (  Record record : records.values()) {
     keys.add(record.getKey());
   }
-  Set<Data> processedKeys=mapContainer.getMapStoreWriteScheduler().flush(keys);
-  for (  Data key : processedKeys) {
-    records.get(key).onStore();
+  EntryTaskScheduler writeScheduler=mapContainer.getMapStoreWriteScheduler();
+  if (writeScheduler != null) {
+    Set<Data> processedKeys=writeScheduler.flush(keys);
+    for (    Data key : processedKeys) {
+      records.get(key).onStore();
+    }
   }
-  mapContainer.getMapStoreDeleteScheduler().flush(toBeRemovedKeys);
+  EntryTaskScheduler deleteScheduler=mapContainer.getMapStoreDeleteScheduler();
+  if (deleteScheduler != null) {
+    deleteScheduler.flush(toBeRemovedKeys);
+  }
 }
