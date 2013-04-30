@@ -3,5 +3,26 @@
   for (int i=0; i < partitionCount; i++) {
     partitionContainers[i]=new PartitionContainer(this,i);
   }
+  final SharedLockService lockService=nodeEngine.getSharedService(SharedLockService.SERVICE_NAME);
+  if (lockService != null) {
+    lockService.registerLockStoreConstructor(SERVICE_NAME,new ConstructorFunction<ObjectNamespace,LockStoreInfo>(){
+      public LockStoreInfo createNew(      final ObjectNamespace key){
+        final MapContainer mapContainer=getMapContainer(String.valueOf(key.getObjectId()));
+        return new LockStoreInfo(){
+          public ObjectNamespace getObjectNamespace(){
+            return key;
+          }
+          public int getBackupCount(){
+            return mapContainer.getBackupCount();
+          }
+          public int getAsyncBackupCount(){
+            return mapContainer.getAsyncBackupCount();
+          }
+        }
+;
+      }
+    }
+);
+  }
   nodeEngine.getExecutionService().scheduleAtFixedRate(new MapEvictTask(),1,1,TimeUnit.SECONDS);
 }
