@@ -1,4 +1,5 @@
 {
+  response=new HashMap<Data,Data>();
   Map.Entry entry;
   RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
   ConcurrentMap<Data,Record> records=recordStore.getRecords();
@@ -6,7 +7,8 @@
     Data dataKey=recordEntry.getKey();
     Record record=recordEntry.getValue();
     entry=new AbstractMap.SimpleEntry(mapService.toObject(record.getKey()),mapService.toObject(record.getValue()));
-    entryProcessor.process(entry);
+    Object result=entryProcessor.process(entry);
+    if (result != null)     response.put(dataKey,mapService.toData(result));
     recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,entry.getValue()));
   }
 }
