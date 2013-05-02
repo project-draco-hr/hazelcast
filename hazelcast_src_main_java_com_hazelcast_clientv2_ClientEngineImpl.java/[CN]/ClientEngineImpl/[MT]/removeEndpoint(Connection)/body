@@ -1,0 +1,26 @@
+{
+  final ClientEndpoint endpoint=endpoints.remove(connection);
+  if (endpoint != null) {
+    logger.log(Level.INFO,"Destroying " + endpoint);
+    try {
+      endpoint.destroy();
+    }
+ catch (    LoginException e) {
+      logger.log(Level.WARNING,e.getMessage(),e);
+    }
+    nodeEngine.getExecutionService().schedule(new Runnable(){
+      public void run(){
+        if (connection.live()) {
+          try {
+            connection.close();
+          }
+ catch (          Throwable e) {
+            logger.log(Level.WARNING,"While closing client connection: " + e.toString());
+          }
+        }
+      }
+    }
+,1111,TimeUnit.MILLISECONDS);
+  }
+  return endpoint;
+}

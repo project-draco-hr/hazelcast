@@ -16,10 +16,18 @@
     classId=source.getInt();
     setStatus(stClassId);
     if (classId == Data.NO_CLASS_ID) {
+      setStatus(stFactoryId);
       setStatus(stVersion);
       setStatus(stClassDefSize);
       setStatus(stClassDef);
     }
+  }
+  if (!isStatusSet(stFactoryId)) {
+    if (source.remaining() < 4) {
+      return false;
+    }
+    factoryId=source.getInt();
+    setStatus(stFactoryId);
   }
   if (!isStatusSet(stVersion)) {
     if (source.remaining() < 4) {
@@ -30,7 +38,7 @@
   }
   if (!isStatusSet(stClassDef)) {
     ClassDefinition cd;
-    if ((cd=context.lookup(classId,version)) != null) {
+    if ((cd=context.lookup(factoryId,classId,version)) != null) {
       data.classDefinition=cd;
       setStatus(stClassDefSize);
       setStatus(stClassDef);
@@ -49,7 +57,7 @@
         }
         final byte[] binary=new byte[classDefSize];
         source.get(binary);
-        data.classDefinition=new BinaryClassDefinitionProxy(classId,version,binary);
+        data.classDefinition=new BinaryClassDefinitionProxy(factoryId,classId,version,binary);
         setStatus(stClassDef);
       }
     }

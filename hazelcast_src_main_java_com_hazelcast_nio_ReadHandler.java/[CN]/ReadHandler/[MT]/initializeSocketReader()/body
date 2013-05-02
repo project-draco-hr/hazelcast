@@ -1,0 +1,31 @@
+{
+  if (socketReader == null) {
+    int readBytes=socketChannel.read(protocolBuffer);
+    if (readBytes == -1) {
+      throw new EOFException("Could not read protocol type!");
+    }
+    if (!protocolBuffer.hasRemaining()) {
+      String protocol=new String(protocolBuffer.array());
+      WriteHandler writeHandler=connection.getWriteHandler();
+      if (Protocols.CLUSTER.equals(protocol)) {
+        writeHandler.setProtocol(Protocols.CLUSTER);
+        socketReader=new SocketPacketReader(connection);
+      }
+ else       if (Protocols.CLIENT_TEXT.equals(protocol)) {
+        writeHandler.setProtocol(Protocols.CLIENT_TEXT);
+        socketReader=new SocketProtocolReader(connection);
+      }
+ else       if (Protocols.CLIENT_BINARY.equals(protocol)) {
+        writeHandler.setProtocol(Protocols.CLIENT_BINARY);
+        socketReader=new SocketClientDataReader(connection);
+      }
+ else {
+        writeHandler.setProtocol(Protocols.TEXT);
+        buffer.put(protocolBuffer.array());
+        socketReader=new SocketTextReader(connection);
+        connection.getConnectionManager().incrementTextConnections();
+      }
+    }
+  }
+  if (socketReader == null)   throw new IOException("Could not initialize SocketReader!");
+}

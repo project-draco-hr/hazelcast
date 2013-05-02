@@ -13,7 +13,17 @@
     for (    Object key : keys) {
       Data dataKey=mapService.toData(key);
       int partitionId=nodeEngine.getPartitionService().getPartitionId(dataKey);
-      if (nodeEngine.getPartitionService().getPartitionOwner(partitionId).equals(nodeEngine.getClusterService().getThisAddress())) {
+      Address partitionOwner=nodeEngine.getPartitionService().getPartitionOwner(partitionId);
+      while (partitionOwner == null) {
+        partitionOwner=nodeEngine.getPartitionService().getPartitionOwner(partitionId);
+        try {
+          Thread.sleep(10);
+        }
+ catch (        InterruptedException e) {
+          ExceptionUtil.rethrow(e);
+        }
+      }
+      if (partitionOwner.equals(nodeEngine.getClusterService().getThisAddress())) {
         chunk.put(dataKey,key);
         if (chunk.size() >= chunkSize) {
           chunkList.add(chunk);

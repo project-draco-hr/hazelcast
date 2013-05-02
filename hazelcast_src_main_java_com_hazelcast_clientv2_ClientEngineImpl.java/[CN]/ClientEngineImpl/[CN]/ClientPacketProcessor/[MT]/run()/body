@@ -1,0 +1,29 @@
+{
+  final Connection conn=packet.getConn();
+  try {
+    final ClientEndpoint endpoint=getEndpoint(conn);
+    currentEndpoint.set(endpoint);
+    final Data data=packet.getData();
+    final ClientRequest request=(ClientRequest)serializationService.toObject(data);
+    if (endpoint.isAuthenticated() || request instanceof ClientAuthenticationRequest) {
+      request.setConnection(conn);
+      request.setService(nodeEngine.getService(request.getServiceName()));
+      request.setClientEngine(ClientEngineImpl.this);
+      final Object result=request.process();
+      final Data resultData=result != null ? serializationService.toData(result) : new Data();
+      sendResponse(conn,resultData);
+    }
+ else {
+      String message="Client " + conn + " must authenticate before any operation.";
+      logger.log(Level.SEVERE,message);
+      sendResponse(conn,new GenericError(message,0));
+      removeEndpoint(conn);
+    }
+  }
+ catch (  Throwable e) {
+    logger.log(Level.SEVERE,e.getMessage(),e);
+  }
+ finally {
+    currentEndpoint.set(null);
+  }
+}

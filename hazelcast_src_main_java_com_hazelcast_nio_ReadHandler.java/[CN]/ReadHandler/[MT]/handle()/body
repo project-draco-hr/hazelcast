@@ -8,33 +8,11 @@
   }
   try {
     if (socketReader == null) {
-      int readBytes=socketChannel.read(protocolBuffer);
-      if (readBytes == -1) {
-        throw new EOFException();
-      }
-      if (!protocolBuffer.hasRemaining()) {
-        String protocol=new String(protocolBuffer.array());
-        WriteHandler writeHandler=connection.getWriteHandler();
-        if ("HZC".equals(protocol)) {
-          writeHandler.setProtocol("HZC");
-          socketReader=new SocketPacketReader(socketChannel,connection);
-        }
- else         if ("P01".equals(protocol)) {
-          writeHandler.setProtocol("P01");
-          socketReader=new SocketProtocolReader(connection);
-        }
- else {
-          writeHandler.setProtocol("TEXT");
-          buffer.put(protocolBuffer.array());
-          socketReader=new SocketTextReader(connection);
-          connection.getConnectionManager().incrementTextConnections();
-        }
-      }
+      initializeSocketReader();
     }
-    if (socketReader == null)     return;
     int readBytes=socketChannel.read(buffer);
     if (readBytes == -1) {
-      throw new EOFException();
+      throw new EOFException("Remote socket closed!");
     }
   }
  catch (  Throwable e) {

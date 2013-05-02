@@ -1,0 +1,14 @@
+{
+  Config cfg=new Config();
+  MapConfig mc=cfg.getMapConfig("testZeroResetsTTL");
+  int ttl=3;
+  mc.setTimeToLiveSeconds(ttl);
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(cfg);
+  IMap<Object,Object> map=instance.getMap("testZeroResetsTTL");
+  map.put(1,1);
+  map.put(2,2);
+  map.put(1,2,0,TimeUnit.SECONDS);
+  Thread.sleep((ttl + 1) * 1000);
+  assertNull(map.get(2));
+  assertEquals(2,map.get(1));
+}
