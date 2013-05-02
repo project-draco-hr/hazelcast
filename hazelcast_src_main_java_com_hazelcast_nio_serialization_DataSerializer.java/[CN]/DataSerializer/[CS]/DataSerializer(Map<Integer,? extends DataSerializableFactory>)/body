@@ -1,0 +1,26 @@
+{
+  factories.put(Data.FACTORY_ID,new DataSerializableFactory(){
+    public IdentifiedDataSerializable create(    int typeId){
+      return new Data();
+    }
+  }
+);
+  try {
+    final Iterator<DataSerializerHook> hooks=ServiceLoader.iterator(DataSerializerHook.class,FACTORY_ID);
+    while (hooks.hasNext()) {
+      DataSerializerHook hook=hooks.next();
+      final DataSerializableFactory factory=hook.createFactory();
+      if (factory != null) {
+        register(hook.getFactoryId(),factory);
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  if (dataSerializableFactories != null) {
+    for (    Map.Entry<Integer,? extends DataSerializableFactory> entry : dataSerializableFactories.entrySet()) {
+      register(entry.getKey(),entry.getValue());
+    }
+  }
+}
