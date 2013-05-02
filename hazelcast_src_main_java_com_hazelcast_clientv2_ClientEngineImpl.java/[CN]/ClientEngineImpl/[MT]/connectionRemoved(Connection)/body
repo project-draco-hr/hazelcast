@@ -1,0 +1,19 @@
+{
+  if (connection.isClient() && connection instanceof TcpIpConnection) {
+    final ClientEndpoint endpoint=removeEndpoint(connection);
+    if (endpoint != null) {
+      NodeEngine nodeEngine=node.nodeEngine;
+      final Collection<MemberImpl> memberList=nodeEngine.getClusterService().getMemberList();
+      for (      MemberImpl member : memberList) {
+        final ClientDisconnectionOperation op=new ClientDisconnectionOperation(endpoint.uuid);
+        op.setNodeEngine(nodeEngine).setServiceName(SERVICE_NAME).setService(this).setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+        if (member.localMember()) {
+          nodeEngine.getOperationService().runOperation(op);
+        }
+ else {
+          nodeEngine.getOperationService().send(op,member.getAddress());
+        }
+      }
+    }
+  }
+}

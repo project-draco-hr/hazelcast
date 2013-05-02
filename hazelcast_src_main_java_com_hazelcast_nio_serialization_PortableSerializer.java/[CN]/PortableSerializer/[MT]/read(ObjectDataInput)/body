@@ -3,19 +3,28 @@
     throw new IllegalArgumentException("ObjectDataInput must be instance of BufferObjectDataInput!");
   }
   final ContextAwareDataInput ctxIn=(ContextAwareDataInput)in;
+  final int factoryId=ctxIn.getFactoryId();
   final int dataClassId=ctxIn.getDataClassId();
   final int dataVersion=ctxIn.getDataVersion();
-  final Portable p=context.createPortable(dataClassId);
+  final PortableFactory portableFactory=factories.get(factoryId);
+  if (portableFactory == null) {
+    throw new HazelcastSerializationException("Could not find PortableFactory for factoryId: " + factoryId);
+  }
+  final Portable portable=portableFactory.create(dataClassId);
+  if (portable == null) {
+    throw new HazelcastSerializationException("Could not create Portable for class-id: " + dataClassId);
+  }
   final PortableReader reader;
   final ClassDefinition cd;
+  final SerializationContext context=getContext();
   if (context.getVersion() == dataVersion) {
-    cd=context.lookup(dataClassId);
+    cd=context.lookup(factoryId,dataClassId);
     reader=new DefaultPortableReader(this,(BufferObjectDataInput)in,cd);
   }
  else {
-    cd=context.lookup(dataClassId,dataVersion);
+    cd=context.lookup(factoryId,dataClassId,dataVersion);
     reader=new MorphingPortableReader(this,(BufferObjectDataInput)in,cd);
   }
-  p.readPortable(reader);
-  return p;
+  portable.readPortable(reader);
+  return portable;
 }

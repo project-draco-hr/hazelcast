@@ -26,6 +26,7 @@
     }
   }
   store=storeTemp;
+  final ScheduledExecutorService scheduledExecutor=nodeEngine.getExecutionService().getScheduledExecutor();
   if (store != null) {
     if (store instanceof MapLoaderLifecycleSupport) {
       ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapConfig.getMapStoreConfig().getProperties(),name);
@@ -50,8 +51,8 @@
       mapReady=true;
     }
     if (mapStoreConfig.getWriteDelaySeconds() > 0) {
-      mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),false);
-      mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreDeleteProcessor(this,mapService),false);
+      mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new MapStoreWriteProcessor(this,mapService),false);
+      mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new MapStoreDeleteProcessor(this,mapService),false);
     }
  else {
       mapStoreDeleteScheduler=null;
@@ -63,9 +64,9 @@
     mapStoreDeleteScheduler=null;
     mapStoreWriteScheduler=null;
   }
-  ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),true);
+  ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new EvictionProcessor(nodeEngine,mapService,name),true);
   if (mapConfig.getMaxIdleSeconds() > 0) {
-    idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),true);
+    idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new EvictionProcessor(nodeEngine,mapService,name),true);
   }
  else {
     idleEvictionScheduler=null;
