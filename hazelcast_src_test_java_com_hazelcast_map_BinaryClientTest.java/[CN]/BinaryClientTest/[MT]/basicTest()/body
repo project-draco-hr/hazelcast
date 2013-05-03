@@ -1,0 +1,74 @@
+{
+  Config config=new Config();
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+  String mapName="test";
+  final IMap map=instance.getMap(mapName);
+  Socket socket=new Socket();
+  SerializationService service=new SerializationServiceImpl(0);
+  socket.connect(new InetSocketAddress(InetAddress.getByName("127.0.0.1"),5701));
+  OutputStream outputStream=socket.getOutputStream();
+  outputStream.write(new byte[]{'C','B','1'});
+  outputStream.flush();
+  final ObjectDataInputStream in=service.createObjectDataInputStream(new BufferedInputStream(socket.getInputStream()));
+  final ObjectDataOutputStream out=service.createObjectDataOutputStream(new BufferedOutputStream(outputStream));
+  ClientAuthenticationRequest auth=new ClientAuthenticationRequest(new UsernamePasswordCredentials("dev","dev-pass"));
+  invoke(service,in,out,auth);
+  int threadId=ThreadContext.getThreadId();
+  MapPutRequest put=new MapPutRequest(mapName,service.toData(1),service.toData(1),threadId,-1);
+  assertNull(invoke(service,in,out,put));
+  map.put(1,2);
+  put=new MapPutRequest(mapName,service.toData(1),service.toData(1),threadId,-1);
+  assertEquals(2,invoke(service,in,out,put));
+  MapGetRequest get=new MapGetRequest(mapName,service.toData(1));
+  assertEquals(1,invoke(service,in,out,get));
+  MapPutIfAbsentRequest putIfAbsent=new MapPutIfAbsentRequest(mapName,service.toData(1),service.toData(3),threadId,-1);
+  assertEquals(1,invoke(service,in,out,putIfAbsent));
+  assertEquals(1,map.get(1));
+  putIfAbsent=new MapPutIfAbsentRequest(mapName,service.toData(2),service.toData(2),threadId,-1);
+  assertEquals(null,invoke(service,in,out,putIfAbsent));
+  assertEquals(2,map.get(2));
+  new Thread(new Runnable(){
+    @Override public void run(){
+      map.lock(1);
+      try {
+        Thread.sleep(2000);
+      }
+ catch (      InterruptedException e) {
+      }
+      map.unlock(1);
+    }
+  }
+).start();
+  Thread.sleep(100);
+  MapTryPutRequest tp=new MapTryPutRequest(mapName,service.toData(1),service.toData(1),threadId,100);
+  assertEquals(false,invoke(service,in,out,tp));
+  MapTryPutRequest tp2=new MapTryPutRequest(mapName,service.toData(1),service.toData(1),threadId,2500);
+  assertEquals(true,invoke(service,in,out,tp2));
+  assertEquals(1,map.get(1));
+  MapPutTransientRequest treq=new MapPutTransientRequest(mapName,service.toData(1),service.toData(2),threadId,-1);
+  invoke(service,in,out,treq);
+  assertEquals(2,map.get(1));
+  MapPutTransientRequest treq2=new MapPutTransientRequest(mapName,service.toData(1),service.toData(1),threadId,-1);
+  invoke(service,in,out,treq2);
+  assertEquals(1,map.get(1));
+  MapPutTransientRequest treq3=new MapPutTransientRequest(mapName,service.toData(3),service.toData(3),threadId,-1);
+  invoke(service,in,out,treq3);
+  assertEquals(3,map.get(3));
+  assertEquals(1,map.get(1));
+  assertEquals(2,map.get(2));
+  assertEquals(3,map.get(3));
+  MapSetRequest sreq=new MapSetRequest(mapName,service.toData(1),service.toData(2),threadId,-1);
+  invoke(service,in,out,sreq);
+  assertEquals(2,map.get(1));
+  MapSetRequest sreq2=new MapSetRequest(mapName,service.toData(1),service.toData(1),threadId,-1);
+  invoke(service,in,out,sreq2);
+  assertEquals(1,map.get(1));
+  try {
+    socket.close();
+  }
+ catch (  IOException e) {
+    e.printStackTrace();
+  }
+  Thread.sleep(2000);
+  Hazelcast.shutdownAll();
+}
