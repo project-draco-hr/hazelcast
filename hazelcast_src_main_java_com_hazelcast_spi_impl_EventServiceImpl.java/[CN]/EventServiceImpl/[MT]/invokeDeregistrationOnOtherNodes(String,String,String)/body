@@ -1,0 +1,22 @@
+{
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  Collection<Future> calls=new ArrayList<Future>(members.size());
+  for (  MemberImpl member : members) {
+    if (!member.localMember()) {
+      Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(serviceName,new DeregistrationOperation(topic,id),member.getAddress()).build();
+      calls.add(inv.invoke());
+    }
+  }
+  for (  Future f : calls) {
+    try {
+      f.get(5,TimeUnit.SECONDS);
+    }
+ catch (    InterruptedException ignored) {
+    }
+catch (    TimeoutException ignored) {
+    }
+catch (    ExecutionException e) {
+      throw new HazelcastException(e);
+    }
+  }
+}

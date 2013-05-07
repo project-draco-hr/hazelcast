@@ -1,10 +1,21 @@
 {
+  Map result=new HashMap();
   try {
+    NodeEngine nodeEngine=getNodeEngine();
     PartitionWideEntryOperation operation=new PartitionWideEntryOperation(name,entryProcessor);
     operation.setServiceName(SERVICE_NAME);
-    Map<Integer,Object> results=getNodeEngine().getOperationService().invokeOnAllPartitions(SERVICE_NAME,operation);
+    Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new BinaryOperationFactory(operation,nodeEngine));
+    for (    Object o : results.values()) {
+      if (o != null) {
+        Map tempMap=(Map)o;
+        for (        Object key : tempMap.keySet()) {
+          result.put(getService().toObject(key),getService().toObject(tempMap.get(key)));
+        }
+      }
+    }
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
   }
+  return result;
 }

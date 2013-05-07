@@ -1,0 +1,32 @@
+{
+  Config config=new Config();
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  final SerializationService ss=new SerializationServiceImpl(0);
+  final Client c=new Client();
+  c.auth();
+  final Thread thread=new Thread(){
+    public void run(){
+      try {
+        c.send(new MapAddEntryListenerRequest("test"));
+        while (!isInterrupted()) {
+          System.err.println("--> " + c.receive());
+        }
+        c.close();
+      }
+ catch (      IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  thread.start();
+  for (int i=0; i < 10; i++) {
+    hz.getMap("test").put(i,i);
+  }
+  thread.interrupt();
+  c.close();
+  thread.join();
+  hz.getMap("test").put(1111,1111);
+  Thread.sleep(2000);
+  Hazelcast.shutdownAll();
+}
