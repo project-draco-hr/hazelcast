@@ -1,7 +1,12 @@
 {
   this.managedContext=managedContext;
+  PortableHookLoader loader=new PortableHookLoader(portableFactories);
+  serializationContext=new SerializationContextImpl(loader.getFactories().keySet(),version);
+  for (  ClassDefinition cd : loader.getDefinitions()) {
+    serializationContext.registerClassDefinition(cd);
+  }
   registerConstant(DataSerializable.class,dataSerializer=new DataSerializer(dataSerializableFactories));
-  registerConstant(Portable.class,portableSerializer=new PortableSerializer(this,portableFactories));
+  registerConstant(Portable.class,portableSerializer=new PortableSerializer(serializationContext,loader.getFactories()));
   registerConstant(Byte.class,new ByteSerializer());
   registerConstant(Boolean.class,new BooleanSerializer());
   registerConstant(Character.class,new CharSerializer());
@@ -24,5 +29,4 @@
   safeRegister(Externalizable.class,new Externalizer());
   safeRegister(Serializable.class,new ObjectSerializer());
   safeRegister(Class.class,new ClassSerializer());
-  serializationContext=new SerializationContextImpl(portableSerializer.getFactories().keySet(),version);
 }
