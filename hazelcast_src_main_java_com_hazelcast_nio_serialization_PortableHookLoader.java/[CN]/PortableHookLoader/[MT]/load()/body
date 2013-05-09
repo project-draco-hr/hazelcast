@@ -1,0 +1,24 @@
+{
+  try {
+    final Iterator<PortableHook> hooks=ServiceLoader.iterator(PortableHook.class,FACTORY_ID);
+    while (hooks.hasNext()) {
+      PortableHook hook=hooks.next();
+      final PortableFactory factory=hook.createFactory();
+      if (factory != null) {
+        register(hook.getFactoryId(),factory);
+      }
+      final Collection<ClassDefinition> defs=hook.getBuiltinDefinitions();
+      if (defs != null && !defs.isEmpty()) {
+        definitions.addAll(defs);
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  if (configuredFactories != null) {
+    for (    Map.Entry<Integer,? extends PortableFactory> entry : configuredFactories.entrySet()) {
+      register(entry.getKey(),entry.getValue());
+    }
+  }
+}

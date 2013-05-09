@@ -1,0 +1,31 @@
+{
+  final IQueue q=hz.getQueue(queueName);
+  c.send(new OfferRequest(queueName,ss.toData("item1")));
+  Object result=c.receive();
+  assertTrue((Boolean)result);
+  Object item=q.peek();
+  assertEquals(item,"item1");
+  q.offer("item2");
+  q.offer("item3");
+  q.offer("item4");
+  q.offer("item5");
+  q.offer("item6");
+  new Thread(){
+    public void run(){
+      try {
+        Thread.sleep(3000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      q.poll();
+    }
+  }
+.start();
+  c.send(new OfferRequest(queueName,500,ss.toData("item7")));
+  result=c.receive();
+  assertFalse((Boolean)result);
+  c.send(new OfferRequest(queueName,10 * 1000,ss.toData("item7")));
+  result=c.receive();
+  assertTrue((Boolean)result);
+}
