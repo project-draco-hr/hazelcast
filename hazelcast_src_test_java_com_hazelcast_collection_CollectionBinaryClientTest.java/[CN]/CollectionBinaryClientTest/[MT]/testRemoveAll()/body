@@ -1,0 +1,16 @@
+{
+  MultiMap<Object,Object> mm=hz.getMultiMap(name);
+  mm.put("key1","value1");
+  mm.put("key2","value1");
+  mm.put("key2","value2");
+  c.send(new RemoveAllRequest(mmProxyId,ss.toData("key1"),getThreadId()));
+  CollectionResponse result=(CollectionResponse)c.receive();
+  Collection<CollectionRecord> coll=result.getCollection();
+  assertEquals(1,coll.size());
+  assertEquals("value1",ss.toObject((Data)coll.iterator().next().getObject()));
+  c.send(new RemoveAllRequest(mmProxyId,ss.toData("key2"),getThreadId()));
+  result=(CollectionResponse)c.receive();
+  coll=result.getCollection();
+  assertEquals(2,coll.size());
+  assertEquals(0,mm.size());
+}
