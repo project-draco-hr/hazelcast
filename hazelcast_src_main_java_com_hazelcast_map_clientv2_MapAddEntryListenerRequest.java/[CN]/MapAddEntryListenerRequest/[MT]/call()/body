@@ -1,0 +1,36 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  final ClientEngine clientEngine=getClientEngine();
+  final MapService mapService=getService();
+  EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
+    private void handleEvent(    EntryEvent<Object,Object> event){
+      if (endpoint.getConn().live()) {
+        clientEngine.sendResponse(endpoint,new PortableEntryEvent(event));
+      }
+ else {
+        mapService.removeEventListener(this,name,null);
+      }
+    }
+    @Override public void entryAdded(    EntryEvent<Object,Object> event){
+      handleEvent(event);
+    }
+    @Override public void entryRemoved(    EntryEvent<Object,Object> event){
+      handleEvent(event);
+    }
+    @Override public void entryUpdated(    EntryEvent<Object,Object> event){
+      handleEvent(event);
+    }
+    @Override public void entryEvicted(    EntryEvent<Object,Object> event){
+      handleEvent(event);
+    }
+  }
+;
+  EventFilter eventFilter=new EntryEventFilter(includeValue,key);
+  if (local) {
+    mapService.addLocalEventListener(listener,name);
+  }
+ else {
+    mapService.addEventListener(listener,eventFilter,name);
+  }
+  return true;
+}
