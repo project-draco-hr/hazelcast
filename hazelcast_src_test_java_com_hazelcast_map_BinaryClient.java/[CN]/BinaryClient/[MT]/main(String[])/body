@@ -1,6 +1,8 @@
 {
   Config config=new Config();
   final HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  IMap<Object,Object> map=hz.getMap("test");
+  map.put(1,1);
   final SerializationService ss=new SerializationServiceImpl(0);
   final Client c=new Client();
   c.auth();
@@ -20,13 +22,16 @@
   }
 ;
   thread.start();
+  Thread.sleep(100);
   for (int i=0; i < 10; i++) {
-    hz.getMap("test").put(i,i);
+    map.put(i,i);
   }
+  Thread.sleep(10);
   thread.interrupt();
+  Thread.sleep(1000);
   c.close();
   thread.join();
-  hz.getMap("test").put(1111,1111);
+  map.put(1111,1111);
   Thread.sleep(2000);
   Hazelcast.shutdownAll();
 }
