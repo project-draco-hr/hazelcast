@@ -1,0 +1,49 @@
+{
+  try {
+    while (live) {
+      processSelectionQueue();
+      if (!live || isInterrupted()) {
+        logger.log(Level.FINEST,getName() + " is interrupted!");
+        live=false;
+        return;
+      }
+      int selectedKeyCount;
+      try {
+        selectedKeyCount=selector.select(waitTime);
+      }
+ catch (      Throwable e) {
+        logger.log(Level.WARNING,e.toString());
+        continue;
+      }
+      if (selectedKeyCount == 0) {
+        continue;
+      }
+      final Set<SelectionKey> setSelectedKeys=selector.selectedKeys();
+      final Iterator<SelectionKey> it=setSelectedKeys.iterator();
+      while (it.hasNext()) {
+        final SelectionKey sk=it.next();
+        try {
+          it.remove();
+          handleSelectionKey(sk);
+        }
+ catch (        Throwable e) {
+          handleSelectorException(e);
+        }
+      }
+    }
+  }
+ catch (  OutOfMemoryError e) {
+    ioService.onOutOfMemory(e);
+  }
+catch (  Throwable e) {
+    logger.log(Level.WARNING,"Unhandled exception in " + getName(),e);
+  }
+ finally {
+    try {
+      logger.log(Level.FINEST,"Closing selector " + getName());
+      selector.close();
+    }
+ catch (    final Exception ignored) {
+    }
+  }
+}
