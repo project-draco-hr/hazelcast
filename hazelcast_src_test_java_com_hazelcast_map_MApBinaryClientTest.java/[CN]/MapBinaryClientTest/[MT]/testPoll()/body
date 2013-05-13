@@ -1,0 +1,27 @@
+{
+  final IQueue q=hz.getQueue(mapName);
+  c.send(new PollRequest(mapName));
+  Object result=c.receive();
+  assertNull(result);
+  q.offer("item1");
+  c.send(new PollRequest(mapName));
+  result=c.receive();
+  assertEquals("item1",result);
+  assertEquals(0,q.size());
+  new Thread(){
+    public void run(){
+      try {
+        Thread.sleep(3000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      q.offer("item2");
+    }
+  }
+.start();
+  c.send(new PollRequest(mapName,10 * 1000));
+  result=c.receive();
+  assertEquals("item2",result);
+  assertEquals(0,q.size());
+}
