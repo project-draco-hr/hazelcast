@@ -1,6 +1,6 @@
 {
   ClientEngineImpl clientEngine=getService();
-  Connection connection=endpoint.getConn();
+  Connection connection=endpoint.getConnection();
   ILogger logger=clientEngine.getILogger(getClass());
   boolean authenticated;
   if (credentials == null) {
@@ -13,7 +13,7 @@
       SecurityContext securityContext=clientEngine.getSecurityContext();
       LoginContext lc=securityContext.createClientLoginContext(credentials);
       lc.login();
-      clientEngine.getEndpoint(connection).setLoginContext(lc);
+      endpoint.setLoginContext(lc);
       authenticated=true;
     }
  catch (    LoginException e) {
@@ -57,12 +57,11 @@
         return new GenericError("Owner member is not member of this cluster!",0);
       }
     }
-    ClientEndpoint clientEndpoint=clientEngine.getEndpoint(connection);
     if (principal == null) {
-      principal=new ClientPrincipal(clientEndpoint.getUuid(),clientEngine.getLocalMember().getUuid());
+      principal=new ClientPrincipal(endpoint.getUuid(),clientEngine.getLocalMember().getUuid());
     }
-    clientEndpoint.authenticated(principal);
-    clientEngine.bind(connection);
+    endpoint.authenticated(principal);
+    clientEngine.bind(endpoint);
     return principal;
   }
  else {
