@@ -2,13 +2,14 @@
   final ClientEndpoint endpoint=getEndpoint();
   final ClientEngine clientEngine=getClientEngine();
   final MapService mapService=getService();
+  final MutableString id=new MutableString();
   EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
     private void handleEvent(    EntryEvent<Object,Object> event){
       if (endpoint.getConn().live()) {
         clientEngine.sendResponse(endpoint,new PortableEntryEvent(event));
       }
  else {
-        mapService.removeEventListener(this,name,null);
+        mapService.removeEventListener(name,id.getString());
       }
     }
     @Override public void entryAdded(    EntryEvent<Object,Object> event){
@@ -27,10 +28,10 @@
 ;
   EventFilter eventFilter=new EntryEventFilter(includeValue,key);
   if (local) {
-    mapService.addLocalEventListener(listener,name);
+    id.setString(mapService.addLocalEventListener(listener,name));
   }
  else {
-    mapService.addEventListener(listener,eventFilter,name);
+    id.setString(mapService.addEventListener(listener,eventFilter,name));
   }
   return true;
 }
