@@ -1,0 +1,18 @@
+{
+  ISemaphore s=hz.getSemaphore(name);
+  assertTrue(s.init(10));
+  client().send(new AcquireRequest(name,3,0));
+  boolean result=(Boolean)client().receive();
+  assertTrue(result);
+  assertEquals(7,s.availablePermits());
+  client().send(new AcquireRequest(name,8,6 * 1000));
+  assertEquals(7,s.availablePermits());
+  Thread.sleep(2 * 1000);
+  s.release(1);
+  result=(Boolean)client().receive();
+  assertTrue(result);
+  assertEquals(0,s.availablePermits());
+  client().send(new AcquireRequest(name,4,2 * 1000));
+  result=(Boolean)client().receive();
+  assertFalse(result);
+}

@@ -1,0 +1,58 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  OperationService operationService=nodeEngine.getOperationService();
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
+  Set<Integer> plist=new HashSet<Integer>(partitionCount);
+  QueryResultStream result=new QueryResultStream(nodeEngine.getSerializationService(),iterationType,dataResult,true);
+  try {
+    List<Future> flist=new ArrayList<Future>();
+    for (    MemberImpl member : members) {
+      Invocation invocation=operationService.createInvocationBuilder(SERVICE_NAME,new QueryOperation(name,predicate),member.getAddress()).build();
+      Future future=invocation.invoke();
+      flist.add(future);
+    }
+    for (    Future future : flist) {
+      QueryResult queryResult=(QueryResult)future.get();
+      if (queryResult != null) {
+        final List<Integer> partitionIds=queryResult.getPartitionIds();
+        if (partitionIds != null) {
+          plist.addAll(partitionIds);
+          result.addAll(queryResult.getResult());
+        }
+      }
+    }
+    if (plist.size() == partitionCount) {
+      return result;
+    }
+    List<Integer> missingList=new ArrayList<Integer>();
+    for (int i=0; i < partitionCount; i++) {
+      if (!plist.contains(i)) {
+        missingList.add(i);
+      }
+    }
+    List<Future> futures=new ArrayList<Future>(missingList.size());
+    for (    Integer pid : missingList) {
+      QueryPartitionOperation queryPartitionOperation=new QueryPartitionOperation(name,predicate);
+      queryPartitionOperation.setPartitionId(pid);
+      try {
+        Future f=operationService.createInvocationBuilder(SERVICE_NAME,queryPartitionOperation,pid).build().invoke();
+        futures.add(f);
+      }
+ catch (      Throwable t) {
+        throw ExceptionUtil.rethrow(t);
+      }
+    }
+    for (    Future future : futures) {
+      QueryResult queryResult=(QueryResult)future.get();
+      result.addAll(queryResult.getResult());
+    }
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+ finally {
+    result.end();
+  }
+  return result;
+}

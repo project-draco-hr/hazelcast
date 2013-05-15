@@ -1,0 +1,41 @@
+{
+  String name=protocol.args[0];
+  boolean includeValue=Boolean.valueOf(protocol.args[1]);
+  final Data key=protocol.hasBuffer() ? protocol.buffers[0] : null;
+  CollectionProxyId id=new CollectionProxyId(name,null,CollectionProxyType.MULTI_MAP);
+  final ObjectMultiMapProxy proxy=(ObjectMultiMapProxy)collectionService.createDistributedObjectForClient(id);
+  final TcpIpConnection connection=protocol.conn;
+  EntryListener<Data,Data> entryListener=new EntryListener<Data,Data>(){
+    public void entryAdded(    EntryEvent<Data,Data> entryEvent){
+      sendEvent(entryEvent);
+    }
+    public void entryRemoved(    EntryEvent<Data,Data> entryEvent){
+      sendEvent(entryEvent);
+    }
+    public void entryUpdated(    EntryEvent<Data,Data> entryEvent){
+      sendEvent(entryEvent);
+    }
+    public void entryEvicted(    EntryEvent<Data,Data> entryEvent){
+      sendEvent(entryEvent);
+    }
+    public void sendEvent(    EntryEvent<Data,Data> entryEvent){
+      System.out.println("Here is the event " + entryEvent);
+      if (connection.live()) {
+        String[] args=new String[]{"map",proxy.getName(),entryEvent.getEventType().toString(),entryEvent.getMember().getInetSocketAddress().getHostName() + ":" + entryEvent.getMember().getInetSocketAddress().getPort()};
+        List<Data> list=new ArrayList<Data>();
+        list.add(node.serializationService.toData(entryEvent.getKey()));
+        if (entryEvent.getValue() != null)         list.add(node.serializationService.toData(entryEvent.getValue()));
+        if (entryEvent.getOldValue() != null)         list.add(node.serializationService.toData(entryEvent.getOldValue()));
+        Protocol event=new Protocol(connection,Command.EVENT,args,list.toArray(new Data[]{}));
+        sendResponse(node,event,connection);
+      }
+ else {
+      }
+    }
+  }
+;
+  System.out.println("Name is " + name);
+  if (key == null)   proxy.addEntryListener(entryListener,includeValue);
+ else   proxy.addEntryListener(entryListener,key,includeValue);
+  return null;
+}

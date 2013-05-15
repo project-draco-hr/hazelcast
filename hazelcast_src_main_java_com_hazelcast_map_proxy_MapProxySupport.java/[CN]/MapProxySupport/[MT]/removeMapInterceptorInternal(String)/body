@@ -1,0 +1,18 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  final MapService mapService=getService();
+  mapService.removeInterceptor(name,id);
+  RemoveInterceptorOperation operation=new RemoveInterceptorOperation(name,id);
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  for (  Member member : members) {
+    try {
+      if (member.localMember())       continue;
+      MemberImpl memberImpl=(MemberImpl)member;
+      Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,memberImpl.getAddress()).build();
+      invocation.invoke().get();
+    }
+ catch (    Throwable t) {
+      throw ExceptionUtil.rethrow(t);
+    }
+  }
+}
