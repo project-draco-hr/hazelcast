@@ -1,0 +1,17 @@
+{
+  Set<HazelcastInstance> instances=Hazelcast.getAllHazelcastInstances();
+  for (  HazelcastInstance p : instances) {
+    HazelcastInstanceImpl hz=((HazelcastInstanceProxy)p).original;
+    MemberImpl m=(MemberImpl)hz.getCluster().getLocalMember();
+    if (m.getAddress().equals(nodeAddress)) {
+      if (MOCK_NETWORK) {
+        ClientEngineImpl engine=hz.node.clientEngine;
+        return new MockTestClient(engine);
+      }
+ else {
+        return new SocketTestClient(hz);
+      }
+    }
+  }
+  return null;
+}
