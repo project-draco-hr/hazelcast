@@ -1,6 +1,16 @@
 {
-  Connection connection=new Connection(address,0,serializationService);
-  if (socketInterceptor != null)   socketInterceptor.onConnect(connection.getSocket());
-  binder.bind(connection);
+  Connection connection=new Connection(address,serializationService);
+  connection.write(Protocols.CLIENT_BINARY.getBytes());
+  if (socketInterceptor != null) {
+    socketInterceptor.onConnect(connection.getSocket());
+  }
+  AuthenticationRequest auth=new AuthenticationRequest(credentials);
+  connection.write(serializationService.toData(auth));
+  final Data data=connection.read();
+  Object response=serializationService.toObject(data);
+  if (response instanceof GenericError) {
+    throw new AuthenticationException(((GenericError)response).getMessage());
+  }
+  System.err.println("response = " + response);
   return connection;
 }

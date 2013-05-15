@@ -1,14 +1,14 @@
 {
   lock.lock();
   try {
-    Map<Address,MemberImpl> mapOldMembers=new HashMap<Address,MemberImpl>();
-    for (    MemberImpl member : getMemberList()) {
-      mapOldMembers.put(member.getAddress(),member);
+    Map<Address,MemberImpl> oldMemberMap=membersRef.get();
+    if (oldMemberMap == null) {
+      oldMemberMap=Collections.emptyMap();
     }
-    if (mapOldMembers.size() == members.size()) {
+    if (oldMemberMap.size() == members.size()) {
       boolean same=true;
       for (      MemberInfo memberInfo : members) {
-        MemberImpl member=mapOldMembers.get(memberInfo.getAddress());
+        MemberImpl member=oldMemberMap.get(memberInfo.getAddress());
         if (member == null || !member.getUuid().equals(memberInfo.uuid)) {
           same=false;
           break;
@@ -19,18 +19,17 @@
         return;
       }
     }
-    logger.log(Level.FINEST,"Updating Members");
     MemberImpl[] newMembers=new MemberImpl[members.size()];
     int k=0;
     for (    MemberInfo memberInfo : members) {
-      MemberImpl member=mapOldMembers.get(memberInfo.address);
+      MemberImpl member=oldMemberMap.get(memberInfo.address);
       if (member == null) {
         member=createMember(memberInfo.address,memberInfo.uuid,thisAddress.getScopeId());
       }
       newMembers[k++]=member;
       member.didRead();
     }
-    addMembers(newMembers);
+    setMembers(newMembers);
     if (!getMemberList().contains(thisMember)) {
       throw new HazelcastException("Member list doesn't contain local member!");
     }
