@@ -1,0 +1,25 @@
+{
+  ClassDefinitionBuilder builder=new ClassDefinitionBuilder(FACTORY_ID,InnerPortable.CLASS_ID);
+  builder.addByteArrayField("b");
+  builder.addCharArrayField("c");
+  builder.addShortArrayField("s");
+  builder.addIntArrayField("i");
+  builder.addLongArrayField("l");
+  builder.addFloatArrayField("f");
+  builder.addDoubleArrayField("d");
+  ClassDefinition cd=createNamedPortableClassDefinition();
+  builder.addPortableArrayField("nn",cd);
+  final SerializationService serializationService=createSerializationService(1);
+  serializationService.getSerializationContext().registerClassDefinition(builder.build());
+  final SerializationService serializationService2=createSerializationService(2);
+  serializationService2.getSerializationContext().registerClassDefinition(builder.build());
+  final MainPortable mainWithNullInner=new MainPortable((byte)113,true,'x',(short)-500,56789,-50992225L,900.5678f,-897543.3678909d,"this is main portable object created for testing!",null);
+  final Data data=serializationService.toData(mainWithNullInner);
+  Assert.assertEquals(mainWithNullInner,serializationService2.toObject(data));
+  NamedPortable[] nn=new NamedPortable[1];
+  nn[0]=new NamedPortable("name",123);
+  InnerPortable inner=new InnerPortable(new byte[]{0,1,2},new char[]{'c','h','a','r'},new short[]{3,4,5},new int[]{9,8,7,6},new long[]{0,1,5,7,9,11},new float[]{0.6543f,-3.56f,45.67f},new double[]{456.456,789.789,321.321},nn);
+  final MainPortable mainWithInner=new MainPortable((byte)113,true,'x',(short)-500,56789,-50992225L,900.5678f,-897543.3678909d,"this is main portable object created for testing!",inner);
+  final Data data2=serializationService.toData(mainWithInner);
+  Assert.assertEquals(mainWithInner,serializationService2.toObject(data2));
+}

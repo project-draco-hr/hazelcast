@@ -1,9 +1,13 @@
 {
-  builder.addPortableField(fieldName,factoryId,classId);
+  final ClassDefinition nestedClassDef;
   if (portable != null) {
-    addNestedField(portable,new ClassDefinitionBuilder(portable.getFactoryId(),classId));
+    nestedClassDef=createNestedClassDef(portable,new ClassDefinitionBuilder(factoryId,classId));
   }
- else   if (context.lookup(factoryId,classId) == null) {
-    throw new HazelcastSerializationException("Cannot write null portable without explicitly " + "registering class definition!");
+ else {
+    nestedClassDef=context.lookup(factoryId,classId);
+    if (nestedClassDef == null) {
+      throw new HazelcastSerializationException("Cannot write null portable without explicitly " + "registering class definition!");
+    }
   }
+  builder.addPortableField(fieldName,nestedClassDef);
 }
