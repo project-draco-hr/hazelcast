@@ -1,16 +1,10 @@
 {
-  Connection connection=new Connection(address,serializationService);
+  checkLive();
+  final ConnectionImpl connection=new ConnectionImpl(address,serializationService);
   connection.write(Protocols.CLIENT_BINARY.getBytes());
   if (socketInterceptor != null) {
     socketInterceptor.onConnect(connection.getSocket());
   }
-  AuthenticationRequest auth=new AuthenticationRequest(credentials);
-  connection.write(serializationService.toData(auth));
-  final Data data=connection.read();
-  Object response=serializationService.toObject(data);
-  if (response instanceof GenericError) {
-    throw new AuthenticationException(((GenericError)response).getMessage());
-  }
-  System.err.println("response = " + response);
+  authenticator.auth(connection);
   return connection;
 }

@@ -1,0 +1,41 @@
+{
+  while (!Thread.currentThread().isInterrupted()) {
+    try {
+      if (!members.isEmpty()) {
+        conn=connect(getClusterAddresses());
+      }
+ else {
+        conn=connect(getConfigAddresses());
+      }
+      SerializableCollection coll=(SerializableCollection)sendAndReceive(conn,new AddMembershipListenerRequest());
+      final SerializationServiceImpl serializationService=getSerializationService();
+      members.clear();
+      for (      Data d : coll.getCollection()) {
+        members.add((MemberImpl)serializationService.toObject(d));
+      }
+      System.err.println("members = " + members);
+      updateMembersRef();
+      while (!Thread.currentThread().isInterrupted()) {
+        final Data eventData=conn.read();
+        final ClientMembershipEvent event=(ClientMembershipEvent)serializationService.toObject(eventData);
+        System.err.println(event);
+        if (event.isAdded()) {
+          members.add(event.getMember());
+        }
+ else {
+          members.remove(event.getMember());
+        }
+        updateMembersRef();
+      }
+    }
+ catch (    AuthenticationException e) {
+      throw e;
+    }
+catch (    Exception e) {
+      if (client.getLifecycleService().isRunning()) {
+        e.printStackTrace();
+      }
+      IOUtil.closeResource(conn);
+    }
+  }
+}
