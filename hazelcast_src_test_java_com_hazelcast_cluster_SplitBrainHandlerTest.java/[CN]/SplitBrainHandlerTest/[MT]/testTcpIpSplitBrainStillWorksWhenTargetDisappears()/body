@@ -1,0 +1,39 @@
+{
+  Config c1=buildConfig(false);
+  c1.getNetworkConfig().setPort(25701);
+  Config c2=buildConfig(false);
+  c1.getNetworkConfig().setPort(25704);
+  Config c3=buildConfig(false);
+  c1.getNetworkConfig().setPort(25703);
+  List<String> clusterOneMembers=Arrays.asList("127.0.0.1:25701");
+  List<String> clusterTwoMembers=Arrays.asList("127.0.0.1:25704");
+  List<String> clusterThreeMembers=Arrays.asList("127.0.0.1:25703");
+  c1.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterOneMembers);
+  c2.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterTwoMembers);
+  c3.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterThreeMembers);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
+  final CountDownLatch latch=new CountDownLatch(1);
+  c3.addListenerConfig(new ListenerConfig(new LifecycleListener(){
+    public void stateChanged(    final LifecycleEvent event){
+      if (event.getState() == LifecycleState.MERGING) {
+        h1.getLifecycleService().shutdown();
+      }
+ else       if (event.getState() == LifecycleState.MERGED) {
+        System.out.println("h3 restarted");
+        latch.countDown();
+      }
+    }
+  }
+));
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(c3);
+  assertEquals(1,h1.getCluster().getMembers().size());
+  assertEquals(1,h2.getCluster().getMembers().size());
+  assertEquals(1,h3.getCluster().getMembers().size());
+  List<String> allMembers=Arrays.asList("127.0.0.1:25701","127.0.0.1:25704","127.0.0.1:25703");
+  h3.getConfig().getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  latch.await(60,TimeUnit.SECONDS);
+  assertFalse(h1.getLifecycleService().isRunning());
+  assertEquals(2,h2.getCluster().getMembers().size());
+  assertEquals(2,h3.getCluster().getMembers().size());
+}

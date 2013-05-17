@@ -1,0 +1,30 @@
+{
+  this.endpoint=address;
+  final InetSocketAddress isa=address.getInetSocketAddress();
+  final Socket socket=new Socket();
+  try {
+    socket.setKeepAlive(options.isSocketKeepAlive());
+    socket.setTcpNoDelay(options.isSocketTcpNoDelay());
+    socket.setReuseAddress(options.isSocketReuseAddress());
+    if (options.getSocketLingerSeconds() > 0) {
+      socket.setSoLinger(true,options.getSocketLingerSeconds());
+    }
+    if (options.getSocketTimeout() > 0) {
+      socket.setSoTimeout(options.getSocketTimeout());
+    }
+    int bufferSize=options.getSocketBufferSize() * 1024;
+    if (bufferSize < 0) {
+      bufferSize=BUFFER_SIZE;
+    }
+    socket.setSendBufferSize(bufferSize);
+    socket.setReceiveBufferSize(bufferSize);
+    socket.connect(isa,3000);
+  }
+ catch (  IOException e) {
+    socket.close();
+    throw e;
+  }
+  this.socket=socket;
+  this.out=serializationService.createObjectDataOutputStream(new BufferedOutputStream(socket.getOutputStream(),BUFFER_SIZE));
+  this.in=serializationService.createObjectDataInputStream(new BufferedInputStream(socket.getInputStream(),BUFFER_SIZE));
+}

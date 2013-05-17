@@ -1,0 +1,62 @@
+{
+  Config c1=buildConfig(false);
+  Config c2=buildConfig(false);
+  Config c3=buildConfig(false);
+  c1.getNetworkConfig().setPort(35701);
+  c2.getNetworkConfig().setPort(35702);
+  c3.getNetworkConfig().setPort(35703);
+  List<String> allMembers=Arrays.asList("127.0.0.1:35701, 127.0.0.1:35702, 127.0.0.1:35703");
+  c1.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  c2.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  c3.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(c3);
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+  final HazelcastInstance[] instances=new HazelcastInstance[]{h1,h2,h3};
+  final AtomicBoolean doingWork=new AtomicBoolean(true);
+  Thread[] workThreads=new Thread[instances.length];
+  for (int i=0; i < instances.length; i++) {
+    final int threadNum=i;
+    workThreads[threadNum]=new Thread(new Runnable(){
+      public void run(){
+        while (doingWork.get()) {
+          final HazelcastInstance hz=instances[threadNum];
+          Set<Member> members=new HashSet<Member>(hz.getCluster().getMembers());
+          members.remove(hz.getCluster().getLocalMember());
+          final Map<Member,Future<String>> futures=hz.getExecutorService("test").submitToMembers(new PingCallable(),members);
+          for (          Future<String> f : futures.values()) {
+            try {
+              f.get();
+            }
+ catch (            MemberLeftException ignored) {
+            }
+catch (            Exception e) {
+              e.printStackTrace();
+            }
+          }
+          try {
+            Thread.sleep(2000);
+          }
+ catch (          InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+);
+    workThreads[threadNum].start();
+  }
+  final Node n3=TestUtil.getNode(h3);
+  n3.clusterService.removeAddress(((MemberImpl)h1.getCluster().getLocalMember()).getAddress());
+  Thread.sleep(30 * 1000);
+  doingWork.set(false);
+  for (  Thread t : workThreads) {
+    t.join();
+  }
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+}

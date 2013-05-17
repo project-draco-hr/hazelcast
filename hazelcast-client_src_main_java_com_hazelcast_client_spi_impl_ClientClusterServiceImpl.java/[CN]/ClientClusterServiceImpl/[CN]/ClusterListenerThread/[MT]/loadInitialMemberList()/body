@@ -1,0 +1,30 @@
+{
+  SerializableCollection coll=sendAndReceive(conn,new AddMembershipListenerRequest());
+  final SerializationService serializationService=getSerializationService();
+  Map<String,MemberImpl> prevMembers=Collections.emptyMap();
+  if (!members.isEmpty()) {
+    prevMembers=new HashMap<String,MemberImpl>(members.size());
+    for (    MemberImpl member : members) {
+      prevMembers.put(member.getUuid(),member);
+    }
+    members.clear();
+  }
+  for (  Data d : coll.getCollection()) {
+    members.add((MemberImpl)serializationService.toObject(d));
+  }
+  System.err.println("members = " + members);
+  updateMembersRef();
+  final List<MembershipEvent> events=new LinkedList<MembershipEvent>();
+  for (  MemberImpl member : members) {
+    final MemberImpl former=prevMembers.remove(member.getUuid());
+    if (former == null) {
+      events.add(new MembershipEvent(member,MembershipEvent.MEMBER_ADDED));
+    }
+  }
+  for (  MemberImpl member : prevMembers.values()) {
+    events.add(new MembershipEvent(member,MembershipEvent.MEMBER_REMOVED));
+  }
+  for (  MembershipEvent event : events) {
+    fireMembershipEvent(event);
+  }
+}

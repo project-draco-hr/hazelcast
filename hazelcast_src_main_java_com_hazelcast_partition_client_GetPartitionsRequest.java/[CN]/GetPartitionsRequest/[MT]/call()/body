@@ -1,0 +1,29 @@
+{
+  final PartitionServiceImpl service=getService();
+  service.firstArrangement();
+  final ClusterService clusterService=getClientEngine().getClusterService();
+  final Collection<MemberImpl> memberList=clusterService.getMemberList();
+  final Address[] addresses=new Address[memberList.size()];
+  final Map<Address,Integer> addressMap=new HashMap<Address,Integer>(memberList.size());
+  int k=0;
+  for (  MemberImpl member : memberList) {
+    final Address address=member.getAddress();
+    addresses[k]=address;
+    addressMap.put(address,k);
+    k++;
+  }
+  final PartitionInfo[] partitions=service.getPartitions();
+  final int[] indexes=new int[partitions.length];
+  for (int i=0; i < indexes.length; i++) {
+    final Address owner=partitions[i].getOwner();
+    int index=-1;
+    if (owner != null) {
+      final Integer idx=addressMap.get(owner);
+      if (idx != null) {
+        index=idx;
+      }
+    }
+    indexes[i]=index;
+  }
+  return new PartitionsResponse(addresses,indexes);
+}

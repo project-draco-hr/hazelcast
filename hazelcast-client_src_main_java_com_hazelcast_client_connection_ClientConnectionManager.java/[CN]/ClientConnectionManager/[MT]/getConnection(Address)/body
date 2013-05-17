@@ -1,0 +1,32 @@
+{
+  checkLive();
+  if (address == null) {
+    throw new IllegalArgumentException("Target address is required!");
+  }
+  final ObjectPool<Connection> pool=getConnectionPool(address);
+  Connection connection=null;
+  try {
+    connection=pool.take();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  if (connection == null) {
+    checkLive();
+    try {
+      Thread.sleep(1000);
+    }
+ catch (    InterruptedException ignored) {
+    }
+    return getRandomConnection();
+  }
+  if (!heartbeat.checkHeartBeat(connection)) {
+    try {
+      connection.close();
+    }
+ catch (    IOException ignored) {
+    }
+    return getRandomConnection();
+  }
+  return connection;
+}

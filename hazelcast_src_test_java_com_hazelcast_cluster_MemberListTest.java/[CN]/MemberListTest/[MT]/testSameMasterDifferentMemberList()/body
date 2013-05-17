@@ -1,0 +1,32 @@
+{
+  Config c1=buildConfig(false);
+  Config c2=buildConfig(false);
+  Config c3=buildConfig(false);
+  c1.getNetworkConfig().setPort(55701);
+  c2.getNetworkConfig().setPort(55702);
+  c3.getNetworkConfig().setPort(55703);
+  List<String> allMembers=Arrays.asList("127.0.0.1:55701, 127.0.0.1:55702, 127.0.0.1:55703");
+  c1.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  c2.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  c3.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(allMembers);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(c3);
+  final MemberImpl m1=(MemberImpl)h1.getCluster().getLocalMember();
+  final MemberImpl m2=(MemberImpl)h2.getCluster().getLocalMember();
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+  final Node n2=TestUtil.getNode(h2);
+  List<MemberInfo> members=new ArrayList<MemberInfo>();
+  members.add(new MemberInfo(m1.getAddress(),m1.getUuid()));
+  members.add(new MemberInfo(m2.getAddress(),m2.getUuid()));
+  n2.clusterService.updateMembers(members);
+  Thread.sleep(30 * 1000);
+  assertEquals(m1,h1.getCluster().getMembers().iterator().next());
+  assertEquals(m1,h2.getCluster().getMembers().iterator().next());
+  assertEquals(m1,h3.getCluster().getMembers().iterator().next());
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+}
