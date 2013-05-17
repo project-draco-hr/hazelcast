@@ -7,11 +7,16 @@
   proxyManager=new ProxyManager();
   executionService=new ClientExecutionServiceImpl(name,threadGroup,Thread.currentThread().getContextClassLoader());
   clusterService=new ClientClusterServiceImpl(this);
-  connectionManager=new ClientConnectionManager(config,clusterService.getAuthenticator(),serializationService);
+  LoadBalancer loadBalancer=config.getLoadBalancer();
+  if (loadBalancer == null) {
+    loadBalancer=new RoundRobinLB();
+  }
+  connectionManager=new ClientConnectionManager(this,clusterService.getAuthenticator(),loadBalancer);
   partitionService=new ClientPartitionServiceImpl(this);
   invocationService=new ClientInvocationServiceImpl(this);
   userContext=new ConcurrentHashMap<String,Object>();
   clusterService.start();
   partitionService.start();
+  loadBalancer.init(getCluster(),config);
   lifecycleService.setStarted();
 }

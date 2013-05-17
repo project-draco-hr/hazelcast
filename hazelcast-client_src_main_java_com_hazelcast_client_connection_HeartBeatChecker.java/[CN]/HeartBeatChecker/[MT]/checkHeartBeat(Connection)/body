@@ -1,4 +1,26 @@
 {
-  final CountDownLatch latch=new CountDownLatch(1);
-  return true;
+  if ((Clock.currentTimeMillis() - connection.getLastReadTime()) > connectionTimeout / 2) {
+    final CountDownLatch latch=new CountDownLatch(1);
+    executionService.execute(new Runnable(){
+      public void run(){
+        try {
+          connection.write(ping);
+          latch.countDown();
+        }
+ catch (        IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+);
+    try {
+      return latch.await(5,TimeUnit.SECONDS);
+    }
+ catch (    InterruptedException e) {
+      return false;
+    }
+  }
+ else {
+    return true;
+  }
 }

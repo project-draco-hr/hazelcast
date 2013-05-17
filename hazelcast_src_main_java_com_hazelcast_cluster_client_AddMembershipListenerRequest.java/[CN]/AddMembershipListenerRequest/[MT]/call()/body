@@ -1,16 +1,34 @@
 {
-  ClusterServiceImpl service=getService();
-  service.addMembershipListener(new MembershipListener(){
+  final ClusterServiceImpl service=getService();
+  final MutableString id=new MutableString();
+  final String registration=service.addMembershipListener(new MembershipListener(){
     public void memberAdded(    MembershipEvent membershipEvent){
-      final MemberImpl member=(MemberImpl)membershipEvent.getMember();
-      getClientEngine().sendResponse(getEndpoint(),new ClientMembershipEvent(member,true));
+      if (getEndpoint().live()) {
+        final MemberImpl member=(MemberImpl)membershipEvent.getMember();
+        getClientEngine().sendResponse(getEndpoint(),new ClientMembershipEvent(member,MembershipEvent.MEMBER_ADDED));
+      }
+ else {
+        deregister();
+      }
     }
     public void memberRemoved(    MembershipEvent membershipEvent){
-      final MemberImpl member=(MemberImpl)membershipEvent.getMember();
-      getClientEngine().sendResponse(getEndpoint(),new ClientMembershipEvent(member,false));
+      if (getEndpoint().live()) {
+        final MemberImpl member=(MemberImpl)membershipEvent.getMember();
+        getClientEngine().sendResponse(getEndpoint(),new ClientMembershipEvent(member,MembershipEvent.MEMBER_REMOVED));
+      }
+ else {
+        deregister();
+      }
+    }
+    private void deregister(){
+      final String registrationId=id.getString();
+      if (registrationId != null) {
+        service.removeMembershipListener(registrationId);
+      }
     }
   }
 );
+  id.setString(registration);
   final Collection<MemberImpl> memberList=service.getMemberList();
   final Collection<Data> response=new ArrayList<Data>(memberList.size());
   final SerializationService serializationService=getClientEngine().getSerializationService();
