@@ -1,8 +1,18 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
-  Map<Object,Object> res=new HashMap(keys.size());
-  for (  Data key : keys) {
-    res.put(getService().toObject(key),getService().toObject(getInternal(key)));
+  Map<Object,Object> result=new HashMap<Object,Object>();
+  Map<Integer,Object> responses=null;
+  try {
+    responses=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new MapGetAllOperationFactory(name,keys));
+    for (    Object response : responses.values()) {
+      Set<Map.Entry<Data,Data>> entries=((MapEntrySet)getService().toObject(response)).getEntrySet();
+      for (      Entry<Data,Data> entry : entries) {
+        result.put(getService().toObject(entry.getKey()),getService().toObject(entry.getValue()));
+      }
+    }
   }
-  return res;
+ catch (  Exception e) {
+    ExceptionUtil.rethrow(e);
+  }
+  return result;
 }
