@@ -3,8 +3,8 @@
   if (address == null) {
     throw new IllegalArgumentException("Target address is required!");
   }
-  final ObjectPool<Connection> pool=getConnectionPool(address);
-  Connection connection=null;
+  final ObjectPool<ConnectionWrapper> pool=getConnectionPool(address);
+  ConnectionWrapper connection=null;
   try {
     connection=pool.take();
   }
@@ -21,11 +21,7 @@
     return getRandomConnection();
   }
   if (!heartbeat.checkHeartBeat(connection)) {
-    try {
-      connection.close();
-    }
- catch (    IOException ignored) {
-    }
+    connection.destroy();
     return getRandomConnection();
   }
   return connection;
