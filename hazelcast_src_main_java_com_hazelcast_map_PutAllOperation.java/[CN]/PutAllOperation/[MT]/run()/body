@@ -1,0 +1,22 @@
+{
+  backupEntrySet=new MapEntrySet();
+  int partitionId=getPartitionId();
+  RecordStore recordStore=mapService.getRecordStore(partitionId,name);
+  Set<Map.Entry<Data,Data>> entries=entrySet.getEntrySet();
+  for (  Map.Entry<Data,Data> entry : entries) {
+    Data dataKey=entry.getKey();
+    Data dataValue=entry.getValue();
+    if (partitionId == getNodeEngine().getPartitionService().getPartitionId(dataKey)) {
+      Data dataOldValue=mapService.toData(recordStore.put(dataKey,dataValue,-1));
+      mapService.interceptAfterPut(name,dataValue);
+      int eventType=dataOldValue == null ? EntryEvent.TYPE_ADDED : EntryEvent.TYPE_UPDATED;
+      mapService.publishEvent(getCallerAddress(),name,eventType,dataKey,dataOldValue,dataValue);
+      invalidateNearCaches(dataKey);
+      if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
+        SimpleEntryView entryView=new SimpleEntryView(dataKey,mapService.toData(dataValue),recordStore.getRecords().get(dataKey));
+        mapService.publishWanReplicationUpdate(name,entryView);
+      }
+      backupEntrySet.add(entry);
+    }
+  }
+}

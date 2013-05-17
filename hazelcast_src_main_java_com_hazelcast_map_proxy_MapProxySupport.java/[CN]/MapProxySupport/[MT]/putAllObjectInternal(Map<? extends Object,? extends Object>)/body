@@ -1,6 +1,13 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
-  for (  Entry<? extends Object,? extends Object> entry : m.entrySet()) {
-    putInternal(getService().toData(entry.getKey()),getService().toData(entry.getValue()),-1,null);
+  try {
+    MapEntrySet mapEntrySet=new MapEntrySet();
+    for (    Entry entry : entries.entrySet()) {
+      mapEntrySet.add(getService().toData(entry.getKey()),getService().toData(entry.getValue()));
+    }
+    nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new MapPutAllOperationFactory(name,mapEntrySet));
+  }
+ catch (  Exception e) {
+    ExceptionUtil.rethrow(e);
   }
 }
