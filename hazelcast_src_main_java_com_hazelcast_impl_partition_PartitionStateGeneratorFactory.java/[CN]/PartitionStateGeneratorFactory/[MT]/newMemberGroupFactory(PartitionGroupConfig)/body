@@ -6,7 +6,17 @@ switch (partitionGroupConfig.getGroupType()) {
 case HOST_AWARE:
     return new HostAwareMemberGroupFactory();
 case CUSTOM:
-  return new ConfigMemberGroupFactory(partitionGroupConfig.getMemberGroupConfigs());
+  if (partitionGroupConfig.getMemberGroupFactoryClassname() != null) {
+    try {
+      final MemberGroupFactory f;
+      f=(MemberGroupFactory)Serializer.newInstance(partitionGroupConfig.getMemberGroupFactoryClassname());
+      return f;
+    }
+ catch (    Exception e) {
+      Util.throwUncheckedException(e);
+    }
+  }
+return new ConfigMemberGroupFactory(partitionGroupConfig.getMemberGroupConfigs());
 default :
 return new SingleMemberGroupFactory();
 }
