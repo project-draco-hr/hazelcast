@@ -1,24 +1,18 @@
 {
-  Config c1=buildConfig(false);
-  c1.getNetworkConfig().setPort(15702);
-  Config c2=buildConfig(false);
-  c2.getNetworkConfig().setPort(15704);
-  Config c3=buildConfig(false);
-  c3.getNetworkConfig().setPort(15703);
-  Config c4=buildConfig(false);
-  c4.getNetworkConfig().setPort(15701);
+  Config c1=buildConfig(false,15702);
+  Config c2=buildConfig(false,15704);
+  Config c3=buildConfig(false,15703);
+  Config c4=buildConfig(false,15701);
   List<String> clusterOneMembers=Arrays.asList("127.0.0.1:15702","127.0.0.1:15704");
   List<String> clusterTwoMembers=Arrays.asList("127.0.0.1:15703","127.0.0.1:15701");
   c1.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterOneMembers);
   c2.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterOneMembers);
   c3.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterTwoMembers);
   c4.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterTwoMembers);
-  c4.setProperty(GroupProperties.PROP_WAIT_SECONDS_BEFORE_JOIN,"0");
   final CountDownLatch latch=new CountDownLatch(2);
   c3.addListenerConfig(new ListenerConfig(new LifecycleListener(){
     public void stateChanged(    final LifecycleEvent event){
       if (event.getState() == LifecycleState.MERGED) {
-        System.out.println("h3 restarted");
         latch.countDown();
       }
     }
@@ -27,7 +21,6 @@
   c4.addListenerConfig(new ListenerConfig(new LifecycleListener(){
     public void stateChanged(    final LifecycleEvent event){
       if (event.getState() == LifecycleState.MERGED) {
-        System.out.println("h4 restarted");
         latch.countDown();
       }
     }

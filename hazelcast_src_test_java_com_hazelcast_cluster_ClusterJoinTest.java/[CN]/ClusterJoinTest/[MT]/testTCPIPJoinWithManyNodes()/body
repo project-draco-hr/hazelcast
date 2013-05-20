@@ -1,0 +1,44 @@
+{
+  final int count=30;
+  final CountDownLatch latch=new CountDownLatch(count);
+  final ConcurrentHashMap<Integer,HazelcastInstance> mapOfInstances=new ConcurrentHashMap<Integer,HazelcastInstance>();
+  final Random random=new Random(Clock.currentTimeMillis());
+  final ExecutorService ex=Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 3);
+  for (int i=0; i < count; i++) {
+    final int seed=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        try {
+          Thread.sleep(random.nextInt(10) * 1000);
+          final Config config=new Config();
+          final NetworkConfig networkConfig=config.getNetworkConfig();
+          networkConfig.getJoin().getMulticastConfig().setEnabled(false);
+          TcpIpConfig tcpIpConfig=networkConfig.getJoin().getTcpIpConfig();
+          tcpIpConfig.setEnabled(true);
+          int port=12301;
+          networkConfig.setPortAutoIncrement(false);
+          networkConfig.setPort(port + seed);
+          for (int i=0; i < count; i++) {
+            tcpIpConfig.addMember("127.0.0.1:" + (port + i));
+          }
+          HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+          mapOfInstances.put(seed,h);
+          latch.countDown();
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+);
+  }
+  try {
+    latch.await(200,TimeUnit.SECONDS);
+  }
+  finally {
+    ex.shutdown();
+  }
+  for (  HazelcastInstance h : mapOfInstances.values()) {
+    Assert.assertEquals(count,h.getCluster().getMembers().size());
+  }
+}

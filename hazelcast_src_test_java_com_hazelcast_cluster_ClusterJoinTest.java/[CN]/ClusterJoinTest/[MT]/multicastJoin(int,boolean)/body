@@ -1,0 +1,34 @@
+{
+  final Config config=new Config();
+  config.getNetworkConfig().getJoin().getMulticastConfig().setMulticastTimeoutSeconds(25);
+  final ConcurrentMap<Integer,HazelcastInstance> map=new ConcurrentHashMap<Integer,HazelcastInstance>();
+  final CountDownLatch latch=new CountDownLatch(count);
+  final ExecutorService ex=Executors.newCachedThreadPool();
+  for (int i=0; i < count; i++) {
+    final int index=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        if (sleep) {
+          try {
+            Thread.sleep((int)(1000 * Math.random()));
+          }
+ catch (          InterruptedException ignored) {
+          }
+        }
+        HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+        map.put(index,h);
+        latch.countDown();
+      }
+    }
+);
+  }
+  try {
+    assertTrue(latch.await(count * 10,TimeUnit.SECONDS));
+  }
+  finally {
+    ex.shutdown();
+  }
+  for (  HazelcastInstance h : map.values()) {
+    Assert.assertEquals(count,h.getCluster().getMembers().size());
+  }
+}

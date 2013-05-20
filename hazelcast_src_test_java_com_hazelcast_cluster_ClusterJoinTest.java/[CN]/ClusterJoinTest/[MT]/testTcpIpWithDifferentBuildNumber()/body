@@ -1,0 +1,20 @@
+{
+  System.setProperty("hazelcast.build","1");
+  try {
+    Config c=new Config();
+    c.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+    c.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true);
+    c.getNetworkConfig().getInterfaces().setEnabled(true);
+    c.getNetworkConfig().getJoin().getTcpIpConfig().addMember("127.0.0.1:5701");
+    c.getNetworkConfig().getInterfaces().addInterface("127.0.0.1");
+    HazelcastInstance h1=Hazelcast.newHazelcastInstance(c);
+    assertEquals(1,h1.getCluster().getMembers().size());
+    System.setProperty("hazelcast.build","2");
+    HazelcastInstance h2=Hazelcast.newHazelcastInstance(c);
+    assertEquals(2,h1.getCluster().getMembers().size());
+    assertEquals(2,h2.getCluster().getMembers().size());
+  }
+  finally {
+    System.clearProperty("hazelcast.build");
+  }
+}

@@ -6,13 +6,22 @@
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final CountDownLatch latch=new CountDownLatch(1);
+  h3.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleState.MERGED) {
+        latch.countDown();
+      }
+    }
+  }
+);
   closeConnectionBetween(h1,h3);
   closeConnectionBetween(h2,h3);
   Thread.sleep(1000);
   assertEquals(2,h1.getCluster().getMembers().size());
   assertEquals(2,h2.getCluster().getMembers().size());
   assertEquals(1,h3.getCluster().getMembers().size());
-  Thread.sleep(10000);
+  latch.await(10,TimeUnit.SECONDS);
   assertEquals(3,h1.getCluster().getMembers().size());
   assertEquals(3,h2.getCluster().getMembers().size());
   assertEquals(3,h3.getCluster().getMembers().size());
