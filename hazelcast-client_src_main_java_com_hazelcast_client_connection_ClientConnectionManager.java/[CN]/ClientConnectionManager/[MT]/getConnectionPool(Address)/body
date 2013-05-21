@@ -1,4 +1,13 @@
 {
   checkLive();
-  return ConcurrencyUtil.getOrPutIfAbsent(poolMap,address,ctor);
+  ObjectPool<ConnectionWrapper> pool=poolMap.get(address);
+  if (pool == null) {
+    if (client.getClientClusterService().getMember(address) == null) {
+      return null;
+    }
+    pool=ctor.createNew(address);
+    ObjectPool<ConnectionWrapper> current=poolMap.putIfAbsent(address,pool);
+    pool=current == null ? pool : current;
+  }
+  return pool;
 }
