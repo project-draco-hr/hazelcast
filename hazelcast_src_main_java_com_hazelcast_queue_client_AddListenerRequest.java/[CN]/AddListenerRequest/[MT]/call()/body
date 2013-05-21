@@ -11,12 +11,21 @@
     }
     private void send(    ItemEvent event){
       if (endpoint.live()) {
-        clientEngine.sendResponse(endpoint,event.toString());
+        Data item=clientEngine.toData(event.getItem());
+        PortableItemEvent portableItemEvent=new PortableItemEvent(item,event.getEventType(),event.getMember().getUuid());
+        clientEngine.sendResponse(endpoint,portableItemEvent);
       }
  else {
+        if (registrationId != null) {
+          service.removeItemListener(name,registrationId);
+        }
+ else {
+          System.err.println("registrationId is null!!!");
+        }
       }
     }
   }
 ;
-  return service.addItemListener(name,listener,includeValue);
+  registrationId=service.addItemListener(name,listener,includeValue);
+  return registrationId;
 }

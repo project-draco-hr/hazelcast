@@ -1,4 +1,18 @@
 {
   final AddListenerRequest request=new AddListenerRequest(name,includeValue);
-  return invoke(request);
+  EventHandler<PortableItemEvent> eventHandler=new EventHandler<PortableItemEvent>(){
+    public void handle(    PortableItemEvent portableItemEvent){
+      E item=includeValue ? (E)getContext().getSerializationService().toObject(portableItemEvent.getItem()) : null;
+      Member member=getContext().getClusterService().getMember(portableItemEvent.getUuid());
+      ItemEvent<E> itemEvent=new ItemEvent<E>(name,portableItemEvent.getEventType(),item,member);
+      if (portableItemEvent.getEventType() == ItemEventType.ADDED) {
+        listener.itemAdded(itemEvent);
+      }
+ else {
+        listener.itemRemoved(itemEvent);
+      }
+    }
+  }
+;
+  return listen(request,getKey(),eventHandler);
 }
