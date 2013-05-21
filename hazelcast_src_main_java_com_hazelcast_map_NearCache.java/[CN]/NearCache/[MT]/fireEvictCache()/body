@@ -1,16 +1,28 @@
 {
   if (canEvict.compareAndSet(true,false)) {
-    nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
-      public void run(){
-        List<CacheRecord> values=new ArrayList(cache.values());
-        Collections.sort(values);
-        int evictSize=Math.min(values.size(),cache.size() * evictionPercentage / 100);
-        for (int i=0; i < evictSize; i++) {
-          cache.remove(values.get(i).key);
+    try {
+      nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
+        public void run(){
+          try {
+            List<CacheRecord> values=new ArrayList(cache.values());
+            Collections.sort(values);
+            int evictSize=Math.min(values.size(),cache.size() * evictionPercentage / 100);
+            for (int i=0; i < evictSize; i++) {
+              cache.remove(values.get(i).key);
+            }
+          }
+  finally {
+            canEvict.set(true);
+          }
         }
-        canEvict.set(true);
       }
-    }
 );
+    }
+ catch (    RejectedExecutionException e) {
+      canEvict.set(true);
+    }
+catch (    Exception e) {
+      ExceptionUtil.rethrow(e);
+    }
   }
 }
