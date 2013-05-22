@@ -1,7 +1,14 @@
 {
   try {
-    final int partitionId=packet.getPartitionId();
-    getExecutor(partitionId).execute(new RemoteOperationProcessor(packet));
+    final Executor executor;
+    if (packet.isHeaderSet(Packet.HEADER_RESPONSE)) {
+      executor=responseExecutor;
+    }
+ else {
+      final int partitionId=packet.getPartitionId();
+      executor=getExecutor(partitionId);
+    }
+    executor.execute(new RemoteOperationProcessor(packet));
   }
  catch (  RejectedExecutionException e) {
     if (nodeEngine.isActive()) {
