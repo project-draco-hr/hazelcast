@@ -2,11 +2,11 @@
   final int k=simpleTestNodeCount;
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(new Config(),k);
   final AtomicInteger count=new AtomicInteger(0);
-  final CountDownLatch countDownLatch=new CountDownLatch(k / 2);
+  final CountDownLatch latch=new CountDownLatch(k / 2);
   final ExecutionCallback callback=new ExecutionCallback(){
     public void onResponse(    Object response){
       if ((Boolean)response)       count.incrementAndGet();
-      countDownLatch.countDown();
+      latch.countDown();
     }
     public void onFailure(    Throwable t){
     }
@@ -26,6 +26,6 @@
       service.submitToMember(new ScriptCallable(script,map),instance.getCluster().getLocalMember(),callback);
     }
   }
-  countDownLatch.await(10,TimeUnit.SECONDS);
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
   Assert.assertEquals(k / 2,count.get());
 }

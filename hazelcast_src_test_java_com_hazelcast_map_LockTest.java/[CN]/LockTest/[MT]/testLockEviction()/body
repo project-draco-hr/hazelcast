@@ -5,22 +5,18 @@
   config.getMapConfig(mapName).setBackupCount(1);
   final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
-  final AtomicInteger counter=new AtomicInteger(0);
   final IMap map=instance1.getMap(mapName);
   map.put(1,1);
-  long st=Clock.currentTimeMillis();
   map.lock(1,3,TimeUnit.SECONDS);
-  Assert.assertEquals(true,map.isLocked(1));
+  Assert.assertTrue(map.isLocked(1));
+  final CountDownLatch latch=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
       map.lock(1);
-      counter.incrementAndGet();
+      latch.countDown();
     }
   }
 );
   t.start();
-  Thread.sleep(2000);
-  Assert.assertEquals(0,counter.get());
-  Thread.sleep(2000);
-  Assert.assertEquals(1,counter.get());
+  Assert.assertTrue(latch.await(6,TimeUnit.SECONDS));
 }

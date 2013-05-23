@@ -2,27 +2,32 @@
   final int k=simpleTestNodeCount;
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(new Config(),k);
   final AtomicInteger count=new AtomicInteger(0);
+  final CountDownLatch latch=new CountDownLatch(k);
   final MultiExecutionCallback callback=new MultiExecutionCallback(){
     public void onResponse(    Member member,    Object value){
       count.incrementAndGet();
     }
     public void onComplete(    Map<Member,Object> values){
+      latch.countDown();
     }
   }
 ;
   int sum=0;
-  final Object[] members=instances[0].getCluster().getMembers().toArray();
+  final Set<Member> membersSet=instances[0].getCluster().getMembers();
+  final Member[] members=membersSet.toArray(new Member[membersSet.size()]);
+  final Random random=new Random();
+  final String name="testSubmitToMembersCallable";
   for (int i=0; i < k; i++) {
-    final IExecutorService service=instances[i].getExecutorService("testSubmitToMembersCallable");
-    final String script="hazelcast.getAtomicLong('testSubmitToMembersCallable').incrementAndGet();";
-    final int n=new Random().nextInt(k) + 1;
+    final IExecutorService service=instances[i].getExecutorService(name);
+    final String script="hazelcast.getAtomicLong('" + name + "').incrementAndGet();";
+    final int n=random.nextInt(k) + 1;
     sum+=n;
     Member[] m=new Member[n];
-    for (int j=0; j < n; j++)     m[j]=(Member)members[j];
+    System.arraycopy(members,0,m,0,n);
     service.submitToMembers(new ScriptCallable(script,null),Arrays.asList(m),callback);
   }
-  Thread.sleep(2000);
-  final IAtomicLong result=instances[0].getAtomicLong("testSubmitToMembersCallable");
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  final IAtomicLong result=instances[0].getAtomicLong(name);
   Assert.assertEquals(sum,result.get());
   Assert.assertEquals(sum,count.get());
 }

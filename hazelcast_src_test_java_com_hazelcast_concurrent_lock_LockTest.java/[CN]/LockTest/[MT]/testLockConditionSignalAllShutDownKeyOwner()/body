@@ -7,7 +7,9 @@
   final int size=50;
   int k=0;
   final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance(config);
-  while (!keyOwner.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++k).getOwner()))   ;
+  while (!keyOwner.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++k).getOwner())) {
+    Thread.sleep(1);
+  }
   final ILock lock=instance.getLock(k);
   final ICondition condition=lock.newCondition(name);
   final CountDownLatch awaitLatch=new CountDownLatch(size);
@@ -15,12 +17,8 @@
   for (int i=0; i < size; i++) {
     new Thread(new Runnable(){
       public void run(){
+        lock.lock();
         try {
-          lock.lock();
-          if (lock.isLocked() && lock.tryLock()) {
-            count.incrementAndGet();
-            lock.unlock();
-          }
           awaitLatch.countDown();
           condition.await();
           Thread.sleep(5);
@@ -29,8 +27,7 @@
             lock.unlock();
           }
         }
- catch (        InterruptedException e) {
-          return;
+ catch (        InterruptedException ignored) {
         }
  finally {
           lock.unlock();
@@ -47,6 +44,6 @@
   condition1.signalAll();
   lock1.unlock();
   keyOwner.getLifecycleService().shutdown();
-  finalLatch.await(1,TimeUnit.MINUTES);
-  Assert.assertEquals(size * 2,count.get());
+  finalLatch.await(2,TimeUnit.MINUTES);
+  Assert.assertEquals(size,count.get());
 }

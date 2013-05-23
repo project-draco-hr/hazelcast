@@ -7,17 +7,16 @@
   final String name="testLockEviction";
   final ILock lock=lockOwner.getLock(name);
   lock.lock(1,TimeUnit.SECONDS);
-  Assert.assertEquals(true,lock.isLocked());
+  Assert.assertTrue(lock.isLocked());
+  final CountDownLatch latch=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
       final ILock lock=instance1.getLock(name);
       lock.lock();
-      integer.incrementAndGet();
+      latch.countDown();
     }
   }
 );
   t.start();
-  Assert.assertEquals(0,integer.get());
-  Thread.sleep(2000);
-  Assert.assertEquals(1,integer.get());
+  Assert.assertTrue(latch.await(3,TimeUnit.SECONDS));
 }
