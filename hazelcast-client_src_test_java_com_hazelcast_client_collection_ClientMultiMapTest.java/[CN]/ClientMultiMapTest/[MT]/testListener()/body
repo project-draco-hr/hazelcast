@@ -1,0 +1,48 @@
+{
+  final CountDownLatch latch1Add=new CountDownLatch(8);
+  final CountDownLatch latch1Remove=new CountDownLatch(4);
+  final CountDownLatch latch2Add=new CountDownLatch(3);
+  final CountDownLatch latch2Remove=new CountDownLatch(3);
+  EntryListener listener1=new EntryListener(){
+    public void entryAdded(    EntryEvent event){
+      latch1Add.countDown();
+    }
+    public void entryRemoved(    EntryEvent event){
+      latch1Remove.countDown();
+    }
+    public void entryUpdated(    EntryEvent event){
+    }
+    public void entryEvicted(    EntryEvent event){
+    }
+  }
+;
+  EntryListener listener2=new EntryListener(){
+    public void entryAdded(    EntryEvent event){
+      latch2Add.countDown();
+    }
+    public void entryRemoved(    EntryEvent event){
+      latch2Remove.countDown();
+    }
+    public void entryUpdated(    EntryEvent event){
+    }
+    public void entryEvicted(    EntryEvent event){
+    }
+  }
+;
+  mm.addEntryListener(listener1,true);
+  mm.addEntryListener(listener2,"key3",true);
+  mm.put("key1","value1");
+  mm.put("key1","value2");
+  mm.put("key1","value3");
+  mm.put("key2","value4");
+  mm.put("key2","value5");
+  mm.remove("key1","value2");
+  mm.put("key3","value6");
+  mm.put("key3","value7");
+  mm.put("key3","value8");
+  mm.remove("key");
+  assertTrue(latch1Add.await(20,TimeUnit.SECONDS));
+  assertTrue(latch1Remove.await(20,TimeUnit.SECONDS));
+  assertTrue(latch2Add.await(20,TimeUnit.SECONDS));
+  assertTrue(latch2Remove.await(20,TimeUnit.SECONDS));
+}

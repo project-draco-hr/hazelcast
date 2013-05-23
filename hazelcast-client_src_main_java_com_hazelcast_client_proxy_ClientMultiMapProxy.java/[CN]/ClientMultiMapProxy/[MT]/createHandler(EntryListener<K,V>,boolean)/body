@@ -1,0 +1,26 @@
+{
+  return new EventHandler<PortableEntryEvent>(){
+    public void handle(    PortableEntryEvent event){
+      V value=null;
+      V oldValue=null;
+      if (includeValue) {
+        value=(V)getSerializationService().toObject(event.getValue());
+        oldValue=(V)getSerializationService().toObject(event.getOldValue());
+      }
+      K key=(K)getSerializationService().toObject(event.getKey());
+      Member member=getContext().getClusterService().getMember(event.getUuid());
+      EntryEvent<K,V> entryEvent=new EntryEvent<K,V>(proxyId.getName(),member,event.getEventType().getType(),key,oldValue,value);
+switch (event.getEventType()) {
+case ADDED:
+        listener.entryAdded(entryEvent);
+case REMOVED:
+      listener.entryRemoved(entryEvent);
+case UPDATED:
+    listener.entryUpdated(entryEvent);
+case EVICTED:
+  listener.entryEvicted(entryEvent);
+}
+}
+}
+;
+}
