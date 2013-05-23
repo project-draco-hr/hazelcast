@@ -1,40 +1,18 @@
 {
   Config config=new Config();
   final int insCount=4;
-  final String name0="defQueue0";
-  final String name1="defQueue1";
+  final String name="defQueue";
   final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,insCount);
-  new Thread(){
-    public void run(){
-      try {
-        Thread.sleep(2000);
-      }
- catch (      InterruptedException e) {
-        e.printStackTrace();
-      }
-      getQueue(instances,name0).offer("item0");
-    }
-  }
-.start();
   boolean b=instances[0].executeTransaction(new TransactionOptions().setTransactionType(TransactionOptions.TransactionType.LOCAL),new TransactionalTask<Boolean>(){
     public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
-      TransactionalQueue<String> q0=context.getQueue(name0);
-      TransactionalQueue<String> q1=context.getQueue(name1);
-      String s=null;
-      try {
-        s=q0.poll(6,TimeUnit.SECONDS);
-      }
- catch (      InterruptedException e) {
-        fail(e.getMessage());
-        e.printStackTrace();
-      }
-      assertEquals("item0",s);
-      q1.offer(s);
+      TransactionalQueue<String> q=context.getQueue(name);
+      assertTrue(q.offer("ali"));
+      String s=q.poll();
+      assertNull(s);
       return true;
     }
   }
 );
   assertTrue(b);
-  assertEquals(0,getQueue(instances,name0).size());
-  assertEquals("item0",getQueue(instances,name1).poll());
+  assertEquals(1,getQueue(instances,name).size());
 }

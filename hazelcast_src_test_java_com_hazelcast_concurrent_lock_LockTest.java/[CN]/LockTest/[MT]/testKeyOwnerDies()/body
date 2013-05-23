@@ -5,26 +5,26 @@
   final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   int k=0;
-  final AtomicInteger atomicInteger=new AtomicInteger(0);
-  while (!keyOwner.getCluster().getLocalMember().equals(instance1.getPartitionService().getPartition(++k).getOwner()))   ;
+  final Member localMember=keyOwner.getCluster().getLocalMember();
+  while (!localMember.equals(instance1.getPartitionService().getPartition(++k).getOwner())) {
+    Thread.sleep(1);
+  }
   final int key=k;
   final ILock lock1=instance1.getLock(key);
   lock1.lock();
-  Thread t=new Thread(new Runnable(){
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
     public void run(){
       final ILock lock=instance2.getLock(key);
       lock.lock();
-      atomicInteger.incrementAndGet();
+      latch.countDown();
     }
   }
-);
-  t.start();
+).start();
   keyOwner.getLifecycleService().shutdown();
-  Assert.assertEquals(true,lock1.isLocked());
-  Assert.assertEquals(true,lock1.tryLock());
+  Assert.assertTrue(lock1.isLocked());
+  Assert.assertTrue(lock1.tryLock());
   lock1.unlock();
   lock1.unlock();
-  Thread.sleep(1000);
-  Assert.assertEquals(1,atomicInteger.get());
-  lock1.forceUnlock();
+  Assert.assertTrue(latch.await(5,TimeUnit.SECONDS));
 }
