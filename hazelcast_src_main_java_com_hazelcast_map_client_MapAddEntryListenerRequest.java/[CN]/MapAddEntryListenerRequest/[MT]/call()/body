@@ -2,36 +2,40 @@
   final ClientEndpoint endpoint=getEndpoint();
   final ClientEngine clientEngine=getClientEngine();
   final MapService mapService=getService();
-  final MutableString id=new MutableString();
   EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
     private void handleEvent(    EntryEvent<Object,Object> event){
       if (endpoint.live()) {
-        clientEngine.sendResponse(endpoint,new PortableEntryEvent(event));
+        Data key=clientEngine.toData(event.getKey());
+        Data value=clientEngine.toData(event.getValue());
+        Data oldValue=clientEngine.toData(event.getOldValue());
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
+        clientEngine.sendResponse(endpoint,portableEntryEvent);
       }
  else {
-        mapService.removeEventListener(name,id.getString());
+        mapService.removeEventListener(name,registrationId);
       }
     }
-    @Override public void entryAdded(    EntryEvent<Object,Object> event){
+    public void entryAdded(    EntryEvent<Object,Object> event){
       handleEvent(event);
     }
-    @Override public void entryRemoved(    EntryEvent<Object,Object> event){
+    public void entryRemoved(    EntryEvent<Object,Object> event){
       handleEvent(event);
     }
-    @Override public void entryUpdated(    EntryEvent<Object,Object> event){
+    public void entryUpdated(    EntryEvent<Object,Object> event){
       handleEvent(event);
     }
-    @Override public void entryEvicted(    EntryEvent<Object,Object> event){
+    public void entryEvicted(    EntryEvent<Object,Object> event){
       handleEvent(event);
     }
   }
 ;
-  EventFilter eventFilter=new EntryEventFilter(includeValue,key);
-  if (local) {
-    id.setString(mapService.addLocalEventListener(listener,name));
+  EventFilter eventFilter=null;
+  if (predicate == null) {
+    eventFilter=new EntryEventFilter(includeValue,key);
   }
  else {
-    id.setString(mapService.addEventListener(listener,eventFilter,name));
+    eventFilter=new QueryEventFilter(includeValue,key,predicate);
   }
+  registrationId=mapService.addEventListener(listener,eventFilter,name);
   return true;
 }
