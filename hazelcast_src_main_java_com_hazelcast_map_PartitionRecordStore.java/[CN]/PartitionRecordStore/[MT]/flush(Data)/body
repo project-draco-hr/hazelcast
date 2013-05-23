@@ -1,18 +1,18 @@
 {
-  Set<Data> keys=new HashSet<Data>();
-  for (  Record record : records.values()) {
-    keys.add(record.getKey());
-  }
   EntryTaskScheduler writeScheduler=mapContainer.getMapStoreWriteScheduler();
+  Set<Data> keys=new HashSet<Data>();
+  keys.add(key);
   if (writeScheduler != null) {
     Set<Data> processedKeys=writeScheduler.flush(keys);
-    for (    Data key : processedKeys) {
-      records.get(key).onStore();
+    for (    Data pkey : processedKeys) {
+      records.get(pkey).onStore();
     }
   }
   EntryTaskScheduler deleteScheduler=mapContainer.getMapStoreDeleteScheduler();
   if (deleteScheduler != null) {
-    deleteScheduler.flush(toBeRemovedKeys);
-    toBeRemovedKeys.clear();
+    if (toBeRemovedKeys.contains(key)) {
+      deleteScheduler.flush(keys);
+      toBeRemovedKeys.remove(key);
+    }
   }
 }
