@@ -7,9 +7,9 @@
   mc.setMaxIdleSeconds(maxIdleSeconds);
   HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,2);
   final IMap map=instances[0].getMap("testMapRecordIdleEviction");
-  new Thread(new Runnable(){
-    @Override public void run(){
-      while (true) {
+  final Thread thread=new Thread(new Runnable(){
+    public void run(){
+      while (!Thread.currentThread().isInterrupted()) {
         try {
           for (int i=0; i < nsize; i++) {
             map.get(i);
@@ -17,14 +17,18 @@
           Thread.sleep(1000);
         }
  catch (        InterruptedException e) {
+          return;
         }
       }
     }
   }
-).start();
+);
+  thread.start();
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
   Thread.sleep(maxIdleSeconds * 1000 + 5000);
   Assert.assertEquals(nsize,map.size());
+  thread.interrupt();
+  thread.join(5000);
 }
