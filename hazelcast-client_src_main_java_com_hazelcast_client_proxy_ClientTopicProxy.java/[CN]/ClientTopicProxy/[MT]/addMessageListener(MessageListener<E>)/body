@@ -1,0 +1,13 @@
+{
+  AddMessageListenerRequest request=new AddMessageListenerRequest(name);
+  EventHandler<PortableMessage> handler=new EventHandler<PortableMessage>(){
+    public void handle(    PortableMessage event){
+      E messageObject=(E)getContext().getSerializationService().toObject(event.getMessage());
+      Member member=getContext().getClusterService().getMember(event.getUuid());
+      Message<E> message=new Message<E>(name,messageObject,event.getPublishTime(),member);
+      listener.onMessage(message);
+    }
+  }
+;
+  return listen(request,getKey(),handler);
+}
