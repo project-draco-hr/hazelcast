@@ -1,0 +1,24 @@
+{
+  assertTrue(s.tryAcquire());
+  assertTrue(s.tryAcquire(9));
+  assertEquals(0,s.availablePermits());
+  assertFalse(s.tryAcquire(1,TimeUnit.SECONDS));
+  assertFalse(s.tryAcquire(2,1,TimeUnit.SECONDS));
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      try {
+        if (s.tryAcquire(2,5,TimeUnit.SECONDS)) {
+          latch.countDown();
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  s.release(2);
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertEquals(0,s.availablePermits());
+}
