@@ -1,18 +1,13 @@
 {
   Config cfg=new Config();
-  HazelcastInstance[] instances=StaticNodeFactory.newInstances(cfg,2);
+  StaticNodeFactory factory=createNodeFactory(2);
+  final HazelcastInstance[] instances=factory.newInstances(cfg);
   final int k=10;
   final int putCount=10000;
   final CountDownLatch latch=new CountDownLatch(k * putCount);
-  final AtomicBoolean error=new AtomicBoolean(false);
   final IMap map=instances[0].getMap("testMapEvictionTtlWithListener");
   map.addEntryListener(new EntryAdapter(){
     public void entryEvicted(    EntryEvent event){
-      final Long expectedEvictionTime=(Long)(event.getOldValue());
-      long timeDifference=System.currentTimeMillis() - expectedEvictionTime;
-      if (timeDifference > 5000) {
-        error.set(true);
-      }
       latch.countDown();
     }
   }
@@ -31,5 +26,4 @@
 .start();
   }
   assertTrue(latch.await(1,TimeUnit.MINUTES));
-  assertFalse(error.get());
 }

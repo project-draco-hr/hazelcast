@@ -1,13 +1,11 @@
 {
-  final StaticNodeFactory nodeFactory=new StaticNodeFactory(2);
+  final StaticNodeFactory nodeFactory=createNodeFactory(2);
   final Config config=new Config();
-  final AtomicInteger integer=new AtomicInteger(0);
   final HazelcastInstance lockOwner=nodeFactory.newHazelcastInstance(config);
   final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   final String name="testLockEviction";
   final ILock lock=lockOwner.getLock(name);
-  lock.lock(1,TimeUnit.SECONDS);
-  Assert.assertTrue(lock.isLocked());
+  lock.lock(3,TimeUnit.SECONDS);
   final CountDownLatch latch=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
@@ -18,5 +16,5 @@
   }
 );
   t.start();
-  Assert.assertTrue(latch.await(3,TimeUnit.SECONDS));
+  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
 }

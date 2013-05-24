@@ -1,6 +1,7 @@
 {
   Config config=new Config();
-  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(config,2);
+  StaticNodeFactory factory=createNodeFactory(2);
+  final HazelcastInstance[] instances=factory.newInstances(config);
   final HazelcastInstance h1=instances[0];
   final HazelcastInstance h2=instances[1];
   final IQueue q1=h1.getQueue("default");
@@ -10,7 +11,9 @@
       try {
         q2.take();
       }
- catch (      InterruptedException e) {
+ catch (      HazelcastInstanceNotActiveException ignored) {
+      }
+catch (      InterruptedException e) {
         e.printStackTrace();
       }
     }
@@ -20,7 +23,7 @@
   new Thread(new Runnable(){
     public void run(){
       try {
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         h2.getLifecycleService().kill();
         shutdownLatch.countDown();
       }

@@ -1,24 +1,28 @@
 {
-  StaticNodeFactory factory=new StaticNodeFactory(2);
+  StaticNodeFactory factory=createNodeFactory(2);
   Config config=new Config();
   final String name="t_queue";
   HazelcastInstance ins1=factory.newHazelcastInstance(config);
-  IQueue q=ins1.getQueue(name);
-  for (int i=0; i < 2; i++) {
-    q.offer("item" + i);
+  final int items=20;
+  IQueue q1=ins1.getQueue(name);
+  for (int i=0; i < items / 2; i++) {
+    q1.offer("item" + i);
   }
   HazelcastInstance ins2=factory.newHazelcastInstance(config);
-  for (int i=0; i < 2; i++) {
-    q.offer("item" + i);
+  IQueue q2=ins2.getQueue(name);
+  for (int i=0; i < items / 2; i++) {
+    q2.offer("item" + i);
   }
-  try {
-    Thread.sleep(2000);
+  LocalQueueStats stats1=ins1.getQueue(name).getLocalQueueStats();
+  LocalQueueStats stats2=ins2.getQueue(name).getLocalQueueStats();
+  assertTrue(stats1.getOwnedItemCount() == items || stats2.getOwnedItemCount() == items);
+  assertFalse(stats1.getOwnedItemCount() == items && stats2.getOwnedItemCount() == items);
+  if (stats1.getOwnedItemCount() == items) {
+    assertEquals(items,stats2.getBackupItemCount());
+    assertEquals(0,stats1.getBackupItemCount());
   }
- catch (  InterruptedException e) {
-    e.printStackTrace();
+ else {
+    assertEquals(items,stats1.getBackupItemCount());
+    assertEquals(0,stats2.getBackupItemCount());
   }
-  LocalQueueStats stats=ins1.getQueue(name).getLocalQueueStats();
-  System.err.println("owned : " + stats.getOwnedItemCount() + " back: "+ stats.getBackupItemCount());
-  stats=ins2.getQueue(name).getLocalQueueStats();
-  System.err.println("owned : " + stats.getOwnedItemCount() + " back: "+ stats.getBackupItemCount());
 }

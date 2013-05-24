@@ -1,6 +1,7 @@
 {
   final int k=simpleTestNodeCount;
-  final HazelcastInstance[] instances=StaticNodeFactory.newInstances(new Config(),k);
+  StaticNodeFactory factory=createNodeFactory(k);
+  final HazelcastInstance[] instances=factory.newInstances(new Config());
   final AtomicInteger count=new AtomicInteger(0);
   final CountDownLatch latch=new CountDownLatch(k);
   final MultiExecutionCallback callback=new MultiExecutionCallback(){
@@ -25,7 +26,7 @@
     System.arraycopy(members,0,m,0,n);
     service.submitToMembers(new ScriptRunnable(script,null),Arrays.asList(m),callback);
   }
-  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
   final IAtomicLong result=instances[0].getAtomicLong("testSubmitToMembersRunnable");
   Assert.assertEquals(sum,result.get());
   Assert.assertEquals(sum,count.get());

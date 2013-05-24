@@ -5,15 +5,15 @@
   int size=1000;
   final int nsize=size / 5;
   mc.setMaxIdleSeconds(maxIdleSeconds);
-  StaticNodeFactory factory=new StaticNodeFactory(3);
+  StaticNodeFactory factory=createNodeFactory(3);
   HazelcastInstance instance1=factory.newHazelcastInstance(cfg);
   final IMap map=instance1.getMap("testMapRecordIdleEvictionOnMigration2");
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  new Thread(new Runnable(){
-    @Override public void run(){
-      while (true) {
+  final Thread thread=new Thread(new Runnable(){
+    public void run(){
+      while (!Thread.currentThread().isInterrupted()) {
         try {
           for (int i=0; i < nsize; i++) {
             map.get(i);
@@ -21,15 +21,17 @@
           Thread.sleep(1000);
         }
  catch (        InterruptedException e) {
+          return;
         }
       }
     }
   }
-).start();
+);
+  thread.start();
   HazelcastInstance instance2=factory.newHazelcastInstance(cfg);
   HazelcastInstance instance3=factory.newHazelcastInstance(cfg);
-  Thread.sleep(1000);
   Thread.sleep(maxIdleSeconds * 1000 + 5000);
   Assert.assertEquals(nsize,map.size());
-  Hazelcast.shutdownAll();
+  thread.interrupt();
+  thread.join(5000);
 }
