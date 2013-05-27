@@ -1,0 +1,37 @@
+{
+  final int entityCount=10;
+  final int queryCount=5;
+  insertDummyEntities(entityCount);
+  sleep(1);
+  List<DummyEntity> list=null;
+  for (int i=0; i < queryCount; i++) {
+    list=executeQuery();
+    assertEquals(entityCount,list.size());
+    sleep(1);
+  }
+  Session session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  try {
+    for (    DummyEntity dummy : list) {
+      session.delete(dummy);
+    }
+    tx.commit();
+  }
+ catch (  Exception e) {
+    tx.rollback();
+    e.printStackTrace();
+  }
+ finally {
+    session.close();
+  }
+  assertEquals(1,stats.getQueryCachePutCount());
+  assertEquals(1,stats.getQueryCacheMissCount());
+  assertEquals(queryCount - 1,stats.getQueryCacheHitCount());
+  assertEquals(1,stats.getQueryExecutionCount());
+  assertEquals(entityCount,stats.getEntityInsertCount());
+  assertEquals(entityCount,stats.getEntityLoadCount());
+  assertEquals(entityCount,stats.getEntityDeleteCount());
+  assertEquals(entityCount * (queryCount - 1) * 2,stats.getSecondLevelCacheHitCount());
+  assertEquals(entityCount,stats.getSecondLevelCacheMissCount());
+  stats.logSummary();
+}
