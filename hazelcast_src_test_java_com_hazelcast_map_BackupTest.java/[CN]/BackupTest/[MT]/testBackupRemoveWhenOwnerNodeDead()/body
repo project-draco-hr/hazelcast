@@ -32,6 +32,7 @@
           sleep(5);
         }
  catch (        InterruptedException ignored) {
+          return;
         }
       }
       TestUtil.getNode(hz).getConnectionManager().shutdown();
@@ -57,7 +58,11 @@
     }
 );
   }
-  latch.await();
-  ex.shutdown();
-  assertEquals("Remove failed!",0,map.size());
+  try {
+    assertTrue(latch.await(2,TimeUnit.MINUTES));
+    assertEquals("Remove failed!",0,map.size());
+  }
+  finally {
+    ex.shutdown();
+  }
 }
