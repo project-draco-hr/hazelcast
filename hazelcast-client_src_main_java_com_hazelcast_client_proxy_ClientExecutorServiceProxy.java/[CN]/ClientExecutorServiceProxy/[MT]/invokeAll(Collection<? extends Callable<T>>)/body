@@ -1,3 +1,18 @@
 {
-  return null;
+  final List<Future<T>> futures=new ArrayList<Future<T>>(tasks.size());
+  final List<Future<T>> result=new ArrayList<Future<T>>(tasks.size());
+  for (  Callable<T> task : tasks) {
+    futures.add(submit(task));
+  }
+  for (  Future<T> future : futures) {
+    Object value;
+    try {
+      value=future.get();
+    }
+ catch (    ExecutionException e) {
+      value=e;
+    }
+    result.add(new CompletedFuture<T>(getContext().getSerializationService(),value));
+  }
+  return result;
 }
