@@ -1,0 +1,25 @@
+{
+  check(task);
+  ClientPartitionService partitionService=getContext().getPartitionService();
+  if (partitionKey == null) {
+    final LocalTargetCallableRequest request=new LocalTargetCallableRequest(name,task);
+    getContext().getExecutionService().submit(new Callable<T>(){
+      public T call() throws Exception {
+        try {
+          T result=invoke(request);
+          callback.onResponse(result);
+        }
+ catch (        Exception e) {
+          callback.onFailure(e);
+        }
+        return null;
+      }
+    }
+);
+  }
+ else {
+    int partitionId=partitionService.getPartitionId(partitionKey);
+    final Address owner=partitionService.getPartitionOwner(partitionId);
+    submitToTargetInternal(task,owner,callback);
+  }
+}
