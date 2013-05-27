@@ -1,54 +1,58 @@
 {
-  Set<Member> setNew=new LinkedHashSet<Member>(lsMembers.size());
-  ArrayList<Runnable> notifications=new ArrayList<Runnable>();
-  for (  MemberImpl member : lsMembers) {
-    if (member != null) {
-      final MemberImpl dummy=new MemberImpl(member.getAddress(),member.localMember(),member.getNodeType(),member.getUuid());
-      Member clusterMember=clusterMembers.get(dummy);
-      if (clusterMember == null) {
-        clusterMember=dummy;
-        if (listeners.size() > 0) {
-          notifications.add(new Runnable(){
-            public void run(){
-              MembershipEvent membershipEvent=new MembershipEvent(ClusterImpl.this,dummy,MembershipEvent.MEMBER_ADDED);
-              for (              MembershipListener listener : listeners) {
-                listener.memberAdded(membershipEvent);
-              }
-            }
-          }
-);
-        }
-      }
-      if (clusterMember.localMember()) {
-        localMember.set(clusterMember);
-      }
-      setNew.add(clusterMember);
+  final Set<MemberImpl> newMembers=new LinkedHashSet<MemberImpl>(incomingMembers.size());
+  final Set<MemberImpl> oldMembers=members.get();
+  final List<MemberImpl> addedMembers=new LinkedList<MemberImpl>();
+  final List<MemberImpl> removedMembers=new LinkedList<MemberImpl>();
+  for (  MemberImpl incomingMember : incomingMembers) {
+    MemberImpl member=memberMap.get(incomingMember);
+    if (member == null) {
+      member=incomingMember;
+      addedMembers.add(member);
+      memberMap.put(member,member);
+      memberAddressMap.put(member.getAddress(),member);
+    }
+    if (member.localMember()) {
+      localMember.set(member);
+    }
+    newMembers.add(member);
+  }
+  for (  MemberImpl oldMember : oldMembers) {
+    if (!newMembers.contains(oldMember)) {
+      removedMembers.add(oldMember);
+      memberMap.remove(oldMember);
+      memberAddressMap.remove(oldMember.getAddress());
     }
   }
-  if (listeners.size() > 0) {
-    Set<Member> it=clusterMembers.keySet();
-    for (    final Member member : it) {
-      if (!setNew.contains(member)) {
-        notifications.add(new Runnable(){
+synchronized (memberChangeMutex) {
+    members.set(unmodifiableSet(newMembers));
+    if (listeners.isEmpty()) {
+      return;
+    }
+    final LinkedHashSet<Member> membersAfterEvent=new LinkedHashSet<Member>(oldMembers);
+    final NamedExecutorService eventExecutor=node.executorManager.getEventExecutorService();
+    for (    Member addedMember : addedMembers) {
+      membersAfterEvent.add(addedMember);
+      final MembershipEvent event=new MembershipEvent(this,addedMember,MembershipEvent.MEMBER_ADDED,unmodifiableSet(new LinkedHashSet<Member>(membersAfterEvent)));
+      for (      final MembershipListener listener : listeners) {
+        eventExecutor.executeOrderedRunnable(listener.hashCode(),new Runnable(){
           public void run(){
-            MembershipEvent membershipEvent=new MembershipEvent(ClusterImpl.this,member,MembershipEvent.MEMBER_REMOVED);
-            for (            MembershipListener listener : listeners) {
-              listener.memberRemoved(membershipEvent);
-            }
+            listener.memberAdded(event);
           }
         }
 );
       }
     }
-  }
-  clusterMembers.clear();
-  mapMembers.clear();
-  for (  Member member : setNew) {
-    mapMembers.put(((MemberImpl)member).getAddress(),member);
-    clusterMembers.put(member,member);
-  }
-  members.set(Collections.unmodifiableSet(setNew));
-  for (  Runnable notification : notifications) {
-    node.executorManager.getEventExecutorService().execute(notification);
+    for (    Member removedMember : removedMembers) {
+      membersAfterEvent.remove(removedMember);
+      final MembershipEvent event=new MembershipEvent(this,removedMember,MembershipEvent.MEMBER_REMOVED,unmodifiableSet(new LinkedHashSet<Member>(membersAfterEvent)));
+      for (      final MembershipListener listener : listeners) {
+        eventExecutor.executeOrderedRunnable(listener.hashCode(),new Runnable(){
+          public void run(){
+            listener.memberRemoved(event);
+          }
+        }
+);
+      }
+    }
   }
 }

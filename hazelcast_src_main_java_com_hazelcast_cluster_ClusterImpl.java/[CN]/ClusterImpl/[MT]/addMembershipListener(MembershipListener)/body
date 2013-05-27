@@ -1,3 +1,20 @@
 {
-  listeners.add(listener);
+  if (!(listener instanceof InitialMembershipListener)) {
+    listeners.add(listener);
+  }
+ else {
+synchronized (memberChangeMutex) {
+      if (!listeners.add(listener)) {
+        return;
+      }
+      final InitialMembershipListener initializingListener=(InitialMembershipListener)listener;
+      final InitialMembershipEvent event=new InitialMembershipEvent(this,getMembers());
+      node.executorManager.getEventExecutorService().executeOrderedRunnable(listener.hashCode(),new Runnable(){
+        public void run(){
+          initializingListener.init(event);
+        }
+      }
+);
+    }
+  }
 }
