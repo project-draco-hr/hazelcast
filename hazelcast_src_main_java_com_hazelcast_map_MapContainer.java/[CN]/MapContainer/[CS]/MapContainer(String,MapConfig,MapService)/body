@@ -1,5 +1,5 @@
 {
-  MapStore storeTemp=null;
+  Object store=null;
   this.name=name;
   this.mapConfig=mapConfig;
   this.mapService=mapService;
@@ -14,21 +14,26 @@
           factory=(MapStoreFactory)ClassLoaderUtil.newInstance(factoryClassName);
         }
       }
-      storeTemp=(MapStore)(factory == null ? mapStoreConfig.getImplementation() : factory.newMapStore(name,mapStoreConfig.getProperties()));
-      if (storeTemp == null) {
+      store=(factory == null ? mapStoreConfig.getImplementation() : factory.newMapStore(name,mapStoreConfig.getProperties()));
+      if (store == null) {
         String mapStoreClassName=mapStoreConfig.getClassName();
-        storeTemp=ClassLoaderUtil.newInstance(mapStoreClassName);
+        store=ClassLoaderUtil.newInstance(mapStoreClassName);
       }
     }
  catch (    Exception e) {
       ExceptionUtil.rethrow(e);
-      storeTemp=null;
+      store=null;
     }
+    storeWrapper=new MapStoreWrapper(store,mapConfig.getName(),mapStoreConfig.isEnabled());
   }
-  store=storeTemp;
-  if (store != null) {
+ else {
+    storeWrapper=null;
+  }
+  if (storeWrapper != null) {
     if (store instanceof MapLoaderLifecycleSupport) {
-      ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapConfig.getMapStoreConfig().getProperties(),name);
+synchronized (initMapStoreLock) {
+        ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapConfig.getMapStoreConfig().getProperties(),name);
+      }
     }
     if (nodeEngine.getClusterService().isMaster() && initialLoaded.compareAndSet(false,true)) {
       loadMapFromStore(true);
