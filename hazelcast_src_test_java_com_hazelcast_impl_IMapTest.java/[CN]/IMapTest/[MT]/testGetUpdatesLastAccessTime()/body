@@ -1,0 +1,20 @@
+{
+  Config config=new Config();
+  FactoryImpl mockFactory=mock(FactoryImpl.class);
+  Node node=new Node(mockFactory,config);
+  node.serviceThread=Thread.currentThread();
+  IMap imap=Hazelcast.getMap("c:myMap");
+  Object key="1";
+  Object value="istanbul";
+  Data dKey=toData(key);
+  Data dValue=toData(value);
+  imap.put(dKey,dValue);
+  MapEntry entry=imap.getMapEntry(dKey);
+  long firstAccessTime=entry.getLastAccessTime();
+  Thread.sleep(10);
+  assertTrue(imap.get(dKey).equals(value));
+  entry=imap.getMapEntry(dKey);
+  long secondAccessTime=entry.getLastAccessTime();
+  assertTrue("entry access time should have been updated on get()",secondAccessTime > firstAccessTime);
+  node.connectionManager.shutdown();
+}
