@@ -1,22 +1,15 @@
 {
   try {
-    final String ip=System.getProperty("join.ip");
-    if (ip == null) {
-      JoinRequest joinRequest=node.createJoinRequest();
-      for (; node.isActive() && currentTryCount.incrementAndGet() <= maxTryCount.get(); ) {
-        joinRequest.setTryCount(currentTryCount.get());
-        node.multicastService.send(joinRequest);
-        if (node.getMasterAddress() == null) {
-          Thread.sleep(publishInterval);
-        }
- else {
-          return node.getMasterAddress();
-        }
+    JoinRequest joinRequest=node.createJoinRequest();
+    while (node.isActive() && currentTryCount.incrementAndGet() <= maxTryCount.get()) {
+      joinRequest.setTryCount(currentTryCount.get());
+      node.multicastService.send(joinRequest);
+      if (node.getMasterAddress() == null) {
+        Thread.sleep(publishInterval);
       }
-    }
  else {
-      logger.log(Level.FINEST,"RETURNING join.ip");
-      return new Address(ip,config.getNetworkConfig().getPort());
+        return node.getMasterAddress();
+      }
     }
   }
  catch (  final Exception e) {
