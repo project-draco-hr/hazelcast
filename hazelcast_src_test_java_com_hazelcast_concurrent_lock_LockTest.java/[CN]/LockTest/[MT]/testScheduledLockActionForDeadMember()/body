@@ -1,17 +1,18 @@
 {
-  final StaticNodeFactory nodeFactory=createNodeFactory(2);
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   final HazelcastInstance h1=nodeFactory.newHazelcastInstance(new Config());
   final ILock lock1=h1.getLock("default");
   final HazelcastInstance h2=nodeFactory.newHazelcastInstance(new Config());
   final ILock lock2=h2.getLock("default");
+  final AtomicBoolean error=new AtomicBoolean(false);
   assertTrue(lock1.tryLock());
   new Thread(new Runnable(){
     public void run(){
       try {
         lock2.lock();
-        fail("Shouldn't be able to lock!");
+        error.set(true);
       }
- catch (      Throwable e) {
+ catch (      Throwable ignored) {
       }
     }
   }
@@ -20,5 +21,6 @@
   h2.getLifecycleService().shutdown();
   Thread.sleep(3000);
   lock1.unlock();
+  assertFalse(error.get());
   assertTrue(lock1.tryLock());
 }
