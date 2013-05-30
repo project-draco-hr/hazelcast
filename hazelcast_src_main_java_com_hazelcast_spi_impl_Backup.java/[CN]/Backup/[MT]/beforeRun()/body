@@ -1,18 +1,15 @@
 {
-  if (backupOp != null) {
-    final NodeEngine nodeEngine=getNodeEngine();
-    backupOp.setNodeEngine(nodeEngine);
-    backupOp.setResponseHandler(new ResponseHandler(){
-      public void sendResponse(      Object obj){
-        if (obj instanceof Throwable && !(obj instanceof RetryableException)) {
-          Throwable t=(Throwable)obj;
-          nodeEngine.getLogger(getClass()).log(Level.SEVERE,t.getMessage(),t);
-        }
-      }
+  final NodeEngine nodeEngine=getNodeEngine();
+  final int partitionId=getPartitionId();
+  final PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
+  final Address owner=partitionInfo.getReplicaAddress(getReplicaIndex());
+  if (!nodeEngine.getThisAddress().equals(owner)) {
+    valid=false;
+    final ILogger logger=getLogger();
+    Level level=Level.INFO;
+    if (owner == null) {
+      level=Level.FINEST;
     }
-);
-    backupOp.setCallerUuid(getCallerUuid());
-    OperationAccessor.setCallerAddress(backupOp,getCallerAddress());
-    OperationAccessor.setInvocationTime(backupOp,Clock.currentTimeMillis());
+    logger.log(level,"Wrong target! " + toString() + " cannot be processed! Target should be: "+ owner);
   }
 }

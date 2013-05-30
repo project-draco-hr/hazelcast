@@ -1,9 +1,24 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  final PartitionServiceImpl partitionService=(PartitionServiceImpl)nodeEngine.getPartitionService();
-  partitionService.updatePartitionReplicaVersions(getPartitionId(),replicaVersions,getReplicaIndex());
-  if (backupOp != null) {
-    final OperationService operationService=nodeEngine.getOperationService();
-    operationService.runOperation(backupOp);
+  if (valid) {
+    final NodeEngine nodeEngine=getNodeEngine();
+    final PartitionServiceImpl partitionService=(PartitionServiceImpl)nodeEngine.getPartitionService();
+    partitionService.updatePartitionReplicaVersions(getPartitionId(),replicaVersions,getReplicaIndex());
+    if (backupOp != null) {
+      backupOp.setNodeEngine(nodeEngine);
+      backupOp.setResponseHandler(new ResponseHandler(){
+        public void sendResponse(        Object obj){
+          if (obj instanceof Throwable && !(obj instanceof RetryableException)) {
+            Throwable t=(Throwable)obj;
+            nodeEngine.getLogger(getClass()).log(Level.SEVERE,t.getMessage(),t);
+          }
+        }
+      }
+);
+      backupOp.setCallerUuid(getCallerUuid());
+      OperationAccessor.setCallerAddress(backupOp,getCallerAddress());
+      OperationAccessor.setInvocationTime(backupOp,Clock.currentTimeMillis());
+      final OperationService operationService=nodeEngine.getOperationService();
+      operationService.runOperation(backupOp);
+    }
   }
 }
