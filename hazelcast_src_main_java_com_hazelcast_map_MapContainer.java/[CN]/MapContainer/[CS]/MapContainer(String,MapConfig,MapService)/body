@@ -48,7 +48,23 @@
       }
     }
  else {
-      mapReady=true;
+      try {
+        Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new MapIsReadyOperation(name),nodeEngine.getMasterAddress()).build();
+        Future future=invocation.invoke();
+        mapReady=(Boolean)future.get();
+        while (!mapReady) {
+          Thread.sleep(1000);
+          invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new MapIsReadyOperation(name),nodeEngine.getMasterAddress()).build();
+          future=invocation.invoke();
+          boolean temp=(Boolean)future.get();
+          if (!mapReady) {
+            mapReady=temp;
+          }
+        }
+      }
+ catch (      Exception e) {
+        ExceptionUtil.rethrow(e);
+      }
     }
     if (mapStoreConfig.getWriteDelaySeconds() > 0) {
       mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),false);
