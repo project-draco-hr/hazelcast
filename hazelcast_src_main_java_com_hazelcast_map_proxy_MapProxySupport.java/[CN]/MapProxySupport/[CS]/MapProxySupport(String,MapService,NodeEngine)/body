@@ -4,4 +4,27 @@
   mapConfig=service.getMapContainer(name).getMapConfig();
   localMapStats=service.getLocalMapStatsImpl(name);
   lockSupport=new LockProxySupport(new DefaultObjectNamespace(MapService.SERVICE_NAME,name));
+  List<EntryListenerConfig> listenerConfigs=mapConfig.getEntryListenerConfigs();
+  for (  EntryListenerConfig listenerConfig : listenerConfigs) {
+    EntryListener entryListener=null;
+    if (listenerConfig.getImplementation() != null) {
+      entryListener=listenerConfig.getImplementation();
+    }
+ else     if (listenerConfig.getClassName() != null) {
+      try {
+        entryListener=ClassLoaderUtil.newInstance(listenerConfig.getClassName());
+      }
+ catch (      Exception e) {
+        ExceptionUtil.rethrow(e);
+      }
+    }
+    if (entryListener != null) {
+      if (listenerConfig.isLocal()) {
+        addLocalEntryListener(entryListener);
+      }
+ else {
+        addEntryListenerInternal(entryListener,null,listenerConfig.isIncludeValue());
+      }
+    }
+  }
 }
