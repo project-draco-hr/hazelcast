@@ -1,0 +1,35 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance(new Config());
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(new Config());
+  warmUpPartitions(instance2,instance);
+  final int key;
+  if (localKey) {
+    key=generateKeyOwnedBy(instance);
+  }
+ else {
+    key=generateKeyNotOwnedBy(instance);
+  }
+  final ILock lock=instance.getLock(key);
+  final Thread thread=new Thread(new Runnable(){
+    public void run(){
+      lock.lock();
+    }
+  }
+);
+  thread.start();
+  thread.join();
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(3000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instance.getLifecycleService().shutdown();
+    }
+  }
+).start();
+  lock.lock();
+}

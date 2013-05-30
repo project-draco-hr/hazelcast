@@ -11,7 +11,7 @@
       if (factory == null) {
         String factoryClassName=mapStoreConfig.getFactoryClassName();
         if (factoryClassName != null && !"".equals(factoryClassName)) {
-          factory=(MapStoreFactory)ClassLoaderUtil.newInstance(factoryClassName);
+          factory=ClassLoaderUtil.newInstance(factoryClassName);
         }
       }
       store=(factory == null ? mapStoreConfig.getImplementation() : factory.newMapStore(name,mapStoreConfig.getProperties()));
@@ -21,8 +21,7 @@
       }
     }
  catch (    Exception e) {
-      ExceptionUtil.rethrow(e);
-      store=null;
+      throw ExceptionUtil.rethrow(e);
     }
     storeWrapper=new MapStoreWrapper(store,mapConfig.getName(),mapStoreConfig.isEnabled());
   }
@@ -31,9 +30,7 @@
   }
   if (storeWrapper != null) {
     if (store instanceof MapLoaderLifecycleSupport) {
-synchronized (initMapStoreLock) {
-        ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapConfig.getMapStoreConfig().getProperties(),name);
-      }
+      ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapConfig.getMapStoreConfig().getProperties(),name);
     }
     if (nodeEngine.getClusterService().isMaster() && initialLoaded.compareAndSet(false,true)) {
       loadMapFromStore(true);

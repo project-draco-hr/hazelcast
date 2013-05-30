@@ -1,0 +1,28 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final Config config=new Config();
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  warmUpPartitions(instance2,instance1);
+  final int key;
+  if (localKey) {
+    key=generateKeyOwnedBy(instance1);
+  }
+ else {
+    key=generateKeyNotOwnedBy(instance1);
+  }
+  final ILock lock=instance1.getLock(key);
+  lock.lock(3,TimeUnit.SECONDS);
+  Assert.assertTrue(lock.isLocked());
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      final ILock lock=instance2.getLock(key);
+      lock.lock();
+      latch.countDown();
+    }
+  }
+);
+  t.start();
+  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
+}

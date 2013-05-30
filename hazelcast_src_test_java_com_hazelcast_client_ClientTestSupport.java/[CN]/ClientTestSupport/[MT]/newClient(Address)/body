@@ -1,0 +1,17 @@
+{
+  Set<HazelcastInstance> instances=Hazelcast.getAllHazelcastInstances();
+  for (  HazelcastInstance hz : instances) {
+    Node node=TestUtil.getNode(hz);
+    MemberImpl m=(MemberImpl)hz.getCluster().getLocalMember();
+    if (m.getAddress().equals(nodeAddress)) {
+      if (TestProperties.isMockNetwork()) {
+        ClientEngineImpl engine=node.clientEngine;
+        return new MockSimpleClient(engine);
+      }
+ else {
+        return new SocketSimpleClient(node);
+      }
+    }
+  }
+  throw new IllegalArgumentException("Cannot connect to node: " + nodeAddress);
+}
