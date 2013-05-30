@@ -1,19 +1,30 @@
 {
   NodeEngine nodeEngine=mapService.getNodeEngine();
   Map values=storeWrapper.loadAll(keys.values());
+  final CountDownLatch latch=new CountDownLatch(keys.size());
   for (  Data dataKey : keys.keySet()) {
     Object key=keys.get(dataKey);
     Data dataValue=mapService.toData(values.get(key));
     int partitionId=nodeEngine.getPartitionService().getPartitionId(dataKey);
     PutFromLoadOperation operation=new PutFromLoadOperation(name,dataKey,dataValue,-1);
     operation.setNodeEngine(nodeEngine);
-    operation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+    operation.setResponseHandler(new ResponseHandler(){
+      @Override public void sendResponse(      Object obj){
+        latch.countDown();
+      }
+    }
+);
     operation.setPartitionId(partitionId);
     OperationAccessor.setCallerAddress(operation,nodeEngine.getThisAddress());
     operation.setServiceName(MapService.SERVICE_NAME);
     nodeEngine.getOperationService().executeOperation(operation);
   }
-  if (counter.decrementAndGet() <= 0) {
-    mapReady=true;
+  try {
+    if (latch.await(30,TimeUnit.SECONDS) && counter.decrementAndGet() <= 0) {
+      mapReady=true;
+    }
+  }
+ catch (  InterruptedException e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }
