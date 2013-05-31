@@ -3,4 +3,17 @@
   this.name=name;
   this.partitionId=nodeEngine.getPartitionService().getPartitionId(nodeEngine.toData(name));
   this.config=nodeEngine.getConfig().getQueueConfig(name);
+  final List<ItemListenerConfig> itemListenerConfigs=config.getItemListenerConfigs();
+  for (  ItemListenerConfig itemListenerConfig : itemListenerConfigs) {
+    ItemListener listener=itemListenerConfig.getImplementation();
+    try {
+      listener=listener == null ? (ItemListener)ClassLoaderUtil.newInstance(itemListenerConfig.getClassName()) : listener;
+    }
+ catch (    Exception e) {
+      e.printStackTrace();
+    }
+    if (listener != null) {
+      addItemListener(listener,itemListenerConfig.isIncludeValue());
+    }
+  }
 }
