@@ -16,22 +16,29 @@
     final long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(partitionId,totalBackupCount);
     final PartitionInfo partitionInfo=partitionService.getPartitionInfo(partitionId);
     for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
+      final Operation backupOp=backupAwareOp.getBackupOperation();
+      if (backupOp == null) {
+        throw new IllegalArgumentException("Backup operation should not be null!");
+      }
+      backupOp.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName);
+      final Backup backup=new Backup(backupOp,op.getCallerAddress(),replicaVersions,replicaIndex <= syncBackupCount);
+      backup.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName).setCallerUuid(nodeEngine.getLocalMember().getUuid());
+      OperationAccessor.setCallId(backup,op.getCallId());
       final Address target=partitionInfo.getReplicaAddress(replicaIndex);
       if (target != null) {
-        final Operation backupOp=backupAwareOp.getBackupOperation();
-        if (backupOp == null) {
-          throw new IllegalArgumentException("Backup operation should not be null!");
-        }
         if (target.equals(node.getThisAddress())) {
           throw new IllegalStateException("Normally shouldn't happen!!");
         }
  else {
-          backupOp.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName);
-          Backup backup=new Backup(backupOp,op.getCallerAddress(),replicaVersions,replicaIndex <= syncBackupCount);
-          backup.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName).setCallerUuid(nodeEngine.getLocalMember().getUuid());
-          OperationAccessor.setCallId(backup,op.getCallId());
           send(backup,target);
         }
+      }
+ else {
+        final RemoteCallKey key=new RemoteCallKey(op.getCallerAddress(),op.getCallId());
+        if (logger.isLoggable(Level.INFO)) {
+          logger.log(Level.INFO,"Scheduling -> " + backup);
+        }
+        backupScheduler.schedule(500,key,new ScheduledBackup(backup,partitionId,replicaIndex));
       }
     }
   }
