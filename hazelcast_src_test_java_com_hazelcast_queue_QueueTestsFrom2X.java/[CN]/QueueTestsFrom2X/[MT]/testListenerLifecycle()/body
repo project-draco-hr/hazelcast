@@ -1,0 +1,31 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=factory.newHazelcastInstance(new Config());
+  final long sleep=2000;
+  final String name="listenerLifecycle";
+  IQueue q=instance.getQueue(name);
+  final CountDownLatch qLatch=new CountDownLatch(3);
+  final ItemListener ql=new ItemListener(){
+    public void itemAdded(    ItemEvent itemEvent){
+      qLatch.countDown();
+    }
+    public void itemRemoved(    ItemEvent itemEvent){
+    }
+  }
+;
+  q.addItemListener(ql,false);
+  q.offer(1);
+  Thread.sleep(sleep);
+  q.destroy();
+  q=instance.getQueue(name);
+  String id=q.addItemListener(ql,false);
+  q.offer(2);
+  Thread.sleep(sleep);
+  q.removeItemListener(id);
+  q.offer(3);
+  Thread.sleep(sleep);
+  assertEquals(1,qLatch.getCount());
+  qLatch.countDown();
+  assertTrue("Remaining:" + qLatch.getCount(),qLatch.await(3,TimeUnit.SECONDS));
+  q.destroy();
+}

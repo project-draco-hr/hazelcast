@@ -1,0 +1,37 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final Collection<String> results=new CopyOnWriteArrayList<String>();
+  final HazelcastInstance hz1=factory.newHazelcastInstance(new Config());
+  final CountDownLatch latchOffer=new CountDownLatch(1);
+  final CountDownLatch latchTake=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        for (int i=0; i < 5; i++) {
+          results.add((String)hz1.getQueue("q").take());
+        }
+        latchTake.countDown();
+      }
+ catch (      InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+).start();
+  final HazelcastInstance hz2=factory.newHazelcastInstance(new Config());
+  new Thread(new Runnable(){
+    public void run(){
+      for (int i=0; i < 5; i++) {
+        hz2.getQueue("q").offer(Integer.toString(i));
+      }
+      latchOffer.countDown();
+    }
+  }
+).start();
+  Assert.assertTrue(latchOffer.await(10,TimeUnit.SECONDS));
+  Assert.assertTrue(latchTake.await(10,TimeUnit.SECONDS));
+  Assert.assertTrue(hz1.getQueue("q").isEmpty());
+  hz1.getLifecycleService().shutdown();
+  Assert.assertTrue(hz2.getQueue("q").isEmpty());
+  assertArrayEquals(new Object[]{"0","1","2","3","4"},results.toArray());
+}
