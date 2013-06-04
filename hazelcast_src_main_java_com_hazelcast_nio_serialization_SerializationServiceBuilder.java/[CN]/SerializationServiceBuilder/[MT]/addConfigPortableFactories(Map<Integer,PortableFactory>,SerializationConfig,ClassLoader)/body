@@ -1,0 +1,28 @@
+{
+  for (  Map.Entry<Integer,PortableFactory> entry : config.getPortableFactories().entrySet()) {
+    if (entry.getKey() <= 0) {
+      throw new IllegalArgumentException("PortableFactory factoryId must be positive! -> " + entry.getValue());
+    }
+    if (portableFactories.containsKey(entry.getKey())) {
+      throw new IllegalArgumentException("PortableFactory with factoryId '" + entry.getKey() + "' is already registered!");
+    }
+    portableFactories.put(entry.getKey(),entry.getValue());
+  }
+  final Map<Integer,String> portableFactoryClasses=config.getPortableFactoryClasses();
+  for (  Map.Entry<Integer,String> entry : portableFactoryClasses.entrySet()) {
+    if (entry.getKey() <= 0) {
+      throw new IllegalArgumentException("PortableFactory factoryId must be positive! -> " + entry.getValue());
+    }
+    if (portableFactories.containsKey(entry.getKey())) {
+      throw new IllegalArgumentException("PortableFactory with factoryId '" + entry.getKey() + "' is already registered!");
+    }
+    PortableFactory f;
+    try {
+      f=ClassLoaderUtil.newInstance(cl,entry.getValue());
+    }
+ catch (    Exception e) {
+      throw new HazelcastSerializationException(e);
+    }
+    portableFactories.put(entry.getKey(),f);
+  }
+}

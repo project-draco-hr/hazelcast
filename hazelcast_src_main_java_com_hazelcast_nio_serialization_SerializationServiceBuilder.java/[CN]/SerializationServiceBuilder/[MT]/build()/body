@@ -1,0 +1,49 @@
+{
+  if (version < 0) {
+    version=0;
+  }
+  if (config != null) {
+    addConfigDataSerializableFactories(dataSerializableFactories,config,classLoader);
+    addConfigPortableFactories(portableFactories,config,classLoader);
+    classDefinitions.addAll(config.getClassDefinitions());
+  }
+  final SerializationService ss=new SerializationServiceImpl(version,classLoader,dataSerializableFactories,portableFactories,classDefinitions,checkClassDefErrors,managedContext);
+  if (config != null) {
+    if (config.getGlobalSerializer() != null) {
+      GlobalSerializerConfig globalSerializerConfig=config.getGlobalSerializer();
+      TypeSerializer serializer=globalSerializerConfig.getImplementation();
+      if (serializer == null) {
+        try {
+          serializer=ClassLoaderUtil.newInstance(classLoader,globalSerializerConfig.getClassName());
+        }
+ catch (        Exception e) {
+          throw new HazelcastSerializationException(e);
+        }
+      }
+      ss.registerGlobal(serializer);
+    }
+    final Collection<TypeSerializerConfig> typeSerializers=config.getTypeSerializers();
+    for (    TypeSerializerConfig typeSerializerConfig : typeSerializers) {
+      TypeSerializer serializer=typeSerializerConfig.getImplementation();
+      if (serializer == null) {
+        try {
+          serializer=ClassLoaderUtil.newInstance(classLoader,typeSerializerConfig.getClassName());
+        }
+ catch (        Exception e) {
+          throw new HazelcastSerializationException(e);
+        }
+      }
+      Class typeClass=typeSerializerConfig.getTypeClass();
+      if (typeClass == null) {
+        try {
+          typeClass=ClassLoaderUtil.loadClass(classLoader,typeSerializerConfig.getTypeClassName());
+        }
+ catch (        ClassNotFoundException e) {
+          throw new HazelcastSerializationException(e);
+        }
+      }
+      ss.register(typeClass,serializer);
+    }
+  }
+  return ss;
+}

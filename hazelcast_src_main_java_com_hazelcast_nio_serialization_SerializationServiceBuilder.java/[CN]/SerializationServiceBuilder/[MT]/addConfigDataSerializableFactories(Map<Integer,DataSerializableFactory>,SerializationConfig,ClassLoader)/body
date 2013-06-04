@@ -1,0 +1,27 @@
+{
+  for (  Map.Entry<Integer,DataSerializableFactory> entry : config.getDataSerializableFactories().entrySet()) {
+    if (entry.getKey() <= 0) {
+      throw new IllegalArgumentException("DataSerializableFactory factoryId must be positive! -> " + entry.getValue());
+    }
+    if (dataSerializableFactories.containsKey(entry.getKey())) {
+      throw new IllegalArgumentException("DataSerializableFactory with factoryId '" + entry.getKey() + "' is already registered!");
+    }
+    dataSerializableFactories.put(entry.getKey(),entry.getValue());
+  }
+  for (  Map.Entry<Integer,String> entry : config.getDataSerializableFactoryClasses().entrySet()) {
+    if (entry.getKey() <= 0) {
+      throw new IllegalArgumentException("DataSerializableFactory factoryId must be positive! -> " + entry.getValue());
+    }
+    if (dataSerializableFactories.containsKey(entry.getKey())) {
+      throw new IllegalArgumentException("DataSerializableFactory with factoryId '" + entry.getKey() + "' is already registered!");
+    }
+    DataSerializableFactory f;
+    try {
+      f=ClassLoaderUtil.newInstance(cl,entry.getValue());
+    }
+ catch (    Exception e) {
+      throw new HazelcastSerializationException(e);
+    }
+    dataSerializableFactories.put(entry.getKey(),f);
+  }
+}

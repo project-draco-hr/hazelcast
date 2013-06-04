@@ -1,0 +1,31 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance hz=factory.newHazelcastInstance(new Config());
+  final String name="issue99TestQueueTakeAndDuringRollback";
+  final IQueue testQueue=hz.getQueue(name);
+  final CountDownLatch offerLatch=new CountDownLatch(2);
+  final CountDownLatch pollLatch=new CountDownLatch(2);
+  testQueue.addItemListener(new ItemListener<String>(){
+    public void itemAdded(    ItemEvent<String> item){
+      offerLatch.countDown();
+    }
+    public void itemRemoved(    ItemEvent<String> item){
+      pollLatch.countDown();
+    }
+  }
+,true);
+  final TransactionContext context=hz.newTransactionContext();
+  context.beginTransaction();
+  final TransactionalQueue<Object> queue=context.getQueue(name);
+  queue.offer("tx Hello");
+  queue.offer("tx World");
+  context.commitTransaction();
+  final TransactionContext context2=hz.newTransactionContext();
+  context2.beginTransaction();
+  final TransactionalQueue<Object> queue2=context2.getQueue(name);
+  Assert.assertEquals("tx Hello",queue2.poll());
+  Assert.assertEquals("tx World",queue2.poll());
+  context2.commitTransaction();
+  Assert.assertTrue("Remaining offer listener count: " + offerLatch.getCount(),offerLatch.await(2,TimeUnit.SECONDS));
+  Assert.assertTrue("Remaining poll listener count: " + pollLatch.getCount(),pollLatch.await(2,TimeUnit.SECONDS));
+}
