@@ -1,0 +1,26 @@
+{
+  final HazelcastInstance instance=createHazelcastInstanceFactory(1).newHazelcastInstance(new Config());
+  MultiMap<String,ComplexValue> multiMap=instance.getMultiMap("testContains");
+  assertTrue(multiMap.put("1",new ComplexValue("text",1)));
+  assertFalse(multiMap.put("1",new ComplexValue("text",1)));
+  assertFalse(multiMap.put("1",new ComplexValue("text",2)));
+  assertTrue(multiMap.containsValue(new ComplexValue("text",1)));
+  assertTrue(multiMap.containsValue(new ComplexValue("text",2)));
+  assertTrue(multiMap.remove("1",new ComplexValue("text",3)));
+  assertFalse(multiMap.remove("1",new ComplexValue("text",1)));
+  assertTrue(multiMap.put("1",new ComplexValue("text",1)));
+  assertTrue(multiMap.containsEntry("1",new ComplexValue("text",1)));
+  assertTrue(multiMap.containsEntry("1",new ComplexValue("text",2)));
+  assertTrue(multiMap.remove("1",new ComplexValue("text",1)));
+  MultiMapConfig multiMapConfigList=new MultiMapConfig();
+  multiMapConfigList.setName("testContains.list");
+  multiMapConfigList.setValueCollectionType("LIST");
+  instance.getConfig().addMultiMapConfig(multiMapConfigList);
+  MultiMap<String,ComplexValue> mmList=instance.getMultiMap("testContains.list");
+  assertTrue(mmList.put("1",new ComplexValue("text",1)));
+  assertTrue(mmList.put("1",new ComplexValue("text",1)));
+  assertTrue(mmList.put("1",new ComplexValue("text",2)));
+  assertEquals(3,mmList.size());
+  assertTrue(mmList.remove("1",new ComplexValue("text",4)));
+  assertEquals(2,mmList.size());
+}

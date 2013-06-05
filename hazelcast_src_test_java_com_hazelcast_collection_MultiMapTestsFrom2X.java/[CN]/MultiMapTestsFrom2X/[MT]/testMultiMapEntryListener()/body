@@ -1,0 +1,56 @@
+{
+  final HazelcastInstance instance=createHazelcastInstanceFactory(1).newHazelcastInstance(new Config());
+  MultiMap<String,String> map=instance.getMultiMap("testMultiMapEntryListener");
+  final CountDownLatch latchAdded=new CountDownLatch(3);
+  final CountDownLatch latchRemoved=new CountDownLatch(1);
+  final Set<String> expectedValues=new CopyOnWriteArraySet<String>();
+  expectedValues.add("hello");
+  expectedValues.add("world");
+  expectedValues.add("again");
+  map.addEntryListener(new EntryListener<String,String>(){
+    public void entryAdded(    EntryEvent<String,String> event){
+      String key=event.getKey();
+      String value=event.getValue();
+      if ("2".equals(key)) {
+        assertEquals("again",value);
+      }
+ else {
+        assertEquals("1",key);
+      }
+      assertTrue(expectedValues.contains(value));
+      expectedValues.remove(value);
+      latchAdded.countDown();
+    }
+    public void entryRemoved(    EntryEvent<String,String> event){
+      assertEquals("2",event.getKey());
+      assertEquals("again",event.getValue());
+      latchRemoved.countDown();
+    }
+    public void entryUpdated(    EntryEvent event){
+      throw new AssertionError("MultiMap cannot get update event!");
+    }
+    public void entryEvicted(    EntryEvent event){
+      entryRemoved(event);
+    }
+  }
+,true);
+  map.put("1","hello");
+  map.put("1","world");
+  map.put("2","again");
+  Collection<String> values=map.get("1");
+  assertEquals(2,values.size());
+  assertTrue(values.contains("hello"));
+  assertTrue(values.contains("world"));
+  assertEquals(1,map.get("2").size());
+  assertEquals(3,map.size());
+  map.remove("2");
+  assertEquals(2,map.size());
+  try {
+    assertTrue(latchAdded.await(5,TimeUnit.SECONDS));
+    assertTrue(latchRemoved.await(5,TimeUnit.SECONDS));
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+    assertFalse(e.getMessage(),true);
+  }
+}
