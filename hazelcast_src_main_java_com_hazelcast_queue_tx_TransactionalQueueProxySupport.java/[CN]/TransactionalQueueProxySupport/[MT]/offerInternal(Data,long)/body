@@ -1,15 +1,15 @@
 {
   throwExceptionIfNull(data);
-  TxnReserveOfferOperation operation=new TxnReserveOfferOperation(name,timeout,offerIdQueue.size());
+  TxnReserveOfferOperation operation=new TxnReserveOfferOperation(name,timeout,offeredQueue.size());
   try {
     Invocation invocation=getNodeEngine().getOperationService().createInvocationBuilder(QueueService.SERVICE_NAME,operation,partitionId).build();
     Future<Long> f=invocation.invoke();
     Long itemId=f.get();
     if (itemId != null) {
-      if (offerIdQueue.contains(itemId) || pollIdQueue.contains(itemId)) {
+      if (!itemIdSet.add(itemId)) {
         throw new TransactionException("Duplicate itemId: " + itemId);
       }
-      offerIdQueue.offer(new QueueItem(null,itemId,data));
+      offeredQueue.offer(new QueueItem(null,itemId,data));
       tx.addTransactionLog(new QueueTransactionLog(itemId,name,partitionId,new TxnOfferOperation(name,itemId,data)));
       return true;
     }
