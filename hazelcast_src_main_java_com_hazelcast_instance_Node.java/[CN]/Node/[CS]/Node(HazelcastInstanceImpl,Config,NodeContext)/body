@@ -2,15 +2,16 @@
   this.hazelcastInstance=hazelcastInstance;
   this.threadGroup=hazelcastInstance.threadGroup;
   this.config=config;
+  configClassLoader=config.getClassLoader();
   this.groupProperties=new GroupProperties(config);
-  SerializationServiceImpl ss;
+  SerializationService ss;
   try {
-    ss=new SerializationServiceImpl(config.getSerializationConfig(),hazelcastInstance.managedContext);
+    ss=new SerializationServiceBuilder().setClassLoader(configClassLoader).setConfig(config.getSerializationConfig()).setManagedContext(hazelcastInstance.managedContext).build();
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  serializationService=ss;
+  serializationService=(SerializationServiceImpl)ss;
   systemLogService=new SystemLogService(this);
   final AddressPicker addressPicker=nodeContext.createAddressPicker(this);
   try {

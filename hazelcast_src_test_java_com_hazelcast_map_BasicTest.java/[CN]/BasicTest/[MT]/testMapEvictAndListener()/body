@@ -1,0 +1,33 @@
+{
+  IMap<String,String> map=getInstance().getMap("testMapEvictAndListener");
+  String a="/home/data/file1.dat";
+  String b="/home/data/file2.dat";
+  List<String> list=new CopyOnWriteArrayList<String>();
+  list.add(a);
+  list.add(b);
+  final List<String> newList=new CopyOnWriteArrayList<String>();
+  final CountDownLatch latch=new CountDownLatch(list.size());
+  map.addEntryListener(new EntryListener<String,String>(){
+    public void entryAdded(    EntryEvent<String,String> event){
+      System.out.println(event);
+    }
+    public void entryRemoved(    EntryEvent<String,String> event){
+      System.out.println(event);
+    }
+    public void entryUpdated(    EntryEvent<String,String> event){
+      System.out.println(event);
+    }
+    public void entryEvicted(    EntryEvent<String,String> event){
+      System.out.println(event);
+      newList.add(event.getValue());
+      latch.countDown();
+    }
+  }
+,true);
+  map.put("a",list.get(0),1,TimeUnit.SECONDS);
+  Thread.sleep(1100);
+  map.put("a",list.get(1),1,TimeUnit.SECONDS);
+  assertTrue(latch.await(20,TimeUnit.SECONDS));
+  assertEquals(list.get(0),newList.get(0));
+  assertEquals(list.get(1),newList.get(1));
+}
