@@ -1,6 +1,6 @@
 {
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final Collection<String> results=new CopyOnWriteArrayList<String>();
+  final Collection<String> results=new ArrayList<String>(5);
   final HazelcastInstance hz1=factory.newHazelcastInstance(new Config());
   final CountDownLatch latchOffer=new CountDownLatch(1);
   final CountDownLatch latchTake=new CountDownLatch(1);
@@ -22,13 +22,15 @@
   new Thread(new Runnable(){
     public void run(){
       for (int i=0; i < 5; i++) {
-        hz2.getQueue("q").offer(Integer.toString(i));
+        boolean offered=hz2.getQueue("q").offer(Integer.toString(i));
+        System.err.println("offered: " + offered);
       }
+      System.err.println("done");
       latchOffer.countDown();
     }
   }
 ).start();
-  Assert.assertTrue(latchOffer.await(10,TimeUnit.SECONDS));
+  Assert.assertTrue(latchOffer.await(100,TimeUnit.SECONDS));
   Assert.assertTrue(latchTake.await(10,TimeUnit.SECONDS));
   Assert.assertTrue(hz1.getQueue("q").isEmpty());
   hz1.getLifecycleService().shutdown();
