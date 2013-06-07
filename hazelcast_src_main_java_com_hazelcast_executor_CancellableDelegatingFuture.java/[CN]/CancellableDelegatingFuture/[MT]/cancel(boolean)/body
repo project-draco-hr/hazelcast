@@ -1,0 +1,29 @@
+{
+  if (isDone() || cancelled) {
+    return false;
+  }
+  final CancellationOperation op=new CancellationOperation(uuid,mayInterruptIfRunning);
+  final Invocation inv;
+  if (partitionId > -1) {
+    inv=nodeEngine.getOperationService().createInvocationBuilder(DistributedExecutorService.SERVICE_NAME,op,partitionId).build();
+  }
+ else {
+    inv=nodeEngine.getOperationService().createInvocationBuilder(DistributedExecutorService.SERVICE_NAME,op,target).build();
+  }
+  final Future f=inv.invoke();
+  try {
+    final Boolean b=(Boolean)f.get();
+    if (b != null && b) {
+      setError(new CancellationException());
+      cancelled=true;
+      return true;
+    }
+    return false;
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+ finally {
+    setDone();
+  }
+}
