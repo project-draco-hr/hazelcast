@@ -4,7 +4,7 @@
     key=URLDecoder.decode(incrementCommand.getKey(),"UTF-8");
   }
  catch (  UnsupportedEncodingException e) {
-    logger.log(Level.WARNING,e.getMessage(),e);
+    throw new HazelcastException(e);
   }
   String mapName=DefaultMapName;
   int index=key.indexOf(':');
@@ -39,11 +39,11 @@
         entry=new MemcacheEntry(incrementCommand.getKey(),textCommandService.toByteArray(value),0);
       }
  catch (      Exception e) {
-        logger.log(Level.WARNING,e.getMessage(),e);
+        throw ExceptionUtil.rethrow(e);
       }
     }
     final byte[] value1=entry.getValue();
-    final long current=value1.equals("") ? 0 : byteArrayToLong(value1);
+    final long current=(value1 == null || value1.length == 0) ? 0 : byteArrayToLong(value1);
     long result=-1;
     if (incrementCommand.getType() == TextCommandType.INCREMENT) {
       result=current + incrementCommand.getValue();

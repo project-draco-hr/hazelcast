@@ -1,6 +1,9 @@
 {
   final Object valueBeforeTxn=getService().toObject(putInternal(getService().toData(key),getService().toData(value)));
-  Object currentValue=txMap.get(key);
-  if (value != null)   txMap.put(key,value);
-  return currentValue == null ? valueBeforeTxn : checkIfNull(currentValue);
+  TxnValueWrapper currentValue=txMap.get(key);
+  if (value != null) {
+    TxnValueWrapper wrapper=valueBeforeTxn == null ? new TxnValueWrapper(value,TxnValueWrapper.Type.NEW) : new TxnValueWrapper(value,TxnValueWrapper.Type.UPDATED);
+    txMap.put(key,wrapper);
+  }
+  return currentValue == null ? valueBeforeTxn : checkIfRemoved(currentValue);
 }

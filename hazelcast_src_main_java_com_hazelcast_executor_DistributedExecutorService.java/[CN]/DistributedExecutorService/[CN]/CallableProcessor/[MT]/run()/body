@@ -3,14 +3,30 @@
   startExecution(name,start - creationTime);
   Object result=null;
   try {
-    result=callable.call();
+    super.run();
+    result=get();
   }
  catch (  Exception e) {
-    nodeEngine.getLogger(DistributedExecutorService.class.getName()).log(Level.FINEST,"While executing callable: " + callable,e);
+    final ILogger logger=getLogger();
+    logger.log(Level.FINEST,"While executing callable: " + callableToString,e);
     result=e;
   }
  finally {
-    responseHandler.sendResponse(result);
-    finishExecution(name,Clock.currentTimeMillis() - start);
+    if (uuid != null) {
+      submittedTasks.remove(uuid);
+    }
+    final boolean cancelled=isCancelled();
+    try {
+      responseHandler.sendResponse(result);
+    }
+ catch (    ResponseAlreadySentException e) {
+      if (!cancelled) {
+        final ILogger logger=getLogger();
+        logger.log(Level.SEVERE,e.getMessage(),e);
+      }
+    }
+    if (!cancelled) {
+      finishExecution(name,Clock.currentTimeMillis() - start);
+    }
   }
 }

@@ -1,17 +1,19 @@
 {
-  Object current=txMap.get(key);
-  boolean haveTxnPast=current != null;
+  TxnValueWrapper wrapper=txMap.get(key);
+  boolean haveTxnPast=wrapper != null;
   if (haveTxnPast) {
-    if (!current.equals(oldValue)) {
+    if (!wrapper.value.equals(oldValue)) {
       return false;
     }
-    setInternal(getService().toData(key),getService().toData(newValue));
-    txMap.put(key,newValue);
+    putInternal(getService().toData(key),getService().toData(newValue));
+    txMap.put(key,new TxnValueWrapper(wrapper.value,TxnValueWrapper.Type.UPDATED));
     return true;
   }
  else {
     boolean success=replaceIfSameInternal(getService().toData(key),getService().toData(oldValue),getService().toData(newValue));
-    if (success)     txMap.put(key,newValue);
+    if (success) {
+      txMap.put(key,new TxnValueWrapper(newValue,TxnValueWrapper.Type.UPDATED));
+    }
     return success;
   }
 }

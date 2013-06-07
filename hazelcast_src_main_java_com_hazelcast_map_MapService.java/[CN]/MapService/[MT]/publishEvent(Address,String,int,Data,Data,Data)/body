@@ -21,9 +21,9 @@
         value=value != null ? value : toObject(dataValue);
         testValue=value;
       }
-      key=key != null ? key : toObject(key);
+      key=key != null ? key : toObject(dataKey);
       QueryEventFilter queryEventFilter=(QueryEventFilter)filter;
-      QueryEntry entry=new QueryEntry(getSerializationService(),dataKey,dataKey,testValue);
+      QueryEntry entry=new QueryEntry(getSerializationService(),dataKey,key,testValue);
       if (queryEventFilter.eval(entry)) {
         if (queryEventFilter.isIncludeValue()) {
           registrationsWithValue.add(candidate);
@@ -45,6 +45,9 @@
   }
   if (registrationsWithValue.isEmpty() && registrationsWithoutValue.isEmpty())   return;
   String source=nodeEngine.getThisAddress().toString();
+  if (eventType == EntryEvent.TYPE_REMOVED || eventType == EntryEvent.TYPE_EVICTED) {
+    dataValue=dataValue != null ? dataValue : dataOldValue;
+  }
   EventData event=new EventData(source,mapName,caller,dataKey,dataValue,dataOldValue,eventType);
   nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithValue,event);
   nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithoutValue,event.cloneWithoutValues());

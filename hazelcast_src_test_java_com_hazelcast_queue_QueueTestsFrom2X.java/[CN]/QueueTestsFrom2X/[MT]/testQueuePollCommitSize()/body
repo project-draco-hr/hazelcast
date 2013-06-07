@@ -1,0 +1,21 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=factory.newHazelcastInstance(new Config());
+  final HazelcastInstance instance2=factory.newHazelcastInstance(new Config());
+  final TransactionContext context=instance1.newTransactionContext();
+  context.beginTransaction();
+  TransactionalQueue txnQ1=context.getQueue("testQueuePollCommitSize");
+  TransactionalQueue txnQ2=context.getQueue("testQueuePollCommitSize");
+  txnQ1.offer("item1");
+  txnQ1.offer("item2");
+  assertEquals(2,txnQ1.size());
+  assertEquals(2,txnQ2.size());
+  assertEquals("item1",txnQ1.poll());
+  assertEquals(1,txnQ1.size());
+  assertEquals(1,txnQ2.size());
+  context.commitTransaction();
+  assertEquals(1,instance1.getQueue("testQueuePollCommitSize").size());
+  assertEquals(1,instance2.getQueue("testQueuePollCommitSize").size());
+  assertEquals("item2",instance1.getQueue("testQueuePollCommitSize").poll());
+  assertEquals(0,instance1.getQueue("testQueuePollCommitSize").size());
+}

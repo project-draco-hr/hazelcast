@@ -8,7 +8,7 @@
     final ReplicaSyncRequest syncRequest=new ReplicaSyncRequest();
     syncRequest.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
     final ReplicaSyncInfo currentSyncInfo=replicaSyncRequests.get(partitionId);
-    final ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,target);
+    final ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,replicaIndex,target);
     boolean sendRequest=false;
     if (currentSyncInfo == null) {
       sendRequest=replicaSyncRequests.putIfAbsent(partitionId,syncInfo) == null;
@@ -28,6 +28,7 @@
       if (logger.isLoggable(level)) {
         logger.log(level,"Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
       }
+      replicaSyncScheduler.schedule(15000,partitionId,syncInfo);
       nodeEngine.getOperationService().send(syncRequest,target);
     }
   }

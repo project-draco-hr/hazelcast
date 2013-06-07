@@ -1,0 +1,25 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance h1=factory.newHazelcastInstance(new Config());
+  HazelcastInstance h2=factory.newHazelcastInstance(new Config());
+  Queue<String> q1=h1.getQueue("q");
+  Queue<String> q2=h2.getQueue("q");
+  for (int i=0; i < 5; i++) {
+    q1.offer("item" + i);
+  }
+  assertEquals(5,q1.size());
+  assertEquals(5,q2.size());
+  assertEquals("item0",q2.poll());
+  assertEquals("item1",q2.poll());
+  assertEquals("item2",q2.poll());
+  assertEquals(2,q1.size());
+  assertEquals(2,q2.size());
+  h1.getLifecycleService().shutdown();
+  assertEquals(2,q2.size());
+  h1=factory.newHazelcastInstance(new Config());
+  q1=h1.getQueue("q");
+  assertEquals(2,q1.size());
+  assertEquals(2,q2.size());
+  h2.getLifecycleService().shutdown();
+  assertEquals(2,q1.size());
+}

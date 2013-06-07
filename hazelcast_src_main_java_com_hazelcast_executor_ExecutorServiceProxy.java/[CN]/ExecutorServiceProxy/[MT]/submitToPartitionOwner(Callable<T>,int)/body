@@ -4,6 +4,19 @@
     throw new RejectedExecutionException(getRejectionMessage());
   }
   final NodeEngine nodeEngine=getNodeEngine();
-  Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(DistributedExecutorService.SERVICE_NAME,new CallableTaskOperation<T>(name,task),partitionId).build();
-  return invoke(inv);
+  final String uuid=UUID.randomUUID().toString();
+  Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(DistributedExecutorService.SERVICE_NAME,new CallableTaskOperation(name,uuid,task),partitionId).build();
+  final boolean sync=checkSync();
+  final Future future=inv.invoke();
+  if (sync) {
+    Object response;
+    try {
+      response=future.get();
+    }
+ catch (    Exception e) {
+      response=e;
+    }
+    return new CompletedFuture<T>(nodeEngine.getSerializationService(),response);
+  }
+  return new CancellableDelegatingFuture<T>(future,nodeEngine,uuid,partitionId);
 }

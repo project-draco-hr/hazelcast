@@ -4,16 +4,12 @@
   final String name="defQueue";
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(insCount);
   final HazelcastInstance[] instances=factory.newInstances(config);
-  boolean b=instances[0].executeTransaction(new TransactionOptions().setTransactionType(TransactionOptions.TransactionType.LOCAL),new TransactionalTask<Boolean>(){
-    public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
-      TransactionalQueue<String> q=context.getQueue(name);
-      assertTrue(q.offer("ali"));
-      String s=q.poll();
-      assertNull(s);
-      return true;
-    }
-  }
-);
-  assertTrue(b);
-  assertEquals(1,getQueue(instances,name).size());
+  final TransactionContext context=instances[0].newTransactionContext();
+  context.beginTransaction();
+  TransactionalQueue<String> q=context.getQueue(name);
+  assertTrue(q.offer("ali"));
+  String s=q.poll();
+  assertEquals("ali",s);
+  context.commitTransaction();
+  assertEquals(0,getQueue(instances,name).size());
 }
