@@ -31,7 +31,8 @@
           service=createServiceObject(serviceConfig.getClassName());
         }
         if (service != null) {
-          registerService(serviceConfig.getName(),service,serviceConfig.getProperties());
+          registerService(serviceConfig.getName(),service);
+          serviceProps.put(serviceConfig.getName(),serviceConfig.getProperties());
         }
       }
     }
@@ -39,11 +40,13 @@
  else {
     serviceProps=Collections.emptyMap();
   }
-  for (  Object service : services.values()) {
-    if (service instanceof ManagedService) {
+  for (  ServiceInfo serviceInfo : services.values()) {
+    final Object service=serviceInfo.getService();
+    if (serviceInfo.isManagedService()) {
       try {
         logger.log(Level.FINEST,"Initializing service -> " + service);
-        ((ManagedService)service).init(nodeEngine,serviceProps.get(((ManagedService)service).getServiceName()));
+        final Properties props=serviceProps.get(serviceInfo.getName());
+        ((ManagedService)service).init(nodeEngine,props != null ? props : new Properties());
       }
  catch (      Throwable t) {
         logger.log(Level.SEVERE,"Error while initializing service: " + t.getMessage(),t);
