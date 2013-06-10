@@ -18,8 +18,16 @@
 );
   }
   latch.await(2,TimeUnit.MINUTES);
+  final Future<Boolean> f=executorService.submit(new CancellationAwareTask(3000));
+  f.cancel(true);
+  try {
+    f.get();
+  }
+ catch (  CancellationException e) {
+  }
   final LocalExecutorStats stats=executorService.getLocalExecutorStats();
-  Assert.assertEquals(k,stats.getStartedTaskCount());
+  Assert.assertEquals(k + 1,stats.getStartedTaskCount());
   Assert.assertEquals(k,stats.getCompletedTaskCount());
   Assert.assertEquals(0,stats.getPendingTaskCount());
+  Assert.assertEquals(1,stats.getCancelledTaskCount());
 }

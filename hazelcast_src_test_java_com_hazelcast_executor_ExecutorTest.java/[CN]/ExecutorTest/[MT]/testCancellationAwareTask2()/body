@@ -1,0 +1,20 @@
+{
+  Callable task1=new CancellationAwareTask(5000);
+  ExecutorService executor=createSingleNodeExecutorService("testCancellationAwareTask",1);
+  executor.submit(task1);
+  Callable task2=new BasicTestTask();
+  Future future=executor.submit(task2);
+  assertFalse(future.isDone());
+  assertTrue(future.cancel(true));
+  assertTrue(future.isCancelled());
+  assertTrue(future.isDone());
+  try {
+    future.get();
+    fail("Should not complete the task successfully");
+  }
+ catch (  CancellationException expected) {
+  }
+catch (  Exception e) {
+    fail("Unexpected exception " + e);
+  }
+}
