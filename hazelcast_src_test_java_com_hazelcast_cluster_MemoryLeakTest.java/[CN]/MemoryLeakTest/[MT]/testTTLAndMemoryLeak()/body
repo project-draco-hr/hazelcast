@@ -1,0 +1,44 @@
+{
+  System.setProperty(GroupProperties.PROP_LOG_STATE,"true");
+  Runtime.getRuntime().gc();
+  long usedMemoryInit=getUsedMemoryAsMB();
+  Config config=new Config();
+  MapConfig mapConfig=config.getMapConfig("default");
+  mapConfig.setTimeToLiveSeconds(15);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h4=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance[] instances=new HazelcastInstance[4];
+  instances[0]=h1;
+  instances[1]=h2;
+  instances[2]=h3;
+  instances[3]=h4;
+  IMap map1=h1.getMap("default");
+  final int size=10000;
+  for (int i=0; i < size; i++) {
+    map1.put(i,new byte[10000]);
+  }
+  long usedMemoryStart=getUsedMemoryAsMB();
+  assertTrue("UsedMemoryStart: " + usedMemoryStart,usedMemoryStart > 200);
+  final ExecutorService es=Executors.newFixedThreadPool(4);
+  final CountDownLatch latch=new CountDownLatch(4);
+  for (int a=0; a < 4; a++) {
+    final int t=a;
+    es.execute(new Runnable(){
+      public void run(){
+        for (int i=0; i < size; i++) {
+          instances[t].getMap("default").get(i);
+        }
+        latch.countDown();
+      }
+    }
+);
+  }
+  assertTrue(latch.await(20,TimeUnit.SECONDS));
+  es.shutdown();
+  assertTrue(es.awaitTermination(5,TimeUnit.SECONDS));
+  assertTrue(waitForCleanup(200,instances));
+  waitForGC(25 + usedMemoryInit,200);
+  System.setProperty(GroupProperties.PROP_LOG_STATE,"false");
+}
