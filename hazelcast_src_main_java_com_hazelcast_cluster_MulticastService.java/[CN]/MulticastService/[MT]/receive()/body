@@ -1,8 +1,5 @@
 {
-  final BufferObjectDataOutput out=receiveOutput;
   try {
-    out.reset();
-    inflater.reset();
     try {
       multicastSocket.receive(datagramPacketReceive);
     }
@@ -10,19 +7,25 @@
       return null;
     }
     try {
-      inflater.setInput(datagramPacketReceive.getData(),datagramPacketReceive.getOffset(),datagramPacketReceive.getLength());
-      final int count=inflater.inflate(out.getBuffer());
-      out.position(count);
-      ObjectDataInput input=node.getSerializationService().createObjectDataInput(out.toByteArray());
+      final byte[] data=datagramPacketReceive.getData();
+      final int offset=datagramPacketReceive.getOffset();
+      final int length=datagramPacketReceive.getLength();
+      final BufferObjectDataInput input=node.getSerializationService().createObjectDataInput(data);
+      input.position(offset);
       final byte packetVersion=input.readByte();
       if (packetVersion != Packet.PACKET_VERSION) {
         logger.log(Level.WARNING,"Received a JoinRequest with different packet version: " + packetVersion);
         return null;
       }
-      return input.readObject();
+      try {
+        return input.readObject();
+      }
+  finally {
+        input.close();
+      }
     }
  catch (    Exception e) {
-      if (e instanceof EOFException || e instanceof DataFormatException) {
+      if (e instanceof EOFException) {
         logger.log(Level.WARNING,"Received data format is invalid." + " (An old version of Hazelcast may be running here.)",e);
       }
  else {
