@@ -4,25 +4,18 @@
     throw new IllegalArgumentException("Target address is required!");
   }
   final ObjectPool<ConnectionWrapper> pool=getConnectionPool(address);
+  if (pool == null) {
+    return null;
+  }
   Connection connection=null;
   try {
-    connection=pool == null ? getRandomConnection() : pool.take();
+    connection=pool.take();
   }
  catch (  Exception e) {
-    e.printStackTrace();
   }
-  if (connection == null) {
-    checkLive();
-    try {
-      Thread.sleep(100);
-    }
- catch (    InterruptedException ignored) {
-    }
-    return getRandomConnection();
-  }
-  if (!heartbeat.checkHeartBeat(connection)) {
+  if (connection != null && !heartbeat.checkHeartBeat(connection)) {
     connection.close();
-    return getRandomConnection();
+    connection=null;
   }
   return connection;
 }
