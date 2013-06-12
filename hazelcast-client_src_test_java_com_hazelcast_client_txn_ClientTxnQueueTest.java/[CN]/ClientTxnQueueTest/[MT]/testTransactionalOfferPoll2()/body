@@ -1,0 +1,35 @@
+{
+  final String name0="defQueue0";
+  final String name1="defQueue1";
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      try {
+        latch.await(5,TimeUnit.SECONDS);
+        sleep(3000);
+        hz.getQueue(name0).offer("item0");
+      }
+ catch (      InterruptedException ignored) {
+      }
+    }
+  }
+.start();
+  final TransactionContext context=hz.newTransactionContext();
+  context.beginTransaction();
+  TransactionalQueue<String> q0=context.getQueue(name0);
+  TransactionalQueue<String> q1=context.getQueue(name1);
+  String s=null;
+  latch.countDown();
+  try {
+    s=q0.poll(10,TimeUnit.SECONDS);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+    fail(e.getMessage());
+  }
+  assertEquals("item0",s);
+  q1.offer(s);
+  context.commitTransaction();
+  assertEquals(0,hz.getQueue(name0).size());
+  assertEquals("item0",hz.getQueue(name1).poll());
+}

@@ -1,0 +1,40 @@
+{
+  if (initialized) {
+    MemberGroupFactory mgf=memberGroupFactory;
+    final Collection<MemberGroup> memberGroups=mgf.createMemberGroups(node.getClusterService().getMembers());
+    if (memberGroups.size() < 2)     return false;
+    int groups=0;
+    for (    MemberGroup memberGroup : memberGroups) {
+      if (memberGroup.size() > 0) {
+        groups++;
+      }
+    }
+    if (groups < 2)     return false;
+    final int activeSize=activeMigrations.size();
+    if (activeSize != 0) {
+      logger.log(Level.INFO,"Waiting for active migration tasks: " + activeSize);
+      return true;
+    }
+    final int queueSize=migrationQueue.size();
+    if (queueSize == 0) {
+      for (      PartitionInfo partition : partitions) {
+        if (partition.getReplicaAddress(1) == null) {
+          logger.log(Level.INFO,"Should take backup of partition: " + partition.getPartitionId());
+          return true;
+        }
+ else {
+          final int replicaSyncProcesses=replicaSyncProcessCount.get();
+          if (replicaSyncProcesses > 0) {
+            logger.log(Level.INFO,"Processing replica sync requests: " + replicaSyncProcesses);
+            return true;
+          }
+        }
+      }
+    }
+ else {
+      logger.log(Level.INFO,"Waiting for active migration tasks: " + queueSize);
+      return true;
+    }
+  }
+  return false;
+}

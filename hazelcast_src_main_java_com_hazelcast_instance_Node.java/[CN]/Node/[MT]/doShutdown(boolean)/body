@@ -2,10 +2,10 @@
   long start=Clock.currentTimeMillis();
   logger.log(Level.FINEST,"** we are being asked to shutdown when active = " + String.valueOf(active));
   if (!force && isActive()) {
-    partitionService.sendReplicaVersionCheckTasks();
     final int maxWaitSeconds=groupProperties.GRACEFUL_SHUTDOWN_MAX_WAIT.getInteger();
     int waitSeconds=0;
     do {
+      partitionService.sendReplicaVersionCheckOperations();
       try {
         Thread.sleep(500);
       }
@@ -18,7 +18,9 @@
     }
   }
   if (isActive()) {
-    clusterService.sendShutdownMessage();
+    if (!force) {
+      clusterService.sendShutdownMessage();
+    }
     joined.set(false);
     setActive(false);
     setMasterAddress(null);

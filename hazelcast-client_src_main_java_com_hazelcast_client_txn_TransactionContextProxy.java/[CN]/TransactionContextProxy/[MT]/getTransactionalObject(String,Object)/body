@@ -1,0 +1,31 @@
+{
+  if (transaction.getState() != Transaction.State.ACTIVE) {
+    throw new TransactionNotActiveException("No transaction is found while accessing " + "transactional object -> " + serviceName + "["+ id+ "]!");
+  }
+  TransactionalObjectKey key=new TransactionalObjectKey(serviceName,id);
+  TransactionalObject obj=txnObjectMap.get(key);
+  if (obj == null) {
+    if (serviceName.equals(QueueService.SERVICE_NAME)) {
+      obj=new ClientTxnQueueProxy(String.valueOf(id),this);
+    }
+ else     if (serviceName.equals(MapService.SERVICE_NAME)) {
+      obj=new ClientTxnMapProxy(String.valueOf(id),this);
+    }
+ else     if (serviceName.equals(CollectionService.SERVICE_NAME)) {
+      CollectionProxyId proxyId=(CollectionProxyId)id;
+      if (proxyId.getType().equals(CollectionProxyType.MULTI_MAP)) {
+        obj=new ClientTxnMultiMapProxy(proxyId,this);
+      }
+ else       if (proxyId.getType().equals(CollectionProxyType.LIST)) {
+        obj=new ClientTxnListProxy(proxyId,this);
+      }
+ else       if (proxyId.getType().equals(CollectionProxyType.SET)) {
+        obj=new ClientTxnSetProxy(proxyId,this);
+      }
+    }
+ else {
+      throw new IllegalArgumentException("Service[" + serviceName + "] is not transactional!");
+    }
+  }
+  return (T)obj;
+}

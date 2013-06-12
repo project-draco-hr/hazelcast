@@ -1,0 +1,21 @@
+{
+  final TransactionContext context=hz.newTransactionContext();
+  CountDownLatch latch=new CountDownLatch(1);
+  try {
+    context.beginTransaction();
+    assertNotNull(context.getTxnId());
+    final TransactionalQueue queue=context.getQueue("test");
+    queue.offer("item");
+    server.getLifecycleService().shutdown();
+    context.commitTransaction();
+    fail("commit should throw exception!!!");
+  }
+ catch (  Exception e) {
+    context.rollbackTransaction();
+    latch.countDown();
+  }
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  final IQueue<Object> q=hz.getQueue("test");
+  assertNull(q.poll());
+  assertEquals(0,q.size());
+}
