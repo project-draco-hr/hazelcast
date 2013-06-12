@@ -1,0 +1,25 @@
+{
+  Map<String,Address> uuidToAddress=new HashMap<String,Address>(members.size());
+  for (  Member member : members) {
+    uuidToAddress.put(member.getUuid(),((MemberImpl)member).getAddress());
+  }
+  for (  LockResource lock : locks) {
+    if (lock.isLocked()) {
+      Integer index=addressIndexes.get(uuidToAddress.get(lock.getOwner()));
+      if (index == null) {
+        index=-1;
+      }
+      lockInfos.add(new LockInfo(lock.getOwner(),String.valueOf(lock.getKey()),lock.getAcquireTime(),index,lock.getLockCount()));
+    }
+  }
+  lockTotalNum=lockInfos.size();
+  Collections.sort(lockInfos,new Comparator<LockInfo>(){
+    public int compare(    LockInfo o1,    LockInfo o2){
+      int comp1=Integer.valueOf(o2.getWaitingThreadCount()).compareTo(o1.getWaitingThreadCount());
+      if (comp1 == 0)       return Long.valueOf(o1.getAcquireTime()).compareTo(o2.getAcquireTime());
+ else       return comp1;
+    }
+  }
+);
+  lockInfos=lockInfos.subList(0,Math.min(LOCK_MAX_SIZE,lockInfos.size()));
+}
