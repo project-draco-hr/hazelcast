@@ -4,16 +4,9 @@
   Config config=new XmlConfigBuilder().build();
   MapConfig mapConfig=config.getMapConfig("default");
   mapConfig.setMaxIdleSeconds(15);
-  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
-  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
-  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
-  final HazelcastInstance h4=Hazelcast.newHazelcastInstance(config);
-  final HazelcastInstance[] instances=new HazelcastInstance[4];
-  instances[0]=h1;
-  instances[1]=h2;
-  instances[2]=h3;
-  instances[3]=h4;
-  IMap map1=h1.getMap("default");
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(4);
+  final HazelcastInstance[] instances=factory.newInstances(config);
+  IMap map1=instances[0].getMap("default");
   final int size=10000;
   for (int i=0; i < size; i++) {
     map1.put(i,new byte[10000]);
@@ -37,6 +30,5 @@
   assertTrue(latch.await(20,TimeUnit.SECONDS));
   es.shutdown();
   assertTrue(es.awaitTermination(5,TimeUnit.SECONDS));
-  assertTrue(waitForCleanup(200,instances));
   waitForGC(25 + usedMemoryInit,200);
 }
