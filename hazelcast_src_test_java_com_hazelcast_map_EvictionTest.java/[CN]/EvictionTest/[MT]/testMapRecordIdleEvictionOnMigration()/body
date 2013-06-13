@@ -1,17 +1,40 @@
 {
   Config cfg=new Config();
-  MapConfig mc=cfg.getMapConfig("testMapRecordIdleEvictionOnMigration");
+  MapConfig mc=cfg.getMapConfig("testMapRecordIdleEvictionOnMigration2");
   int maxIdleSeconds=5;
   int size=1000;
+  final int nsize=size / 5;
   mc.setMaxIdleSeconds(maxIdleSeconds);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
   HazelcastInstance instance1=factory.newHazelcastInstance(cfg);
-  final IMap map=instance1.getMap("testMapRecordIdleEvictionOnMigration");
+  final IMap map=instance1.getMap("testMapRecordIdleEvictionOnMigration2");
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
+  final Thread thread=new Thread(new Runnable(){
+    public void run(){
+      while (!Thread.currentThread().isInterrupted()) {
+        try {
+          for (int i=0; i < nsize; i++) {
+            map.get(i);
+          }
+          Thread.sleep(1000);
+        }
+ catch (        HazelcastInstanceNotActiveException e) {
+          return;
+        }
+catch (        InterruptedException e) {
+          return;
+        }
+      }
+    }
+  }
+);
+  thread.start();
   HazelcastInstance instance2=factory.newHazelcastInstance(cfg);
   HazelcastInstance instance3=factory.newHazelcastInstance(cfg);
-  Thread.sleep(maxIdleSeconds * 1000 + 3000);
-  Assert.assertEquals(0,map.size());
+  Thread.sleep(maxIdleSeconds * 1000 + 5000);
+  Assert.assertEquals(nsize,map.size());
+  thread.interrupt();
+  thread.join(5000);
 }
