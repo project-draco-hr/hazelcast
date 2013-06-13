@@ -1,13 +1,17 @@
 {
-  if (state == NO_TXN || state == ROLLED_BACK) {
-    throw new IllegalStateException("Transaction is not active");
-  }
-  checkThread();
-  state=ROLLING_BACK;
   try {
-    sendAndReceive(new RollbackTransactionRequest());
+    if (state == NO_TXN || state == ROLLED_BACK) {
+      throw new IllegalStateException("Transaction is not active");
+    }
+    checkThread();
+    try {
+      sendAndReceive(new RollbackTransactionRequest());
+    }
+ catch (    Exception e) {
+    }
+    state=ROLLED_BACK;
   }
- catch (  Exception e) {
+  finally {
+    closeConnection();
   }
-  state=ROLLED_BACK;
 }

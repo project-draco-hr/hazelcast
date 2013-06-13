@@ -1,9 +1,14 @@
 {
-  if (state != ACTIVE) {
-    throw new TransactionNotActiveException("Transaction is not active");
+  try {
+    if (state != ACTIVE) {
+      throw new TransactionNotActiveException("Transaction is not active");
+    }
+    checkThread();
+    checkTimeout();
+    sendAndReceive(new CommitTransactionRequest());
+    state=COMMITTED;
   }
-  checkThread();
-  checkTimeout();
-  sendAndReceive(new CommitTransactionRequest());
-  state=COMMITTED;
+  finally {
+    closeConnection();
+  }
 }
