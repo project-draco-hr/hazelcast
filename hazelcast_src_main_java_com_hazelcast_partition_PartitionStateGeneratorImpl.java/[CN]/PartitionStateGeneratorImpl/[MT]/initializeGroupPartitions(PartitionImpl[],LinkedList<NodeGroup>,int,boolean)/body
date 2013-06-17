@@ -1,0 +1,34 @@
+{
+  for (  NodeGroup nodeGroup : groups) {
+    nodeGroup.resetPartitions();
+  }
+  for (  PartitionImpl partition : state) {
+    for (int index=0; index < PartitionImpl.MAX_REPLICA_COUNT; index++) {
+      if (index >= replicaCount) {
+        partition.setReplicaAddress(index,null);
+      }
+ else {
+        final Address owner=partition.getReplicaAddress(index);
+        boolean valid=false;
+        if (owner != null) {
+          for (          NodeGroup nodeGroup : groups) {
+            if (nodeGroup.hasNode(owner)) {
+              if (nodeGroup.ownPartition(owner,index,partition.getPartitionId())) {
+                valid=true;
+              }
+              break;
+            }
+          }
+        }
+        if (!valid) {
+          partition.setReplicaAddress(index,null);
+        }
+ else         if (aggressive && index < AGGRESSIVE_INDEX_THRESHOLD) {
+          for (int i=AGGRESSIVE_INDEX_THRESHOLD; i < replicaCount; i++) {
+            partition.setReplicaAddress(i,null);
+          }
+        }
+      }
+    }
+  }
+}

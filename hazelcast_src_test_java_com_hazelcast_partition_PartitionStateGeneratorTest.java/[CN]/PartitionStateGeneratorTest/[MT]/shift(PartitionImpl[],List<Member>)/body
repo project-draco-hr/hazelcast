@@ -1,0 +1,27 @@
+{
+  Set<Address> addresses=new HashSet<Address>();
+  for (  Member member : members) {
+    addresses.add(((MemberImpl)member).getAddress());
+  }
+  for (  PartitionImpl partition : state) {
+    for (int i=0; i < state.length; i++) {
+      if (partition.getReplicaAddress(i) != null && !addresses.contains(partition.getReplicaAddress(i))) {
+        Address[] validAddresses=new Address[PartitionImpl.MAX_REPLICA_COUNT - i];
+        int k=0;
+        for (int a=i + 1; a < PartitionImpl.MAX_REPLICA_COUNT; a++) {
+          Address address=partition.getReplicaAddress(a);
+          if (address != null && addresses.contains(address)) {
+            validAddresses[k++]=address;
+          }
+        }
+        for (int a=0; a < k; a++) {
+          partition.setReplicaAddress(i + a,validAddresses[a]);
+        }
+        for (int a=i + k; a < PartitionImpl.MAX_REPLICA_COUNT; a++) {
+          partition.setReplicaAddress(a,null);
+        }
+        break;
+      }
+    }
+  }
+}
