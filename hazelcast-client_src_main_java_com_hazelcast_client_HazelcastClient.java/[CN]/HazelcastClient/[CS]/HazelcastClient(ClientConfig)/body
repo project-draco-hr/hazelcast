@@ -7,7 +7,14 @@
   proxyManager=new ProxyManager(this);
   executionService=new ClientExecutionServiceImpl(name,threadGroup,Thread.currentThread().getContextClassLoader());
   clusterService=new ClientClusterServiceImpl(this);
-  serializationService=new SerializationServiceBuilder().setClassLoader(config.getClassLoader()).setConfig(config.getSerializationConfig()).build();
+  SerializationService ss;
+  try {
+    ss=new SerializationServiceBuilder().setManagedContext(new HazelcastClientManagedContext(this,config.getManagedContext())).setClassLoader(config.getClassLoader()).setConfig(config.getSerializationConfig()).build();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  serializationService=(SerializationServiceImpl)ss;
   LoadBalancer loadBalancer=config.getLoadBalancer();
   if (loadBalancer == null) {
     loadBalancer=new RoundRobinLB();
