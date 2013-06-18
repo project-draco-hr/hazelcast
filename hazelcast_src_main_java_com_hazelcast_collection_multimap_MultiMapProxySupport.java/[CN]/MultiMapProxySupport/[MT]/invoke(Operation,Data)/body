@@ -5,12 +5,24 @@
     Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(CollectionService.SERVICE_NAME,operation,partitionId).build();
     Future f;
     Object o;
-    long time=System.currentTimeMillis();
-    f=invocation.invoke();
-    o=f.get();
-    if (operation instanceof PutOperation)     getService().getLocalMultiMapStatsImpl(proxyId).incrementPuts(System.currentTimeMillis() - time);
- else     if (operation instanceof RemoveOperation || operation instanceof RemoveAllOperation)     getService().getLocalMultiMapStatsImpl(proxyId).incrementRemoves(System.currentTimeMillis() - time);
- else     if (operation instanceof GetAllOperation)     getService().getLocalMultiMapStatsImpl(proxyId).incrementGets(System.currentTimeMillis() - time);
+    if (config.isStatisticsEnabled()) {
+      long time=System.currentTimeMillis();
+      f=invocation.invoke();
+      o=f.get();
+      if (operation instanceof PutOperation) {
+        getService().getLocalMultiMapStatsImpl(proxyId).incrementPuts(System.currentTimeMillis() - time);
+      }
+ else       if (operation instanceof RemoveOperation || operation instanceof RemoveAllOperation) {
+        getService().getLocalMultiMapStatsImpl(proxyId).incrementRemoves(System.currentTimeMillis() - time);
+      }
+ else       if (operation instanceof GetAllOperation) {
+        getService().getLocalMultiMapStatsImpl(proxyId).incrementGets(System.currentTimeMillis() - time);
+      }
+    }
+ else {
+      f=invocation.invoke();
+      o=f.get();
+    }
     return (T)nodeEngine.toObject(o);
   }
  catch (  Throwable throwable) {

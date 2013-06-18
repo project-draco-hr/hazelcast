@@ -1,3 +1,26 @@
 {
   super(service,nodeEngine,nodeEngine.getConfig().getMultiMapConfig(proxyId.getName()),proxyId);
+  List<EntryListenerConfig> listenerConfigs=config.getEntryListenerConfigs();
+  for (  EntryListenerConfig listenerConfig : listenerConfigs) {
+    EntryListener entryListener=null;
+    if (listenerConfig.getImplementation() != null) {
+      entryListener=listenerConfig.getImplementation();
+    }
+ else     if (listenerConfig.getClassName() != null) {
+      try {
+        entryListener=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),listenerConfig.getClassName());
+      }
+ catch (      Exception e) {
+        throw ExceptionUtil.rethrow(e);
+      }
+    }
+    if (entryListener != null) {
+      if (listenerConfig.isLocal()) {
+        addLocalEntryListener(entryListener);
+      }
+ else {
+        addEntryListener(entryListener,listenerConfig.isIncludeValue());
+      }
+    }
+  }
 }
