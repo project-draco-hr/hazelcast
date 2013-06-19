@@ -1,4 +1,6 @@
 {
+  final Collection<Future> futures=new ArrayList<Future>(entries.size());
+  final ILogger logger=nodeEngine.getLogger(getClass());
   for (  ScheduledEntry<Data,Object> entry : entries) {
     Data key=entry.getKey();
     Operation operation=new UnlockOperation(namespace,key,-1,true);
@@ -6,10 +8,21 @@
     try {
       Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
       Future f=invocation.invoke();
-      f.get();
+      futures.add(f);
     }
  catch (    Throwable t) {
-      throw ExceptionUtil.rethrow(t);
+      logger.log(Level.WARNING,t.getMessage(),t);
+    }
+  }
+  for (  Future future : futures) {
+    try {
+      future.get(30,TimeUnit.SECONDS);
+    }
+ catch (    TimeoutException e) {
+      logger.log(Level.FINEST,e.getMessage(),e);
+    }
+catch (    Exception e) {
+      logger.log(Level.WARNING,e.getMessage(),e);
     }
   }
 }
