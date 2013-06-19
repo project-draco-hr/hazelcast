@@ -10,13 +10,13 @@
   ClusterServiceImpl clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
   Address thisAddress=clusterService.getThisAddress();
   for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
-    PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(i);
+    PartitionView partition=nodeEngine.getPartitionService().getPartitionView(i);
     CollectionPartitionContainer partitionContainer=getPartitionContainer(i);
     CollectionContainer collectionContainer=partitionContainer.getCollectionContainer(proxyId);
     if (collectionContainer == null) {
       continue;
     }
-    if (partitionInfo.getOwner().equals(thisAddress)) {
+    if (partition.getOwner().equals(thisAddress)) {
       lockedEntryCount+=collectionContainer.getLockedCount();
       for (      CollectionWrapper wrapper : collectionContainer.collections.values()) {
         hits+=wrapper.getHits();
@@ -26,7 +26,7 @@
  else {
       int backupCount=collectionContainer.config.getTotalBackupCount();
       for (int j=1; j <= backupCount; j++) {
-        Address replicaAddress=partitionInfo.getReplicaAddress(j);
+        Address replicaAddress=partition.getReplicaAddress(j);
         int memberSize=nodeEngine.getClusterService().getMembers().size();
         int tryCount=3;
         while (memberSize > backupCount && replicaAddress == null && tryCount-- > 0) {
@@ -36,7 +36,7 @@
  catch (          InterruptedException e) {
             throw ExceptionUtil.rethrow(e);
           }
-          replicaAddress=partitionInfo.getReplicaAddress(j);
+          replicaAddress=partition.getReplicaAddress(j);
         }
         if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
           for (          CollectionWrapper wrapper : collectionContainer.collections.values()) {

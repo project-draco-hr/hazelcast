@@ -2,7 +2,7 @@
   final Operation op=(Operation)backupAwareOp;
   final boolean returnsResponse=op.returnsResponse();
   final PartitionServiceImpl partitionService=(PartitionServiceImpl)nodeEngine.getPartitionService();
-  final int maxBackups=Math.min(partitionService.getMemberGroupsSize() - 1,PartitionInfo.MAX_BACKUP_COUNT);
+  final int maxBackups=Math.min(partitionService.getMemberGroupsSize() - 1,PartitionView.MAX_BACKUP_COUNT);
   int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
   int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
   if (!returnsResponse) {
@@ -14,7 +14,7 @@
     final String serviceName=op.getServiceName();
     final int partitionId=op.getPartitionId();
     final long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(partitionId,totalBackupCount);
-    final PartitionInfo partitionInfo=partitionService.getPartitionInfo(partitionId);
+    final PartitionView partition=partitionService.getPartitionView(partitionId);
     for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
       final Operation backupOp=backupAwareOp.getBackupOperation();
       if (backupOp == null) {
@@ -24,7 +24,7 @@
       final Backup backup=new Backup(backupOp,op.getCallerAddress(),replicaVersions,replicaIndex <= syncBackupCount);
       backup.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName).setCallerUuid(nodeEngine.getLocalMember().getUuid());
       OperationAccessor.setCallId(backup,op.getCallId());
-      final Address target=partitionInfo.getReplicaAddress(replicaIndex);
+      final Address target=partition.getReplicaAddress(replicaIndex);
       if (target != null) {
         if (target.equals(node.getThisAddress())) {
           throw new IllegalStateException("Normally shouldn't happen!!");

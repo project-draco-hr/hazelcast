@@ -1,0 +1,15 @@
+{
+  Config config=new Config();
+  final String name="default";
+  final CountDownLatch latch=new CountDownLatch(1);
+  config.getMultiMapConfig(name).addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
+    public void entryAdded(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance hz=factory.newHazelcastInstance(config);
+  hz.getMultiMap(name).put(1,1);
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+}
