@@ -12,14 +12,14 @@
       if (partitionId < 0) {
         throw new IllegalArgumentException("Partition id cannot be negative! -> " + partitionId);
       }
-      final PartitionInfo partitionInfo=nodeEngine.getPartitionService().getPartitionInfo(partitionId);
-      if (partitionInfo == null) {
+      final PartitionView partitionView=nodeEngine.getPartitionService().getPartitionView(partitionId);
+      if (partitionView == null) {
         throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
       }
       if (!OperationAccessor.isMigrationOperation(op) && node.partitionService.isPartitionMigrating(partitionId)) {
         throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
       }
-      final Address owner=partitionInfo.getReplicaAddress(op.getReplicaIndex());
+      final Address owner=partitionView.getReplicaAddress(op.getReplicaIndex());
       if (op.validatesTarget() && !node.getThisAddress().equals(owner)) {
         throw new WrongTargetException(node.getThisAddress(),owner,partitionId,op.getReplicaIndex(),op.getClass().getName(),op.getServiceName());
       }

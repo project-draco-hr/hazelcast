@@ -1,0 +1,37 @@
+{
+  BeanDefinitionBuilder globalSerializerConfigBuilder=null;
+  String implementation="implementation";
+  String className="class-name";
+  ManagedList typeSerializers=new ManagedList();
+  for (  org.w3c.dom.Node child : new IterableNodeList(node,Node.ELEMENT_NODE)) {
+    final String name=cleanNodeName(child);
+    if ("global-serializer".equals(name)) {
+      globalSerializerConfigBuilder=createBeanBuilder(GlobalSerializerConfig.class);
+      final NamedNodeMap attrs=child.getAttributes();
+      final Node implRef=attrs.getNamedItem(implementation);
+      final Node classNode=attrs.getNamedItem(className);
+      if (implRef != null) {
+        globalSerializerConfigBuilder.addPropertyReference(xmlToJavaName(implementation),getValue(implRef));
+      }
+      if (classNode != null) {
+        globalSerializerConfigBuilder.addPropertyValue(xmlToJavaName(className),getValue(classNode));
+      }
+    }
+    if ("serializer".equals(name)) {
+      BeanDefinitionBuilder serializerConfigBuilder=createBeanBuilder(SerializerConfig.class);
+      fillAttributeValues(child,serializerConfigBuilder);
+      final NamedNodeMap attrs=child.getAttributes();
+      final Node implRef=attrs.getNamedItem(implementation);
+      final Node classNode=attrs.getNamedItem(className);
+      if (implRef != null) {
+        serializerConfigBuilder.addPropertyReference(xmlToJavaName(implementation),getValue(implRef));
+      }
+      if (classNode != null) {
+        serializerConfigBuilder.addPropertyValue(xmlToJavaName(className),getValue(classNode));
+      }
+      typeSerializers.add(serializerConfigBuilder.getBeanDefinition());
+    }
+  }
+  serializationConfigBuilder.addPropertyValue("globalSerializerConfig",globalSerializerConfigBuilder.getBeanDefinition());
+  serializationConfigBuilder.addPropertyValue("serializerConfigs",typeSerializers);
+}

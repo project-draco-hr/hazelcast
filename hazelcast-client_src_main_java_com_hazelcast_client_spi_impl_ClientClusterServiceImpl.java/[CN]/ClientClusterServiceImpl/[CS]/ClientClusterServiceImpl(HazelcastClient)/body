@@ -1,6 +1,15 @@
 {
   this.client=client;
   clusterThread=new ClusterListenerThread(client.getThreadGroup(),client.getName() + ".cluster-listener");
-  redoOperation=getClientConfig().isRedoOperation();
-  credentials=getClientConfig().getCredentials();
+  final ClientConfig clientConfig=getClientConfig();
+  redoOperation=clientConfig.isRedoOperation();
+  credentials=clientConfig.getCredentials();
+  final Collection<EventListener> listenersList=client.getClientConfig().getListeners();
+  if (listenersList != null && !listenersList.isEmpty()) {
+    for (    EventListener listener : listenersList) {
+      if (listener instanceof MembershipListener) {
+        addMembershipListener((MembershipListener)listener);
+      }
+    }
+  }
 }

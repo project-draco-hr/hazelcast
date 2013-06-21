@@ -3,7 +3,7 @@
     final PartitionStateGenerator psg=partitionStateGenerator;
     final List<MigrationInfo> migrationQ=new ArrayList<MigrationInfo>(partitionCount);
     final Set<Member> members=node.getClusterService().getMembers();
-    final PartitionInfo[] newState=psg.reArrange(partitions,members,partitionCount,migrationQ);
+    final PartitionImpl[] newState=psg.reArrange(partitions,memberGroupFactory.createMemberGroups(members),partitionCount,migrationQ);
     final Set<Integer> migratingPartitions=new HashSet<Integer>(migrationQ.size());
     final Map<Integer,BackupMigrationTask> backupTasks=new HashMap<Integer,BackupMigrationTask>();
     for (    MigrationInfo info : migrationQ) {
@@ -15,9 +15,9 @@
       if (!initialized) {
         return;
       }
-      for (      final PartitionInfo newPartition : newState) {
+      for (      final PartitionImpl newPartition : newState) {
         final int partitionId=newPartition.getPartitionId();
-        final PartitionInfo currentPartition=partitions[partitionId];
+        final PartitionImpl currentPartition=partitions[partitionId];
         if (currentPartition.getOwner() == null) {
           lostCount++;
           final Address owner=newPartition.getOwner();
