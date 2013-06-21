@@ -1,0 +1,28 @@
+{
+  Config config=new Config();
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance h1=factory.newHazelcastInstance(config);
+  final HazelcastInstance h2=factory.newHazelcastInstance(config);
+  final String map1="map1";
+  final String map2="map2";
+  final String key="1";
+  boolean b=h1.executeTransaction(new TransactionalTask<Boolean>(){
+    public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
+      final TransactionalMultiMap<Object,Object> txMap1=context.getMultiMap(map1);
+      final TransactionalMultiMap<Object,Object> txMap2=context.getMultiMap(map2);
+      assertTrue(txMap1.put(key,"value1"));
+      Object value1=getSingleValue(txMap1,key);
+      assertEquals("value1",value1);
+      assertTrue(txMap2.put(key,"value2"));
+      Object value2=getSingleValue(txMap2,key);
+      assertEquals("value2",value2);
+      return true;
+    }
+  }
+);
+  assertTrue(b);
+  assertEquals("value1",getSingleValue(h1.getMultiMap(map1),key));
+  assertEquals("value1",getSingleValue(h2.getMultiMap(map1),key));
+  assertEquals("value2",getSingleValue(h1.getMultiMap(map2),key));
+  assertEquals("value2",getSingleValue(h2.getMultiMap(map2),key));
+}
