@@ -2,10 +2,9 @@
   if (data == null || data.bufferSize() == 0) {
     return null;
   }
-  ContextAwareDataInput in=null;
   try {
     final int typeId=data.type;
-    final TypeSerializer serializer=serializerFor(typeId);
+    final SerializerAdapter serializer=serializerFor(typeId);
     if (serializer == null) {
       if (active) {
         throw new HazelcastSerializationException("There is no suitable de-serializer for type " + typeId);
@@ -15,8 +14,7 @@
     if (data.type == SerializationConstants.CONSTANT_TYPE_PORTABLE) {
       serializationContext.registerClassDefinition(data.classDefinition);
     }
-    in=new ContextAwareDataInput(data,this);
-    Object obj=serializer.read(in);
+    Object obj=serializer.read(data);
     if (managedContext != null) {
       obj=managedContext.initialize(obj);
     }
@@ -24,9 +22,6 @@
   }
  catch (  Throwable e) {
     handleException(e);
-  }
- finally {
-    IOUtil.closeResource(in);
   }
   return null;
 }

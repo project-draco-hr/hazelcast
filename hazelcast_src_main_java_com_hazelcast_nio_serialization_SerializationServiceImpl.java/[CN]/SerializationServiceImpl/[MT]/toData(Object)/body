@@ -5,17 +5,16 @@
   if (obj instanceof Data) {
     return (Data)obj;
   }
-  final ContextAwareDataOutput out=pop();
   try {
-    final TypeSerializer serializer=serializerFor(obj.getClass());
+    final SerializerAdapter serializer=serializerFor(obj.getClass());
     if (serializer == null) {
       if (active) {
         throw new HazelcastSerializationException("There is no suitable serializer for " + obj.getClass());
       }
       throw new HazelcastInstanceNotActiveException();
     }
-    serializer.write(out,obj);
-    final Data data=new Data(serializer.getTypeId(),out.toByteArray());
+    final byte[] bytes=serializer.write(obj);
+    final Data data=new Data(serializer.getTypeId(),bytes);
     if (obj instanceof Portable) {
       final Portable portable=(Portable)obj;
       data.classDefinition=serializationContext.lookup(portable.getFactoryId(),portable.getClassId());
@@ -30,9 +29,6 @@
   }
  catch (  Throwable e) {
     handleException(e);
-  }
- finally {
-    push(out);
   }
   return null;
 }
