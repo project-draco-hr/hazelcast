@@ -2,7 +2,15 @@
   final String className=in.readUTF();
   try {
     final Externalizable ds=ClassLoaderUtil.newInstance(in.getClassLoader(),className);
-    ds.readExternal(newObjectInputStream(in.getClassLoader(),(InputStream)in));
+    final ObjectInputStream objectInputStream;
+    final InputStream inputStream=(InputStream)in;
+    if (gzipEnabled) {
+      objectInputStream=newObjectInputStream(in.getClassLoader(),new BufferedInputStream(new GZIPInputStream(inputStream)));
+    }
+ else {
+      objectInputStream=newObjectInputStream(in.getClassLoader(),inputStream);
+    }
+    ds.readExternal(objectInputStream);
     return ds;
   }
  catch (  final Exception e) {
