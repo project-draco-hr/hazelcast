@@ -23,6 +23,21 @@
  else         if ("properties".equals(value)) {
           handleProperties(n,serviceConfig.getProperties());
         }
+ else         if ("configuration".equals(value)) {
+          Node parserNode=n.getAttributes().getNamedItem("parser");
+          String parserClass;
+          if (parserNode == null || (parserClass=getTextContent(parserNode)) == null) {
+            throw new IllegalArgumentException("Parser is required!");
+          }
+          try {
+            ServiceConfigurationParser parser=ClassLoaderUtil.newInstance(config.getClassLoader(),parserClass);
+            Object obj=parser.parse((Element)n);
+            serviceConfig.setConfigObject(obj);
+          }
+ catch (          Exception e) {
+            ExceptionUtil.sneakyThrow(e);
+          }
+        }
       }
       servicesConfig.addServiceConfig(serviceConfig);
     }
