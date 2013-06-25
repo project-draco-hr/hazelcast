@@ -2,14 +2,22 @@
   Set<HazelcastInstance> instances=Hazelcast.getAllHazelcastInstances();
   for (  HazelcastInstance hz : instances) {
     Node node=TestUtil.getNode(hz);
-    MemberImpl m=(MemberImpl)hz.getCluster().getLocalMember();
-    if (m.getAddress().equals(nodeAddress)) {
-      if (TestEnvironment.isMockNetwork()) {
-        ClientEngineImpl engine=node.clientEngine;
-        return new MockSimpleClient(engine);
+    if (node.isActive()) {
+      MemberImpl m;
+      try {
+        m=(MemberImpl)hz.getCluster().getLocalMember();
       }
+ catch (      HazelcastInstanceNotActiveException ignored) {
+        continue;
+      }
+      if (m.getAddress().equals(nodeAddress)) {
+        if (TestEnvironment.isMockNetwork()) {
+          ClientEngineImpl engine=node.clientEngine;
+          return new MockSimpleClient(engine);
+        }
  else {
-        return new SocketSimpleClient(node);
+          return new SocketSimpleClient(node);
+        }
       }
     }
   }
