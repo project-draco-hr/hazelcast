@@ -1,0 +1,35 @@
+{
+  final Address thisAddress=node.getThisAddress();
+  final Semaphore s=new Semaphore(0);
+  final AtomicBoolean ok=new AtomicBoolean(true);
+  int empty=0;
+  for (  final PartitionImpl partition : partitions) {
+    if (thisAddress.equals(partition.getOwner()) && partition.getReplicaAddress(1) != null) {
+      Callback<Object> callback=new Callback<Object>(){
+        public void notify(        Object object){
+          if (Boolean.FALSE.equals(object)) {
+            ok.compareAndSet(true,false);
+          }
+          s.release();
+        }
+      }
+;
+      final SyncReplicaVersion op=new SyncReplicaVersion(1,callback);
+      op.setService(this);
+      op.setNodeEngine(nodeEngine);
+      op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
+      op.setPartitionId(partition.getPartitionId());
+      nodeEngine.getOperationService().executeOperation(op);
+    }
+ else {
+      empty++;
+    }
+  }
+  s.release(empty);
+  try {
+    return s.tryAcquire(partitionCount,10,TimeUnit.SECONDS) && ok.get();
+  }
+ catch (  InterruptedException ignored) {
+    return false;
+  }
+}

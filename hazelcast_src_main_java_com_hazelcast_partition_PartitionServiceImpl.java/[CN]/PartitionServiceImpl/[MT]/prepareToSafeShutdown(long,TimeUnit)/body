@@ -1,0 +1,51 @@
+{
+  long timeoutInMillis=unit.toMillis(timeout);
+  int sleep=500;
+  while (timeoutInMillis > 0) {
+    while (timeoutInMillis > 0 && shouldWaitMigrationOrBackups(Level.INFO)) {
+      try {
+        Thread.sleep(sleep);
+      }
+ catch (      InterruptedException ignored) {
+      }
+      timeoutInMillis-=sleep;
+    }
+    if (timeoutInMillis < 0) {
+      return false;
+    }
+    if (!node.isMaster()) {
+      while (timeoutInMillis > 0 && hasOnGoingMigrationMaster()) {
+        logger.log(Level.INFO,"Waiting for the master node to complete remaining migrations!");
+        try {
+          Thread.sleep(sleep);
+        }
+ catch (        InterruptedException ignored) {
+        }
+        timeoutInMillis-=sleep;
+      }
+      if (timeoutInMillis < 0) {
+        return false;
+      }
+    }
+    long start=Clock.currentTimeMillis();
+    boolean ok=checkReplicaSyncState();
+    timeoutInMillis-=(Clock.currentTimeMillis() - start);
+    if (ok) {
+      logger.log(Level.FINEST,"Replica sync state before shutdown is OK");
+      return true;
+    }
+ else {
+      if (timeoutInMillis < 0) {
+        return false;
+      }
+      logger.log(Level.INFO,"Backup replica versions inconsistent, waiting for synchronization..");
+      try {
+        Thread.sleep(sleep);
+      }
+ catch (      InterruptedException ignored) {
+      }
+      timeoutInMillis-=sleep;
+    }
+  }
+  return false;
+}

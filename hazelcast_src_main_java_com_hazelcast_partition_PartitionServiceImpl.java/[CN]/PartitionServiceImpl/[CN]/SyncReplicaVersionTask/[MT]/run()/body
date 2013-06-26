@@ -1,5 +1,15 @@
 {
   if (node.isActive() && migrationActive.get()) {
-    sendReplicaVersionCheckOperations();
+    final Address thisAddress=node.getThisAddress();
+    for (    final PartitionImpl partition : partitions) {
+      if (thisAddress.equals(partition.getOwner()) && partition.getReplicaAddress(1) != null) {
+        final SyncReplicaVersion op=new SyncReplicaVersion(1,null);
+        op.setService(PartitionServiceImpl.this);
+        op.setNodeEngine(nodeEngine);
+        op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
+        op.setPartitionId(partition.getPartitionId());
+        nodeEngine.getOperationService().executeOperation(op);
+      }
+    }
   }
 }
