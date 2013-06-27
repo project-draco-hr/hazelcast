@@ -5,10 +5,11 @@
   final String name="testShutDownNodeWhenOtherWaitingOnConditionAwait";
   final ILock lock=instance.getLock(name);
   final ICondition condition=lock.newCondition("s");
+  final CountDownLatch latch=new CountDownLatch(1);
   new Thread(new Runnable(){
     public void run(){
       try {
-        Thread.sleep(5000);
+        latch.await(1,TimeUnit.MINUTES);
       }
  catch (      InterruptedException e) {
         e.printStackTrace();
@@ -19,6 +20,7 @@
 ).start();
   lock.lock();
   try {
+    latch.countDown();
     condition.await();
   }
  catch (  InterruptedException e) {
