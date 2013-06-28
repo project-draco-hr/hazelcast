@@ -2,12 +2,19 @@
   Config cfg=new Config();
   MapConfig mc=cfg.getMapConfig("testMapRecordIdleEviction");
   int maxIdleSeconds=8;
-  int size=100;
+  int size=1000;
   final int nsize=size / 10;
   mc.setMaxIdleSeconds(maxIdleSeconds);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   final HazelcastInstance[] instances=factory.newInstances(cfg);
   final IMap map=instances[0].getMap("testMapRecordIdleEviction");
+  final CountDownLatch latch=new CountDownLatch(size - nsize);
+  map.addEntryListener(new EntryAdapter(){
+    public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,false);
   final Thread thread=new Thread(new Runnable(){
     public void run(){
       while (!Thread.currentThread().isInterrupted()) {
@@ -15,7 +22,7 @@
           for (int i=0; i < nsize; i++) {
             map.get(i);
           }
-          Thread.sleep(1000);
+          Thread.sleep(100);
         }
  catch (        HazelcastInstanceNotActiveException e) {
           return;
@@ -31,7 +38,7 @@ catch (        InterruptedException e) {
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  Thread.sleep(maxIdleSeconds * 1000 + 5000);
+  latch.await(10,TimeUnit.SECONDS);
   Assert.assertEquals(nsize,map.size());
   thread.interrupt();
   thread.join(5000);

@@ -1,21 +1,21 @@
 {
   int size=100000;
-  int nsize=500;
   Config cfg=new Config();
   MapConfig mc=cfg.getMapConfig("testMapRecordEviction");
   mc.setTimeToLiveSeconds(1);
+  final CountDownLatch latch=new CountDownLatch(size);
+  mc.addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
+    public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+).setLocal(true));
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   final HazelcastInstance[] instances=factory.newInstances(cfg);
   IMap map=instances[0].getMap("testMapRecordEviction");
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  for (int i=0; i < nsize; i++) {
-    map.put(size + i,size + i,1000,TimeUnit.SECONDS);
-  }
-  for (int i=0; i < nsize; i++) {
-    map.put(i,i,1,TimeUnit.SECONDS);
-  }
-  Thread.sleep(2000);
-  assertEquals(nsize,map.size());
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertEquals(0,map.size());
 }

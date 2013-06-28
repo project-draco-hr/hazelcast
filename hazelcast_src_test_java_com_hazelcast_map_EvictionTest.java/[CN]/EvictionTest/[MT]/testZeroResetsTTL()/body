@@ -1,15 +1,22 @@
 {
   Config cfg=new Config();
   MapConfig mc=cfg.getMapConfig("testZeroResetsTTL");
-  int ttl=3;
+  int ttl=5;
   mc.setTimeToLiveSeconds(ttl);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
   HazelcastInstance instance=factory.newHazelcastInstance(cfg);
   IMap<Object,Object> map=instance.getMap("testZeroResetsTTL");
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter(){
+    public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,false);
   map.put(1,1);
   map.put(2,2);
   map.put(1,2,0,TimeUnit.SECONDS);
-  Thread.sleep((ttl + 1) * 1000);
+  latch.await(10,TimeUnit.SECONDS);
   assertNull(map.get(2));
   assertEquals(2,map.get(1));
 }
