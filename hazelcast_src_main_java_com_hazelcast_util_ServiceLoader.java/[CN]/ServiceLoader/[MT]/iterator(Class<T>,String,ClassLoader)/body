@@ -1,13 +1,18 @@
 {
-  final Set<String> classNames=parse(factoryId,classLoader);
+  final Set<ServiceDefinition> classDefinitions=parse(factoryId,classLoader);
+  if (ServiceLoader.class.getClassLoader() != classLoader) {
+    classDefinitions.addAll(parse(factoryId,ServiceLoader.class.getClassLoader()));
+  }
   return new Iterator<T>(){
-    final Iterator<String> classIter=classNames.iterator();
+    final Iterator<ServiceDefinition> classIter=classDefinitions.iterator();
     public boolean hasNext(){
       return classIter.hasNext();
     }
     public T next(){
-      final String className=classIter.next();
+      final ServiceDefinition classDefinition=classIter.next();
       try {
+        String className=classDefinition.className;
+        ClassLoader classLoader=classDefinition.classLoader;
         return clazz.cast(ClassLoaderUtil.newInstance(classLoader,className));
       }
  catch (      Exception e) {
