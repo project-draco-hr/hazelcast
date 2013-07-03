@@ -40,16 +40,11 @@
     if (principal != null) {
       final ClusterService clusterService=clientEngine.getClusterService();
       if (reAuth) {
-        if (clusterService.getMember(principal.getOwnerUuid()) != null) {
-          return new AuthenticationException("Owner member is already member of this cluster, cannot re-auth!");
-        }
- else {
-          principal=new ClientPrincipal(principal.getUuid(),clientEngine.getLocalMember().getUuid());
-          final Collection<MemberImpl> members=clientEngine.getClusterService().getMemberList();
-          for (          MemberImpl member : members) {
-            if (!member.localMember()) {
-              clientEngine.sendOperation(new ClientReAuthOperation(principal.getUuid(),firstConnection),member.getAddress());
-            }
+        principal=new ClientPrincipal(principal.getUuid(),clientEngine.getLocalMember().getUuid());
+        final Collection<MemberImpl> members=clientEngine.getClusterService().getMemberList();
+        for (        MemberImpl member : members) {
+          if (!member.localMember()) {
+            clientEngine.sendOperation(new ClientReAuthOperation(principal.getUuid(),firstConnection),member.getAddress());
           }
         }
       }
