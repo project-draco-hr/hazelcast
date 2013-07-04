@@ -1,0 +1,38 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  final MapService mapService=getService();
+  int factor=3;
+  PartitionService partitionService=nodeEngine.getPartitionService();
+  OperationService operationService=nodeEngine.getOperationService();
+  int partitionCount=partitionService.getPartitionCount();
+  boolean tooManyEntries=entries.size() > (partitionCount * factor);
+  try {
+    if (tooManyEntries) {
+      List<Future> flist=new LinkedList<Future>();
+      Map<Integer,MapEntrySet> entryMap=new HashMap<Integer,MapEntrySet>();
+      for (      Entry entry : entries.entrySet()) {
+        int partitionId=partitionService.getPartitionId(entry.getKey());
+        if (!entryMap.containsKey(partitionId)) {
+          entryMap.put(partitionId,new MapEntrySet());
+        }
+        entryMap.get(partitionId).add(new AbstractMap.SimpleImmutableEntry<Data,Data>(mapService.toData(entry.getKey()),mapService.toData(entry.getValue())));
+      }
+      for (      Integer partitionId : entryMap.keySet()) {
+        PutAllOperation op=new PutAllOperation(name,entryMap.get(partitionId));
+        op.setPartitionId(partitionId);
+        flist.add(operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).build().invoke());
+      }
+      for (      Future future : flist) {
+        future.get();
+      }
+    }
+ else {
+      for (      Entry entry : entries.entrySet()) {
+        putInternal(mapService.toData(entry.getKey()),mapService.toData(entry.getValue()),-1,TimeUnit.SECONDS);
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

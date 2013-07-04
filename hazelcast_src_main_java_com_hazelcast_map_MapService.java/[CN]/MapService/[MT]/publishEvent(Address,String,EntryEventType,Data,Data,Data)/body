@@ -1,0 +1,54 @@
+{
+  Collection<EventRegistration> candidates=nodeEngine.getEventService().getRegistrations(SERVICE_NAME,mapName);
+  Set<EventRegistration> registrationsWithValue=new HashSet<EventRegistration>();
+  Set<EventRegistration> registrationsWithoutValue=new HashSet<EventRegistration>();
+  if (candidates.isEmpty())   return;
+  Object key=null;
+  Object value=null;
+  Object oldValue=null;
+  for (  EventRegistration candidate : candidates) {
+    EventFilter filter=candidate.getFilter();
+    if (filter instanceof EventServiceImpl.EmptyFilter) {
+      registrationsWithValue.add(candidate);
+    }
+ else     if (filter instanceof QueryEventFilter) {
+      Object testValue;
+      if (eventType == EntryEventType.REMOVED || eventType == EntryEventType.EVICTED) {
+        oldValue=oldValue != null ? oldValue : toObject(dataOldValue);
+        testValue=oldValue;
+      }
+ else {
+        value=value != null ? value : toObject(dataValue);
+        testValue=value;
+      }
+      key=key != null ? key : toObject(dataKey);
+      QueryEventFilter queryEventFilter=(QueryEventFilter)filter;
+      QueryEntry entry=new QueryEntry(getSerializationService(),dataKey,key,testValue);
+      if (queryEventFilter.eval(entry)) {
+        if (queryEventFilter.isIncludeValue()) {
+          registrationsWithValue.add(candidate);
+        }
+ else {
+          registrationsWithoutValue.add(candidate);
+        }
+      }
+    }
+ else     if (filter.eval(dataKey)) {
+      EntryEventFilter eventFilter=(EntryEventFilter)filter;
+      if (eventFilter.isIncludeValue()) {
+        registrationsWithValue.add(candidate);
+      }
+ else {
+        registrationsWithoutValue.add(candidate);
+      }
+    }
+  }
+  if (registrationsWithValue.isEmpty() && registrationsWithoutValue.isEmpty())   return;
+  String source=nodeEngine.getThisAddress().toString();
+  if (eventType == EntryEventType.REMOVED || eventType == EntryEventType.EVICTED) {
+    dataValue=dataValue != null ? dataValue : dataOldValue;
+  }
+  EventData event=new EventData(source,mapName,caller,dataKey,dataValue,dataOldValue,eventType.getType());
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithValue,event);
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithoutValue,event.cloneWithoutValues());
+}
