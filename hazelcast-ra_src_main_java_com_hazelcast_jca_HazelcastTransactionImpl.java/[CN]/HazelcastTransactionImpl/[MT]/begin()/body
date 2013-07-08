@@ -1,0 +1,19 @@
+{
+  if (null == tx) {
+    factory.logHzConnectionEvent(this,HzConnectionEvent.TX_START);
+    CallContext callContext=ThreadContext.get().getCallContext();
+    Transaction tx=callContext.getTransaction();
+    if ((null != tx) && (Transaction.TXN_STATUS_ACTIVE == tx.getStatus())) {
+      log(Level.INFO,"Suspending outer TX");
+      CallContext innerCallContext=new CallContext(callContext.getThreadId(),false);
+      predecessors.put(innerCallContext,callContext);
+      ThreadContext.get().setCallContext(innerCallContext);
+    }
+    doBegin();
+    this.tx=getHazelcastInstance().getTransaction();
+    this.txThreadId=Thread.currentThread().toString();
+  }
+ else {
+    log(Level.INFO,"Ignoring duplicate TX begin event");
+  }
+}

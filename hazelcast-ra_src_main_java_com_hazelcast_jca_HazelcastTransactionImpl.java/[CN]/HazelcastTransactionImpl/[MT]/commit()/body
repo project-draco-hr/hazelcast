@@ -1,0 +1,29 @@
+{
+  factory.logHzConnectionEvent(this,HzConnectionEvent.TX_COMPLETE);
+  CallContext callContext=ThreadContext.get().getCallContext();
+  CallContext outerCallContext=predecessors.get(callContext);
+  if (tx == callContext.getTransaction()) {
+    doCommit();
+    if (null != outerCallContext) {
+      log(Level.INFO,"Restoring outer TX");
+      ThreadContext.get().setCallContext(outerCallContext);
+    }
+  }
+ else {
+    log(Level.INFO,"txn.commit");
+    tx.commit();
+    fireConnectionEvent(ConnectionEvent.LOCAL_TRANSACTION_COMMITTED);
+    callContext.finalizeTransaction();
+    if (null != outerCallContext) {
+      log(Level.INFO,"Restoring outer TX");
+      callContext.setTransaction(outerCallContext.getTransaction());
+    }
+    String threadIx=Thread.currentThread().toString();
+    log(Level.INFO,"Finalizing TX on thread " + threadIx + " that was started on thread "+ txThreadId);
+  }
+  if (null != outerCallContext) {
+    predecessors.remove(callContext,outerCallContext);
+  }
+  this.tx=null;
+  this.txThreadId=null;
+}
