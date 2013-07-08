@@ -7,16 +7,17 @@
     final AddressDefinition bindAddressDef=pickAddress(networkConfig);
     final boolean reuseAddress=networkConfig.isReuseAddress();
     final boolean bindAny=node.getGroupProperties().SOCKET_SERVER_BIND_ANY.getBoolean();
-    serverSocketChannel=ServerSocketChannel.open();
-    final ServerSocket serverSocket=serverSocketChannel.socket();
-    log(Level.FINEST,"inet reuseAddress:" + reuseAddress);
-    serverSocket.setReuseAddress(reuseAddress);
-    serverSocket.setSoTimeout(1000);
-    InetSocketAddress isa;
-    int port=networkConfig.getPort();
     final int portCount=networkConfig.getPortCount();
+    log(Level.FINEST,"inet reuseAddress:" + reuseAddress);
+    InetSocketAddress isa;
+    ServerSocket serverSocket=null;
+    int port=networkConfig.getPort();
     Throwable error=null;
     for (int i=0; i < portCount; i++) {
+      serverSocketChannel=ServerSocketChannel.open();
+      serverSocket=serverSocketChannel.socket();
+      serverSocket.setReuseAddress(reuseAddress);
+      serverSocket.setSoTimeout(1000);
       try {
         if (bindAny) {
           isa=new InetSocketAddress(port);
@@ -30,6 +31,8 @@
         break;
       }
  catch (      final Exception e) {
+        serverSocket.close();
+        serverSocketChannel.close();
         if (networkConfig.isPortAutoIncrement()) {
           port++;
           error=e;
@@ -41,7 +44,7 @@
         }
       }
     }
-    if (!serverSocket.isBound()) {
+    if (serverSocket == null || !serverSocket.isBound()) {
       throw new HazelcastException("ServerSocket bind has failed. Hazelcast cannot start! " + "config-port: " + networkConfig.getPort() + ", latest-port: "+ port,error);
     }
     serverSocketChannel.configureBlocking(false);
