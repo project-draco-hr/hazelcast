@@ -1,0 +1,20 @@
+{
+  final List<ItemListenerConfig> itemListenerConfigs=config.getItemListenerConfigs();
+  for (  ItemListenerConfig itemListenerConfig : itemListenerConfigs) {
+    ItemListener listener=itemListenerConfig.getImplementation();
+    if (listener == null && itemListenerConfig.getClassName() != null) {
+      try {
+        listener=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),itemListenerConfig.getClassName());
+      }
+ catch (      Exception e) {
+        throw ExceptionUtil.rethrow(e);
+      }
+    }
+    if (listener != null) {
+      if (listener instanceof HazelcastInstanceAware) {
+        ((HazelcastInstanceAware)listener).setHazelcastInstance(nodeEngine.getHazelcastInstance());
+      }
+      addItemListener(listener,itemListenerConfig.isIncludeValue());
+    }
+  }
+}
