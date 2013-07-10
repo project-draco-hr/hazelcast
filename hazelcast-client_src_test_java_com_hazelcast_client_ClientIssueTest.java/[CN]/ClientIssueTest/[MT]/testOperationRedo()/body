@@ -1,0 +1,26 @@
+{
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setRedoOperation(true);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final Thread thread=new Thread(){
+    public void run(){
+      try {
+        Thread.sleep(100);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      hz1.getLifecycleService().terminate();
+    }
+  }
+;
+  final IQueue<Object> q=client.getQueue("q");
+  thread.start();
+  for (int i=0; i < 1000; i++) {
+    q.offer("item" + i);
+  }
+  thread.join();
+  assertEquals(1000,q.size());
+}

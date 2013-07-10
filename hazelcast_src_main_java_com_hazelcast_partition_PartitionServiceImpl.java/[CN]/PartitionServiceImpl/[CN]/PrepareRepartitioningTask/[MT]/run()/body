@@ -1,19 +1,19 @@
 {
   if (node.isMaster() && node.isActive()) {
     final PartitionStateGenerator psg=partitionStateGenerator;
-    final List<MigrationInfo> migrationQ=new ArrayList<MigrationInfo>(partitionCount);
+    final List<MigrationInfo> migrationQ=new ArrayList<MigrationInfo>();
     final Set<Member> members=node.getClusterService().getMembers();
-    final PartitionImpl[] newState=psg.reArrange(partitions,memberGroupFactory.createMemberGroups(members),partitionCount,migrationQ);
     final Set<Integer> migratingPartitions=new HashSet<Integer>(migrationQ.size());
     final Map<Integer,BackupMigrationTask> backupTasks=new HashMap<Integer,BackupMigrationTask>();
-    for (    MigrationInfo info : migrationQ) {
-      migratingPartitions.add(info.getPartitionId());
-    }
     int lostCount=0;
     lock.lock();
     try {
       if (!initialized) {
         return;
+      }
+      final PartitionImpl[] newState=psg.reArrange(partitions,memberGroupFactory.createMemberGroups(members),partitionCount,migrationQ);
+      for (      MigrationInfo info : migrationQ) {
+        migratingPartitions.add(info.getPartitionId());
       }
       for (      final PartitionImpl newPartition : newState) {
         final int partitionId=newPartition.getPartitionId();
@@ -37,9 +37,6 @@
     }
   finally {
       lock.unlock();
-      for (int i=0; i < partitionCount; i++) {
-        newState[i]=null;
-      }
     }
     if (lostCount > 0) {
       logger.log(Level.WARNING,"Assigning new owners for " + lostCount + " LOST partitions!");

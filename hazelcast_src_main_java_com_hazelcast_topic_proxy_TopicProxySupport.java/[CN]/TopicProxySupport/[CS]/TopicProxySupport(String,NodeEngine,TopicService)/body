@@ -1,24 +1,5 @@
 {
   super(nodeEngine,service);
   this.name=name;
-  TopicConfig config=nodeEngine.getConfig().getTopicConfig(name);
-  final List<ListenerConfig> messageListenerConfigs=config.getMessageListenerConfigs();
-  for (  ListenerConfig listenerConfig : messageListenerConfigs) {
-    MessageListener listener;
-    try {
-      listener=(MessageListener)listenerConfig.getImplementation();
-      if (listener == null && listenerConfig.getClassName() != null) {
-        listener=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),listenerConfig.getClassName());
-      }
-    }
- catch (    Exception e) {
-      throw ExceptionUtil.rethrow(e);
-    }
-    if (listener != null) {
-      if (listener instanceof HazelcastInstanceAware) {
-        ((HazelcastInstanceAware)listener).setHazelcastInstance(nodeEngine.getHazelcastInstance());
-      }
-      addMessageListenerInternal(listener);
-    }
-  }
+  initializeListeners(nodeEngine);
 }
