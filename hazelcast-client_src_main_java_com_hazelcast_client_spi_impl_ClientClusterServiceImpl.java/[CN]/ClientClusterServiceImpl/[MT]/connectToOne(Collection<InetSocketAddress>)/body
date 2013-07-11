@@ -2,24 +2,28 @@
   final int connectionAttemptLimit=getClientConfig().getConnectionAttemptLimit();
   final ManagerAuthenticator authenticator=new ManagerAuthenticator();
   int attempt=0;
+  Throwable lastError=null;
   while (true) {
     final long nextTry=Clock.currentTimeMillis() + getClientConfig().getConnectionAttemptPeriod();
     for (    InetSocketAddress isa : socketAddresses) {
+      Address address=new Address(isa);
       try {
-        Address address=new Address(isa);
         return getConnectionManager().firstConnection(address,authenticator);
       }
- catch (      IOException ignored) {
+ catch (      IOException e) {
+        lastError=e;
+        logger.log(Level.FINEST,"IO error during initial connection...",e);
       }
 catch (      AuthenticationException e) {
-        e.printStackTrace();
+        lastError=e;
+        logger.log(Level.WARNING,"Authentication error on " + address,e);
       }
     }
     if (attempt++ >= connectionAttemptLimit) {
       break;
     }
     final long remainingTime=nextTry - Clock.currentTimeMillis();
-    System.err.println(String.format("Unable to get alive cluster connection," + " try in %d ms later, attempt %d of %d.",Math.max(0,remainingTime),attempt,connectionAttemptLimit));
+    logger.log(Level.WARNING,String.format("Unable to get alive cluster connection," + " try in %d ms later, attempt %d of %d.",Math.max(0,remainingTime),attempt,connectionAttemptLimit));
     if (remainingTime > 0) {
       try {
         Thread.sleep(remainingTime);
@@ -29,5 +33,5 @@ catch (      AuthenticationException e) {
       }
     }
   }
-  throw new IllegalStateException("Unable to connect to any address in the config!");
+  throw new IllegalStateException("Unable to connect to any address in the config!",lastError);
 }
