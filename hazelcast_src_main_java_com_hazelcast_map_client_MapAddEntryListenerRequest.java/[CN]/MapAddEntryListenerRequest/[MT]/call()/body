@@ -11,9 +11,6 @@
         PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
         clientEngine.sendResponse(endpoint,portableEntryEvent);
       }
- else {
-        mapService.removeEventListener(name,registrationId);
-      }
     }
     public void entryAdded(    EntryEvent<Object,Object> event){
       handleEvent(event);
@@ -29,13 +26,14 @@
     }
   }
 ;
-  EventFilter eventFilter=null;
+  EventFilter eventFilter;
   if (predicate == null) {
     eventFilter=new EntryEventFilter(includeValue,key);
   }
  else {
     eventFilter=new QueryEventFilter(includeValue,key,predicate);
   }
-  registrationId=mapService.addEventListener(listener,eventFilter,name);
+  String registrationId=mapService.addEventListener(listener,eventFilter,name);
+  endpoint.setListenerRegistration(MapService.SERVICE_NAME,name,registrationId);
   return true;
 }
