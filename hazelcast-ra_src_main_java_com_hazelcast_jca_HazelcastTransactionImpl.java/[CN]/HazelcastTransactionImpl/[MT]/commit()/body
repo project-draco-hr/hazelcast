@@ -1,29 +1,12 @@
 {
   factory.logHzConnectionEvent(this,HzConnectionEvent.TX_COMPLETE);
-  CallContext callContext=ThreadContext.get().getCallContext();
-  CallContext outerCallContext=predecessors.get(callContext);
-  if (tx == callContext.getTransaction()) {
-    doCommit();
-    if (null != outerCallContext) {
-      log(Level.INFO,"Restoring outer TX");
-      ThreadContext.get().setCallContext(outerCallContext);
-    }
+  log(Level.FINEST,"commit");
+  if (this.txContext != null) {
+    this.txContext.commitTransaction();
+    fireConnectionEvent(ConnectionEvent.LOCAL_TRANSACTION_COMMITTED);
+    this.txContext=null;
   }
  else {
-    log(Level.INFO,"txn.commit");
-    tx.commit();
-    fireConnectionEvent(ConnectionEvent.LOCAL_TRANSACTION_COMMITTED);
-    callContext.finalizeTransaction();
-    if (null != outerCallContext) {
-      log(Level.INFO,"Restoring outer TX");
-      callContext.setTransaction(outerCallContext.getTransaction());
-    }
-    String threadIx=Thread.currentThread().toString();
-    log(Level.INFO,"Finalizing TX on thread " + threadIx + " that was started on thread "+ txThreadId);
+    throw new ResourceException("Invalid transaction context; commit operation invoked without an active transaction context");
   }
-  if (null != outerCallContext) {
-    predecessors.remove(callContext,outerCallContext);
-  }
-  this.tx=null;
-  this.txThreadId=null;
 }

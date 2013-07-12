@@ -1,29 +1,12 @@
 {
   factory.logHzConnectionEvent(this,HzConnectionEvent.TX_COMPLETE);
-  CallContext callContext=ThreadContext.get().getCallContext();
-  CallContext outerCallContext=predecessors.get(callContext);
-  if (tx == callContext.getTransaction()) {
-    doRollback();
-    if (null != outerCallContext) {
-      log(Level.INFO,"Restoring outer TX");
-      ThreadContext.get().setCallContext(outerCallContext);
-    }
+  log(Level.FINEST,"rollback");
+  if (this.txContext != null) {
+    this.txContext.rollbackTransaction();
+    fireConnectionEvent(ConnectionEvent.LOCAL_TRANSACTION_ROLLEDBACK);
+    this.txContext=null;
   }
  else {
-    log(Level.INFO,"txn.rollback");
-    tx.rollback();
-    fireConnectionEvent(ConnectionEvent.LOCAL_TRANSACTION_ROLLEDBACK);
-    callContext.finalizeTransaction();
-    if (null != outerCallContext) {
-      log(Level.INFO,"Restoring outer TX");
-      callContext.setTransaction(outerCallContext.getTransaction());
-    }
-    String threadIx=Thread.currentThread().toString();
-    log(Level.INFO,"Finalizing TX on thread " + threadIx + " that was started on thread "+ txThreadId);
+    throw new ResourceException("Invalid transaction context; rollback operation invoked without an active transaction context");
   }
-  if (null != outerCallContext) {
-    predecessors.remove(callContext,outerCallContext);
-  }
-  this.tx=null;
-  this.txThreadId=null;
 }

@@ -1,4 +1,14 @@
 {
   managedConnection.log(Level.FINEST,"XA prepare: " + xid);
-  return XA_OK;
+  validateXID(xid);
+  validateTx(xid,Transaction.State.ACTIVE);
+  final Transaction tx=getTransaction(xid);
+  try {
+    tx.prepare();
+  }
+ catch (  TransactionException e) {
+    managedConnection.log(Level.FINEST,e.getMessage());
+    throw new XAException(XAException.XAER_RMERR);
+  }
+  return XAResource.XA_OK;
 }

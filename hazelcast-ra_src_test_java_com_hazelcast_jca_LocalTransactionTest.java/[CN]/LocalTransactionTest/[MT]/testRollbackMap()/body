@@ -1,0 +1,18 @@
+{
+  HazelcastConnection c=getConnection();
+  final LocalTransaction localTransaction=c.getLocalTransaction();
+  localTransaction.begin();
+  TransactionalMap<Integer,String> m=c.getTransactionalMap("testRollbackMap");
+  Integer key1=1;
+  String value1="value1";
+  Integer key2=2;
+  String value2="value2";
+  m.put(key1,value1);
+  m.put(key2,value2);
+  localTransaction.rollback();
+  final IMap<Integer,String> testmap=c.getMap("testRollbackMap");
+  assertEquals(0,testmap.size());
+  assertNull(testmap.get(key1));
+  assertNull(testmap.get(key2));
+  c.close();
+}
