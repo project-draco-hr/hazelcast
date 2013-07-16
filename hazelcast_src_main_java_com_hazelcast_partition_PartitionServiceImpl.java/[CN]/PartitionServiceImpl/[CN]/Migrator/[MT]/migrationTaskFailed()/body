@@ -1,5 +1,13 @@
 {
   systemLogService.logPartition("Migration failed: " + migrationInfo);
-  finalizeMigration(false);
+  lock.lock();
+  try {
+    addCompletedMigration(migrationInfo);
+    finalizeActiveMigration(migrationInfo);
+    sendPartitionRuntimeState();
+  }
+  finally {
+    lock.unlock();
+  }
   sendMigrationEvent(migrationInfo,MigrationStatus.FAILED);
 }

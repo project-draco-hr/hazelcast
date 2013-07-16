@@ -3,7 +3,13 @@
     updateMemberGroupsSize();
   }
   if (node.isMaster() && node.isActive()) {
-    clearMigrationQueue();
-    migrationQueue.offer(new PrepareRepartitioningTask());
+    lock.lock();
+    try {
+      clearMigrationQueue();
+      migrationQueue.offer(new RepartitioningTask());
+    }
+  finally {
+      lock.unlock();
+    }
   }
 }
