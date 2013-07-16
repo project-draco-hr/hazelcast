@@ -1,0 +1,51 @@
+{
+  if (node.isMaster() && node.isActive()) {
+    final PartitionStateGenerator psg=partitionStateGenerator;
+    final Set<Member> members=node.getClusterService().getMembers();
+    lock.lock();
+    try {
+      if (!initialized) {
+        return;
+      }
+      final PartitionImpl[] newState=psg.reArrange(memberGroupFactory.createMemberGroups(members),partitions);
+      int migrationCount=0;
+      int lostCount=0;
+      lastRepartitionTime.set(Clock.currentTimeMillis());
+      for (      PartitionImpl newPartition : newState) {
+        int partitionId=newPartition.getPartitionId();
+        PartitionImpl currentPartition=partitions[partitionId];
+        Address currentOwner=currentPartition.getOwner();
+        Address newOwner=newPartition.getOwner();
+        if (currentOwner == null) {
+          lostCount++;
+          currentPartition.setPartitionInfo(newPartition);
+          MigrationInfo migrationInfo=new MigrationInfo(partitionId,null,newOwner);
+          sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
+          sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
+        }
+ else         if (newOwner != null && !currentOwner.equals(newOwner)) {
+          migrationCount++;
+          MigrationInfo info=new MigrationInfo(partitionId,currentOwner,newOwner);
+          final Migrator migrator=new Migrator(info,new BackupMigrationTask(newPartition));
+          migrationQueue.offer(migrator);
+        }
+ else {
+          currentPartition.setPartitionInfo(newPartition);
+        }
+      }
+      sendPartitionRuntimeState();
+      if (lostCount > 0) {
+        logger.log(Level.WARNING,"Assigning new owners for " + lostCount + " LOST partitions!");
+      }
+      if (migrationCount > 0) {
+        logger.log(Level.INFO,"Re-partitioning cluster data... Migration queue size: " + migrationCount);
+      }
+ else {
+        logger.log(Level.INFO,"Partition balance is ok, no need to re-partition cluster data... ");
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}
