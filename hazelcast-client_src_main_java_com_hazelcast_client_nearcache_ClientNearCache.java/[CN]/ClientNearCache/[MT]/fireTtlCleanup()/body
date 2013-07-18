@@ -1,0 +1,29 @@
+{
+  if (Clock.currentTimeMillis() < (lastCleanup + cleanupInterval))   return;
+  if (canCleanUp.compareAndSet(true,false)) {
+    try {
+      context.getExecutionService().execute(new Runnable(){
+        public void run(){
+          try {
+            lastCleanup=Clock.currentTimeMillis();
+            for (            Map.Entry<Data,CacheRecord> entry : cache.entrySet()) {
+              if (entry.getValue().expired()) {
+                cache.remove(entry.getKey());
+              }
+            }
+          }
+  finally {
+            canCleanUp.set(true);
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canCleanUp.set(true);
+    }
+catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}
