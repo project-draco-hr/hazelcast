@@ -1,15 +1,24 @@
 {
   final Collection<Data> locks=lockStore != null ? lockStore.getLockedKeys() : Collections.<Data>emptySet();
-  final ConcurrentMap<Data,Record> temp=new ConcurrentHashMap<Data,Record>(locks.size());
+  final Map<Data,Record> lockRecords=new HashMap<Data,Record>(locks.size());
   for (  Data key : locks) {
     Record record=records.get(key);
     if (record != null) {
-      temp.put(key,record);
+      lockRecords.put(key,record);
     }
   }
   Set<Data> keysToDelete=records.keySet();
-  keysToDelete.removeAll(temp.keySet());
-  mapStoreDeleteAll(keysToDelete);
+  keysToDelete.removeAll(lockRecords.keySet());
+  final MapStoreWrapper store=mapContainer.getStore();
+  if (store != null) {
+    Set<Object> keysObject=new HashSet<Object>();
+    for (    Data key : keysToDelete) {
+      removeIndex(key);
+      keysObject.add(mapService.toObject(key));
+    }
+    store.deleteAll(keysObject);
+    toBeRemovedKeys.clear();
+  }
   records.clear();
-  records.putAll(temp);
+  records.putAll(lockRecords);
 }
