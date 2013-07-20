@@ -1,0 +1,19 @@
+{
+  MapConfig mapConfig=new MapConfig("repo").setCacheValue(true);
+  Config config=new Config().addMapConfig(mapConfig);
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  BlockingQueue<Boolean> q=new ArrayBlockingQueue<Boolean>(1);
+  Map<String,Integer> repo=hz.getMap("repo");
+  repo.put(key,1);
+  final BreakerThread breakerThread=new BreakerThread(repo,q);
+  breakerThread.start();
+  WatchDog watchDog=new WatchDog(repo,q);
+  watchDog.start();
+  watchDog.join();
+  try {
+    assertFalse("the cache value was not updated",watchDog.failureDetected);
+  }
+  finally {
+    breakerThread.interrupt();
+  }
+}
