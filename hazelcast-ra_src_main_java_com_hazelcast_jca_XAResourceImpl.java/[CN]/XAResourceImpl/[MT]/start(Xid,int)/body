@@ -1,0 +1,27 @@
+{
+  managedConnection.log(Level.FINEST,"XA start: " + xid);
+  validateXID(xid);
+switch (flags) {
+case TMNOFLAGS:
+    if (getTransaction(xid) != null) {
+      throw new XAException(XAException.XAER_DUPID);
+    }
+  final TransactionContext transactionContext=HazelcastTransactionImpl.createTransaction(this.getTransactionTimeout(),managedConnection.getHazelcastInstance());
+final Transaction tx=TransactionAccessor.getTransaction(transactionContext);
+this.managedConnection.getTx().setTxContext(transactionContext);
+try {
+tx.begin();
+putTransaction(xid,tx);
+}
+ catch (IllegalStateException e) {
+throw new XAException(XAException.XAER_INVAL);
+}
+break;
+case TMRESUME:
+case TMJOIN:
+validateXID(xid);
+break;
+default :
+throw new XAException(XAException.XAER_INVAL);
+}
+}

@@ -1,0 +1,30 @@
+{
+  if (nearCacheInitialized.compareAndSet(false,true)) {
+    final NearCacheConfig nearCacheConfig=getContext().getClientConfig().getNearCacheConfig(name);
+    if (nearCacheConfig == null) {
+      return;
+    }
+    nearCache=new ClientNearCache(name,getContext(),nearCacheConfig);
+    if (nearCacheConfig.isInvalidateOnChange()) {
+      nearCacheListenerId=addEntryListener(new EntryListener<K,V>(){
+        public void entryAdded(        EntryEvent<K,V> event){
+          invalidate(event);
+        }
+        public void entryRemoved(        EntryEvent<K,V> event){
+          invalidate(event);
+        }
+        public void entryUpdated(        EntryEvent<K,V> event){
+          invalidate(event);
+        }
+        public void entryEvicted(        EntryEvent<K,V> event){
+          invalidate(event);
+        }
+        void invalidate(        EntryEvent<K,V> event){
+          final Data key=toData(event.getKey());
+          nearCache.invalidate(key);
+        }
+      }
+,false);
+    }
+  }
+}

@@ -1,7 +1,13 @@
 {
+  if (!node.isActive() || !node.isMaster()) {
+    return;
+  }
+  final MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo);
   try {
-    if (!node.isActive() || !node.isMaster()) {
-      return;
+    MigrationInfo info=migrationInfo;
+    PartitionImpl partition=partitions[info.getPartitionId()];
+    if (!partition.getOwner().equals(info.getSource())) {
+      logger.log(Level.SEVERE,"ERROR: partition owner is not the source of migration! -> " + partition + " -VS- "+ info);
     }
     sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
     Boolean result=Boolean.FALSE;
@@ -20,6 +26,7 @@
       }
     }
  else {
+      logger.log(Level.WARNING,"Partition is lost! Assign new owner and exit...");
       result=Boolean.TRUE;
     }
     if (Boolean.TRUE.equals(result)) {

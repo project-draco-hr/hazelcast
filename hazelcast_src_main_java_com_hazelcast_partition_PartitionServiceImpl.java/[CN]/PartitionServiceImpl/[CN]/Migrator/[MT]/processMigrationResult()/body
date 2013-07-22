@@ -1,16 +1,19 @@
 {
-  final int partitionId=migrationInfo.getPartitionId();
-  final PartitionImpl partition=partitions[partitionId];
   lock.lock();
   try {
+    final int partitionId=migrationInfo.getPartitionId();
     Address newOwner=migrationInfo.getDestination();
-    MemberImpl ownerMember=node.clusterService.getMember(newOwner);
-    if (ownerMember == null)     return;
+    PartitionImpl partition=partitions[partitionId];
     partition.setOwner(newOwner);
-    finalizeMigration(true);
-    sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
+    addCompletedMigration(migrationInfo);
+    finalizeActiveMigration(migrationInfo);
+    if (backupTask != null) {
+      backupTask.run();
+    }
+    sendPartitionRuntimeState();
   }
   finally {
     lock.unlock();
   }
+  sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
 }

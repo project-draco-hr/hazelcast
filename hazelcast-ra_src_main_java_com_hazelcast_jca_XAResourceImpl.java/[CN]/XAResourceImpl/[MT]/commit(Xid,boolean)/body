@@ -1,0 +1,18 @@
+{
+  managedConnection.log(Level.FINEST,"XA commit: " + xid);
+  validateXID(xid);
+  final Transaction tx=getTransaction(xid);
+  if (onePhase) {
+    validateTx(xid,Transaction.State.ACTIVE);
+    tx.prepare();
+  }
+  validateTx(xid,Transaction.State.PREPARED);
+  try {
+    tx.commit();
+  }
+ catch (  TransactionException e) {
+    managedConnection.log(Level.FINEST,e.getMessage());
+    throw new XAException(XAException.XAER_RMERR);
+  }
+  removeTransaction(xid);
+}
