@@ -1,0 +1,29 @@
+{
+  MapStore mapStore=new MapStore();
+  mapStore.setLoadAllKeys(false);
+  Config config=MapStoreTest.newConfig(mapStore,5);
+  config.setProperty("hazelcast.local.localAddress","127.0.0.1");
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+  IMap<Integer,String> map=instance.getMap("map");
+  IMap<Integer,String> map2=instance.getMap("map2");
+  IMap<Integer,String> map3=instance.getMap("map3");
+  for (int i=0; i < 10; i++) {
+    map.put(i,"value-" + i);
+  }
+  for (int i=0; i < 10; i++) {
+    map2.put(i + 10,"value-" + i);
+  }
+  for (int i=0; i < 10; i++) {
+    map3.put(i + 20,"value-" + i);
+  }
+  latch1.await();
+  Thread.sleep(2000);
+  assertEquals(29,mapStore.store.size());
+  for (int i=0; i < 30; i++) {
+    map.delete(i);
+  }
+  latch2.await();
+  Thread.sleep(2000);
+  assertEquals(1,mapStore.store.size());
+}
