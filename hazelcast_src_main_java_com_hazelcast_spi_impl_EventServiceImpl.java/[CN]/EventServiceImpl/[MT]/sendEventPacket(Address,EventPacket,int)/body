@@ -1,0 +1,18 @@
+{
+  final String serviceName=eventPacket.serviceName;
+  final EventServiceSegment segment=getSegment(serviceName,true);
+  boolean sync=segment.incrementPublish() % 100000 == 0;
+  if (sync) {
+    Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(serviceName,new SendEventOperation(eventPacket,orderKey),subscriber).setTryCount(50).build();
+    try {
+      inv.invoke().get(3,TimeUnit.SECONDS);
+    }
+ catch (    Exception ignored) {
+    }
+  }
+ else {
+    final Packet packet=new Packet(nodeEngine.toData(eventPacket),orderKey,nodeEngine.getSerializationContext());
+    packet.setHeader(Packet.HEADER_EVENT);
+    nodeEngine.send(packet,subscriber);
+  }
+}

@@ -1,0 +1,69 @@
+{
+  final int k=5;
+  final int count=1000;
+  final CountDownLatch startLatch=new CountDownLatch(k);
+  final CountDownLatch messageLatch=new CountDownLatch(k * k * count);
+  final CountDownLatch publishLatch=new CountDownLatch(k * count);
+  final Config config=new Config();
+  config.getTopicConfig("default").setGlobalOrderingEnabled(false);
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  final HazelcastInstance[] instances=factory.newInstances(config);
+  final List<TestMessage>[] messageLists=new List[k];
+  for (int i=0; i < k; i++) {
+    messageLists[i]=new CopyOnWriteArrayList<TestMessage>();
+  }
+  ExecutorService ex=Executors.newFixedThreadPool(k);
+  for (int i=0; i < k; i++) {
+    final int finalI=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        final List<TestMessage> messages=messageLists[finalI];
+        HazelcastInstance hz=instances[finalI];
+        ITopic<TestMessage> topic=hz.getTopic("default");
+        topic.addMessageListener(new MessageListener<TestMessage>(){
+          public void onMessage(          Message<TestMessage> message){
+            messages.add(message.getMessageObject());
+            messageLatch.countDown();
+          }
+        }
+);
+        startLatch.countDown();
+        try {
+          startLatch.await(1,TimeUnit.MINUTES);
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+          return;
+        }
+        Member localMember=hz.getCluster().getLocalMember();
+        for (int j=0; j < count; j++) {
+          topic.publish(new TestMessage(localMember,UUID.randomUUID().toString()));
+          publishLatch.countDown();
+        }
+      }
+    }
+);
+  }
+  try {
+    assertTrue(publishLatch.await(2,TimeUnit.MINUTES));
+    assertTrue(messageLatch.await(5,TimeUnit.MINUTES));
+    TestMessage[] ref=new TestMessage[messageLists[0].size()];
+    messageLists[0].toArray(ref);
+    Comparator<TestMessage> comparator=new Comparator<TestMessage>(){
+      public int compare(      TestMessage m1,      TestMessage m2){
+        return m1.publisher.getUuid().compareTo(m2.publisher.getUuid());
+      }
+    }
+;
+    Arrays.sort(ref,comparator);
+    for (int i=1; i < k; i++) {
+      TestMessage[] messages=new TestMessage[messageLists[i].size()];
+      messageLists[i].toArray(messages);
+      Arrays.sort(messages,comparator);
+      assertArrayEquals(ref,messages);
+    }
+  }
+  finally {
+    ex.shutdownNow();
+  }
+}
