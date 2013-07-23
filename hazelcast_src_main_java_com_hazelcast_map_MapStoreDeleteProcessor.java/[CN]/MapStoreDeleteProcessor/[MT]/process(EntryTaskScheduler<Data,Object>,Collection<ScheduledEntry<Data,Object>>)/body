@@ -1,12 +1,31 @@
 {
   if (entries.isEmpty())   return;
   if (entries.size() == 1) {
-    mapContainer.getStore().delete(mapService.toObject(entries.iterator().next().getKey()));
-    return;
+    ScheduledEntry<Data,Object> entry=entries.iterator().next();
+    Exception e=tryDelete(scheduler,entry);
+    if (e != null) {
+      ExceptionUtil.rethrow(e);
+    }
   }
-  Set keys=new HashSet();
-  for (  ScheduledEntry<Data,Object> entry : entries) {
-    keys.add(mapService.toObject(entry.getKey()));
+ else {
+    Set keys=new HashSet();
+    Exception e=null;
+    for (    ScheduledEntry<Data,Object> entry : entries) {
+      keys.add(mapService.toObject(entry.getKey()));
+    }
+    try {
+      mapContainer.getStore().deleteAll(keys);
+    }
+ catch (    Exception ex) {
+      for (      ScheduledEntry<Data,Object> entry : entries) {
+        Exception temp=tryDelete(scheduler,entry);
+        if (temp != null) {
+          e=temp;
+        }
+      }
+    }
+    if (e != null) {
+      ExceptionUtil.rethrow(e);
+    }
   }
-  mapContainer.getStore().deleteAll(keys);
 }

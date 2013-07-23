@@ -2,12 +2,30 @@
   if (entries.isEmpty())   return;
   if (entries.size() == 1) {
     ScheduledEntry<Data,Object> entry=entries.iterator().next();
-    mapContainer.getStore().store(mapService.toObject(entry.getKey()),mapService.toObject(entry.getValue()));
-    return;
+    Exception exception=tryStore(scheduler,entry);
+    if (exception != null) {
+      ExceptionUtil.rethrow(exception);
+    }
   }
-  Map map=new HashMap(entries.size());
-  for (  ScheduledEntry<Data,Object> entry : entries) {
-    map.put(mapService.toObject(entry.getKey()),mapService.toObject(entry.getValue()));
+ else {
+    Map map=new HashMap(entries.size());
+    for (    ScheduledEntry<Data,Object> entry : entries) {
+      map.put(mapService.toObject(entry.getKey()),mapService.toObject(entry.getValue()));
+    }
+    Exception exception=null;
+    try {
+      mapContainer.getStore().storeAll(map);
+    }
+ catch (    Exception e) {
+      for (      ScheduledEntry<Data,Object> entry : entries) {
+        Exception temp=tryStore(scheduler,entry);
+        if (temp != null) {
+          exception=temp;
+        }
+      }
+    }
+    if (exception != null) {
+      ExceptionUtil.rethrow(exception);
+    }
   }
-  mapContainer.getStore().storeAll(map);
 }
