@@ -9,11 +9,14 @@
     if (current == null) {
       final DistributedObjectEvent event=createEvent(objectId,CREATED);
       publish(event);
-      nodeEngine.eventService.executeEvent(new Runnable(){
+      nodeEngine.eventService.executeEvent(new StripedRunnable(){
         public void run(){
           for (          DistributedObjectListener listener : listeners.values()) {
             listener.distributedObjectCreated(event);
           }
+        }
+        public int getKey(){
+          return objectId.hashCode();
         }
       }
 );

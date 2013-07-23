@@ -2,6 +2,7 @@
   this.nodeEngine=nodeEngine;
   logger=nodeEngine.getLogger(EventService.class.getName());
   final Node node=nodeEngine.getNode();
-  eventExecutorService=Executors.newSingleThreadExecutor(new SingleExecutorThreadFactory(node.threadGroup,node.getConfigClassLoader(),node.getThreadNamePrefix("event")));
+  int eventThreadCount=node.getGroupProperties().EVENT_THREAD_COUNT.getInteger();
+  eventExecutor=new StripedExecutor(nodeEngine.executionService.getCachedExecutor(),eventThreadCount);
   segments=new ConcurrentHashMap<String,EventServiceSegment>();
 }
