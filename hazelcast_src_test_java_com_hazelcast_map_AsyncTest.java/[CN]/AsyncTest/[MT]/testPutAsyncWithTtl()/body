@@ -1,0 +1,18 @@
+{
+  int n=1;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
+  IMap<String,String> map=factory.newHazelcastInstance(null).getMap("map:test:putAsyncWithTtl");
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter<String,String>(){
+    public void entryEvicted(    EntryEvent<String,String> event){
+      latch.countDown();
+    }
+  }
+,true);
+  Future<String> f1=map.putAsync(key,value1,3,TimeUnit.SECONDS);
+  String f1Val=f1.get();
+  TestCase.assertNull(f1Val);
+  assertEquals(value1,map.get(key));
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertNull(map.get(key));
+}
