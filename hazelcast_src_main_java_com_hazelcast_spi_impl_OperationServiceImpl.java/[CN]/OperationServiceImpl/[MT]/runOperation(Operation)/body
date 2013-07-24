@@ -1,20 +1,8 @@
 {
-  final int partitionId=getPartitionIdForExecution(op);
-  boolean runInCurrentThread=false;
-  if (partitionId < 0) {
-    runInCurrentThread=true;
-  }
- else {
-    final Thread currentThread=Thread.currentThread();
-    if (currentThread instanceof OperationThread) {
-      int tid=((OperationThread)currentThread).id;
-      runInCurrentThread=partitionId % operationThreadCount == tid;
-    }
-  }
-  if (runInCurrentThread) {
+  if (isAllowedToRunInCurrentThread(op)) {
     doRunOperation(op);
   }
  else {
-    throw new IllegalThreadStateException("Operation: " + op + " cannot be run in current thread!");
+    throw new IllegalThreadStateException("Operation: " + op + " cannot be run in current thread! -> "+ Thread.currentThread());
   }
 }

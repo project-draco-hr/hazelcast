@@ -1,0 +1,14 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  Config cfg=new Config();
+  String map1="default";
+  String map2="default-2";
+  cfg.getMapConfig(map1).setInMemoryFormat(MapConfig.InMemoryFormat.OBJECT);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  IMap<Integer,Integer> map=instance1.getMap(map1);
+  map.put(1,1);
+  EntryProcessor entryProcessor=new PartitionAwareTestEntryProcessor(map2);
+  assertNull(map.executeOnKey(1,entryProcessor));
+  assertEquals(1,instance2.getMap(map2).get(1));
+}
