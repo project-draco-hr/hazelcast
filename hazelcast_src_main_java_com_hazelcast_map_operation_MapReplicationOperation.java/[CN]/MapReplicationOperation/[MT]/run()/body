@@ -1,27 +1,27 @@
 {
   MapService mapService=getService();
   if (data != null) {
-    for (    Entry<String,Set<RecordState>> dataEntry : data.entrySet()) {
-      Set<RecordState> recordStates=dataEntry.getValue();
+    for (    Entry<String,Set<RecordReplicationInfo>> dataEntry : data.entrySet()) {
+      Set<RecordReplicationInfo> recordReplicationInfos=dataEntry.getValue();
       final String mapName=dataEntry.getKey();
       RecordStore recordStore=mapService.getRecordStore(getPartitionId(),mapName);
-      for (      RecordState recordState : recordStates) {
-        Record inputRecord=recordState.getRecord();
+      for (      RecordReplicationInfo recordReplicationInfo : recordReplicationInfos) {
+        Record inputRecord=recordReplicationInfo.getRecord();
         Data key=inputRecord.getKey();
         Record record=mapService.createRecord(mapName,key,inputRecord.getValue(),-1,false);
         record.setStatistics(inputRecord.getStatistics());
         recordStore.getRecords().put(key,record);
-        if (recordState.getIdleDelayMillis() >= 0) {
-          mapService.scheduleIdleEviction(mapName,key,recordState.getIdleDelayMillis());
+        if (recordReplicationInfo.getIdleDelayMillis() >= 0) {
+          mapService.scheduleIdleEviction(mapName,key,recordReplicationInfo.getIdleDelayMillis());
         }
-        if (recordState.getTtlDelayMillis() >= 0) {
-          mapService.scheduleTtlEviction(mapName,record,recordState.getTtlDelayMillis());
+        if (recordReplicationInfo.getTtlDelayMillis() >= 0) {
+          mapService.scheduleTtlEviction(mapName,record,recordReplicationInfo.getTtlDelayMillis());
         }
-        if (recordState.getMapstoreWriteDelayMillis() >= 0) {
-          mapService.scheduleMapStoreWrite(mapName,key,record.getValue(),recordState.getMapstoreWriteDelayMillis());
+        if (recordReplicationInfo.getMapStoreWriteDelayMillis() >= 0) {
+          mapService.scheduleMapStoreWrite(mapName,key,record.getValue(),recordReplicationInfo.getMapStoreWriteDelayMillis());
         }
-        if (recordState.getMapstoreDeleteDelayMillis() >= 0) {
-          mapService.scheduleMapStoreDelete(mapName,key,recordState.getMapstoreDeleteDelayMillis());
+        if (recordReplicationInfo.getMapStoreDeleteDelayMillis() >= 0) {
+          mapService.scheduleMapStoreDelete(mapName,key,recordReplicationInfo.getMapStoreDeleteDelayMillis());
         }
       }
     }
