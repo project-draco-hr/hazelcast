@@ -1,2 +1,45 @@
 {
+  ResponseStream stream=null;
+  while (stream == null) {
+    Connection conn=null;
+    try {
+      conn=connectionFactory.create();
+      final SerializationService serializationService=getSerializationService();
+      final Data request=serializationService.toData(obj);
+      conn.write(request);
+      stream=new ResponseStreamImpl(serializationService,conn);
+    }
+ catch (    Exception e) {
+      if (e instanceof IOException) {
+        if (logger.isLoggable(Level.FINEST)) {
+          logger.log(Level.FINEST,"Error on connection... conn: " + conn + ", error: "+ e);
+        }
+        IOUtil.closeResource(conn);
+      }
+ else {
+        if (conn != null) {
+          conn.release();
+        }
+      }
+      if (ErrorHandler.isRetryable(e)) {
+        if (redoOperation || obj instanceof RetryableRequest) {
+          if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST,"Retrying " + obj + ", last-conn: "+ conn+ ", last-error: "+ e);
+          }
+          beforeRetry();
+          continue;
+        }
+      }
+      throw ExceptionUtil.rethrow(e,IOException.class);
+    }
+  }
+  try {
+    handler.handle(stream);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e,IOException.class);
+  }
+ finally {
+    stream.end();
+  }
 }

@@ -1,16 +1,26 @@
 {
   List<String> list=new ArrayList<String>();
-  if (node != null) {
-    for (    org.w3c.dom.Node node : new AbstractXmlConfigHelper.IterableNodeList(this.node.getChildNodes())) {
-      String nodeName=cleanNodeName(node.getNodeName());
-      if ("item".equals(nodeName)) {
-        if (new NodeHolder(node).getSub("instancestate").getSub("name").getNode().getFirstChild().getNodeValue().equals("running")) {
-          String ip=new NodeHolder(node).getSub(name).getNode().getFirstChild().getNodeValue();
-          boolean passed=applyFilter(awsConfig,node);
-          if (ip != null && passed) {
-            list.add(ip);
-          }
-        }
+  if (node == null)   return list;
+  for (  org.w3c.dom.Node node : new AbstractXmlConfigHelper.IterableNodeList(this.node.getChildNodes())) {
+    String nodeName=cleanNodeName(node.getNodeName());
+    if (!"item".equals(nodeName))     continue;
+    final NodeHolder nodeHolder=new NodeHolder(node);
+    final String state=getState(nodeHolder);
+    final String ip=getIp(name,nodeHolder);
+    final String instanceName=getInstanceName(nodeHolder);
+    if (ip != null) {
+      if (!"running".equals(state)) {
+        logger.log(Level.FINE,format("Ignoring EC2 instance [%s][%s] reason: the instance is not running but %s",instanceName,ip,state));
+      }
+ else       if (!acceptTag(awsConfig,node)) {
+        logger.log(Level.FINE,format("Ignoring EC2 instance [%s][%s] reason: security-group-name doesn't match",instanceName,ip));
+      }
+ else       if (!acceptGroupName(awsConfig,node)) {
+        logger.log(Level.FINE,format("Ignoring EC2 instance [%s][%s] reason: tag-key/tag-value don't match",instanceName,ip));
+      }
+ else {
+        list.add(ip);
+        logger.log(Level.FINE,format("Accepting EC2 instance [%s][%s]",instanceName,ip));
       }
     }
   }
