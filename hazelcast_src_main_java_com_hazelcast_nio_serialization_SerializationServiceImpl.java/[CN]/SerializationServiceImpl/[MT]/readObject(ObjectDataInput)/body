@@ -12,6 +12,15 @@
       }
       throw new HazelcastInstanceNotActiveException();
     }
+    if (typeId == SerializationConstants.CONSTANT_TYPE_PORTABLE && in instanceof PortableContextAwareInputStream) {
+      int factoryId=in.readInt();
+      int classId=in.readInt();
+      int version=in.readInt();
+      PortableContextAwareInputStream ctxIn=(PortableContextAwareInputStream)in;
+      ctxIn.setFactoryId(factoryId);
+      ctxIn.setDataClassId(classId);
+      ctxIn.setDataVersion(version);
+    }
     Object obj=serializer.read(in);
     if (managedContext != null) {
       obj=managedContext.initialize(obj);
