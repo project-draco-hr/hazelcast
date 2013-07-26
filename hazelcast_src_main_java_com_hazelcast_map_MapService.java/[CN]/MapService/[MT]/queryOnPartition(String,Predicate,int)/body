@@ -1,13 +1,19 @@
 {
+  final QueryResult result=new QueryResult();
   PartitionContainer container=getPartitionContainer(partitionId);
   RecordStore recordStore=container.getRecordStore(mapName);
   Map<Data,Record> records=recordStore.getRecords();
   SerializationService serializationService=nodeEngine.getSerializationService();
   for (  Record record : records.values()) {
     Data key=record.getKey();
-    QueryEntry queryEntry=new QueryEntry(serializationService,key,key,record.getValue());
+    Object value=record.getValue();
+    if (value == null) {
+      continue;
+    }
+    QueryEntry queryEntry=new QueryEntry(serializationService,key,key,value);
     if (predicate.apply(queryEntry)) {
       result.add(new QueryResultEntryImpl(key,key,queryEntry.getValueData()));
     }
   }
+  return result;
 }
