@@ -1,24 +1,24 @@
 {
-  stream.read();
-  lastStream=stream;
-  latch.countDown();
-  while (active && !Thread.currentThread().isInterrupted()) {
-    try {
+  try {
+    stream.read();
+    lastStream=stream;
+    latch.countDown();
+    while (active && !Thread.currentThread().isInterrupted()) {
       final Object event=stream.read();
       handler.handle(event);
     }
- catch (    Exception e) {
-      try {
-        stream.end();
-      }
- catch (      IOException ignored) {
-      }
-      if (!(e instanceof IOException)) {
-        active=false;
-      }
+  }
+ catch (  Exception e) {
+    try {
+      stream.end();
+    }
+ catch (    IOException ignored) {
+    }
+    if (ErrorHandler.isRetryable(e)) {
+      throw e;
+    }
  else {
-        throw e;
-      }
+      active=false;
     }
   }
 }
