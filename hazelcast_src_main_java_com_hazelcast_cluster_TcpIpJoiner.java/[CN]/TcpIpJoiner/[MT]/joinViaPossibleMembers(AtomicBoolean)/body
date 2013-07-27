@@ -4,24 +4,24 @@
     final Collection<Address> colPossibleAddresses=getPossibleAddresses();
     colPossibleAddresses.remove(node.getThisAddress());
     for (    final Address possibleAddress : colPossibleAddresses) {
-      logger.log(Level.INFO,"Connecting to possible member: " + possibleAddress);
+      logger.info("Connecting to possible member: " + possibleAddress);
       node.connectionManager.getOrConnect(possibleAddress);
     }
     boolean foundConnection=false;
     int numberOfSeconds=0;
     final int connectionTimeoutSeconds=getConnTimeoutSeconds();
     while (!foundConnection && numberOfSeconds < connectionTimeoutSeconds) {
-      logger.log(Level.FINEST,"Removing failedConnections: " + node.getFailedConnections());
+      logger.finest("Removing failedConnections: " + node.getFailedConnections());
       colPossibleAddresses.removeAll(node.getFailedConnections());
       if (colPossibleAddresses.size() == 0) {
         break;
       }
-      logger.log(Level.FINEST,"We are going to try to connect to each address" + colPossibleAddresses);
+      logger.finest("We are going to try to connect to each address" + colPossibleAddresses);
       for (      Address possibleAddress : colPossibleAddresses) {
         final Connection conn=node.connectionManager.getOrConnect(possibleAddress);
         if (conn != null) {
           foundConnection=true;
-          logger.log(Level.FINEST,"Found a connection and sending join request to " + possibleAddress);
+          logger.finest("Found a connection and sending join request to " + possibleAddress);
           node.clusterService.sendJoinRequest(possibleAddress,true);
         }
       }
@@ -30,26 +30,26 @@
         numberOfSeconds++;
       }
     }
-    logger.log(Level.FINEST,"FOUND " + foundConnection);
+    logger.finest("FOUND " + foundConnection);
     if (!foundConnection) {
-      logger.log(Level.FINEST,"This node will assume master role since no possible member where connected to.");
+      logger.finest("This node will assume master role since no possible member where connected to.");
       node.setAsMaster();
     }
  else {
       if (!node.joined()) {
         final int totalSleep=connectionTimeoutSeconds - numberOfSeconds;
         for (int i=0; i < totalSleep * 2 && !node.joined(); i++) {
-          logger.log(Level.FINEST,"Waiting for join request answer, sleeping for 500 ms...");
+          logger.finest("Waiting for join request answer, sleeping for 500 ms...");
           Thread.sleep(500L);
           Address masterAddress=node.getMasterAddress();
           if (masterAddress != null) {
-            logger.log(Level.FINEST,"Sending join request to " + masterAddress);
+            logger.finest("Sending join request to " + masterAddress);
             node.clusterService.sendJoinRequest(masterAddress,true);
           }
         }
         colPossibleAddresses.removeAll(node.getFailedConnections());
         if (colPossibleAddresses.size() == 0) {
-          logger.log(Level.FINEST,"This node will assume master role since none of the possible members accepted join request.");
+          logger.finest("This node will assume master role since none of the possible members accepted join request.");
           node.setAsMaster();
         }
  else         if (!node.joined()) {
@@ -66,7 +66,7 @@
             Collection<Future<Boolean>> responses=new LinkedList<Future<Boolean>>();
             for (            Address address : colPossibleAddresses) {
               if (node.getConnectionManager().getConnection(address) != null) {
-                logger.log(Level.FINEST,"Claiming myself as master node!");
+                logger.finest("Claiming myself as master node!");
                 Invocation inv=node.nodeEngine.getOperationService().createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new MasterClaim(),address).setTryCount(1).build();
                 responses.add(inv.invoke());
               }
@@ -84,7 +84,7 @@
                 allApprovedAsMaster&=response.get(1,TimeUnit.SECONDS);
               }
  catch (              Exception e) {
-                logger.log(Level.FINEST,e.getMessage(),e);
+                logger.finest(e);
                 allApprovedAsMaster=false;
               }
  finally {
@@ -92,7 +92,7 @@
               }
             }
             if (allApprovedAsMaster) {
-              logger.log(Level.FINEST,node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " possible addresses "+ colPossibleAddresses.size()+ " "+ colPossibleAddresses);
+              logger.finest(node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " possible addresses "+ colPossibleAddresses.size()+ " "+ colPossibleAddresses);
               node.setAsMaster();
               return;
             }
@@ -110,6 +110,6 @@
     node.getFailedConnections().clear();
   }
  catch (  Throwable t) {
-    logger.log(Level.SEVERE,t.getMessage(),t);
+    logger.severe(t);
   }
 }
