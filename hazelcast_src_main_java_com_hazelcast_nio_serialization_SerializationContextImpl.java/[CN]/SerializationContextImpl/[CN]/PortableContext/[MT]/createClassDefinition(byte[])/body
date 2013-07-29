@@ -1,0 +1,22 @@
+{
+  final BufferObjectDataOutput out=serializationService.pop();
+  final byte[] binary;
+  try {
+    decompress(compressedBinary,out);
+    binary=out.toByteArray();
+  }
+  finally {
+    serializationService.push(out);
+  }
+  final ClassDefinitionImpl cd=new ClassDefinitionImpl();
+  cd.readData(serializationService.createObjectDataInput(binary));
+  cd.setBinary(compressedBinary);
+  final ClassDefinitionImpl currentCD=versionedDefinitions.putIfAbsent(combineToLong(cd.classId,getVersion()),cd);
+  if (currentCD == null) {
+    registerNestedDefinitions(cd);
+    return cd;
+  }
+ else {
+    return currentCD;
+  }
+}

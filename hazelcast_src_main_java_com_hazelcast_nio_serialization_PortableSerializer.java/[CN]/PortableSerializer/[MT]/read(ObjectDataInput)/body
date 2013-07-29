@@ -7,26 +7,28 @@
   }
   final PortableContextAwareInputStream ctxIn=(PortableContextAwareInputStream)in;
   final int factoryId=ctxIn.getFactoryId();
-  final int dataClassId=ctxIn.getDataClassId();
-  final int dataVersion=ctxIn.getDataVersion();
+  final int dataClassId=ctxIn.getClassId();
+  final int dataVersion=ctxIn.getVersion();
   final PortableFactory portableFactory=factories.get(factoryId);
   if (portableFactory == null) {
-    throw new HazelcastSerializationException("Could not find PortableFactory for factoryId: " + factoryId);
+    throw new HazelcastSerializationException("Could not find PortableFactory for factory-id: " + factoryId);
   }
   final Portable portable=portableFactory.create(dataClassId);
   if (portable == null) {
     throw new HazelcastSerializationException("Could not create Portable for class-id: " + dataClassId);
   }
-  final PortableReader reader;
+  final DefaultPortableReader reader;
   final ClassDefinition cd;
+  final BufferObjectDataInput bufferedIn=(BufferObjectDataInput)in;
   if (context.getVersion() == dataVersion) {
     cd=context.lookup(factoryId,dataClassId);
-    reader=new DefaultPortableReader(this,(BufferObjectDataInput)in,cd);
+    reader=new DefaultPortableReader(this,bufferedIn,cd);
   }
  else {
     cd=context.lookup(factoryId,dataClassId,dataVersion);
-    reader=new MorphingPortableReader(this,(BufferObjectDataInput)in,cd);
+    reader=new MorphingPortableReader(this,bufferedIn,cd);
   }
   portable.readPortable(reader);
+  reader.end();
   return portable;
 }
