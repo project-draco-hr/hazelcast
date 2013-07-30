@@ -2,8 +2,10 @@
   live=false;
   log(Level.FINEST,"Stopping ConnectionManager");
   shutdownSocketAcceptor();
-  ioService.onShutdown();
-  for (  Connection conn : mapConnections.values()) {
+  for (  SocketChannelWrapper socketChannel : acceptedSockets) {
+    IOUtil.closeResource(socketChannel);
+  }
+  for (  Connection conn : connectionsMap.values()) {
     try {
       destroyConnection(conn);
     }
@@ -11,7 +13,7 @@
       logger.finest(ignore);
     }
   }
-  for (  TcpIpConnection conn : setActiveConnections) {
+  for (  TcpIpConnection conn : activeConnections) {
     try {
       destroyConnection(conn);
     }
@@ -20,8 +22,8 @@
     }
   }
   shutdownIOSelectors();
-  setConnectionInProgress.clear();
-  mapConnections.clear();
-  mapMonitors.clear();
-  setActiveConnections.clear();
+  connectionsInProgress.clear();
+  connectionsMap.clear();
+  monitors.clear();
+  activeConnections.clear();
 }

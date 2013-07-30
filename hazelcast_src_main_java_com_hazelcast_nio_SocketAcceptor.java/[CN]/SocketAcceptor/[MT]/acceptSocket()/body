@@ -25,30 +25,32 @@
   }
   if (socketChannelWrapper != null) {
     final SocketChannelWrapper socketChannel=socketChannelWrapper;
-    connectionManager.ioService.executeAsync(new Runnable(){
-      public void run(){
-        String message=socketChannel.socket().getLocalPort() + " is accepting socket connection from " + socketChannel.socket().getRemoteSocketAddress();
-        log(Level.INFO,message);
-        try {
-          MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
-          if (memberSocketInterceptor != null) {
+    log(Level.INFO,"Accepting socket connection from " + socketChannel.socket().getRemoteSocketAddress());
+    final MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
+    if (memberSocketInterceptor == null) {
+      try {
+        initializeSocketChannel(socketChannel);
+      }
+ catch (      Exception e) {
+        log(Level.WARNING,e.getClass().getName() + ": " + e.getMessage(),e);
+        IOUtil.closeResource(socketChannel);
+      }
+    }
+ else {
+      connectionManager.ioService.executeAsync(new Runnable(){
+        public void run(){
+          try {
             log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
             memberSocketInterceptor.onAccept(socketChannel.socket());
+            initializeSocketChannel(socketChannel);
           }
-          socketChannel.configureBlocking(false);
-          connectionManager.initSocket(socketChannel.socket());
-          connectionManager.assignSocketChannel(socketChannel);
-        }
- catch (        Exception e) {
-          log(Level.WARNING,e.getClass().getName() + ": " + e.getMessage(),e);
-          try {
-            socketChannel.close();
-          }
- catch (          IOException ignored) {
+ catch (          Exception e) {
+            log(Level.WARNING,e.getClass().getName() + ": " + e.getMessage(),e);
+            IOUtil.closeResource(socketChannel);
           }
         }
       }
-    }
 );
+    }
   }
 }
