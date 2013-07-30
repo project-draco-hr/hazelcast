@@ -3,17 +3,21 @@
     return;
   }
   final String uuid=event.getMember().getUuid();
-  nodeEngine.getExecutionService().schedule(new Runnable(){
-    public void run(){
-      final Iterator<ClientEndpoint> iter=endpoints.values().iterator();
-      while (iter.hasNext()) {
-        final ClientEndpoint endpoint=iter.next();
-        if (uuid.equals(endpoint.getPrincipal().getOwnerUuid())) {
-          iter.remove();
-          destroyEndpoint(endpoint,true);
+  try {
+    nodeEngine.getExecutionService().schedule(new Runnable(){
+      public void run(){
+        final Iterator<ClientEndpoint> iter=endpoints.values().iterator();
+        while (iter.hasNext()) {
+          final ClientEndpoint endpoint=iter.next();
+          if (uuid.equals(endpoint.getPrincipal().getOwnerUuid())) {
+            iter.remove();
+            destroyEndpoint(endpoint,true);
+          }
         }
       }
     }
-  }
 ,10,TimeUnit.SECONDS);
+  }
+ catch (  RejectedExecutionException e) {
+  }
 }
