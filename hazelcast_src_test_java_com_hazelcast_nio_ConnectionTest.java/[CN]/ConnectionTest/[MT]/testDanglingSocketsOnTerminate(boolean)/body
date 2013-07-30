@@ -15,7 +15,7 @@
   }
   final HazelcastInstance hz=Hazelcast.newHazelcastInstance(c);
   final ExecutorService ex=Executors.newCachedThreadPool();
-  final int count=Runtime.getRuntime().availableProcessors() * 25;
+  final int count=Math.min(Runtime.getRuntime().availableProcessors() * 25,200);
   final CountDownLatch latch=new CountDownLatch(count);
   final CountDownLatch ll=new CountDownLatch(1);
   final AtomicInteger cc=new AtomicInteger();
@@ -30,6 +30,7 @@
     }
   }
 .start();
+  final Collection<Socket> sockets=Collections.newSetFromMap(new ConcurrentHashMap<Socket,Boolean>());
   for (int i=0; i < count; i++) {
     ex.execute(new Runnable(){
       public void run(){
@@ -38,6 +39,7 @@
             ll.countDown();
           }
           Socket socket=new Socket();
+          sockets.add(socket);
           socket.connect(new InetSocketAddress(port));
           socket.getOutputStream().write(Protocols.CLUSTER.getBytes());
           socket.getInputStream().read();
@@ -55,6 +57,13 @@
     Assert.assertTrue(latch.await(1,TimeUnit.MINUTES));
   }
   finally {
+    for (    Socket socket : sockets) {
+      try {
+        socket.close();
+      }
+ catch (      Exception e) {
+      }
+    }
     ex.shutdownNow();
   }
 }
