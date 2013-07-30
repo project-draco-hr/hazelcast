@@ -4,26 +4,26 @@
   if (cdImpl.getVersion() < 0) {
     cdImpl.version=getVersion();
   }
+  if (cdImpl.getBinary() == null) {
+    final BufferObjectDataOutput out=serializationService.pop();
+    try {
+      cdImpl.writeData(out);
+      final byte[] binary=out.toByteArray();
+      out.clear();
+      compress(binary,out);
+      cdImpl.setBinary(out.toByteArray());
+    }
+ catch (    IOException e) {
+      throw new HazelcastSerializationException(e);
+    }
+ finally {
+      serializationService.push(out);
+    }
+  }
   final long versionedClassId=combineToLong(cdImpl.getClassId(),cdImpl.getVersion());
   final ClassDefinitionImpl currentClassDef=versionedDefinitions.putIfAbsent(versionedClassId,cdImpl);
   if (currentClassDef == null) {
     registerNestedDefinitions(cdImpl);
-    if (cdImpl.getBinary() == null) {
-      final BufferObjectDataOutput out=serializationService.pop();
-      try {
-        cdImpl.writeData(out);
-        final byte[] binary=out.toByteArray();
-        out.clear();
-        compress(binary,out);
-        cdImpl.setBinary(out.toByteArray());
-      }
- catch (      IOException e) {
-        throw new HazelcastSerializationException(e);
-      }
- finally {
-        serializationService.push(out);
-      }
-    }
     return cd;
   }
   return currentClassDef;
