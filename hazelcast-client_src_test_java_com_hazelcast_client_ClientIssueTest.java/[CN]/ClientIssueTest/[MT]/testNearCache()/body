@@ -1,0 +1,23 @@
+{
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance();
+  final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setSmart(false);
+  clientConfig.addNearCacheConfig("map*",new NearCacheConfig().setInMemoryFormat(MapConfig.InMemoryFormat.OBJECT));
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final IMap map=client.getMap("map1");
+  for (int i=0; i < 10 * 1000; i++) {
+    map.put("key" + i,"value" + i);
+  }
+  long begin=System.currentTimeMillis();
+  for (int i=0; i < 1000; i++) {
+    map.get("key" + i);
+  }
+  long firstRead=System.currentTimeMillis() - begin;
+  begin=System.currentTimeMillis();
+  for (int i=0; i < 1000; i++) {
+    map.get("key" + i);
+  }
+  long secondRead=System.currentTimeMillis() - begin;
+  assertTrue(secondRead < firstRead);
+}
