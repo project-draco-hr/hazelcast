@@ -1,12 +1,41 @@
 {
   final MultiMap mm=hz.getMultiMap(name);
-  mm.put("key1","value1");
-  final TransactionContext context=hz.newTransactionContext();
-  context.beginTransaction();
-  final TransactionalMultiMap multiMap=context.getMultiMap(name);
-  assertFalse(multiMap.put("key1","value1"));
-  assertTrue(multiMap.put("key1","value2"));
-  assertEquals(2,multiMap.size());
-  context.commitTransaction();
-  assertEquals(2,mm.size());
+  final int threads=10;
+  final ExecutorService ex=Executors.newFixedThreadPool(threads);
+  final CountDownLatch latch=new CountDownLatch(threads);
+  final AtomicReference<Throwable> error=new AtomicReference<Throwable>(null);
+  for (int i=0; i < threads; i++) {
+    final int finalI=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        final String key=finalI + "key";
+        hz.getMultiMap(name).put(key,"value");
+        final TransactionContext context=hz.newTransactionContext();
+        try {
+          context.beginTransaction();
+          final TransactionalMultiMap multiMap=context.getMultiMap(name);
+          assertFalse(multiMap.put(key,"value"));
+          assertTrue(multiMap.put(key,"value1"));
+          assertTrue(multiMap.put(key,"value2"));
+          assertEquals(3,multiMap.get(key).size());
+          context.commitTransaction();
+          assertEquals(3,mm.get(key).size());
+        }
+ catch (        Exception e) {
+          error.compareAndSet(null,e);
+        }
+ finally {
+          latch.countDown();
+        }
+      }
+    }
+);
+  }
+  try {
+    latch.await(1,TimeUnit.MINUTES);
+    assertNull(error.get());
+  }
+  finally {
+    ex.shutdownNow();
+  }
 }
