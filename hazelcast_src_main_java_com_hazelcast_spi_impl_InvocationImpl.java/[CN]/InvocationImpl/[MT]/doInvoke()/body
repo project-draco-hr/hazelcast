@@ -40,10 +40,6 @@
       OperationAccessor.setInvocationTime(op,nodeEngine.getClusterTime());
       if (thisAddress.equals(invTarget)) {
         remote=false;
-        final long prevCallId=op.getCallId();
-        if (prevCallId != 0) {
-          operationService.deregisterRemoteCall(prevCallId);
-        }
         if (callback == null && op instanceof BackupAwareOperation) {
           final long callId=operationService.newCallId();
           registerBackups((BackupAwareOperation)op,callId);
@@ -67,6 +63,8 @@
         OperationAccessor.setCallId(op,callId);
         boolean sent=operationService.send(op,invTarget);
         if (!sent) {
+          operationService.deregisterRemoteCall(callId);
+          operationService.deregisterBackupCall(callId);
           notify(new RetryableIOException("Packet not sent to -> " + invTarget));
         }
       }

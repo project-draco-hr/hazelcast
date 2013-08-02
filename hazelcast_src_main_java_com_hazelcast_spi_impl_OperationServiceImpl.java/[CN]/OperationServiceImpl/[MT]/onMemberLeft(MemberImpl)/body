@@ -1,8 +1,13 @@
 {
   nodeEngine.getExecutionService().schedule(new Runnable(){
     public void run(){
-      for (      RemoteCall call : remoteCalls.values()) {
-        call.onMemberLeft(member);
+      final Iterator<RemoteCall> iter=remoteCalls.values().iterator();
+      while (iter.hasNext()) {
+        final RemoteCall call=iter.next();
+        if (call.isCallTarget(member)) {
+          iter.remove();
+          call.offerResponse(new MemberLeftException(member));
+        }
       }
     }
   }
