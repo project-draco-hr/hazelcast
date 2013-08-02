@@ -1,0 +1,41 @@
+{
+  final Config config=new Config();
+  final int nodeCount=10;
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  final CountDownLatch latch=new CountDownLatch(nodeCount - 1);
+  config.addListenerConfig(new ListenerConfig().setImplementation(new MembershipListener(){
+    final AtomicBoolean flag=new AtomicBoolean(false);
+    public void memberAdded(    MembershipEvent membershipEvent){
+      if (flag.compareAndSet(false,true)) {
+        try {
+          Thread.sleep((long)(Math.random() * 500) + 50);
+          latch.countDown();
+        }
+ catch (        InterruptedException e) {
+          e.printStackTrace();
+        }
+ finally {
+          flag.set(false);
+        }
+      }
+    }
+    public void memberRemoved(    MembershipEvent membershipEvent){
+    }
+  }
+));
+  final ExecutorService ex=Executors.newFixedThreadPool(nodeCount / 2);
+  for (int i=0; i < nodeCount; i++) {
+    ex.execute(new Runnable(){
+      public void run(){
+        factory.newHazelcastInstance(config);
+      }
+    }
+);
+  }
+  try {
+    assertTrue(latch.await(30,TimeUnit.SECONDS));
+  }
+  finally {
+    ex.shutdownNow();
+  }
+}
