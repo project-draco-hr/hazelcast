@@ -4,6 +4,7 @@
   Collection<CollectionRecord> coll=txMap.get(key);
   long timeout=tx.getTimeoutMillis();
   long ttl=timeout * 3 / 2;
+  final MultiMapTransactionLog log;
   if (coll == null) {
     CollectionResponse response=lockAndGet(key,timeout,ttl);
     if (response == null) {
@@ -12,6 +13,11 @@
     version=response.getTxVersion();
     coll=createCollection(response.getRecordCollection(getNodeEngine()));
     txMap.put(key,coll);
+    log=new MultiMapTransactionLog(key,proxyId,ttl,getThreadId(),version);
+    tx.addTransactionLog(log);
+  }
+ else {
+    log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
   }
   CollectionRecord record=new CollectionRecord(config.isBinary() ? value : getNodeEngine().toObject(value));
   Iterator<CollectionRecord> iterator=coll.iterator();
@@ -26,14 +32,7 @@
   }
   if (version != -1 || recordId != -1) {
     TxnRemoveOperation operation=new TxnRemoveOperation(proxyId,key,recordId,value);
-    MultiMapTransactionLog log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
-    if (log != null) {
-      log.addOperation(operation);
-    }
- else {
-      log=new MultiMapTransactionLog(key,proxyId,ttl,getThreadId(),version,operation);
-      tx.addTransactionLog(log);
-    }
+    log.addOperation(operation);
     return recordId != -1;
   }
   return false;

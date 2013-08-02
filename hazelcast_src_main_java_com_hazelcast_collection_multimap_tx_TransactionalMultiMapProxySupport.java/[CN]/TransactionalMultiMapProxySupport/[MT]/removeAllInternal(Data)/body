@@ -3,6 +3,7 @@
   long timeout=tx.getTimeoutMillis();
   long ttl=timeout * 3 / 2;
   Collection<CollectionRecord> coll=txMap.get(key);
+  final MultiMapTransactionLog log;
   if (coll == null) {
     CollectionResponse response=lockAndGet(key,timeout,ttl);
     if (response == null) {
@@ -10,16 +11,14 @@
     }
     version=response.getTxVersion();
     coll=createCollection(response.getRecordCollection(getNodeEngine()));
+    log=new MultiMapTransactionLog(key,proxyId,ttl,getThreadId(),version);
+    tx.addTransactionLog(log);
+  }
+ else {
+    log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
   }
   txMap.put(key,createCollection());
   TxnRemoveAllOperation operation=new TxnRemoveAllOperation(proxyId,key,coll);
-  MultiMapTransactionLog log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
-  if (log != null) {
-    log.addOperation(operation);
-  }
- else {
-    log=new MultiMapTransactionLog(key,proxyId,ttl,getThreadId(),version,operation);
-    tx.addTransactionLog(log);
-  }
+  log.addOperation(operation);
   return coll;
 }
