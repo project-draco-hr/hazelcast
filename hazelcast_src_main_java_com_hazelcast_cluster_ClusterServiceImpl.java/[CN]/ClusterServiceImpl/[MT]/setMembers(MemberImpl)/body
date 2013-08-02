@@ -3,12 +3,12 @@
   logger.finest("Updating members -> " + Arrays.toString(members));
   lock.lock();
   try {
-    Collection<MemberImpl> newMembers=new LinkedList<MemberImpl>();
     Map<Address,MemberImpl> oldMemberMap=membersRef.get();
     if (oldMemberMap == null) {
       oldMemberMap=Collections.emptyMap();
     }
     final Map<Address,MemberImpl> memberMap=new LinkedHashMap<Address,MemberImpl>();
+    final Collection<MemberImpl> newMembers=new LinkedList<MemberImpl>();
     for (    MemberImpl member : members) {
       MemberImpl currentMember=oldMemberMap.get(member.getAddress());
       if (currentMember == null) {
@@ -18,9 +18,21 @@
       memberMap.put(member.getAddress(),member);
     }
     setMembersRef(memberMap);
-    for (    MemberImpl member : newMembers) {
-      node.getPartitionService().memberAdded(member);
-      sendMembershipEventNotifications(member,true);
+    if (!newMembers.isEmpty()) {
+      Set<Member> eventMembers=new LinkedHashSet<Member>(oldMemberMap.values());
+      if (newMembers.size() == 1) {
+        MemberImpl newMember=newMembers.iterator().next();
+        node.getPartitionService().memberAdded(newMember);
+        eventMembers.add(newMember);
+        sendMembershipEventNotifications(newMember,Collections.unmodifiableSet(eventMembers),true);
+      }
+ else {
+        for (        MemberImpl newMember : newMembers) {
+          node.getPartitionService().memberAdded(newMember);
+          eventMembers.add(newMember);
+          sendMembershipEventNotifications(newMember,Collections.unmodifiableSet(new LinkedHashSet<Member>(eventMembers)),true);
+        }
+      }
     }
   }
   finally {
