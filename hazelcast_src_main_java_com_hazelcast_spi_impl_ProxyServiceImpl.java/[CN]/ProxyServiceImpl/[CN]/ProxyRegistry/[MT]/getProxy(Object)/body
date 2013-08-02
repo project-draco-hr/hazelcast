@@ -7,6 +7,14 @@
     proxy=service.createDistributedObject(objectId);
     DistributedObject current=proxies.putIfAbsent(objectId,proxy);
     if (current == null) {
+      if (proxy instanceof InitializingObject) {
+        try {
+          ((InitializingObject)proxy).initialize();
+        }
+ catch (        Exception e) {
+          logger.warning("Error while initializing proxy: " + proxy,e);
+        }
+      }
       final DistributedObjectEvent event=createEvent(objectId,CREATED);
       publish(event);
       nodeEngine.eventService.executeEvent(new StripedRunnable(){
