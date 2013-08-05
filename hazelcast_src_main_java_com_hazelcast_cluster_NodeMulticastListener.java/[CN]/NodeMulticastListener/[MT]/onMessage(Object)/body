@@ -18,7 +18,7 @@
               node.multicastService.send(response);
             }
  else             if (isMasterNode(joinMessage.getAddress()) && !checkMasterUuid(joinMessage.getUuid())) {
-              node.getLogger("NodeMulticastListener").warning("New join request has been received from current master. " + "Removing " + node.getMasterAddress());
+              logger.warning("New join request has been received from current master. " + "Removing " + node.getMasterAddress());
               node.getClusterService().removeAddress(node.getMasterAddress());
             }
           }
@@ -29,6 +29,11 @@
               final String masterHost=joinMessage.getAddress().getHost();
               if (trustedInterfaces.isEmpty() || AddressUtil.matchAnyInterface(masterHost,trustedInterfaces)) {
                 node.setMasterAddress(new Address(joinMessage.getAddress()));
+              }
+ else {
+                if (logger.isFinestEnabled()) {
+                  logger.finest(format("JoinMessage from %s is dropped because its sender is not a trusted interface",masterHost));
+                }
               }
             }
           }
