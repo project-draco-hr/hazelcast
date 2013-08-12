@@ -3,7 +3,8 @@
   this.threadGroup=new ThreadGroup(name);
   threadMonitoringService=new ThreadMonitoringService(threadGroup);
   lifecycleService=new LifecycleServiceImpl(this);
-  managedContext=new HazelcastManagedContext(this,config.getManagedContext());
+  ManagedContext configuredManagedContext=config.getManagedContext();
+  managedContext=new HazelcastManagedContext(this,configuredManagedContext);
   userContext.putAll(config.getUserContext());
   node=new Node(this,config,nodeContext);
   logger=node.getLogger(getClass().getName());
@@ -14,4 +15,9 @@
     throw new IllegalStateException("Node failed to start!");
   }
   managementService=new ManagementService(this);
+  if (configuredManagedContext != null) {
+    if (configuredManagedContext instanceof HazelcastInstanceAware) {
+      ((HazelcastInstanceAware)configuredManagedContext).setHazelcastInstance(this);
+    }
+  }
 }
