@@ -1,27 +1,36 @@
 {
   for (  Map.Entry<Integer,DataSerializableFactory> entry : config.getDataSerializableFactories().entrySet()) {
-    if (entry.getKey() <= 0) {
-      throw new IllegalArgumentException("DataSerializableFactory factoryId must be positive! -> " + entry.getValue());
+    Integer factoryId=entry.getKey();
+    DataSerializableFactory factory=entry.getValue();
+    if (factoryId <= 0) {
+      throw new IllegalArgumentException("DataSerializableFactory factoryId must be positive! -> " + factory);
     }
-    if (dataSerializableFactories.containsKey(entry.getKey())) {
-      throw new IllegalArgumentException("DataSerializableFactory with factoryId '" + entry.getKey() + "' is already registered!");
+    if (dataSerializableFactories.containsKey(factoryId)) {
+      throw new IllegalArgumentException("DataSerializableFactory with factoryId '" + factoryId + "' is already registered!");
     }
-    dataSerializableFactories.put(entry.getKey(),entry.getValue());
+    dataSerializableFactories.put(factoryId,factory);
   }
   for (  Map.Entry<Integer,String> entry : config.getDataSerializableFactoryClasses().entrySet()) {
-    if (entry.getKey() <= 0) {
-      throw new IllegalArgumentException("DataSerializableFactory factoryId must be positive! -> " + entry.getValue());
+    Integer factoryId=entry.getKey();
+    String factoryClassName=entry.getValue();
+    if (factoryId <= 0) {
+      throw new IllegalArgumentException("DataSerializableFactory factoryId must be positive! -> " + factoryClassName);
     }
-    if (dataSerializableFactories.containsKey(entry.getKey())) {
-      throw new IllegalArgumentException("DataSerializableFactory with factoryId '" + entry.getKey() + "' is already registered!");
+    if (dataSerializableFactories.containsKey(factoryId)) {
+      throw new IllegalArgumentException("DataSerializableFactory with factoryId '" + factoryId + "' is already registered!");
     }
-    DataSerializableFactory f;
+    DataSerializableFactory factory;
     try {
-      f=ClassLoaderUtil.newInstance(cl,entry.getValue());
+      factory=ClassLoaderUtil.newInstance(cl,factoryClassName);
     }
  catch (    Exception e) {
       throw new HazelcastSerializationException(e);
     }
-    dataSerializableFactories.put(entry.getKey(),f);
+    dataSerializableFactories.put(factoryId,factory);
+  }
+  for (  DataSerializableFactory f : dataSerializableFactories.values()) {
+    if (f instanceof HazelcastInstanceAware) {
+      ((HazelcastInstanceAware)f).setHazelcastInstance(hazelcastInstance);
+    }
   }
 }
