@@ -1,0 +1,28 @@
+{
+  DistributedObject proxy=proxies.get(objectId);
+  if (proxy == null) {
+    if (!nodeEngine.isActive()) {
+      throw new HazelcastInstanceNotActiveException();
+    }
+    proxy=service.createDistributedObject(objectId);
+    DistributedObject current=proxies.putIfAbsent(objectId,proxy);
+    if (current == null) {
+      if (proxy instanceof InitializingObject) {
+        try {
+          ((InitializingObject)proxy).initialize();
+        }
+ catch (        Exception e) {
+          logger.warning("Error while initializing proxy: " + proxy,e);
+        }
+      }
+      nodeEngine.eventService.executeEvent(new ProxyEventProcessor(CREATED,serviceName,proxy));
+      if (publishEvent) {
+        publish(new DistributedObjectEventPacket(CREATED,serviceName,objectId));
+      }
+    }
+ else {
+      proxy=current;
+    }
+  }
+  return proxy;
+}
