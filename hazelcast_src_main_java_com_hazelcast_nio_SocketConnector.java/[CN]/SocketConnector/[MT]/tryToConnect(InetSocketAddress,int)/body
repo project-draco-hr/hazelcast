@@ -7,11 +7,18 @@
   log(level,message);
   try {
     socketChannel.configureBlocking(true);
-    if (timeout > 0) {
-      socketChannel.socket().connect(socketAddress,timeout);
-    }
+    try {
+      if (timeout > 0) {
+        socketChannel.socket().connect(socketAddress,timeout);
+      }
  else {
-      socketChannel.connect(socketAddress);
+        socketChannel.connect(socketAddress);
+      }
+    }
+ catch (    SocketException ex) {
+      SocketException newEx=new SocketException(ex.getMessage() + " to address " + socketAddress);
+      newEx.setStackTrace(ex.getStackTrace());
+      throw newEx;
     }
     log(Level.FINEST,"Successfully connected to: " + address + " using socket "+ socketChannel.socket());
     MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
