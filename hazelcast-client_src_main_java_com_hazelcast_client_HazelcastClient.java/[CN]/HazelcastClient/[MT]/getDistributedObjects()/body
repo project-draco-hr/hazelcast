@@ -1,10 +1,11 @@
 {
-  ArrayList<DistributedObject> coll=new ArrayList<DistributedObject>();
   try {
     GetDistributedObjectsRequest request=new GetDistributedObjectsRequest();
-    final DistributedObjectInfos dos=(DistributedObjectInfos)invocationService.invokeOnRandomTarget(request);
-    for (    DistributedObjectInfo distributedObjectInfo : dos.getDistributedObjectInfoArray()) {
-      coll.add(getDistributedObject(distributedObjectInfo.getServiceName(),distributedObjectInfo.getId()));
+    final SerializableCollection serializableCollection=(SerializableCollection)invocationService.invokeOnRandomTarget(request);
+    final ArrayList<DistributedObject> coll=new ArrayList<DistributedObject>(serializableCollection.size());
+    for (    Data data : serializableCollection) {
+      final DistributedObjectInfo o=(DistributedObjectInfo)serializationService.toObject(data);
+      coll.add(getDistributedObject(o.getServiceName(),o.getId()));
     }
     return coll;
   }
