@@ -1,7 +1,14 @@
 {
-  Collection<DistributedObject> objects=new LinkedList<DistributedObject>();
-  for (  ClientProxy clientProxy : proxyManager.getProxies()) {
-    objects.add(clientProxy);
+  ArrayList<DistributedObject> coll=new ArrayList<DistributedObject>();
+  try {
+    GetDistributedObjectsRequest request=new GetDistributedObjectsRequest();
+    final DistributedObjectInfos dos=(DistributedObjectInfos)invocationService.invokeOnRandomTarget(request);
+    for (    DistributedObjectInfo distributedObjectInfo : dos.getDistributedObjectInfoArray()) {
+      coll.add(getDistributedObject(distributedObjectInfo.getServiceName(),distributedObjectInfo.getId()));
+    }
+    return coll;
   }
-  return objects;
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }
