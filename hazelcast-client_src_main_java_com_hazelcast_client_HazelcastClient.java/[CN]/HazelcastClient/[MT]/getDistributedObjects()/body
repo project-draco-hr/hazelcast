@@ -1,7 +1,15 @@
 {
-  Collection<DistributedObject> objects=new LinkedList<DistributedObject>();
-  for (  ClientProxy clientProxy : proxyManager.getProxies()) {
-    objects.add(clientProxy);
+  try {
+    GetDistributedObjectsRequest request=new GetDistributedObjectsRequest();
+    final SerializableCollection serializableCollection=(SerializableCollection)invocationService.invokeOnRandomTarget(request);
+    final ArrayList<DistributedObject> coll=new ArrayList<DistributedObject>(serializableCollection.size());
+    for (    Data data : serializableCollection) {
+      final DistributedObjectInfo o=(DistributedObjectInfo)serializationService.toObject(data);
+      coll.add(getDistributedObject(o.getServiceName(),o.getId()));
+    }
+    return coll;
   }
-  return objects;
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }
