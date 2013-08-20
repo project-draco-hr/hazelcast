@@ -1,0 +1,24 @@
+{
+  MapConfig mapConfig=getInstance().getConfig().getMapConfig("testMapLoaderLoadUpdatingIndex");
+  List<MapIndexConfig> indexConfigs=mapConfig.getMapIndexConfigs();
+  indexConfigs.add(new MapIndexConfig("name",true));
+  SampleIndexableObjectMapLoader loader=new SampleIndexableObjectMapLoader();
+  MapStoreConfig storeConfig=new MapStoreConfig();
+  storeConfig.setFactoryImplementation(loader);
+  mapConfig.setMapStoreConfig(storeConfig);
+  IMap<Integer,SampleIndexableObject> map=getInstance().getMap("testMapLoaderLoadUpdatingIndex");
+  for (int i=0; i < 10; i++) {
+    map.put(i,new SampleIndexableObject("My-" + i,i));
+  }
+  SqlPredicate predicate=new SqlPredicate("name='My-5'");
+  Set<Entry<Integer,SampleIndexableObject>> result=map.entrySet(predicate);
+  assertEquals(1,result.size());
+  assertEquals(5,(int)result.iterator().next().getValue().value);
+  map.destroy();
+  loader.preloadValues=true;
+  map=getInstance().getMap("testMapLoaderLoadUpdatingIndex");
+  predicate=new SqlPredicate("name='My-5'");
+  result=map.entrySet(predicate);
+  assertEquals(1,result.size());
+  assertEquals(5,(int)result.iterator().next().getValue().value);
+}
