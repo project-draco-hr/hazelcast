@@ -5,6 +5,7 @@
   int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
   Set<Integer> plist=new HashSet<Integer>(partitionCount);
   QueryResultSet result=new QueryResultSet(nodeEngine.getSerializationService(),iterationType,dataResult);
+  List<Integer> missingList=new ArrayList<Integer>();
   try {
     List<Future> flist=new ArrayList<Future>();
     for (    MemberImpl member : members) {
@@ -25,12 +26,21 @@
     if (plist.size() == partitionCount) {
       return result;
     }
-    List<Integer> missingList=new ArrayList<Integer>();
     for (int i=0; i < partitionCount; i++) {
       if (!plist.contains(i)) {
         missingList.add(i);
       }
     }
+  }
+ catch (  Throwable t) {
+    missingList.clear();
+    for (int i=0; i < partitionCount; i++) {
+      if (!plist.contains(i)) {
+        missingList.add(i);
+      }
+    }
+  }
+  try {
     List<Future> futures=new ArrayList<Future>(missingList.size());
     for (    Integer pid : missingList) {
       QueryPartitionOperation queryPartitionOperation=new QueryPartitionOperation(name,predicate);
