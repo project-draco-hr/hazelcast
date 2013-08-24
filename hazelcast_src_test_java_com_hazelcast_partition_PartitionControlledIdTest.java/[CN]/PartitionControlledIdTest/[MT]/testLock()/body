@@ -1,0 +1,13 @@
+{
+  String partitionKey="hazelcast";
+  HazelcastInstance hz=getHazelcastInstance(partitionKey);
+  ILock lock=hz.getLock("s@" + partitionKey);
+  lock.lock();
+  assertEquals("s@" + partitionKey,lock.getName());
+  assertEquals(partitionKey,lock.getPartitionKey());
+  Node node=getNode(hz);
+  LockServiceImpl lockService=node.nodeEngine.getService(LockServiceImpl.SERVICE_NAME);
+  Partition partition=instances[0].getPartitionService().getPartition(partitionKey);
+  LockStore lockStore=lockService.getLockStore(partition.getPartitionId(),new InternalLockNamespace());
+  assertTrue(lockStore.isLocked(node.getSerializationService().toData(lock.getName())));
+}
