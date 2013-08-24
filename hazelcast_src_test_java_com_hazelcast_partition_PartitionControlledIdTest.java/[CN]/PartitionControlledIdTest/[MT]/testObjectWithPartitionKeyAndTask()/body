@@ -1,0 +1,10 @@
+{
+  HazelcastInstance instance=instances[0];
+  IExecutorService executorServices=instance.getExecutorService("executor");
+  String partitionKey="hazelcast";
+  ISemaphore semaphore=instance.getSemaphore("s@" + partitionKey);
+  semaphore.release();
+  ContainsSemaphoreTask task=new ContainsSemaphoreTask(semaphore.getName());
+  Future<Boolean> f=executorServices.submitToKeyOwner(task,semaphore.getPartitionKey());
+  assertTrue(f.get());
+}

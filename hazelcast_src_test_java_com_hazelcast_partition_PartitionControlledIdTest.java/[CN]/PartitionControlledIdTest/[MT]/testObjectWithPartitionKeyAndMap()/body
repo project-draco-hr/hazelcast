@@ -1,0 +1,17 @@
+{
+  HazelcastInstance instance=instances[0];
+  IExecutorService executorServices=instance.getExecutorService("executor");
+  String partitionKey="hazelcast";
+  String mapKey=partitionKey;
+  IMap map=instance.getMap("map");
+  map.put(mapKey,"foobar");
+  ISemaphore semaphore=instance.getSemaphore("s@" + partitionKey);
+  semaphore.release();
+  ContainsSemaphoreAndMapEntryTask task=new ContainsSemaphoreAndMapEntryTask(semaphore.getName(),mapKey);
+  Map<Member,Future<Boolean>> futures=executorServices.submitToAllMembers(task);
+  int count=0;
+  for (  Future<Boolean> f : futures.values()) {
+    count+=f.get() ? 1 : 0;
+  }
+  assertEquals(1,count);
+}
