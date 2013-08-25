@@ -1,0 +1,12 @@
+{
+  String partitionKey="hazelcast";
+  HazelcastInstance hz=getHazelcastInstance(partitionKey);
+  ISet set=hz.getSet("s@" + partitionKey);
+  set.add("");
+  assertEquals("s@" + partitionKey,set.getName());
+  assertEquals(partitionKey,set.getPartitionKey());
+  CollectionService service=getNodeEngine(hz).getService(CollectionService.SERVICE_NAME);
+  Partition partition=instances[0].getPartitionService().getPartition(partitionKey);
+  CollectionPartitionContainer cpc=service.getPartitionContainer(partition.getPartitionId());
+  assertTrue(cpc.containsCollection(new CollectionProxyId(ObjectListProxy.COLLECTION_SET_NAME,set.getName(),CollectionProxyType.SET)));
+}
