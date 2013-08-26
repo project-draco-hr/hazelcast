@@ -1,14 +1,13 @@
 {
-  super(hazelcastInstance,service);
-  objectName=service.createObjectName(null,null);
+  super(hazelcastInstance,managementService);
+  Hashtable<String,String> properties=new Hashtable<String,String>(3);
+  properties.put("type",quote("HazelcastInstance"));
+  properties.put("name",quote(hazelcastInstance.getName()));
+  setObjectName(properties);
   config=hazelcastInstance.getConfig();
   cluster=hazelcastInstance.getCluster();
-  MBeanServer mbs=ManagementFactory.getPlatformMBeanServer();
-  NodeMBean nodeMBean=new NodeMBean(hazelcastInstance.node,service);
-  try {
-    mbs.registerMBean(nodeMBean,objectName);
-  }
- catch (  Exception e) {
-    e.printStackTrace();
-  }
+  Node node=hazelcastInstance.node;
+  register(new NodeMBean(hazelcastInstance,node,managementService));
+  register(new ConnectionManagerMBean(hazelcastInstance,node.connectionManager,service));
+  register(new EventServiceMBean(hazelcastInstance,node.nodeEngine.getEventService(),service));
 }
