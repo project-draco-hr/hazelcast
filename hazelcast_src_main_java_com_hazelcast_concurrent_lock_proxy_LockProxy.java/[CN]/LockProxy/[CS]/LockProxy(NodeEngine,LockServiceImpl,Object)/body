@@ -1,7 +1,16 @@
 {
   super(nodeEngine,lockService);
-  key=nodeEngine.toData(actualKey);
-  Object _partitionKey=PartitionKeyUtil.getPartitionKey(actualKey);
-  partitionKey=_partitionKey == actualKey ? key : nodeEngine.toData(_partitionKey);
-  lockSupport=new LockProxySupport(namespace);
+  if (object instanceof String) {
+    name=(String)object;
+    key=getNameAsPartitionAwareData();
+  }
+ else   if (object instanceof Data) {
+    key=(Data)object;
+    name=String.valueOf(nodeEngine.getSerializationService().toObject(key));
+  }
+ else {
+    name=convertToStringKey(object,nodeEngine.getSerializationService());
+    key=getNameAsPartitionAwareData();
+  }
+  lockSupport=new LockProxySupport(new InternalLockNamespace());
 }

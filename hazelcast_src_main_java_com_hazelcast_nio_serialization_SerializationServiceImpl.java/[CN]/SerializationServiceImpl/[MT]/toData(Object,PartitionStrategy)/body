@@ -1,0 +1,38 @@
+{
+  if (obj == null) {
+    return null;
+  }
+  if (obj instanceof Data) {
+    return (Data)obj;
+  }
+  try {
+    final SerializerAdapter serializer=serializerFor(obj.getClass());
+    if (serializer == null) {
+      if (active) {
+        throw new HazelcastSerializationException("There is no suitable serializer for " + obj.getClass());
+      }
+      throw new HazelcastInstanceNotActiveException();
+    }
+    final byte[] bytes=serializer.write(obj);
+    final Data data=new Data(serializer.getTypeId(),bytes);
+    if (obj instanceof Portable) {
+      final Portable portable=(Portable)obj;
+      data.classDefinition=serializationContext.lookup(portable.getFactoryId(),portable.getClassId());
+    }
+    if (strategy == null) {
+      strategy=globalPartitionStrategy;
+    }
+    if (strategy != null) {
+      Object pk=strategy.getPartitionKey(obj);
+      if (pk != null) {
+        final Data partitionKey=toData(pk,EMPTY_PARTITION_STRATEGY);
+        data.partitionHash=(partitionKey == null) ? -1 : partitionKey.getPartitionHash();
+      }
+    }
+    return data;
+  }
+ catch (  Throwable e) {
+    handleException(e);
+  }
+  return null;
+}
