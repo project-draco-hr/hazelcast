@@ -1,0 +1,29 @@
+{
+  System.setProperty("javax.net.ssl.keyStore",keyStore);
+  System.setProperty("javax.net.ssl.trustStore",trustStore);
+  System.setProperty("javax.net.ssl.keyStorePassword","123456");
+  System.err.println("keyStore = " + keyStore);
+  try {
+    Config cfg=new Config();
+    cfg.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true));
+    final HazelcastInstance hz=Hazelcast.newHazelcastInstance(cfg);
+    ClientConfig config=new ClientConfig();
+    config.addAddress("127.0.0.1");
+    config.setRedoOperation(true);
+    config.getSocketOptions().setSocketFactory(new SSLSocketFactory());
+    final HazelcastInstance client=HazelcastClient.newHazelcastClient(config);
+    IMap<Object,Object> clientMap=client.getMap("test");
+    for (int i=0; i < 10; i++) {
+      Assert.assertNull(clientMap.put(i,i));
+    }
+    IMap<Object,Object> map=hz.getMap("test");
+    for (int i=0; i < 10; i++) {
+      Assert.assertEquals(i,map.get(i));
+    }
+  }
+  finally {
+    System.clearProperty("javax.net.ssl.keyStore");
+    System.clearProperty("javax.net.ssl.trustStore");
+    System.clearProperty("javax.net.ssl.keyStorePassword");
+  }
+}
