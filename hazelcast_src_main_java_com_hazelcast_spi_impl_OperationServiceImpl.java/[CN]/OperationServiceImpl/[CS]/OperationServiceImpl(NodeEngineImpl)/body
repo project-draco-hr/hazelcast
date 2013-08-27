@@ -10,11 +10,14 @@
   final int opThreadCount=node.getGroupProperties().OPERATION_THREAD_COUNT.getInteger();
   operationThreadCount=opThreadCount > 0 ? opThreadCount : coreSize * 2;
   operationExecutors=new ExecutorService[operationThreadCount];
+  operationExecutorQueues=new BlockingQueue[operationThreadCount];
   for (int i=0; i < operationExecutors.length; i++) {
-    operationExecutors[i]=Executors.newSingleThreadExecutor(new OperationThreadFactory(i));
+    BlockingQueue<Runnable> q=new LinkedBlockingQueue<Runnable>();
+    operationExecutorQueues[i]=q;
+    operationExecutors[i]=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,q,new OperationThreadFactory(i));
   }
   defaultOperationExecutor=nodeEngine.getExecutionService().getExecutor(ExecutionService.OPERATION_EXECUTOR);
-  responseExecutor=Executors.newSingleThreadExecutor(new SingleExecutorThreadFactory(node.threadGroup,node.getConfigClassLoader(),node.getThreadNamePrefix("response")));
+  responseExecutor=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,responseWorkQueue,new SingleExecutorThreadFactory(node.threadGroup,node.getConfigClassLoader(),node.getThreadNamePrefix("response")));
   executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(1000,0.75f,concurrencyLevel);
   backupCalls=new ConcurrentHashMap<Long,Semaphore>(1000,0.75f,concurrencyLevel);
   backupScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new ScheduledBackupProcessor(),false);
