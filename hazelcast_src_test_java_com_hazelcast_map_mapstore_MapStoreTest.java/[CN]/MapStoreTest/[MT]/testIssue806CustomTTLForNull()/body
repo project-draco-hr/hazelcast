@@ -1,0 +1,14 @@
+{
+  final ConcurrentMap<String,String> store=new ConcurrentHashMap<String,String>();
+  final MapStore<String,String> myMapStore=new SimpleMapStore<String,String>(store);
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_CACHED_NULL_TTL_SECONDS,"0");
+  config.getMapConfig("testIssue806CustomTTLForNull").setMapStoreConfig(new MapStoreConfig().setImplementation(myMapStore));
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  HazelcastInstance hc=nodeFactory.newHazelcastInstance(config);
+  IMap<Object,Object> map=hc.getMap("testIssue806CustomTTLForNull");
+  map.get("key");
+  assertNull(map.get("key"));
+  store.put("key","value");
+  assertEquals("value",map.get("key"));
+}
