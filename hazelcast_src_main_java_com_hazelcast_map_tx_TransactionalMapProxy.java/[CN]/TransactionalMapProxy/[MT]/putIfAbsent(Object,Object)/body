@@ -2,19 +2,20 @@
   checkTransactionState();
   TxnValueWrapper wrapper=txMap.get(key);
   boolean haveTxnPast=wrapper != null;
+  MapService service=getService();
   if (haveTxnPast) {
     if (wrapper.type != TxnValueWrapper.Type.REMOVED) {
       return wrapper.value;
     }
-    putInternal(getService().toData(key),getService().toData(value));
+    putInternal(service.toData(key,partitionStrategy),service.toData(value));
     txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
     return null;
   }
  else {
-    Data oldValue=putIfAbsentInternal(getService().toData(key),getService().toData(value));
+    Data oldValue=putIfAbsentInternal(service.toData(key,partitionStrategy),service.toData(value));
     if (oldValue == null) {
       txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
     }
-    return getService().toObject(oldValue);
+    return service.toObject(oldValue);
   }
 }

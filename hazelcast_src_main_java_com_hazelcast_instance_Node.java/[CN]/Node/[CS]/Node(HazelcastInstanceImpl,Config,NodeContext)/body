@@ -6,7 +6,15 @@
   this.groupProperties=new GroupProperties(config);
   SerializationService ss;
   try {
-    ss=new SerializationServiceBuilder().setClassLoader(configClassLoader).setConfig(config.getSerializationConfig()).setManagedContext(hazelcastInstance.managedContext).setHazelcastInstance(hazelcastInstance).build();
+    String partitionStrategyClassName=groupProperties.PARTITIONING_STRATEGY_CLASS.getString();
+    final PartitioningStrategy partitionStrategy;
+    if (partitionStrategyClassName != null && partitionStrategyClassName.length() > 0) {
+      partitionStrategy=ClassLoaderUtil.newInstance(configClassLoader,partitionStrategyClassName);
+    }
+ else {
+      partitionStrategy=new DefaultPartitioningStrategy();
+    }
+    ss=new SerializationServiceBuilder().setClassLoader(configClassLoader).setConfig(config.getSerializationConfig()).setManagedContext(hazelcastInstance.managedContext).setPartitionStrategy(partitionStrategy).setHazelcastInstance(hazelcastInstance).build();
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);

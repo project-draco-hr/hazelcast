@@ -4,26 +4,29 @@
     MapReplicationUpdate replicationUpdate=(MapReplicationUpdate)eventObject;
     EntryView entryView=replicationUpdate.getEntryView();
     MapMergePolicy mergePolicy=replicationUpdate.getMergePolicy();
-    MergeOperation operation=new MergeOperation(replicationUpdate.getMapName(),toData(entryView.getKey()),entryView,mergePolicy);
+    String mapName=replicationUpdate.getMapName();
+    MapContainer mapContainer=getMapContainer(mapName);
+    MergeOperation operation=new MergeOperation(mapName,toData(entryView.getKey(),mapContainer.getPartitionStrategy()),entryView,mergePolicy);
     try {
       int partitionId=nodeEngine.getPartitionService().getPartitionId(entryView.getKey());
       Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
       invocation.invoke().get();
     }
  catch (    Throwable t) {
-      ExceptionUtil.rethrow(t);
+      throw ExceptionUtil.rethrow(t);
     }
   }
  else   if (eventObject instanceof MapReplicationRemove) {
     MapReplicationRemove replicationRemove=(MapReplicationRemove)eventObject;
-    DeleteOperation operation=new DeleteOperation(replicationRemove.getMapName(),toData(replicationRemove.getKey()));
+    String mapName=replicationRemove.getMapName();
+    DeleteOperation operation=new DeleteOperation(replicationRemove.getMapName(),replicationRemove.getKey());
     try {
       int partitionId=nodeEngine.getPartitionService().getPartitionId(replicationRemove.getKey());
       Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
       invocation.invoke().get();
     }
  catch (    Throwable t) {
-      ExceptionUtil.rethrow(t);
+      throw ExceptionUtil.rethrow(t);
     }
   }
 }
