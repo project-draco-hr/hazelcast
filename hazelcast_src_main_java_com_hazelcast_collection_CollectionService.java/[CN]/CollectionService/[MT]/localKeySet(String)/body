@@ -1,0 +1,18 @@
+{
+  Set<Data> keySet=new HashSet<Data>();
+  ClusterServiceImpl clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
+  Address thisAddress=clusterService.getThisAddress();
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    PartitionView partition=nodeEngine.getPartitionService().getPartition(i);
+    CollectionPartitionContainer partitionContainer=getPartitionContainer(i);
+    CollectionContainer collectionContainer=partitionContainer.getCollectionContainer(name);
+    if (collectionContainer == null) {
+      continue;
+    }
+    if (partition.getOwner().equals(thisAddress)) {
+      keySet.addAll(collectionContainer.keySet());
+    }
+  }
+  getLocalMultiMapStatsImpl(name).incrementOtherOperations();
+  return keySet;
+}
