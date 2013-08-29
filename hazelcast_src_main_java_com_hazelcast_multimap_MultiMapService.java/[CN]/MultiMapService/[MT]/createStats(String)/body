@@ -11,20 +11,20 @@
   Address thisAddress=clusterService.getThisAddress();
   for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
     PartitionView partition=nodeEngine.getPartitionService().getPartition(i);
-    CollectionPartitionContainer partitionContainer=getPartitionContainer(i);
-    CollectionContainer collectionContainer=partitionContainer.getCollectionContainer(name);
-    if (collectionContainer == null) {
+    MultiMapPartitionContainer partitionContainer=getPartitionContainer(i);
+    MultiMapContainer multiMapContainer=partitionContainer.getCollectionContainer(name);
+    if (multiMapContainer == null) {
       continue;
     }
     if (partition.getOwner().equals(thisAddress)) {
-      lockedEntryCount+=collectionContainer.getLockedCount();
-      for (      CollectionWrapper wrapper : collectionContainer.collections.values()) {
+      lockedEntryCount+=multiMapContainer.getLockedCount();
+      for (      MultiMapWrapper wrapper : multiMapContainer.collections.values()) {
         hits+=wrapper.getHits();
         ownedEntryCount+=wrapper.getCollection().size();
       }
     }
  else {
-      int backupCount=collectionContainer.config.getTotalBackupCount();
+      int backupCount=multiMapContainer.config.getTotalBackupCount();
       for (int j=1; j <= backupCount; j++) {
         Address replicaAddress=partition.getReplicaAddress(j);
         int memberSize=nodeEngine.getClusterService().getMembers().size();
@@ -39,7 +39,7 @@
           replicaAddress=partition.getReplicaAddress(j);
         }
         if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
-          for (          CollectionWrapper wrapper : collectionContainer.collections.values()) {
+          for (          MultiMapWrapper wrapper : multiMapContainer.collections.values()) {
             backupEntryCount+=wrapper.getCollection().size();
           }
         }

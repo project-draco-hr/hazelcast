@@ -1,12 +1,12 @@
 {
   throwExceptionIfNull(key);
   throwExceptionIfNull(value);
-  Collection<CollectionRecord> coll=txMap.get(key);
+  Collection<MultiMapRecord> coll=txMap.get(key);
   long timeout=tx.getTimeoutMillis();
   long ttl=timeout * 3 / 2;
   final MultiMapTransactionLog log;
   if (coll == null) {
-    CollectionResponse response=lockAndGet(key,timeout,ttl);
+    MultiMapResponse response=lockAndGet(key,timeout,ttl);
     if (response == null) {
       throw new ConcurrentModificationException("Transaction couldn't obtain lock " + getThreadId());
     }
@@ -19,11 +19,11 @@
  else {
     log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
   }
-  CollectionRecord record=new CollectionRecord(config.isBinary() ? value : getNodeEngine().toObject(value));
-  Iterator<CollectionRecord> iterator=coll.iterator();
+  MultiMapRecord record=new MultiMapRecord(config.isBinary() ? value : getNodeEngine().toObject(value));
+  Iterator<MultiMapRecord> iterator=coll.iterator();
   long recordId=-1;
   while (iterator.hasNext()) {
-    CollectionRecord r=iterator.next();
+    MultiMapRecord r=iterator.next();
     if (r.equals(record)) {
       iterator.remove();
       recordId=r.getRecordId();
