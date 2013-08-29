@@ -1,0 +1,17 @@
+{
+  throwExceptionIfNull(key);
+  Collection<CollectionRecord> coll=txMap.get(key);
+  if (coll == null) {
+    CountOperation operation=new CountOperation(name,key);
+    try {
+      int partitionId=getNodeEngine().getPartitionService().getPartitionId(key);
+      Invocation invocation=getNodeEngine().getOperationService().createInvocationBuilder(MultiMapService.SERVICE_NAME,operation,partitionId).build();
+      Future<Integer> f=invocation.invoke();
+      return f.get();
+    }
+ catch (    Throwable t) {
+      throw ExceptionUtil.rethrow(t);
+    }
+  }
+  return coll.size();
+}

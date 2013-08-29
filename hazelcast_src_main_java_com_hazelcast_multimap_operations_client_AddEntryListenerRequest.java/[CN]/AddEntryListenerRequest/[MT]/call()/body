@@ -1,0 +1,32 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  final ClientEngine clientEngine=getClientEngine();
+  final MultiMapService service=getService();
+  EntryListener listener=new EntryListener(){
+    public void entryAdded(    EntryEvent event){
+      send(event);
+    }
+    public void entryRemoved(    EntryEvent event){
+      send(event);
+    }
+    public void entryUpdated(    EntryEvent event){
+      send(event);
+    }
+    public void entryEvicted(    EntryEvent event){
+      send(event);
+    }
+    private void send(    EntryEvent event){
+      if (endpoint.live()) {
+        Data key=clientEngine.toData(event.getKey());
+        Data value=clientEngine.toData(event.getValue());
+        Data oldValue=clientEngine.toData(event.getOldValue());
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
+        clientEngine.sendResponse(endpoint,portableEntryEvent);
+      }
+    }
+  }
+;
+  String registrationId=service.addListener(name,listener,key,includeValue,false);
+  endpoint.setListenerRegistration(MultiMapService.SERVICE_NAME,name,registrationId);
+  return null;
+}
