@@ -5,33 +5,8 @@
   sslEngine.setEnableSessionCreation(true);
   SSLSession session=sslEngine.getSession();
   in=ByteBuffer.allocate(64 * 1024);
-  int appBufferMax=session.getApplicationBufferSize();
+  emptyBuffer=ByteBuffer.allocate(0);
   int netBufferMax=session.getPacketBufferSize();
-  out=ByteBuffer.allocate(appBufferMax);
-  cTOs=ByteBuffer.allocate(netBufferMax);
-  sTOc=ByteBuffer.allocate(netBufferMax);
-  write(out);
-  while (sslEngineResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED) {
-    if (sslEngineResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
-      sTOc.clear();
-      while (socketChannel.read(sTOc) < 1) {
-        Thread.sleep(50);
-      }
-      sTOc.flip();
-      unwrap(sTOc);
-      if (sslEngineResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED) {
-        out.clear();
-        write(out);
-      }
-    }
- else     if (sslEngineResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
-      out.clear();
-      write(out);
-    }
- else {
-      Thread.sleep(500);
-    }
-  }
-  in.clear();
-  in.flip();
+  netOutBuffer=ByteBuffer.allocate(netBufferMax);
+  netInBuffer=ByteBuffer.allocate(netBufferMax);
 }
