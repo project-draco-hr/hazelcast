@@ -4,9 +4,18 @@
   final ClientConfig clientConfig=getClientConfig();
   redoOperation=clientConfig.isRedoOperation();
   credentials=clientConfig.getCredentials();
-  final Collection<EventListener> listenersList=client.getClientConfig().getListeners();
-  if (listenersList != null && !listenersList.isEmpty()) {
-    for (    EventListener listener : listenersList) {
+  final List<ListenerConfig> listenerConfigs=client.getClientConfig().getListenerConfigs();
+  if (listenerConfigs != null && !listenerConfigs.isEmpty()) {
+    for (    ListenerConfig listenerConfig : listenerConfigs) {
+      EventListener listener=listenerConfig.getImplementation();
+      if (listener == null) {
+        try {
+          listener=ClassLoaderUtil.newInstance(clientConfig.getClassLoader(),listenerConfig.getClassName());
+        }
+ catch (        Exception e) {
+          logger.severe(e);
+        }
+      }
       if (listener instanceof MembershipListener) {
         addMembershipListener((MembershipListener)listener);
       }
