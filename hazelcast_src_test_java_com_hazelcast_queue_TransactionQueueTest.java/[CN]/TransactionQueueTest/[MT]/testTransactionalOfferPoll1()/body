@@ -6,10 +6,16 @@
   final HazelcastInstance[] instances=factory.newInstances(config);
   final TransactionContext context=instances[0].newTransactionContext();
   context.beginTransaction();
-  TransactionalQueue<String> q=context.getQueue(name);
-  assertTrue(q.offer("ali"));
-  String s=q.poll();
-  assertEquals("ali",s);
-  context.commitTransaction();
+  try {
+    TransactionalQueue<String> q=context.getQueue(name);
+    assertTrue(q.offer("ali"));
+    String s=q.poll();
+    assertEquals("ali",s);
+    context.commitTransaction();
+  }
+ catch (  TransactionException e) {
+    context.rollbackTransaction();
+    throw e;
+  }
   assertEquals(0,getQueue(instances,name).size());
 }
