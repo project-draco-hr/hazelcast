@@ -1,22 +1,43 @@
 {
   if (!txBackupLogs.isEmpty()) {
-    for (    TxBackupLog log : txBackupLogs.values()) {
+    for (    Map.Entry<String,TxBackupLog> entry : txBackupLogs.entrySet()) {
+      TxBackupLog log=entry.getValue();
       if (uuid.equals(log.callerUuid)) {
-        TransactionImpl tx=new TransactionImpl(this,nodeEngine,log.txnId,log.txLogs,log.timeoutMillis,log.startTime,log.callerUuid);
-        if (log.state == State.COMMITTING) {
-          try {
-            tx.commit();
+        String txnId=entry.getKey();
+        if (log.state == State.ACTIVE) {
+          Collection<MemberImpl> memberList=nodeEngine.getClusterService().getMemberList();
+          Collection<Future> futures=new ArrayList<Future>(memberList.size());
+          for (          MemberImpl member : memberList) {
+            Operation op=new BroadcastTxRollbackOperation(txnId);
+            Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,op,member.getAddress()).build();
+            futures.add(inv.invoke());
           }
- catch (          Throwable e) {
-            logger.warning("Error during committing from tx backup!",e);
+          for (          Future future : futures) {
+            try {
+              future.get(TransactionOptions.getDefault().getTimeoutMillis(),TimeUnit.MILLISECONDS);
+            }
+ catch (            Exception e) {
+              logger.warning("Error while rolling-back tx!");
+            }
           }
         }
  else {
-          try {
-            tx.rollback();
+          TransactionImpl tx=new TransactionImpl(this,nodeEngine,txnId,log.txLogs,log.timeoutMillis,log.startTime,log.callerUuid);
+          if (log.state == State.COMMITTING) {
+            try {
+              tx.commit();
+            }
+ catch (            Throwable e) {
+              logger.warning("Error during committing from tx backup!",e);
+            }
           }
- catch (          Throwable e) {
-            logger.warning("Error during rolling-back from tx backup!",e);
+ else {
+            try {
+              tx.rollback();
+            }
+ catch (            Throwable e) {
+              logger.warning("Error during rolling-back from tx backup!",e);
+            }
           }
         }
       }
