@@ -6,6 +6,7 @@
     record=mapService.createRecord(name,dataKey,newValue,-1);
     mapStoreWrite(record,dataKey,newValue);
     records.put(dataKey,record);
+    updateSizeEstimator(calculateRecordSize(record));
   }
  else {
     Object oldValue=record.getValue();
@@ -15,14 +16,17 @@
       records.remove(dataKey);
       removeIndex(dataKey);
       mapStoreDelete(record,dataKey);
+      updateSizeEstimator(-calculateRecordSize(record));
       return true;
     }
     if (mapService.compare(name,newValue,oldValue)) {
       return true;
     }
     mapStoreWrite(record,dataKey,newValue);
+    updateSizeEstimator(-calculateRecordSize(record));
     if (record instanceof DataRecord)     ((DataRecord)record).setValue(mapService.toData(newValue));
  else     if (record instanceof ObjectRecord)     ((ObjectRecord)record).setValue(mapService.toObject(newValue));
+    updateSizeEstimator(calculateRecordSize(record));
   }
   saveIndex(record);
   return newValue != null;
