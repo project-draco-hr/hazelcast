@@ -1,0 +1,40 @@
+{
+synchronized (this) {
+    if (handshake) {
+      return;
+    }
+    writeInternal(emptyBuffer);
+    while (sslEngineResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED) {
+      if (sslEngineResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
+        netInBuffer.clear();
+        while (socketChannel.read(netInBuffer) < 1) {
+          try {
+            Thread.sleep(50);
+          }
+ catch (          InterruptedException e) {
+            throw new IOException(e);
+          }
+        }
+        netInBuffer.flip();
+        unwrap(netInBuffer);
+        if (sslEngineResult.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED) {
+          writeInternal(emptyBuffer);
+        }
+      }
+ else       if (sslEngineResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
+        writeInternal(emptyBuffer);
+      }
+ else {
+        try {
+          Thread.sleep(500);
+        }
+ catch (        InterruptedException e) {
+          throw new IOException(e);
+        }
+      }
+    }
+    in.clear();
+    in.flip();
+    handshake=true;
+  }
+}
