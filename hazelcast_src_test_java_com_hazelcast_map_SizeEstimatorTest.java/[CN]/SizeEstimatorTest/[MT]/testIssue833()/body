@@ -1,18 +1,43 @@
 {
   final String MAP_NAME="testIssue833";
   Config config=new Config();
-  config.getMapConfig(MAP_NAME).setStatisticsEnabled(true);
-  int n=1;
+  MaxSizeConfig msc=new MaxSizeConfig();
+  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.USED_HEAP_SIZE);
+  msc.setSize(500);
+  config.getMapConfig(MAP_NAME).setStatisticsEnabled(true).setBackupCount(0).setMaxSizeConfig(msc).setInMemoryFormat(MapConfig.InMemoryFormat.BINARY).setEvictionPolicy(MapConfig.EvictionPolicy.LFU);
+  int n=3;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
-  HazelcastInstance h=factory.newHazelcastInstance(config);
-  IMap<String,String> map=h.getMap(MAP_NAME);
+  HazelcastInstance[] h=factory.newInstances(config);
+  IMap<String,String> map=h[0].getMap(MAP_NAME);
   map.put("key","value");
   map.put("key1","value1");
   map.put("key2","value2");
-  final long heapCost=map.getLocalMapStats().getHeapCost();
-  System.err.println(heapCost);
-  final long backupHeapCost=map.getLocalMapStats().getBackupHeapCost();
-  assertTrue(heapCost == 0);
-  assertTrue(backupHeapCost == 0);
-  h.getLifecycleService().shutdown();
+  map.put("key3","asdavalue2");
+  Thread.sleep(10000);
+  Thread.sleep(3000);
+  System.err.println("##########################");
+  for (int i=0; i < n; i++) {
+    final long heapCost=h[i].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+    System.err.println("heapCost " + i + " : "+ heapCost);
+    final long backupHeapCost=h[i].getMap(MAP_NAME).getLocalMapStats().getBackupHeapCost();
+    System.err.println("backupHeapCost " + i + " : "+ +backupHeapCost);
+  }
+  map.put("key245","value2");
+  Thread.sleep(5000);
+  System.err.println("##########################");
+  for (int i=0; i < n; i++) {
+    final long heapCost=h[i].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+    System.err.println("heapCost " + i + " : "+ heapCost);
+    final long backupHeapCost=h[i].getMap(MAP_NAME).getLocalMapStats().getBackupHeapCost();
+    System.err.println("backupHeapCost " + i + " : "+ +backupHeapCost);
+  }
+  map.clear();
+  Thread.sleep(3000);
+  System.err.println("##########################");
+  for (int i=0; i < n; i++) {
+    final long heapCost=h[i].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+    System.err.println("heapCost " + i + " : "+ heapCost);
+    final long backupHeapCost=h[i].getMap(MAP_NAME).getLocalMapStats().getBackupHeapCost();
+    System.err.println("backupHeapCost " + i + " : "+ +backupHeapCost);
+  }
 }
