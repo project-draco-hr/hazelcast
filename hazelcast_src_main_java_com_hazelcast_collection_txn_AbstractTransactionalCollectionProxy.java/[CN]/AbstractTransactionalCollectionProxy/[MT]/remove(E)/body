@@ -12,7 +12,7 @@
       break;
     }
   }
-  final CollectionReserveRemoveOperation operation=new CollectionReserveRemoveOperation(name,reservedItemId,value);
+  final CollectionReserveRemoveOperation operation=new CollectionReserveRemoveOperation(name,reservedItemId,value,tx.getTxnId());
   try {
     Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(getServiceName(),operation,partitionId).build();
     Future<CollectionItem> f=invocation.invoke();
@@ -27,7 +27,7 @@
       if (!itemIdSet.add(item.getItemId())) {
         throw new TransactionException("Duplicate itemId: " + item.getItemId());
       }
-      tx.addTransactionLog(new CollectionTransactionLog(item.getItemId(),name,partitionId,getServiceName(),new CollectionTxnRemoveOperation(name,item.getItemId())));
+      tx.addTransactionLog(new CollectionTransactionLog(item.getItemId(),name,partitionId,getServiceName(),tx.getTxnId(),new CollectionTxnRemoveOperation(name,item.getItemId())));
       return true;
     }
   }
