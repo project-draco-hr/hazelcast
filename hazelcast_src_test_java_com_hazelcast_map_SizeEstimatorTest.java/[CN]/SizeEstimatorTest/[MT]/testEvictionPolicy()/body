@@ -1,2 +1,28 @@
 {
+  final String MAP_NAME="default";
+  final Config config=new Config();
+  final MaxSizeConfig mapMaxSizeConfig=new MaxSizeConfig();
+  mapMaxSizeConfig.setSize(1).setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.USED_HEAP_SIZE);
+  config.getMapConfig(MAP_NAME).setEvictionPolicy(MapConfig.EvictionPolicy.LFU).setMaxSizeConfig(mapMaxSizeConfig).setEvictionPercentage(100);
+  final int n=1;
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
+  final HazelcastInstance h[]=factory.newInstances(config);
+  final IMap<Long,Integer> map=h[0].getMap(MAP_NAME);
+  Long key=0L;
+  for (int i=0; i < 1; i++) {
+    map.put(++key,1);
+  }
+  Assert.assertTrue(map.getLocalMapStats().getHeapCost() == 128);
+  Thread.sleep(1000);
+  map.clear();
+  Thread.sleep(1000);
+  Assert.assertTrue(map.getLocalMapStats().getHeapCost() == 0);
+  for (int i=0; i < 1024 * 1024; i++) {
+    map.put(++key,new Random().nextInt());
+  }
+  Thread.sleep(3000);
+  System.err.println("map.size()" + map.size());
+  System.err.println(map.getLocalMapStats().getHeapCost());
+  System.err.println(map.getLocalMapStats().getBackupHeapCost());
+  h[0].getLifecycleService().shutdown();
 }
