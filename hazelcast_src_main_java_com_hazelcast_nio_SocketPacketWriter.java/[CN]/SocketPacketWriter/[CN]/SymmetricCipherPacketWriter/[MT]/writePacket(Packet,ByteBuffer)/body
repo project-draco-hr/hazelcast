@@ -1,44 +1,42 @@
 {
-  if (!sizeWritten) {
+  if (!packetWritten) {
+    if (socketBuffer.remaining() < 4) {
+      return false;
+    }
+    int size=cipher.getOutputSize(packet.size());
+    socketBuffer.putInt(size);
     if (packetBuffer.capacity() < packet.size()) {
       packetBuffer=ByteBuffer.allocate(packet.size());
     }
     if (!packet.writeTo(packetBuffer)) {
-      throw new RuntimeException("Packet didn't fit into the buffer");
+      throw new HazelcastException("Packet didn't fit into the buffer!");
     }
     packetBuffer.flip();
+    packetWritten=true;
   }
-  if (cipherBuffer.position() > 0 && socketBB.hasRemaining()) {
-    cipherBuffer.flip();
-    copyToDirectBuffer(cipherBuffer,socketBB);
-    if (cipherBuffer.hasRemaining()) {
-      cipherBuffer.compact();
+  if (socketBuffer.hasRemaining()) {
+    int outputSize=cipher.getOutputSize(packetBuffer.remaining());
+    if (outputSize <= socketBuffer.remaining()) {
+      cipher.update(packetBuffer,socketBuffer);
     }
  else {
-      cipherBuffer.clear();
+      int min=Math.min(packetBuffer.remaining(),socketBuffer.remaining());
+      int len=min / 2;
+      if (len > 0) {
+        int limitOld=packetBuffer.limit();
+        packetBuffer.limit(packetBuffer.position() + len);
+        cipher.update(packetBuffer,socketBuffer);
+        packetBuffer.limit(limitOld);
+      }
+    }
+    if (!packetBuffer.hasRemaining()) {
+      if (socketBuffer.remaining() >= cipher.getOutputSize(0)) {
+        socketBuffer.put(cipher.doFinal());
+        packetWritten=false;
+        packetBuffer.clear();
+        return true;
+      }
     }
   }
-  if (!sizeWritten) {
-    if (socketBB.remaining() > 4) {
-      int cipherSize=cipher.getOutputSize(packet.size());
-      socketBB.putInt(cipherSize);
-      sizeWritten=true;
-    }
- else {
-      return false;
-    }
-  }
-  encryptAndWriteToSocket(packetBuffer,socketBB);
-  boolean complete=!packetBuffer.hasRemaining();
-  if (complete) {
-    if (socketBB.remaining() >= cipher.getOutputSize(0)) {
-      sizeWritten=false;
-      socketBB.put(cipher.doFinal());
-      packetBuffer.clear();
-    }
- else {
-      return false;
-    }
-  }
-  return complete;
+  return false;
 }
