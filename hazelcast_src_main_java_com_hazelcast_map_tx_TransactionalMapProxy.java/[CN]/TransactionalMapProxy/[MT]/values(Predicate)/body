@@ -1,0 +1,24 @@
+{
+  checkTransactionState();
+  if (predicate == null) {
+    throw new NullPointerException("Predicate can not be null!");
+  }
+  final MapService service=getService();
+  final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.VALUE,false);
+  final Set<Object> valueSet=new HashSet<Object>(queryResultSet.size());
+  final Iterator iterator=queryResultSet.iterator();
+  while (iterator.hasNext()) {
+    valueSet.add(iterator.next());
+  }
+  for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
+    if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
+      if (predicate.apply(new QueryEntry(null,service.toData(entry.getKey()),entry.getKey(),entry.getValue().value))) {
+        valueSet.add(entry.getValue().value);
+      }
+    }
+ else {
+      valueSet.remove(entry.getValue());
+    }
+  }
+  return valueSet;
+}
