@@ -21,14 +21,15 @@
       throw newEx;
     }
     log(Level.FINEST,"Successfully connected to: " + address + " using socket "+ socketChannel.socket());
+    final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
     MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
     if (memberSocketInterceptor != null) {
       log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
       memberSocketInterceptor.onConnect(socketChannel.socket());
     }
-    final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
     socketChannelWrapper.configureBlocking(false);
     TcpIpConnection connection=connectionManager.assignSocketChannel(socketChannelWrapper);
+    connection.getWriteHandler().setProtocol(Protocols.CLUSTER);
     connectionManager.sendBindRequest(connection,address,true);
   }
  catch (  Exception e) {

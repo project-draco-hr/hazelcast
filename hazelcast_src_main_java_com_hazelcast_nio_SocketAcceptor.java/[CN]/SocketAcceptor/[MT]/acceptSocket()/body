@@ -27,26 +27,12 @@
     log(Level.INFO,"Accepting socket connection from " + socketChannel.socket().getRemoteSocketAddress());
     final MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
     if (memberSocketInterceptor == null) {
-      try {
-        initializeSocketChannel(socketChannel);
-      }
- catch (      Exception e) {
-        log(Level.WARNING,e.getClass().getName() + ": " + e.getMessage(),e);
-        IOUtil.closeResource(socketChannel);
-      }
+      configureAndAssignSocket(socketChannel,memberSocketInterceptor);
     }
  else {
       connectionManager.ioService.executeAsync(new Runnable(){
         public void run(){
-          try {
-            log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
-            memberSocketInterceptor.onAccept(socketChannel.socket());
-            initializeSocketChannel(socketChannel);
-          }
- catch (          Exception e) {
-            log(Level.WARNING,e.getClass().getName() + ": " + e.getMessage(),e);
-            IOUtil.closeResource(socketChannel);
-          }
+          configureAndAssignSocket(socketChannel,memberSocketInterceptor);
         }
       }
 );
