@@ -1,0 +1,21 @@
+{
+  Config config=new Config();
+  SocketInterceptorConfig socketInterceptorConfig=new SocketInterceptorConfig();
+  MySocketInterceptor mySocketInterceptor=new MySocketInterceptor(true);
+  socketInterceptorConfig.setImplementation(mySocketInterceptor).setEnabled(true);
+  config.getNetworkConfig().setSocketInterceptorConfig(socketInterceptorConfig);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h4=Hazelcast.newHazelcastInstance(config);
+  TestUtil.warmUpPartitions(h1,h2,h3,h4);
+  assertEquals(4,h4.getCluster().getMembers().size());
+  assertEquals(4,h3.getCluster().getMembers().size());
+  assertEquals(4,h2.getCluster().getMembers().size());
+  assertEquals(4,h1.getCluster().getMembers().size());
+  assertTrue(mySocketInterceptor.getAcceptCallCount() >= 6);
+  assertTrue(mySocketInterceptor.getConnectCallCount() >= 6);
+  assertEquals(4,mySocketInterceptor.getInitCallCount());
+  assertEquals(0,mySocketInterceptor.getAcceptFailureCount());
+  assertEquals(0,mySocketInterceptor.getConnectFailureCount());
+}
