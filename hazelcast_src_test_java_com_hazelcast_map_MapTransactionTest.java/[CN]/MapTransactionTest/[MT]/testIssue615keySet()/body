@@ -3,33 +3,33 @@
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   final HazelcastInstance h1=factory.newHazelcastInstance(config);
   final HazelcastInstance h2=factory.newHazelcastInstance(config);
-  final IMap map2=h2.getMap("default");
-  map2.put("1","1");
-  map2.put("2","2");
+  final IMap map=h2.getMap("default");
+  map.put("1","1");
+  map.put("2","2");
   boolean b=h1.executeTransaction(options,new TransactionalTask<Boolean>(){
     public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
       final TransactionalMap<Object,Object> txMap=context.getMap("default");
       txMap.put("3","3");
       assertEquals(3,txMap.keySet().size());
-      map2.put("4","4");
+      map.put("4","4");
       assertEquals(4,txMap.keySet().size());
       txMap.remove("1");
       assertEquals(3,txMap.keySet().size());
-      map2.remove("2");
+      map.remove("2");
       assertEquals(2,txMap.keySet().size());
       assertEquals(2,txMap.size());
       return true;
     }
   }
 );
-  assertEquals(2,map2.keySet().size());
+  assertEquals(2,map.keySet().size());
   try {
     boolean b2=h1.executeTransaction(options,new TransactionalTask<Boolean>(){
       public Boolean execute(      TransactionalTaskContext context) throws TransactionException {
         final TransactionalMap<Object,Object> txMap=context.getMap("default");
         txMap.put("5","5");
         assertEquals(3,txMap.keySet().size());
-        assertEquals(2,map2.keySet().size());
+        assertEquals(2,map.keySet().size());
         throw new DummyUncheckedHazelcastTestException();
       }
     }
@@ -40,7 +40,7 @@
       throw new RuntimeException(e);
     }
   }
-  assertEquals(2,map2.keySet().size());
+  assertEquals(2,map.keySet().size());
   h1.getLifecycleService().shutdown();
   h2.getLifecycleService().shutdown();
 }
