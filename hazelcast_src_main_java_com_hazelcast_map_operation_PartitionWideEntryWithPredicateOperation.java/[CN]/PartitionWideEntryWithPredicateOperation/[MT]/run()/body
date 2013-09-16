@@ -1,0 +1,26 @@
+{
+  response=new MapEntrySet();
+  QueryEntry queryEntry;
+  RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
+  Map<Data,Record> records=recordStore.getRecords();
+  for (  Map.Entry<Data,Record> recordEntry : records.entrySet()) {
+    Data dataKey=recordEntry.getKey();
+    Record record=recordEntry.getValue();
+    queryEntry=new QueryEntry(getNodeEngine().getSerializationService(),dataKey,mapService.toObject(record.getKey()),mapService.toObject(record.getValue()));
+    Object result;
+    if (predicate.apply(queryEntry)) {
+      Map.Entry mapEntry=new AbstractMap.SimpleEntry(mapService.toObject(record.getKey()),mapService.toObject(record.getValue()));
+      result=entryProcessor.process(mapEntry);
+    }
+ else     continue;
+    if (result != null) {
+      response.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(dataKey,mapService.toData(result)));
+    }
+    if (queryEntry.getValue() == null) {
+      recordStore.remove(dataKey);
+    }
+ else {
+      recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,queryEntry.getValue()));
+    }
+  }
+}
