@@ -1,0 +1,27 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance hz=factory.newHazelcastInstance(new Config());
+  final ILock lock=hz.getLock("lock");
+  lock.lock();
+  assertTrue(lock.isLockedByCurrentThread());
+  final AtomicBoolean interruptedFlag=new AtomicBoolean(false);
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread thread=new OpThread(interruptedFlag,latch){
+    protected void doOp(){
+      try {
+        assertTrue(lock.tryLock(1,TimeUnit.MINUTES));
+        assertTrue(lock.isLockedByCurrentThread());
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(5000);
+  thread.interrupt();
+  lock.unlock();
+  assertTrue(latch.await(1,TimeUnit.MINUTES));
+  assertTrue(interruptedFlag.get());
+}
