@@ -1,0 +1,21 @@
+{
+  final String MAP_NAME="default";
+  final Config config=new Config();
+  config.getMapConfig(MAP_NAME).setBackupCount(1).setInMemoryFormat(MapConfig.InMemoryFormat.BINARY);
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance h[]=factory.newInstances(config);
+  final IMap<String,String> map=h[0].getMap(MAP_NAME);
+  map.put("key","value");
+  Thread.sleep(10000);
+  long h1MapCost=h[0].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+  long h2MapCost=h[1].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+  Assert.assertTrue(h1MapCost == h2MapCost);
+  Thread.sleep(1000);
+  map.remove("key");
+  Thread.sleep(1000);
+  h1MapCost=h[0].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+  h2MapCost=h[1].getMap(MAP_NAME).getLocalMapStats().getHeapCost();
+  Assert.assertTrue(h1MapCost == 0 && h2MapCost == 0);
+  h[0].getLifecycleService().shutdown();
+  h[1].getLifecycleService().shutdown();
+}

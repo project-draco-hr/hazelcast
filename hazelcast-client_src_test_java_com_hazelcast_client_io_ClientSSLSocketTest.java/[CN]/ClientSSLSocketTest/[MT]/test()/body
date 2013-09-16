@@ -1,0 +1,23 @@
+{
+  Properties props=TestKeyStoreUtil.createSslProperties();
+  Config cfg=new Config();
+  cfg.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  cfg.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true).addMember("127.0.0.1");
+  cfg.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance(cfg);
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance(cfg);
+  ClientConfig config=new ClientConfig();
+  config.addAddress("127.0.0.1");
+  config.setRedoOperation(true);
+  config.getSocketOptions().setSocketFactory(new SSLSocketFactory(props));
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(config);
+  IMap<Object,Object> clientMap=client.getMap("test");
+  int size=1000;
+  for (int i=0; i < size; i++) {
+    Assert.assertNull(clientMap.put(i,2 * i + 1));
+  }
+  IMap<Object,Object> map=hz1.getMap("test");
+  for (int i=0; i < size; i++) {
+    Assert.assertEquals(2 * i + 1,map.get(i));
+  }
+}

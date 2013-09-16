@@ -1,0 +1,80 @@
+{
+  Properties props=TestKeyStoreUtil.createSslProperties();
+  ServerSocketChannel serverSocketChannel=null;
+  SocketChannelWrapper socketChannel=null;
+  final ExecutorService ex=Executors.newCachedThreadPool();
+  try {
+    final int count=1000;
+    final int port=13131;
+    BasicSSLContextFactory factory=new BasicSSLContextFactory();
+    factory.init(props);
+    final SSLContext context=factory.getSSLContext();
+    serverSocketChannel=ServerSocketChannel.open();
+    serverSocketChannel.configureBlocking(true);
+    serverSocketChannel.socket().bind(new InetSocketAddress(port));
+    final ServerSocketChannel ssc=serverSocketChannel;
+    ex.execute(new Runnable(){
+      public void run(){
+        SocketChannelWrapper socketChannel=null;
+        try {
+          socketChannel=new SSLSocketChannelWrapper(context,ssc.accept(),false);
+          final CountDownLatch latch=new CountDownLatch(2);
+          final BlockingQueue<Integer> queue=new ArrayBlockingQueue<Integer>(count);
+          ex.execute(new ChannelReader(socketChannel,count,latch){
+            void processData(            int i,            int data) throws Exception {
+              queue.add(data);
+            }
+          }
+);
+          ex.execute(new ChannelWriter(socketChannel,count,latch){
+            int prepareData(            int i) throws Exception {
+              int data=queue.poll(30,TimeUnit.SECONDS);
+              return data * 2 + 1;
+            }
+          }
+);
+          latch.await(2,TimeUnit.MINUTES);
+        }
+ catch (        Exception e) {
+          e.printStackTrace();
+        }
+ finally {
+          IOUtil.closeResource(socketChannel);
+        }
+      }
+    }
+);
+    final AtomicReference<Error> error=new AtomicReference<Error>();
+    socketChannel=new SSLSocketChannelWrapper(context,SocketChannel.open(),true);
+    socketChannel.connect(new InetSocketAddress(port));
+    final CountDownLatch latch=new CountDownLatch(2);
+    ex.execute(new ChannelWriter(socketChannel,count,latch){
+      int prepareData(      int i) throws Exception {
+        return i;
+      }
+    }
+);
+    ex.execute(new ChannelReader(socketChannel,count,latch){
+      void processData(      int i,      int data) throws Exception {
+        try {
+          Assert.assertEquals(i * 2 + 1,data);
+        }
+ catch (        AssertionError e) {
+          error.compareAndSet(null,e);
+          throw e;
+        }
+      }
+    }
+);
+    latch.await(2,TimeUnit.MINUTES);
+    Error e=error.get();
+    if (e != null) {
+      throw e;
+    }
+  }
+  finally {
+    ex.shutdownNow();
+    IOUtil.closeResource(socketChannel);
+    IOUtil.closeResource(serverSocketChannel);
+  }
+}
