@@ -1,0 +1,24 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance hz=factory.newHazelcastInstance(new Config());
+  final IQueue<Object> q=hz.getQueue("queue");
+  final AtomicBoolean interruptedFlag=new AtomicBoolean(false);
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread thread=new OpThread(interruptedFlag,latch){
+    protected void doOp(){
+      try {
+        assertNotNull(q.poll(1,TimeUnit.MINUTES));
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(5000);
+  thread.interrupt();
+  q.offer("new item!");
+  assertTrue(latch.await(1,TimeUnit.MINUTES));
+  assertTrue(interruptedFlag.get());
+}
