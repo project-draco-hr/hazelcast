@@ -1,0 +1,28 @@
+{
+  int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
+  for (int partition=0; partition < partitionCount; partition++) {
+    partitionContainers[partition]=new MultiMapPartitionContainer(this,partition);
+  }
+  final LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
+  if (lockService != null) {
+    lockService.registerLockStoreConstructor(SERVICE_NAME,new ConstructorFunction<ObjectNamespace,LockStoreInfo>(){
+      public LockStoreInfo createNew(      final ObjectNamespace key){
+        String name=(String)key.getObjectId();
+        final MultiMapConfig multiMapConfig=nodeEngine.getConfig().getMultiMapConfig(name);
+        return new LockStoreInfo(){
+          public ObjectNamespace getObjectNamespace(){
+            return key;
+          }
+          public int getBackupCount(){
+            return multiMapConfig.getSyncBackupCount();
+          }
+          public int getAsyncBackupCount(){
+            return multiMapConfig.getAsyncBackupCount();
+          }
+        }
+;
+      }
+    }
+);
+  }
+}

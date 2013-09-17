@@ -1,0 +1,24 @@
+{
+  checkTransactionState();
+  try {
+    final Map<Integer,Object> results=getNodeEngine().getOperationService().invokeOnAllPartitions(MultiMapService.SERVICE_NAME,new MultiMapOperationFactory(name,MultiMapOperationFactory.OperationFactoryType.SIZE));
+    int size=0;
+    for (    Object obj : results.values()) {
+      if (obj == null) {
+        continue;
+      }
+      Integer result=getNodeEngine().toObject(obj);
+      size+=result;
+    }
+    for (    Data key : txMap.keySet()) {
+      MultiMapTransactionLog log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
+      if (log != null) {
+        size+=log.size();
+      }
+    }
+    return size;
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}

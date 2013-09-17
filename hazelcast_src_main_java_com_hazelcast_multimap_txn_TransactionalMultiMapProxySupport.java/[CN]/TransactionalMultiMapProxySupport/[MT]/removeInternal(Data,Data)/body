@@ -1,0 +1,39 @@
+{
+  throwExceptionIfNull(key);
+  throwExceptionIfNull(value);
+  Collection<MultiMapRecord> coll=txMap.get(key);
+  long timeout=tx.getTimeoutMillis();
+  long ttl=timeout * 3 / 2;
+  final MultiMapTransactionLog log;
+  if (coll == null) {
+    MultiMapResponse response=lockAndGet(key,timeout,ttl);
+    if (response == null) {
+      throw new ConcurrentModificationException("Transaction couldn't obtain lock " + getThreadId());
+    }
+    version=response.getTxVersion();
+    coll=createCollection(response.getRecordCollection(getNodeEngine()));
+    txMap.put(key,coll);
+    log=new MultiMapTransactionLog(key,name,ttl,getThreadId(),version);
+    tx.addTransactionLog(log);
+  }
+ else {
+    log=(MultiMapTransactionLog)tx.getTransactionLog(getTxLogKey(key));
+  }
+  MultiMapRecord record=new MultiMapRecord(config.isBinary() ? value : getNodeEngine().toObject(value));
+  Iterator<MultiMapRecord> iterator=coll.iterator();
+  long recordId=-1;
+  while (iterator.hasNext()) {
+    MultiMapRecord r=iterator.next();
+    if (r.equals(record)) {
+      iterator.remove();
+      recordId=r.getRecordId();
+      break;
+    }
+  }
+  if (version != -1 || recordId != -1) {
+    TxnRemoveOperation operation=new TxnRemoveOperation(name,key,recordId,value);
+    log.addOperation(operation);
+    return recordId != -1;
+  }
+  return false;
+}
