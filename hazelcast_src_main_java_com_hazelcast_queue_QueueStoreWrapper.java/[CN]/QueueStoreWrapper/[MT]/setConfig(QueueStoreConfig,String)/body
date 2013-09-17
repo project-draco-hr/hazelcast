@@ -1,0 +1,35 @@
+{
+  if (storeConfig == null) {
+    return;
+  }
+  store=storeConfig.getStoreImplementation();
+  if (store == null) {
+    try {
+      store=ClassLoaderUtil.newInstance(serializationService.getClassLoader(),storeConfig.getClassName());
+    }
+ catch (    Exception ignored) {
+    }
+  }
+  if (store == null) {
+    QueueStoreFactory factory=storeConfig.getFactoryImplementation();
+    if (factory == null) {
+      try {
+        factory=ClassLoaderUtil.newInstance(serializationService.getClassLoader(),storeConfig.getFactoryClassName());
+      }
+ catch (      Exception ignored) {
+      }
+    }
+    if (factory == null) {
+      return;
+    }
+    store=factory.newQueueStore(name,storeConfig.getProperties());
+  }
+  this.storeConfig=storeConfig;
+  enabled=storeConfig.isEnabled();
+  binary=Boolean.parseBoolean(storeConfig.getProperty("binary"));
+  memoryLimit=parseInt("memory-limit",DEFAULT_MEMORY_LIMIT);
+  bulkLoad=parseInt("bulk-load",DEFAULT_BULK_LOAD);
+  if (bulkLoad < 1) {
+    bulkLoad=1;
+  }
+}
