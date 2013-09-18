@@ -11,6 +11,7 @@
   long backupEntryMemoryCost=0;
   long hits=0;
   long lockedEntryCount=0;
+  long heapCost=0;
   int backupCount=mapContainer.getTotalBackupCount();
   ClusterService clusterService=nodeEngine.getClusterService();
   final com.hazelcast.partition.PartitionService partitionService=nodeEngine.getPartitionService();
@@ -20,6 +21,7 @@
     if (partition.getOwner().equals(thisAddress)) {
       PartitionContainer partitionContainer=getPartitionContainer(partitionId);
       RecordStore recordStore=partitionContainer.getRecordStore(mapName);
+      heapCost+=recordStore.getHeapCost();
       Map<Data,Record> records=recordStore.getRecords();
       for (      Record record : records.values()) {
         RecordStatistics stats=record.getStatistics();
@@ -71,6 +73,7 @@
   localMapStats.setBackupEntryCount(zeroOrPositive(backupEntryCount));
   localMapStats.setOwnedEntryMemoryCost(zeroOrPositive(ownedEntryMemoryCost));
   localMapStats.setBackupEntryMemoryCost(zeroOrPositive(backupEntryMemoryCost));
-  localMapStats.setHeapCost(mapContainer.getSizeEstimator().getSize());
+  heapCost+=mapContainer.getNearCacheSizeEstimator().getSize();
+  localMapStats.setHeapCost(heapCost);
   return localMapStats;
 }
