@@ -5,7 +5,7 @@
   this.mapService=mapService;
   MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
   NodeEngine nodeEngine=mapService.getNodeEngine();
-  if (mapStoreConfig != null) {
+  if (mapStoreConfig != null && mapStoreConfig.isEnabled()) {
     try {
       MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
       if (factory == null) {
@@ -32,8 +32,8 @@
     if (store instanceof MapLoaderLifecycleSupport) {
       ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapStoreConfig.getProperties(),name);
     }
-    if (initialLoaded.compareAndSet(false,true)) {
-      loadMapFromStore(true);
+    if (keysLoaded.compareAndSet(false,true)) {
+      loadInitialKeys();
     }
     if (mapStoreConfig.getWriteDelaySeconds() > 0) {
       mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),ScheduleType.FOR_EACH);
