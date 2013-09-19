@@ -5,8 +5,8 @@
   Config config=new Config();
   HazelcastInstance instance1=factory.newHazelcastInstance(config);
   HazelcastInstance instance2=factory.newHazelcastInstance(config);
-  String inQueueName="in@foo";
-  String outQueueName="out@foo";
+  String inQueueName="in";
+  String outQueueName="out";
   for (int i=0; i < numberOfMessages; i++) {
     if (!instance1.getQueue(inQueueName).offer(new byte[1024])) {
       throw new RuntimeException("initial put did not work");
@@ -23,7 +23,7 @@ class MoveMessage extends Thread {
       this.outQueueName=outQueueName;
     }
     public void run(){
-      while (active && count.get() != numberOfMessages) {
+      while (active && count.get() != numberOfMessages && hazelcastInstance.getLifecycleService().isRunning()) {
         TransactionContext transactionContext=hazelcastInstance.newTransactionContext();
         transactionContext.beginTransaction();
         try {
@@ -57,10 +57,10 @@ class MoveMessage extends Thread {
   while (count.get() < numberOfMessages / 2) {
     Thread.sleep(10);
   }
-  moveMessage2.active=false;
   instance2.getLifecycleService().terminate();
+  moveMessage2.active=false;
   moveMessage2.join(10000);
-  moveMessage1.join(20000);
+  moveMessage1.join(30000);
   try {
     assertEquals(numberOfMessages,instance1.getQueue(outQueueName).size());
     assertTrue(instance1.getQueue(inQueueName).isEmpty());

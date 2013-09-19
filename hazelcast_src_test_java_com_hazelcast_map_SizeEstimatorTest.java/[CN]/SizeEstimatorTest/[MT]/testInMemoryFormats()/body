@@ -9,21 +9,19 @@
   final int n=2;
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
   final HazelcastInstance[] h=factory.newInstances(config);
+  warmUpPartitions(h);
   final IMap<String,String> binaryMap=h[0].getMap(BINARY_MAP);
-  binaryMap.put("key","value");
-  binaryMap.put("key1","value1");
-  binaryMap.put("key2","value2");
-  binaryMap.put("key3","value3");
+  for (int i=0; i < 1000; i++) {
+    binaryMap.put("key" + i,"value" + i);
+  }
   final IMap<String,String> objectMap=h[0].getMap(OBJECT_MAP);
-  objectMap.put("key","value");
-  objectMap.put("key1","value1");
-  objectMap.put("key2","value2");
-  objectMap.put("key3","value3");
+  for (int i=0; i < 1000; i++) {
+    objectMap.put("key" + i,"value" + i);
+  }
   final IMap<String,String> cachedMap=h[0].getMap(CACHED_MAP);
-  cachedMap.put("key","value");
-  cachedMap.put("key1","value1");
-  cachedMap.put("key2","value2");
-  cachedMap.put("key3","value3");
+  for (int i=0; i < 1000; i++) {
+    cachedMap.put("key" + i,"value" + i);
+  }
   Thread.sleep(2000);
   for (int i=0; i < n; i++) {
     Assert.assertTrue(h[i].getMap(BINARY_MAP).getLocalMapStats().getHeapCost() > 0);
@@ -38,8 +36,5 @@
     Assert.assertTrue(h[i].getMap(BINARY_MAP).getLocalMapStats().getHeapCost() == 0);
     Assert.assertTrue(h[i].getMap(OBJECT_MAP).getLocalMapStats().getHeapCost() == 0);
     Assert.assertTrue(h[i].getMap(CACHED_MAP).getLocalMapStats().getHeapCost() == 0);
-  }
-  for (int i=0; i < n; i++) {
-    h[i].getLifecycleService().shutdown();
   }
 }

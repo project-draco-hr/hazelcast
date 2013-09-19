@@ -3,6 +3,37 @@
   this.partitionContainer=partitionContainer;
   this.mapService=partitionContainer.getMapService();
   this.mapContainer=mapService.getMapContainer(name);
-  final LockService lockService=mapService.getNodeEngine().getSharedService(LockService.SERVICE_NAME);
-  this.lockStore=lockService == null ? null : lockService.createLockStore(partitionContainer.getPartitionId(),new DefaultObjectNamespace(MapService.SERVICE_NAME,name));
+  NodeEngine nodeEngine=mapService.getNodeEngine();
+  final LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
+  int partitionId=partitionContainer.getPartitionId();
+  this.lockStore=lockService == null ? null : lockService.createLockStore(partitionId,new DefaultObjectNamespace(MapService.SERVICE_NAME,name));
+  this.sizeEstimator=SizeEstimators.createMapSizeEstimator();
+  if (nodeEngine.getThisAddress().equals(nodeEngine.getPartitionService().getPartitionOwner(partitionId))) {
+    if (mapContainer.getStore() != null && !loaded.get()) {
+      Map<Data,Object> loadedKeys=mapContainer.getInitialKeys();
+      if (loadedKeys != null && !loadedKeys.isEmpty()) {
+        Map<Data,Object> partitionKeys=new HashMap<Data,Object>();
+        Iterator<Data> iterator=loadedKeys.keySet().iterator();
+        while (iterator.hasNext()) {
+          Data data=iterator.next();
+          if (partitionId == nodeEngine.getPartitionService().getPartitionId(data)) {
+            partitionKeys.put(data,loadedKeys.get(data));
+            iterator.remove();
+          }
+        }
+        try {
+          nodeEngine.getExecutionService().submit("hz:map-load",new MapLoadAllTask(partitionKeys));
+        }
+ catch (        Throwable t) {
+          throw ExceptionUtil.rethrow(t);
+        }
+      }
+ else {
+        loaded.set(true);
+      }
+    }
+  }
+ else {
+    loaded.set(true);
+  }
 }

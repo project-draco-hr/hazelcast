@@ -7,15 +7,16 @@
   final int n=1;
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
   final HazelcastInstance h[]=factory.newInstances(config);
+  warmUpPartitions(h);
   final IMap<Long,Integer> map=h[0].getMap(MAP_NAME);
   Long key=0L;
   for (int i=0; i < 1; i++) {
     map.put(++key,1);
   }
-  Assert.assertTrue(map.getLocalMapStats().getHeapCost() == 128);
+  long t=map.getLocalMapStats().getHeapCost();
+  Assert.assertTrue(map.getLocalMapStats().getHeapCost() == 148);
   Thread.sleep(1000);
   map.clear();
   Thread.sleep(1000);
   Assert.assertTrue(map.getLocalMapStats().getHeapCost() == 0);
-  h[0].getLifecycleService().shutdown();
 }

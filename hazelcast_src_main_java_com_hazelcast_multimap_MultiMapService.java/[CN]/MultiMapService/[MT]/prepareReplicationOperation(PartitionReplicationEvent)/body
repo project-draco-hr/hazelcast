@@ -1,0 +1,20 @@
+{
+  int replicaIndex=event.getReplicaIndex();
+  final MultiMapPartitionContainer partitionContainer=partitionContainers[event.getPartitionId()];
+  if (partitionContainer == null) {
+    return null;
+  }
+  Map<String,Map> map=new HashMap<String,Map>(partitionContainer.containerMap.size());
+  for (  Map.Entry<String,MultiMapContainer> entry : partitionContainer.containerMap.entrySet()) {
+    String name=entry.getKey();
+    MultiMapContainer container=entry.getValue();
+    if (container.config.getTotalBackupCount() < replicaIndex) {
+      continue;
+    }
+    map.put(name,container.multiMapWrappers);
+  }
+  if (map.isEmpty()) {
+    return null;
+  }
+  return new MultiMapMigrationOperation(map);
+}

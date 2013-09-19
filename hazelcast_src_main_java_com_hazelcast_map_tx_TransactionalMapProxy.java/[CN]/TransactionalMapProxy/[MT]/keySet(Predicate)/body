@@ -6,12 +6,15 @@
   final MapService service=getService();
   final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.KEY,false);
   final Set<Object> keySet=new HashSet<Object>(queryResultSet.size());
-  while (queryResultSet.iterator().hasNext()) {
-    keySet.add(service.toObject(((QueryResultEntry)queryResultSet.iterator().next()).getKeyData()));
+  final Iterator iterator=queryResultSet.iterator();
+  while (iterator.hasNext()) {
+    keySet.add(iterator.next());
   }
   for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
     if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
-      if (predicate.apply(new QueryEntry(null,service.toData(entry.getKey()),entry.getKey(),entry.getValue().value))) {
+      final Object value=entry.getValue().value instanceof Data ? service.toObject(entry.getValue().value) : entry.getValue().value;
+      final QueryEntry queryEntry=new QueryEntry(null,service.toData(entry.getKey()),entry.getKey(),value);
+      if (predicate.apply(queryEntry)) {
         keySet.add(entry.getKey());
       }
     }
