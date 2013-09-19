@@ -8,7 +8,13 @@
     Data dataKey=entry.getKey();
     Data dataValue=entry.getValue();
     if (partitionId == partitionService.getPartitionId(dataKey)) {
-      Data dataOldValue=mapService.toData(recordStore.put(dataKey,dataValue,-1));
+      Data dataOldValue=null;
+      if (initialLoad) {
+        recordStore.putFromLoad(dataKey,dataValue,-1);
+      }
+ else {
+        dataOldValue=mapService.toData(recordStore.put(dataKey,dataValue,-1));
+      }
       mapService.interceptAfterPut(name,dataValue);
       EntryEventType eventType=dataOldValue == null ? EntryEventType.ADDED : EntryEventType.UPDATED;
       mapService.publishEvent(getCallerAddress(),name,eventType,dataKey,dataOldValue,dataValue);

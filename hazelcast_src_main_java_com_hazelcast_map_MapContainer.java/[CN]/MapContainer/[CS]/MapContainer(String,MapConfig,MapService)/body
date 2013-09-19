@@ -5,7 +5,7 @@
   this.mapService=mapService;
   MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
   NodeEngine nodeEngine=mapService.getNodeEngine();
-  if (mapStoreConfig != null) {
+  if (mapStoreConfig != null && mapStoreConfig.isEnabled()) {
     try {
       MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
       if (factory == null) {
@@ -32,39 +32,8 @@
     if (store instanceof MapLoaderLifecycleSupport) {
       ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapStoreConfig.getProperties(),name);
     }
-    if (nodeEngine.getClusterService().isMaster() && initialLoaded.compareAndSet(false,true)) {
-      loadMapFromStore(true);
-      Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
-      for (      Member member : members) {
-        try {
-          if (member.localMember())           continue;
-          MemberImpl memberImpl=(MemberImpl)member;
-          Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new MapInitialLoadOperation(name),memberImpl.getAddress()).build();
-          invocation.invoke();
-        }
- catch (        Throwable t) {
-          throw ExceptionUtil.rethrow(t);
-        }
-      }
-    }
- else {
-      try {
-        Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new MapIsReadyOperation(name),nodeEngine.getMasterAddress()).build();
-        Future future=invocation.invoke();
-        mapReady=(Boolean)future.get();
-        while (!mapReady) {
-          Thread.sleep(1000);
-          invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new MapIsReadyOperation(name),nodeEngine.getMasterAddress()).build();
-          future=invocation.invoke();
-          boolean temp=(Boolean)future.get();
-          if (!mapReady) {
-            mapReady=temp;
-          }
-        }
-      }
- catch (      Exception e) {
-        throw ExceptionUtil.rethrow(e);
-      }
+    if (keysLoaded.compareAndSet(false,true)) {
+      loadInitialKeys();
     }
     if (mapStoreConfig.getWriteDelaySeconds() > 0) {
       mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),ScheduleType.FOR_EACH);
@@ -76,7 +45,6 @@
     }
   }
  else {
-    mapReady=true;
     mapStoreDeleteScheduler=null;
     mapStoreWriteScheduler=null;
   }
