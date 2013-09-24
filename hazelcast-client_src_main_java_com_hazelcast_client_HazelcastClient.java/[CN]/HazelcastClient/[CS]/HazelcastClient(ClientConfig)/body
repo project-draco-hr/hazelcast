@@ -5,7 +5,15 @@
   threadGroup=new ThreadGroup(instanceName);
   lifecycleService=new LifecycleServiceImpl(this);
   try {
-    serializationService=new SerializationServiceBuilder().setManagedContext(new HazelcastClientManagedContext(this,config.getManagedContext())).setClassLoader(config.getClassLoader()).setConfig(config.getSerializationConfig()).build();
+    String partitioningStrategyClassName=System.getProperty(GroupProperties.PROP_PARTITIONING_STRATEGY_CLASS);
+    final PartitioningStrategy partitioningStrategy;
+    if (partitioningStrategyClassName != null && partitioningStrategyClassName.length() > 0) {
+      partitioningStrategy=ClassLoaderUtil.newInstance(config.getClassLoader(),partitioningStrategyClassName);
+    }
+ else {
+      partitioningStrategy=new DefaultPartitioningStrategy();
+    }
+    serializationService=new SerializationServiceBuilder().setManagedContext(new HazelcastClientManagedContext(this,config.getManagedContext())).setClassLoader(config.getClassLoader()).setConfig(config.getSerializationConfig()).setPartitioningStrategy(partitioningStrategy).build();
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
