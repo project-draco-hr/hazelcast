@@ -1,6 +1,20 @@
 {
-  Map.Entry<Data,Object> mapEntry=recordStore.getMapEntryObject(dataKey);
+  Map.Entry<Data,Data> mapEntry=recordStore.getMapEntryData(dataKey);
+  dataOldValue=mapEntry.getValue();
   Map.Entry entry=new AbstractMap.SimpleEntry(mapService.toObject(dataKey),mapService.toObject(mapEntry.getValue()));
   response=mapService.toData(entryProcessor.process(entry));
-  recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,entry.getValue()));
+  if (entry.getValue() == null) {
+    recordStore.remove(dataKey);
+    eventType=EntryEventType.REMOVED;
+  }
+ else {
+    if (mapEntry.getValue() == null) {
+      eventType=EntryEventType.ADDED;
+    }
+ else {
+      eventType=EntryEventType.UPDATED;
+    }
+    dataValue=mapService.toData(entry.getValue());
+    recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,dataValue));
+  }
 }
