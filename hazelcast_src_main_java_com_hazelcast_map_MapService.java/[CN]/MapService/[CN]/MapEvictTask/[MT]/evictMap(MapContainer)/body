@@ -1,22 +1,33 @@
 {
   MapConfig mapConfig=mapContainer.getMapConfig();
   MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
-  Comparator comparator=null;
+  Comparator<Record> comparator=null;
   if (evictionPolicy == MapConfig.EvictionPolicy.LRU) {
-    comparator=new Comparator<AbstractRecord>(){
-      public int compare(      AbstractRecord o1,      AbstractRecord o2){
-        return o1.getLastAccessTime().compareTo(o2.getLastAccessTime());
+    comparator=new Comparator<Record>(){
+      public int compare(      Record o1,      Record o2){
+        RecordStatistics stats1=o1.getStatistics();
+        RecordStatistics stats2=o2.getStatistics();
+        Long t1=stats1 != null ? stats1.getLastAccessTime() : -1L;
+        Long t2=stats2 != null ? stats2.getLastAccessTime() : -1L;
+        return t1.compareTo(t2);
       }
     }
 ;
   }
  else   if (evictionPolicy == MapConfig.EvictionPolicy.LFU) {
-    comparator=new Comparator<AbstractRecord>(){
-      public int compare(      AbstractRecord o1,      AbstractRecord o2){
-        return o1.getHits().compareTo(o2.getHits());
+    comparator=new Comparator<Record>(){
+      public int compare(      Record o1,      Record o2){
+        RecordStatistics stats1=o1.getStatistics();
+        RecordStatistics stats2=o2.getStatistics();
+        Integer h1=stats1 != null ? stats1.getHits() : -1;
+        Integer h2=stats2 != null ? stats2.getHits() : -1;
+        return h1.compareTo(h2);
       }
     }
 ;
+  }
+ else {
+    throw new IllegalArgumentException("Illegal eviction policy: " + evictionPolicy);
   }
   final int evictionPercentage=mapConfig.getEvictionPercentage();
   int memberCount=nodeEngine.getClusterService().getMembers().size();
