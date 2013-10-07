@@ -1,0 +1,19 @@
+{
+  final DistributedObjectListener listener=new DistributedObjectListener(){
+    public void distributedObjectCreated(    DistributedObjectEvent event){
+      send(event);
+    }
+    public void distributedObjectDestroyed(    DistributedObjectEvent event){
+    }
+    private void send(    DistributedObjectEvent event){
+      if (endpoint.live()) {
+        final PortableDistributedObjectEvent portableDistributedObjectEvent=new PortableDistributedObjectEvent(event.getEventType(),event.getDistributedObject().getName(),event.getServiceName());
+        clientEngine.sendResponse(endpoint,portableDistributedObjectEvent);
+      }
+    }
+  }
+;
+  final String registrationId=clientEngine.getProxyService().addProxyListener(listener);
+  endpoint.setDistributedObjectListener(registrationId);
+  return registrationId;
+}
