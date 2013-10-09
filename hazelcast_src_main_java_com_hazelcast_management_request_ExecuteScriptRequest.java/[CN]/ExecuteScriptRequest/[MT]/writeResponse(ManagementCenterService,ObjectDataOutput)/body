@@ -1,17 +1,19 @@
 {
   Object result=null;
-  ScriptExecutorOperation operation=new ScriptExecutorOperation(engine,script,bindings);
   if (targetAllMembers) {
-    result=mcs.callOnAllMembers(operation);
-  }
- else   if (targets.isEmpty()) {
-    result=NULL;
-  }
- else   if (targets.size() == 1) {
-    result=mcs.call(targets.iterator().next(),operation);
+    final Set<Member> members=mcs.getHazelcastInstance().getCluster().getMembers();
+    final ArrayList list=new ArrayList(members.size());
+    for (    Member member : members) {
+      list.add(mcs.callOnMember(member,new ScriptExecutorOperation(engine,script,bindings)));
+    }
+    result=list;
   }
  else {
-    result=mcs.callOnAddresses(targets,operation);
+    final ArrayList list=new ArrayList(targets.size());
+    for (    Address address : targets) {
+      list.add(mcs.callOnAddress(address,new ScriptExecutorOperation(engine,script,bindings)));
+    }
+    result=list;
   }
   if (result != null) {
     if (result instanceof Map) {
