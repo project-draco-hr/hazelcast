@@ -1,15 +1,23 @@
 {
   Map.Entry<Data,Data> mapEntry=recordStore.getMapEntryData(dataKey);
   dataOldValue=mapEntry.getValue();
-  Map.Entry entry=new AbstractMap.SimpleEntry(mapService.toObject(dataKey),mapService.toObject(mapEntry.getValue()));
+  final Object valueBeforeProcess=mapService.toObject(dataOldValue);
+  final MapEntrySimple entry=new MapEntrySimple(mapService.toObject(dataKey),valueBeforeProcess);
   response=mapService.toData(entryProcessor.process(entry));
-  if (entry.getValue() == null) {
+  final Object valueAfterProcess=entry.getValue();
+  if (dataOldValue == null && valueAfterProcess == null) {
+    eventType=__NO_NEED_TO_FIRE_EVENT;
+  }
+ else   if (valueAfterProcess == null) {
     recordStore.remove(dataKey);
     eventType=EntryEventType.REMOVED;
   }
  else {
-    if (mapEntry.getValue() == null) {
+    if (dataOldValue == null) {
       eventType=EntryEventType.ADDED;
+    }
+ else     if (!entry.isModified()) {
+      eventType=__NO_NEED_TO_FIRE_EVENT;
     }
  else {
       eventType=EntryEventType.UPDATED;
