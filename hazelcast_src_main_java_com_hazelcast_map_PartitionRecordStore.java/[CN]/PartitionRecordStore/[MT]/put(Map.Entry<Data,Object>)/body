@@ -9,13 +9,20 @@
     mapStoreWrite(record,dataKey,value);
     records.put(dataKey,record);
     updateSizeEstimator(calculateRecordSize(record));
+    saveIndex(record);
   }
  else {
-    value=mapService.interceptPut(name,record.getValue(),value);
-    mapStoreWrite(record,dataKey,value);
-    updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
-    updateSizeEstimator(calculateRecordSize(record));
+    final Object oldValue=record.getValue();
+    value=mapService.interceptPut(name,oldValue,value);
+    if (mapService.compare(name,oldValue,value)) {
+      accessRecord(record);
+    }
+ else {
+      mapStoreWrite(record,dataKey,value);
+      updateSizeEstimator(-calculateRecordSize(record));
+      setRecordValue(record,value);
+      updateSizeEstimator(calculateRecordSize(record));
+      saveIndex(record);
+    }
   }
-  saveIndex(record);
 }
