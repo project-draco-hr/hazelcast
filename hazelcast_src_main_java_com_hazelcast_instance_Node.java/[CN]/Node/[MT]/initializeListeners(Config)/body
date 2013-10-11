@@ -12,20 +12,25 @@
     if (listener instanceof HazelcastInstanceAware) {
       ((HazelcastInstanceAware)listener).setHazelcastInstance(hazelcastInstance);
     }
+    boolean known=false;
     if (listener instanceof DistributedObjectListener) {
       final ProxyServiceImpl proxyService=(ProxyServiceImpl)nodeEngine.getProxyService();
       proxyService.addProxyListener((DistributedObjectListener)listener);
+      known=true;
     }
- else     if (listener instanceof MembershipListener) {
+    if (listener instanceof MembershipListener) {
       clusterService.addMembershipListener((MembershipListener)listener);
+      known=true;
     }
- else     if (listener instanceof MigrationListener) {
+    if (listener instanceof MigrationListener) {
       partitionService.addMigrationListener((MigrationListener)listener);
+      known=true;
     }
- else     if (listener instanceof LifecycleListener) {
+    if (listener instanceof LifecycleListener) {
       hazelcastInstance.lifecycleService.addLifecycleListener((LifecycleListener)listener);
+      known=true;
     }
- else     if (listener != null) {
+    if (listener != null && !known) {
       final String error="Unknown listener type: " + listener.getClass();
       Throwable t=new IllegalArgumentException(error);
       logger.warning(error,t);

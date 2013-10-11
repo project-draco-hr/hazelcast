@@ -1,0 +1,28 @@
+{
+  checkIfLoaded();
+  Data dataKey=entry.getKey();
+  Object value=entry.getValue();
+  Record record=records.get(dataKey);
+  if (record == null) {
+    value=mapService.interceptPut(name,null,value);
+    record=mapService.createRecord(name,dataKey,value,-1);
+    mapStoreWrite(record,dataKey,value);
+    records.put(dataKey,record);
+    updateSizeEstimator(calculateRecordSize(record));
+    saveIndex(record);
+  }
+ else {
+    final Object oldValue=record.getValue();
+    value=mapService.interceptPut(name,oldValue,value);
+    if (mapService.compare(name,oldValue,value)) {
+      accessRecord(record);
+    }
+ else {
+      mapStoreWrite(record,dataKey,value);
+      updateSizeEstimator(-calculateRecordSize(record));
+      setRecordValue(record,value);
+      updateSizeEstimator(calculateRecordSize(record));
+      saveIndex(record);
+    }
+  }
+}

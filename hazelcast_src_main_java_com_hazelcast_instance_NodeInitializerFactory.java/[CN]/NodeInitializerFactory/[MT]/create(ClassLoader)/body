@@ -1,10 +1,15 @@
 {
-  NodeInitializer initializer=null;
   try {
-    initializer=ServiceLoader.load(NodeInitializer.class,FACTORY_ID,classLoader);
+    Iterator<NodeInitializer> iter=ServiceLoader.iterator(NodeInitializer.class,FACTORY_ID,classLoader);
+    while (iter.hasNext()) {
+      NodeInitializer initializer=iter.next();
+      if (!(initializer.getClass().equals(DefaultNodeInitializer.class))) {
+        return initializer;
+      }
+    }
   }
  catch (  Exception e) {
     logger.warning("NodeInitializer could not be instantiated! => " + e.getClass().getName() + ": "+ e.getMessage());
   }
-  return initializer != null ? initializer : createDefault();
+  return new DefaultNodeInitializer();
 }
