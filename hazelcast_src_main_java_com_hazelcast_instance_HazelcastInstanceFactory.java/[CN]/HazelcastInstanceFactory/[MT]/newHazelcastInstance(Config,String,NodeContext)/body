@@ -1,9 +1,11 @@
 {
+  final ClassLoader tccl=Thread.currentThread().getContextClassLoader();
   if (instanceName == null || instanceName.trim().length() == 0) {
     instanceName=createInstanceName(config);
   }
   HazelcastInstanceProxy proxy;
   try {
+    Thread.currentThread().setContextClassLoader(HazelcastInstanceFactory.class.getClassLoader());
     final HazelcastInstanceImpl hazelcastInstance=new HazelcastInstanceImpl(instanceName,config,nodeContext);
     OutOfMemoryErrorDispatcher.register(hazelcastInstance);
     proxy=new HazelcastInstanceProxy(hazelcastInstance);
@@ -47,6 +49,9 @@
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
+  }
+ finally {
+    Thread.currentThread().setContextClassLoader(tccl);
   }
   return proxy;
 }
