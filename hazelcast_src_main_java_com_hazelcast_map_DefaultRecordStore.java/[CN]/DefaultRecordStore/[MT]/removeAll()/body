@@ -1,0 +1,26 @@
+{
+  checkIfLoaded();
+  resetSizeEstimator();
+  final Collection<Data> lockedKeys=lockStore != null ? lockStore.getLockedKeys() : Collections.<Data>emptySet();
+  final Map<Data,Record> lockedRecords=new HashMap<Data,Record>(lockedKeys.size());
+  for (  Data key : lockedKeys) {
+    Record record=records.get(key);
+    if (record != null) {
+      lockedRecords.put(key,record);
+      updateSizeEstimator(calculateRecordSize(record));
+    }
+  }
+  Set<Data> keysToDelete=records.keySet();
+  keysToDelete.removeAll(lockedRecords.keySet());
+  final MapStoreWrapper store=mapContainer.getStore();
+  Set<Object> keysObject=new HashSet<Object>();
+  for (  Data key : keysToDelete) {
+    removeIndex(key);
+    keysObject.add(mapService.toObject(key));
+  }
+  if (store != null) {
+    store.deleteAll(keysObject);
+    toBeRemovedKeys.clear();
+  }
+  clearRecordsMap(lockedRecords);
+}

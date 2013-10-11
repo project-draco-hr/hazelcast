@@ -1,19 +1,16 @@
 {
-  Record record=recordStore.getRecords().get(dataKey);
+  Record record=recordStore.getRecord(dataKey);
   if (record == null) {
     record=mapService.createRecord(name,dataKey,dataValue,ttl,false);
     updateSizeEstimator(calculateRecordSize(record));
-    recordStore.getRecords().put(dataKey,record);
+    recordStore.putRecord(dataKey,record);
   }
  else {
     updateSizeEstimator(-calculateRecordSize(record));
-    if (record instanceof DataRecord) {
-      ((DataRecord)record).setValue(dataValue);
-    }
- else     if (record instanceof ObjectRecord) {
-      ((ObjectRecord)record).setValue(mapService.toObject(dataValue));
-    }
+    mapContainer.getRecordFactory().setValue(record,dataValue);
     updateSizeEstimator(calculateRecordSize(record));
   }
-  if (unlockKey)   recordStore.forceUnlock(dataKey);
+  if (unlockKey) {
+    recordStore.forceUnlock(dataKey);
+  }
 }

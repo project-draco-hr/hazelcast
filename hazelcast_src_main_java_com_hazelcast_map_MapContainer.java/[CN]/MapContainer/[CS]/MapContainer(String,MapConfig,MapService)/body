@@ -3,76 +3,76 @@
   this.name=name;
   this.mapConfig=mapConfig;
   this.mapService=mapService;
-  MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+  this.partitioningStrategy=createPartitioningStrategy();
   NodeEngine nodeEngine=mapService.getNodeEngine();
-  if (mapStoreConfig != null && mapStoreConfig.isEnabled()) {
-    try {
-      MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
-      if (factory == null) {
-        String factoryClassName=mapStoreConfig.getFactoryClassName();
-        if (factoryClassName != null && !"".equals(factoryClassName)) {
-          factory=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),factoryClassName);
-        }
-      }
-      store=(factory == null ? mapStoreConfig.getImplementation() : factory.newMapStore(name,mapStoreConfig.getProperties()));
-      if (store == null) {
-        String mapStoreClassName=mapStoreConfig.getClassName();
-        store=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),mapStoreClassName);
-      }
-    }
- catch (    Exception e) {
-      throw ExceptionUtil.rethrow(e);
-    }
-    storeWrapper=new MapStoreWrapper(store,mapConfig.getName(),mapStoreConfig.isEnabled());
-  }
+switch (mapConfig.getInMemoryFormat()) {
+case BINARY:
+    recordFactory=new DataRecordFactory(mapConfig,nodeEngine.getSerializationService(),partitioningStrategy);
+  break;
+case OBJECT:
+recordFactory=new ObjectRecordFactory(mapConfig,nodeEngine.getSerializationService());
+break;
+case OFFHEAP:
+recordFactory=new OffHeapRecordFactory(mapConfig,nodeEngine.getOffHeapStorage(),nodeEngine.getSerializationService(),partitioningStrategy);
+break;
+default :
+throw new IllegalArgumentException("Invalid storage format: " + mapConfig.getInMemoryFormat());
+}
+MapStoreConfig mapStoreConfig=mapConfig.getMapStoreConfig();
+if (mapStoreConfig != null && mapStoreConfig.isEnabled()) {
+try {
+MapStoreFactory factory=(MapStoreFactory)mapStoreConfig.getFactoryImplementation();
+if (factory == null) {
+String factoryClassName=mapStoreConfig.getFactoryClassName();
+if (factoryClassName != null && !"".equals(factoryClassName)) {
+factory=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),factoryClassName);
+}
+}
+store=(factory == null ? mapStoreConfig.getImplementation() : factory.newMapStore(name,mapStoreConfig.getProperties()));
+if (store == null) {
+String mapStoreClassName=mapStoreConfig.getClassName();
+store=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),mapStoreClassName);
+}
+}
+ catch (Exception e) {
+throw ExceptionUtil.rethrow(e);
+}
+storeWrapper=new MapStoreWrapper(store,mapConfig.getName(),mapStoreConfig.isEnabled());
+}
  else {
-    storeWrapper=null;
-  }
-  if (storeWrapper != null) {
-    if (store instanceof MapLoaderLifecycleSupport) {
-      ((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapStoreConfig.getProperties(),name);
-    }
-    loadInitialKeys();
-    if (mapStoreConfig.getWriteDelaySeconds() > 0) {
-      mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),ScheduleType.FOR_EACH);
-      mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreDeleteProcessor(this,mapService),ScheduleType.SCHEDULE_IF_NEW);
-    }
+storeWrapper=null;
+}
+if (storeWrapper != null) {
+if (store instanceof MapLoaderLifecycleSupport) {
+((MapLoaderLifecycleSupport)store).init(nodeEngine.getHazelcastInstance(),mapStoreConfig.getProperties(),name);
+}
+loadInitialKeys();
+if (mapStoreConfig.getWriteDelaySeconds() > 0) {
+mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreWriteProcessor(this,mapService),ScheduleType.FOR_EACH);
+mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new MapStoreDeleteProcessor(this,mapService),ScheduleType.SCHEDULE_IF_NEW);
+}
  else {
-      mapStoreDeleteScheduler=null;
-      mapStoreWriteScheduler=null;
-    }
-  }
+mapStoreDeleteScheduler=null;
+mapStoreWriteScheduler=null;
+}
+}
  else {
-    mapStoreDeleteScheduler=null;
-    mapStoreWriteScheduler=null;
-  }
-  ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
-  idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
-  WanReplicationRef wanReplicationRef=mapConfig.getWanReplicationRef();
-  if (wanReplicationRef != null) {
-    this.wanReplicationPublisher=nodeEngine.getWanReplicationService().getWanReplicationListener(wanReplicationRef.getName());
-    this.wanMergePolicy=mapService.getMergePolicy(wanReplicationRef.getMergePolicy());
-  }
+mapStoreDeleteScheduler=null;
+mapStoreWriteScheduler=null;
+}
+ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
+idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
+WanReplicationRef wanReplicationRef=mapConfig.getWanReplicationRef();
+if (wanReplicationRef != null) {
+this.wanReplicationPublisher=nodeEngine.getWanReplicationService().getWanReplicationListener(wanReplicationRef.getName());
+this.wanMergePolicy=mapService.getMergePolicy(wanReplicationRef.getMergePolicy());
+}
  else {
-    wanMergePolicy=null;
-    wanReplicationPublisher=null;
-  }
-  interceptors=new CopyOnWriteArrayList<MapInterceptor>();
-  interceptorMap=new ConcurrentHashMap<String,MapInterceptor>();
-  nearCacheEnabled=mapConfig.getNearCacheConfig() != null;
-  PartitioningStrategy strategy=null;
-  PartitionStrategyConfig partitionStrategyConfig=mapConfig.getPartitionStrategyConfig();
-  if (partitionStrategyConfig != null) {
-    strategy=partitionStrategyConfig.getPartitionStrategy();
-    if (strategy == null && partitionStrategyConfig.getPartitionStrategyClass() != null) {
-      try {
-        strategy=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),partitionStrategyConfig.getPartitionStrategyClass());
-      }
- catch (      Exception e) {
-        throw ExceptionUtil.rethrow(e);
-      }
-    }
-  }
-  partitionStrategy=strategy;
-  nearCacheSizeEstimator=SizeEstimators.createNearCacheSizeEstimator();
+wanMergePolicy=null;
+wanReplicationPublisher=null;
+}
+interceptors=new CopyOnWriteArrayList<MapInterceptor>();
+interceptorMap=new ConcurrentHashMap<String,MapInterceptor>();
+nearCacheEnabled=mapConfig.getNearCacheConfig() != null;
+nearCacheSizeEstimator=SizeEstimators.createNearCacheSizeEstimator();
 }

@@ -1,5 +1,25 @@
 {
-  String id=UUID.randomUUID().toString();
-  listeners.put(id,listener);
-  return id;
+  final DistributedObjectListenerRequest request=new DistributedObjectListenerRequest();
+  ClientContext context=new ClientContext(client.getSerializationService(),client.getClientClusterService(),client.getClientPartitionService(),client.getInvocationService(),client.getClientExecutionService(),this,client.getClientConfig());
+  final EventHandler<PortableDistributedObjectEvent> eventHandler=new EventHandler<PortableDistributedObjectEvent>(){
+    public void handle(    PortableDistributedObjectEvent e){
+      final ObjectNamespace ns=new DefaultObjectNamespace(e.getServiceName(),e.getName());
+      ClientProxy proxy=proxies.get(ns);
+      if (proxy == null) {
+        proxy=getProxy(e.getServiceName(),e.getName());
+      }
+      final DistributedObjectEvent event=new DistributedObjectEvent(e.getEventType(),e.getServiceName(),proxy);
+      if (DistributedObjectEvent.EventType.CREATED.equals(e.getEventType())) {
+        listener.distributedObjectCreated(event);
+      }
+ else       if (DistributedObjectEvent.EventType.DESTROYED.equals(e.getEventType())) {
+        listener.distributedObjectDestroyed(event);
+      }
+    }
+  }
+;
+  ListenerSupport listenerSupport=new ListenerSupport(context,request,eventHandler,null);
+  final String registrationId=listenerSupport.listen();
+  listeners.put(registrationId,listenerSupport);
+  return registrationId;
 }

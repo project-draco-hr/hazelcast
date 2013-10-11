@@ -3,11 +3,11 @@
     Collection<Record> recordList=recordMap.get(mapContainer);
     String mergePolicyName=mapContainer.getMapConfig().getMergePolicy();
     MapMergePolicy mergePolicy=getMergePolicy(mergePolicyName);
+    final MapMergePolicy finalMergePolicy=mergePolicy;
     for (    final Record record : recordList) {
-      final MapMergePolicy finalMergePolicy=mergePolicy;
       nodeEngine.getExecutionService().submit("hz:map-merge",new Runnable(){
         public void run(){
-          SimpleEntryView entryView=new SimpleEntryView(record.getKey(),toData(record.getValue()),record);
+          SimpleEntryView entryView=new SimpleEntryView(record.getKey(),toData(record.getValue()),record.getStatistics(),record.getVersion());
           MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,finalMergePolicy);
           try {
             int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
