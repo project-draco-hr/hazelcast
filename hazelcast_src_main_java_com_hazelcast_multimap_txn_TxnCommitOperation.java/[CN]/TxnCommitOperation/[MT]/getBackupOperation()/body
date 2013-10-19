@@ -1,3 +1,12 @@
 {
-  return new TxnCommitBackupOperation(name,dataKey,opList,getCallerUuid(),threadId);
+  List<Operation> backupOpList=new ArrayList<Operation>();
+  for (  Operation operation : opList) {
+    if (operation instanceof BackupAwareOperation) {
+      BackupAwareOperation backupAwareOperation=(BackupAwareOperation)operation;
+      if (backupAwareOperation.shouldBackup()) {
+        backupOpList.add(backupAwareOperation.getBackupOperation());
+      }
+    }
+  }
+  return new TxnCommitBackupOperation(name,dataKey,backupOpList,getCallerUuid(),threadId);
 }
