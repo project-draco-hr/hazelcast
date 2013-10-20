@@ -1,3 +1,19 @@
 {
-  return originalSession.getAttribute(name);
+  if (cacheLocally) {
+    LocalCacheEntry cacheEntry=localCache.get(name);
+    if (cacheEntry == null || cacheEntry.reload) {
+      Object value=getClusterMap().get(buildAttributeName(name));
+      if (value == null) {
+        cacheEntry=NULL_ENTRY;
+      }
+ else {
+        cacheEntry=new LocalCacheEntry();
+        cacheEntry.value=value;
+        cacheEntry.reload=false;
+      }
+      localCache.put(name,NULL_ENTRY);
+    }
+    return cacheEntry != NULL_ENTRY ? cacheEntry.value : null;
+  }
+  return getClusterMap().get(buildAttributeName(name));
 }

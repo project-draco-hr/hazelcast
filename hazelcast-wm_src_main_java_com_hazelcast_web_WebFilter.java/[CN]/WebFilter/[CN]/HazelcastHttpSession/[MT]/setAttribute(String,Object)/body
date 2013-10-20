@@ -1,6 +1,23 @@
 {
-  if (value != null && !(value instanceof Serializable)) {
+  if (name == null) {
+    throw new NullPointerException("name must not be null");
+  }
+  if (value == null) {
+    throw new IllegalArgumentException("value must not be null");
+  }
+  if (!(value instanceof Serializable) && !(value instanceof DataSerializable) && !(value instanceof Portable)) {
     throw new IllegalArgumentException(new NotSerializableException(value.getClass().getName()));
   }
-  originalSession.setAttribute(name,value);
+  if (cacheLocally) {
+    LocalCacheEntry entry=localCache.get(name);
+    if (entry == null) {
+      entry=new LocalCacheEntry();
+      localCache.put(name,entry);
+    }
+    entry.value=value;
+    entry.dirty=true;
+  }
+ else {
+    getClusterMap().put(buildAttributeName(name),value);
+  }
 }

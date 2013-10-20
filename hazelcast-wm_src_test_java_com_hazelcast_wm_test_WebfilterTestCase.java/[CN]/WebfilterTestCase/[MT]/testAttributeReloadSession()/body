@@ -1,0 +1,20 @@
+{
+  IMap<String,Object> map=hz.getMap("default");
+  CookieStore cookieStore=new BasicCookieStore();
+  executeRequest("write",serverPort1,cookieStore);
+  Set<Entry<String,Object>> entrySet=map.entrySet();
+  assertEquals(2,entrySet.size());
+  String oldSessionId=findHazelcastSessionId(map);
+  assertNotNull(oldSessionId);
+  String value=executeRequest("read",serverPort2,cookieStore);
+  assertEquals("value",value);
+  value=executeRequest("reload",serverPort2,cookieStore);
+  assertEquals("true",value);
+  String newSessionId=findHazelcastSessionId(map);
+  entrySet=map.entrySet();
+  assertEquals(3,entrySet.size());
+  assertEquals(Boolean.TRUE,map.get(newSessionId));
+  assertEquals("first-value",map.get(newSessionId + HAZELCAST_SESSION_ATTRIBUTE_SEPERATOR + "first-key"));
+  assertEquals("second-value",map.get(newSessionId + HAZELCAST_SESSION_ATTRIBUTE_SEPERATOR + "second-key"));
+  assertNotEquals(oldSessionId,newSessionId);
+}

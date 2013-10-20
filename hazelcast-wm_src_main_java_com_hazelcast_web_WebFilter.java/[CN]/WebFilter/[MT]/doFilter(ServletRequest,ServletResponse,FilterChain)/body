@@ -12,7 +12,6 @@
     RequestWrapper existingReq=(RequestWrapper)req.getAttribute(HAZELCAST_REQUEST);
     final ResponseWrapper resWrapper=new ResponseWrapper((HttpServletResponse)res);
     final RequestWrapper reqWrapper=new RequestWrapper(httpReq,resWrapper);
-    resWrapper.setRequest(reqWrapper);
     if (existingReq != null) {
       reqWrapper.setHazelcastSession(existingReq.hazelcastSession,existingReq.requestedSessionId);
     }
@@ -24,25 +23,9 @@
     req=null;
     HazelcastHttpSession session=reqWrapper.getSession(false);
     if (session != null && session.isValid()) {
-      final Enumeration<String> attNames=session.getAttributeNames();
-      Map mapData=null;
-      while (attNames.hasMoreElements()) {
-        final String attName=attNames.nextElement();
-        final Object value=session.getAttribute(attName);
-        if (mapData == null) {
-          mapData=new HashMap<String,Object>();
-        }
-        mapData.put(attName,value);
-      }
-      Data data=session.writeObject(mapData);
-      boolean sessionChanged=session.sessionChanged(data);
-      if (sessionChanged) {
-        if (data == null) {
-          mapData=new HashMap<String,Object>();
-          data=session.writeObject(mapData);
-        }
+      if (session.sessionChanged() || !cacheLocally) {
         log("PUTTING SESSION " + session.getId());
-        getClusterMap().put(session.getId(),data);
+        session.sessionCommit();
       }
     }
   }

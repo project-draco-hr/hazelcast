@@ -1,0 +1,23 @@
+{
+  IMap<String,Object> clusterMap=getClusterMap();
+  if (cacheLocally) {
+    Iterator<Entry<String,LocalCacheEntry>> iterator=localCache.entrySet().iterator();
+    while (iterator.hasNext()) {
+      Entry<String,LocalCacheEntry> entry=iterator.next();
+      if (entry.getValue().dirty) {
+        LocalCacheEntry cacheEntry=entry.getValue();
+        if (cacheEntry.removed) {
+          clusterMap.delete(buildAttributeName(entry.getKey()));
+          iterator.remove();
+        }
+ else {
+          clusterMap.put(buildAttributeName(entry.getKey()),cacheEntry.value);
+          cacheEntry.dirty=false;
+        }
+      }
+    }
+  }
+  if (!clusterMap.containsKey(id)) {
+    clusterMap.put(id,Boolean.TRUE);
+  }
+}

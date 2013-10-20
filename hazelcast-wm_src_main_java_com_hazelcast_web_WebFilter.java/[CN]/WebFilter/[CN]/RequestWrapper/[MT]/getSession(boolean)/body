@@ -15,9 +15,6 @@
         mapOriginalSessions.remove(originalSession.getId());
         originalSession.invalidate();
       }
- else       if (hazelcastSession.isDirty()) {
-        hazelcastSession=null;
-      }
     }
   }
   if (hazelcastSession != null)   return hazelcastSession;
@@ -25,20 +22,17 @@
   if (requestedSessionId != null) {
     hazelcastSession=getSessionWithId(requestedSessionId);
     if (hazelcastSession == null) {
-      final Map mapSession=(Map)getClusterMap().get(requestedSessionId);
-      if (mapSession != null) {
+      final Boolean existing=(Boolean)getClusterMap().get(requestedSessionId);
+      if (existing != null && existing) {
         hazelcastSession=createNewSession(RequestWrapper.this,requestedSessionId);
-        overrideSession(hazelcastSession,mapSession);
       }
     }
   }
   if (hazelcastSession == null && create) {
     hazelcastSession=createNewSession(RequestWrapper.this,null);
   }
- else   if (hazelcastSession != null && !stickySession && requestedSessionId != null && hazelcastSession.isDirty()) {
-    log(requestedSessionId + " is dirty reloading.");
-    final Map mapSession=(Map)getClusterMap().get(requestedSessionId);
-    overrideSession(hazelcastSession,mapSession);
+  if (cacheLocally) {
+    prepareReloadingSession(hazelcastSession);
   }
   return hazelcastSession;
 }
