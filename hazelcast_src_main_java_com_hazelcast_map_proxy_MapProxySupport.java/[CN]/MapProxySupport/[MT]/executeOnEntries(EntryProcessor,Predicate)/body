@@ -1,0 +1,20 @@
+{
+  Map result=new HashMap();
+  try {
+    NodeEngine nodeEngine=getNodeEngine();
+    Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new PartitionWideEntryWithPredicateOperationFactory(name,entryProcessor,predicate));
+    for (    Object o : results.values()) {
+      if (o != null) {
+        final MapService service=getService();
+        final MapEntrySet mapEntrySet=(MapEntrySet)o;
+        for (        Entry<Data,Data> entry : mapEntrySet.getEntrySet()) {
+          result.put(service.toObject(entry.getKey()),service.toObject(entry.getValue()));
+        }
+      }
+    }
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+  return result;
+}
