@@ -4,8 +4,7 @@
     command=command.substring(command.indexOf("__") + 2);
   }
   if (echo) {
-    if (Thread.currentThread().getName().toLowerCase().indexOf("main") < 0)     println(" [" + Thread.currentThread().getName() + "] "+ command);
- else     println(command);
+    handleEcho(command);
   }
   if (command == null || command.startsWith("//"))   return;
   command=command.trim();
@@ -63,35 +62,10 @@
     }
   }
  else   if (first.startsWith("@")) {
-    if (first.length() == 1) {
-      println("usage: @<file-name>");
-      return;
-    }
-    File f=new File(first.substring(1));
-    println("Executing script file " + f.getAbsolutePath());
-    if (f.exists()) {
-      try {
-        BufferedReader br=new BufferedReader(new FileReader(f));
-        String l=br.readLine();
-        while (l != null) {
-          handleCommand(l);
-          l=br.readLine();
-        }
-        br.close();
-      }
- catch (      IOException e) {
-        e.printStackTrace();
-      }
-    }
- else {
-      println("File not found! " + f.getAbsolutePath());
-    }
+    handleAt(first);
   }
  else   if (command.indexOf(';') != -1) {
-    StringTokenizer st=new StringTokenizer(command,";");
-    while (st.hasMoreTokens()) {
-      handleCommand(st.nextToken());
-    }
+    handleColon(command);
     return;
   }
  else   if ("silent".equals(first)) {
@@ -105,57 +79,36 @@
     println("echo: " + echo);
   }
  else   if ("ns".equals(first)) {
-    if (args.length > 1) {
-      namespace=args[1];
-      println("namespace: " + namespace);
-    }
+    handleNamespace(args);
   }
  else   if ("whoami".equals(first)) {
-    println(hazelcast.getCluster().getLocalMember());
+    handleWhoami();
   }
  else   if ("who".equals(first)) {
-    StringBuilder sb=new StringBuilder("\n\nMembers [");
-    final Collection<Member> members=hazelcast.getCluster().getMembers();
-    sb.append(members != null ? members.size() : 0);
-    sb.append("] {");
-    if (members != null) {
-      for (      Member member : members) {
-        sb.append("\n\t").append(member);
-      }
-    }
-    sb.append("\n}\n");
-    println(sb.toString());
+    handleWho();
   }
  else   if ("jvm".equals(first)) {
-    System.gc();
-    println("Memory max: " + Runtime.getRuntime().maxMemory() / 1024 / 1024 + "M");
-    println("Memory free: " + Runtime.getRuntime().freeMemory() / 1024 / 1024 + "M " + (int)(Runtime.getRuntime().freeMemory() * 100 / Runtime.getRuntime().maxMemory()) + "%");
-    long total=Runtime.getRuntime().totalMemory();
-    long free=Runtime.getRuntime().freeMemory();
-    println("Used Memory:" + ((total - free) / 1024 / 1024) + "MB");
-    println("# procs: " + Runtime.getRuntime().availableProcessors());
-    println("OS info: " + ManagementFactory.getOperatingSystemMXBean().getArch() + " "+ ManagementFactory.getOperatingSystemMXBean().getName()+ " "+ ManagementFactory.getOperatingSystemMXBean().getVersion());
-    println("JVM: " + ManagementFactory.getRuntimeMXBean().getVmVendor() + " "+ ManagementFactory.getRuntimeMXBean().getVmName()+ " "+ ManagementFactory.getRuntimeMXBean().getVmVersion());
+    handleJvm();
   }
- else   if (first.indexOf("ock") != -1 && first.indexOf(".") == -1) {
+ else   if (first.contains("ock") && !first.contains(".")) {
     handleLock(args);
   }
- else   if (first.indexOf(".size") != -1) {
+ else   if (first.contains(".size")) {
     handleSize(args);
   }
- else   if (first.indexOf(".clear") != -1) {
+ else   if (first.contains(".clear")) {
     handleClear(args);
   }
- else   if (first.indexOf(".destroy") != -1) {
+ else   if (first.contains(".destroy")) {
     handleDestroy(args);
   }
- else   if (first.indexOf(".iterator") != -1) {
+ else   if (first.contains(".iterator")) {
     handleIterator(args);
   }
- else   if (first.indexOf(".contains") != -1) {
+ else   if (first.contains(".contains")) {
     handleContains(args);
   }
- else   if (first.indexOf(".stats") != -1) {
+ else   if (first.contains(".stats")) {
     handStats(args);
   }
  else   if ("t.publish".equals(first)) {
@@ -251,7 +204,7 @@
  else   if (first.equals("m.unlock")) {
     handleMapUnlock(args);
   }
- else   if (first.indexOf(".addListener") != -1) {
+ else   if (first.contains(".addListener")) {
     handleAddListener(args);
   }
  else   if (first.equals("m.removeMapListener")) {
@@ -322,6 +275,8 @@
   }
  else   if (first.equalsIgnoreCase("quit") || first.equalsIgnoreCase("exit")) {
     System.exit(0);
+  }
+ else   if (first.startsWith("e.simulate")) {
   }
  else {
     println("type 'help' for help");
