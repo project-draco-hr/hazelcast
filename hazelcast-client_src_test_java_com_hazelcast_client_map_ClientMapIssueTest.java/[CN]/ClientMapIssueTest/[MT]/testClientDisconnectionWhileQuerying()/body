@@ -1,0 +1,26 @@
+{
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setConnectionAttemptLimit(Integer.MAX_VALUE);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final IMap<String,String> m=client.getMap("m");
+  m.put("elif","Elif");
+  m.put("ali","Ali");
+  m.put("alev","Alev");
+  instance1.getLifecycleService().terminate();
+  instance2.getLifecycleService().terminate();
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      try {
+        m.get("ali");
+      }
+ catch (      Exception ignored) {
+        latch.countDown();
+      }
+    }
+  }
+.start();
+  assertTrue(latch.await(15,TimeUnit.SECONDS));
+}
