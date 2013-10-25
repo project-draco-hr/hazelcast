@@ -1,14 +1,15 @@
 {
   final int entityCount=10;
-  final int queryCount=5;
+  final int queryCount=3;
   insertDummyEntities(entityCount);
   sleep(1);
   List<DummyEntity> list=null;
   for (int i=0; i < queryCount; i++) {
-    list=executeQuery();
+    list=executeQuery(sf);
     assertEquals(entityCount,list.size());
     sleep(1);
   }
+  assertNotNull(list);
   Session session=sf.openSession();
   Transaction tx=session.beginTransaction();
   try {
@@ -24,6 +25,7 @@
  finally {
     session.close();
   }
+  Statistics stats=sf.getStatistics();
   assertEquals(1,stats.getQueryCachePutCount());
   assertEquals(1,stats.getQueryCacheMissCount());
   assertEquals(queryCount - 1,stats.getQueryCacheHitCount());
