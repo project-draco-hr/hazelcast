@@ -1,23 +1,25 @@
 {
   Map<Long,Data> map=new HashMap<Long,Data>(dataList.size());
+  List<QueueItem> list=new ArrayList<QueueItem>(dataList.size());
   for (  Data data : dataList) {
     QueueItem item=new QueueItem(this,nextId(),null);
     if (!store.isEnabled() || store.getMemoryLimit() > getItemQueue().size()) {
       item.setData(data);
     }
-    getItemQueue().offer(item);
     map.put(item.getItemId(),data);
+    list.add(item);
   }
-  if (store.isEnabled()) {
+  if (store.isEnabled() && !map.isEmpty()) {
     try {
       store.storeAll(map);
     }
  catch (    Exception e) {
-      for (int i=0; i < dataList.size(); i++) {
-        getItemQueue().poll();
-      }
       throw new HazelcastException(e);
     }
+  }
+  if (list.isEmpty()) {
+    getItemQueue().addAll(list);
+    cancelEvictionIfExists();
   }
   return map;
 }
