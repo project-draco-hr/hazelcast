@@ -1,0 +1,18 @@
+{
+  final Config config=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  final ISemaphore semaphore=instance1.getSemaphore("testDrain");
+  int numberOfPermits=20;
+  assertTrue(semaphore.init(numberOfPermits));
+  try {
+    semaphore.acquire(5);
+  }
+ catch (  InterruptedException e) {
+    fail();
+  }
+  int drainedPermits=semaphore.drainPermits();
+  Assert.assertEquals(drainedPermits,numberOfPermits - 5);
+  Assert.assertEquals(semaphore.availablePermits(),0);
+}
