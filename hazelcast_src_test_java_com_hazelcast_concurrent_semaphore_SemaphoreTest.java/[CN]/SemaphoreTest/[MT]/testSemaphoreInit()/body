@@ -1,0 +1,17 @@
+{
+  final Config config=new Config();
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  final ISemaphore sm1=instance1.getSemaphore("sm");
+  assertTrue(sm1.init(5));
+  assertFalse(sm1.init(10));
+  assertEquals(5,sm1.drainPermits());
+  assertFalse(sm1.init(10));
+  final ISemaphore sm2=instance2.getSemaphore("sm");
+  assertFalse(sm2.init(10));
+  assertEquals(0,sm2.availablePermits());
+  assertTrue(instance1.getSemaphore("test").init(2));
+  assertFalse(instance2.getSemaphore("test").init(4));
+  assertEquals(2,instance2.getSemaphore("test").availablePermits());
+}
