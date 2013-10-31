@@ -1,0 +1,24 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  Config cfg=new Config();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setImplementation(new MapLoader<Integer,Integer>(){
+    public Integer load(    Integer key){
+      return 123;
+    }
+    public Map<Integer,Integer> loadAll(    Collection<Integer> keys){
+      return null;
+    }
+    public Set<Integer> loadAllKeys(){
+      return null;
+    }
+  }
+);
+  cfg.getMapConfig("default").setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance hz=nodeFactory.newHazelcastInstance(cfg);
+  EntryProcessor entryProcessor=new IncrementorEntryProcessor();
+  hz.getMap("default").executeOnKey(1,entryProcessor);
+  assertEquals(124,hz.getMap("default").get(1));
+  hz.getLifecycleService().shutdown();
+}
