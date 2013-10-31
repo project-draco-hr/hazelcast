@@ -1,15 +1,18 @@
 {
-  RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
+  final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
   if (keys == null) {
     recordStore.removeAll();
+    clearNearCache();
     return;
   }
   if (keys.isEmpty()) {
     shouldBackup=false;
   }
+  keysToBeRemoved=new HashSet<Data>();
   for (  Data key : keys) {
     if (!recordStore.isLocked(key)) {
       recordStore.evict(key);
+      keysToBeRemoved.add(key);
     }
   }
 }
