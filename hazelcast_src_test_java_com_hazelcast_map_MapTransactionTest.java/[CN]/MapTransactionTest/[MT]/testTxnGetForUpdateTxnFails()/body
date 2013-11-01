@@ -1,0 +1,26 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,"1000");
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance h1=factory.newHazelcastInstance(config);
+  final HazelcastInstance h2=factory.newHazelcastInstance(config);
+  final IMap<String,String> map=h2.getMap("default");
+  map.put("var","value");
+  map.lock("varLocked");
+  TransactionOptions opts=new TransactionOptions();
+  opts.setTimeout(1,TimeUnit.SECONDS);
+  try {
+    boolean b=h1.executeTransaction(opts,new TransactionalTask<Boolean>(){
+      public Boolean execute(      TransactionalTaskContext context) throws TransactionException {
+        final TransactionalMap<String,String> txMap=context.getMap("default");
+        txMap.getForUpdate("var");
+        throw new TransactionException();
+      }
+    }
+);
+  }
+ catch (  TransactionException e) {
+  }
+  assertFalse(map.isLocked("var"));
+  assertTrue(map.isLocked("varLocked"));
+}

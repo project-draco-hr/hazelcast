@@ -1,0 +1,25 @@
+{
+  Config config=new Config();
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance h1=factory.newHazelcastInstance(config);
+  final HazelcastInstance h2=factory.newHazelcastInstance(config);
+  final IMap<String,String> map=h2.getMap("default");
+  map.put("var","value0");
+  map.lock("var");
+  TransactionOptions opts=new TransactionOptions();
+  opts.setTimeout(1,TimeUnit.SECONDS);
+  try {
+    boolean b=h1.executeTransaction(opts,new TransactionalTask<Boolean>(){
+      public Boolean execute(      TransactionalTaskContext context) throws TransactionException {
+        final TransactionalMap<String,String> txMap=context.getMap("default");
+        txMap.getForUpdate("var");
+        fail();
+        return true;
+      }
+    }
+);
+  }
+ catch (  TransactionException e) {
+  }
+  assertTrue(map.isLocked("var"));
+}
