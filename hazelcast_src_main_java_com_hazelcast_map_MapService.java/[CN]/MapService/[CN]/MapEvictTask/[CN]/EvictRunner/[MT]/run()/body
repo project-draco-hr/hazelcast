@@ -1,9 +1,10 @@
 {
+  final Set<Data> keysGatheredForNearCacheEviction=new HashSet<Data>();
   for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
     if ((i % ExecutorConfig.DEFAULT_POOL_SIZE) != mod) {
       continue;
     }
-    Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
+    final Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
     if (nodeEngine.getThisAddress().equals(owner)) {
       final PartitionContainer pc=partitionContainers[i];
       final RecordStore recordStore=pc.getRecordStore(mapName);
@@ -25,16 +26,21 @@
         recordSet.add(rec);
         keySet.add(rec.getKey());
       }
-      ClearOperation clearOperation=new ClearOperation(mapName,keySet);
-      clearOperation.setNodeEngine(nodeEngine);
-      clearOperation.setServiceName(SERVICE_NAME);
-      clearOperation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
-      clearOperation.setPartitionId(i);
-      OperationAccessor.setCallerAddress(clearOperation,nodeEngine.getThisAddress());
-      nodeEngine.getOperationService().executeOperation(clearOperation);
+      keysGatheredForNearCacheEviction.addAll(keySet);
+      EvictKeysOperation evictKeysOperation=new EvictKeysOperation(mapName,keySet);
+      evictKeysOperation.setNodeEngine(nodeEngine);
+      evictKeysOperation.setServiceName(SERVICE_NAME);
+      evictKeysOperation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+      evictKeysOperation.setPartitionId(i);
+      OperationAccessor.setCallerAddress(evictKeysOperation,nodeEngine.getThisAddress());
+      nodeEngine.getOperationService().executeOperation(evictKeysOperation);
       for (      Record record : recordSet) {
         publishEvent(nodeEngine.getThisAddress(),mapName,EntryEventType.EVICTED,record.getKey(),toData(record.getValue()),null);
       }
     }
+  }
+  final MapContainer mapContainer=getMapContainer(mapName);
+  if (mapContainer.isNearCacheEnabled() && mapContainer.getMapConfig().getNearCacheConfig().isInvalidateOnChange()) {
+    invalidateAllNearCaches(mapName,keysGatheredForNearCacheEviction);
   }
 }
