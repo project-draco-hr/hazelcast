@@ -1,10 +1,16 @@
 {
+  String first=args[0];
+  int threadCount=Integer.parseInt(first.substring(1,first.indexOf(".")));
+  if (threadCount < 1 || threadCount > 16) {
+    throw new RuntimeException("threadcount can't be smaller than 1 or larger than 16");
+  }
   int taskCount=Integer.parseInt(args[1]);
   int durationSec=Integer.parseInt(args[2]);
   long startMs=System.currentTimeMillis();
+  IExecutorService executor=hazelcast.getExecutorService("e" + threadCount);
   List<Future> futures=new LinkedList<Future>();
   for (int k=0; k < taskCount; k++) {
-    Future f=executorService.submit(new SimulateLoadTask(durationSec,k));
+    Future f=executor.submit(new SimulateLoadTask(durationSec,k));
     futures.add(f);
   }
   for (  Future f : futures) {
