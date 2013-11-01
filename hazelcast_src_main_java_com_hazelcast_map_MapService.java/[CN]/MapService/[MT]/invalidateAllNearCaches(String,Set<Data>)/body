@@ -1,16 +1,6 @@
 {
-  final Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
-  for (  final MemberImpl member : members) {
-    try {
-      if (member.localMember())       continue;
-      final NearCacheKeySetInvalidationOperation operation=new NearCacheKeySetInvalidationOperation(mapName,keys);
-      nodeEngine.getOperationService().send(operation,member.getAddress());
-    }
- catch (    Throwable throwable) {
-      throw new HazelcastException(throwable);
-    }
-  }
   if (keys != null && !keys.isEmpty()) {
+    sendNearCacheOperation(new NearCacheKeySetInvalidationOperation(mapName,keys));
     for (    final Data key : keys) {
       invalidateNearCache(mapName,key);
     }
