@@ -1,0 +1,24 @@
+{
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  final CountDownLatch latch=new CountDownLatch(1);
+  final Thread t=new Thread(){
+    @Override public void run(){
+      TransactionContext ctx=instance2.newTransactionContext();
+      ctx.beginTransaction();
+      TransactionalMap<Integer,Integer> txnMap=ctx.getMap("test");
+      latch.countDown();
+      txnMap.delete(1);
+      ctx.commitTransaction();
+    }
+  }
+;
+  t.start();
+  TransactionContext ctx=instance2.newTransactionContext();
+  ctx.beginTransaction();
+  TransactionalMap<Integer,Integer> txnMap=ctx.getMap("test");
+  txnMap.delete(1);
+  latch.await();
+  ctx.commitTransaction();
+  t.join();
+}
