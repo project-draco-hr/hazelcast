@@ -1,17 +1,21 @@
 {
   String id=existingSessionId != null ? existingSessionId : generateSessionId();
   if (requestWrapper.getOriginalSession(false) != null) {
-    log("Original session exists!!!");
+    logger.finest("Original session exists!!!");
   }
   HttpSession originalSession=requestWrapper.getOriginalSession(true);
   HazelcastHttpSession hazelcastSession=new HazelcastHttpSession(WebFilter.this,id,originalSession,deferredWrite);
   mapSessions.put(hazelcastSession.getId(),hazelcastSession);
   String oldHazelcastSessionId=mapOriginalSessions.put(originalSession.getId(),hazelcastSession.getId());
   if (oldHazelcastSessionId != null) {
-    log("!!! Overriding an existing hazelcastSessionId " + oldHazelcastSessionId);
+    if (logger.isFinestEnabled()) {
+      logger.finest("!!! Overriding an existing hazelcastSessionId " + oldHazelcastSessionId);
+    }
   }
-  log("Created new session with id: " + id);
-  log(mapSessions.size() + " is sessions.size and originalSessions.size: " + mapOriginalSessions.size());
+  if (logger.isFinestEnabled()) {
+    logger.finest("Created new session with id: " + id);
+    logger.finest(mapSessions.size() + " is sessions.size and originalSessions.size: " + mapOriginalSessions.size());
+  }
   addSessionCookie(requestWrapper,id);
   if (deferredWrite) {
     loadHazelcastSession(hazelcastSession);
