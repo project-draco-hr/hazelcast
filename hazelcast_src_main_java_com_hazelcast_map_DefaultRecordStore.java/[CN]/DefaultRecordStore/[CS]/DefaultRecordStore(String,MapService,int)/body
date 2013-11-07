@@ -31,15 +31,20 @@
         if (!partitionKeys.isEmpty()) {
           chunks.add(partitionKeys);
         }
-        try {
-          Map<Data,Object> chunkedKeys;
-          final AtomicInteger checkIfMapLoaded=new AtomicInteger(chunks.size());
-          while ((chunkedKeys=chunks.poll()) != null) {
-            nodeEngine.getExecutionService().submit("hz:map-load",new MapLoadAllTask(chunkedKeys,checkIfMapLoaded));
+        if (!chunks.isEmpty()) {
+          try {
+            Map<Data,Object> chunkedKeys;
+            final AtomicInteger checkIfMapLoaded=new AtomicInteger(chunks.size());
+            while ((chunkedKeys=chunks.poll()) != null) {
+              nodeEngine.getExecutionService().submit("hz:map-load",new MapLoadAllTask(chunkedKeys,checkIfMapLoaded));
+            }
+          }
+ catch (          Throwable t) {
+            throw ExceptionUtil.rethrow(t);
           }
         }
- catch (        Throwable t) {
-          throw ExceptionUtil.rethrow(t);
+ else {
+          loaded.set(true);
         }
       }
  else {
