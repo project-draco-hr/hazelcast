@@ -7,7 +7,7 @@
   }
   lock.lock();
   try {
-    clearMigrationQueue();
+    migrationQueue.clear();
     if (!activeMigrations.isEmpty()) {
       if (node.isMaster()) {
         rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
@@ -19,8 +19,17 @@
       }
     }
     pauseMigration();
-    for (    PartitionImpl partition : partitions) {
+    for (    final PartitionImpl partition : partitions) {
+      boolean promote=false;
+      if (deadAddress.equals(partition.getOwner()) && thisAddress.equals(partition.getReplicaAddress(1))) {
+        promote=true;
+      }
       while (partition.onDeadAddress(deadAddress))       ;
+      if (promote) {
+        final Operation op=new PromoteFromBackupOperation();
+        op.setPartitionId(partition.getPartitionId()).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
+        nodeEngine.getOperationService().executeOperation(op);
+      }
     }
     if (node.isMaster()) {
       migrationQueue.offer(new RepartitioningTask());
