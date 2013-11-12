@@ -5,7 +5,18 @@
   if (record != null && record.getValue() != null) {
     oldValue=record.getValue();
     value=mapService.interceptPut(name,oldValue,value);
-    mapStoreWrite(record,dataKey,value);
+    if (mapContainer.getStore() != null) {
+      if (mapContainer.getWriteDelayMillis() <= 0) {
+        value=mapService.toObject(value);
+        mapContainer.getStore().store(mapService.toObject(dataKey),value);
+        if (record != null) {
+          record.onStore();
+        }
+      }
+ else {
+        mapService.scheduleMapStoreWrite(name,dataKey,value,mapContainer.getWriteDelayMillis());
+      }
+    }
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,value);
     updateSizeEstimator(calculateRecordSize(record));

@@ -5,8 +5,19 @@
   Record record=records.get(dataKey);
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
+    if (mapContainer.getStore() != null) {
+      if (mapContainer.getWriteDelayMillis() <= 0) {
+        value=mapService.toObject(value);
+        mapContainer.getStore().store(mapService.toObject(dataKey),value);
+        if (record != null) {
+          record.onStore();
+        }
+      }
+ else {
+        mapService.scheduleMapStoreWrite(name,dataKey,value,mapContainer.getWriteDelayMillis());
+      }
+    }
     record=mapService.createRecord(name,dataKey,value,-1);
-    mapStoreWrite(record,dataKey,value);
     records.put(dataKey,record);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
@@ -18,7 +29,18 @@
       accessRecord(record);
     }
  else {
-      mapStoreWrite(record,dataKey,value);
+      if (mapContainer.getStore() != null) {
+        if (mapContainer.getWriteDelayMillis() <= 0) {
+          value=mapService.toObject(value);
+          mapContainer.getStore().store(mapService.toObject(dataKey),value);
+          if (record != null) {
+            record.onStore();
+          }
+        }
+ else {
+          mapService.scheduleMapStoreWrite(name,dataKey,value,mapContainer.getWriteDelayMillis());
+        }
+      }
       updateSizeEstimator(-calculateRecordSize(record));
       setRecordValue(record,value);
       updateSizeEstimator(calculateRecordSize(record));

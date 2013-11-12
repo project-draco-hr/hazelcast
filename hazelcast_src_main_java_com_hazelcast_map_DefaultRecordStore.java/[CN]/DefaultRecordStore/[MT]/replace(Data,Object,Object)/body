@@ -4,7 +4,18 @@
   if (record == null)   return false;
   if (mapService.compare(name,record.getValue(),testValue)) {
     newValue=mapService.interceptPut(name,record.getValue(),newValue);
-    mapStoreWrite(record,dataKey,newValue);
+    if (mapContainer.getStore() != null) {
+      if (mapContainer.getWriteDelayMillis() <= 0) {
+        newValue=mapService.toObject(newValue);
+        mapContainer.getStore().store(mapService.toObject(dataKey),newValue);
+        if (record != null) {
+          record.onStore();
+        }
+      }
+ else {
+        mapService.scheduleMapStoreWrite(name,dataKey,newValue,mapContainer.getWriteDelayMillis());
+      }
+    }
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,newValue);
     updateSizeEstimator(calculateRecordSize(record));

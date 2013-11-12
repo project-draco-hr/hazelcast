@@ -4,8 +4,19 @@
   Object newValue=null;
   if (record == null) {
     newValue=mergingEntry.getValue();
+    if (mapContainer.getStore() != null) {
+      if (mapContainer.getWriteDelayMillis() <= 0) {
+        newValue=mapService.toObject(newValue);
+        mapContainer.getStore().store(mapService.toObject(dataKey),newValue);
+        if (record != null) {
+          record.onStore();
+        }
+      }
+ else {
+        mapService.scheduleMapStoreWrite(name,dataKey,newValue,mapContainer.getWriteDelayMillis());
+      }
+    }
     record=mapService.createRecord(name,dataKey,newValue,-1);
-    mapStoreWrite(record,dataKey,newValue);
     records.put(dataKey,record);
     updateSizeEstimator(calculateRecordSize(record));
   }
@@ -23,7 +34,18 @@
     if (mapService.compare(name,newValue,oldValue)) {
       return true;
     }
-    mapStoreWrite(record,dataKey,newValue);
+    if (mapContainer.getStore() != null) {
+      if (mapContainer.getWriteDelayMillis() <= 0) {
+        newValue=mapService.toObject(newValue);
+        mapContainer.getStore().store(mapService.toObject(dataKey),newValue);
+        if (record != null) {
+          record.onStore();
+        }
+      }
+ else {
+        mapService.scheduleMapStoreWrite(name,dataKey,newValue,mapContainer.getWriteDelayMillis());
+      }
+    }
     updateSizeEstimator(-calculateRecordSize(record));
     recordFactory.setValue(record,newValue);
     updateSizeEstimator(calculateRecordSize(record));
