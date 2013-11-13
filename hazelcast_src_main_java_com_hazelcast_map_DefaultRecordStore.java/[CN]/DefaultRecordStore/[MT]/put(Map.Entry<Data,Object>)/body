@@ -5,8 +5,9 @@
   Record record=records.get(dataKey);
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
+    Object modifiedValue=writeMapStore(dataKey,value,record);
+    value=mapContainer.getStore().isPostProcessingMapStore() ? modifiedValue : value;
     record=mapService.createRecord(name,dataKey,value,-1);
-    mapStoreWrite(record,dataKey,value);
     records.put(dataKey,record);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
@@ -18,7 +19,8 @@
       accessRecord(record);
     }
  else {
-      mapStoreWrite(record,dataKey,value);
+      Object modifiedValue=writeMapStore(dataKey,value,record);
+      value=mapContainer.getStore().isPostProcessingMapStore() ? modifiedValue : value;
       updateSizeEstimator(-calculateRecordSize(record));
       setRecordValue(record,value);
       updateSizeEstimator(calculateRecordSize(record));
