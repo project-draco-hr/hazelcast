@@ -4,7 +4,8 @@
   Object newValue=null;
   if (record == null) {
     newValue=mergingEntry.getValue();
-    newValue=writeMapStore(dataKey,newValue,record);
+    Object modifiedValue=writeMapStore(dataKey,newValue,record);
+    newValue=mapContainer.getStore().isPostProcessingMapStore() ? modifiedValue : newValue;
     record=mapService.createRecord(name,dataKey,newValue,-1);
     records.put(dataKey,record);
     updateSizeEstimator(calculateRecordSize(record));
@@ -23,7 +24,8 @@
     if (mapService.compare(name,newValue,oldValue)) {
       return true;
     }
-    newValue=writeMapStore(dataKey,newValue,record);
+    Object modifiedValue=writeMapStore(dataKey,newValue,record);
+    newValue=mapContainer.getStore().isPostProcessingMapStore() ? modifiedValue : newValue;
     updateSizeEstimator(-calculateRecordSize(record));
     recordFactory.setValue(record,newValue);
     updateSizeEstimator(calculateRecordSize(record));

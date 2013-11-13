@@ -7,7 +7,8 @@
       oldValue=mapContainer.getStore().load(mapService.toObject(dataKey));
     }
     value=mapService.interceptPut(name,null,value);
-    value=writeMapStore(dataKey,value,record);
+    Object modifiedValue=writeMapStore(dataKey,value,record);
+    value=mapContainer.getStore().isPostProcessingMapStore() ? modifiedValue : value;
     record=mapService.createRecord(name,dataKey,value,ttl);
     records.put(dataKey,record);
     updateSizeEstimator(calculateRecordSize(record));
@@ -21,7 +22,8 @@
       updateTtl(record,ttl);
     }
  else {
-      value=writeMapStore(dataKey,value,record);
+      Object modifiedValue=writeMapStore(dataKey,value,record);
+      value=mapContainer.getStore().isPostProcessingMapStore() ? modifiedValue : value;
       updateSizeEstimator(-calculateRecordSize(record));
       setRecordValue(record,value);
       updateSizeEstimator(calculateRecordSize(record));
