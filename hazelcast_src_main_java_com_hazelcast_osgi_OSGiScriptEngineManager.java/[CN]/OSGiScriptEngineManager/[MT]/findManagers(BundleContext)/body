@@ -2,7 +2,17 @@
   Map<ScriptEngineManager,ClassLoader> managers=new HashMap<ScriptEngineManager,ClassLoader>();
   try {
     for (    String factoryName : findFactoryCandidates(context)) {
-      ClassLoader factoryLoader=Class.forName(factoryName).getClassLoader();
+      ClassLoader factoryLoader;
+      try {
+        factoryLoader=Class.forName(factoryName).getClassLoader();
+      }
+ catch (      ClassNotFoundException cnfe) {
+        logger.warning("Found ScriptEngineFactory candidate for " + factoryName + ", but cannot load class! -> "+ cnfe);
+        if (logger.isFinestEnabled()) {
+          logger.finest(cnfe);
+        }
+        continue;
+      }
       ScriptEngineManager manager=new ScriptEngineManager(factoryLoader);
       manager.setBindings(bindings);
       managers.put(manager,factoryLoader);
@@ -11,8 +21,5 @@
   }
  catch (  IOException ioe) {
     throw new RuntimeException(ioe);
-  }
-catch (  ClassNotFoundException cnfe) {
-    throw new RuntimeException(cnfe);
   }
 }
