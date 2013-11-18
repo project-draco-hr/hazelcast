@@ -1,2 +1,25 @@
 {
+  final String keyWithNullValue="keyWithNullValue";
+  TestEventBasedMapStore testMapStore=new TestEventBasedMapStore(){
+    @Override public Set loadAllKeys(){
+      Set keys=new HashSet(super.loadAllKeys());
+      keys.add(keyWithNullValue);
+      return keys;
+    }
+  }
+;
+  Map mapForStore=new HashMap();
+  mapForStore.put("key1",17);
+  mapForStore.put("key2",37);
+  mapForStore.put("key3",47);
+  testMapStore.getStore().putAll(mapForStore);
+  Config config=newConfig(testMapStore,0);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+  IMap map=instance.getMap("default");
+  assertEquals(map.keySet(),mapForStore.keySet());
+  assertEquals(new HashSet(map.values()),new HashSet(mapForStore.values()));
+  assertEquals(map.entrySet(),mapForStore.entrySet());
+  assertFalse(map.containsKey(keyWithNullValue));
+  assertNull(map.get(keyWithNullValue));
 }

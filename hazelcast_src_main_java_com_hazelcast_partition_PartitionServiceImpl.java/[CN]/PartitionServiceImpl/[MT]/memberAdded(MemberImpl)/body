@@ -5,8 +5,12 @@
   if (node.isMaster() && node.isActive()) {
     lock.lock();
     try {
-      clearMigrationQueue();
+      migrationQueue.clear();
       migrationQueue.offer(new RepartitioningTask());
+      if (initialized) {
+        PartitionStateOperation op=new PartitionStateOperation(node.clusterService.getMemberList(),getPartitions(),new ArrayList<MigrationInfo>(completedMigrations),node.getClusterService().getClusterTime(),stateVersion.get());
+        nodeEngine.getOperationService().send(op,member.getAddress());
+      }
     }
   finally {
       lock.unlock();
