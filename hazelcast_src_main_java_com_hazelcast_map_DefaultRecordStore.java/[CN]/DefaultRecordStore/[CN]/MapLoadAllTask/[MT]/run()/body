@@ -3,7 +3,9 @@
   try {
     Map values=mapContainer.getStore().loadAll(keys.values());
     if (values == null || values.isEmpty()) {
-      loaded.set(true);
+      if (checkIfMapLoaded.decrementAndGet() == 0) {
+        loaded.set(true);
+      }
       return;
     }
     MapEntrySet entrySet=new MapEntrySet();
@@ -19,12 +21,8 @@
     operation.setNodeEngine(nodeEngine);
     operation.setResponseHandler(new ResponseHandler(){
       @Override public void sendResponse(      Object obj){
-        if (!(obj instanceof Exception)) {
+        if (checkIfMapLoaded.decrementAndGet() == 0) {
           loaded.set(true);
-        }
- else {
-          Exception e=(Exception)obj;
-          logger.finest(e.getMessage());
         }
       }
       public boolean isLocal(){

@@ -9,6 +9,8 @@
   final LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
   this.lockStore=lockService == null ? null : lockService.createLockStore(partitionId,new DefaultObjectNamespace(MapService.SERVICE_NAME,name));
   this.sizeEstimator=SizeEstimators.createMapSizeEstimator();
+  final int mapLoadChunkSize=nodeEngine.getGroupProperties().MAP_LOAD_CHUNK_SIZE.getInteger();
+  final Queue<Map> chunks=new LinkedList<Map>();
   if (nodeEngine.getThisAddress().equals(nodeEngine.getPartitionService().getPartitionOwner(partitionId))) {
     if (mapContainer.getStore() != null && !loaded.get()) {
       Map<Data,Object> loadedKeys=mapContainer.getInitialKeys();
@@ -20,14 +22,30 @@
           final Data data=entry.getKey();
           if (partitionId == nodeEngine.getPartitionService().getPartitionId(data)) {
             partitionKeys.put(data,entry.getValue());
+            if (partitionKeys.size() >= mapLoadChunkSize) {
+              chunks.add(partitionKeys);
+              partitionKeys=new HashMap<Data,Object>();
+            }
             iterator.remove();
           }
         }
-        try {
-          nodeEngine.getExecutionService().submit("hz:map-load",new MapLoadAllTask(partitionKeys));
+        if (!partitionKeys.isEmpty()) {
+          chunks.add(partitionKeys);
         }
- catch (        Throwable t) {
-          throw ExceptionUtil.rethrow(t);
+        if (!chunks.isEmpty()) {
+          try {
+            Map<Data,Object> chunkedKeys;
+            final AtomicInteger checkIfMapLoaded=new AtomicInteger(chunks.size());
+            while ((chunkedKeys=chunks.poll()) != null) {
+              nodeEngine.getExecutionService().submit("hz:map-load",new MapLoadAllTask(chunkedKeys,checkIfMapLoaded));
+            }
+          }
+ catch (          Throwable t) {
+            throw ExceptionUtil.rethrow(t);
+          }
+        }
+ else {
+          loaded.set(true);
         }
       }
  else {
