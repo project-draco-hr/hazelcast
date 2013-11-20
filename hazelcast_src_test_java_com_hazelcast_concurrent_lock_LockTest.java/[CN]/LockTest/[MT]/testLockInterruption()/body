@@ -1,34 +1,26 @@
 {
   Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,"5000");
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
   final HazelcastInstance hz=nodeFactory.newHazelcastInstance(config);
-  final Lock lock=hz.getLock("testLockInterruption");
-  Random rand=new Random();
-  for (int i=0; i < 30; i++) {
-    Thread t=new Thread(){
-      public void run(){
-        try {
-          lock.lock();
-          sleep(1);
-        }
- catch (        InterruptedException e) {
-        }
- finally {
-          lock.unlock();
-        }
+  final Lock lock=hz.getLock("testLockInterruption2");
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      try {
+        lock.tryLock(60,TimeUnit.SECONDS);
+      }
+ catch (      InterruptedException ignored) {
+        latch.countDown();
       }
     }
-;
-    t.start();
-    Thread.sleep(rand.nextInt(3));
-    t.interrupt();
-    t.join();
-    if (!lock.tryLock(3,TimeUnit.SECONDS)) {
-      fail("Could not acquire lock!");
-    }
- else {
-      lock.unlock();
-    }
-    Thread.sleep(100);
   }
+);
+  lock.lock();
+  t.start();
+  Thread.sleep(2000);
+  t.interrupt();
+  assertTrue("tryLock() is not interrupted!",latch.await(30,TimeUnit.SECONDS));
+  lock.unlock();
+  assertTrue("Could not acquire lock!",lock.tryLock());
 }
