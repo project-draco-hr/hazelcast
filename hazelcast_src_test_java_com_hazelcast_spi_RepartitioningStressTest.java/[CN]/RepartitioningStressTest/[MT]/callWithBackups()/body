@@ -1,24 +1,37 @@
 {
-  Map<Integer,Integer> map=hz.getMap("map");
-  int itemCount=10000;
+  final Map<Integer,Integer> map=hz.getMap("map");
+  final int itemCount=10000;
   for (int k=0; k < itemCount; k++) {
     map.put(k,k);
   }
   RestartThread restartThread=new RestartThread();
   restartThread.start();
-  Random random=new Random();
-  long endTime=System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(DURATION_SECONDS);
-  int k=0;
-  for (; ; ) {
-    int key=random.nextInt(itemCount);
-    assertEquals(new Integer(key),map.put(key,key));
-    if (k % 10000 == 0) {
-      System.out.println("at: " + k);
+  TestThread[] testThreads=new TestThread[THREAD_COUNT];
+  for (int l=0; l < testThreads.length; l++) {
+    testThreads[l]=new TestThread("Thread-" + l){
+      @Override void doRun(){
+        long endTime=System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(DURATION_SECONDS);
+        Random random=new Random();
+        int k=0;
+        for (; ; ) {
+          int key=random.nextInt(itemCount);
+          assertEquals(new Integer(key),map.put(key,key));
+          if (k % 10000 == 0) {
+            System.out.println(getName() + " at: " + k);
+          }
+          k++;
+          if (System.currentTimeMillis() > endTime) {
+            break;
+          }
+        }
+      }
     }
-    k++;
-    if (System.currentTimeMillis() > endTime) {
-      break;
-    }
+;
+    testThreads[l].start();
+  }
+  for (  TestThread t : testThreads) {
+    t.join();
+    t.assertNotProblems();
   }
   restartThread.stop=true;
 }
