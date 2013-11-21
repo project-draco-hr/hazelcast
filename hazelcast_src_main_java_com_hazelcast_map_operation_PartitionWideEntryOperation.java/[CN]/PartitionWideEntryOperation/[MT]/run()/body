@@ -7,14 +7,7 @@
     final Data dataKey=recordEntry.getKey();
     final Record record=recordEntry.getValue();
     final Object valueBeforeProcess=mapService.toObject(record.getValue());
-    Object objectKey=mapService.toObject(record.getKey());
-    if (getPredicate() != null) {
-      QueryEntry queryEntry=new QueryEntry(getNodeEngine().getSerializationService(),dataKey,objectKey,valueBeforeProcess);
-      if (!getPredicate().apply(queryEntry)) {
-        continue;
-      }
-    }
-    entry=new MapEntrySimple(objectKey,valueBeforeProcess);
+    entry=new MapEntrySimple(mapService.toObject(record.getKey()),valueBeforeProcess);
     final Object result=entryProcessor.process(entry);
     final Object valueAfterProcess=entry.getValue();
     Data dataValue=null;
@@ -22,7 +15,7 @@
       dataValue=mapService.toData(result);
       response.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(dataKey,dataValue));
     }
-    EntryEventType eventType;
+    EntryEventType eventType=null;
     if (valueAfterProcess == null) {
       recordStore.remove(dataKey);
       eventType=EntryEventType.REMOVED;
