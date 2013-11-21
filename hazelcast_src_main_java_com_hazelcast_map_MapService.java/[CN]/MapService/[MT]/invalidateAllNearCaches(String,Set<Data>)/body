@@ -1,6 +1,16 @@
 {
   if (keys == null || keys.isEmpty())   return;
-  sendNearCacheOperation(new NearCacheKeySetInvalidationOperation(mapName,keys));
+  Operation operation=new NearCacheKeySetInvalidationOperation(mapName,keys).setServiceName(SERVICE_NAME);
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  for (  MemberImpl member : members) {
+    try {
+      if (member.localMember())       continue;
+      nodeEngine.getOperationService().send(operation,member.getAddress());
+    }
+ catch (    Throwable throwable) {
+      logger.warning(throwable);
+    }
+  }
   for (  final Data key : keys) {
     invalidateNearCache(mapName,key);
   }
