@@ -7,7 +7,14 @@
     final Data dataKey=recordEntry.getKey();
     final Record record=recordEntry.getValue();
     final Object valueBeforeProcess=mapService.toObject(record.getValue());
-    entry=new MapEntrySimple(mapService.toObject(record.getKey()),valueBeforeProcess);
+    Object objectKey=mapService.toObject(record.getKey());
+    if (getPredicate() != null) {
+      QueryEntry queryEntry=new QueryEntry(getNodeEngine().getSerializationService(),dataKey,objectKey,valueBeforeProcess);
+      if (!getPredicate().apply(queryEntry)) {
+        continue;
+      }
+    }
+    entry=new MapEntrySimple(objectKey,valueBeforeProcess);
     final Object result=entryProcessor.process(entry);
     final Object valueAfterProcess=entry.getValue();
     Data dataValue=null;
@@ -15,7 +22,7 @@
       dataValue=mapService.toData(result);
       response.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(dataKey,dataValue));
     }
-    EntryEventType eventType=null;
+    EntryEventType eventType;
     if (valueAfterProcess == null) {
       recordStore.remove(dataKey);
       eventType=EntryEventType.REMOVED;
@@ -30,7 +37,9 @@
  else {
         eventType=EntryEventType.UPDATED;
       }
-      recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,valueAfterProcess));
+      if (eventType != __NO_NEED_TO_FIRE_EVENT) {
+        recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,valueAfterProcess));
+      }
     }
     if (eventType != __NO_NEED_TO_FIRE_EVENT) {
       mapService.publishEvent(getCallerAddress(),name,eventType,dataKey,mapService.toData(record.getValue()),dataValue);
