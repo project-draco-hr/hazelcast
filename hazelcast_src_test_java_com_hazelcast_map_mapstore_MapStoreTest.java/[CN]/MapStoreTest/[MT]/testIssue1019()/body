@@ -1,2 +1,17 @@
 {
+  Config config=new Config();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setImplementation(new MapStoreAdapter<String,String>());
+  config.getMapConfig("testIssue1019").setMapStoreConfig(mapStoreConfig);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final IMap map=instance.getMap("testIssue1019");
+  for (int i=0; i < 1000; i++) {
+    map.put(i,i);
+  }
+  for (int i=10000; i < 10100; i++) {
+    map.get(i);
+  }
+  assertEquals(1000,map.values().size());
 }
