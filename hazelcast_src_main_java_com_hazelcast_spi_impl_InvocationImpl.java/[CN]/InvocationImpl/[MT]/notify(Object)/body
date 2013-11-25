@@ -1,5 +1,5 @@
 {
-  final Object response;
+  Object response;
   if (obj == null) {
     response=NULL_RESPONSE;
   }
@@ -30,5 +30,20 @@
  else {
     response=obj;
   }
-  responseProcessor.process(response);
+  if (response == RETRY_RESPONSE) {
+    final ExecutionService ex=nodeEngine.getExecutionService();
+    ex.schedule(new ScheduledTaskRunner(ex.getExecutor(ExecutionService.ASYNC_EXECUTOR),new ReinvocationTask()),tryPauseMillis,TimeUnit.MILLISECONDS);
+    return;
+  }
+  if (response == WAIT_RESPONSE) {
+    return;
+  }
+  if (response instanceof Response && op instanceof BackupAwareOperation) {
+    final Response resp=(Response)response;
+    if (resp.backupCount > 0) {
+      waitForBackups(resp.backupCount,5,TimeUnit.SECONDS,resp);
+      return;
+    }
+  }
+  invocationFuture.set(response);
 }

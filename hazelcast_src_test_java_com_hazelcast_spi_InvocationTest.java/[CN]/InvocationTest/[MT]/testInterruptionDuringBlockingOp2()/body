@@ -4,17 +4,10 @@
   final ILock lock=hz.getLock("lock");
   lock.lock();
   assertTrue(lock.isLockedByCurrentThread());
-  final AtomicBoolean interruptedFlag=new AtomicBoolean(false);
   final CountDownLatch latch=new CountDownLatch(1);
-  Thread thread=new OpThread(interruptedFlag,latch){
-    protected void doOp(){
-      try {
-        assertTrue(lock.tryLock(1,TimeUnit.MINUTES));
-        assertTrue(lock.isLockedByCurrentThread());
-      }
- catch (      InterruptedException e) {
-        e.printStackTrace();
-      }
+  Thread thread=new OpThread(latch){
+    protected void doOp() throws InterruptedException {
+      assertTrue(lock.tryLock(1,TimeUnit.MINUTES));
     }
   }
 ;
@@ -23,5 +16,4 @@
   thread.interrupt();
   lock.unlock();
   assertTrue(latch.await(1,TimeUnit.MINUTES));
-  assertTrue(interruptedFlag.get());
 }
