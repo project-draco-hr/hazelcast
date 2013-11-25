@@ -3,10 +3,10 @@
   MapConfig writeBehindBackup=config.getMapConfig("testIssue1085WriteBehindBackup");
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setWriteDelaySeconds(3);
-  SimpleMapStore mapStore=new SimpleMapStore();
+  int size=100;
+  MapStoreWithStoreCount mapStore=new MapStoreWithStoreCount(size,100);
   mapStoreConfig.setImplementation(mapStore);
   writeBehindBackup.setMapStoreConfig(mapStoreConfig);
-  int size=100;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
   HazelcastInstance instance=factory.newHazelcastInstance(config);
   HazelcastInstance instance2=factory.newHazelcastInstance(config);
@@ -17,6 +17,5 @@
   }
   instance2.shutdown();
   instance3.shutdown();
-  Thread.sleep(10000);
-  assertEquals(size,mapStore.store.size());
+  mapStore.awaitStores();
 }
