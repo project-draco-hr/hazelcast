@@ -1,11 +1,10 @@
 {
-  Map.Entry<Data,Data> mapEntry=recordStore.getMapEntryData(dataKey);
-  dataOldValue=mapEntry.getValue();
-  final Object valueBeforeProcess=mapService.toObject(dataOldValue);
+  oldValue=recordStore.getMapEntry(dataKey).getValue();
+  final Object valueBeforeProcess=mapService.toObject(oldValue);
   final MapEntrySimple entry=new MapEntrySimple(mapService.toObject(dataKey),valueBeforeProcess);
   response=mapService.toData(entryProcessor.process(entry));
   final Object valueAfterProcess=entry.getValue();
-  if (dataOldValue == null && valueAfterProcess == null) {
+  if (oldValue == null && valueAfterProcess == null) {
     eventType=__NO_NEED_TO_FIRE_EVENT;
   }
  else   if (valueAfterProcess == null) {
@@ -13,7 +12,7 @@
     eventType=EntryEventType.REMOVED;
   }
  else {
-    if (dataOldValue == null) {
+    if (oldValue == null) {
       eventType=EntryEventType.ADDED;
     }
  else     if (!entry.isModified()) {
@@ -22,7 +21,9 @@
  else {
       eventType=EntryEventType.UPDATED;
     }
-    dataValue=mapService.toData(entry.getValue());
-    recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,dataValue));
+    if (eventType != __NO_NEED_TO_FIRE_EVENT) {
+      dataValue=mapService.toData(entry.getValue());
+      recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,dataValue));
+    }
   }
 }
