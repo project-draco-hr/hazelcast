@@ -1,42 +1,41 @@
 {
-  TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
-  Config config=newConfig(testMapStore,2);
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
-  IMap map=h1.getMap("testOneMemberWriteBehindWithEvictions");
-  assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD_ALL_KEYS,testMapStore.waitForEvent(30));
-  for (int i=0; i < 100; i++) {
+  final String mapName="testOneMemberWriteBehindWithEvictions";
+  final TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  testMapStore.loadAllLatch=new CountDownLatch(1);
+  final Config config=newConfig(testMapStore,2);
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance node1=nodeFactory.newHazelcastInstance(config);
+  final IMap map=node1.getMap(mapName);
+  assertTrue("map store loadAllKeys must be called",testMapStore.loadAllLatch.await(10,TimeUnit.SECONDS));
+  final int populationCount=100;
+  testMapStore.storeLatch=new CountDownLatch(populationCount);
+  for (int i=0; i < populationCount; i++) {
     map.put(i,"value" + i);
-    assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD,testMapStore.waitForEvent(30));
   }
-  assertEquals(TestEventBasedMapStore.STORE_EVENTS.STORE_ALL,testMapStore.waitForEvent(30));
-  assertEquals(100,testMapStore.getStore().size());
-  for (int i=0; i < 100; i++) {
+  assertTrue(testMapStore.storeLatch.await(10,TimeUnit.SECONDS));
+  testMapStore.storeLatch=new CountDownLatch(populationCount);
+  for (int i=0; i < populationCount; i++) {
     map.evict(i);
   }
-  assertEquals(null,testMapStore.waitForEvent(30));
-  assertEquals(100,testMapStore.getStore().size());
-  for (int i=0; i < 100; i++) {
-    map.put(i,"value" + i);
-    assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD,testMapStore.waitForEvent(30));
-  }
-  for (int i=0; i < 100; i++) {
-    map.evict(i);
-    assertEquals(TestEventBasedMapStore.STORE_EVENTS.STORE,testMapStore.waitForEvent(30));
-  }
-  assertEquals(null,testMapStore.waitForEvent(2));
-  assertEquals(100,testMapStore.getStore().size());
+  assertEquals(populationCount,testMapStore.storeLatch.getCount());
+  assertEquals(populationCount,testMapStore.getStore().size());
   assertEquals(0,map.size());
-  for (int i=0; i < 100; i++) {
+  for (int i=0; i < populationCount; i++) {
     map.put(i,"value" + i);
-    assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD,testMapStore.waitForEvent(30));
   }
-  for (int i=0; i < 100; i++) {
+  for (int i=0; i < populationCount; i++) {
+    map.evict(i);
+  }
+  testMapStore.storeLatch.await(10,TimeUnit.SECONDS);
+  assertEquals(populationCount,testMapStore.getStore().size());
+  assertEquals(0,map.size());
+  for (int i=0; i < populationCount; i++) {
+    map.put(i,"value" + i);
+  }
+  testMapStore.deleteLatch=new CountDownLatch(populationCount);
+  for (int i=0; i < populationCount; i++) {
     map.remove(i);
   }
-  assertEquals(TestEventBasedMapStore.STORE_EVENTS.STORE_ALL,testMapStore.waitForEvent(30));
-  assertEquals(TestEventBasedMapStore.STORE_EVENTS.DELETE_ALL,testMapStore.waitForEvent(30));
-  assertEquals(0,testMapStore.getStore().size());
+  testMapStore.deleteLatch.await(10,TimeUnit.SECONDS);
   assertEquals(0,map.size());
-  assertEquals(null,testMapStore.waitForEvent(30));
 }
