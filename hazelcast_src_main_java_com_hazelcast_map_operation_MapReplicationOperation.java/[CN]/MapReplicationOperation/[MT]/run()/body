@@ -8,20 +8,8 @@
       for (      RecordReplicationInfo recordReplicationInfo : recordReplicationInfos) {
         Data key=recordReplicationInfo.getKey();
         Record newRecord=mapService.createRecord(mapName,key,recordReplicationInfo.getValue(),-1,false);
-        newRecord.setStatistics(recordReplicationInfo.getStatistics());
+        mapService.applyRecordInfo(newRecord,mapName,recordReplicationInfo);
         recordStore.putRecord(key,newRecord);
-        if (recordReplicationInfo.getIdleDelayMillis() >= 0) {
-          mapService.scheduleIdleEviction(mapName,key,recordReplicationInfo.getIdleDelayMillis());
-        }
-        if (recordReplicationInfo.getTtlDelayMillis() >= 0) {
-          mapService.scheduleTtlEviction(mapName,newRecord,recordReplicationInfo.getTtlDelayMillis());
-        }
-        if (recordReplicationInfo.getMapStoreWriteDelayMillis() >= 0) {
-          mapService.scheduleMapStoreWrite(mapName,key,newRecord.getValue(),recordReplicationInfo.getMapStoreWriteDelayMillis());
-        }
-        if (recordReplicationInfo.getMapStoreDeleteDelayMillis() >= 0) {
-          mapService.scheduleMapStoreDelete(mapName,key,recordReplicationInfo.getMapStoreDeleteDelayMillis());
-        }
       }
     }
   }
