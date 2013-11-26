@@ -9,20 +9,34 @@
     }
   }
  else {
-    Map map=new HashMap(entries.size());
+    final Queue<ScheduledEntry> duplicateKeys=new LinkedList<ScheduledEntry>();
+    final Map map=new HashMap(entries.size());
     for (    ScheduledEntry<Data,Object> entry : entries) {
-      map.put(mapService.toObject(entry.getKey()),mapService.toObject(entry.getValue()));
+      final Object key=mapService.toObject(entry.getKey());
+      if (map.get(key) != null) {
+        duplicateKeys.offer(entry);
+        continue;
+      }
+      map.put(key,mapService.toObject(entry.getValue()));
     }
     Exception exception=null;
     try {
       mapContainer.getStore().storeAll(map);
     }
  catch (    Exception e) {
+      logger.warning(mapContainer.getStore().getMapStore().getClass() + " --> storeAll was failed, " + "now Hazelcast is trying to store one by one: ",e);
       for (      ScheduledEntry<Data,Object> entry : entries) {
         Exception temp=tryStore(scheduler,entry);
         if (temp != null) {
           exception=temp;
         }
+      }
+    }
+    ScheduledEntry entry;
+    while ((entry=duplicateKeys.poll()) != null) {
+      final Exception temp=tryStore(scheduler,entry);
+      if (temp != null) {
+        exception=temp;
       }
     }
     if (exception != null) {
