@@ -7,11 +7,10 @@
   final long maxCallTimeout=callTimeout * 2 > 0 ? callTimeout * 2 : Long.MAX_VALUE;
   final boolean longPolling=timeoutMs > maxCallTimeout;
   int pollCount=0;
-  InterruptedException interrupted=null;
   while (timeoutMs >= 0) {
     final long pollTimeoutMs=Math.min(maxCallTimeout,timeoutMs);
     final long startMs=Clock.currentTimeMillis();
-    final long lastPollTime;
+    long lastPollTime=0;
     try {
       if (pollTimeoutMs > 0) {
 synchronized (this) {
@@ -27,10 +26,10 @@ synchronized (this) {
       timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
     }
  catch (    InterruptedException e) {
-      return e;
+      interrupted=true;
     }
     pollCount++;
-    if (longPolling) {
+    if (!interrupted && longPolling) {
       final Address target=getTarget();
       if (nodeEngine.getThisAddress().equals(target)) {
         continue;
