@@ -5,12 +5,11 @@
     ((HazelcastInstanceAware)interceptor).setHazelcastInstance(nodeEngine.getHazelcastInstance());
   }
   String id=mapService.addInterceptor(name,interceptor);
-  AddInterceptorOperation operation=new AddInterceptorOperation(id,interceptor,name);
   Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
   for (  MemberImpl member : members) {
     try {
       if (member.localMember())       continue;
-      Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,member.getAddress()).build();
+      Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new AddInterceptorOperation(id,interceptor,name),member.getAddress()).build();
       invocation.invoke().get();
     }
  catch (    Throwable t) {
