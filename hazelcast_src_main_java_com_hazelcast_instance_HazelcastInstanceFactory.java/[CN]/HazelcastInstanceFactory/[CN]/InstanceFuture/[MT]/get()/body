@@ -4,7 +4,7 @@
   }
   boolean restoreInterrupt=false;
 synchronized (this) {
-    while (hz == null) {
+    while (hz == null && exception == null) {
       try {
         wait();
       }
@@ -16,5 +16,11 @@ synchronized (this) {
   if (restoreInterrupt) {
     Thread.currentThread().interrupt();
   }
-  return hz;
+  if (hz != null) {
+    return hz;
+  }
+  if (exception != null) {
+    instanceMap.remove(name,this);
+  }
+  throw new IllegalStateException(exception);
 }

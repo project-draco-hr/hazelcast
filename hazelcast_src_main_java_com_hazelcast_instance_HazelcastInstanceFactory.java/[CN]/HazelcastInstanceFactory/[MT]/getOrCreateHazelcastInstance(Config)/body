@@ -8,12 +8,18 @@
   if (future != null) {
     return future.get();
   }
-  future=new InstanceFuture();
+  future=new InstanceFuture(name);
   InstanceFuture found=instanceMap.putIfAbsent(name,future);
   if (found != null) {
     return found.get();
   }
-  HazelcastInstanceProxy hz=constructHazelcastInstance(config,name,new DefaultNodeContext());
-  future.set(hz);
-  return hz;
+  try {
+    HazelcastInstanceProxy hz=constructHazelcastInstance(config,name,new DefaultNodeContext());
+    future.set(hz);
+    return hz;
+  }
+ catch (  RuntimeException t) {
+    future.setException(t);
+    throw t;
+  }
 }

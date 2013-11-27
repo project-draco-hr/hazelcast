@@ -6,11 +6,17 @@
   if (name == null || name.trim().length() == 0) {
     name=createInstanceName(config);
   }
-  InstanceFuture future=new InstanceFuture();
+  InstanceFuture future=new InstanceFuture(instanceName);
   if (instanceMap.putIfAbsent(name,future) != null) {
     throw new DuplicateInstanceNameException("HazelcastInstance with name '" + name + "' already exists!");
   }
-  HazelcastInstanceProxy hz=constructHazelcastInstance(config,name,nodeContext);
-  future.set(hz);
-  return hz;
+  try {
+    HazelcastInstanceProxy hz=constructHazelcastInstance(config,name,nodeContext);
+    future.set(hz);
+    return hz;
+  }
+ catch (  RuntimeException t) {
+    future.setException(t);
+    throw t;
+  }
 }
