@@ -10,7 +10,14 @@
   if (instanceMap.putIfAbsent(name,future) != null) {
     throw new DuplicateInstanceNameException("HazelcastInstance with name '" + name + "' already exists!");
   }
-  HazelcastInstanceProxy hz=constructHazelcastInstance(config,name,nodeContext);
-  future.set(hz);
-  return hz;
+  try {
+    HazelcastInstanceProxy hz=constructHazelcastInstance(config,name,nodeContext);
+    future.set(hz);
+    return hz;
+  }
+ catch (  Throwable t) {
+    instanceMap.remove(name,future);
+    future.setFailure(t);
+    throw ExceptionUtil.rethrow(t);
+  }
 }
