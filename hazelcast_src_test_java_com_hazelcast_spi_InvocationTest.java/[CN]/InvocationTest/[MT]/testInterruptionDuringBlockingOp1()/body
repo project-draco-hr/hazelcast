@@ -2,17 +2,11 @@
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
   HazelcastInstance hz=factory.newHazelcastInstance(new Config());
   final IQueue<Object> q=hz.getQueue("queue");
-  final AtomicBoolean interruptedFlag=new AtomicBoolean(false);
   final CountDownLatch latch=new CountDownLatch(1);
-  Thread thread=new OpThread(interruptedFlag,latch){
-    protected void doOp(){
-      try {
-        Object item=q.poll(1,TimeUnit.MINUTES);
-        assertNotNull(item);
-      }
- catch (      InterruptedException e) {
-        fail();
-      }
+  final AtomicBoolean interruptedFlag=new AtomicBoolean(false);
+  OpThread thread=new OpThread("Queue Thread",latch,interruptedFlag){
+    protected void doOp() throws InterruptedException {
+      q.poll(1,TimeUnit.MINUTES);
     }
   }
 ;
@@ -20,6 +14,13 @@
   Thread.sleep(5000);
   thread.interrupt();
   q.offer("new item!");
-  assertTrue(latch.await(30,TimeUnit.SECONDS));
-  assertTrue(interruptedFlag.get());
+  assertTrue(latch.await(1,TimeUnit.MINUTES));
+  if (thread.isInterruptionCaught()) {
+    assertFalse("Thread interrupted flag should not be set!",interruptedFlag.get());
+    assertFalse("Queue should not be empty!",q.isEmpty());
+  }
+ else {
+    assertTrue("Thread interrupted flag should be set!",interruptedFlag.get());
+    assertTrue("Queue should be empty!",q.isEmpty());
+  }
 }

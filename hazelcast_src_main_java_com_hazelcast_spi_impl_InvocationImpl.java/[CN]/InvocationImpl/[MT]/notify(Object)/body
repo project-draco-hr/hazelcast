@@ -36,7 +36,13 @@
     }
  else {
       final ExecutionService ex=nodeEngine.getExecutionService();
-      ex.schedule(new ScheduledTaskRunner(ex.getExecutor(ExecutionService.ASYNC_EXECUTOR),new ReinvocationTask()),tryPauseMillis,TimeUnit.MILLISECONDS);
+      final ExecutorService asyncExecutor=ex.getExecutor(ExecutionService.ASYNC_EXECUTOR);
+      if (invokeCount < 5) {
+        asyncExecutor.execute(new ReInvocationTask());
+      }
+ else {
+        ex.schedule(new ScheduledTaskRunner(asyncExecutor,new ReInvocationTask()),tryPauseMillis,TimeUnit.MILLISECONDS);
+      }
     }
     return;
   }
