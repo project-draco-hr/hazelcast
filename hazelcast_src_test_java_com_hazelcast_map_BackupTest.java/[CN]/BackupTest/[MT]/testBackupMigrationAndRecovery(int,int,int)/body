@@ -23,8 +23,18 @@
       ix=rand.nextInt(nodeCount);
     }
  while (instances[ix] == null);
-    TestUtil.terminateInstance(instances[ix]);
+    final CountDownLatch latch=new CountDownLatch(1);
+    instances[ix].getLifecycleService().addLifecycleListener(new LifecycleListener(){
+      @Override public void stateChanged(      LifecycleEvent event){
+        if (event.getState().equals(LifecycleEvent.LifecycleState.SHUTDOWN)) {
+          latch.countDown();
+        }
+      }
+    }
+);
+    instances[ix].getLifecycleService().shutdown();
     instances[ix]=null;
+    Thread.sleep(3000);
     checkMapSizes(mapSize,backupCount,instances);
   }
 }
