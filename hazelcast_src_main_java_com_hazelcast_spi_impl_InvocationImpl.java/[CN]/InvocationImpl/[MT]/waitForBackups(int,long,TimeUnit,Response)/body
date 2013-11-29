@@ -1,0 +1,30 @@
+{
+synchronized (this) {
+    this.expectedBackupCount=backupCount;
+    if (availableBackups == expectedBackupCount) {
+      invocationFuture.set(response);
+      return;
+    }
+    this.potentialResponse=response;
+  }
+  nodeEngine.getExecutionService().schedule(new Runnable(){
+    @Override public void run(){
+synchronized (InvocationImpl.this) {
+        if (expectedBackupCount == availableBackups) {
+          return;
+        }
+      }
+      if (nodeEngine.getClusterService().getMember(target) != null) {
+synchronized (InvocationImpl.this) {
+          if (InvocationImpl.this.potentialResponse != null) {
+            invocationFuture.set(InvocationImpl.this.potentialResponse);
+            InvocationImpl.this.potentialResponse=null;
+          }
+        }
+        return;
+      }
+      resetAndReInvoke();
+    }
+  }
+,timeout,unit);
+}

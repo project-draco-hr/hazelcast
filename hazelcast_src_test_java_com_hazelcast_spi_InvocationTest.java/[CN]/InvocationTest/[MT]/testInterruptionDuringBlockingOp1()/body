@@ -7,10 +7,11 @@
   Thread thread=new OpThread(interruptedFlag,latch){
     protected void doOp(){
       try {
-        assertNotNull(q.poll(1,TimeUnit.MINUTES));
+        Object item=q.poll(1,TimeUnit.MINUTES);
+        assertNotNull(item);
       }
  catch (      InterruptedException e) {
-        e.printStackTrace();
+        fail();
       }
     }
   }
@@ -19,6 +20,6 @@
   Thread.sleep(5000);
   thread.interrupt();
   q.offer("new item!");
-  assertTrue(latch.await(1,TimeUnit.MINUTES));
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
   assertTrue(interruptedFlag.get());
 }
