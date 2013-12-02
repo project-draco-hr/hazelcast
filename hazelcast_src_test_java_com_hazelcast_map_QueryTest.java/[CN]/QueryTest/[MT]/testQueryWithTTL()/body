@@ -26,7 +26,20 @@
   for (  Employee employee : values) {
     assertTrue(employee.isActive());
   }
-  Thread.sleep((TTL + 2) * 1000);
+  final CountDownLatch latch=new CountDownLatch(1000);
+  imap.addEntryListener(new EntryListener(){
+    @Override public void entryAdded(    EntryEvent event){
+    }
+    @Override public void entryRemoved(    EntryEvent event){
+    }
+    @Override public void entryUpdated(    EntryEvent event){
+    }
+    @Override public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,false);
+  latch.await(30,TimeUnit.SECONDS);
   assertEquals(0,imap.size());
   values=imap.values(new SqlPredicate("active and name LIKE 'joe15%'"));
   assertEquals(0,values.size());
