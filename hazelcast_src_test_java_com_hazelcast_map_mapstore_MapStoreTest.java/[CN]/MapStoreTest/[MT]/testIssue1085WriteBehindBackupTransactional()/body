@@ -1,6 +1,6 @@
 {
   Config config=new Config();
-  String name="testIssue1085WriteBehindBackup";
+  String name="testIssue1085WriteBehindBackupTransactional";
   MapConfig writeBehindBackup=config.getMapConfig(name);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setWriteDelaySeconds(5);
@@ -12,9 +12,13 @@
   HazelcastInstance instance=factory.newHazelcastInstance(config);
   HazelcastInstance instance2=factory.newHazelcastInstance(config);
   final IMap map=instance.getMap(name);
+  TransactionContext context=instance.newTransactionContext();
+  context.beginTransaction();
+  TransactionalMap<Object,Object> tmap=context.getMap(name);
   for (int i=0; i < size; i++) {
-    map.put(i,i);
+    tmap.put(i,i);
   }
+  context.commitTransaction();
   instance2.getLifecycleService().terminate();
   mapStore.awaitStores();
 }
