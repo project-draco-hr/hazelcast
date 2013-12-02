@@ -23,6 +23,16 @@
       ix=rand.nextInt(nodeCount);
     }
  while (instances[ix] == null);
+    final CountDownLatch latch=new CountDownLatch(1);
+    instances[ix].getLifecycleService().addLifecycleListener(new LifecycleListener(){
+      @Override public void stateChanged(      LifecycleEvent event){
+        if (event.getState().equals(LifecycleEvent.LifecycleState.SHUTDOWN)) {
+          latch.countDown();
+        }
+      }
+    }
+);
+    latch.await(3,TimeUnit.SECONDS);
     TestUtil.terminateInstance(instances[ix]);
     instances[ix]=null;
     checkMapSizes(mapSize,backupCount,instances);
