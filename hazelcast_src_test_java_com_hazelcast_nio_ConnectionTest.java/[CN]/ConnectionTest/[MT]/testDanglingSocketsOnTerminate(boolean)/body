@@ -14,7 +14,6 @@
 ));
   }
   final HazelcastInstance hz=Hazelcast.newHazelcastInstance(c);
-  final ExecutorService ex=Executors.newCachedThreadPool();
   final int count=100;
   final CountDownLatch latch=new CountDownLatch(count);
   final CountDownLatch ll=new CountDownLatch(1);
@@ -22,7 +21,7 @@
   new Thread(){
     public void run(){
       try {
-        ll.await();
+        ll.await(1,TimeUnit.MINUTES);
         hz.getLifecycleService().terminate();
       }
  catch (      InterruptedException ignored) {
@@ -31,8 +30,10 @@
   }
 .start();
   final Collection<Socket> sockets=Collections.newSetFromMap(new ConcurrentHashMap<Socket,Boolean>());
+  final AtomicInteger k0=new AtomicInteger();
+  final AtomicInteger k1=new AtomicInteger();
   for (int i=0; i < count; i++) {
-    ex.execute(new Runnable(){
+    Runnable task=new Runnable(){
       public void run(){
         try {
           if (cc.incrementAndGet() == count / 10) {
@@ -40,8 +41,16 @@
           }
           Socket socket=new Socket();
           sockets.add(socket);
-          socket.connect(new InetSocketAddress(port));
-          socket.getOutputStream().write(Protocols.CLUSTER.getBytes());
+          try {
+            socket.connect(new InetSocketAddress(port));
+            k0.incrementAndGet();
+          }
+ catch (          IOException e) {
+            k1.incrementAndGet();
+          }
+          OutputStream out=socket.getOutputStream();
+          out.write(Protocols.CLUSTER.getBytes());
+          out.flush();
           socket.getInputStream().read();
         }
  catch (        IOException ignored) {
@@ -51,12 +60,19 @@
         }
       }
     }
-);
+;
+    Thread t=new Thread(task,"socket-thread-" + i);
+    t.setDaemon(true);
+    t.start();
   }
   try {
-    Assert.assertTrue(latch.await(5,TimeUnit.MINUTES));
+    Assert.assertTrue(latch.await(1,TimeUnit.MINUTES));
   }
-  finally {
+ catch (  AssertionError e) {
+    System.err.println(ThreadDumpGenerator.newInstance().dumpAllThreads());
+    throw e;
+  }
+ finally {
     for (    Socket socket : sockets) {
       try {
         socket.close();
@@ -64,6 +80,5 @@
  catch (      Exception e) {
       }
     }
-    ex.shutdownNow();
   }
 }
