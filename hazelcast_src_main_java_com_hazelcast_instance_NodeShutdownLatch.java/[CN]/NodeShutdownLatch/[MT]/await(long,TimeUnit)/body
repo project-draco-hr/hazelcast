@@ -1,13 +1,23 @@
 {
   if (!registrations.isEmpty()) {
+    int permits=registrations.size();
+    for (    HazelcastInstanceImpl instance : registrations.values()) {
+      if (!instance.node.isActive()) {
+        permits--;
+      }
+    }
     try {
-      latch.tryAcquire(registrations.size(),time,unit);
+      latch.tryAcquire(permits,time,unit);
     }
  catch (    InterruptedException ignored) {
     }
     for (    Map.Entry<String,HazelcastInstanceImpl> entry : registrations.entrySet()) {
       final HazelcastInstanceImpl instance=entry.getValue();
-      instance.node.clusterService.removeMembershipListener(entry.getKey());
+      try {
+        instance.node.clusterService.removeMembershipListener(entry.getKey());
+      }
+ catch (      Throwable ignored) {
+      }
     }
     registrations.clear();
   }
