@@ -1,0 +1,24 @@
+{
+  int n=3;
+  String mapName="test";
+  Config config=new Config();
+  config.getMapConfig(mapName).setNearCacheConfig(new NearCacheConfig().setInvalidateOnChange(true));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
+  HazelcastInstance[] instances=factory.newInstances(config);
+  IMap<Object,Object> map=instances[0].getMap(mapName);
+  int count=5000;
+  for (int i=0; i < count; i++) {
+    map.put(i,i);
+  }
+  for (int i=0; i < count; i++) {
+    map.get(i);
+  }
+  NearCache nearCache=getNearCache(mapName,instances[0]);
+  assertTrue(nearCache.size() > (count / n - count * 0.1));
+  Map<Object,Object> invalidationMap=new HashMap<Object,Object>(count);
+  for (int i=0; i < count; i++) {
+    invalidationMap.put(i,i);
+  }
+  map.putAll(invalidationMap);
+  assertEquals("Invalidation is not working on putAll()",0,nearCache.size());
+}
