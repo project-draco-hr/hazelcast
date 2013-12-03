@@ -19,6 +19,7 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
+  buildInfo=BUILD_INFO_CONSTRUCTOR.createNew(null);
   serializationService=(SerializationServiceImpl)ss;
   systemLogService=new SystemLogService(groupProperties.SYSTEM_LOG_ENABLED.getBoolean());
   final AddressPicker addressPicker=nodeContext.createAddressPicker(this);
@@ -32,7 +33,7 @@
   address=addressPicker.getPublicAddress();
   localMember=new MemberImpl(address,true,UuidUtil.createMemberUuid(address));
   String loggingType=groupProperties.LOGGING_TYPE.getString();
-  loggingService=new LoggingServiceImpl(systemLogService,config.getGroupConfig().getName(),loggingType,localMember);
+  loggingService=new LoggingServiceImpl(systemLogService,config.getGroupConfig().getName(),loggingType,localMember,buildInfo);
   logger=loggingService.getLogger(Node.class.getName());
   initializer=NodeInitializerFactory.create(configClassLoader);
   try {
@@ -54,8 +55,8 @@
   clusterService=new ClusterServiceImpl(this);
   textCommandService=new TextCommandServiceImpl(this);
   initializer.printNodeInfo(this);
-  buildNumber=initializer.getBuildNumber();
-  VersionCheck.check(this,initializer.getBuild(),initializer.getVersion());
+  buildNumber=getBuildInfo().getBuildNumber();
+  VersionCheck.check(this,getBuildInfo().getBuild(),getBuildInfo().getVersion());
   JoinConfig join=config.getNetworkConfig().getJoin();
   MulticastService mcService=null;
   try {
