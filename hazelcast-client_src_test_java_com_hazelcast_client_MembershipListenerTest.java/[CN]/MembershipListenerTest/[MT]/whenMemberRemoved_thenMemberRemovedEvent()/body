@@ -1,0 +1,16 @@
+{
+  final HazelcastInstance server2=Hazelcast.newHazelcastInstance();
+  client.getCluster().addMembershipListener(listener);
+  final Member server2Member=server2.getCluster().getLocalMember();
+  server2.shutdown();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(1,listener.events.size());
+      MembershipEvent event=listener.events.get(0);
+      assertEquals(MembershipEvent.MEMBER_REMOVED,event.getEventType());
+      assertEquals(server2Member,event.getMember());
+      assertEquals(getMembers(server1),event.getMembers());
+    }
+  }
+);
+}
