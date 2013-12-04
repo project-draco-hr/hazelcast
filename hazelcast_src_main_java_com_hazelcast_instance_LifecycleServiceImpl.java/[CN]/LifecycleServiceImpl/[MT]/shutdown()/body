@@ -2,8 +2,13 @@
 synchronized (lifecycleLock) {
     fireLifecycleEvent(SHUTTING_DOWN);
     instance.managementService.destroy();
-    instance.node.shutdown(false);
-    HazelcastInstanceFactory.remove(instance);
+    final Node node=instance.node;
+    if (node != null) {
+      final NodeShutdownLatch shutdownLatch=new NodeShutdownLatch(node);
+      node.shutdown(false);
+      HazelcastInstanceFactory.remove(instance);
+      shutdownLatch.await(Math.min(30,node.groupProperties.GRACEFUL_SHUTDOWN_MAX_WAIT.getInteger()),TimeUnit.SECONDS);
+    }
     fireLifecycleEvent(SHUTDOWN);
   }
 }
