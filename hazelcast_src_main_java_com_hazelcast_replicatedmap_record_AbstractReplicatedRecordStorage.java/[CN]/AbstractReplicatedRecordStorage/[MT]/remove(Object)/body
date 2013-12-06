@@ -1,0 +1,18 @@
+{
+  V old;
+synchronized (getMutex(key)) {
+    final ReplicatedRecord current=storage.get(key);
+    final Vector vector;
+    if (current == null) {
+      old=null;
+    }
+ else {
+      vector=current.getVector();
+      old=(V)current.getValue();
+      current.setValue(null,0);
+      incrementClock(vector);
+      publishReplicatedMessage(new ReplicationMessage(name,key,null,vector,localMember,localMemberHash));
+    }
+  }
+  return old;
+}
