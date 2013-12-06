@@ -4,11 +4,15 @@
   Config config=newConfig(testMapStore,2);
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
   HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
-  IMap<Object,Object> map=h1.getMap("map");
-  for (int i=0; i < 100; i++) {
+  IMap<Object,Object> map=h1.getMap("testWriteBehindSameSecondSameKey");
+  final int mapSize=100;
+  testMapStore.latchStoreOpCount=new CountDownLatch(mapSize + 1);
+  for (int i=0; i < mapSize; i++) {
     map.put("key","value" + i);
+    Thread.sleep(1);
   }
+  Thread.sleep(1);
   map.put("key","the_last_value");
-  testMapStore.latchStore.await(5,TimeUnit.SECONDS);
+  assertTrue("store operations must be finished.",testMapStore.latchStoreOpCount.await(30,TimeUnit.SECONDS));
   assertEquals("the_last_value",testMapStore.getStore().get("key"));
 }
