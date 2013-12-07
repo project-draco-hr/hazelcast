@@ -3,8 +3,10 @@
   try {
     final JoinRequest joinMessage=joinRequest.getMessage();
     final long now=Clock.currentTimeMillis();
-    String msg="Handling join from " + joinMessage.getAddress() + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
-    logger.finest(msg);
+    if (logger.isFinestEnabled()) {
+      String msg="Handling join from " + joinMessage.getAddress() + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
+      logger.finest(msg);
+    }
     boolean validJoinRequest;
     try {
       validJoinRequest=validateJoinMessage(joinMessage);
@@ -17,8 +19,10 @@
       final MemberImpl member=getMember(joinMessage.getAddress());
       if (member != null) {
         if (joinMessage.getUuid().equals(member.getUuid())) {
-          String message="Ignoring join request, member already exists.. => " + joinMessage;
-          logger.finest(message);
+          if (logger.isFinestEnabled()) {
+            String message="Ignoring join request, member already exists.. => " + joinMessage;
+            logger.finest(message);
+          }
           nodeEngine.getOperationService().send(new MemberInfoUpdateOperation(createMemberInfos(getMemberList()),getClusterTime(),false),member.getAddress());
           return;
         }

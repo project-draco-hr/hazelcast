@@ -11,17 +11,23 @@
     int numberOfSeconds=0;
     final int connectionTimeoutSeconds=getConnTimeoutSeconds();
     while (!foundConnection && numberOfSeconds < connectionTimeoutSeconds) {
-      logger.finest("Removing failedConnections: " + node.getFailedConnections());
+      if (logger.isFinestEnabled()) {
+        logger.finest("Removing failedConnections: " + node.getFailedConnections());
+      }
       colPossibleAddresses.removeAll(node.getFailedConnections());
       if (colPossibleAddresses.size() == 0) {
         break;
       }
-      logger.finest("We are going to try to connect to each address" + colPossibleAddresses);
+      if (logger.isFinestEnabled()) {
+        logger.finest("We are going to try to connect to each address" + colPossibleAddresses);
+      }
       for (      Address possibleAddress : colPossibleAddresses) {
         final Connection conn=node.connectionManager.getOrConnect(possibleAddress);
         if (conn != null) {
           foundConnection=true;
-          logger.finest("Found a connection and sending join request to " + possibleAddress);
+          if (logger.isFinestEnabled()) {
+            logger.finest("Found a connection and sending join request to " + possibleAddress);
+          }
           node.clusterService.sendJoinRequest(possibleAddress,true);
         }
       }
@@ -30,7 +36,9 @@
         numberOfSeconds++;
       }
     }
-    logger.finest("FOUND " + foundConnection);
+    if (logger.isFinestEnabled()) {
+      logger.finest("FOUND " + foundConnection);
+    }
     if (!foundConnection) {
       logger.finest("This node will assume master role since no possible member where connected to.");
       node.setAsMaster();
@@ -43,7 +51,9 @@
           Thread.sleep(500L);
           Address masterAddress=node.getMasterAddress();
           if (masterAddress != null) {
-            logger.finest("Sending join request to " + masterAddress);
+            if (logger.isFinestEnabled()) {
+              logger.finest("Sending join request to " + masterAddress);
+            }
             node.clusterService.sendJoinRequest(masterAddress,true);
           }
         }
@@ -92,7 +102,9 @@
               }
             }
             if (allApprovedAsMaster) {
-              logger.finest(node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " possible addresses "+ colPossibleAddresses.size()+ " "+ colPossibleAddresses);
+              if (logger.isFinestEnabled()) {
+                logger.finest(node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " possible addresses "+ colPossibleAddresses.size()+ " "+ colPossibleAddresses);
+              }
               node.setAsMaster();
               return;
             }
