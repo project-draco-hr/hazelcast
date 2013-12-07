@@ -4,9 +4,11 @@
   if (connectionManager.ioService.isSocketBind()) {
     bindSocket(socketChannel);
   }
-  final String message="Connecting to " + socketAddress + ", timeout: "+ timeout+ ", bind-any: "+ connectionManager.ioService.isSocketBindAny();
   final Level level=silent ? Level.FINEST : Level.INFO;
-  log(level,message);
+  if (logger.isLoggable(level)) {
+    final String message="Connecting to " + socketAddress + ", timeout: "+ timeout+ ", bind-any: "+ connectionManager.ioService.isSocketBindAny();
+    log(level,message);
+  }
   try {
     socketChannel.configureBlocking(true);
     try {
@@ -22,11 +24,15 @@
       newEx.setStackTrace(ex.getStackTrace());
       throw newEx;
     }
-    log(Level.FINEST,"Successfully connected to: " + address + " using socket "+ socketChannel.socket());
+    if (logger.isFinestEnabled()) {
+      log(Level.FINEST,"Successfully connected to: " + address + " using socket "+ socketChannel.socket());
+    }
     final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
     MemberSocketInterceptor memberSocketInterceptor=connectionManager.getMemberSocketInterceptor();
     if (memberSocketInterceptor != null) {
-      log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
+      if (logger.isFinestEnabled()) {
+        log(Level.FINEST,"Calling member socket interceptor: " + memberSocketInterceptor + " for "+ socketChannel);
+      }
       memberSocketInterceptor.onConnect(socketChannel.socket());
     }
     socketChannelWrapper.configureBlocking(false);
