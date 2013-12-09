@@ -1,0 +1,42 @@
+{
+  if (localMember.equals(update.getOrigin())) {
+    return;
+  }
+  K marshalledKey=(K)marshallKey(update.getKey());
+synchronized (getMutex(marshalledKey)) {
+    final ReplicatedRecord<K,V> localEntry=storage.get(marshalledKey);
+    if (localEntry == null) {
+      if (!update.isRemove()) {
+        V marshalledValue=(V)marshallValue(update.getValue());
+        Vector vector=update.getVector();
+        int updateHash=update.getUpdateHash();
+        long ttlMillis=update.getTtlMillis();
+        storage.put(marshalledKey,new ReplicatedRecord<K,V>(marshalledKey,marshalledValue,vector,updateHash,ttlMillis));
+        if (ttlMillis > 0) {
+          scheduleTtlEntry(ttlMillis,marshalledKey,null);
+        }
+ else {
+          cancelTtlEntry(marshalledKey);
+        }
+      }
+    }
+ else {
+      final Vector currentVector=localEntry.getVector();
+      final Vector updateVector=update.getVector();
+      if (Vector.happenedBefore(updateVector,currentVector)) {
+      }
+ else       if (Vector.happenedBefore(currentVector,updateVector)) {
+        applyTheUpdate(update,localEntry);
+      }
+ else {
+        if (localEntry.getLatestUpdateHash() >= update.getUpdateHash()) {
+          applyTheUpdate(update,localEntry);
+        }
+ else {
+          applyVector(updateVector,currentVector);
+          publishReplicatedMessage(new ReplicationMessage(name,update.getKey(),localEntry.getValue(),currentVector,localMember,localEntry.getLatestUpdateHash(),update.getTtlMillis()));
+        }
+      }
+    }
+  }
+}

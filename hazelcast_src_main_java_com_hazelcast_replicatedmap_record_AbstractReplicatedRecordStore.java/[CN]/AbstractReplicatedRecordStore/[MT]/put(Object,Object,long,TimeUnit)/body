@@ -1,0 +1,29 @@
+{
+  V oldValue=null;
+  K marshalledKey=(K)marshallKey(key);
+  V marshalledValue=(V)marshallValue(value);
+synchronized (getMutex(marshalledKey)) {
+    final long ttlMillis=ttl == 0 ? 0 : timeUnit.toMillis(ttl);
+    final ReplicatedRecord old=storage.get(marshalledKey);
+    final Vector vector;
+    if (old == null) {
+      vector=new Vector();
+      ReplicatedRecord<K,V> record=new ReplicatedRecord(marshalledKey,marshalledValue,vector,localMemberHash,ttlMillis);
+      storage.put(marshalledKey,record);
+    }
+ else {
+      oldValue=(V)old.getValue();
+      vector=old.getVector();
+      storage.get(marshalledKey).setValue(marshalledValue,localMemberHash,ttlMillis);
+    }
+    if (ttlMillis > 0) {
+      scheduleTtlEntry(ttlMillis,marshalledKey,null);
+    }
+ else {
+      cancelTtlEntry(marshalledKey);
+    }
+    incrementClock(vector);
+    publishReplicatedMessage(new ReplicationMessage(name,key,value,vector,localMember,localMemberHash,ttlMillis));
+  }
+  return unmarshallValue(oldValue);
+}
