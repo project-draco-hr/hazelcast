@@ -1,0 +1,18 @@
+{
+  if (replicatedMapConfig.getReplicationDelayMillis() == 0) {
+    Collection<EventRegistration> registrations=eventService.getRegistrations(ReplicatedMapService.SERVICE_NAME,ReplicatedMapService.EVENT_TOPIC_NAME);
+    eventService.publishEvent(ReplicatedMapService.SERVICE_NAME,registrations,message,name.hashCode());
+  }
+ else {
+    replicationMessageCacheLock.lock();
+    try {
+      replicationMessageCache.add(message);
+      if (replicationMessageCache.size() == 1) {
+        executorService.schedule(new ReplicationCachedSenderTask(),replicatedMapConfig.getReplicationDelayMillis(),TimeUnit.MILLISECONDS);
+      }
+    }
+  finally {
+      replicationMessageCacheLock.unlock();
+    }
+  }
+}
