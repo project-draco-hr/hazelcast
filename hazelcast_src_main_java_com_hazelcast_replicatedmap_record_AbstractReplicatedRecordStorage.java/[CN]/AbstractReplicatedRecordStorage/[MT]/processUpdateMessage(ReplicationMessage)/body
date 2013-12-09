@@ -2,15 +2,15 @@
   if (localMember.equals(update.getOrigin())) {
     return;
   }
-synchronized (getMutex(marshallKey(update.getKey()))) {
-    final ReplicatedRecord<K,V> localEntry=storage.get(update.getKey());
+  K marshalledKey=(K)marshallKey(update.getKey());
+synchronized (getMutex(marshalledKey)) {
+    final ReplicatedRecord<K,V> localEntry=storage.get(marshalledKey);
     if (localEntry == null) {
       if (!update.isRemove()) {
-        K key=(K)update.getKey();
-        V value=(V)update.getValue();
+        V marshalledValue=(V)marshallValue(update.getValue());
         Vector vector=update.getVector();
         int updateHash=update.getUpdateHash();
-        storage.put(key,new ReplicatedRecord<K,V>(key,value,vector,updateHash));
+        storage.put(marshalledKey,new ReplicatedRecord<K,V>(marshalledKey,marshalledValue,vector,updateHash));
       }
     }
  else {

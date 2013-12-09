@@ -1,20 +1,22 @@
 {
   V oldValue=null;
-synchronized (getMutex(key)) {
-    final ReplicatedRecord old=storage.get(key);
+  Object marshalledKey=marshallKey(key);
+  Object marshalledValue=marshallValue(value);
+synchronized (getMutex(marshalledKey)) {
+    final ReplicatedRecord old=storage.get(marshalledKey);
     final Vector vector;
     if (old == null) {
       vector=new Vector();
-      ReplicatedRecord<K,V> record=new ReplicatedRecord(key,value,vector,localMemberHash);
+      ReplicatedRecord<K,V> record=new ReplicatedRecord(marshalledKey,marshalledValue,vector,localMemberHash);
       storage.put((K)key,record);
     }
  else {
       oldValue=(V)old.getValue();
       vector=old.getVector();
-      storage.get(key).setValue((V)value,localMemberHash);
+      storage.get(key).setValue((V)marshalledValue,localMemberHash);
     }
     incrementClock(vector);
     publishReplicatedMessage(new ReplicationMessage(name,key,value,vector,localMember,localMemberHash));
   }
-  return oldValue;
+  return unmarshallValue(oldValue);
 }
