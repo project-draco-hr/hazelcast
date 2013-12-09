@@ -1,0 +1,26 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  Config cfg=new Config();
+  cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.BINARY);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
+  ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
+  SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
+  List<Integer> valuesTestValues=new ArrayList<Integer>(testValues.length);
+  int half=testValues.length / 2;
+  for (int i=0; i < testValues.length; i++) {
+    ReplicatedMap map=i < half ? map1 : map2;
+    SimpleEntry<Integer,Integer> entry=testValues[i];
+    map.put(entry.getKey(),entry.getValue());
+    valuesTestValues.add(entry.getValue());
+  }
+  TimeUnit.SECONDS.sleep(2);
+  List<Integer> values1=new ArrayList<Integer>(map1.values());
+  List<Integer> values2=new ArrayList<Integer>(map2.values());
+  Collections.sort(values1);
+  Collections.sort(values2);
+  Collections.sort(valuesTestValues);
+  assertEquals(valuesTestValues,values1);
+  assertEquals(valuesTestValues,values2);
+}
