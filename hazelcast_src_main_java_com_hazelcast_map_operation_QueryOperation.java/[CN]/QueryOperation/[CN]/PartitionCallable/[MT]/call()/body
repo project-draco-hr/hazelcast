@@ -1,0 +1,51 @@
+{
+  final PartitionContainer container=mapService.getPartitionContainer(partition);
+  final RecordStore recordStore=container.getRecordStore(name);
+  Collection<QueryableEntry> partitionResult=null;
+  if (pagingPredicate != null) {
+    partitionResult=new LinkedList<QueryableEntry>();
+  }
+ else {
+    partitionResult=new LinkedHashSet<QueryableEntry>();
+  }
+  for (  Record record : recordStore.getReadonlyRecordMap().values()) {
+    Data key=record.getKey();
+    Object value;
+    if (record instanceof CachedDataRecord) {
+      CachedDataRecord cachedDataRecord=(CachedDataRecord)record;
+      value=cachedDataRecord.getCachedValue();
+      if (value == null) {
+        value=ss.toObject(cachedDataRecord.getValue());
+        cachedDataRecord.setCachedValue(value);
+      }
+    }
+ else {
+      value=record.getValue();
+      if (value instanceof Data) {
+        value=ss.toObject((Data)value);
+      }
+    }
+    if (value == null) {
+      continue;
+    }
+    final QueryEntry queryEntry=new QueryEntry(ss,key,key,value);
+    if (predicate.apply(queryEntry)) {
+      if (pagingPredicate != null) {
+        Object anchor=pagingPredicate.getAnchor();
+        if (anchor != null && wrapperComparator.compareValue(anchor,value) >= 0) {
+          continue;
+        }
+      }
+      partitionResult.add(queryEntry);
+    }
+  }
+  if (pagingPredicate != null) {
+    LinkedList list=(LinkedList)partitionResult;
+    Collections.sort(list,wrapperComparator);
+    if (list.size() > pagingPredicate.getPageSize()) {
+      return list.subList(0,pagingPredicate.getPageSize());
+    }
+    return list;
+  }
+  return partitionResult;
+}

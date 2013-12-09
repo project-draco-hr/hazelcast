@@ -1,0 +1,22 @@
+{
+  final SerializationService ss=getNodeEngine().getSerializationService();
+  final ExecutorService executor=getNodeEngine().getExecutionService().getExecutor(ExecutionService.QUERY_EXECUTOR);
+  final List<Future<Collection<QueryableEntry>>> lsFutures=new ArrayList<Future<Collection<QueryableEntry>>>(initialPartitions.size());
+  final WrapperComparator wrapperComparator=new WrapperComparator(pagingPredicate.getComparator());
+  for (  final Integer partition : initialPartitions) {
+    Future<Collection<QueryableEntry>> f=executor.submit(new PartitionCallable(ss,partition,wrapperComparator));
+    lsFutures.add(f);
+  }
+  List<QueryableEntry> toMerge=new LinkedList<QueryableEntry>();
+  for (  Future<Collection<QueryableEntry>> future : lsFutures) {
+    final Collection<QueryableEntry> collection=future.get();
+    toMerge.addAll(collection);
+  }
+  Collections.sort(toMerge,wrapperComparator);
+  if (toMerge.size() > pagingPredicate.getPageSize()) {
+    toMerge=toMerge.subList(0,pagingPredicate.getPageSize());
+  }
+  for (  QueryableEntry entry : toMerge) {
+    result.add(new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData()));
+  }
+}
