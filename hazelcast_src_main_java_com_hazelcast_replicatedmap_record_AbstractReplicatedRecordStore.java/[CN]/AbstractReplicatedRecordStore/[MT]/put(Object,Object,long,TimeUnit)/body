@@ -1,4 +1,5 @@
 {
+  long time=System.currentTimeMillis();
   checkState();
   V oldValue=null;
   K marshalledKey=(K)marshallKey(key);
@@ -28,5 +29,8 @@ synchronized (getMutex(marshalledKey)) {
   }
   Object unmarshalledOldValue=unmarshallValue(oldValue);
   fireEntryListenerEvent(key,unmarshalledOldValue,value);
+  if (replicatedMapConfig.isStatisticsEnabled()) {
+    mapStats.incrementPuts(System.currentTimeMillis() - time);
+  }
   return unmarshalledOldValue;
 }
