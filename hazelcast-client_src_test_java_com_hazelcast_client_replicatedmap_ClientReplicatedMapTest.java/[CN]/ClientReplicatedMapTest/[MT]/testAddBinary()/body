@@ -1,0 +1,16 @@
+{
+  Config cfg=new Config();
+  cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.BINARY);
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=HazelcastClient.newHazelcastClient();
+  ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  map1.put("foo","bar");
+  TimeUnit.SECONDS.sleep(2);
+  String value=map2.get("foo");
+  assertEquals("bar",value);
+  map2.put("bar","foo");
+  TimeUnit.SECONDS.sleep(2);
+  value=map1.get("bar");
+  assertEquals("foo",value);
+}
