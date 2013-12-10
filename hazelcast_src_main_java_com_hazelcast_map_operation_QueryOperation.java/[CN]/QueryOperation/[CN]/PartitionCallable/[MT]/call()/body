@@ -1,13 +1,7 @@
 {
   final PartitionContainer container=mapService.getPartitionContainer(partition);
   final RecordStore recordStore=container.getRecordStore(name);
-  Collection<QueryableEntry> partitionResult=null;
-  if (pagingPredicate != null) {
-    partitionResult=new LinkedList<QueryableEntry>();
-  }
- else {
-    partitionResult=new LinkedHashSet<QueryableEntry>();
-  }
+  LinkedList<QueryableEntry> partitionResult=new LinkedList<QueryableEntry>();
   for (  Record record : recordStore.getReadonlyRecordMap().values()) {
     Data key=record.getKey();
     Object value;
@@ -32,7 +26,8 @@
     if (predicate.apply(queryEntry)) {
       if (pagingPredicate != null) {
         Object anchor=pagingPredicate.getAnchor();
-        if (anchor != null && wrapperComparator.compareValue(anchor,value) >= 0) {
+        final Comparator comparator=pagingPredicate.getComparator();
+        if (anchor != null && SortingUtil.compare(comparator,anchor,value) >= 0) {
           continue;
         }
       }
@@ -40,12 +35,10 @@
     }
   }
   if (pagingPredicate != null) {
-    LinkedList list=(LinkedList)partitionResult;
-    Collections.sort(list,wrapperComparator);
-    if (list.size() > pagingPredicate.getPageSize()) {
-      return list.subList(0,pagingPredicate.getPageSize());
+    Collections.sort(partitionResult,wrapperComparator);
+    if (partitionResult.size() > pagingPredicate.getPageSize()) {
+      return partitionResult.subList(0,pagingPredicate.getPageSize());
     }
-    return list;
   }
   return partitionResult;
 }
