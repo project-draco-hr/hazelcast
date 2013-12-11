@@ -1,10 +1,31 @@
 {
+  PagingPredicate pagingPredicate=null;
+  if (predicate instanceof PagingPredicate) {
+    pagingPredicate=(PagingPredicate)predicate;
+    pagingPredicate.setIterationType(IterationType.VALUE);
+    if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
+      pagingPredicate.previousPage();
+      values(pagingPredicate);
+      pagingPredicate.nextPage();
+    }
+  }
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.VALUE);
   QueryResultSet result=invoke(request);
-  Collection<V> values=new ArrayList<V>(result.size());
+  List<V> values=new ArrayList<V>(result.size());
   for (  Object data : result) {
     V value=toObject((Data)data);
     values.add(value);
+  }
+  if (pagingPredicate != null) {
+    Collections.sort(values,SortingUtil.newComparator(pagingPredicate.getComparator()));
+    if (values.size() > pagingPredicate.getPageSize()) {
+      values=values.subList(0,pagingPredicate.getPageSize());
+    }
+    Object anchor=null;
+    if (values.size() != 0) {
+      anchor=values.get(values.size() - 1);
+    }
+    ObjectAccessor.setPagingPredicateAnchor(pagingPredicate,new AbstractMap.SimpleImmutableEntry(null,anchor));
   }
   return values;
 }
