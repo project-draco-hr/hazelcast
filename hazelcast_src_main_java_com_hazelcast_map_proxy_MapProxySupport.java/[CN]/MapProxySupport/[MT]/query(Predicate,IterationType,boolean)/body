@@ -8,6 +8,12 @@
   PagingPredicate pagingPredicate=null;
   if (predicate instanceof PagingPredicate) {
     pagingPredicate=(PagingPredicate)predicate;
+    pagingPredicate.setIterationType(iterationType);
+    if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
+      pagingPredicate.previousPage();
+      query(pagingPredicate,iterationType,dataResult);
+      pagingPredicate.nextPage();
+    }
   }
   Set result;
   if (pagingPredicate == null) {
@@ -20,7 +26,7 @@
   try {
     List<Future> flist=new ArrayList<Future>();
     for (    MemberImpl member : members) {
-      Invocation invocation=operationService.createInvocationBuilder(SERVICE_NAME,new QueryOperation(name,predicate),member.getAddress()).build();
+      Invocation invocation=operationService.createInvocationBuilder(SERVICE_NAME,new QueryOperation(name,predicate,iterationType),member.getAddress()).build();
       Future future=invocation.invoke();
       flist.add(future);
     }

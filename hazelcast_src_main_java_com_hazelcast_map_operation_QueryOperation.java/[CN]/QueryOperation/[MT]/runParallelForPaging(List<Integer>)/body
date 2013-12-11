@@ -2,12 +2,7 @@
   final SerializationService ss=getNodeEngine().getSerializationService();
   final ExecutorService executor=getNodeEngine().getExecutionService().getExecutor(ExecutionService.QUERY_EXECUTOR);
   final List<Future<Collection<QueryableEntry>>> lsFutures=new ArrayList<Future<Collection<QueryableEntry>>>(initialPartitions.size());
-  final Comparator<QueryableEntry> wrapperComparator=new Comparator<QueryableEntry>(){
-    public int compare(    QueryableEntry o1,    QueryableEntry o2){
-      return SortingUtil.compare(pagingPredicate.getComparator(),o1.getValue(),o2.getValue());
-    }
-  }
-;
+  final Comparator<Map.Entry> wrapperComparator=SortingUtil.newComparator(pagingPredicate);
   for (  final Integer partition : initialPartitions) {
     Future<Collection<QueryableEntry>> f=executor.submit(new PartitionCallable(ss,partition,wrapperComparator));
     lsFutures.add(f);
