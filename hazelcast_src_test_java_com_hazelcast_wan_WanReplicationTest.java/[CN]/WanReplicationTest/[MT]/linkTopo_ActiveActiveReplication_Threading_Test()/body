@@ -3,16 +3,39 @@
   setupReplicateFrom(configB,configA,clusterA.length,"btoa",PassThroughMergePolicy.class.getName());
   initClusterA();
   initClusterB();
-  createDataIn(clusterA,"map",0,1000);
-  assertKeysIn(clusterB,"map",0,1000);
-  createDataIn(clusterB,"map",1000,2000);
-  assertKeysIn(clusterA,"map",0,2000);
-  removeDataIn(clusterA,"map",1500,2000);
-  assertKeysNotIn(clusterB,"map",1500,2000);
-  removeDataIn(clusterB,"map",0,500);
-  assertKeysNotIn(clusterA,"map",0,500);
-  assertKeysIn(clusterA,"map",500,1500);
-  assertKeysIn(clusterB,"map",500,1500);
-  assertDataSize(clusterA,"map",1000);
-  assertDataSize(clusterB,"map",1000);
+  CyclicBarrier gate=new CyclicBarrier(3);
+  startGatedThread(new GatedThread(gate){
+    public void go(){
+      createDataIn(clusterA,"map",0,1000);
+    }
+  }
+);
+  startGatedThread(new GatedThread(gate){
+    public void go(){
+      createDataIn(clusterB,"map",500,1500);
+    }
+  }
+);
+  gate.await();
+  assertDataInFrom(clusterB,"map",0,500,clusterA);
+  assertDataInFrom(clusterA,"map",1000,1500,clusterB);
+  assertKeysIn(clusterA,"map",500,1000);
+  gate=new CyclicBarrier(3);
+  startGatedThread(new GatedThread(gate){
+    public void go(){
+      removeDataIn(clusterA,"map",0,1000);
+    }
+  }
+);
+  startGatedThread(new GatedThread(gate){
+    public void go(){
+      removeDataIn(clusterB,"map",500,1500);
+    }
+  }
+);
+  gate.await();
+  assertKeysNotIn(clusterA,"map",0,1500);
+  assertKeysNotIn(clusterB,"map",0,1500);
+  assertDataSize(clusterA,"map",0);
+  assertDataSize(clusterB,"map",0);
 }
