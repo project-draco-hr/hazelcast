@@ -16,9 +16,11 @@
     operationExecutorQueues[i]=q;
     operationExecutors[i]=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,q,new OperationThreadFactory(i));
   }
-  defaultOperationExecutor=nodeEngine.getExecutionService().getExecutor(ExecutionService.OPERATION_EXECUTOR);
+  final ExecutionService executionService=nodeEngine.getExecutionService();
+  defaultOperationExecutor=executionService.register(ExecutionService.OPERATION_EXECUTOR,coreSize * 2,coreSize * 100000);
+  executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize * 10,coreSize * 100000);
   responseExecutor=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,responseWorkQueue,new SingleExecutorThreadFactory(node.threadGroup,node.getConfigClassLoader(),node.getThreadNamePrefix("response")));
   executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(1000,0.75f,concurrencyLevel);
   backupCalls=new ConcurrentHashMap<Long,BackupCompletionCallback>(1000,0.75f,concurrencyLevel);
-  backupScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getScheduledExecutor(),new ScheduledBackupProcessor(),ScheduleType.SCHEDULE_IF_NEW);
+  backupScheduler=EntryTaskSchedulerFactory.newScheduler(executionService.getScheduledExecutor(),new ScheduledBackupProcessor(),ScheduleType.SCHEDULE_IF_NEW);
 }
