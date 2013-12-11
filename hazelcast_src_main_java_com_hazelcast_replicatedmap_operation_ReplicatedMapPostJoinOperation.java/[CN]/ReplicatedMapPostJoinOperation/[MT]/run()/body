@@ -1,0 +1,18 @@
+{
+  Member localMember=getNodeEngine().getLocalMember();
+  ReplicatedMapService replicatedMapService=getService();
+  for (  MemberMapPair replicatedMap : replicatedMaps) {
+    String mapName=replicatedMap.getName();
+    if (localMember.equals(replicatedMap.getMember())) {
+      AbstractReplicatedRecordStore recordStorage=(AbstractReplicatedRecordStore)replicatedMapService.getReplicatedRecordStore(mapName,false);
+      if (recordStorage != null && recordStorage.isLoaded()) {
+        recordStorage.queueInitialFillup(getCallerAddress(),chunkSize);
+      }
+ else {
+        OperationService operationService=getNodeEngine().getOperationService();
+        Operation operation=new ReplicatedMapInitChunkOperation(mapName,localMember);
+        operationService.send(operation,getCallerAddress());
+      }
+    }
+  }
+}
