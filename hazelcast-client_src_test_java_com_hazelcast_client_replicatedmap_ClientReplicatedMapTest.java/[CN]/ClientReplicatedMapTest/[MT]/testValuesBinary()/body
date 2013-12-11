@@ -1,20 +1,26 @@
 {
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   Config cfg=new Config();
   cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.BINARY);
   HazelcastInstance instance1=Hazelcast.newHazelcastInstance(cfg);
   HazelcastInstance instance2=HazelcastClient.newHazelcastClient();
-  ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
-  ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
-  SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
-  List<Integer> valuesTestValues=new ArrayList<Integer>(testValues.length);
-  int half=testValues.length / 2;
-  for (int i=0; i < testValues.length; i++) {
-    ReplicatedMap map=i < half ? map1 : map2;
-    SimpleEntry<Integer,Integer> entry=testValues[i];
-    map.put(entry.getKey(),entry.getValue());
-    valuesTestValues.add(entry.getValue());
+  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
+  final SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
+  final List<Integer> valuesTestValues=new ArrayList<Integer>(testValues.length);
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      int half=testValues.length / 2;
+      for (int i=0; i < testValues.length; i++) {
+        final ReplicatedMap map=i < half ? map1 : map2;
+        final SimpleEntry<Integer,Integer> entry=testValues[i];
+        map.put(entry.getKey(),entry.getValue());
+        valuesTestValues.add(entry.getValue());
+      }
+    }
   }
-  TimeUnit.SECONDS.sleep(2);
+,2,200,EntryEventType.ADDED,map1,map2);
   List<Integer> values1=new ArrayList<Integer>(map1.values());
   List<Integer> values2=new ArrayList<Integer>(map2.values());
   Collections.sort(values1);

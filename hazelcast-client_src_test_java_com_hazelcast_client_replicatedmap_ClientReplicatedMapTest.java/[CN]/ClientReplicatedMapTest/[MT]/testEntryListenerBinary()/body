@@ -17,28 +17,46 @@
     }
   }
 ;
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   Config cfg=new Config();
   ListenerConfig listenerConfig=new ListenerConfig().setImplementation(listener);
   cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.BINARY).getListenerConfigs().add(listenerConfig);
   HazelcastInstance instance1=Hazelcast.newHazelcastInstance(cfg);
   HazelcastInstance instance2=HazelcastClient.newHazelcastClient();
-  ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
-  ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
   map2.addEntryListener(listener);
-  map1.put("foo","bar");
-  TimeUnit.SECONDS.sleep(2);
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.put("foo","bar");
+    }
+  }
+,2,EntryEventType.ADDED,map1,map2);
   String value=map2.get("foo");
   assertEquals("bar",value);
-  map1.put("foo","bar2");
-  TimeUnit.SECONDS.sleep(2);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.put("foo","bar2");
+    }
+  }
+,2,EntryEventType.UPDATED,map1,map2);
   value=map2.get("foo");
   assertEquals("bar2",value);
-  map2.put("foo","bar3");
-  TimeUnit.SECONDS.sleep(2);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map2.put("foo","bar3");
+    }
+  }
+,2,EntryEventType.UPDATED,map1,map2);
   value=map1.get("foo");
   assertEquals("bar3",value);
-  map1.remove("foo");
-  TimeUnit.SECONDS.sleep(2);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.remove("foo");
+    }
+  }
+,2,EntryEventType.REMOVED,map1,map2);
   added.await();
   updated.await();
   removed.await();
