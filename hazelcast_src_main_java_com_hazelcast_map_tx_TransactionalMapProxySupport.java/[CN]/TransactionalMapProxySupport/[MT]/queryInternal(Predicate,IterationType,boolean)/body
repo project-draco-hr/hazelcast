@@ -1,27 +1,10 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
   OperationService operationService=nodeEngine.getOperationService();
-  final SerializationService ss=nodeEngine.getSerializationService();
   Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
   int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
   Set<Integer> plist=new HashSet<Integer>(partitionCount);
-  PagingPredicate pagingPredicate=null;
-  if (predicate instanceof PagingPredicate) {
-    pagingPredicate=(PagingPredicate)predicate;
-    pagingPredicate.setIterationType(iterationType);
-    if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
-      pagingPredicate.previousPage();
-      queryInternal(pagingPredicate,iterationType,dataResult);
-      pagingPredicate.nextPage();
-    }
-  }
-  Set result;
-  if (pagingPredicate == null) {
-    result=new QueryResultSet(ss,iterationType,dataResult);
-  }
- else {
-    result=new SortedQueryResultSet(pagingPredicate.getComparator(),iterationType,pagingPredicate.getPageSize());
-  }
+  QueryResultSet result=new QueryResultSet(nodeEngine.getSerializationService(),iterationType,dataResult);
   List<Integer> missingList=new ArrayList<Integer>();
   try {
     List<Future> flist=new ArrayList<Future>();
@@ -36,23 +19,11 @@
         final List<Integer> partitionIds=queryResult.getPartitionIds();
         if (partitionIds != null) {
           plist.addAll(partitionIds);
-          if (pagingPredicate == null) {
-            result.addAll(queryResult.getResult());
-          }
- else {
-            for (            QueryResultEntry queryResultEntry : queryResult.getResult()) {
-              Object key=ss.toObject(queryResultEntry.getKeyData());
-              Object value=ss.toObject(queryResultEntry.getValueData());
-              result.add(new AbstractMap.SimpleImmutableEntry(key,value));
-            }
-          }
+          result.addAll(queryResult.getResult());
         }
       }
     }
     if (plist.size() == partitionCount) {
-      if (pagingPredicate != null) {
-        ObjectAccessor.setPagingPredicateAnchor(pagingPredicate,((SortedQueryResultSet)result).last());
-      }
       return result;
     }
     for (int i=0; i < partitionCount; i++) {
@@ -84,16 +55,7 @@
     }
     for (    Future future : futures) {
       QueryResult queryResult=(QueryResult)future.get();
-      if (pagingPredicate == null) {
-        result.addAll(queryResult.getResult());
-      }
- else {
-        for (        QueryResultEntry queryResultEntry : queryResult.getResult()) {
-          Object key=ss.toObject(queryResultEntry.getKeyData());
-          Object value=ss.toObject(queryResultEntry.getValueData());
-          result.add(new AbstractMap.SimpleImmutableEntry(key,value));
-        }
-      }
+      result.addAll(queryResult.getResult());
     }
   }
  catch (  Throwable t) {
