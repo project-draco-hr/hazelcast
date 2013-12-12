@@ -7,7 +7,8 @@
   }
   this.securityToken=managementCenterConfig.getSecurityToken();
   String projectId=managementCenterConfig.getProjectId();
-  if (managementCenterConfig.isEnabled() && managementCenterConfig.getUrl() == null) {
+  String url=managementCenterConfig.getUrl();
+  if (managementCenterConfig.isEnabled() && url == null) {
     if (managementCenterConfig.getSecurityToken() == null) {
       if (DISPLAYED_HOSTED_MANAGEMENT_CENTER_INFO.compareAndSet(false,true)) {
         logger.info("======================================================");
@@ -17,7 +18,7 @@
       }
     }
  else {
-      managementCenterConfig.setUrl(HOSTED_MANCENTER_URL);
+      url=HOSTED_MANCENTER_URL;
       if (projectId == null) {
         IAtomicReference<String> clusterIdAtomicLong=instance.getAtomicReference("___projectIdGenerator");
         String id=clusterIdAtomicLong.get();
@@ -31,7 +32,7 @@
       }
       logger.info("======================================================");
       logger.info("You can access your Hazelcast instance at:");
-      logger.info(managementCenterConfig.getUrl() + "/start.do?projectid=" + projectId+ "&securitytoken="+ securityToken);
+      logger.info(url + "/start.do?projectid=" + projectId+ "&securitytoken="+ securityToken);
       logger.info("======================================================");
     }
   }
@@ -40,8 +41,7 @@
   this.instance.getCluster().addMembershipListener(this);
   maxVisibleInstanceCount=this.instance.node.groupProperties.MC_MAX_INSTANCE_COUNT.getInteger();
   commandHandler=new ConsoleCommandHandler(this.instance);
-  String tmpWebServerUrl=managementCenterConfig.getUrl();
-  webServerUrl=tmpWebServerUrl != null ? (!tmpWebServerUrl.endsWith("/") ? tmpWebServerUrl + '/' : tmpWebServerUrl) : null;
+  webServerUrl=url != null ? (!url.endsWith("/") ? url + '/' : url) : null;
   updateIntervalMs=(managementCenterConfig.getUpdateInterval() > 0) ? managementCenterConfig.getUpdateInterval() * 1000 : 5000;
   taskPoller=new TaskPoller();
   stateSender=new StateSender();
