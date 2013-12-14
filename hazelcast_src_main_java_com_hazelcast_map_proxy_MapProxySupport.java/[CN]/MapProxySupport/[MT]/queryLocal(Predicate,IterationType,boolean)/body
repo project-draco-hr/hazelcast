@@ -5,8 +5,7 @@
   QueryResultSet result=new QueryResultSet(nodeEngine.getSerializationService(),iterationType,dataResult);
   List<Integer> returnedPartitionIds=new ArrayList<Integer>();
   try {
-    Invocation invocation=operationService.createInvocationBuilder(SERVICE_NAME,new QueryOperation(name,predicate),nodeEngine.getThisAddress()).build();
-    Future future=invocation.invoke();
+    Future future=operationService.invokeOnTarget(SERVICE_NAME,new QueryOperation(name,predicate),nodeEngine.getThisAddress());
     QueryResult queryResult=(QueryResult)future.get();
     if (queryResult != null) {
       returnedPartitionIds=queryResult.getPartitionIds();
@@ -24,7 +23,7 @@
       QueryPartitionOperation queryPartitionOperation=new QueryPartitionOperation(name,predicate);
       queryPartitionOperation.setPartitionId(pid);
       try {
-        Future f=operationService.createInvocationBuilder(SERVICE_NAME,queryPartitionOperation,pid).build().invoke();
+        Future f=operationService.invokeOnPartition(SERVICE_NAME,queryPartitionOperation,pid);
         futures.add(f);
       }
  catch (      Throwable t) {
