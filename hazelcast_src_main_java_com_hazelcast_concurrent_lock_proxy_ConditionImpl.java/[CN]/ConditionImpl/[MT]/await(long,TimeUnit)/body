@@ -1,17 +1,15 @@
 {
   final NodeEngine nodeEngine=lockProxy.getNodeEngine();
   final int threadId=ThreadUtil.getThreadId();
-  final Invocation inv1=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new BeforeAwaitOperation(namespace,lockProxy.key,threadId,conditionId),partitionId).build();
   try {
-    Future f=inv1.invoke();
+    Future f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,new BeforeAwaitOperation(namespace,lockProxy.key,threadId,conditionId),partitionId);
     f.get();
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
   }
-  final Invocation inv2=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new AwaitOperation(namespace,lockProxy.key,threadId,unit.toMillis(time),conditionId),partitionId).build();
   try {
-    Future f=inv2.invoke();
+    Future f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,new AwaitOperation(namespace,lockProxy.key,threadId,unit.toMillis(time),conditionId),partitionId);
     return Boolean.TRUE.equals(f.get());
   }
  catch (  Throwable t) {

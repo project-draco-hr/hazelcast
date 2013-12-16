@@ -3,19 +3,18 @@
   int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
-    Invocation invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
     Future f;
     Object o;
     if (mapConfig.isStatisticsEnabled()) {
       long time=System.currentTimeMillis();
-      f=invocation.invoke();
+      f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
       o=f.get();
       if (operation instanceof BasePutOperation)       localMapStats.incrementPuts(System.currentTimeMillis() - time);
  else       if (operation instanceof BaseRemoveOperation)       localMapStats.incrementRemoves(System.currentTimeMillis() - time);
  else       if (operation instanceof GetOperation)       localMapStats.incrementGets(System.currentTimeMillis() - time);
     }
  else {
-      f=invocation.invoke();
+      f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
       o=f.get();
     }
     return o;
