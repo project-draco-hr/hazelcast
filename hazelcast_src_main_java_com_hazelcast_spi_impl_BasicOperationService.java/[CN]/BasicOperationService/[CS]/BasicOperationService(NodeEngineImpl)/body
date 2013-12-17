@@ -11,16 +11,16 @@
   operationThreadCount=opThreadCount > 0 ? opThreadCount : coreSize * 2;
   operationExecutors=new ExecutorService[operationThreadCount];
   operationExecutorQueues=new BlockingQueue[operationThreadCount];
-  operationExecutorPriorityQueues=new ConcurrentLinkedQueue[operationThreadCount];
+  operationExecutorUrgentQueues=new ConcurrentLinkedQueue[operationThreadCount];
   for (int i=0; i < operationExecutors.length; i++) {
     BlockingQueue<Runnable> operationExecutorQueue=new LinkedBlockingQueue<Runnable>();
     operationExecutorQueues[i]=operationExecutorQueue;
-    ConcurrentLinkedQueue<Runnable> operationExecutorPriorityQueue=new ConcurrentLinkedQueue<Runnable>();
-    operationExecutorPriorityQueues[i]=operationExecutorPriorityQueue;
+    ConcurrentLinkedQueue<Runnable> operationExecutorUrgentQueue=new ConcurrentLinkedQueue<Runnable>();
+    operationExecutorUrgentQueues[i]=operationExecutorUrgentQueue;
     operationExecutors[i]=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,operationExecutorQueue,new OperationThreadFactory(i));
   }
   final ExecutionService executionService=nodeEngine.getExecutionService();
-  defaultOperationPriorityQueue=new ConcurrentLinkedQueue<Runnable>();
+  defaultOperationUrgentQueue=new ConcurrentLinkedQueue<Runnable>();
   defaultOperationExecutor=executionService.register(ExecutionService.OPERATION_EXECUTOR,coreSize * 2,coreSize * 100000);
   executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize * 10,coreSize * 100000);
   responseExecutor=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,responseWorkQueue,new SingleExecutorThreadFactory(node.threadGroup,node.getConfigClassLoader(),node.getThreadNamePrefix("response")));
