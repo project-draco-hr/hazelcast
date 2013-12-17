@@ -1,4 +1,10 @@
 {
   final int partitionId=getPartitionIdForExecution(op);
-  getExecutor(partitionId).execute(new LocalOperationProcessor(op));
+  if (op instanceof SystemOperation) {
+    getPriorityQueue(partitionId).offer(new LocalOperationProcessor(op));
+    getExecutor(partitionId).execute(new SystemOperationsProcessor());
+  }
+ else {
+    getExecutor(partitionId).execute(new LocalOperationProcessor(op));
+  }
 }
