@@ -17,7 +17,17 @@
         handleOperationError(op,error);
       }
  else {
-        doRunOperation(op);
+        String executorName=op.getExecutorName();
+        if (executorName == null) {
+          doRunOperation(op);
+        }
+ else {
+          ManagedExecutorService executor=executionService.getExecutor(executorName);
+          if (executor == null) {
+            throw new IllegalStateException("Could not found executor with name: " + executorName);
+          }
+          executor.execute(new LocalOperationProcessor(op));
+        }
       }
     }
   }
