@@ -11,27 +11,30 @@
     final long pollTimeoutMs=Math.min(maxCallTimeout,timeoutMs);
     final long startMs=Clock.currentTimeMillis();
     long lastPollTime=0;
+    pollCount++;
     try {
       if (pollTimeoutMs > 0) {
 synchronized (this) {
-          if (response == null) {
+          if (response == null || response == WAIT_RESPONSE) {
             this.wait(pollTimeoutMs);
           }
         }
       }
+      lastPollTime=Clock.currentTimeMillis() - startMs;
+      timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
       if (response != null) {
+        if (response == WAIT_RESPONSE) {
+          continue;
+        }
         if (response != INTERRUPTED_RESPONSE && interrupted) {
           Thread.currentThread().interrupt();
         }
         return response;
       }
-      lastPollTime=Clock.currentTimeMillis() - startMs;
-      timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
     }
  catch (    InterruptedException e) {
       interrupted=true;
     }
-    pollCount++;
     if (!interrupted && longPolling) {
       final Address target=getTarget();
       if (nodeEngine.getThisAddress().equals(target)) {
