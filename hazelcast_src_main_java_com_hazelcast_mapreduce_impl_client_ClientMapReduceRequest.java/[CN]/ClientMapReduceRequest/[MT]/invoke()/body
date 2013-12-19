@@ -1,0 +1,46 @@
+{
+  OperationFactory factory=new KeyValueMapReduceOperationFactory(name,chunkSize,keys,predicate,keyValueSource,mapper,combinerFactory);
+  ClientEndpoint endpoint=getEndpoint();
+  ClientEngine engine=getClientEngine();
+  SerializationService ss=engine.getSerializationService();
+  PartitionService ps=engine.getPartitionService();
+  Map<Integer,CompletableFuture> futures=new HashMap<Integer,CompletableFuture>();
+  Map<Integer,List> mappedKeys=MapReduceUtil.mapKeys(ps,keys);
+  for (  Map.Entry<Integer,List> entry : mappedKeys.entrySet()) {
+    Operation op=factory.createOperation(entry.getKey(),entry.getValue());
+    InvocationBuilder builder=createInvocationBuilder(getServiceName(),op,entry.getKey());
+    futures.put(entry.getKey(),builder.invoke());
+  }
+  Map<Integer,Object> results=new HashMap<Integer,Object>();
+  for (  Map.Entry<Integer,CompletableFuture> entry : futures.entrySet()) {
+    try {
+      results.put(entry.getKey(),toObject(ss,entry.getValue().get()));
+    }
+ catch (    Throwable t) {
+      results.put(entry.getKey(),t);
+    }
+  }
+  List<Integer> failedPartitions=new LinkedList<Integer>();
+  for (  Map.Entry<Integer,Object> entry : results.entrySet()) {
+    if (entry.getValue() instanceof Throwable) {
+      failedPartitions.add(entry.getKey());
+    }
+  }
+  for (  Integer partitionId : failedPartitions) {
+    List keys=mappedKeys.get(partitionId);
+    Operation operation=factory.createOperation(partitionId,keys);
+    InvocationBuilder builder=createInvocationBuilder(getServiceName(),operation,partitionId);
+    results.put(partitionId,builder.invoke());
+  }
+  for (  Integer failedPartition : failedPartitions) {
+    try {
+      Future<?> future=(Future<?>)results.get(failedPartition);
+      Object result=future.get();
+      results.put(failedPartition,result);
+    }
+ catch (    Throwable t) {
+      results.put(failedPartition,t);
+    }
+  }
+  engine.sendResponse(endpoint,results);
+}
