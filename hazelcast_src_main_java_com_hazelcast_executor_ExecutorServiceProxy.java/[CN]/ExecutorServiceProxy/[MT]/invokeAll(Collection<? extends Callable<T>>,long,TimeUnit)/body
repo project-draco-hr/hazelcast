@@ -8,7 +8,7 @@
   long timeoutNanos=unit.toNanos(timeout);
   final List<Future<T>> futures=new ArrayList<Future<T>>(tasks.size());
   final List<Future<T>> result=new ArrayList<Future<T>>(tasks.size());
-  boolean done=false;
+  boolean done=true;
   try {
     for (    Callable<T> task : tasks) {
       long start=System.nanoTime();
@@ -33,6 +33,7 @@
         value=e;
       }
 catch (      TimeoutException e) {
+        done=false;
         for (int o=i; o < size; o++) {
           Future<T> f=futures.get(i);
           if (!f.isDone()) {
@@ -54,7 +55,6 @@ catch (      TimeoutException e) {
       result.add(new CompletedFuture<T>(getNodeEngine().getSerializationService(),value));
       timeoutNanos-=System.nanoTime() - start;
     }
-    done=true;
   }
  catch (  Throwable t) {
     t.printStackTrace();
