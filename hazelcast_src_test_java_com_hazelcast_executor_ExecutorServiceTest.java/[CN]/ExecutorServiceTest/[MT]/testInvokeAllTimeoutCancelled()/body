@@ -1,0 +1,30 @@
+{
+  ExecutorService executor=createSingleNodeExecutorService("testInvokeAll");
+  assertFalse(executor.isShutdown());
+  ArrayList<Callable<Boolean>> tasks=new ArrayList<Callable<Boolean>>();
+  tasks.add(new CancellationAwareTask(0));
+  List<Future<Boolean>> futures=executor.invokeAll(tasks,5,TimeUnit.SECONDS);
+  assertEquals(futures.size(),1);
+  assertEquals(futures.get(0).get(),Boolean.TRUE);
+  tasks.clear();
+  for (int i=0; i < COUNT; i++) {
+    tasks.add(new CancellationAwareTask(i < 2 ? 0 : 20000));
+  }
+  futures=executor.invokeAll(tasks,5,TimeUnit.SECONDS);
+  assertEquals(futures.size(),COUNT);
+  for (int i=0; i < COUNT; i++) {
+    if (i < 2) {
+      assertEquals(futures.get(i).get(),Boolean.TRUE);
+    }
+ else {
+      boolean excepted=false;
+      try {
+        futures.get(i).get();
+      }
+ catch (      CancellationException e) {
+        excepted=true;
+      }
+      assertTrue(excepted);
+    }
+  }
+}
