@@ -1,0 +1,21 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
+  final IMap<Integer,Integer> map=instance1.getMap("testSort");
+  final int size=50;
+  final int pageSize=5;
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  Set<Integer> set=new HashSet<Integer>();
+  final PagingPredicate predicate=new PagingPredicate(pageSize);
+  Collection<Integer> values=map.values(predicate);
+  while (values.size() > 0) {
+    assertEquals(pageSize,values.size());
+    set.addAll(values);
+    predicate.nextPage();
+    values=map.values(predicate);
+  }
+  assertEquals(size,set.size());
+}
