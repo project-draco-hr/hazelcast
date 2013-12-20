@@ -10,31 +10,32 @@
   final ReplicatedMap<Object,Object> mapA=instance1.getReplicatedMap("default");
   final ReplicatedMap<Object,Object> mapB=instance2.getReplicatedMap("default");
   final ReplicatedMap<Object,Object> mapC=instance3.getReplicatedMap("default");
-  Thread[] pool=new Thread[10];
+  Thread[] pool=new Thread[2];
   CyclicBarrier gate=new CyclicBarrier(pool.length + 1);
-  for (int i=0; i < 5; i++) {
-    pool[i]=new GatedThread(gate){
-      public void go(){
-        for (int i=0; i < 1000; i++)         mapA.put(i + "A",i);
+  pool[0]=new GatedThread(gate){
+    public void go(){
+      for (int i=0; i < 1000; i++) {
+        mapA.put(i + "A",i);
+        if (i == 500) {
+          mapA.clear();
+        }
       }
     }
-;
-    pool[i].start();
   }
-  for (int i=5; i < 10; i++) {
-    pool[i]=new GatedThread(gate){
-      public void go(){
-        for (int i=0; i < 1000; i++)         mapB.put(i + "B",i);
-      }
+;
+  pool[1]=new GatedThread(gate){
+    public void go(){
+      for (int i=0; i < 1000; i++)       mapB.put(i + "B",i);
     }
-;
-    pool[i].start();
   }
+;
+  for (  Thread t : pool)   t.start();
   gate.await();
-  for (  Thread t : pool) {
-    t.join();
-  }
-  for (int i=0; i < 1000; i++) {
+  for (  Thread t : pool)   t.join();
+  assertEquals(500,mapA.size());
+  assertEquals(500,mapB.size());
+  assertEquals(500,mapC.size());
+  for (int i=500; i < 1000; i++) {
     assertEquals(i,mapA.get(i + "A"));
     assertEquals(i,mapB.get(i + "A"));
     assertEquals(i,mapC.get(i + "A"));
