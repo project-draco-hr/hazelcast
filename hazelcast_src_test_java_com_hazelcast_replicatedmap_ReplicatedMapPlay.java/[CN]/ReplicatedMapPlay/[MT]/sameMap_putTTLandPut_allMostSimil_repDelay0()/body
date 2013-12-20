@@ -1,0 +1,19 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  Config cfg=new Config();
+  cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.OBJECT);
+  cfg.getReplicatedMapConfig("default").setReplicationDelayMillis(0);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  final ReplicatedMap<Object,Object> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<Object,Object> map2=instance2.getReplicatedMap("default");
+  map1.put(1,1,1,TimeUnit.SECONDS);
+  map1.put(1,1);
+  Thread.sleep(1100);
+  assertEquals(1,map1.get(1));
+  assertEquals(1,map2.get(1));
+  map1.put(1,1,1,TimeUnit.SECONDS);
+  Thread.sleep(1500);
+  assertEquals(null,map1.get(1));
+  assertEquals(null,map2.get(1));
+}
