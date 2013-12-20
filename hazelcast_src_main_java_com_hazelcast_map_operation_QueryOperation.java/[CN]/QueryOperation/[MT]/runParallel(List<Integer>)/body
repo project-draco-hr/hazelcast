@@ -1,51 +1,15 @@
 {
   final SerializationService ss=getNodeEngine().getSerializationService();
   final ExecutorService executor=getNodeEngine().getExecutionService().getExecutor(ExecutionService.QUERY_EXECUTOR);
-  final List<Future<ConcurrentMap<Object,QueryableEntry>>> lsFutures=new ArrayList<Future<ConcurrentMap<Object,QueryableEntry>>>(initialPartitions.size());
+  final List<Future<Collection<QueryableEntry>>> lsFutures=new ArrayList<Future<Collection<QueryableEntry>>>(initialPartitions.size());
   for (  final Integer partition : initialPartitions) {
-    Future<ConcurrentMap<Object,QueryableEntry>> f=executor.submit(new Callable<ConcurrentMap<Object,QueryableEntry>>(){
-      public ConcurrentMap<Object,QueryableEntry> call(){
-        final PartitionContainer container=mapService.getPartitionContainer(partition);
-        final RecordStore recordStore=container.getRecordStore(name);
-        ConcurrentMap<Object,QueryableEntry> partitionResult=null;
-        for (        Record record : recordStore.getReadonlyRecordMap().values()) {
-          Data key=record.getKey();
-          Object value;
-          if (record instanceof CachedDataRecord) {
-            CachedDataRecord cachedDataRecord=(CachedDataRecord)record;
-            value=cachedDataRecord.getCachedValue();
-            if (value == null) {
-              value=ss.toObject(cachedDataRecord.getValue());
-              cachedDataRecord.setCachedValue(value);
-            }
-          }
- else {
-            value=record.getValue();
-            if (value instanceof Data) {
-              value=ss.toObject((Data)value);
-            }
-          }
-          if (value == null) {
-            continue;
-          }
-          final QueryEntry queryEntry=new QueryEntry(ss,key,key,value);
-          if (predicate.apply(queryEntry)) {
-            if (partitionResult == null) {
-              partitionResult=new ConcurrentHashMap<Object,QueryableEntry>();
-            }
-            partitionResult.put(queryEntry.getIndexKey(),queryEntry);
-          }
-        }
-        return partitionResult;
-      }
-    }
-);
+    Future<Collection<QueryableEntry>> f=executor.submit(new PartitionCallable(ss,partition,null));
     lsFutures.add(f);
   }
-  for (  Future<ConcurrentMap<Object,QueryableEntry>> future : lsFutures) {
-    final ConcurrentMap<Object,QueryableEntry> r=future.get();
-    if (r != null) {
-      for (      QueryableEntry entry : r.values()) {
+  for (  Future<Collection<QueryableEntry>> future : lsFutures) {
+    final Collection<QueryableEntry> collection=future.get();
+    if (collection != null) {
+      for (      QueryableEntry entry : collection) {
         result.add(new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData()));
       }
     }

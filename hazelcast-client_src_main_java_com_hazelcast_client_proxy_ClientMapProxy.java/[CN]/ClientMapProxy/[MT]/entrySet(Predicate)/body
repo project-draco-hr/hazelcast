@@ -1,12 +1,31 @@
 {
+  PagingPredicate pagingPredicate=null;
+  if (predicate instanceof PagingPredicate) {
+    pagingPredicate=(PagingPredicate)predicate;
+    pagingPredicate.setIterationType(IterationType.ENTRY);
+    if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
+      pagingPredicate.previousPage();
+      entrySet(pagingPredicate);
+      pagingPredicate.nextPage();
+    }
+  }
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.ENTRY);
   QueryResultSet result=invoke(request);
-  Set<Entry<K,V>> entrySet=new HashSet<Entry<K,V>>(result.size());
+  Set entrySet;
+  if (pagingPredicate == null) {
+    entrySet=new HashSet<Entry<K,V>>(result.size());
+  }
+ else {
+    entrySet=new SortedQueryResultSet(pagingPredicate.getComparator(),IterationType.ENTRY,pagingPredicate.getPageSize());
+  }
   for (  Object data : result) {
     AbstractMap.SimpleImmutableEntry<Data,Data> dataEntry=(AbstractMap.SimpleImmutableEntry<Data,Data>)data;
     K key=toObject(dataEntry.getKey());
     V value=toObject(dataEntry.getValue());
     entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));
+  }
+  if (pagingPredicate != null) {
+    PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,((SortedQueryResultSet)entrySet).last());
   }
   return entrySet;
 }
