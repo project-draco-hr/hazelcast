@@ -1,5 +1,5 @@
 {
-  OperationFactory factory=new KeyValueMapReduceOperationFactory(name,jobId,chunkSize,keys,predicate,keyValueSource,mapper,combinerFactory);
+  MapReduceOperationFactory factory=buildFactoryAdapter();
   ClientEndpoint endpoint=getEndpoint();
   ClientEngine engine=getClientEngine();
   SerializationService ss=engine.getSerializationService();
@@ -8,7 +8,7 @@
   Map<Integer,List> mappedKeys=MapReduceUtil.mapKeys(ps,keys);
   for (  Map.Entry<Integer,List> entry : mappedKeys.entrySet()) {
     Operation op=factory.createOperation(entry.getKey(),entry.getValue());
-    InvocationBuilder builder=createInvocationBuilder(getServiceName(),op,entry.getKey());
+    InvocationBuilder builder=buildInvocationBuilder(getServiceName(),op,entry.getKey());
     futures.put(entry.getKey(),builder.invoke());
   }
   Map<Integer,Object> results=new HashMap<Integer,Object>();
@@ -29,7 +29,7 @@
   for (  Integer partitionId : failedPartitions) {
     List keys=mappedKeys.get(partitionId);
     Operation operation=factory.createOperation(partitionId,keys);
-    InvocationBuilder builder=createInvocationBuilder(getServiceName(),operation,partitionId);
+    InvocationBuilder builder=buildInvocationBuilder(getServiceName(),operation,partitionId);
     results.put(partitionId,builder.invoke());
   }
   for (  Integer failedPartition : failedPartitions) {
