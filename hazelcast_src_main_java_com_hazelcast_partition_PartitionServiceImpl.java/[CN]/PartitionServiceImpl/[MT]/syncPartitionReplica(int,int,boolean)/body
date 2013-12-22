@@ -11,13 +11,13 @@
     final ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,replicaIndex,target);
     boolean sendRequest=false;
     if (currentSyncInfo == null) {
-      sendRequest=replicaSyncRequests.putIfAbsent(partitionId,syncInfo) == null;
+      sendRequest=replicaSyncRequests.compareAndSet(partitionId,null,syncInfo);
     }
  else     if (currentSyncInfo.requestTime < (Clock.currentTimeMillis() - 10000) || nodeEngine.getClusterService().getMember(currentSyncInfo.target) == null) {
-      sendRequest=replicaSyncRequests.replace(partitionId,currentSyncInfo,syncInfo);
+      sendRequest=replicaSyncRequests.compareAndSet(partitionId,currentSyncInfo,syncInfo);
     }
  else     if (force) {
-      replicaSyncRequests.put(partitionId,syncInfo);
+      replicaSyncRequests.set(partitionId,syncInfo);
       sendRequest=true;
     }
     if (target.equals(nodeEngine.getThisAddress())) {
