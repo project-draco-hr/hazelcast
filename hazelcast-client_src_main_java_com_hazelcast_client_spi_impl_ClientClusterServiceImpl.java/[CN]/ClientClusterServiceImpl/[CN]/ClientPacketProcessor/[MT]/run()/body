@@ -1,11 +1,12 @@
 {
-  final ClientResponse clientResponse=(ClientResponse)getSerializationService().toObject(packet.getData());
+  final ClientResponse clientResponse=getSerializationService().toObject(packet.getData());
   final long callId=clientResponse.getCallId();
   final Object response=clientResponse.getResponse();
-  final ClientCallFuture future=callMap.remove(callId);
-  if (future == null) {
-    logger.warning("No call for callId: " + callId + ", response: "+ response);
-    return;
+  final boolean event=clientResponse.isEvent();
+  if (event) {
+    handleEvent(response,callId);
   }
-  future.setResponse(response);
+ else {
+    handlePacket(response,callId);
+  }
 }

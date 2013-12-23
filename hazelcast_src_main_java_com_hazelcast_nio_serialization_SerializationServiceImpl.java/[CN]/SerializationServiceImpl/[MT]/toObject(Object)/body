@@ -1,0 +1,31 @@
+{
+  if (!(object instanceof Data)) {
+    return (T)object;
+  }
+  Data data=(Data)object;
+  if (data.bufferSize() == 0 && data.isDataSerializable()) {
+    return null;
+  }
+  try {
+    final int typeId=data.type;
+    final SerializerAdapter serializer=serializerFor(typeId);
+    if (serializer == null) {
+      if (active) {
+        throw new HazelcastSerializationException("There is no suitable de-serializer for type " + typeId);
+      }
+      throw new HazelcastInstanceNotActiveException();
+    }
+    if (typeId == SerializationConstants.CONSTANT_TYPE_PORTABLE) {
+      serializationContext.registerClassDefinition(data.classDefinition);
+    }
+    Object obj=serializer.read(data);
+    if (managedContext != null) {
+      obj=managedContext.initialize(obj);
+    }
+    return (T)obj;
+  }
+ catch (  Throwable e) {
+    handleException(e);
+  }
+  return null;
+}
