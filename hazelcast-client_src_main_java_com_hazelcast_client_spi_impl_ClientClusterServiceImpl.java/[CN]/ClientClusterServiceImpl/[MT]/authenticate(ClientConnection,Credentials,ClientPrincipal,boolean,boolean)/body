@@ -1,0 +1,29 @@
+{
+  final SerializationService ss=getSerializationService();
+  final ClientCallFuture future=new ClientCallFuture();
+  final long callId=registerCall(future);
+  AuthenticationRequest auth=new AuthenticationRequest(credentials,principal);
+  auth.setReAuth(reAuth);
+  auth.setFirstConnection(firstConnection);
+  auth.setCallId(callId);
+  send(auth,connection);
+  Object result;
+  try {
+    result=future.get(10,TimeUnit.SECONDS);
+  }
+ catch (  Exception e) {
+    throw new AuthenticationException(e.getMessage());
+  }
+  final SerializableCollection coll=ErrorHandler.returnResultOrThrowException(result);
+  final Iterator<Data> iter=coll.getCollection().iterator();
+  if (iter.hasNext()) {
+    final Data addressData=iter.next();
+    final Address address=(Address)ss.toObject(addressData);
+    connection.setRemoteEndpoint(address);
+    if (iter.hasNext()) {
+      final Data principalData=iter.next();
+      return ss.toObject(principalData);
+    }
+  }
+  throw new AuthenticationException();
+}
