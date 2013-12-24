@@ -1,6 +1,8 @@
 {
   final ClientConfig clientConfig=new ClientConfig();
-  final HazelcastInstance hazelcast=HazelcastClient.newHazelcastClient(clientConfig);
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
   final Stats stats=new Stats();
   if (args != null && args.length > 0) {
     for (    String arg : args) {
@@ -38,7 +40,7 @@
   for (int i=0; i < THREAD_COUNT; i++) {
     es.submit(new Runnable(){
       public void run(){
-        IMap<String,byte[]> map=hazelcast.getMap("default");
+        IMap<String,byte[]> map=client.getMap("default");
         while (true) {
           int key=(int)(Math.random() * ENTRY_COUNT);
           int operation=((int)(Math.random() * 100));
@@ -64,7 +66,7 @@
       while (true) {
         try {
           Thread.sleep(STATS_SECONDS * 1000);
-          System.out.println("cluster size:" + hazelcast.getCluster().getMembers().size());
+          System.out.println("cluster size:" + client.getCluster().getMembers().size());
           Stats currentStats=stats.getAndReset();
           System.out.println(currentStats);
           System.out.println("Operations per Second : " + currentStats.total() / STATS_SECONDS);
