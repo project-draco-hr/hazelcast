@@ -1,19 +1,20 @@
 {
   final int utflen=in.readShort();
-  byte[] bytearr=null;
-  bytearr=new byte[utflen];
-  int c, char2, char3;
+  int c=0, char2, char3;
   int count=0;
   int chararr_count=beginIndex;
-  in.readFully(bytearr,0,utflen);
+  int lastCount=-1;
   while (count < utflen) {
-    c=bytearr[count] & 0xff;
+    c=buffered(buffer,count,utflen,in) & 0xff;
     if (c > 127)     break;
+    lastCount=count;
     count++;
     data[chararr_count++]=(char)c;
   }
   while (count < utflen) {
-    c=bytearr[count] & 0xff;
+    if (lastCount > -1 && lastCount < count) {
+      c=buffered(buffer,count,utflen,in) & 0xff;
+    }
 switch (c >> 4) {
 case 0:
 case 1:
@@ -23,22 +24,23 @@ case 4:
 case 5:
 case 6:
 case 7:
-      count++;
-    data[chararr_count++]=(char)c;
-  break;
+      lastCount=count;
+    count++;
+  data[chararr_count++]=(char)c;
+break;
 case 12:
 case 13:
-count+=2;
-if (count > utflen) throw new UTFDataFormatException("malformed input: partial character at end");
-char2=bytearr[count - 1];
+lastCount=count++;
+if (count + 1 > utflen) throw new UTFDataFormatException("malformed input: partial character at end");
+char2=buffered(buffer,count++,utflen,in);
 if ((char2 & 0xC0) != 0x80) throw new UTFDataFormatException("malformed input around byte " + count);
 data[chararr_count++]=(char)(((c & 0x1F) << 6) | (char2 & 0x3F));
 break;
 case 14:
-count+=3;
-if (count > utflen) throw new UTFDataFormatException("malformed input: partial character at end");
-char2=bytearr[count - 2];
-char3=bytearr[count - 1];
+lastCount=count++;
+if (count + 2 > utflen) throw new UTFDataFormatException("malformed input: partial character at end");
+char2=buffered(buffer,count++,utflen,in);
+char3=buffered(buffer,count++,utflen,in);
 if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80)) throw new UTFDataFormatException("malformed input around byte " + (count - 1));
 data[chararr_count++]=(char)(((c & 0x0F) << 12) | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
 break;
