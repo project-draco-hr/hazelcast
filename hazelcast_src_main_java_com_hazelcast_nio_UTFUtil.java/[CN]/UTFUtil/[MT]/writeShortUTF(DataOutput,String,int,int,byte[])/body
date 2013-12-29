@@ -18,26 +18,26 @@
   }
   out.writeShort(utfLength);
   int i;
-  final byte[] byteArray=new byte[utfLength];
   for (i=beginIndex; i < endIndex; i++) {
     c=str.charAt(i);
     if (!((c >= 0x0001) && (c <= 0x007F)))     break;
-    byteArray[count++]=(byte)c;
+    buffering(buffer,count++,(byte)c,out);
   }
   for (; i < endIndex; i++) {
     c=str.charAt(i);
     if ((c >= 0x0001) && (c <= 0x007F)) {
-      byteArray[count++]=(byte)c;
+      buffering(buffer,count++,(byte)c,out);
     }
  else     if (c > 0x07FF) {
-      byteArray[count++]=(byte)(0xE0 | ((c >> 12) & 0x0F));
-      byteArray[count++]=(byte)(0x80 | ((c >> 6) & 0x3F));
-      byteArray[count++]=(byte)(0x80 | ((c) & 0x3F));
+      buffering(buffer,count++,(byte)(0xE0 | ((c >> 12) & 0x0F)),out);
+      buffering(buffer,count++,(byte)(0x80 | ((c >> 6) & 0x3F)),out);
+      buffering(buffer,count++,(byte)(0x80 | ((c) & 0x3F)),out);
     }
  else {
-      byteArray[count++]=(byte)(0xC0 | ((c >> 6) & 0x1F));
-      byteArray[count++]=(byte)(0x80 | ((c) & 0x3F));
+      buffering(buffer,count++,(byte)(0xC0 | ((c >> 6) & 0x1F)),out);
+      buffering(buffer,count++,(byte)(0x80 | ((c) & 0x3F)),out);
     }
   }
-  out.write(byteArray,0,utfLength);
+  int length=count % buffer.length;
+  out.write(buffer,0,length == 0 ? buffer.length : length);
 }
