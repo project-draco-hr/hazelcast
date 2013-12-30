@@ -1,7 +1,11 @@
 {
   if (!localMember)   throw new UnsupportedOperationException("Attributes on remote members must not be changed");
+  if (value == null)   throw new IllegalArgumentException("value must not be null");
   if (value != null) {
-    attributes.put(key,value);
+    Object oldValue=attributes.put(key,value);
+    if (value.equals(oldValue)) {
+      return;
+    }
   }
  else {
     attributes.remove(key);
@@ -19,10 +23,8 @@
     String uuid=nodeEngine.getLocalMember().getUuid();
     operation.setCallerUuid(uuid).setNodeEngine(nodeEngine);
     try {
-      for (      Member m : nodeEngine.getClusterService().getMembers()) {
-        MemberImpl member=(MemberImpl)m;
-        InvocationBuilder inv=os.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,operation,member.getAddress());
-        inv.invoke();
+      for (      MemberImpl member : nodeEngine.getClusterService().getMemberList()) {
+        os.send(operation,member.getAddress());
       }
     }
  catch (    Throwable t) {
