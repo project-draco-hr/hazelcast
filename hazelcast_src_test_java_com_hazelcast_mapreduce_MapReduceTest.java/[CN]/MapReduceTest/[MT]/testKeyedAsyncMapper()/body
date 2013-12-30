@@ -1,0 +1,36 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(4);
+  final CountingManagedContext context=new CountingManagedContext();
+  final Config config=new Config();
+  config.setManagedContext(context);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance h3=nodeFactory.newHazelcastInstance(config);
+  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+  for (int i=0; i < 100; i++) {
+    m1.put(i,i);
+  }
+  final Map<String,List<Integer>> listenerResults=new HashMap<String,List<Integer>>();
+  final Semaphore semaphore=new Semaphore(1);
+  semaphore.acquire();
+  JobTracker tracker=h1.getJobTracker("default");
+  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+  CompletableFuture<Map<String,List<Integer>>> future=job.onKeys(50).mapper(new TestMapper()).submit();
+  future.andThen(new ExecutionCallback<Map<String,List<Integer>>>(){
+    @Override public void onResponse(    Map<String,List<Integer>> response){
+      listenerResults.putAll(response);
+      semaphore.release();
+    }
+    @Override public void onFailure(    Throwable t){
+      semaphore.release();
+    }
+  }
+);
+  semaphore.acquire();
+  assertEquals(1,listenerResults.size());
+  for (  List<Integer> value : listenerResults.values()) {
+    assertEquals(1,value.size());
+  }
+  Set<String> hazelcastNames=context.getHazelcastNames();
+  assertEquals(0,hazelcastNames.size());
+}
