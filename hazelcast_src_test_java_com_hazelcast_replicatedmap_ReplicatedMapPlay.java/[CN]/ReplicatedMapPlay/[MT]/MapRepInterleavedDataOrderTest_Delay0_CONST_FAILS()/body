@@ -10,14 +10,28 @@
   final ReplicatedMap<Object,Object> mapB=instance2.getReplicatedMap("default");
   final ReplicatedMap<Object,Object> mapC=instance3.getReplicatedMap("default");
   for (int i=0; i < 1000; i++) {
-    mapA.put(i,i);
+    if (i % 2 == 0) {
+      mapB.put(i,i + "B");
+      mapA.put(i,i + "A");
+    }
+ else {
+      mapA.put(i,i + "A");
+      mapB.put(i,i + "B");
+    }
   }
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
       for (int i=0; i < 1000; i++) {
-        assertEquals(i,mapA.get(i));
-        assertEquals(i,mapB.get(i));
-        assertEquals(i,mapC.get(i));
+        if (i % 2 == 0) {
+          assertEquals(i + "A",mapA.get(i));
+          assertEquals(i + "A",mapB.get(i));
+          assertEquals(i + "A",mapC.get(i));
+        }
+ else {
+          assertEquals(i + "B",mapA.get(i));
+          assertEquals(i + "B",mapB.get(i));
+          assertEquals(i + "B",mapC.get(i));
+        }
       }
     }
   }
