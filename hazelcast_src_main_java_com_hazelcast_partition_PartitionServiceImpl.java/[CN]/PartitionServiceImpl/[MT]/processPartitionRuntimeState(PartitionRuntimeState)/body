@@ -25,12 +25,12 @@
       }
     }
     final Set<Address> unknownAddresses=new HashSet<Address>();
-    Address[][] state=partitionState.getPartitionState();
+    PartitionInfo[] state=partitionState.getPartitions();
     for (int partitionId=0; partitionId < state.length; partitionId++) {
-      Address[] replicas=state[partitionId];
-      PartitionImpl currentPartition=partitions[partitionId];
-      for (int index=0; index < PartitionView.MAX_REPLICA_COUNT; index++) {
-        Address address=replicas[index];
+      PartitionInfo partitionInfo=state[partitionId];
+      InternalPartitionImpl currentPartition=partitions[partitionId];
+      for (int index=0; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
+        Address address=partitionInfo.getReplicaAddress(index);
         if (address != null && getMember(address) == null) {
           if (logger.isFinestEnabled()) {
             logger.finest("Unknown " + address + " found in partition table sent from master "+ sender+ ". It has probably already left the cluster. Partition: "+ partitionId);
@@ -38,7 +38,7 @@
           unknownAddresses.add(address);
         }
       }
-      currentPartition.setOwner(replicas[0]);
+      currentPartition.setOwner(partitionInfo.getReplicaAddress(0));
     }
     if (!unknownAddresses.isEmpty() && logger.isLoggable(Level.WARNING)) {
       StringBuilder s=new StringBuilder("Following unknown addresses are found in partition table").append(" sent from master[").append(sender).append("].").append(" (Probably they have recently joined or left the cluster.)").append(" {");
@@ -58,8 +58,8 @@
       rollbackActiveMigrationsFromPreviousMaster(masterMember.getUuid());
     }
     for (int partitionId=0; partitionId < partitionCount; partitionId++) {
-      PartitionImpl partition=partitions[partitionId];
-      Address[] replicas=state[partitionId];
+      InternalPartitionImpl partition=partitions[partitionId];
+      Address[] replicas=state[partitionId].getReplicaAddresses();
       partition.setPartitionInfo(replicas);
     }
     stateVersion.set(partitionState.getVersion());
