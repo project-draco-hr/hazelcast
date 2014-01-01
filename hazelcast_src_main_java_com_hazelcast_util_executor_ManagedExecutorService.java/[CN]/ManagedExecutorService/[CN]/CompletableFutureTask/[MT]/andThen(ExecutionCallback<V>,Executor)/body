@@ -5,7 +5,11 @@
     runAsynchronous(callback,executor);
     return;
   }
-synchronized (this) {
-    this.callbackHead=new ExecutionCallbackNode<V>(callback,executor,callbackHead);
+  for (; ; ) {
+    ExecutionCallbackNode oldCallbackHead=callbackHead;
+    ExecutionCallbackNode newCallbackHead=new ExecutionCallbackNode<V>(callback,executor,oldCallbackHead);
+    if (callbackUpdater.compareAndSet(this,oldCallbackHead,newCallbackHead)) {
+      break;
+    }
   }
 }
