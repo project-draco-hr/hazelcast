@@ -1,0 +1,15 @@
+{
+  isNotNull(callback,"callback");
+  isNotNull(executor,"executor");
+  if (isDone()) {
+    runAsynchronous(callback,executor);
+    return;
+  }
+  for (; ; ) {
+    ExecutionCallbackNode oldCallbackHead=callbackHead;
+    ExecutionCallbackNode newCallbackHead=new ExecutionCallbackNode<V>(callback,executor,oldCallbackHead);
+    if (callbackUpdater.compareAndSet(this,oldCallbackHead,newCallbackHead)) {
+      break;
+    }
+  }
+}
