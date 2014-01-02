@@ -7,17 +7,33 @@
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
   final ReplicatedMap<Object,Object> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<Object,Object> map2=instance2.getReplicatedMap("default");
-  map1.put(1,1);
-  map2.put(1,2);
+  map1.put(1,1,1,TimeUnit.SECONDS);
+  map2.put(1,1);
+  final Integer result1=evalConflictResult(instance1,instance2,null,1);
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
-      assertEquals(2,map1.get(1));
+      assertEquals(result1,map1.get(1));
     }
   }
 );
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
-      assertEquals(2,map2.get(1));
+      assertEquals(result1,map2.get(1));
+    }
+  }
+);
+  map1.put(2,2);
+  map2.put(2,2,1,TimeUnit.SECONDS);
+  final Integer result2=evalConflictResult(instance1,instance2,2,null);
+  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+    public void run(){
+      assertEquals(result2,map1.get(2));
+    }
+  }
+);
+  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+    public void run(){
+      assertEquals(result2,map2.get(2));
     }
   }
 );

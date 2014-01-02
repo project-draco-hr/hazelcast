@@ -2,36 +2,23 @@
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   Config cfg=new Config();
   cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.OBJECT);
-  cfg.getReplicatedMapConfig("default").setReplicationDelayMillis(1000);
+  cfg.getReplicatedMapConfig("default").setReplicationDelayMillis(0);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
   final ReplicatedMap<Object,Object> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<Object,Object> map2=instance2.getReplicatedMap("default");
-  map1.put(1,1,1,TimeUnit.SECONDS);
-  map2.put(1,1);
+  map1.put(1,1);
+  map2.put(1,2);
+  final int result=evalConflictResult(instance1,instance2,1,2);
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
-      assertEquals(1,map1.get(1));
+      assertEquals(result,map2.get(1));
     }
   }
 );
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
-      assertEquals(1,map2.get(1));
-    }
-  }
-);
-  map1.put(2,2);
-  map2.put(2,2,1,TimeUnit.SECONDS);
-  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
-    public void run(){
-      assertEquals(null,map1.get(2));
-    }
-  }
-);
-  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
-    public void run(){
-      assertEquals(null,map2.get(2));
+      assertEquals(result,map1.get(1));
     }
   }
 );
