@@ -1,6 +1,5 @@
 {
   while (!Thread.currentThread().isInterrupted()) {
-    String registrationId=null;
     try {
       if (conn == null) {
         try {
@@ -12,7 +11,8 @@
           return;
         }
       }
-      registrationId=loadInitialMemberList();
+      loadInitialMemberList();
+      listenMembershipEvents();
     }
  catch (    Exception e) {
       if (client.getLifecycleService().isRunning()) {
@@ -23,9 +23,6 @@
           logger.warning("Error while listening cluster events! -> " + conn + ", Error: "+ e.toString());
         }
       }
-      if (registrationId != null) {
-        deRegisterListener(registrationId);
-      }
       IOUtil.closeResource(conn);
       conn=null;
       fireConnectionEvent(true);
@@ -34,9 +31,6 @@
       Thread.sleep(1000);
     }
  catch (    InterruptedException e) {
-      break;
-    }
-    if (conn != null) {
       break;
     }
   }

@@ -1,21 +1,20 @@
 {
   final SerializationService ss=getSerializationService();
   AuthenticationRequest auth=new AuthenticationRequest(credentials,principal);
+  connection.init();
   auth.setReAuth(reAuth);
   auth.setFirstConnection(firstConnection);
-  final ClientCallFuture future=innerSend(auth,connection);
-  Object result;
+  SerializableCollection coll;
   try {
-    result=future.get(120,TimeUnit.SECONDS);
+    coll=(SerializableCollection)sendAndReceive(auth,connection);
   }
  catch (  Exception e) {
-    throw new AuthenticationException(e.getMessage());
+    throw new RetryableIOException(e);
   }
-  final SerializableCollection coll=ErrorHandler.returnResultOrThrowException(result);
   final Iterator<Data> iter=coll.getCollection().iterator();
   if (iter.hasNext()) {
     final Data addressData=iter.next();
-    final Address address=(Address)ss.toObject(addressData);
+    final Address address=ss.toObject(addressData);
     connection.setRemoteEndpoint(address);
     if (iter.hasNext()) {
       final Data principalData=iter.next();

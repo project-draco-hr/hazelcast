@@ -1,10 +1,14 @@
 {
-  if (response == null) {
-    throw new IllegalArgumentException("response can't be null");
-  }
 synchronized (this) {
-    if (this.response != null) {
+    if (this.response != null && handler == null) {
       throw new IllegalArgumentException("The Future.set method can only be called once");
+    }
+    if (this.response != null && handler != null && response instanceof String) {
+      String uuid=(String)this.response;
+      String alias=(String)response;
+      int callId=request.getCallId();
+      clusterService.reRegisterListener(uuid,alias,callId);
+      return;
     }
     this.response=response;
     this.notifyAll();

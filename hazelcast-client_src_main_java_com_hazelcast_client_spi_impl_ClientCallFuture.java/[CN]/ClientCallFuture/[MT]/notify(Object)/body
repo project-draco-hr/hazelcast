@@ -1,0 +1,17 @@
+{
+  if (response == null) {
+    throw new IllegalArgumentException("response can't be null");
+  }
+  if (response instanceof TargetDisconnectedException || response instanceof HazelcastInstanceNotActiveException) {
+    if (request instanceof RetryableRequest || clusterService.isRedoOperation()) {
+      try {
+        clusterService._resend(this);
+      }
+ catch (      Exception e) {
+        setResponse(e);
+      }
+      return;
+    }
+  }
+  setResponse(response);
+}

@@ -1,9 +1,7 @@
 {
   final SerializationService serializationService=getSerializationService();
   final AddMembershipListenerRequest request=new AddMembershipListenerRequest();
-  final ClientCallFuture future=innerSendAndHandle(request,conn,this);
-  Object response=future.get();
-  SerializableCollection coll=ErrorHandler.returnResultOrThrowException(response);
+  final SerializableCollection coll=(SerializableCollection)sendAndReceive(request,conn);
   Map<String,MemberImpl> prevMembers=Collections.emptyMap();
   if (!members.isEmpty()) {
     prevMembers=new HashMap<String,MemberImpl>(members.size());
@@ -12,13 +10,8 @@
     }
     members.clear();
   }
-  final Iterator<Data> iter=coll.getCollection().iterator();
-  String registrationId=null;
-  if (iter.hasNext()) {
-    registrationId=serializationService.toObject(iter.next());
-  }
-  while (iter.hasNext()) {
-    members.add((MemberImpl)serializationService.toObject(iter.next()));
+  for (  Data data : coll) {
+    members.add((MemberImpl)serializationService.toObject(data));
   }
   updateMembersRef();
   logger.info(membersString());
@@ -36,5 +29,4 @@
   for (  MembershipEvent event : events) {
     fireMembershipEvent(event);
   }
-  return registrationId;
 }

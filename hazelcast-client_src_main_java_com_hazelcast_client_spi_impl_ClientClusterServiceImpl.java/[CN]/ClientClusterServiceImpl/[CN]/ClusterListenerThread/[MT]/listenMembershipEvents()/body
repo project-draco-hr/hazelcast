@@ -1,0 +1,18 @@
+{
+  final SerializationService serializationService=getSerializationService();
+  while (!Thread.currentThread().isInterrupted()) {
+    final Data clientResponseData=conn.read();
+    final ClientResponse clientResponse=serializationService.toObject(clientResponseData);
+    final ClientMembershipEvent event=serializationService.toObject(clientResponse.getResponse());
+    final MemberImpl member=(MemberImpl)event.getMember();
+    if (event.getEventType() == MembershipEvent.MEMBER_ADDED) {
+      members.add(member);
+    }
+ else {
+      members.remove(member);
+    }
+    updateMembersRef();
+    logger.info(membersString());
+    fireMembershipEvent(new MembershipEvent(client.getCluster(),member,event.getEventType(),Collections.unmodifiableSet(new LinkedHashSet<Member>(members))));
+  }
+}

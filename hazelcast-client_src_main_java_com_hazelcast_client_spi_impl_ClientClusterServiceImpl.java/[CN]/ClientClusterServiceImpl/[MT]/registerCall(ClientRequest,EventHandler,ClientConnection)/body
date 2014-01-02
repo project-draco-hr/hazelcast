@@ -1,0 +1,18 @@
+{
+  final ClientCallFuture future=new ClientCallFuture(this,request,handler);
+  final int callId=callIdIncrementer.incrementAndGet();
+  request.setCallId(callId);
+  ConcurrentMap<Integer,ClientCallFuture> callIdMap=connectionCallMap.get(connection);
+  if (callIdMap == null) {
+    callIdMap=new ConcurrentHashMap<Integer,ClientCallFuture>();
+    final ConcurrentMap<Integer,ClientCallFuture> current=connectionCallMap.putIfAbsent(connection,callIdMap);
+    if (current != null) {
+      callIdMap=current;
+    }
+  }
+  callIdMap.put(callId,future);
+  if (handler != null) {
+    registerEventHandler(future,connection);
+  }
+  return future;
+}

@@ -1,3 +1,12 @@
 {
-  return registrationIdMap.remove(uuid) != null;
+  final String alias=registrationAliasMap.remove(uuid);
+  if (alias != null) {
+    final Integer callId=registrationIdMap.remove(alias);
+    for (    ConcurrentMap<Integer,ClientCallFuture> eventHandlerMap : connectionEventHandlerMap.values()) {
+      if (eventHandlerMap.remove(callId) != null) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
