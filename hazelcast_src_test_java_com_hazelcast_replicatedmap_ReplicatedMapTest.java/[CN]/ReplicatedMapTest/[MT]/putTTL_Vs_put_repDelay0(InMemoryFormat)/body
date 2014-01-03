@@ -5,33 +5,35 @@
   cfg.getReplicatedMapConfig("default").setReplicationDelayMillis(0);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
-  final ReplicatedMap<Object,Object> map1=instance1.getReplicatedMap("default");
-  final ReplicatedMap<Object,Object> map2=instance2.getReplicatedMap("default");
+  final ReplicatedMapProxy<Object,Object> map1=(ReplicatedMapProxy)instance1.getReplicatedMap("default");
+  final ReplicatedMapProxy<Object,Object> map2=(ReplicatedMapProxy)instance2.getReplicatedMap("default");
+  CountDownLatch replicateLatch=new CountDownLatch(1);
+  CountDownLatch startReplication=new CountDownLatch(2);
+  PreReplicationHook hook=createReplicationHook(replicateLatch,startReplication);
+  map1.setPreReplicationHook(hook);
+  map2.setPreReplicationHook(hook);
   map1.put(1,1,1,TimeUnit.SECONDS);
   map2.put(1,1);
+  startReplication.await(1,TimeUnit.MINUTES);
+  replicateLatch.countDown();
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
-      assertEquals(1,map1.get(1));
+      assertEquals(map1.get(1),map2.get(1));
     }
   }
 );
-  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
-    public void run(){
-      assertEquals(1,map2.get(1));
-    }
-  }
-);
+  replicateLatch=new CountDownLatch(1);
+  startReplication=new CountDownLatch(2);
+  hook=createReplicationHook(replicateLatch,startReplication);
+  map1.setPreReplicationHook(hook);
+  map2.setPreReplicationHook(hook);
   map1.put(1,1);
   map2.put(1,1,1,TimeUnit.SECONDS);
+  startReplication.await(1,TimeUnit.MINUTES);
+  replicateLatch.countDown();
   HazelcastTestSupport.assertTrueEventually(new AssertTask(){
     public void run(){
-      assertEquals(null,map1.get(1));
-    }
-  }
-);
-  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
-    public void run(){
-      assertEquals(null,map2.get(1));
+      assertEquals(map1.get(1),map2.get(1));
     }
   }
 );
