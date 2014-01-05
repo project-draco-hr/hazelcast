@@ -3,31 +3,27 @@
   try {
     final Address caller=conn.getEndPoint();
     final Data data=packet.getData();
-    final Operation op=(Operation)nodeEngine.toObject(data);
+    final Object object=nodeEngine.toObject(data);
+    final Operation op=(Operation)object;
     op.setNodeEngine(nodeEngine);
     OperationAccessor.setCallerAddress(op,caller);
     OperationAccessor.setConnection(op,conn);
-    if (op instanceof ResponseOperation) {
-      processResponse((ResponseOperation)op);
+    ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
+    if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
+      final Exception error=new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName());
+      handleOperationError(op,error);
     }
  else {
-      ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
-      if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
-        final Exception error=new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName());
-        handleOperationError(op,error);
+      String executorName=op.getExecutorName();
+      if (executorName == null) {
+        doRunOperation(op);
       }
  else {
-        String executorName=op.getExecutorName();
-        if (executorName == null) {
-          doRunOperation(op);
+        ManagedExecutorService executor=executionService.getExecutor(executorName);
+        if (executor == null) {
+          throw new IllegalStateException("Could not found executor with name: " + executorName);
         }
- else {
-          ManagedExecutorService executor=executionService.getExecutor(executorName);
-          if (executor == null) {
-            throw new IllegalStateException("Could not found executor with name: " + executorName);
-          }
-          executor.execute(new LocalOperationProcessor(op));
-        }
+        executor.execute(new LocalOperationProcessor(op));
       }
     }
   }
