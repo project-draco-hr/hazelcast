@@ -3,9 +3,13 @@
   if (mapper instanceof LifecycleMapper) {
     ((LifecycleMapper)mapper).initialize(context);
   }
-  mappingPhase.executeMappingPhase(context);
+  mappingPhase.executeMappingPhase(keyValueSource,context);
   if (mapper instanceof LifecycleMapper) {
     ((LifecycleMapper)mapper).finalized(context);
   }
-  Map<KeyOut,Object> chunkMap=context.finish();
+  Map<KeyOut,Chunk> chunkMap=context.finish();
+  Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
+  for (  Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
+    mapReduceService.sendNotification(entry.getKey(),new LastChunkNotification(entry.getValue(),name,jobId));
+  }
 }
