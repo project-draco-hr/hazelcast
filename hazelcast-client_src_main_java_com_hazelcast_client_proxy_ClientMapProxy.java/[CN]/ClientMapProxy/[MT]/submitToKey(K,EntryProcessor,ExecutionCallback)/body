@@ -1,18 +1,11 @@
 {
   final Data keyData=toData(key);
   final MapExecuteOnKeyRequest request=new MapExecuteOnKeyRequest(name,entryProcessor,keyData);
-  getContext().getExecutionService().submit(new Callable<V>(){
-    public V call() throws Exception {
-      try {
-        V result=invoke(request,keyData);
-        callback.onResponse(result);
-        return result;
-      }
- catch (      Exception e) {
-        callback.onFailure(e);
-        throw (e);
-      }
-    }
+  try {
+    final ClientCallFuture future=(ClientCallFuture)getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    future.andThen(callback);
   }
-);
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }
