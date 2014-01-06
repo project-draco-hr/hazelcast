@@ -1,9 +1,15 @@
 {
-  Connection conn=null;
-  for (int i=0; i < CONNECTION_TRY_COUNT; i++) {
-    if (conn != null) {
-      break;
+  int count=0;
+  final ClientConnectionManager connectionManager=client.getConnectionManager();
+  IOException lastError=null;
+  while (count < ClientClusterServiceImpl.RETRY_COUNT) {
+    try {
+      return connectionManager.getRandomConnection();
     }
+ catch (    IOException e) {
+      lastError=e;
+    }
+    count++;
   }
-  return conn;
+  throw new HazelcastException("Could not obtain Connection!!!",lastError);
 }
