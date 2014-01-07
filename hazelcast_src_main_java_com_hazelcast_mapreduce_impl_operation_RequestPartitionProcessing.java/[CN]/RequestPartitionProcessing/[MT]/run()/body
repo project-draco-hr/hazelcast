@@ -1,0 +1,31 @@
+{
+  MapReduceService mapReduceService=getService();
+  JobSupervisor supervisor=mapReduceService.getJobSupervisor(name,jobId);
+  if (supervisor == null) {
+    return;
+  }
+  JobProcessInformationImpl processInformation=supervisor.getJobProcessInformation();
+  JobPartitionState newPartitonState=new JobPartitionStateImpl(getCallerAddress(),JobPartitionState.State.PROCESSING);
+  if (checkState(processInformation)) {
+    for (; ; ) {
+      JobPartitionState[] oldPartitionStates=processInformation.getPartitionStates();
+      JobPartitionState[] newPartitonStates=Arrays.copyOf(oldPartitionStates,oldPartitionStates.length);
+      newPartitonStates[partitionId]=newPartitonState;
+      if (!processInformation.updatePartitionState(oldPartitionStates,newPartitonStates)) {
+        if (checkState(processInformation)) {
+          continue;
+        }
+      }
+ else {
+        JobPartitionState[] partitionStates=processInformation.getPartitionStates();
+        JobPartitionState partitionState=partitionStates[partitionId];
+        if (partitionState.getState() == JobPartitionState.State.PROCESSING && partitionState.getOwner().equals(getCallerAddress())) {
+          this.partitionStates=partitionStates;
+          return;
+        }
+        this.partitionStates=partitionStates;
+        return;
+      }
+    }
+  }
+}

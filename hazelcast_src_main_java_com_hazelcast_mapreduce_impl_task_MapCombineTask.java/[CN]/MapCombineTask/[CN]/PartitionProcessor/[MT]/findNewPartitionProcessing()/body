@@ -1,0 +1,24 @@
+{
+  List<Integer> localPartitions=mapReduceService.getLocalPartitions();
+  JobProcessInformationImpl processInformation=supervisor.getJobProcessInformation();
+  JobPartitionState[] oldPartitionStates=processInformation.getPartitionStates();
+  for (int i=0; i < oldPartitionStates.length; i++) {
+    try {
+      JobPartitionState partitionState=oldPartitionStates[i];
+      if (partitionState == null || partitionState.getState() == JobPartitionState.State.WAITING) {
+        if (localPartitions.contains(i)) {
+          JobPartitionState[] result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessing(name,jobId,i));
+          if (result == null) {
+            return null;
+          }
+ else {
+            return processNewPartitionStates(processInformation,result);
+          }
+        }
+      }
+    }
+ catch (    Exception e) {
+    }
+  }
+  return null;
+}

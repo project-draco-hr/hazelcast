@@ -1,6 +1,10 @@
 {
   MapReduceService mapReduceService=getService();
-  JobSupervisor supervisor=mapReduceService.createJobSupervisor(new JobTaskConfiguration(chunkSize,name,jobId,mapper,combinerFactory,reducerFactory,keyValueSource));
+  Address jobOwner=getCallerAddress();
+  if (jobOwner == null) {
+    jobOwner=getNodeEngine().getThisAddress();
+  }
+  JobSupervisor supervisor=mapReduceService.createJobSupervisor(new JobTaskConfiguration(jobOwner,getNodeEngine(),chunkSize,name,jobId,mapper,combinerFactory,reducerFactory,keyValueSource));
   MappingPhase mappingPhase=new KeyValueSourceMappingPhase(mapper,keys,predicate);
   supervisor.startTasks(mappingPhase);
 }
