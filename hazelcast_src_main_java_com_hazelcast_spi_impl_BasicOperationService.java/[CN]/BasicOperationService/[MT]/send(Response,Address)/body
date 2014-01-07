@@ -1,0 +1,16 @@
+{
+  if (target == null) {
+    throw new IllegalArgumentException("Target is required!");
+  }
+  if (nodeEngine.getThisAddress().equals(target)) {
+    throw new IllegalArgumentException("Target is this node! -> " + target + ", response: "+ response);
+  }
+  Data data=nodeEngine.toData(response);
+  Packet packet=new Packet(data,nodeEngine.getSerializationContext());
+  packet.setHeader(Packet.HEADER_OP);
+  packet.setHeader(Packet.HEADER_RESPONSE);
+  if (response.isUrgent()) {
+    packet.setHeader(Packet.HEADER_URGENT);
+  }
+  return nodeEngine.send(packet,node.getConnectionManager().getOrConnect(target));
+}
