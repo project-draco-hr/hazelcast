@@ -2,7 +2,15 @@
   try {
     final Data data=packet.getData();
     final Response response=(Response)nodeEngine.toObject(data);
-    notifyRemoteCall(response.callId,response);
+    if (response instanceof NormalResponse) {
+      notifyRemoteCall((NormalResponse)response);
+    }
+ else     if (response instanceof BackupResponse) {
+      notifyBackupCall(response.getCallId());
+    }
+ else {
+      throw new IllegalStateException("Unrecognized response type: " + response);
+    }
   }
  catch (  Throwable e) {
     logger.severe("While processing response...",e);
