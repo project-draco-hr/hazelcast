@@ -1,7 +1,7 @@
 {
   if (!nodeEngine.isActive()) {
     remote=false;
-    notify(new HazelcastInstanceNotActiveException());
+    sendResponse(new HazelcastInstanceNotActiveException());
     return;
   }
   final Address invTarget=getTarget();
@@ -11,31 +11,30 @@
   if (invTarget == null) {
     remote=false;
     if (nodeEngine.isActive()) {
-      notify(new WrongTargetException(thisAddress,null,partitionId,replicaIndex,op.getClass().getName(),serviceName));
+      sendResponse(new WrongTargetException(thisAddress,null,partitionId,replicaIndex,op.getClass().getName(),serviceName));
     }
  else {
-      notify(new HazelcastInstanceNotActiveException());
+      sendResponse(new HazelcastInstanceNotActiveException());
     }
     return;
   }
-  final MemberImpl member=nodeEngine.getClusterService().getMember(invTarget);
+  member=nodeEngine.getClusterService().getMember(invTarget);
   if (!OperationAccessor.isJoinOperation(op) && member == null) {
-    notify(new TargetNotMemberException(invTarget,partitionId,op.getClass().getName(),serviceName));
+    sendResponse(new TargetNotMemberException(invTarget,partitionId,op.getClass().getName(),serviceName));
     return;
   }
   if (op.getPartitionId() != partitionId) {
-    notify(new IllegalStateException("Partition id of operation: " + op.getPartitionId() + " is not equal to the partition id of invocation: "+ partitionId));
+    sendResponse(new IllegalStateException("Partition id of operation: " + op.getPartitionId() + " is not equal to the partition id of invocation: "+ partitionId));
     return;
   }
   if (op.getReplicaIndex() != replicaIndex) {
-    notify(new IllegalStateException("Replica index of operation: " + op.getReplicaIndex() + " is not equal to the replica index of invocation: "+ replicaIndex));
+    sendResponse(new IllegalStateException("Replica index of operation: " + op.getReplicaIndex() + " is not equal to the replica index of invocation: "+ replicaIndex));
     return;
   }
   OperationAccessor.setInvocationTime(op,nodeEngine.getClusterTime());
   remote=!thisAddress.equals(invTarget);
   if (remote) {
-    final RemoteCall call=member != null ? new RemoteCall(member,this) : new RemoteCall(invTarget,this);
-    final long callId=operationService.registerRemoteCall(call);
+    final long callId=operationService.registerRemoteCall(this);
     if (op instanceof BackupAwareOperation) {
       registerBackups((BackupAwareOperation)op,callId);
     }
@@ -44,7 +43,7 @@
     if (!sent) {
       operationService.deregisterRemoteCall(callId);
       operationService.deregisterBackupCall(callId);
-      notify(new RetryableIOException("Packet not sent to -> " + invTarget));
+      sendResponse(new RetryableIOException("Packet not sent to -> " + invTarget));
     }
   }
  else {
