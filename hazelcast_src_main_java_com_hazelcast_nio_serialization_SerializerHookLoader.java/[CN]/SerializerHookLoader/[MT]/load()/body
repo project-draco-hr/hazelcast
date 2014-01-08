@@ -1,0 +1,36 @@
+{
+  try {
+    final Iterator<SerializerHook> hooks=ServiceLoader.iterator(SerializerHook.class,FACTORY_ID,classLoader);
+    while (hooks.hasNext()) {
+      final SerializerHook hook=hooks.next();
+      final Class serializationType=hook.getSerializationType();
+      serializers.put(serializationType,hook);
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  if (serializerConfigs != null) {
+    for (    SerializerConfig serializerConfig : serializerConfigs) {
+      Serializer serializer=serializerConfig.getImplementation();
+      if (serializer == null) {
+        try {
+          serializer=ClassLoaderUtil.newInstance(classLoader,serializerConfig.getClassName());
+        }
+ catch (        Exception e) {
+          throw new HazelcastSerializationException(e);
+        }
+      }
+      Class serializationType=serializerConfig.getTypeClass();
+      if (serializationType == null) {
+        try {
+          serializationType=ClassLoaderUtil.loadClass(classLoader,serializerConfig.getTypeClassName());
+        }
+ catch (        ClassNotFoundException e) {
+          throw new HazelcastSerializationException(e);
+        }
+      }
+      register(serializationType,serializer);
+    }
+  }
+}
