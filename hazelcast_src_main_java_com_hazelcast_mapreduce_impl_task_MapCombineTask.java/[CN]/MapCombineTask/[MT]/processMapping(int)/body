@@ -1,0 +1,15 @@
+{
+  DefaultContext<KeyOut,ValueOut> context=createContext();
+  if (mapper instanceof LifecycleMapper) {
+    ((LifecycleMapper)mapper).initialize(context);
+  }
+  mappingPhase.executeMappingPhase(keyValueSource,context);
+  if (mapper instanceof LifecycleMapper) {
+    ((LifecycleMapper)mapper).finalized(context);
+  }
+  Map<KeyOut,Chunk> chunkMap=context.finish();
+  Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
+  for (  Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
+    mapReduceService.sendNotification(entry.getKey(),new LastChunkNotification(entry.getKey(),name,jobId,partitionId,entry.getValue()));
+  }
+}

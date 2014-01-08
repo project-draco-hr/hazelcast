@@ -1,14 +1,18 @@
 {
   for (; ; ) {
+    int selectedPartition=-1;
     JobPartitionState[] oldPartitionStates=processInformation.getPartitionStates();
-    if (processInformation.updatePartitionState(oldPartitionStates,newPartitionStates)) {
-      for (int i=0; i < newPartitionStates.length; i++) {
-        JobPartitionState partitionState=newPartitionStates[i];
-        if (partitionState != null && partitionState.getState() == JobPartitionState.State.PROCESSING && partitionState.getOwner().equals(supervisor.getJobOwner())) {
-          return i;
-        }
+    for (int i=0; i < newPartitionStates.length; i++) {
+      JobPartitionState partitionState=newPartitionStates[i];
+      if (partitionState != null && partitionState.getState() == JobPartitionState.State.PROCESSING && partitionState.getOwner().equals(supervisor.getJobOwner())) {
+        selectedPartition=i;
       }
-      return -1;
+ else {
+        newPartitionStates[i]=oldPartitionStates[i];
+      }
+    }
+    if (processInformation.updatePartitionState(oldPartitionStates,newPartitionStates)) {
+      return selectedPartition;
     }
   }
 }
