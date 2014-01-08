@@ -7,17 +7,22 @@
       JobPartitionState partitionState=oldPartitionStates[i];
       if (partitionState == null || partitionState.getState() == JobPartitionState.State.WAITING) {
         if (localPartitions.contains(i)) {
-          JobPartitionState[] result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessing(name,jobId,i));
-          if (result == null) {
+          RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionMapping(name,jobId));
+          if (result.getState() == RequestPartitionResult.State.NO_SUPERVISOR) {
+            System.out.println("MapCombineTask::jobDone?");
             return null;
           }
+ else           if (result.getState() == RequestPartitionResult.State.CHECK_STATE_FAILED) {
+            return -1;
+          }
  else {
-            return processNewPartitionStates(processInformation,result);
+            return result.getPartitionId();
           }
         }
       }
     }
  catch (    Exception e) {
+      e.printStackTrace();
     }
   }
   return null;

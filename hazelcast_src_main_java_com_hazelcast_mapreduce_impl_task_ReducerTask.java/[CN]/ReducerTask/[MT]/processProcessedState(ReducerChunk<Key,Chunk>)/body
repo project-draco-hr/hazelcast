@@ -3,15 +3,14 @@
     MapReduceService mapReduceService=supervisor.getMapReduceService();
     JobProcessInformationImpl processInformation=supervisor.getJobProcessInformation();
     try {
-      JobPartitionState[] result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,reducerChunk.partitionId));
-      processNewPartitionStates(processInformation,result);
-      if (checkFullyProcessed(processInformation)) {
-        Map reducedResults=getReducedResults();
-        ReducerResultNotification notification=new ReducerResultNotification(supervisor.getJobOwner(),name,jobId,reducerChunk.partitionId,reducedResults);
-        mapReduceService.sendNotification(supervisor.getJobOwner(),notification);
+      RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,reducerChunk.partitionId));
+      if (result.getState() == RequestPartitionResult.State.SUCCESSFUL) {
+        if (checkFullyProcessed(processInformation)) {
+        }
       }
     }
  catch (    Exception ignore) {
+      ignore.printStackTrace();
     }
   }
 }
