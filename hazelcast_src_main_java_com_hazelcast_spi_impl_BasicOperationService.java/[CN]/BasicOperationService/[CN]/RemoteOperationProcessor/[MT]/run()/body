@@ -1,0 +1,33 @@
+{
+  final Connection conn=packet.getConn();
+  try {
+    final Address caller=conn.getEndPoint();
+    final Data data=packet.getData();
+    final Object object=nodeEngine.toObject(data);
+    final Operation op=(Operation)object;
+    op.setNodeEngine(nodeEngine);
+    OperationAccessor.setCallerAddress(op,caller);
+    OperationAccessor.setConnection(op,conn);
+    ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
+    if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
+      final Exception error=new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName());
+      handleOperationError(op,error);
+    }
+ else {
+      String executorName=op.getExecutorName();
+      if (executorName == null) {
+        doRunOperation(op);
+      }
+ else {
+        ManagedExecutorService executor=executionService.getExecutor(executorName);
+        if (executor == null) {
+          throw new IllegalStateException("Could not found executor with name: " + executorName);
+        }
+        executor.execute(new LocalOperationProcessor(op));
+      }
+    }
+  }
+ catch (  Throwable e) {
+    logger.severe(e);
+  }
+}

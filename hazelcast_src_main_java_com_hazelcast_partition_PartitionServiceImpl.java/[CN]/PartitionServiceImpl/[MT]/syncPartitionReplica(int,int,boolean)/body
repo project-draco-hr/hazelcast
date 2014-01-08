@@ -1,8 +1,8 @@
 {
-  if (replicaIndex < 0 || replicaIndex > PartitionImpl.MAX_REPLICA_COUNT) {
+  if (replicaIndex < 0 || replicaIndex > InternalPartition.MAX_REPLICA_COUNT) {
     throw new IllegalArgumentException("Invalid replica index: " + replicaIndex);
   }
-  final PartitionImpl partitionImpl=getPartition(partitionId);
+  final InternalPartitionImpl partitionImpl=getPartition(partitionId);
   final Address target=partitionImpl.getOwner();
   if (target != null) {
     final ReplicaSyncRequest syncRequest=new ReplicaSyncRequest();
@@ -11,13 +11,13 @@
     final ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,replicaIndex,target);
     boolean sendRequest=false;
     if (currentSyncInfo == null) {
-      sendRequest=replicaSyncRequests.putIfAbsent(partitionId,syncInfo) == null;
+      sendRequest=replicaSyncRequests.compareAndSet(partitionId,null,syncInfo);
     }
  else     if (currentSyncInfo.requestTime < (Clock.currentTimeMillis() - 10000) || nodeEngine.getClusterService().getMember(currentSyncInfo.target) == null) {
-      sendRequest=replicaSyncRequests.replace(partitionId,currentSyncInfo,syncInfo);
+      sendRequest=replicaSyncRequests.compareAndSet(partitionId,currentSyncInfo,syncInfo);
     }
  else     if (force) {
-      replicaSyncRequests.put(partitionId,syncInfo);
+      replicaSyncRequests.set(partitionId,syncInfo);
       sendRequest=true;
     }
     if (target.equals(nodeEngine.getThisAddress())) {

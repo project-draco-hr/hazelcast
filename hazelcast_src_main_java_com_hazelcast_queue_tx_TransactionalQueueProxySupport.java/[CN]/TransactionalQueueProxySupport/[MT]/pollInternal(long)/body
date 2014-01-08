@@ -2,8 +2,7 @@
   QueueItem reservedOffer=offeredQueue.peek();
   TxnReservePollOperation operation=new TxnReservePollOperation(name,timeout,reservedOffer == null ? -1 : reservedOffer.getItemId(),tx.getTxnId());
   try {
-    Invocation invocation=getNodeEngine().getOperationService().createInvocationBuilder(QueueService.SERVICE_NAME,operation,partitionId).build();
-    Future<QueueItem> f=invocation.invoke();
+    Future<QueueItem> f=getNodeEngine().getOperationService().invokeOnPartition(QueueService.SERVICE_NAME,operation,partitionId);
     QueueItem item=f.get();
     if (item != null) {
       if (reservedOffer != null && item.getItemId() == reservedOffer.getItemId()) {

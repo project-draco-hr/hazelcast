@@ -1,8 +1,9 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
-  Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(CountDownLatchService.SERVICE_NAME,new SetCountOperation(name,count),partitionId).build();
+  SetCountOperation op=new SetCountOperation(name,count);
+  Future<Boolean> f=nodeEngine.getOperationService().invokeOnPartition(CountDownLatchService.SERVICE_NAME,op,partitionId);
   try {
-    return (Boolean)nodeEngine.toObject(inv.invoke().get());
+    return f.get();
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);

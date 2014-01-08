@@ -1,0 +1,25 @@
+{
+  boolean changed=false;
+  Address oldAddress;
+  for (; ; ) {
+    Address[] oldAddresses=addresses;
+    oldAddress=oldAddresses[replicaIndex];
+    if (partitionListener != null) {
+      if (oldAddress == null) {
+        changed=(newAddress != null);
+      }
+ else {
+        changed=!oldAddress.equals(newAddress);
+      }
+    }
+    Address[] newAddresses=new Address[MAX_REPLICA_COUNT];
+    arraycopy(oldAddresses,0,newAddresses,0,MAX_REPLICA_COUNT);
+    newAddresses[replicaIndex]=newAddress;
+    if (addressesUpdater.compareAndSet(this,oldAddresses,newAddresses)) {
+      break;
+    }
+  }
+  if (changed) {
+    partitionListener.replicaChanged(new PartitionReplicaChangeEvent(partitionId,replicaIndex,oldAddress,newAddress));
+  }
+}

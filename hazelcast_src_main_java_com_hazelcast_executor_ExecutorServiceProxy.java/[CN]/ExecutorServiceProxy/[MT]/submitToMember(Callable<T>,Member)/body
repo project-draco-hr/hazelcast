@@ -4,11 +4,10 @@
     throw new RejectedExecutionException(getRejectionMessage());
   }
   final NodeEngine nodeEngine=getNodeEngine();
-  final String uuid=UUID.randomUUID().toString();
+  final String uuid=UuidUtil.buildRandomUuidString();
   final Address target=((MemberImpl)member).getAddress();
-  Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(DistributedExecutorService.SERVICE_NAME,new MemberCallableTaskOperation(name,uuid,task),target).build();
   final boolean sync=checkSync();
-  final Future future=inv.invoke();
+  final InternalCompletableFuture future=nodeEngine.getOperationService().invokeOnTarget(DistributedExecutorService.SERVICE_NAME,new MemberCallableTaskOperation(name,uuid,task),target);
   if (sync) {
     Object response;
     try {
@@ -17,7 +16,7 @@
  catch (    Exception e) {
       response=e;
     }
-    return new CompletedFuture<T>(nodeEngine.getSerializationService(),response);
+    return new CompletedFuture<T>(nodeEngine.getSerializationService(),response,getAsyncExecutor());
   }
   return new CancellableDelegatingFuture<T>(future,nodeEngine,uuid,target);
 }

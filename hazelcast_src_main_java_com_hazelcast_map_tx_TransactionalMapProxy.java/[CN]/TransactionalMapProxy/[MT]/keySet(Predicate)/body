@@ -3,13 +3,12 @@
   if (predicate == null) {
     throw new NullPointerException("Predicate should not be null!");
   }
+  if (predicate instanceof PagingPredicate) {
+    throw new NullPointerException("Paging is not supported for Transactional queries!");
+  }
   final MapService service=getService();
   final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.KEY,false);
-  final Set<Object> keySet=new HashSet<Object>(queryResultSet.size());
-  final Iterator iterator=queryResultSet.iterator();
-  while (iterator.hasNext()) {
-    keySet.add(iterator.next());
-  }
+  final Set<Object> keySet=new HashSet<Object>(queryResultSet);
   for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
     if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
       final Object value=entry.getValue().value instanceof Data ? service.toObject(entry.getValue().value) : entry.getValue().value;

@@ -4,14 +4,12 @@
   EntryOperation operation=new EntryOperation(name,key,entryProcessor);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
-    Invocation invocation;
     if (callback == null) {
-      invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).build();
+      return nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
     }
  else {
-      invocation=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).setCallback(new ExecutionCallbackAdapter(callback)).build();
+      return nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).setCallback(new MapExecutionCallbackAdapter(callback)).invoke();
     }
-    return invocation.invoke();
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);

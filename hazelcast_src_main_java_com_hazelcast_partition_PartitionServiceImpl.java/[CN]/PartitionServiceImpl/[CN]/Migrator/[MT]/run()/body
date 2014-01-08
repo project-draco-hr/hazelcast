@@ -5,7 +5,7 @@
   final MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo);
   try {
     MigrationInfo info=migrationInfo;
-    PartitionImpl partition=partitions[info.getPartitionId()];
+    InternalPartitionImpl partition=partitions[info.getPartitionId()];
     if (!partition.getOwner().equals(info.getSource())) {
       logger.severe("ERROR: partition owner is not the source of migration! -> " + partition + " -VS- "+ info);
     }
@@ -17,8 +17,7 @@
     }
     systemLogService.logPartition("Started Migration : " + migrationInfo);
     if (fromMember != null) {
-      Invocation inv=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(1000).build();
-      Future future=inv.invoke();
+      Future future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(1000).invoke();
       try {
         result=(Boolean)nodeEngine.toObject(future.get(partitionMigrationTimeout,TimeUnit.SECONDS));
       }

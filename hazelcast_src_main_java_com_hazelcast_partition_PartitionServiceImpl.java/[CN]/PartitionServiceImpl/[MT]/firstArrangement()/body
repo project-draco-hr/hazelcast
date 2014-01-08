@@ -11,10 +11,12 @@
       PartitionStateGenerator psg=partitionStateGenerator;
       logger.info("Initializing cluster partition table first arrangement...");
       final Set<Member> members=node.getClusterService().getMembers();
-      PartitionImpl[] newState=psg.initialize(memberGroupFactory.createMemberGroups(members),partitionCount);
+      Address[][] newState=psg.initialize(memberGroupFactory.createMemberGroups(members),partitionCount);
       if (newState != null) {
-        for (        PartitionImpl partition : newState) {
-          partitions[partition.getPartitionId()].setPartitionInfo(partition);
+        for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+          InternalPartitionImpl partition=partitions[partitionId];
+          Address[] replicas=newState[partitionId];
+          partition.setPartitionInfo(replicas);
         }
         initialized=true;
         sendPartitionRuntimeState(true);

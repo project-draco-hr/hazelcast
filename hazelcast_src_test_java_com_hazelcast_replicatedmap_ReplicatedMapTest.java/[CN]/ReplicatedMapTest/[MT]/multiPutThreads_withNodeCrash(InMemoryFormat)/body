@@ -1,0 +1,57 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  Config cfg=new Config();
+  cfg.getReplicatedMapConfig("default").setInMemoryFormat(inMemoryFormat);
+  cfg.getReplicatedMapConfig("default").setReplicationDelayMillis(0);
+  cfg.getReplicatedMapConfig("default").setConcurrencyLevel(1);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(cfg);
+  final ReplicatedMap<Object,Object> mapA=instance1.getReplicatedMap("default");
+  final ReplicatedMap<Object,Object> mapB=instance2.getReplicatedMap("default");
+  final ReplicatedMap<Object,Object> mapC=instance3.getReplicatedMap("default");
+  Thread[] pool=new Thread[10];
+  CyclicBarrier gate=new CyclicBarrier(pool.length + 1);
+  for (int i=0; i < 1; i++) {
+    pool[i]=new GatedThread(gate){
+      public void go(){
+        for (int i=0; i < 1000; i++) {
+          if (i < 500) {
+            mapA.put(i + "A",i);
+          }
+ else           if (i == 500) {
+            mapC.put(i + "C",i);
+            TestUtil.terminateInstance(instance1);
+          }
+ else {
+            mapC.put(i + "C",i);
+          }
+        }
+      }
+    }
+;
+    pool[i].start();
+  }
+  for (int i=1; i < 10; i++) {
+    pool[i]=new GatedThread(gate){
+      public void go(){
+        for (int i=0; i < 1000; i++)         mapB.put(i + "B",i);
+      }
+    }
+;
+    pool[i].start();
+  }
+  gate.await();
+  for (  Thread t : pool) {
+    t.join();
+  }
+  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+    public void run(){
+      for (int i=0; i < 1000; i++) {
+        assertEquals(mapB.get(i + "A"),mapC.get(i + "A"));
+        assertEquals(mapB.get(i + "B"),mapC.get(i + "B"));
+      }
+    }
+  }
+);
+}

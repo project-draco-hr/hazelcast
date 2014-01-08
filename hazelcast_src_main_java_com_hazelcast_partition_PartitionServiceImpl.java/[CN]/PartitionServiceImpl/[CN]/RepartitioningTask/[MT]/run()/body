@@ -8,18 +8,18 @@
       migrationQueue.clear();
       final PartitionStateGenerator psg=partitionStateGenerator;
       final Set<Member> members=node.getClusterService().getMembers();
-      final PartitionImpl[] newState=psg.reArrange(memberGroupFactory.createMemberGroups(members),partitions);
+      final Address[][] newState=psg.reArrange(memberGroupFactory.createMemberGroups(members),partitions);
       int migrationCount=0;
       int lostCount=0;
       lastRepartitionTime.set(Clock.currentTimeMillis());
-      for (      PartitionImpl newPartition : newState) {
-        int partitionId=newPartition.getPartitionId();
-        PartitionImpl currentPartition=partitions[partitionId];
+      for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+        Address[] replicas=newState[partitionId];
+        InternalPartitionImpl currentPartition=partitions[partitionId];
         Address currentOwner=currentPartition.getOwner();
-        Address newOwner=newPartition.getOwner();
+        Address newOwner=replicas[0];
         if (currentOwner == null) {
           lostCount++;
-          currentPartition.setPartitionInfo(newPartition);
+          currentPartition.setPartitionInfo(replicas);
           MigrationInfo migrationInfo=new MigrationInfo(partitionId,null,newOwner);
           sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
           sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
@@ -27,11 +27,11 @@
  else         if (newOwner != null && !currentOwner.equals(newOwner)) {
           migrationCount++;
           MigrationInfo info=new MigrationInfo(partitionId,currentOwner,newOwner);
-          final Migrator migrator=new Migrator(info,new BackupMigrationTask(newPartition));
+          final Migrator migrator=new Migrator(info,new BackupMigrationTask(partitionId,replicas));
           migrationQueue.offer(migrator);
         }
  else {
-          currentPartition.setPartitionInfo(newPartition);
+          currentPartition.setPartitionInfo(replicas);
         }
       }
       sendPartitionRuntimeState(false);
