@@ -3,28 +3,33 @@
   try {
     final Address caller=conn.getEndPoint();
     final Data data=packet.getData();
-    final Object object=nodeEngine.toObject(data);
-    final Operation op=(Operation)object;
+    op=(Operation)nodeEngine.toObject(data);
     op.setNodeEngine(nodeEngine);
     OperationAccessor.setCallerAddress(op,caller);
     OperationAccessor.setConnection(op,conn);
-    ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,op);
+    if (op.getCallId() == 0) {
+      if (op.returnsResponse()) {
+        throw new HazelcastException("Op: " + op.getClass().getName() + " can not return response without call-id!");
+      }
+    }
+ else {
+      op.setResponseHandler(this);
+    }
     if (!OperationAccessor.isJoinOperation(op) && node.clusterService.getMember(op.getCallerAddress()) == null) {
       final Exception error=new CallerNotMemberException(op.getCallerAddress(),op.getPartitionId(),op.getClass().getName(),op.getServiceName());
       handleOperationError(op,error);
+      return;
+    }
+    String executorName=op.getExecutorName();
+    if (executorName == null) {
+      doRunOperation(op);
     }
  else {
-      String executorName=op.getExecutorName();
-      if (executorName == null) {
-        doRunOperation(op);
+      ManagedExecutorService executor=executionService.getExecutor(executorName);
+      if (executor == null) {
+        throw new IllegalStateException("Could not found executor with name: " + executorName);
       }
- else {
-        ManagedExecutorService executor=executionService.getExecutor(executorName);
-        if (executor == null) {
-          throw new IllegalStateException("Could not found executor with name: " + executorName);
-        }
-        executor.execute(new LocalOperationProcessor(op));
-      }
+      executor.execute(new LocalOperationProcessor(op));
     }
   }
  catch (  Throwable e) {

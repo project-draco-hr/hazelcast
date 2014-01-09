@@ -1,0 +1,18 @@
+{
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(5).newInstances();
+  HazelcastInstance local=instances[0];
+  warmUpPartitions(instances);
+  IAtomicLong[] counters=new IAtomicLong[100];
+  for (int k=0; k < counters.length; k++) {
+    counters[k]=local.getAtomicLong(UUID.randomUUID().toString());
+  }
+  Random random=new Random();
+  for (int k=0; k < ITERATION_COUNT; k++) {
+    IAtomicLong counter=getCounter(counters,random);
+    counter.set(k);
+    if (k % 100000 == 0) {
+      System.out.println("at " + k);
+    }
+  }
+  assertNoMoreRegisteredInvocations(instances);
+}

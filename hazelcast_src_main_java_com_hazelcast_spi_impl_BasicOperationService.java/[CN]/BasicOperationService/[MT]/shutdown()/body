@@ -4,12 +4,10 @@
     executor.shutdown();
   }
   responseExecutor.shutdown();
-  final Object response=new HazelcastInstanceNotActiveException();
-  for (  RemoteCall call : remoteCalls.values()) {
-    call.offerResponse(response);
+  for (  BasicInvocation invocation : localInvocations.values()) {
+    invocation.sendResponse(new HazelcastInstanceNotActiveException());
   }
-  remoteCalls.clear();
-  backupCalls.clear();
+  localInvocations.clear();
   backupScheduler.cancelAll();
   for (  ExecutorService executor : operationExecutors) {
     try {
