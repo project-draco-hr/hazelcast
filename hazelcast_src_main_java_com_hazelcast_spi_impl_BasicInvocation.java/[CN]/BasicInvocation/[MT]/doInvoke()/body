@@ -1,8 +1,12 @@
 {
   if (!nodeEngine.isActive()) {
     remote=false;
-    sendResponse(new HazelcastInstanceNotActiveException());
+    invoke(new HazelcastInstanceNotActiveException());
     return;
+  }
+  long cid=op.getCallId();
+  if (cid > 0) {
+    BasicInvocation in=operationService.deregisterInvocation(cid);
   }
   final Address invTarget=getTarget();
   target=invTarget;
@@ -11,24 +15,24 @@
   if (invTarget == null) {
     remote=false;
     if (nodeEngine.isActive()) {
-      sendResponse(new WrongTargetException(thisAddress,null,partitionId,replicaIndex,op.getClass().getName(),serviceName));
+      invoke(new WrongTargetException(thisAddress,null,partitionId,replicaIndex,op.getClass().getName(),serviceName));
     }
  else {
-      sendResponse(new HazelcastInstanceNotActiveException());
+      invoke(new HazelcastInstanceNotActiveException());
     }
     return;
   }
   member=nodeEngine.getClusterService().getMember(invTarget);
   if (!OperationAccessor.isJoinOperation(op) && member == null) {
-    sendResponse(new TargetNotMemberException(invTarget,partitionId,op.getClass().getName(),serviceName));
+    invoke(new TargetNotMemberException(invTarget,partitionId,op.getClass().getName(),serviceName));
     return;
   }
   if (op.getPartitionId() != partitionId) {
-    sendResponse(new IllegalStateException("Partition id of operation: " + op.getPartitionId() + " is not equal to the partition id of invocation: "+ partitionId));
+    invoke(new IllegalStateException("Partition id of operation: " + op.getPartitionId() + " is not equal to the partition id of invocation: "+ partitionId));
     return;
   }
   if (op.getReplicaIndex() != replicaIndex) {
-    sendResponse(new IllegalStateException("Replica index of operation: " + op.getReplicaIndex() + " is not equal to the replica index of invocation: "+ replicaIndex));
+    invoke(new IllegalStateException("Replica index of operation: " + op.getReplicaIndex() + " is not equal to the replica index of invocation: "+ replicaIndex));
     return;
   }
   OperationAccessor.setInvocationTime(op,nodeEngine.getClusterTime());
@@ -39,7 +43,7 @@
     boolean sent=operationService.send(op,invTarget);
     if (!sent) {
       operationService.deregisterInvocation(callId);
-      sendResponse(new RetryableIOException("Packet not sent to -> " + invTarget));
+      invoke(new RetryableIOException("Packet not sent to -> " + invTarget));
     }
   }
  else {
