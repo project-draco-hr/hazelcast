@@ -17,8 +17,12 @@
   CompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory(client,context)).submit();
   future.andThen(new ExecutionCallback<Map<String,Integer>>(){
     @Override public void onResponse(    Map<String,Integer> response){
-      listenerResults.putAll(response);
-      semaphore.release();
+      try {
+        listenerResults.putAll(response);
+      }
+  finally {
+        semaphore.release();
+      }
     }
     @Override public void onFailure(    Throwable t){
       semaphore.release();

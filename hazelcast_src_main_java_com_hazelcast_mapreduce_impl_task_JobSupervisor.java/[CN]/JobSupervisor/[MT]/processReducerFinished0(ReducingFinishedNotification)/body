@@ -1,0 +1,17 @@
+{
+  String name=configuration.getName();
+  String jobId=configuration.getJobId();
+  int partitionId=notification.getPartitionId();
+  Address reducerAddress=notification.getAddress();
+  if (checkPartitionReductionCompleted(partitionId,reducerAddress)) {
+    try {
+      RequestPartitionResult result=mapReduceService.processRequest(jobOwner,new RequestPartitionProcessed(name,jobId,partitionId,REDUCING));
+      if (result.getResultState() != SUCCESSFUL) {
+        throw new RuntimeException("Could not finalize processing for partitionId " + partitionId);
+      }
+    }
+ catch (    Exception ignore) {
+      ignore.printStackTrace();
+    }
+  }
+}

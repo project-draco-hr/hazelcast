@@ -1,16 +1,11 @@
 {
   ClusterService cs=nodeEngine.getClusterService();
-  OperationService os=nodeEngine.getOperationService();
-  PartitionService ps=nodeEngine.getPartitionService();
   Collection<MemberImpl> members=cs.getMemberList();
-  Map<MemberImpl,InternalCompletableFuture> futures=new HashMap<MemberImpl,InternalCompletableFuture>();
   for (  MemberImpl member : members) {
-    Operation operation=new KeyValueJobOperation<KeyIn,ValueIn>(name,jobId,chunkSize,predicate,keyValueSource,mapper,combinerFactory,reducerFactory);
+    Operation operation=new KeyValueJobOperation<KeyIn,ValueIn>(name,jobId,chunkSize,keyValueSource,mapper,combinerFactory,reducerFactory);
     MapReduceUtil.executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
-  Map<Address,List<KeyIn>> mappedKeys=MapReduceUtil.mapKeysToMember(ps,keys);
   for (  MemberImpl member : members) {
-    List<KeyIn> keys=mappedKeys.get(member.getAddress());
     Operation operation=new StartProcessingJobOperation<KeyIn,ValueIn>(name,jobId,keys,predicate,mapper);
     MapReduceUtil.executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }

@@ -1,5 +1,5 @@
 {
-  DefaultContext<KeyOut,ValueOut> context=supervisor.createContext(this);
+  DefaultContext<KeyOut,ValueOut> context=supervisor.createContext(this,partitionId);
   if (mapper instanceof LifecycleMapper) {
     ((LifecycleMapper)mapper).initialize(context);
   }
@@ -12,9 +12,35 @@
     if (result.getResultState() == SUCCESSFUL) {
       if (supervisor.getConfiguration().getReducerFactory() != null) {
         Map<KeyOut,Chunk> chunkMap=context.finish();
-        Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
-        for (        Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
-          mapReduceService.sendNotification(entry.getKey(),new LastChunkNotification(entry.getKey(),name,jobId,partitionId,entry.getValue()));
+        if (chunkMap.size() > 0) {
+          Address sender=mapReduceService.getLocalAddress();
+          Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
+          supervisor.registerReducerEventInterests(partitionId,mapping.keySet());
+          for (          Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
+            Address receiver=entry.getKey();
+            Map<KeyOut,Chunk> chunk=entry.getValue();
+            mapReduceService.sendNotification(receiver,new LastChunkNotification(receiver,name,jobId,sender,partitionId,chunk));
+          }
+          Set<Address> addresses=mapping.keySet();
+          Collection<Address> reducerInterests=supervisor.getReducerEventInterests(partitionId);
+          if (reducerInterests != null) {
+            for (            Address address : reducerInterests) {
+              if (!addresses.contains(address)) {
+                mapReduceService.sendNotification(address,new LastChunkNotification(address,name,jobId,sender,partitionId,Collections.emptyMap()));
+              }
+            }
+          }
+        }
+ else {
+          try {
+            result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,partitionId,REDUCING));
+            if (result.getResultState() != SUCCESSFUL) {
+              throw new RuntimeException("Could not finalize processing for partitionId " + partitionId);
+            }
+          }
+ catch (          Exception ignore) {
+            ignore.printStackTrace();
+          }
         }
       }
     }
