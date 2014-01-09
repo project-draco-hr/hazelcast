@@ -1,6 +1,5 @@
 {
   Config config=buildConfig();
-  CountingManagedContext context=(CountingManagedContext)config.getManagedContext();
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
@@ -11,7 +10,7 @@
   }
   JobTracker tracker=client.getJobTracker("default");
   Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
-  CompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory(client,context)).submit();
+  CompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit();
   Map<String,Integer> result=future.get();
   int[] expectedResults=new int[4];
   for (int i=0; i < 100; i++) {
@@ -21,6 +20,4 @@
   for (int i=0; i < 4; i++) {
     assertEquals(expectedResults[i],(int)result.get(String.valueOf(i)));
   }
-  Set<String> hazelcastNames=context.getHazelcastNames();
-  assertEquals(1,hazelcastNames.size());
 }
