@@ -6,40 +6,13 @@
   Map<MemberImpl,InternalCompletableFuture> futures=new HashMap<MemberImpl,InternalCompletableFuture>();
   for (  MemberImpl member : members) {
     Operation operation=new KeyValueJobOperation<KeyIn,ValueIn>(name,jobId,chunkSize,predicate,keyValueSource,mapper,combinerFactory,reducerFactory);
-    try {
-      if (cs.getThisAddress().equals(member.getAddress())) {
-        operation.setNodeEngine(nodeEngine);
-        operation.setCallerUuid(nodeEngine.getLocalMember().getUuid());
-        operation.setService(mapReduceService);
-        operation.run();
-      }
- else {
-        InvocationBuilder ib=os.createInvocationBuilder(MapReduceService.SERVICE_NAME,operation,member.getAddress());
-        ib.invoke().get();
-      }
-    }
- catch (    Exception e) {
-      throw new RuntimeException(e);
-    }
+    MapReduceUtil.executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
   Map<Address,List<KeyIn>> mappedKeys=MapReduceUtil.mapKeysToMember(ps,keys);
   for (  MemberImpl member : members) {
-    try {
-      List<KeyIn> keys=mappedKeys.get(member.getAddress());
-      Operation operation=new StartProcessingJobOperation<KeyIn,ValueIn>(name,jobId,keys,predicate,mapper);
-      if (cs.getThisAddress().equals(member.getAddress())) {
-        operation.setNodeEngine(nodeEngine);
-        operation.setServiceName(MapReduceService.SERVICE_NAME);
-        operation.setCallerUuid(nodeEngine.getLocalMember().getUuid());
-        os.runOperation(operation);
-      }
- else {
-        os.send(operation,member.getAddress());
-      }
-    }
- catch (    Exception e) {
-      throw new RuntimeException(e);
-    }
+    List<KeyIn> keys=mappedKeys.get(member.getAddress());
+    Operation operation=new StartProcessingJobOperation<KeyIn,ValueIn>(name,jobId,keys,predicate,mapper);
+    MapReduceUtil.executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
   return jobFuture;
 }

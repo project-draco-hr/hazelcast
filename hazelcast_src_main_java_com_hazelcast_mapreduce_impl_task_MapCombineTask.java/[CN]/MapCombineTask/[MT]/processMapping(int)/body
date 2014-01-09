@@ -1,5 +1,5 @@
 {
-  DefaultContext<KeyOut,ValueOut> context=createContext();
+  DefaultContext<KeyOut,ValueOut> context=supervisor.createContext(this);
   if (mapper instanceof LifecycleMapper) {
     ((LifecycleMapper)mapper).initialize(context);
   }
@@ -7,13 +7,15 @@
   if (mapper instanceof LifecycleMapper) {
     ((LifecycleMapper)mapper).finalized(context);
   }
-  Map<KeyOut,Chunk> chunkMap=context.finish();
   try {
     RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionReducing(name,jobId,partitionId));
-    if (result.getState() == RequestPartitionResult.State.SUCCESSFUL) {
-      Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
-      for (      Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
-        mapReduceService.sendNotification(entry.getKey(),new LastChunkNotification(entry.getKey(),name,jobId,partitionId,entry.getValue()));
+    if (result.getResultState() == SUCCESSFUL) {
+      if (supervisor.getConfiguration().getReducerFactory() != null) {
+        Map<KeyOut,Chunk> chunkMap=context.finish();
+        Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
+        for (        Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
+          mapReduceService.sendNotification(entry.getKey(),new LastChunkNotification(entry.getKey(),name,jobId,partitionId,entry.getValue()));
+        }
       }
     }
  else {

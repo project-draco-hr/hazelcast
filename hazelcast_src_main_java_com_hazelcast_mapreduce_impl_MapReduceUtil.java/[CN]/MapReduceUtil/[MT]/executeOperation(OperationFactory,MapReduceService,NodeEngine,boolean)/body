@@ -1,0 +1,33 @@
+{
+  ClusterService cs=nodeEngine.getClusterService();
+  OperationService os=nodeEngine.getOperationService();
+  Collection<MemberImpl> members=cs.getMemberList();
+  List<V> results=returnsResponse ? new ArrayList<V>() : null;
+  for (  MemberImpl member : members) {
+    try {
+      Operation operation=operationFactory.createOperation();
+      if (cs.getThisAddress().equals(member.getAddress())) {
+        operation.setNodeEngine(nodeEngine);
+        operation.setCallerUuid(nodeEngine.getLocalMember().getUuid());
+        operation.setService(mapReduceService);
+        operation.run();
+        if (returnsResponse) {
+          results.add((V)operation.getResponse());
+        }
+      }
+ else {
+        if (returnsResponse) {
+          InvocationBuilder ib=os.createInvocationBuilder(SERVICE_NAME,operation,member.getAddress());
+          results.add((V)ib.invoke().get());
+        }
+ else {
+          os.send(operation,member.getAddress());
+        }
+      }
+    }
+ catch (    Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+  return results;
+}
