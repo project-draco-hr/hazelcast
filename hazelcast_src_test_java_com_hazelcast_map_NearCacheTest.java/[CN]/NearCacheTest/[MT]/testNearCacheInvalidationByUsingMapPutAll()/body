@@ -13,12 +13,17 @@
   for (int i=0; i < count; i++) {
     map.get(i);
   }
-  NearCache nearCache=getNearCache(mapName,instances[0]);
+  final NearCache nearCache=getNearCache(mapName,instances[0]);
   assertTrue(nearCache.size() > (count / n - count * 0.1));
   Map<Object,Object> invalidationMap=new HashMap<Object,Object>(count);
   for (int i=0; i < count; i++) {
     invalidationMap.put(i,i);
   }
   map.putAll(invalidationMap);
-  assertEquals("Invalidation is not working on putAll()",0,nearCache.size());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals("Invalidation is not working on putAll()",0,nearCache.size());
+    }
+  }
+);
 }
