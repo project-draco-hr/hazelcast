@@ -1,12 +1,10 @@
 {
   if (reducerChunk.partitionId != -1) {
     MapReduceService mapReduceService=supervisor.getMapReduceService();
-    JobProcessInformationImpl processInformation=supervisor.getJobProcessInformation();
     try {
       RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,reducerChunk.partitionId));
-      if (result.getState() == RequestPartitionResult.State.SUCCESSFUL) {
-        if (checkFullyProcessed(processInformation)) {
-        }
+      if (result.getState() != RequestPartitionResult.State.SUCCESSFUL) {
+        throw new RuntimeException("Could not finalize processing " + "for partitionId " + reducerChunk.partitionId);
       }
     }
  catch (    Exception ignore) {

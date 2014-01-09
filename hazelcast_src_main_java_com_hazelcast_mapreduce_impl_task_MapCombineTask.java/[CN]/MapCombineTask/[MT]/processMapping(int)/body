@@ -10,12 +10,14 @@
   Map<KeyOut,Chunk> chunkMap=context.finish();
   try {
     RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionReducing(name,jobId,partitionId));
-    System.out.println("Event sent: " + partitionId);
     if (result.getState() == RequestPartitionResult.State.SUCCESSFUL) {
       Map<Address,Map<KeyOut,Chunk>> mapping=mapResultToMember(mapReduceService,chunkMap);
       for (      Map.Entry<Address,Map<KeyOut,Chunk>> entry : mapping.entrySet()) {
         mapReduceService.sendNotification(entry.getKey(),new LastChunkNotification(entry.getKey(),name,jobId,partitionId,entry.getValue()));
       }
+    }
+ else {
+      System.out.println(result);
     }
   }
  catch (  Exception e) {

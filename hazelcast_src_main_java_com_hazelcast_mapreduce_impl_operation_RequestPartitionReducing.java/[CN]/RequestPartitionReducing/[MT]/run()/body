@@ -5,8 +5,13 @@
     result=new RequestPartitionResult(RequestPartitionResult.State.NO_SUPERVISOR,-1);
     return;
   }
+  JobPartitionState.State nextState=JobPartitionState.State.REDUCING;
+  JobTaskConfiguration configuration=supervisor.getConfiguration();
+  if (configuration.getReducerFactory() == null) {
+    nextState=JobPartitionState.State.PROCESSED;
+  }
   JobProcessInformationImpl processInformation=supervisor.getJobProcessInformation();
-  JobPartitionState newPartitionState=new JobPartitionStateImpl(getCallerAddress(),JobPartitionState.State.REDUCING);
+  JobPartitionState newPartitionState=new JobPartitionStateImpl(getCallerAddress(),nextState);
   for (; ; ) {
     JobPartitionState[] oldPartitionStates=processInformation.getPartitionStates();
     JobPartitionState[] newPartitionStates=Arrays.copyOf(oldPartitionStates,oldPartitionStates.length);
