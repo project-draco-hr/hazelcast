@@ -1,45 +1,25 @@
 {
-  ClientEndpoint endpoint=getEndpoint();
-  ClientEngine engine=getClientEngine();
-  SerializationService ss=engine.getSerializationService();
-  PartitionService ps=engine.getPartitionService();
-  Map<Integer,CompletableFuture> futures=new HashMap<Integer,CompletableFuture>();
-  Map<Integer,List> mappedKeys=MapReduceUtil.mapKeysToPartition(ps,keys);
-  for (  Map.Entry<Integer,List> entry : mappedKeys.entrySet()) {
-    Operation op=null;
-    InvocationBuilder builder=buildInvocationBuilder(getServiceName(),op,entry.getKey());
-    futures.put(entry.getKey(),builder.invoke());
-  }
-  Map<Integer,Object> results=new HashMap<Integer,Object>();
-  for (  Map.Entry<Integer,CompletableFuture> entry : futures.entrySet()) {
-    try {
-      results.put(entry.getKey(),toObject(ss,entry.getValue().get()));
-    }
- catch (    Throwable t) {
-      results.put(entry.getKey(),t);
-    }
-  }
-  List<Integer> failedPartitions=new LinkedList<Integer>();
-  for (  Map.Entry<Integer,Object> entry : results.entrySet()) {
-    if (entry.getValue() instanceof Throwable) {
-      failedPartitions.add(entry.getKey());
+  try {
+    final ClientEndpoint endpoint=getEndpoint();
+    final ClientEngine engine=getClientEngine();
+    MapReduceService mapReduceService=getService();
+    NodeEngine nodeEngine=mapReduceService.getNodeEngine();
+    AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.createDistributedObject(name);
+    TrackableJobFuture jobFuture=new TrackableJobFuture(name,jobId,jobTracker,nodeEngine,null);
+    if (jobTracker.registerTrackableJob(jobFuture)) {
+      CompletableFuture future=startSupervisionTask(jobFuture,mapReduceService,nodeEngine);
+      future.andThen(new ExecutionCallback(){
+        @Override public void onResponse(        Object response){
+          engine.sendResponse(endpoint,response);
+        }
+        @Override public void onFailure(        Throwable t){
+          engine.sendResponse(endpoint,t);
+        }
+      }
+);
     }
   }
-  for (  Integer partitionId : failedPartitions) {
-    List keys=mappedKeys.get(partitionId);
-    Operation operation=null;
-    InvocationBuilder builder=buildInvocationBuilder(getServiceName(),operation,partitionId);
-    results.put(partitionId,builder.invoke());
+ catch (  Exception e) {
+    throw new IllegalStateException("Could not register map reduce job",e);
   }
-  for (  Integer failedPartition : failedPartitions) {
-    try {
-      Future<?> future=(Future<?>)results.get(failedPartition);
-      Object result=future.get();
-      results.put(failedPartition,result);
-    }
- catch (    Throwable t) {
-      results.put(failedPartition,t);
-    }
-  }
-  engine.sendResponse(endpoint,results);
 }

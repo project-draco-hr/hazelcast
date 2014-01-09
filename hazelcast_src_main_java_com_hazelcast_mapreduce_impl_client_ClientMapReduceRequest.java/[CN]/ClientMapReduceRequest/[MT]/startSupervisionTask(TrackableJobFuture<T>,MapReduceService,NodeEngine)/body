@@ -1,0 +1,13 @@
+{
+  ClusterService cs=nodeEngine.getClusterService();
+  Collection<MemberImpl> members=cs.getMemberList();
+  for (  MemberImpl member : members) {
+    Operation operation=new KeyValueJobOperation<KeyIn,ValueIn>(name,jobId,chunkSize,keyValueSource,mapper,combinerFactory,reducerFactory);
+    MapReduceUtil.executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
+  }
+  for (  MemberImpl member : members) {
+    Operation operation=new StartProcessingJobOperation<KeyIn,ValueIn>(name,jobId,keys,predicate,mapper);
+    MapReduceUtil.executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
+  }
+  return jobFuture;
+}
