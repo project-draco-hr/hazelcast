@@ -1,5 +1,6 @@
 {
-  DefaultContext<KeyOut,ValueOut> context=supervisor.createContext(this,partitionId);
+  DefaultContext<KeyOut,ValueOut> context=supervisor.createContext(this);
+  context.setPartitionId(partitionId);
   if (mapper instanceof LifecycleMapper) {
     ((LifecycleMapper)mapper).initialize(context);
   }
@@ -8,7 +9,7 @@
     ((LifecycleMapper)mapper).finalized(context);
   }
   try {
-    RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionReducing(name,jobId,partitionId));
+    RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionReducing(name,jobId,partitionId),name);
     if (result.getResultState() == SUCCESSFUL) {
       if (supervisor.getConfiguration().getReducerFactory() != null) {
         Map<KeyOut,Chunk> chunkMap=context.finish();
@@ -33,7 +34,7 @@
         }
  else {
           try {
-            result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,partitionId,REDUCING));
+            result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,partitionId,REDUCING),name);
             if (result.getResultState() != SUCCESSFUL) {
               throw new RuntimeException("Could not finalize processing for partitionId " + partitionId);
             }
