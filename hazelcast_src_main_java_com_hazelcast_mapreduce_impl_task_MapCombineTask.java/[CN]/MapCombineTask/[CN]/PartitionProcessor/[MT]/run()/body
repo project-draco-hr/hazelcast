@@ -1,4 +1,8 @@
 {
+  KeyValueSource<KeyIn,ValueIn> delegate=keyValueSource;
+  if (supervisor.getConfiguration().isCommunicateStats()) {
+    delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
+  }
   for (; ; ) {
     Integer partitionId=findNewPartitionProcessing();
     if (partitionId == null) {
@@ -9,10 +13,10 @@
     }
     try {
       ((PartitionIdAware)keyValueSource).setPartitionId(partitionId);
-      keyValueSource.reset();
-      keyValueSource.open(nodeEngine);
-      processMapping(partitionId);
-      keyValueSource.close();
+      delegate.reset();
+      delegate.open(nodeEngine);
+      processMapping(partitionId,delegate);
+      delegate.close();
     }
  catch (    IOException ignore) {
       ignore.printStackTrace();

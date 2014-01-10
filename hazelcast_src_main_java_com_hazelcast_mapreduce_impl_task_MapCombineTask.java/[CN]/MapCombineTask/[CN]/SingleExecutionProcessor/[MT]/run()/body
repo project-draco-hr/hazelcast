@@ -7,10 +7,14 @@
  else     if (result.getResultState() == NO_MORE_PARTITIONS) {
       return;
     }
-    keyValueSource.reset();
-    keyValueSource.open(nodeEngine);
-    processMapping(result.getPartitionId());
-    keyValueSource.close();
+    KeyValueSource<KeyIn,ValueIn> delegate=keyValueSource;
+    if (supervisor.getConfiguration().isCommunicateStats()) {
+      delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
+    }
+    delegate.reset();
+    delegate.open(nodeEngine);
+    processMapping(result.getPartitionId(),delegate);
+    delegate.close();
   }
  catch (  Exception ignore) {
     ignore.printStackTrace();
