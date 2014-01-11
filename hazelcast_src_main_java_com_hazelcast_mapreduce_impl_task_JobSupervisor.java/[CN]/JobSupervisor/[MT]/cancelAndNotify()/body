@@ -1,0 +1,32 @@
+{
+  jobProcessInformation.cancelPartitionState();
+  Set<Address> addresses=new HashSet<Address>();
+  for (  Set<Address> remoteReducers : this.remoteReducers.values()) {
+    addAllFilterJobOwner(addresses,remoteReducers);
+  }
+  for (  JobPartitionState partitionState : jobProcessInformation.getPartitionStates()) {
+    if (partitionState != null && partitionState.getOwner() != null) {
+      if (!partitionState.getOwner().equals(jobOwner)) {
+        addresses.add(partitionState.getOwner());
+      }
+    }
+  }
+  String name=getConfiguration().getName();
+  String jobId=getConfiguration().getJobId();
+  for (  Address address : addresses) {
+    try {
+      CancelJobSupervisorOperation operation=new CancelJobSupervisorOperation(name,jobId);
+      mapReduceService.processRequest(address,operation,name);
+    }
+ catch (    Exception ignore) {
+    }
+  }
+  TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
+  jobTracker.unregisterMapCombineTask(jobId);
+  jobTracker.unregisterReducerTask(jobId);
+  mapReduceService.destroyJobSupervisor(this);
+  if (future != null) {
+    future.setResult(new CancellationException("Operation was cancelled by the user"));
+  }
+  return true;
+}
