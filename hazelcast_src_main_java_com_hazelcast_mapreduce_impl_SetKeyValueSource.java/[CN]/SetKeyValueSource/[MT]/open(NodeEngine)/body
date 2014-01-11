@@ -1,6 +1,13 @@
 {
   NodeEngineImpl nei=(NodeEngineImpl)nodeEngine;
   ss=nei.getSerializationService();
+  Address thisAddress=nei.getThisAddress();
+  PartitionService ps=nei.getPartitionService();
+  Data data=ss.toData(setName,new StringAndPartitionAwarePartitioningStrategy());
+  int partitionId=ps.getPartitionId(data);
+  if (!ps.getPartitionOwner(partitionId).equals(thisAddress)) {
+    return;
+  }
   SetService setService=nei.getService(SetService.SERVICE_NAME);
   SetContainer setContainer=setService.getOrCreateContainer(setName,false);
   List<CollectionItem> items=new ArrayList<CollectionItem>(setContainer.getCollection());
