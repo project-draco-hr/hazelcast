@@ -1,0 +1,28 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(3,h1.getCluster().getMembers().size());
+    }
+  }
+);
+  int expectedResult=0;
+  IList<Integer> list=h1.getList("default");
+  for (int o=0; o < 100; o++) {
+    list.add(o);
+    expectedResult+=o;
+  }
+  JobTracker jobTracker=h1.getJobTracker("default");
+  Job<String,Integer> job=jobTracker.newJob(KeyValueSource.fromList(list));
+  CompletableFuture<Map<String,Integer>> completableFuture=job.chunkSize(10).mapper(new ListSetMapper()).combiner(new ListSetCombinerFactory()).reducer(new ListSetReducerFactory()).submit();
+  Map<String,Integer> result=completableFuture.get();
+  assertEquals(1,result.size());
+  int count=0;
+  for (  Map.Entry<String,Integer> entry : result.entrySet()) {
+    assertEquals(list.getName(),entry.getKey());
+    assertEquals(expectedResult,(int)entry.getValue());
+  }
+}
