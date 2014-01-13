@@ -1,8 +1,13 @@
 {
   if (response == null) {
+    long waitMillis=unit.toMillis(timeout);
+    if (waitMillis > 0) {
 synchronized (this) {
-      if (response == null) {
-        this.wait(unit.toMillis(timeout));
+        while (waitMillis > 0 && response == null) {
+          long start=Clock.currentTimeMillis();
+          this.wait(waitMillis);
+          waitMillis-=(Clock.currentTimeMillis() - start);
+        }
       }
     }
   }
