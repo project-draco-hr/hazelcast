@@ -1,6 +1,5 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
-  final ClientEngine clientEngine=getClientEngine();
   final ReplicatedRecordStore replicatedRecordStore=getReplicatedRecordStore();
   EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
     private void handleEvent(    EntryEvent<Object,Object> event){
@@ -9,7 +8,7 @@
         Object value=event.getValue();
         Object oldValue=event.getOldValue();
         ReplicatedMapPortableEntryEvent portableEntryEvent=new ReplicatedMapPortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
-        clientEngine.sendResponse(endpoint,portableEntryEvent);
+        endpoint.sendEvent(portableEntryEvent,getCallId());
       }
     }
     public void entryAdded(    EntryEvent<Object,Object> event){
@@ -34,5 +33,5 @@
     registrationId=replicatedRecordStore.addEntryListener(listener,predicate,key);
   }
   endpoint.setListenerRegistration(ReplicatedMapService.SERVICE_NAME,getMapName(),registrationId);
-  return true;
+  return registrationId;
 }

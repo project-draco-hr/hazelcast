@@ -1,0 +1,47 @@
+{
+  lastHandle=Clock.currentTimeMillis();
+  if (!connection.live()) {
+    if (logger.isFinestEnabled()) {
+      String message="We are being asked to read, but connection is not live so we won't";
+      logger.finest(message);
+    }
+    return;
+  }
+  try {
+    int readBytes=socketChannel.read(buffer);
+    if (readBytes == -1) {
+      throw new EOFException("Remote socket closed!");
+    }
+  }
+ catch (  IOException e) {
+    handleSocketException(e);
+    return;
+  }
+  try {
+    if (buffer.position() == 0)     return;
+    buffer.flip();
+    while (buffer.hasRemaining()) {
+      if (packet == null) {
+        packet=new ClientPacket(connection.getConnectionManager().getSerializationContext());
+      }
+      boolean complete=packet.readFrom(buffer);
+      if (complete) {
+        packet.setConn(connection);
+        connectionManager.handlePacket(packet);
+        packet=null;
+      }
+ else {
+        break;
+      }
+    }
+    if (buffer.hasRemaining()) {
+      buffer.compact();
+    }
+ else {
+      buffer.clear();
+    }
+  }
+ catch (  Throwable t) {
+    handleSocketException(t);
+  }
+}

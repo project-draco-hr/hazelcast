@@ -1,9 +1,7 @@
 {
   final SerializationService serializationService=getSerializationService();
-  final Data request=serializationService.toData(new AddMembershipListenerRequest());
-  conn.write(request);
-  final Data response=conn.read();
-  SerializableCollection coll=ErrorHandler.returnResultOrThrowException(serializationService.toObject(response));
+  final AddMembershipListenerRequest request=new AddMembershipListenerRequest();
+  final SerializableCollection coll=(SerializableCollection)sendAndReceive(request,conn);
   Map<String,MemberImpl> prevMembers=Collections.emptyMap();
   if (!members.isEmpty()) {
     prevMembers=new HashMap<String,MemberImpl>(members.size());
@@ -12,8 +10,8 @@
     }
     members.clear();
   }
-  for (  Data d : coll.getCollection()) {
-    members.add((MemberImpl)serializationService.toObject(d));
+  for (  Data data : coll) {
+    members.add((MemberImpl)serializationService.toObject(data));
   }
   updateMembersRef();
   logger.info(membersString());

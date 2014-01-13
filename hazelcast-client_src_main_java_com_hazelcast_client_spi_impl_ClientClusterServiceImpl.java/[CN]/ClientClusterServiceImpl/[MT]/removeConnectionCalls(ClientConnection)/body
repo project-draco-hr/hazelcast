@@ -1,0 +1,21 @@
+{
+  ((ClientPartitionServiceImpl)client.getClientPartitionService()).refreshPartitions();
+  final ConcurrentMap<Integer,ClientCallFuture> callIdMap=connectionCallMap.remove(connection);
+  final ConcurrentMap<Integer,ClientCallFuture> eventHandlerMap=connectionEventHandlerMap.remove(connection);
+  final TargetDisconnectedException response=new TargetDisconnectedException(connection.getRemoteEndpoint());
+  if (callIdMap != null) {
+    for (    Map.Entry<Integer,ClientCallFuture> entry : callIdMap.entrySet()) {
+      if (eventHandlerMap != null) {
+        eventHandlerMap.remove(entry.getKey());
+      }
+      entry.getValue().notify(response);
+    }
+    callIdMap.clear();
+  }
+  if (eventHandlerMap != null) {
+    for (    ClientCallFuture future : eventHandlerMap.values()) {
+      future.notify(response);
+    }
+    eventHandlerMap.clear();
+  }
+}

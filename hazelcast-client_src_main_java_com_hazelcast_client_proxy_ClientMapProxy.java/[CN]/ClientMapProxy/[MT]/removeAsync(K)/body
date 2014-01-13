@@ -1,9 +1,11 @@
 {
-  Future<V> f=getContext().getExecutionService().submit(new Callable<V>(){
-    public V call() throws Exception {
-      return remove(key);
-    }
+  final Data keyData=toData(key);
+  MapRemoveRequest request=new MapRemoveRequest(name,keyData,ThreadUtil.getThreadId());
+  try {
+    final ICompletableFuture future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    return new DelegatingFuture<V>(future,getContext().getSerializationService());
   }
-);
-  return f;
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }

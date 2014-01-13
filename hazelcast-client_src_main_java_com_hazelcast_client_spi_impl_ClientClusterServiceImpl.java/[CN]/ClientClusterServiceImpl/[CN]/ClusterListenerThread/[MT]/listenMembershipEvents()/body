@@ -1,15 +1,15 @@
 {
   final SerializationService serializationService=getSerializationService();
   while (!Thread.currentThread().isInterrupted()) {
-    final Data eventData=conn.read();
-    final ClientMembershipEvent event=(ClientMembershipEvent)serializationService.toObject(eventData);
+    final Data clientResponseData=conn.read();
+    final ClientResponse clientResponse=serializationService.toObject(clientResponseData);
+    final ClientMembershipEvent event=serializationService.toObject(clientResponse.getResponse());
     final MemberImpl member=(MemberImpl)event.getMember();
     if (event.getEventType() == MembershipEvent.MEMBER_ADDED) {
       members.add(member);
     }
  else {
       members.remove(member);
-      getConnectionManager().removeConnectionPool(member.getAddress());
     }
     updateMembersRef();
     logger.info(membersString());

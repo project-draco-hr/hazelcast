@@ -1,9 +1,12 @@
 {
-  Future<V> f=getContext().getExecutionService().submit(new Callable<V>(){
-    public V call() throws Exception {
-      return put(key,value,ttl,timeunit);
-    }
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  MapPutRequest request=new MapPutRequest(name,keyData,valueData,ThreadUtil.getThreadId(),getTimeInMillis(ttl,timeunit));
+  try {
+    final ICompletableFuture future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    return new DelegatingFuture<V>(future,getContext().getSerializationService());
   }
-);
-  return f;
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }
