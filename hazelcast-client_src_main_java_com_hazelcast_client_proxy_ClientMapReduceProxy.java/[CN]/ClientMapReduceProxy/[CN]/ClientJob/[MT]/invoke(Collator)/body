@@ -1,16 +1,33 @@
 {
   try {
+    final String jobId=UuidUtil.buildRandomUuidString();
     ClientContext context=getContext();
     ClientInvocationService cis=context.getInvocationService();
-    ClientMapReduceRequest request=new ClientMapReduceRequest(name,jobId,keys,predicate,mapper,combinerFactory,reducerFactory,keyValueSource,chunkSize);
+    ClientMapReduceRequest request=new ClientMapReduceRequest(name,jobId,keys,predicate,mapper,combinerFactory,reducerFactory,keyValueSource,chunkSize,topologyChangedStrategy);
     final ClientCompletableFuture completableFuture=new ClientCompletableFuture(jobId);
-    ClientCallFuture future=(ClientCallFuture)cis.invokeOnRandomTarget(request,new EventHandler(){
-      @Override public void handle(      Object event){
-        if (collator != null) {
-          event=collator.collate(((Map)event).entrySet());
+    ClientCallFuture future=(ClientCallFuture)cis.invokeOnRandomTarget(request,null);
+    future.andThen(new ExecutionCallback(){
+      @Override public void onResponse(      Object response){
+        try {
+          if (collator != null) {
+            response=collator.collate(((Map)response).entrySet());
+          }
         }
-        completableFuture.setResult(event);
-        trackableJobs.remove(getJobId());
+  finally {
+          completableFuture.setResult(response);
+          trackableJobs.remove(jobId);
+        }
+      }
+      @Override public void onFailure(      Throwable t){
+        try {
+          if (t instanceof ExecutionException && t.getCause() instanceof CancellationException) {
+            t=t.getCause();
+          }
+          completableFuture.setResult(t);
+        }
+  finally {
+          trackableJobs.remove(jobId);
+        }
       }
     }
 );

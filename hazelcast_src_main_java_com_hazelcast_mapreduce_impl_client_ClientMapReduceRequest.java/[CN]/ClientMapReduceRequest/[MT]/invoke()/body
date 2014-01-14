@@ -1,7 +1,6 @@
 {
   try {
     final ClientEndpoint endpoint=getEndpoint();
-    final ClientEngine engine=getClientEngine();
     MapReduceService mapReduceService=getService();
     NodeEngine nodeEngine=mapReduceService.getNodeEngine();
     AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.createDistributedObject(name);
@@ -10,10 +9,13 @@
       ICompletableFuture<Object> future=startSupervisionTask(jobFuture,mapReduceService,nodeEngine,jobTracker);
       future.andThen(new ExecutionCallback<Object>(){
         @Override public void onResponse(        Object response){
-          engine.sendResponse(endpoint,response);
+          endpoint.sendResponse(response,getCallId());
         }
         @Override public void onFailure(        Throwable t){
-          engine.sendResponse(endpoint,t);
+          if (t instanceof ExecutionException) {
+            t=t.getCause();
+          }
+          endpoint.sendResponse(t,getCallId());
         }
       }
 );
