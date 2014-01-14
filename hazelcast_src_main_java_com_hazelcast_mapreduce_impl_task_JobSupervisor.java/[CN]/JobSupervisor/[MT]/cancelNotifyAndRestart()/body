@@ -1,6 +1,8 @@
 {
+  jobProcessInformation.cancelPartitionState();
+  Set<Address> addresses=collectRemoteAddresses();
+  cancelRemoteOperations(addresses);
   String jobId=getConfiguration().getJobId();
-  TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
   MapCombineTask mapCombineTask=jobTracker.unregisterMapCombineTask(jobId);
   if (mapCombineTask != null) {
     mapCombineTask.cancel();
@@ -9,6 +11,10 @@
   if (reducerTask != null) {
     reducerTask.cancel();
   }
-  mapReduceService.destroyJobSupervisor(this);
-  return future;
+  jobProcessInformation.resetPartitionState();
+  reducers.clear();
+  remoteReducers.clear();
+  context.set(null);
+  keyAssignments.clear();
+  return true;
 }
