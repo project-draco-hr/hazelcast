@@ -1,18 +1,24 @@
 {
-  final Object response=resolveResponse(waitForResponse(timeout,unit));
-  done=true;
-  if (response instanceof Response) {
-    if (op instanceof BackupAwareOperation && callback == null) {
-      final Object obj=waitForBackupsAndGetResponse((Response)response);
-      if (obj == RETRY_RESPONSE) {
-        final Future f=resetAndReInvoke();
-        return f.get(timeout,unit);
+  try {
+    Object response=waitForResponse(timeout,unit);
+    Object resolvedResponse=resolveResponse(response);
+    done=true;
+    if (resolvedResponse instanceof Response) {
+      if (op instanceof BackupAwareOperation && callback == null) {
+        final Object obj=waitForBackupsAndGetResponse((Response)resolvedResponse);
+        if (obj == RETRY_RESPONSE) {
+          final Future f=resetAndReInvoke();
+          return f.get(timeout,unit);
+        }
+        return obj;
       }
-      return obj;
-    }
  else {
-      return ((Response)response).response;
+        return ((Response)resolvedResponse).response;
+      }
     }
+    return resolvedResponse;
   }
-  return response;
+  finally {
+    cleanup();
+  }
 }
