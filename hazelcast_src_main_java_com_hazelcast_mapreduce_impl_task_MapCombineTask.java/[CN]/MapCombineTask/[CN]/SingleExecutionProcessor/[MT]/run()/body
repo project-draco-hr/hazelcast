@@ -1,0 +1,22 @@
+{
+  try {
+    RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestMemberIdAssignment(name,jobId),name);
+    if (result.getResultState() == NO_SUPERVISOR) {
+      return;
+    }
+ else     if (result.getResultState() == NO_MORE_PARTITIONS) {
+      return;
+    }
+    KeyValueSource<KeyIn,ValueIn> delegate=keyValueSource;
+    if (supervisor.getConfiguration().isCommunicateStats()) {
+      delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
+    }
+    delegate.reset();
+    delegate.open(nodeEngine);
+    processMapping(result.getPartitionId(),delegate);
+    delegate.close();
+  }
+ catch (  Throwable t) {
+    notifyRemoteException(supervisor,t);
+  }
+}

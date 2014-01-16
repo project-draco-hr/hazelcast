@@ -1,0 +1,16 @@
+{
+  MapReduceService mapReduceService=getService();
+  Address jobOwner=getCallerAddress();
+  if (jobOwner == null) {
+    jobOwner=getNodeEngine().getThisAddress();
+  }
+  JobSupervisor supervisor=mapReduceService.createJobSupervisor(new JobTaskConfiguration(jobOwner,getNodeEngine(),chunkSize,name,jobId,mapper,combinerFactory,reducerFactory,keyValueSource,communicateStats,topologyChangedStrategy));
+  if (supervisor == null) {
+    AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.getJobTracker(name);
+    TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
+    if (future != null) {
+      Exception exception=new CancellationException("Operation was cancelled by the user");
+      future.setResult(exception);
+    }
+  }
+}

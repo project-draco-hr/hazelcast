@@ -1,11 +1,20 @@
 {
+  VersionedValue versionedValue=valueMap.get(key);
+  if (versionedValue != null) {
+    return versionedValue;
+  }
   final NodeEngine nodeEngine=getNodeEngine();
   TxnLockAndGetOperation operation=new TxnLockAndGetOperation(name,key,timeout,timeout);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
     int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
     Future<VersionedValue> f=nodeEngine.getOperationService().invokeOnPartition(MapService.SERVICE_NAME,operation,partitionId);
-    return f.get();
+    versionedValue=f.get();
+    if (versionedValue == null) {
+      throw new TransactionException("Transaction couldn't obtain lock for the key:" + getService().toObject(key));
+    }
+    valueMap.put(key,versionedValue);
+    return versionedValue;
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);

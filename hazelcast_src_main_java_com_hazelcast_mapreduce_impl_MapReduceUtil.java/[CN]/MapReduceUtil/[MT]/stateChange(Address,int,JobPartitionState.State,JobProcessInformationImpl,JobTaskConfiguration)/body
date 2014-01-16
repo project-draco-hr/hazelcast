@@ -1,0 +1,35 @@
+{
+  JobPartitionState[] partitionStates=processInformation.getPartitionStates();
+  JobPartitionState partitionState=partitionStates[partitionId];
+  if (partitionState != null) {
+    if (!owner.equals(partitionState.getOwner())) {
+      return null;
+    }
+    if (partitionState.getState() != currentState) {
+      return null;
+    }
+    if (currentState == MAPPING) {
+      JobPartitionState.State newState=PROCESSED;
+      if (configuration.getReducerFactory() != null) {
+        newState=REDUCING;
+      }
+      JobPartitionState newPartitionState=new JobPartitionStateImpl(owner,newState);
+      if (processInformation.updatePartitionState(partitionId,partitionState,newPartitionState)) {
+        return newState;
+      }
+    }
+ else     if (currentState == REDUCING) {
+      JobPartitionState newPartitionState=new JobPartitionStateImpl(owner,PROCESSED);
+      if (processInformation.updatePartitionState(partitionId,partitionState,newPartitionState)) {
+        return PROCESSED;
+      }
+    }
+  }
+  if (currentState == WAITING) {
+    JobPartitionState newPartitionState=new JobPartitionStateImpl(owner,MAPPING);
+    if (processInformation.updatePartitionState(partitionId,partitionState,newPartitionState)) {
+      return MAPPING;
+    }
+  }
+  return null;
+}

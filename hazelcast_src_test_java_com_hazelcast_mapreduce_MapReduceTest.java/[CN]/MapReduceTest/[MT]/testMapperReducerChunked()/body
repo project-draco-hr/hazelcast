@@ -1,0 +1,30 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+  for (int i=0; i < 10000; i++) {
+    m1.put(i,i);
+  }
+  JobTracker tracker=h1.getJobTracker("default");
+  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+  JobCompletableFuture<Map<String,Integer>> future=job.chunkSize(10).mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit();
+  final TrackableJob trackableJob=tracker.getTrackableJob(future.getJobId());
+  final JobProcessInformation processInformation=trackableJob.getJobProcessInformation();
+  Map<String,Integer> result=future.get();
+  int[] expectedResults=new int[4];
+  for (int i=0; i < 10000; i++) {
+    int index=i % 4;
+    expectedResults[index]+=i;
+  }
+  for (int i=0; i < 4; i++) {
+    assertEquals(expectedResults[i],(int)result.get(String.valueOf(i)));
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(10000,processInformation.getProcessedRecords());
+    }
+  }
+);
+}

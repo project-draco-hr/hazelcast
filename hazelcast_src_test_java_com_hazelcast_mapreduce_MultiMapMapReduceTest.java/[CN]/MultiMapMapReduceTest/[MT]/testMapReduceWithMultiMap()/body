@@ -1,0 +1,34 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(3,h1.getCluster().getMembers().size());
+    }
+  }
+);
+  MultiMap<Integer,Integer> multiMap=h1.getMultiMap("default");
+  for (int i=0; i < 1000; i++) {
+    for (int o=0; o < 100; o++) {
+      multiMap.put(i,o);
+    }
+  }
+  int expectedResult=0;
+  for (int o=0; o < 100; o++) {
+    expectedResult+=o;
+  }
+  JobTracker jobTracker=h1.getJobTracker("default");
+  Job<Integer,Integer> job=jobTracker.newJob(KeyValueSource.fromMultiMap(multiMap));
+  ICompletableFuture<Map<String,Integer>> ICompletableFuture=job.chunkSize(10).mapper(new MultiMapMapper()).combiner(new MultiMapCombinerFactory()).reducer(new MultiMapReducerFactory()).submit();
+  Map<String,Integer> result=ICompletableFuture.get();
+  assertEquals(1000,result.size());
+  List<Map.Entry<String,Integer>> entrySet=new ArrayList(result.entrySet());
+  Collections.sort(entrySet,ENTRYSET_COMPARATOR);
+  int count=0;
+  for (  Map.Entry<String,Integer> entry : entrySet) {
+    assertEquals(String.valueOf(count++),entry.getKey());
+    assertEquals(expectedResult,(int)entry.getValue());
+  }
+}

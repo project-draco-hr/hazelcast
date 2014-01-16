@@ -1,0 +1,21 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+  for (int i=0; i < 100; i++) {
+    m1.put(i,i);
+  }
+  JobTracker tracker=h1.getJobTracker("default");
+  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+  ICompletableFuture<Integer> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit(new TestCollator());
+  int result=future.get();
+  int expectedResult=0;
+  for (int i=0; i < 100; i++) {
+    expectedResult+=i;
+  }
+  for (int i=0; i < 4; i++) {
+    assertEquals(expectedResult,result);
+  }
+}

@@ -1,0 +1,28 @@
+{
+  KeyValueSource<KeyIn,ValueIn> delegate=keyValueSource;
+  if (supervisor.getConfiguration().isCommunicateStats()) {
+    delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
+  }
+  for (; ; ) {
+    if (cancelled.get()) {
+      return;
+    }
+    Integer partitionId=findNewPartitionProcessing();
+    if (partitionId == null) {
+      return;
+    }
+    if (partitionId == -1) {
+      continue;
+    }
+    try {
+      ((PartitionIdAware)keyValueSource).setPartitionId(partitionId);
+      delegate.reset();
+      delegate.open(nodeEngine);
+      processMapping(partitionId,delegate);
+      delegate.close();
+    }
+ catch (    Throwable t) {
+      notifyRemoteException(supervisor,t);
+    }
+  }
+}

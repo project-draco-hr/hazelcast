@@ -1,0 +1,20 @@
+{
+  Config c=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance h1=factory.newHazelcastInstance(c);
+  Member m1=h1.getCluster().getLocalMember();
+  m1.setAttribute("Test",Integer.valueOf(123));
+  HazelcastInstance h2=factory.newHazelcastInstance(c);
+  assertEquals(2,h2.getCluster().getMembers().size());
+  Member member=null;
+  for (  Member m : h2.getCluster().getMembers()) {
+    if (m == h2.getCluster().getLocalMember())     continue;
+    member=m;
+  }
+  assertNotNull(member);
+  assertEquals(m1,member);
+  assertNotNull(member.getAttribute("Test"));
+  assertEquals(123,member.getAttribute("Test"));
+  h1.getLifecycleService().shutdown();
+  h2.getLifecycleService().shutdown();
+}

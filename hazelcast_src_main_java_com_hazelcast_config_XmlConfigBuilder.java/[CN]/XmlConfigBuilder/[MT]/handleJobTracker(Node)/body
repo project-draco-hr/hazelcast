@@ -1,0 +1,35 @@
+{
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  final JobTrackerConfig jConfig=new JobTrackerConfig();
+  jConfig.setName(name);
+  for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes())) {
+    final String nodeName=cleanNodeName(n.getNodeName());
+    final String value=getTextContent(n).trim();
+    if ("max-thread-size".equals(nodeName)) {
+      jConfig.setMaxThreadSize(getIntegerValue("max-thread-size",value,JobTrackerConfig.DEFAULT_MAX_THREAD_SIZE));
+    }
+ else     if ("queue-size".equals(nodeName)) {
+      jConfig.setQueueSize(getIntegerValue("queue-size",value,JobTrackerConfig.DEFAULT_QUEUE_SIZE));
+    }
+ else     if ("retry-count".equals(nodeName)) {
+      jConfig.setRetryCount(getIntegerValue("retry-count",value,JobTrackerConfig.DEFAULT_RETRY_COUNT));
+    }
+ else     if ("chunk-size".equals(nodeName)) {
+      jConfig.setChunkSize(getIntegerValue("chunk-size",value,JobTrackerConfig.DEFAULT_CHUNK_SIZE));
+    }
+ else     if ("communicate-stats".equals(nodeName)) {
+      jConfig.setCommunicateStats(value == null || value.length() == 0 ? JobTrackerConfig.DEFAULT_COMMUNICATE_STATS : Boolean.parseBoolean(value));
+    }
+ else     if ("topology-changed-stategy".equals(nodeName)) {
+      TopologyChangedStrategy topologyChangedStrategy=JobTrackerConfig.DEFAULT_TOPOLOGY_CHANGED_STRATEGY;
+      for (      TopologyChangedStrategy temp : TopologyChangedStrategy.values()) {
+        if (temp.name().equals(value)) {
+          topologyChangedStrategy=temp;
+        }
+      }
+      jConfig.setTopologyChangedStrategy(topologyChangedStrategy);
+    }
+  }
+  config.addJobTrackerConfig(jConfig);
+}

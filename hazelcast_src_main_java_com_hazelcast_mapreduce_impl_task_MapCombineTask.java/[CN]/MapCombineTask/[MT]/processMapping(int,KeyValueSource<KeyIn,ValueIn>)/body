@@ -1,0 +1,29 @@
+{
+  DefaultContext<KeyOut,ValueOut> context=supervisor.createContext(this);
+  context.setPartitionId(partitionId);
+  if (mapper instanceof LifecycleMapper) {
+    ((LifecycleMapper)mapper).initialize(context);
+  }
+  mappingPhase.executeMappingPhase(keyValueSource,mapper,context);
+  if (mapper instanceof LifecycleMapper) {
+    ((LifecycleMapper)mapper).finalized(context);
+  }
+  if (cancelled.get()) {
+    return;
+  }
+  RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionReducing(name,jobId,partitionId),name);
+  if (result.getResultState() == SUCCESSFUL) {
+    if (supervisor.getConfiguration().getReducerFactory() != null) {
+      Map<KeyOut,Chunk> chunkMap=context.finish();
+      if (chunkMap.size() > 0) {
+        sendLastChunkToAssignedReducers(partitionId,chunkMap);
+      }
+ else {
+        result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestPartitionProcessed(name,jobId,partitionId,REDUCING),name);
+        if (result.getResultState() != SUCCESSFUL) {
+          throw new RuntimeException("Could not finalize processing for partitionId " + partitionId);
+        }
+      }
+    }
+  }
+}

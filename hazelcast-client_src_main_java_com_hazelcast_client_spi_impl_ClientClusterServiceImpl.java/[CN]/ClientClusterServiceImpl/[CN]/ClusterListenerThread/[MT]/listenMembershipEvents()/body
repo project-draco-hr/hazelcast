@@ -3,16 +3,35 @@
   while (!Thread.currentThread().isInterrupted()) {
     final Data clientResponseData=conn.read();
     final ClientResponse clientResponse=serializationService.toObject(clientResponseData);
-    final ClientMembershipEvent event=serializationService.toObject(clientResponse.getResponse());
-    final MemberImpl member=(MemberImpl)event.getMember();
-    if (event.getEventType() == MembershipEvent.MEMBER_ADDED) {
-      members.add(member);
-    }
+    final Object eventObject=serializationService.toObject(clientResponse.getResponse());
+    if (eventObject instanceof ClientMembershipEvent) {
+      final ClientMembershipEvent event=(ClientMembershipEvent)eventObject;
+      final MemberImpl member=(MemberImpl)event.getMember();
+      if (event.getEventType() == MembershipEvent.MEMBER_ADDED) {
+        members.add(member);
+      }
  else {
-      members.remove(member);
+        members.remove(member);
+      }
+      updateMembersRef();
+      logger.info(membersString());
+      fireMembershipEvent(new MembershipEvent(client.getCluster(),member,event.getEventType(),Collections.unmodifiableSet(new LinkedHashSet<Member>(members))));
     }
-    updateMembersRef();
-    logger.info(membersString());
-    fireMembershipEvent(new MembershipEvent(client.getCluster(),member,event.getEventType(),Collections.unmodifiableSet(new LinkedHashSet<Member>(members))));
+ else     if (eventObject instanceof ClientMemberAttributeChangedEvent) {
+      ClientMemberAttributeChangedEvent event=(ClientMemberAttributeChangedEvent)eventObject;
+      Map<Address,MemberImpl> memberMap=membersRef.get();
+      if (memberMap != null) {
+        for (        MemberImpl member : memberMap.values()) {
+          if (member.getUuid().equals(event.getUuid())) {
+            final MapOperationType operationType=event.getOperationType();
+            final String key=event.getKey();
+            final Object value=event.getValue();
+            member.updateAttribute(operationType,key,value);
+            fireMemberAttributeEvent(new MemberAttributeEvent(client.getCluster(),member,operationType,key,value));
+            break;
+          }
+        }
+      }
+    }
   }
 }

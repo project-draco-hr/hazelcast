@@ -1,0 +1,20 @@
+{
+  super(name,jobTrackerConfig,nodeEngine,mapReduceService);
+  ExecutionService es=nodeEngine.getExecutionService();
+  PartitionService ps=nodeEngine.getPartitionService();
+  int maxThreadSize=jobTrackerConfig.getMaxThreadSize();
+  if (maxThreadSize <= 0) {
+    maxThreadSize=Runtime.getRuntime().availableProcessors();
+  }
+  int retryCount=jobTrackerConfig.getRetryCount();
+  int queueSize=jobTrackerConfig.getQueueSize();
+  if (queueSize <= 0) {
+    queueSize=ps.getPartitionCount() * 2;
+  }
+  try {
+    String executorName=MapReduceUtil.buildExecutorName(name);
+    es.register(executorName,maxThreadSize,queueSize);
+  }
+ catch (  Exception ignore) {
+  }
+}

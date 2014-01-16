@@ -1,0 +1,40 @@
+{
+  if (isOwnerNode()) {
+    JobPartitionState[] partitionStates=processInformation.getPartitionStates();
+    for (    JobPartitionState partitionState : partitionStates) {
+      if (partitionState == null || partitionState.getState() != JobPartitionState.State.PROCESSED) {
+        return;
+      }
+    }
+    String name=configuration.getName();
+    String jobId=configuration.getJobId();
+    NodeEngine nodeEngine=configuration.getNodeEngine();
+    List<Map> results=MapReduceUtil.executeOperation(new GetResultOperationFactory(name,jobId),mapReduceService,nodeEngine,true);
+    boolean reducedResult=configuration.getReducerFactory() != null;
+    if (results != null) {
+      Map<Object,Object> mergedResults=new HashMap<Object,Object>();
+      for (      Map<?,?> map : results) {
+        for (        Map.Entry entry : map.entrySet()) {
+          if (reducedResult) {
+            mergedResults.put(entry.getKey(),entry.getValue());
+          }
+ else {
+            List<Object> list=(List)mergedResults.get(entry.getKey());
+            if (list == null) {
+              list=new ArrayList<Object>();
+              mergedResults.put(entry.getKey(),list);
+            }
+            for (            Object value : (List)entry.getValue()) {
+              list.add(value);
+            }
+          }
+        }
+      }
+      TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
+      jobTracker.unregisterMapCombineTask(jobId);
+      jobTracker.unregisterReducerTask(jobId);
+      mapReduceService.destroyJobSupervisor(this);
+      future.setResult(mergedResults);
+    }
+  }
+}
