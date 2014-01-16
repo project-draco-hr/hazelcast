@@ -4,8 +4,8 @@
     ProxyServiceImpl proxyService=getService();
     for (    ProxyInfo proxy : proxies) {
       final ProxyRegistry registry=ConcurrencyUtil.getOrPutIfAbsent(proxyService.registries,proxy.serviceName,proxyService.registryConstructor);
-      final DistributedObject object=registry.getProxy(proxy.objectName,false,false);
-      if (object instanceof InitializingObject) {
+      final DistributedObject object=registry.createProxy(proxy.objectName,false,false);
+      if (object != null && object instanceof InitializingObject) {
         nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
           public void run(){
             try {
@@ -18,7 +18,6 @@
         }
 );
       }
-      proxyService.getDistributedObject(proxy.serviceName,proxy.objectName);
     }
   }
 }
