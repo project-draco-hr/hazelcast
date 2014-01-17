@@ -1,0 +1,15 @@
+{
+  int nodeCount=4;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  Config config=new Config();
+  config.getServicesConfig().addServiceConfig(new ServiceConfig().setServiceImpl(new TestInitializingObjectService()).setEnabled(true).setName(TestInitializingObjectService.NAME));
+  String serviceName=TestInitializingObjectService.NAME;
+  String objectName="test-object";
+  HazelcastInstance[] instances=new HazelcastInstance[nodeCount];
+  for (int i=0; i < instances.length; i++) {
+    instances[i]=factory.newHazelcastInstance(config);
+    TestInitializingObject obj2=instances[i].getDistributedObject(serviceName,objectName);
+    Assert.assertTrue(obj2.init.get());
+    Assert.assertFalse(obj2.error);
+  }
+}
