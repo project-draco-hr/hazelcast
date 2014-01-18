@@ -1,0 +1,29 @@
+{
+  URL url=newCollectorUrl();
+  try {
+    HttpURLConnection connection=openConnection(url);
+    OutputStream outputStream=connection.getOutputStream();
+    try {
+      identifier.write(outputStream);
+      ObjectDataOutputStream out=serializationService.createObjectDataOutputStream(outputStream);
+      TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
+      timedMemberState.writeData(out);
+      outputStream.flush();
+      post(connection);
+    }
+  finally {
+      closeResource(outputStream);
+    }
+  }
+ catch (  ConnectException e) {
+    if (logger.isFinestEnabled()) {
+      logger.finest(e);
+    }
+ else {
+      logger.info("Failed to connect to:" + url);
+    }
+  }
+catch (  Exception e) {
+    logger.warning(e);
+  }
+}

@@ -1,53 +1,15 @@
 {
   this.instance=instance;
-  logger=this.instance.node.getLogger(ManagementCenterService.class.getName());
-  managementCenterConfig=this.instance.node.config.getManagementCenterConfig();
-  if (managementCenterConfig == null) {
-    throw new IllegalStateException("ManagementCenterConfig should not be null!");
-  }
-  this.securityToken=managementCenterConfig.getSecurityToken();
-  String clusterId=managementCenterConfig.getClusterId();
-  String url=managementCenterConfig.getUrl();
-  boolean hostedManCenterEnabled=instance.node.getGroupProperties().HOSTED_MANAGEMENT_ENABLED.getBoolean();
-  if (hostedManCenterEnabled && managementCenterConfig.isEnabled() && url == null) {
-    String hostedManCenterUrl=instance.node.getGroupProperties().HOSTED_MANAGEMENT_URL.getString();
-    if (managementCenterConfig.getSecurityToken() == null) {
-      if (DISPLAYED_HOSTED_MANAGEMENT_CENTER_INFO.compareAndSet(false,true)) {
-        logger.info("======================================================");
-        logger.info("Manage your Hazelcast cluster with the Management Center SaaS Application");
-        logger.info(hostedManCenterUrl + "/register.jsp");
-        logger.info("======================================================");
-      }
-    }
- else {
-      url=hostedManCenterUrl;
-      if (clusterId == null) {
-        IAtomicReference<String> clusterIdAtomicLong=instance.getAtomicReference("___clusterIdGenerator");
-        String id=clusterIdAtomicLong.get();
-        if (id == null) {
-          id="" + Math.abs(new Random().nextLong());
-          if (!clusterIdAtomicLong.compareAndSet(null,id)) {
-            id=clusterIdAtomicLong.get();
-          }
-        }
-        clusterId="" + id;
-      }
-      logger.info("======================================================");
-      logger.info("You can access your Hazelcast instance at:");
-      logger.info(url + "/start.do?clusterid=" + clusterId);
-      logger.info("======================================================");
-    }
-  }
-  this.clusterId=clusterId;
-  this.instance.getLifecycleService().addLifecycleListener(this);
-  this.instance.getCluster().addMembershipListener(this);
-  maxVisibleInstanceCount=this.instance.node.groupProperties.MC_MAX_INSTANCE_COUNT.getInteger();
-  commandHandler=new ConsoleCommandHandler(this.instance);
-  webServerUrl=url != null ? (!url.endsWith("/") ? url + '/' : url) : null;
-  updateIntervalMs=(managementCenterConfig.getUpdateInterval() > 0) ? managementCenterConfig.getUpdateInterval() * 1000 : 5000;
-  taskPoller=new TaskPoller();
-  stateSender=new StateSender();
+  logger=instance.node.getLogger(ManagementCenterService.class);
+  managementCenterConfig=getManagementCenterConfig();
+  securityToken=managementCenterConfig.getSecurityToken();
+  managementCenterUrl=getManagementCenterUrl();
+  clusterId=getClusterId();
+  commandHandler=new ConsoleCommandHandler(instance);
+  taskPollThread=new TaskPollThread();
+  stateSendThread=new StateSendThread();
   serializationService=instance.node.getSerializationService();
-  final Address address=instance.node.address;
-  identifier=new ManagementCenterIdentifier(instance.node.getBuildInfo().getVersion(),instance.getConfig().getGroupConfig().getName(),address.getHost() + ":" + address.getPort());
+  identifier=newManagementCenterIdentifier();
+  registerListeners();
+  logHostedManagementCenterMessages();
 }
