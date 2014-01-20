@@ -1,0 +1,36 @@
+{
+  String simpleValue=null;
+  String suffix;
+  if (uri.endsWith("/")) {
+    suffix=uri.substring(URI_QUEUES.length(),uri.length() - 1);
+  }
+ else {
+    suffix=uri.substring(URI_QUEUES.length(),uri.length());
+  }
+  int indexSlash=suffix.lastIndexOf("/");
+  String queueName;
+  if (indexSlash == -1) {
+    queueName=suffix;
+  }
+ else {
+    queueName=suffix.substring(0,indexSlash);
+    simpleValue=suffix.substring(indexSlash + 1,suffix.length());
+  }
+  byte[] data;
+  byte[] contentType;
+  if (simpleValue == null) {
+    data=command.getData();
+    contentType=command.getContentType();
+  }
+ else {
+    data=simpleValue.getBytes();
+    contentType=QUEUE_SIMPLE_VALUE_CONTENT_TYPE;
+  }
+  boolean offerResult=textCommandService.offer(queueName,new RestValue(data,contentType));
+  if (offerResult) {
+    command.setResponse(HttpCommand.RES_204);
+  }
+ else {
+    command.setResponse(HttpCommand.RES_503);
+  }
+}
