@@ -1,9 +1,15 @@
 {
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
-  HazelcastInstance h2=nodeFactory.newHazelcastInstance();
-  HazelcastInstance h3=nodeFactory.newHazelcastInstance();
-  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+  final HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(3,h1.getCluster().getMembers().size());
+    }
+  }
+);
+  final IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
   for (int i=0; i < 10000; i++) {
     m1.put(i,i);
   }
@@ -23,6 +29,9 @@
   }
   assertTrueEventually(new AssertTask(){
     @Override public void run(){
+      if (processInformation.getProcessedRecords() < 10000) {
+        System.err.println(processInformation.getProcessedRecords());
+      }
       assertEquals(10000,processInformation.getProcessedRecords());
     }
   }
