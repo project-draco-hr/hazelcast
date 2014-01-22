@@ -1,0 +1,31 @@
+{
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getGroupConfig().setName("142").setPassword("142");
+  clientConfig.addAddress("localhost");
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  IExecutorService executor=client.getExecutorService("executor");
+  boolean fl;
+  long maxTime=0;
+  for (int i=0; i < executions; i++) {
+    long start=System.currentTimeMillis();
+    fl=false;
+    do {
+      try {
+        Future<Long> future=executor.submitToKeyOwner(task,i);
+        future.get();
+        fl=true;
+      }
+ catch (      Exception exception) {
+        System.err.println("fatal e " + exception.getMessage());
+      }
+    }
+ while (!fl);
+    long time=System.currentTimeMillis() - start;
+    if (maxTime < time) {
+      maxTime=time;
+    }
+    Thread.sleep(100);
+  }
+  client.getLifecycleService().shutdown();
+  return maxTime;
+}
