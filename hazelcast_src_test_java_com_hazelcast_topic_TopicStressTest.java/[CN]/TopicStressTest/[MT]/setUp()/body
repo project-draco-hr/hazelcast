@@ -1,0 +1,16 @@
+{
+  instances=createHazelcastInstanceFactory(NODE_COUNT).newInstances();
+  startLatch=new CountDownLatch(1);
+  publishThreads=new PublishThread[PUBLISH_THREAD_COUNT];
+  for (int k=0; k < publishThreads.length; k++) {
+    PublishThread publishThread=new PublishThread(startLatch);
+    publishThread.start();
+    publishThreads[k]=publishThread;
+  }
+  listenerMap=new HashMap<String,List<MessageListenerImpl>>();
+  for (int topicIndex=0; topicIndex < TOPIC_COUNT; topicIndex++) {
+    String topicName=getTopicName(topicIndex);
+    List<MessageListenerImpl> listeners=registerTopicListeners(topicName,instances);
+    listenerMap.put(topicName,listeners);
+  }
+}
