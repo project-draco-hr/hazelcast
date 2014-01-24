@@ -1,27 +1,19 @@
 {
   HazelcastInstance client=HazelcastClient.newHazelcastClient();
   IExecutorService executor=client.getExecutorService("executor");
-  boolean fl;
-  long maxTime=0;
   for (int i=0; i < executions; i++) {
-    long start=System.currentTimeMillis();
-    fl=false;
+    boolean stop=false;
     do {
       try {
         Future<Long> future=executor.submitToKeyOwner(task,i);
         future.get();
-        fl=true;
+        stop=true;
       }
  catch (      Exception exception) {
       }
     }
- while (!fl);
-    long time=System.currentTimeMillis() - start;
-    if (maxTime < time) {
-      maxTime=time;
-    }
+ while (!stop);
     Thread.sleep(100);
   }
   client.getLifecycleService().shutdown();
-  return maxTime;
 }
