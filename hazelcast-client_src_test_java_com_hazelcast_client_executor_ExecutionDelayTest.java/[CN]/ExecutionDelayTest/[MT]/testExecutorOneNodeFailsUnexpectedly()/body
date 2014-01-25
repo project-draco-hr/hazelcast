@@ -1,5 +1,5 @@
 {
-  int executions=20;
+  final int executions=20;
   ScheduledExecutorService ex=Executors.newSingleThreadScheduledExecutor();
   try {
     ex.schedule(new Runnable(){
@@ -9,8 +9,13 @@
     }
 ,1000,TimeUnit.MILLISECONDS);
     Task task=new Task();
-    long time=runClient(task,executions);
-    assertTrue("was " + time,time < 5000);
+    runClient(task,executions);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run(){
+        assertEquals(executions,counter.get());
+      }
+    }
+);
   }
   finally {
     ex.shutdown();

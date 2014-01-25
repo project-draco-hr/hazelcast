@@ -1,0 +1,19 @@
+{
+  startLatch.countDown();
+  System.out.printf("Test is going to run for %s seconds\n",RUNNING_TIME_SECONDS);
+  for (  PublishThread thread : publishThreads) {
+    thread.join();
+  }
+  System.out.println("All publish threads have completed");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      for (int topicIndex=0; topicIndex < TOPIC_COUNT; topicIndex++) {
+        String topicName=getTopicName(topicIndex);
+        long expected=getExpectedCount(topicName);
+        long actual=getActualCount(topicName);
+        assertEquals("Count for topic " + topicName + " is not the same",expected,actual);
+      }
+    }
+  }
+);
+}
