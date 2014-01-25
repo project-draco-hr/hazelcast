@@ -1,0 +1,19 @@
+{
+  SerializationService serializationService=getNodeEngine().getSerializationService();
+  BufferObjectDataInput in=serializationService.createObjectDataInput(toData());
+  try {
+    int size=in.readInt();
+    tasks=new ArrayList<Operation>(size);
+    for (int i=0; i < size; i++) {
+      Operation task=(Operation)serializationService.readObject(in);
+      tasks.add(task);
+    }
+    if (taskCount != tasks.size()) {
+      getLogger().severe("Migration task count mismatch! => " + "expected-count: " + size + ", actual-count: "+ tasks.size()+ "\nfrom: "+ migrationInfo.getSource()+ ", partition: "+ getPartitionId()+ ", replica: "+ getReplicaIndex());
+    }
+    return in;
+  }
+  finally {
+    closeResource(in);
+  }
+}
