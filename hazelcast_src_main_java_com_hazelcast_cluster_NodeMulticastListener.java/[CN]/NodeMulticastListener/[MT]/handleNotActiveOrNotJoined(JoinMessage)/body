@@ -1,0 +1,21 @@
+{
+  if (isJoinRequest(joinMessage)) {
+    Joiner joiner=node.getJoiner();
+    if (joiner instanceof MulticastJoiner) {
+      MulticastJoiner multicastJoiner=(MulticastJoiner)joiner;
+      multicastJoiner.onReceivedJoinRequest((JoinRequest)joinMessage);
+    }
+  }
+ else {
+    if (!node.joined() && node.getMasterAddress() == null) {
+      String masterHost=joinMessage.getAddress().getHost();
+      if (trustedInterfaces.isEmpty() || matchAnyInterface(masterHost,trustedInterfaces)) {
+        Address masterAddress=new Address(joinMessage.getAddress());
+        node.setMasterAddress(masterAddress);
+      }
+ else {
+        logJoinMessageDropped(masterHost);
+      }
+    }
+  }
+}
