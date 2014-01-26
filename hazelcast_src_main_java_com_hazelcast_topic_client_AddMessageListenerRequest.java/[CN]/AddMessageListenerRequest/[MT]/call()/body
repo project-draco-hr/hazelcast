@@ -1,17 +1,8 @@
 {
-  final TopicService service=getService();
-  final ClientEngine clientEngine=getClientEngine();
-  final ClientEndpoint endpoint=getEndpoint();
-  MessageListener listener=new MessageListener(){
-    public void onMessage(    Message message){
-      if (endpoint.live()) {
-        Data messageData=clientEngine.toData(message.getMessageObject());
-        PortableMessage portableMessage=new PortableMessage(messageData,message.getPublishTime(),message.getPublishingMember().getUuid());
-        endpoint.sendEvent(portableMessage,getCallId());
-      }
-    }
-  }
-;
+  TopicService service=getService();
+  ClientEngine clientEngine=getClientEngine();
+  ClientEndpoint endpoint=getEndpoint();
+  MessageListener listener=new MessageListenerImpl(endpoint,clientEngine,getCallId());
   String registrationId=service.addMessageListener(name,listener);
   endpoint.setListenerRegistration(TopicService.SERVICE_NAME,name,registrationId);
   return registrationId;
