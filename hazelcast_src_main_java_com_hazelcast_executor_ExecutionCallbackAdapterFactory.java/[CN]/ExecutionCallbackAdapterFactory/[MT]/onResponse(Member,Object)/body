@@ -1,25 +1,7 @@
 {
-  if (done.get())   throw new IllegalStateException("This callback is invalid!");
-  if (members.contains(member)) {
-    ValueWrapper current;
-    if ((current=responses.put(member,new ValueWrapper(response))) != null) {
-      logger.warning("Replacing current callback value[" + current.value + " with value["+ response+ "].");
-    }
-    try {
-      multiExecutionCallback.onResponse(member,response);
-    }
- catch (    Throwable e) {
-      logger.warning(e.getMessage(),e);
-    }
-    if (members.size() == responses.size() && done.compareAndSet(false,true)) {
-      Map<Member,Object> realResponses=new HashMap<Member,Object>(members.size());
-      for (      Map.Entry<Member,ValueWrapper> entry : responses.entrySet()) {
-        realResponses.put(entry.getKey(),entry.getValue().value);
-      }
-      multiExecutionCallback.onComplete(realResponses);
-    }
-  }
- else {
-    throw new IllegalArgumentException(member + " is not known by this callback!");
-  }
+  assertNotDone();
+  assertIsMember(member);
+  placeResponse(member,response);
+  triggerOnResponse(member,response);
+  triggerOnComplete();
 }
