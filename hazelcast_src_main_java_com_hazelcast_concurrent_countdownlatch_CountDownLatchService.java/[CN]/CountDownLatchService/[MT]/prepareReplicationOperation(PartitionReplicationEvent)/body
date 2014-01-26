@@ -2,11 +2,12 @@
   if (event.getReplicaIndex() > 1) {
     return null;
   }
-  final Collection<CountDownLatchInfo> data=new LinkedList<CountDownLatchInfo>();
+  Collection<CountDownLatchInfo> data=new LinkedList<CountDownLatchInfo>();
   for (  Map.Entry<String,CountDownLatchInfo> latchEntry : latches.entrySet()) {
-    final String name=latchEntry.getKey();
-    if (nodeEngine.getPartitionService().getPartitionId(StringPartitioningStrategy.getPartitionKey(name)) == event.getPartitionId()) {
-      data.add(latchEntry.getValue());
+    String name=latchEntry.getKey();
+    if (getPartitionId(name) == event.getPartitionId()) {
+      CountDownLatchInfo value=latchEntry.getValue();
+      data.add(value);
     }
   }
   return data.isEmpty() ? null : new CountDownLatchReplicationOperation(data);
