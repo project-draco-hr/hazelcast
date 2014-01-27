@@ -1,27 +1,4 @@
 {
-  Collection<Future> futures=new ArrayList<Future>(entries.size());
-  ILogger logger=nodeEngine.getLogger(getClass());
-  for (  ScheduledEntry<Data,Object> entry : entries) {
-    Data key=entry.getKey();
-    Operation operation=new UnlockOperation(namespace,key,-1,true);
-    int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-    try {
-      Future f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
-      futures.add(f);
-    }
- catch (    Throwable t) {
-      logger.warning(t);
-    }
-  }
-  for (  Future future : futures) {
-    try {
-      future.get(30,TimeUnit.SECONDS);
-    }
- catch (    TimeoutException e) {
-      logger.finest(e);
-    }
-catch (    Exception e) {
-      logger.warning(e);
-    }
-  }
+  Collection<Future> futures=sendUnlockOperations(entries);
+  awaitCompletion(futures);
 }
