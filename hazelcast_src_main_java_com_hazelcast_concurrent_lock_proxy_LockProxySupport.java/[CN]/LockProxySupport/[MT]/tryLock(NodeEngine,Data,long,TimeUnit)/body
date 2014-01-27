@@ -1,11 +1,10 @@
 {
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-  LockOperation operation=new LockOperation(namespace,key,ThreadUtil.getThreadId(),getTimeInMillis(timeout,timeunit));
+  LockOperation operation=new LockOperation(namespace,key,getThreadId(),getTimeInMillis(timeout,timeunit));
+  InternalCompletableFuture<Boolean> f=invoke(nodeEngine,operation,key);
   try {
-    Future future=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
-    return (Boolean)future.get();
+    return f.get();
   }
  catch (  Throwable t) {
-    throw ExceptionUtil.rethrowAllowInterrupted(t);
+    throw rethrowAllowInterrupted(t);
   }
 }

@@ -1,11 +1,5 @@
 {
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
   Operation operation=new GetRemainingLeaseTimeOperation(namespace,key);
-  try {
-    Future future=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
-    return ((Number)future.get()).longValue();
-  }
- catch (  Throwable t) {
-    throw ExceptionUtil.rethrow(t);
-  }
+  InternalCompletableFuture<Number> f=invoke(nodeEngine,operation,key);
+  return f.getSafely().longValue();
 }
