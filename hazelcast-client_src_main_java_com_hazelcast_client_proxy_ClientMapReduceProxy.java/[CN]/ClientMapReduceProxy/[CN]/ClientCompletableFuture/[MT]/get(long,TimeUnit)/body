@@ -1,20 +1,8 @@
 {
   ValidationUtil.isNotNull(unit,"unit");
-  long deadline=timeout == 0L ? -1 : Clock.currentTimeMillis() + unit.toMillis(timeout);
-  for (; ; ) {
-    try {
-      Thread.sleep(100);
-    }
- catch (    InterruptedException e) {
-      throw e;
-    }
-    if (isDone()) {
-      break;
-    }
-    long delta=deadline - Clock.currentTimeMillis();
-    if (delta <= 0L) {
-      throw new TimeoutException("timeout reached");
-    }
+  latch.await(timeout,unit);
+  if (!isDone()) {
+    throw new TimeoutException("timeout reached");
   }
   return getResult();
 }
