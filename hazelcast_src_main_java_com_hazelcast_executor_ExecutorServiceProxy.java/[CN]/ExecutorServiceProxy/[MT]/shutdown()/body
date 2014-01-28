@@ -1,14 +1,14 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  final Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
-  final OperationService operationService=nodeEngine.getOperationService();
-  final Collection<Future> calls=new LinkedList<Future>();
+  NodeEngine nodeEngine=getNodeEngine();
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  OperationService operationService=nodeEngine.getOperationService();
+  Collection<Future> calls=new LinkedList<Future>();
   for (  MemberImpl member : members) {
     if (member.localMember()) {
       getService().shutdownExecutor(name);
     }
  else {
-      Future f=operationService.invokeOnTarget(getServiceName(),new ShutdownOperation(name),member.getAddress());
+      Future f=submitShutdownOperation(operationService,member);
       calls.add(f);
     }
   }

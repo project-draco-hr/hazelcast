@@ -1,10 +1,13 @@
 {
+  PartitionService partitionService=nodeEngine.getPartitionService();
+  OperationService operationService=nodeEngine.getOperationService();
+  Address thisAddress=nodeEngine.getThisAddress();
   for (  String name : permitMap.keySet()) {
-    int partitionId=nodeEngine.getPartitionService().getPartitionId(StringPartitioningStrategy.getPartitionKey(name));
-    InternalPartition info=nodeEngine.getPartitionService().getPartition(partitionId);
-    if (nodeEngine.getThisAddress().equals(info.getOwner())) {
-      Operation op=new SemaphoreDeadMemberOperation(name,caller).setPartitionId(partitionId).setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler()).setService(this).setNodeEngine(nodeEngine).setServiceName(SERVICE_NAME);
-      nodeEngine.getOperationService().executeOperation(op);
+    int partitionId=partitionService.getPartitionId(getPartitionKey(name));
+    InternalPartition partition=partitionService.getPartition(partitionId);
+    if (thisAddress.equals(partition.getOwner())) {
+      Operation op=new SemaphoreDeadMemberOperation(name,caller).setPartitionId(partitionId).setResponseHandler(createEmptyResponseHandler()).setService(this).setNodeEngine(nodeEngine).setServiceName(SERVICE_NAME);
+      operationService.executeOperation(op);
     }
   }
 }

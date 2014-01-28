@@ -2,16 +2,19 @@
   final CountDownLatch added=new CountDownLatch(2);
   final CountDownLatch updated=new CountDownLatch(2);
   final CountDownLatch removed=new CountDownLatch(2);
+  final Set<ListenerResult> result=new CopyOnWriteArraySet<ListenerResult>();
   EntryListener listener=new EntryListener(){
     @Override public void entryAdded(    EntryEvent event){
       added.countDown();
+      result.add(new ListenerResult(event.getMember(),event.getValue()));
     }
     @Override public void entryRemoved(    EntryEvent event){
       removed.countDown();
+      result.add(new ListenerResult(event.getMember(),event.getValue()));
     }
     @Override public void entryUpdated(    EntryEvent event){
       updated.countDown();
-      ;
+      result.add(new ListenerResult(event.getMember(),event.getValue()));
     }
     @Override public void entryEvicted(    EntryEvent event){
     }
@@ -31,7 +34,11 @@
       map1.put("foo","bar");
     }
   }
-,2,EntryEventType.ADDED,map1,map2);
+,60,EntryEventType.ADDED,map1,map2);
+  for (  ListenerResult r : result) {
+    assertEquals("ListenerResults: " + result.toString(),"bar",r.value);
+  }
+  result.clear();
   String value=map2.get("foo");
   assertEquals("bar",value);
   executor.execute(new Runnable(){
@@ -39,7 +46,11 @@
       map1.put("foo","bar2");
     }
   }
-,2,EntryEventType.UPDATED,map1,map2);
+,60,EntryEventType.UPDATED,map1,map2);
+  for (  ListenerResult r : result) {
+    assertEquals("ListenerResults: " + result.toString(),"bar2",r.value);
+  }
+  result.clear();
   value=map2.get("foo");
   assertEquals("bar2",value);
   executor.execute(new Runnable(){
@@ -47,7 +58,11 @@
       map2.put("foo","bar3");
     }
   }
-,2,EntryEventType.UPDATED,map1,map2);
+,60,EntryEventType.UPDATED,map1,map2);
+  for (  ListenerResult r : result) {
+    assertEquals("ListenerResults: " + result.toString(),"bar3",r.value);
+  }
+  result.clear();
   value=map1.get("foo");
   assertEquals("bar3",value);
   executor.execute(new Runnable(){
@@ -55,7 +70,10 @@
       map1.remove("foo");
     }
   }
-,2,EntryEventType.REMOVED,map1,map2);
+,60,EntryEventType.REMOVED,map1,map2);
+  for (  ListenerResult r : result) {
+    assertEquals("ListenerResults: " + result.toString(),null,r.value);
+  }
   added.await();
   updated.await();
   removed.await();
