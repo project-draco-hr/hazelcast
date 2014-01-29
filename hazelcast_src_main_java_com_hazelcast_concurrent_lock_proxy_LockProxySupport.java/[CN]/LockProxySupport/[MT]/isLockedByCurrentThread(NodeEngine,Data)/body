@@ -1,11 +1,5 @@
 {
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-  IsLockedOperation operation=new IsLockedOperation(namespace,key,ThreadUtil.getThreadId());
-  try {
-    Future future=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
-    return (Boolean)future.get();
-  }
- catch (  Throwable t) {
-    throw ExceptionUtil.rethrow(t);
-  }
+  IsLockedOperation operation=new IsLockedOperation(namespace,key,getThreadId());
+  InternalCompletableFuture<Boolean> f=invoke(nodeEngine,operation,key);
+  return f.getSafely();
 }
