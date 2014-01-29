@@ -1,51 +1,13 @@
 {
-  if (msg != null && msg instanceof JoinMessage) {
-    JoinMessage joinMessage=(JoinMessage)msg;
-    if (node.getThisAddress() != null && !node.getThisAddress().equals(joinMessage.getAddress())) {
-      boolean validJoinRequest;
-      try {
-        validJoinRequest=node.getClusterService().validateJoinMessage(joinMessage);
-      }
- catch (      Exception e) {
-        validJoinRequest=false;
-      }
-      if (validJoinRequest) {
-        if (node.isActive() && node.joined()) {
-          if (joinMessage instanceof JoinRequest) {
-            if (node.isMaster()) {
-              JoinRequest request=(JoinRequest)joinMessage;
-              final JoinMessage response=new JoinMessage(request.getPacketVersion(),request.getBuildNumber(),node.getThisAddress(),request.getUuid(),request.getConfigCheck(),node.getClusterService().getSize());
-              node.multicastService.send(response);
-            }
- else             if (isMasterNode(joinMessage.getAddress()) && !checkMasterUuid(joinMessage.getUuid())) {
-              logger.warning("New join request has been received from current master. " + "Removing " + node.getMasterAddress());
-              node.getClusterService().removeAddress(node.getMasterAddress());
-            }
-          }
-        }
+  if (!isValidJoinMessage(msg)) {
+    logDroppedMessage(msg);
+    return;
+  }
+  JoinMessage joinMessage=(JoinMessage)msg;
+  if (node.isActive() && node.joined()) {
+    handleActiveAndJoined(joinMessage);
+  }
  else {
-          if (!node.joined() && !(joinMessage instanceof JoinRequest)) {
-            if (node.getMasterAddress() == null) {
-              final String masterHost=joinMessage.getAddress().getHost();
-              if (trustedInterfaces.isEmpty() || AddressUtil.matchAnyInterface(masterHost,trustedInterfaces)) {
-                node.setMasterAddress(new Address(joinMessage.getAddress()));
-              }
- else {
-                if (logger.isFinestEnabled()) {
-                  logger.finest(format("JoinMessage from %s is dropped because its sender is not a trusted interface",masterHost));
-                }
-              }
-            }
-          }
- else           if (joinMessage instanceof JoinRequest) {
-            Joiner joiner=node.getJoiner();
-            if (joiner instanceof MulticastJoiner) {
-              MulticastJoiner multicastJoiner=(MulticastJoiner)joiner;
-              multicastJoiner.onReceivedJoinRequest((JoinRequest)joinMessage);
-            }
-          }
-        }
-      }
-    }
+    handleNotActiveOrNotJoined(joinMessage);
   }
 }

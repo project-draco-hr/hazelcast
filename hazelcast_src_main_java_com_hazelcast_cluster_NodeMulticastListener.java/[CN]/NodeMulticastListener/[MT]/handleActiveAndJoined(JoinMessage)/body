@@ -1,0 +1,15 @@
+{
+  if (!isJoinRequest(joinMessage)) {
+    logDroppedMessage(joinMessage);
+    return;
+  }
+  if (node.isMaster()) {
+    JoinRequest request=(JoinRequest)joinMessage;
+    JoinMessage response=new JoinMessage(request.getPacketVersion(),request.getBuildNumber(),node.getThisAddress(),request.getUuid(),request.getConfigCheck(),node.getClusterService().getSize());
+    node.multicastService.send(response);
+  }
+ else   if (isMasterNode(joinMessage.getAddress()) && !checkMasterUuid(joinMessage.getUuid())) {
+    logger.warning("New join request has been received from current master. " + "Removing " + node.getMasterAddress());
+    node.getClusterService().removeAddress(node.getMasterAddress());
+  }
+}
