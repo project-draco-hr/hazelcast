@@ -1,20 +1,5 @@
 {
-  final NodeEngine nodeEngine=lockProxy.getNodeEngine();
-  final long threadId=ThreadUtil.getThreadId();
-  try {
-    BeforeAwaitOperation op=new BeforeAwaitOperation(namespace,lockProxy.key,threadId,conditionId);
-    Future f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,op,partitionId);
-    f.get();
-  }
- catch (  Throwable t) {
-    throw rethrow(t);
-  }
-  try {
-    AwaitOperation op=new AwaitOperation(namespace,lockProxy.key,threadId,unit.toMillis(time),conditionId);
-    Future f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,op,partitionId);
-    return Boolean.TRUE.equals(f.get());
-  }
- catch (  Throwable t) {
-    throw rethrowAllowInterrupted(t);
-  }
+  long threadId=ThreadUtil.getThreadId();
+  beforeAwait(threadId);
+  return doAwait(time,unit,threadId);
 }

@@ -1,52 +1,9 @@
 {
-  NodeEngine nodeEngine=getNodeEngine();
-  if (!nodeEngine.getMasterAddress().equals(migrationInfo.getMaster())) {
-    throw new RetryableHazelcastException("Migration initiator is not master node! => " + toString());
+  assertMigrationInitiatorIsMaster();
+  try {
+    doRun();
   }
-  SerializationService serializationService=nodeEngine.getSerializationService();
-  BufferObjectDataInput in=null;
-  if (migrationInfo.startProcessing()) {
-    try {
-      final byte[] data;
-      if (compressed) {
-        data=IOUtil.decompress(taskData);
-      }
- else {
-        data=taskData;
-      }
-      in=serializationService.createObjectDataInput(data);
-      int size=in.readInt();
-      tasks=new ArrayList<Operation>(size);
-      for (int i=0; i < size; i++) {
-        Operation task=(Operation)serializationService.readObject(in);
-        tasks.add(task);
-      }
-      if (taskCount != tasks.size()) {
-        getLogger().severe("Migration task count mismatch! => " + "expected-count: " + size + ", actual-count: "+ tasks.size()+ "\nfrom: "+ migrationInfo.getSource()+ ", partition: "+ getPartitionId()+ ", replica: "+ getReplicaIndex());
-      }
-      success=runMigrationTasks();
-      if (success) {
-        final PartitionServiceImpl partitionService=getService();
-        partitionService.setPartitionReplicaVersions(migrationInfo.getPartitionId(),replicaVersions);
-      }
-    }
- catch (    Throwable e) {
-      Level level=Level.WARNING;
-      if (e instanceof IllegalStateException) {
-        level=Level.FINEST;
-      }
-      if (getLogger().isLoggable(level)) {
-        getLogger().log(level,e.getMessage(),e);
-      }
-      success=false;
-    }
- finally {
-      migrationInfo.doneProcessing();
-      IOUtil.closeResource(in);
-    }
-  }
- else {
-    getLogger().warning("Migration is cancelled -> " + migrationInfo);
-    success=false;
+ catch (  Throwable t) {
+    logMigrationFailure(t);
   }
 }
