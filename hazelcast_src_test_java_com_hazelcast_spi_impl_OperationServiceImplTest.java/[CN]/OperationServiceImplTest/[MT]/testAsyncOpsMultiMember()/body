@@ -1,0 +1,26 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  warmUpPartitions(hz2,hz);
+  final IMap<Object,Object> map=hz.getMap("test");
+  final IMap<Object,Object> map2=hz2.getMap("test");
+  final int count=2000;
+  for (int i=0; i < count; i++) {
+    if (i % 2 == 0) {
+      map.putAsync(i,i);
+    }
+ else {
+      map2.putAsync(i,i);
+    }
+  }
+  assertTrueEventually(new AssertTask(){
+    public void run(){
+      assertEquals(count,map.size());
+      assertEquals(count,map2.size());
+    }
+  }
+);
+  assertNoLitterInOpService(hz);
+  assertNoLitterInOpService(hz2);
+}
