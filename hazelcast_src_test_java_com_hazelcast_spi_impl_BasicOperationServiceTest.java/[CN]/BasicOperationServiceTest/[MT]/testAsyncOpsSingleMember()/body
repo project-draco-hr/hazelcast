@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  final IMap<Object,Object> map=hz.getMap("test");
+  final int count=1000;
+  for (int i=0; i < count; i++) {
+    map.putAsync(i,i);
+  }
+  assertTrueEventually(new AssertTask(){
+    public void run(){
+      Assert.assertEquals(count,map.size());
+    }
+  }
+);
+  assertNoLitterInOpService(hz);
+}
