@@ -1,12 +1,14 @@
 {
-  if (threadMxBean.isSynchronizerUsageSupported()) {
-    long[] tids=threadMxBean.findDeadlockedThreads();
-    if (tids == null || tids.length == 0) {
+  ThreadMXBean threadMXBean=ManagementFactory.getThreadMXBean();
+  if (threadMXBean.isSynchronizerUsageSupported()) {
+    long[] deadlockedThreads=threadMXBean.findDeadlockedThreads();
+    if (deadlockedThreads == null || deadlockedThreads.length == 0) {
       return null;
     }
-    return threadMxBean.getThreadInfo(tids,true,true);
+    return threadMXBean.getThreadInfo(deadlockedThreads,true,true);
   }
  else {
-    return getThreads(threadMxBean.findMonitorDeadlockedThreads());
+    long[] monitorDeadlockedThreads=threadMXBean.findMonitorDeadlockedThreads();
+    return getThreadInfos(threadMXBean,monitorDeadlockedThreads);
   }
 }
