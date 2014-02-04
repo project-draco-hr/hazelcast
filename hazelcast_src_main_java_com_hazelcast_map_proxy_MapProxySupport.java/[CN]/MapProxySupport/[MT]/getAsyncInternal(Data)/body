@@ -1,6 +1,14 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
+  final MapService mapService=getService();
   int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  final boolean nearCacheEnabled=mapConfig.isNearCacheEnabled();
+  if (nearCacheEnabled) {
+    Object cached=mapService.getFromNearCache(name,key);
+    if (cached != null && NearCache.NULL_OBJECT.equals(cached)) {
+      return new CompletedFuture<Data>(nodeEngine.getSerializationService(),cached,nodeEngine.getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR));
+    }
+  }
   GetOperation operation=new GetOperation(name,key);
   try {
     return nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);

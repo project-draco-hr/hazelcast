@@ -1,14 +1,30 @@
 {
-  Set keySet=new HashSet(keys.size());
+  Set<Data> keySet=new HashSet(keys.size());
+  Map<K,V> result=new HashMap<K,V>();
   for (  Object key : keys) {
     keySet.add(toData(key));
   }
+  if (nearCache != null) {
+    final Iterator<Data> iterator=keySet.iterator();
+    while (iterator.hasNext()) {
+      Data key=iterator.next();
+      Object cached=nearCache.get(key);
+      if (cached != null && !ClientNearCache.NULL_OBJECT.equals(cached)) {
+        result.put((K)toObject(key),(V)cached);
+        iterator.remove();
+      }
+    }
+  }
   MapGetAllRequest request=new MapGetAllRequest(name,keySet);
   MapEntrySet mapEntrySet=invoke(request);
-  Map<K,V> result=new HashMap<K,V>();
   Set<Entry<Data,Data>> entrySet=mapEntrySet.getEntrySet();
   for (  Entry<Data,Data> dataEntry : entrySet) {
-    result.put((K)toObject(dataEntry.getKey()),(V)toObject(dataEntry.getValue()));
+    final V value=(V)toObject(dataEntry.getValue());
+    final K key=(K)toObject(dataEntry.getKey());
+    result.put(key,value);
+    if (nearCache != null) {
+      nearCache.put(dataEntry.getKey(),value);
+    }
   }
   return result;
 }
