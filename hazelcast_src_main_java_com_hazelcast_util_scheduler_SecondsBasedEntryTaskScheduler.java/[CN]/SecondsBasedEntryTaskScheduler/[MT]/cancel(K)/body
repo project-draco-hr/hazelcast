@@ -1,4 +1,5 @@
 {
+  ScheduledEntry<K,V> result=null;
   if (scheduleType.equals(ScheduleType.FOR_EACH)) {
     return cancelComparingTimeKey(key);
   }
@@ -6,8 +7,14 @@
   if (second != null) {
     final ConcurrentMap<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
     if (entries != null) {
-      return entries.remove(key);
+      result=entries.remove(key);
+      if (entries.isEmpty()) {
+        ScheduledFuture removed=scheduledTaskMap.remove(second);
+        if (removed != null) {
+          removed.cancel(false);
+        }
+      }
     }
   }
-  return null;
+  return result;
 }

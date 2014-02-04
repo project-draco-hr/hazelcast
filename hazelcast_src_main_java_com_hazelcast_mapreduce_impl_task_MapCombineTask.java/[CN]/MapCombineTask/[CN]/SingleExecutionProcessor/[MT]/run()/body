@@ -7,16 +7,21 @@
  else     if (result.getResultState() == NO_MORE_PARTITIONS) {
       return;
     }
+    int partitionId=result.getPartitionId();
     KeyValueSource<KeyIn,ValueIn> delegate=keyValueSource;
     if (supervisor.getConfiguration().isCommunicateStats()) {
       delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
     }
     delegate.reset();
-    delegate.open(nodeEngine);
-    DefaultContext<KeyOut,ValueOut> context=supervisor.getOrCreateContext(MapCombineTask.this);
-    processMapping(result.getPartitionId(),context,delegate);
-    delegate.close();
-    finalizeMapping(result.getPartitionId(),context);
+    if (delegate.open(nodeEngine)) {
+      DefaultContext<KeyOut,ValueOut> context=supervisor.getOrCreateContext(MapCombineTask.this);
+      processMapping(partitionId,context,delegate);
+      delegate.close();
+      finalizeMapping(partitionId,context);
+    }
+ else {
+      postponePartitionProcessing(partitionId);
+    }
   }
  catch (  Throwable t) {
     notifyRemoteException(supervisor,t);

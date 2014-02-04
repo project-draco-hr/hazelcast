@@ -1,0 +1,24 @@
+{
+  isNotNull(instance,"instance");
+  for (; ; ) {
+    HazelcastInstance[] oldInstances=instancesRef.get();
+    int indexOf=indexOf(oldInstances,instance);
+    if (indexOf == -1) {
+      return;
+    }
+    HazelcastInstance[] newInstances;
+    if (oldInstances.length == 1) {
+      newInstances=EMPTY_INSTANCES;
+    }
+ else {
+      newInstances=new HazelcastInstance[oldInstances.length - 1];
+      arraycopy(oldInstances,0,newInstances,0,indexOf);
+      if (indexOf < newInstances.length) {
+        arraycopy(oldInstances,indexOf + 1,newInstances,indexOf,newInstances.length - indexOf);
+      }
+    }
+    if (instancesRef.compareAndSet(oldInstances,newInstances)) {
+      return;
+    }
+  }
+}

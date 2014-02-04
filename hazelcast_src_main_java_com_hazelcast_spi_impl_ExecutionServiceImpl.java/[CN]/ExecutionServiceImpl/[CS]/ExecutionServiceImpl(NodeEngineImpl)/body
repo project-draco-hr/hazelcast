@@ -13,11 +13,12 @@
   }
 );
   final String scheduledThreadName=node.getThreadNamePrefix("scheduled");
-  scheduledExecutorService=Executors.newSingleThreadScheduledExecutor(new SingleExecutorThreadFactory(node.threadGroup,classLoader,scheduledThreadName));
+  scheduledExecutorService=new ScheduledThreadPoolExecutor(1,new SingleExecutorThreadFactory(node.threadGroup,classLoader,scheduledThreadName));
   enableRemoveOnCancelIfAvailable();
   final int coreSize=Runtime.getRuntime().availableProcessors();
   register(SYSTEM_EXECUTOR,coreSize,Integer.MAX_VALUE);
-  scheduledManagedExecutor=register(SCHEDULED_EXECUTOR,coreSize * 5,coreSize * 100000);
+  register(SCHEDULED_EXECUTOR,coreSize * 5,coreSize * 100000);
+  defaultScheduledExecutorServiceDelegate=getScheduledExecutor(SCHEDULED_EXECUTOR);
   completableFutureTask=new CompletableFutureTask();
   scheduleWithFixedDelay(completableFutureTask,100,100,TimeUnit.MILLISECONDS);
 }
