@@ -1,0 +1,22 @@
+{
+  final String mapName="testGetAllWithNearCache";
+  ClientConfig config=new ClientConfig();
+  config.addNearCacheConfig(mapName,new NearCacheConfig());
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(config);
+  IMap<Integer,Integer> map=client.getMap(mapName);
+  HashSet keys=new HashSet();
+  int size=1000;
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+    keys.add(i);
+  }
+  long begin=System.currentTimeMillis();
+  map.getAll(keys);
+  long firstRead=System.currentTimeMillis() - begin;
+  begin=System.currentTimeMillis();
+  map.getAll(keys);
+  long secondRead=System.currentTimeMillis() - begin;
+  assertTrue(secondRead < firstRead);
+}
