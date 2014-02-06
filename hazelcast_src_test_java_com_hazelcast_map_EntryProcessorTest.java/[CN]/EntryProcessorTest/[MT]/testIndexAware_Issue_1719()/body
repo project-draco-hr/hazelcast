@@ -1,0 +1,12 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  Config cfg=new Config();
+  cfg.getMapConfig("test").addMapIndexConfig(new MapIndexConfig("attr1",false));
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(cfg);
+  IMap<String,TempData> map=instance.getMap("test");
+  map.put("a",new TempData("foo","bar"));
+  map.put("b",new TempData("abc","123"));
+  TestPredicate predicate=new TestPredicate("foo");
+  map.executeOnEntries(new LoggingEntryProcessor(),predicate);
+  assertFalse("The predicate shouldn't be applied if indexing works!",predicate.didApply());
+}
