@@ -10,4 +10,16 @@
   writeHandler.shutdown();
   in.close();
   out.close();
+  final HazelcastException response;
+  if (connectionManager.isLive()) {
+    response=new TargetDisconnectedException(remoteEndpoint);
+  }
+ else {
+    response=new HazelcastException("Client is shutting down!!!");
+  }
+  for (  Map.Entry<Integer,ClientCallFuture> entry : callIdMap.entrySet()) {
+    entry.getValue().notify(response);
+  }
+  callIdMap.clear();
+  eventHandlerMap.clear();
 }
