@@ -1,0 +1,39 @@
+{
+  out.writeBoolean(object != null);
+  if (object != null) {
+    int size=object.size();
+    out.writeInt(size);
+    if (object instanceof RandomAccess) {
+      boolean hasDataSerializable=false;
+      if (!object.isEmpty()) {
+        hasDataSerializable=object.get(0) instanceof DataSerializable;
+      }
+      out.writeBoolean(hasDataSerializable);
+      for (int i=0; i < size; i++) {
+        if (hasDataSerializable) {
+          ((DataSerializable)object.get(i)).writeData(out);
+        }
+ else {
+          out.writeObject(object.get(i));
+        }
+      }
+    }
+ else {
+      Iterator iterator=object.iterator();
+      boolean hasDataSerializable=false;
+      if (!iterator.hasNext()) {
+        hasDataSerializable=iterator.next() instanceof DataSerializable;
+      }
+      out.writeBoolean(hasDataSerializable);
+      iterator=object.iterator();
+      while (iterator.hasNext()) {
+        if (hasDataSerializable) {
+          ((DataSerializable)iterator.next()).writeData(out);
+        }
+ else {
+          out.writeObject(iterator.next());
+        }
+      }
+    }
+  }
+}
