@@ -1,0 +1,18 @@
+{
+  this.node=node;
+  this.runSystemOperations=runSystemOperations;
+  this.operationThreadCount=operationThreadCount;
+  this.partitionExecutors=new ExecutorService[operationThreadCount];
+  this.partitionExecutorQueues=new BlockingQueue[operationThreadCount];
+  this.partitionExecutorPriorityQueues=new ConcurrentLinkedQueue[operationThreadCount];
+  for (int partitionId=0; partitionId < partitionExecutors.length; partitionId++) {
+    BlockingQueue<Runnable> queue=new LinkedBlockingQueue<Runnable>();
+    partitionExecutorQueues[partitionId]=queue;
+    ConcurrentLinkedQueue<Runnable> priorityQueue=new ConcurrentLinkedQueue<Runnable>();
+    partitionExecutorPriorityQueues[partitionId]=priorityQueue;
+    partitionExecutors[partitionId]=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,queue,new PartitionThreadFactory(partitionId));
+  }
+  int coreSize=Runtime.getRuntime().availableProcessors();
+  this.globalExecutorPriorityQueue=new ConcurrentLinkedQueue<Runnable>();
+  this.globalExecutor=executionService.register(ExecutionService.OPERATION_EXECUTOR,coreSize * 2,coreSize * 100000);
+}

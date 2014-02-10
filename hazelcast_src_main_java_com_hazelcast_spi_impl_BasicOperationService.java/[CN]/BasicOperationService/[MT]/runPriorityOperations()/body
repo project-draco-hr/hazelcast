@@ -1,0 +1,21 @@
+{
+  Thread thread=Thread.currentThread();
+  ConcurrentLinkedQueue<Runnable> urgentQueue;
+  if (thread instanceof BasicOperationServiceExecutor.PartitionThread) {
+    int id=((BasicOperationServiceExecutor.PartitionThread)thread).threadId;
+    urgentQueue=systemOperationExecutorQueues[id];
+  }
+ else {
+    urgentQueue=defaultSystemOperationQueue;
+  }
+  if (urgentQueue.isEmpty()) {
+    return;
+  }
+  for (; ; ) {
+    Runnable task=urgentQueue.poll();
+    if (task == null) {
+      return;
+    }
+    task.run();
+  }
+}
