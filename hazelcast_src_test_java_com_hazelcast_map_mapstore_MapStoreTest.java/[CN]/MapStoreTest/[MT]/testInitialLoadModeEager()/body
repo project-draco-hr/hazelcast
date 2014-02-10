@@ -1,26 +1,17 @@
 {
   int size=10000;
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   Config cfg=new Config();
+  GroupConfig groupConfig=new GroupConfig("testEager");
+  cfg.setGroupConfig(groupConfig);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
   mapStoreConfig.setImplementation(new SimpleMapLoader(size,true));
-  MapConfig mc=cfg.getMapConfig("default");
-  mc.setMapStoreConfig(mapStoreConfig);
+  mapStoreConfig.setInitialLoadMode(MapStoreConfig.InitialLoadMode.EAGER);
+  cfg.getMapConfig("default").setMapStoreConfig(mapStoreConfig);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
   IMap map=instance1.getMap("testMapInitialLoad");
   System.out.println("getMap finished. mode:" + mapStoreConfig.getInitialLoadMode());
   assertEquals(size,map.size());
-  System.out.println(map.size());
-  for (int i=0; i < size; i++) {
-    assertEquals(i,map.get(i));
-  }
-  assertNull(map.put(size,size));
-  assertEquals(size,map.remove(size));
-  assertNull(map.get(size));
-  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(cfg);
-  for (int i=0; i < size; i++) {
-    assertEquals(i,map.get(i));
-  }
 }
