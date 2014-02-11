@@ -1,0 +1,31 @@
+{
+  final int size=100000;
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final Config cfg=new Config();
+  GroupConfig groupConfig=new GroupConfig("testEager");
+  cfg.setGroupConfig(groupConfig);
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setImplementation(new SimpleMapLoader(size,true));
+  mapStoreConfig.setInitialLoadMode(MapStoreConfig.InitialLoadMode.EAGER);
+  cfg.getMapConfig("testMapInitialLoad").setMapStoreConfig(mapStoreConfig);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  Runnable runnable=new Runnable(){
+    public void run(){
+      try {
+        Thread.sleep(3000);
+        instance1.getLifecycleService().terminate();
+        Thread.sleep(3000);
+        final IMap<Object,Object> map=instance2.getMap("testMapInitialLoad");
+        assertEquals(size,map.size());
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+;
+  new Thread(runnable).start();
+  IMap map=instance1.getMap("testMapInitialLoad");
+}
