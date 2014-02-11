@@ -7,12 +7,39 @@
     public void entryAdded(    EntryEvent event){
       latch.countDown();
     }
+    @Override public void entryUpdated(    EntryEvent event){
+      latch.countDown();
+    }
   }
 ,true);
   m.put("key1","value1");
   final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
   instance1.getLifecycleService().shutdown();
-  m.put("key2","value2");
-  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  final Thread thread=new Thread(){
+    @Override public void run(){
+      while (!isInterrupted()) {
+        m.put("key2","value2");
+        try {
+          Thread.sleep(100);
+        }
+ catch (        InterruptedException ignored) {
+        }
+      }
+    }
+  }
+;
+  thread.start();
+  assertTrueEventually(new AssertTask(){
+    public void run(){
+      try {
+        assertTrue(latch.await(10,TimeUnit.SECONDS));
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+);
+  thread.interrupt();
   assertTrue(m.removeEntryListener(id));
 }
