@@ -5,15 +5,7 @@
   this.mapReduceService=mapReduceService;
   this.jobOwner=configuration.getJobOwner();
   this.executorService=mapReduceService.getExecutorService(configuration.getName());
-  NodeEngine nodeEngine=configuration.getNodeEngine();
-  if (configuration.getKeyValueSource() instanceof PartitionIdAware) {
-    int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
-    this.jobProcessInformation=new JobProcessInformationImpl(partitionCount,this);
-  }
- else {
-    int partitionCount=nodeEngine.getClusterService().getMemberList().size();
-    this.jobProcessInformation=new MemberAssigningJobProcessInformationImpl(partitionCount,this);
-  }
+  this.jobProcessInformation=createJobProcessInformation(configuration,this);
   String name=configuration.getName();
   String jobId=configuration.getJobId();
   jobTracker.registerReducerTask(new ReducerTask(name,jobId,this));
