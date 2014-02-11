@@ -1,4 +1,18 @@
 {
-  data.writeData(out);
-  out.flush();
+  final int totalSize=data.totalSize();
+  final int bufferSize=ClientConnectionManagerImpl.BUFFER_SIZE;
+  final ByteBuffer buffer=ByteBuffer.allocate(totalSize > bufferSize ? bufferSize : totalSize);
+  final DataAdapter packet=new DataAdapter(data);
+  boolean complete=false;
+  while (!complete) {
+    complete=packet.writeTo(buffer);
+    buffer.flip();
+    try {
+      socketChannelWrapper.write(buffer);
+    }
+ catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+    buffer.clear();
+  }
 }

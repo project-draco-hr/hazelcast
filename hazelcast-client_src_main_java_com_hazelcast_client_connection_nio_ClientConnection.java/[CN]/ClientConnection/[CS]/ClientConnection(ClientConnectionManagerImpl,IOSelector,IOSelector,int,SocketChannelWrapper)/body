@@ -1,16 +1,10 @@
 {
   final Socket socket=socketChannelWrapper.socket();
   this.connectionManager=connectionManager;
+  this.serializationService=connectionManager.getSerializationService();
   this.socketChannelWrapper=socketChannelWrapper;
   this.connectionId=connectionId;
   this.readHandler=new ClientReadHandler(this,in,socket.getReceiveBufferSize());
   this.writeHandler=new ClientWriteHandler(this,out,socket.getSendBufferSize());
-  final SerializationService ss=connectionManager.getSerializationService();
-  try {
-    this.out=ss.createObjectDataOutputStream(new BufferedOutputStream(socket.getOutputStream(),socket.getSendBufferSize()));
-    this.in=ss.createObjectDataInputStream(new BufferedInputStream(socket.getInputStream(),socket.getReceiveBufferSize()));
-  }
- catch (  IOException e) {
-    throw e;
-  }
+  this.readBuffer=ByteBuffer.allocate(socket.getReceiveBufferSize());
 }

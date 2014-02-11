@@ -1,5 +1,24 @@
 {
-  Data data=new Data();
-  data.readData(in);
-  return data;
+  ClientPacket packet=new ClientPacket(serializationService.getSerializationContext());
+  while (true) {
+    if (readFromSocket) {
+      int readBytes=socketChannelWrapper.read(readBuffer);
+      if (readBytes == -1) {
+        throw new EOFException("Remote socket closed!");
+      }
+      readBuffer.flip();
+    }
+    boolean complete=packet.readFrom(readBuffer);
+    if (complete) {
+      if (readBuffer.hasRemaining()) {
+        readFromSocket=false;
+      }
+ else {
+        readBuffer.compact();
+      }
+      return packet.getData();
+    }
+    readFromSocket=true;
+    readBuffer.clear();
+  }
 }
