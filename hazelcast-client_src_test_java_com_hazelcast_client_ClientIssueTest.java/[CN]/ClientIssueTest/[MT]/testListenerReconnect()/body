@@ -1,0 +1,18 @@
+{
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final CountDownLatch latch=new CountDownLatch(2);
+  final IMap<Object,Object> m=client.getMap("m");
+  final String id=m.addEntryListener(new EntryAdapter(){
+    public void entryAdded(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,true);
+  m.put("key1","value1");
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  instance1.getLifecycleService().shutdown();
+  m.put("key2","value2");
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertTrue(m.removeEntryListener(id));
+}
