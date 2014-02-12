@@ -5,30 +5,20 @@
   if (partitionId > -1) {
     PartitionThread partitionThread=partitionThreads[toPartitionThreadIndex(partitionId)];
     if (priority) {
-      partitionThread.priorityQueue.offer(task);
-      partitionThread.workQueue.offer(triggerTask);
+      offerWork(partitionThread.priorityQueue,task);
+      offerWork(partitionThread.workQueue,triggerTask);
     }
  else {
-      partitionThread.workQueue.offer(task);
+      offerWork(partitionThread.workQueue,task);
     }
   }
  else {
-    Runnable runnable;
-    if (task instanceof Runnable) {
-      runnable=(Runnable)task;
-    }
- else {
-      runnable=new Runnable(){
-        @Override public void run(){
-          processor.process(task);
-        }
-      }
-;
-    }
     if (priority) {
+      offerWork(globalExecutorPriorityQueue,task);
+      globalExecutor.execute(new ProcessTask(null));
     }
  else {
+      globalExecutor.execute(new ProcessTask(task));
     }
-    globalExecutor.execute(runnable);
   }
 }
