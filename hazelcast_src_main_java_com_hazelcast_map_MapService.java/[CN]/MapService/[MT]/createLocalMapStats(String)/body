@@ -23,18 +23,20 @@
     }
  else     if (owner.equals(thisAddress)) {
       PartitionContainer partitionContainer=getPartitionContainer(partitionId);
-      RecordStore recordStore=partitionContainer.getRecordStore(mapName);
-      heapCost+=recordStore.getHeapCost();
-      Map<Data,Record> records=recordStore.getReadonlyRecordMap();
-      for (      Record record : records.values()) {
-        RecordStatistics stats=record.getStatistics();
-        ownedEntryCount++;
-        ownedEntryMemoryCost+=record.getCost();
-        localMapStats.setLastAccessTime(stats.getLastAccessTime());
-        localMapStats.setLastUpdateTime(stats.getLastUpdateTime());
-        hits+=stats.getHits();
-        if (recordStore.isLocked(record.getKey())) {
-          lockedEntryCount++;
+      RecordStore recordStore=partitionContainer.getExistingRecordStore(mapName);
+      if (recordStore != null) {
+        heapCost+=recordStore.getHeapCost();
+        Map<Data,Record> records=recordStore.getReadonlyRecordMap();
+        for (        Record record : records.values()) {
+          RecordStatistics stats=record.getStatistics();
+          ownedEntryCount++;
+          ownedEntryMemoryCost+=record.getCost();
+          localMapStats.setLastAccessTime(stats.getLastAccessTime());
+          localMapStats.setLastUpdateTime(stats.getLastUpdateTime());
+          hits+=stats.getHits();
+          if (recordStore.isLocked(record.getKey())) {
+            lockedEntryCount++;
+          }
         }
       }
     }
