@@ -5,7 +5,9 @@
   final int size=50;
   int k=0;
   final HazelcastInstance keyOwner=Hazelcast.newHazelcastInstance();
-  while (!keyOwner.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++k).getOwner())) {
+  final Member keyOwnerMember=keyOwner.getCluster().getLocalMember();
+  final Member partitionOwnerMember=instance.getPartitionService().getPartition(++k).getOwner();
+  while (!keyOwnerMember.equals(partitionOwnerMember)) {
     Thread.sleep(10);
   }
   final ILock lock=hz.getLock(k);
@@ -34,12 +36,10 @@
     }
 ).start();
   }
-  final ILock lock1=hz.getLock(k);
-  final ICondition condition1=lock1.newCondition(name);
   awaitLatch.await(1,TimeUnit.MINUTES);
-  lock1.lock();
-  condition1.signalAll();
-  lock1.unlock();
+  lock.lock();
+  condition.signalAll();
+  lock.unlock();
   keyOwner.getLifecycleService().shutdown();
   finalLatch.await(2,TimeUnit.MINUTES);
   Assert.assertEquals(size,count.get());
