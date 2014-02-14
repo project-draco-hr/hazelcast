@@ -1,0 +1,15 @@
+{
+  this.logger=node.getLogger(BasicOperationScheduler.class);
+  this.node=node;
+  this.processor=processor;
+  this.operationThreadCount=operationThreadCount;
+  this.partitionThreads=new PartitionThread[operationThreadCount];
+  for (int operationThreadId=0; operationThreadId < operationThreadCount; operationThreadId++) {
+    PartitionThread partitionThread=createPartitionThread(operationThreadId);
+    partitionThreads[operationThreadId]=partitionThread;
+    partitionThread.start();
+  }
+  int coreSize=Runtime.getRuntime().availableProcessors();
+  this.globalExecutorPriorityQueue=new ConcurrentLinkedQueue();
+  this.globalExecutor=executionService.register(ExecutionService.OPERATION_EXECUTOR,coreSize * 2,coreSize * 100000);
+}
