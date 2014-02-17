@@ -1,0 +1,24 @@
+{
+  final SerializableXid sXid=new SerializableXid(xid.getFormatId(),xid.getGlobalTransactionId(),xid.getBranchQualifier());
+  final Connection connection=recoveredTransactions.remove(sXid);
+  if (connection == null) {
+    return false;
+  }
+  final ClientClusterServiceImpl clusterService=(ClientClusterServiceImpl)client.getClientClusterService();
+  final RecoverTransactionRequest request=new RecoverTransactionRequest(sXid,commit);
+  try {
+    clusterService.sendAndReceiveFixedConnection(connection,request);
+  }
+ catch (  Exception e) {
+    ExceptionUtil.rethrow(e);
+  }
+ finally {
+    try {
+      connection.release();
+    }
+ catch (    IOException e) {
+      Logger.getLogger(ClientTransactionManager.class).severe("Error during connection release",e);
+    }
+  }
+  return true;
+}

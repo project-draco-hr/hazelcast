@@ -1,0 +1,22 @@
+{
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  HazelcastInstance instance3=Hazelcast.newHazelcastInstance();
+  TransactionContext context=instance1.newTransactionContext(TransactionOptions.getDefault().setDurability(2));
+  XAResource xaResource=context.getXaResource();
+  final MyXid myXid=new MyXid();
+  xaResource.start(myXid,0);
+  final TransactionalMap<Object,Object> map=context.getMap("map");
+  map.put("key","value");
+  xaResource.prepare(myXid);
+  instance1.getLifecycleService().shutdown();
+  assertNull(instance2.getMap("map").get("key"));
+  instance1=Hazelcast.newHazelcastInstance();
+  context=instance1.newTransactionContext();
+  xaResource=context.getXaResource();
+  final Xid[] recover=xaResource.recover(0);
+  for (  Xid xid : recover) {
+    xaResource.commit(xid,false);
+  }
+  assertEquals("value",instance2.getMap("map").get("key"));
+}

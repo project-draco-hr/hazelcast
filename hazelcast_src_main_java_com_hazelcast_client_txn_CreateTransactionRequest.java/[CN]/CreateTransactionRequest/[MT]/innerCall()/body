@@ -1,8 +1,12 @@
 {
   ClientEngineImpl clientEngine=getService();
   final ClientEndpoint endpoint=getEndpoint();
-  final TransactionManagerService transactionManagerService=clientEngine.getTransactionManagerService();
-  final TransactionContext context=transactionManagerService.newClientTransactionContext(options,endpoint.getUuid());
+  final TransactionManagerServiceImpl transactionManager=(TransactionManagerServiceImpl)clientEngine.getTransactionManagerService();
+  final TransactionContext context=transactionManager.newClientTransactionContext(options,endpoint.getUuid());
+  if (sXid != null) {
+    final Transaction transaction=TransactionAccessor.getTransaction(context);
+    transactionManager.addManagedTransaction(sXid,transaction);
+  }
   context.beginTransaction();
   endpoint.setTransactionContext(context);
   return context.getTxnId();
