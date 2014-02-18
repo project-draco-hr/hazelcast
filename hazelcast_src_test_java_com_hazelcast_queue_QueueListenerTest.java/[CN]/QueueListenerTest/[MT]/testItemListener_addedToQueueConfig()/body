@@ -1,0 +1,22 @@
+{
+  int count=2000;
+  ItemListenerConfig itemListenerConfig=new ItemListenerConfig();
+  itemListenerConfig.setImplementation(new SimpleItemListener(count));
+  itemListenerConfig.setIncludeValue(true);
+  QueueConfig qConfig=new QueueConfig();
+  qConfig.setName("Q");
+  qConfig.addItemListenerConfig(itemListenerConfig);
+  Config cfg=new Config();
+  cfg.addQueueConfig(qConfig);
+  HazelcastInstance node1=Hazelcast.newHazelcastInstance(cfg);
+  for (int i=0; i < count / 2; i++) {
+    node1.getQueue("Q").put(i);
+  }
+  HazelcastInstance node2=Hazelcast.newHazelcastInstance(cfg);
+  for (int i=0; i < count / 4; i++) {
+    node1.getQueue("Q").put(i);
+  }
+  List<ItemListenerConfig> configs=qConfig.getItemListenerConfigs();
+  SimpleItemListener simpleItemListener=(SimpleItemListener)configs.get(0).getImplementation();
+  assertTrue(simpleItemListener.added.await(10,TimeUnit.SECONDS));
+}
