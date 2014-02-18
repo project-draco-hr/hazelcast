@@ -12,13 +12,20 @@
     lc.logout();
   }
   for (  TransactionContext context : transactionContextMap.values()) {
-    try {
-      context.rollbackTransaction();
+    final Transaction transaction=TransactionAccessor.getTransaction(context);
+    if (context.isXAManaged() && transaction.getState() == PREPARED) {
+      final TransactionManagerServiceImpl transactionManager=(TransactionManagerServiceImpl)clientEngine.getTransactionManagerService();
+      transactionManager.addTxBackupLogForClientRecovery(transaction);
     }
- catch (    HazelcastInstanceNotActiveException ignored) {
-    }
-catch (    Exception e) {
-      getLogger().warning(e);
+ else {
+      try {
+        context.rollbackTransaction();
+      }
+ catch (      HazelcastInstanceNotActiveException ignored) {
+      }
+catch (      Exception e) {
+        getLogger().warning(e);
+      }
     }
   }
   authenticated=false;
