@@ -1,0 +1,39 @@
+{
+  final ClientEngine clientEngine=getClientEngine();
+  final ClusterService clusterService=clientEngine.getClusterService();
+  final Collection<MemberImpl> memberList=clusterService.getMemberList();
+  final TransactionManagerServiceImpl service=getService();
+  List<Future<SerializableCollection>> futures=new ArrayList<Future<SerializableCollection>>(memberList.size());
+  for (  MemberImpl member : memberList) {
+    final Invocation inv=createInvocationBuilder(TransactionManagerServiceImpl.SERVICE_NAME,new RecoverTxnOperation(),member.getAddress()).build();
+    futures.add(inv.invoke());
+  }
+  Set<Data> xids=new HashSet<Data>();
+  for (  Future<SerializableCollection> future : futures) {
+    try {
+      final SerializableCollection collectionWrapper=future.get(RECOVER_TIMEOUT,TimeUnit.MILLISECONDS);
+      for (      Data data : collectionWrapper) {
+        final RecoveredTransaction rt=(RecoveredTransaction)clientEngine.toObject(data);
+        service.addClientRecoveredTransaction(rt);
+        xids.add(clientEngine.toData(rt.getXid()));
+      }
+    }
+ catch (    MemberLeftException e) {
+      final ILogger logger=clientEngine.getLogger(RecoverAllTransactionsRequest.class);
+      logger.warning("Member left while recovering: " + e);
+    }
+catch (    Throwable e) {
+      if (e instanceof ExecutionException) {
+        e=e.getCause() != null ? e.getCause() : e;
+      }
+      if (e instanceof TargetNotMemberException) {
+        final ILogger logger=clientEngine.getLogger(RecoverAllTransactionsRequest.class);
+        logger.warning("Member left while recovering: " + e);
+      }
+ else {
+        throw ExceptionUtil.rethrow(e);
+      }
+    }
+  }
+  clientEngine.sendResponse(getEndpoint(),new SerializableCollection(xids));
+}
