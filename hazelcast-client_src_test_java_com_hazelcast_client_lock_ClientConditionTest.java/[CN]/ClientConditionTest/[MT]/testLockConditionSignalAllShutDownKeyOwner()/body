@@ -1,0 +1,46 @@
+{
+  final String name="testLockConditionSignalAllShutDownKeyOwner";
+  final HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  final AtomicInteger count=new AtomicInteger(0);
+  final int size=50;
+  int k=0;
+  final HazelcastInstance keyOwner=Hazelcast.newHazelcastInstance();
+  final Member keyOwnerMember=keyOwner.getCluster().getLocalMember();
+  final PartitionService partitionService=instance.getPartitionService();
+  while (!keyOwnerMember.equals(partitionService.getPartition(++k).getOwner())) {
+    Thread.sleep(10);
+  }
+  final ILock lock=hz.getLock(k);
+  final ICondition condition=lock.newCondition(name);
+  final CountDownLatch awaitLatch=new CountDownLatch(size);
+  final CountDownLatch finalLatch=new CountDownLatch(size);
+  for (int i=0; i < size; i++) {
+    new Thread(new Runnable(){
+      public void run(){
+        lock.lock();
+        try {
+          awaitLatch.countDown();
+          condition.await();
+          Thread.sleep(5);
+          if (lock.isLockedByCurrentThread()) {
+            count.incrementAndGet();
+          }
+        }
+ catch (        InterruptedException ignored) {
+        }
+ finally {
+          lock.unlock();
+          finalLatch.countDown();
+        }
+      }
+    }
+).start();
+  }
+  awaitLatch.await(1,TimeUnit.MINUTES);
+  lock.lock();
+  condition.signalAll();
+  lock.unlock();
+  keyOwner.getLifecycleService().shutdown();
+  finalLatch.await(2,TimeUnit.MINUTES);
+  Assert.assertEquals(size,count.get());
+}

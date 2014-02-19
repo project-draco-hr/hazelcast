@@ -1,0 +1,43 @@
+{
+  final HazelcastInstance keyOwner=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  int k=0;
+  final AtomicInteger atomicInteger=new AtomicInteger(0);
+  final Member keyOwnerMember=keyOwner.getCluster().getLocalMember();
+  final PartitionService partitionService=instance1.getPartitionService();
+  while (keyOwnerMember.equals(partitionService.getPartition(k++).getOwner())) {
+    Thread.sleep(10);
+  }
+  final int key=k;
+  final ILock lock1=hz.getLock(key);
+  final String name="testKeyOwnerDiesOnCondition";
+  final ICondition condition1=lock1.newCondition(name);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      final ILock lock=hz.getLock(key);
+      final ICondition condition=lock.newCondition(name);
+      lock.lock();
+      try {
+        condition.await();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+ finally {
+        lock.unlock();
+      }
+      atomicInteger.incrementAndGet();
+    }
+  }
+);
+  t.start();
+  Thread.sleep(1000);
+  lock1.lock();
+  keyOwner.getLifecycleService().shutdown();
+  condition1.signal();
+  lock1.unlock();
+  Thread.sleep(1000);
+  t.join();
+  Assert.assertEquals(1,atomicInteger.get());
+}
