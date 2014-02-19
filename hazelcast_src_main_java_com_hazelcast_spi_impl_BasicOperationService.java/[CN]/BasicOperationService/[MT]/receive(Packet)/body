@@ -4,16 +4,9 @@
       responseExecutor.execute(new ResponseProcessor(packet));
     }
  else {
-      final int partitionId=packet.getPartitionId();
-      final Executor executor=getExecutor(partitionId);
-      if (packet.isUrgent()) {
-        ConcurrentLinkedQueue<Runnable> urgentQueue=getUrgentQueue(partitionId);
-        urgentQueue.add(new RemoteOperationProcessor(packet));
-        executor.execute(new UrgentSystemOperationsProcessor());
-      }
- else {
-        executor.execute(new RemoteOperationProcessor(packet));
-      }
+      int partitionId=packet.getPartitionId();
+      boolean systemOperation=packet.isUrgent();
+      executor.execute(packet,partitionId,systemOperation);
     }
   }
  catch (  RejectedExecutionException e) {

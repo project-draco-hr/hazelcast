@@ -1,6 +1,7 @@
 {
   JobPartitionState[] partitionStates=processInformation.getPartitionStates();
   JobPartitionState partitionState=partitionStates[partitionId];
+  JobPartitionState.State finalState=null;
   if (partitionState != null) {
     if (!owner.equals(partitionState.getOwner())) {
       return null;
@@ -9,27 +10,16 @@
       return null;
     }
     if (currentState == MAPPING) {
-      JobPartitionState.State newState=PROCESSED;
-      if (configuration.getReducerFactory() != null) {
-        newState=REDUCING;
-      }
-      JobPartitionState newPartitionState=new JobPartitionStateImpl(owner,newState);
-      if (processInformation.updatePartitionState(partitionId,partitionState,newPartitionState)) {
-        return newState;
-      }
+      finalState=stateChangeMapping(partitionId,partitionState,processInformation,owner,configuration);
     }
  else     if (currentState == REDUCING) {
-      JobPartitionState newPartitionState=new JobPartitionStateImpl(owner,PROCESSED);
-      if (processInformation.updatePartitionState(partitionId,partitionState,newPartitionState)) {
-        return PROCESSED;
-      }
+      finalState=stateChangeReducing(partitionId,partitionState,processInformation,owner);
     }
   }
   if (currentState == WAITING) {
-    JobPartitionState newPartitionState=new JobPartitionStateImpl(owner,MAPPING);
-    if (processInformation.updatePartitionState(partitionId,partitionState,newPartitionState)) {
-      return MAPPING;
+    if (compareAndSwapPartitionState(partitionId,partitionState,processInformation,owner,MAPPING)) {
+      finalState=MAPPING;
     }
   }
-  return null;
+  return finalState;
 }

@@ -1,25 +1,23 @@
 {
-  final int connectionAttemptLimit=getClientConfig().getConnectionAttemptLimit();
-  final ManagerAuthenticator authenticator=new ManagerAuthenticator();
+  final ClientNetworkConfig networkConfig=getClientConfig().getNetworkConfig();
+  final int connectionAttemptLimit=networkConfig.getConnectionAttemptLimit();
+  final int connectionAttemptPeriod=networkConfig.getConnectionAttemptPeriod();
   int attempt=0;
   Throwable lastError=null;
   while (true) {
-    final long nextTry=Clock.currentTimeMillis() + getClientConfig().getConnectionAttemptPeriod();
+    final long nextTry=Clock.currentTimeMillis() + connectionAttemptPeriod;
     for (    InetSocketAddress isa : socketAddresses) {
       Address address=new Address(isa);
       try {
-        final ClientConnection connection=getConnectionManager().ownerConnection(address,authenticator);
-        active=true;
+        final ClientConnection connection=connectionManager.ownerConnection(address);
         fireConnectionEvent(false);
         return connection;
       }
  catch (      IOException e) {
-        active=false;
         lastError=e;
         logger.finest("IO error during initial connection...",e);
       }
 catch (      AuthenticationException e) {
-        active=false;
         lastError=e;
         logger.warning("Authentication error on " + address,e);
       }

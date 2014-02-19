@@ -20,12 +20,13 @@
   }
   proxyManager=new ProxyManager(this);
   executionService=new ClientExecutionServiceImpl(instanceName,threadGroup,Thread.currentThread().getContextClassLoader(),config.getExecutorPoolSize());
-  clusterService=new ClientClusterServiceImpl(this);
+  transactionManager=new ClientTransactionManager(this);
   LoadBalancer loadBalancer=config.getLoadBalancer();
   if (loadBalancer == null) {
     loadBalancer=new RoundRobinLB();
   }
-  connectionManager=new ClientConnectionManagerImpl(this,clusterService.getAuthenticator(),loadBalancer,config.isSmartRouting());
+  connectionManager=new ClientConnectionManagerImpl(this,loadBalancer);
+  clusterService=new ClientClusterServiceImpl(this);
   invocationService=new ClientInvocationServiceImpl(this);
   userContext=new ConcurrentHashMap<String,Object>();
   loadBalancer.init(getCluster(),config);

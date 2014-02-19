@@ -1,14 +1,9 @@
 {
   String executorName=op.getExecutorName();
   if (executorName == null) {
-    final int partitionId=getPartitionIdForExecution(op);
-    if (op instanceof UrgentSystemOperation) {
-      getUrgentQueue(partitionId).offer(new LocalOperationProcessor(op));
-      getExecutor(partitionId).execute(new UrgentSystemOperationsProcessor());
-    }
- else {
-      getExecutor(partitionId).execute(new LocalOperationProcessor(op));
-    }
+    int partitionId=getPartitionIdForExecution(op);
+    boolean urgent=op.isUrgent();
+    executor.execute(op,partitionId,urgent);
   }
  else {
     ManagedExecutorService executor=executionService.getExecutor(executorName);
@@ -16,10 +11,10 @@
       throw new IllegalStateException("Could not found executor with name: " + executorName);
     }
     if (op instanceof PartitionAware) {
-      throw new IllegalStateException("PartitionAwareOperation " + op + " can't be executed on a custom executor with name: "+ executorName);
+      throw new IllegalStateException("PartitionAwareOperation " + op + " can't be executed on a "+ "custom executor with name: "+ executorName);
     }
     if (op instanceof UrgentSystemOperation) {
-      throw new IllegalStateException("UrgentSystemOperation " + op + " can't be executed on a custom executor with name: "+ executorName);
+      throw new IllegalStateException("UrgentSystemOperation " + op + " can't be executed on a custom "+ "executor with name: "+ executorName);
     }
     executor.execute(new LocalOperationProcessor(op));
   }
