@@ -1,11 +1,17 @@
 {
   boolean isError=false;
+  Object clientResponseObject;
   if (response == null) {
-    response=ClientEngineImpl.NULL;
+    clientResponseObject=ClientEngineImpl.NULL;
   }
  else   if (response instanceof Throwable) {
     isError=true;
-    response=ClientExceptionConverters.get(getClientType()).convert((Throwable)response);
+    ClientExceptionConverter converter=ClientExceptionConverters.get(getClientType());
+    clientResponseObject=converter.convert((Throwable)response);
   }
-  clientEngine.sendResponse(this,new ClientResponse(clientEngine.toData(response),isError,callId));
+ else {
+    clientResponseObject=response;
+  }
+  ClientResponse clientResponse=new ClientResponse(clientEngine.toData(clientResponseObject),isError,callId);
+  clientEngine.sendResponse(this,clientResponse);
 }
