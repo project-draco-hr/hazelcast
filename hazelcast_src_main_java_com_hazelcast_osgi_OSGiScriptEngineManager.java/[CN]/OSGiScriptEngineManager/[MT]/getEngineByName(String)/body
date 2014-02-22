@@ -1,11 +1,14 @@
 {
   for (  ScriptEngineManager manager : classLoaders.keySet()) {
-    ClassLoader old=Thread.currentThread().getContextClassLoader();
-    Thread.currentThread().setContextClassLoader(classLoaders.get(manager));
+    Thread currentThread=Thread.currentThread();
+    ClassLoader old=currentThread.getContextClassLoader();
+    ClassLoader contextClassLoader=classLoaders.get(manager);
+    currentThread.setContextClassLoader(contextClassLoader);
     ScriptEngine engine=manager.getEngineByName(shortName);
-    Thread.currentThread().setContextClassLoader(old);
+    currentThread.setContextClassLoader(old);
     if (engine != null) {
-      return new OSGiScriptEngine(engine,new OSGiScriptEngineFactory(engine.getFactory(),classLoaders.get(manager)));
+      OSGiScriptEngineFactory factory=new OSGiScriptEngineFactory(engine.getFactory(),contextClassLoader);
+      return new OSGiScriptEngine(engine,factory);
     }
   }
   return null;
