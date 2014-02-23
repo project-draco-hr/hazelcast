@@ -7,21 +7,22 @@
       getLogger().warning("Exception during destroy action",e);
     }
   }
-  final LoginContext lc=loginContext;
+  LoginContext lc=loginContext;
   if (lc != null) {
     lc.logout();
   }
   for (  TransactionContext context : transactionContextMap.values()) {
-    final Transaction transaction=TransactionAccessor.getTransaction(context);
+    Transaction transaction=TransactionAccessor.getTransaction(context);
     if (context.isXAManaged() && transaction.getState() == PREPARED) {
-      final TransactionManagerServiceImpl transactionManager=(TransactionManagerServiceImpl)clientEngine.getTransactionManagerService();
+      TransactionManagerServiceImpl transactionManager=(TransactionManagerServiceImpl)clientEngine.getTransactionManagerService();
       transactionManager.addTxBackupLogForClientRecovery(transaction);
     }
  else {
       try {
         context.rollbackTransaction();
       }
- catch (      HazelcastInstanceNotActiveException ignored) {
+ catch (      HazelcastInstanceNotActiveException e) {
+        getLogger().finest(e);
       }
 catch (      Exception e) {
         getLogger().warning(e);
