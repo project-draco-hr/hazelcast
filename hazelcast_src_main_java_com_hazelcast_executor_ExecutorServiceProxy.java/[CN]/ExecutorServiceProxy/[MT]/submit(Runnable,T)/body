@@ -1,20 +1,23 @@
 {
-  if (task == null)   throw new NullPointerException();
+  if (task == null) {
+    throw new NullPointerException();
+  }
   if (isShutdown()) {
     throw new RejectedExecutionException(getRejectionMessage());
   }
   Callable<T> callable=createRunnableAdapter(task);
-  final NodeEngine nodeEngine=getNodeEngine();
-  final String uuid=buildRandomUuidString();
-  final int partitionId=getTaskPartitionId(callable);
+  NodeEngine nodeEngine=getNodeEngine();
+  String uuid=buildRandomUuidString();
+  int partitionId=getTaskPartitionId(callable);
   CallableTaskOperation op=new CallableTaskOperation(name,uuid,callable);
-  final ICompletableFuture future=invoke(partitionId,op);
-  final boolean sync=checkSync();
+  ICompletableFuture future=invoke(partitionId,op);
+  boolean sync=checkSync();
   if (sync) {
     try {
       future.get();
     }
- catch (    Exception ignored) {
+ catch (    Exception exception) {
+      logger.warning(exception);
     }
     return new CompletedFuture<T>(nodeEngine.getSerializationService(),result,getAsyncExecutor());
   }
