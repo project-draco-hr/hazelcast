@@ -2,18 +2,22 @@
   executor.execute(new Runnable(){
     @Override public void run(){
       try {
-        if (response instanceof NormalResponse) {
-          final NormalResponse responseObj=(NormalResponse)response;
+        Object resp=response;
+        if (resultDeserialized && resp instanceof Data) {
+          resp=nodeEngine.toObject(resp);
+        }
+        if (resp instanceof NormalResponse) {
+          final NormalResponse responseObj=(NormalResponse)resp;
           callback.onResponse((E)responseObj.getValue());
         }
- else         if (response == NULL_RESPONSE) {
+ else         if (resp == NULL_RESPONSE) {
           callback.onResponse(null);
         }
- else         if (response instanceof Throwable) {
-          callback.onFailure((Throwable)response);
+ else         if (resp instanceof Throwable) {
+          callback.onFailure((Throwable)resp);
         }
  else {
-          callback.onResponse((E)response);
+          callback.onResponse((E)resp);
         }
       }
  catch (      Throwable t) {
