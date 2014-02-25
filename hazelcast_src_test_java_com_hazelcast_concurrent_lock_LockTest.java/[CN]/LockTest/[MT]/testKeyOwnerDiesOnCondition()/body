@@ -1,9 +1,8 @@
 {
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
-  final Config config=new Config();
-  final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance(config);
-  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
-  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
   int k=0;
   final AtomicInteger atomicInteger=new AtomicInteger(0);
   while (keyOwner.getCluster().getLocalMember().equals(instance1.getPartitionService().getPartition(k++).getOwner())) {
@@ -34,10 +33,10 @@
   t.start();
   Thread.sleep(1000);
   lock1.lock();
-  keyOwner.getLifecycleService().shutdown();
+  keyOwner.shutdown();
   condition1.signal();
   lock1.unlock();
   Thread.sleep(1000);
   t.join();
-  Assert.assertEquals(1,atomicInteger.get());
+  assertEquals(1,atomicInteger.get());
 }

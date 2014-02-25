@@ -1,12 +1,11 @@
 {
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  final Config config=new Config();
   final String name="testLockConditionSignalAllShutDownKeyOwner";
-  final HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance();
   final AtomicInteger count=new AtomicInteger(0);
   final int size=50;
   int k=0;
-  final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance();
   while (!keyOwner.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++k).getOwner())) {
     Thread.sleep(10);
   }
@@ -42,7 +41,7 @@
   lock1.lock();
   condition1.signalAll();
   lock1.unlock();
-  keyOwner.getLifecycleService().shutdown();
+  keyOwner.shutdown();
   finalLatch.await(2,TimeUnit.MINUTES);
-  Assert.assertEquals(size,count.get());
+  assertEquals(size,count.get());
 }
