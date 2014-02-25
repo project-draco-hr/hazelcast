@@ -1,17 +1,16 @@
 {
   int k=4;
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(k + 1);
-  Config config=new Config();
-  HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance();
   String name="testAtomicLongFailure";
   IAtomicLong atomicLong=instance.getAtomicLong(name);
   atomicLong.set(100);
   for (int i=0; i < k; i++) {
-    HazelcastInstance newInstance=nodeFactory.newHazelcastInstance(config);
+    HazelcastInstance newInstance=nodeFactory.newHazelcastInstance();
     IAtomicLong newAtomicLong=newInstance.getAtomicLong(name);
-    Assert.assertEquals((long)100 + i,newAtomicLong.get());
+    assertEquals((long)100 + i,newAtomicLong.get());
     newAtomicLong.incrementAndGet();
-    instance.getLifecycleService().shutdown();
+    instance.shutdown();
     instance=newInstance;
   }
 }
