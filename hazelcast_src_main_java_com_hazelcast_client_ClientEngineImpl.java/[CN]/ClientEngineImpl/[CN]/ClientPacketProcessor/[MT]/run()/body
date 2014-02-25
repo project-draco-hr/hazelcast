@@ -4,14 +4,29 @@
   ClientRequest request=null;
   try {
     request=loadRequest();
-    if (endpoint.isAuthenticated() || request instanceof AuthenticationRequest) {
+    if (request == null) {
+      handlePacketWithNullRequest();
+    }
+ else     if (request instanceof AuthenticationRequest) {
+      endpoint=createEndpoint(conn);
+      if (endpoint != null) {
+        processRequest(endpoint,request);
+      }
+ else {
+        handleEndpointNotCreatedConnectionNotAlive();
+      }
+    }
+ else     if (endpoint == null) {
+      handleMissingEndpoint(conn);
+    }
+ else     if (endpoint.isAuthenticated()) {
       processRequest(endpoint,request);
     }
  else {
-      handleUnauthenticatedRequest(conn,endpoint,request);
+      handleAuthenticationFailure(conn,endpoint,request);
     }
   }
  catch (  Throwable e) {
-    handleRequestFailure(endpoint,request,e);
+    handleProcessingFailure(endpoint,request,e);
   }
 }
