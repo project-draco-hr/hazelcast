@@ -1,17 +1,16 @@
 {
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  HazelcastInstance local=factory.newHazelcastInstance();
-  warmUpPartitions(local);
   Node localNode=getNode(local);
-  DummyObject dummyObject=new DummyObject();
-  Operation op=new OperationWithResponse(dummyObject);
+  Object response=localNode.nodeEngine.toData(new DummyObject());
+  Operation op=new OperationWithResponse(response);
   OperationService service=localNode.nodeEngine.getOperationService();
   Future f=service.createInvocationBuilder(null,op,localNode.address).invoke();
   Object instance1=f.get();
   Object instance2=f.get();
   assertNotNull(instance1);
   assertNotNull(instance2);
+  assertTrue(instance1 instanceof DummyObject);
+  assertTrue(instance2 instanceof DummyObject);
   assertNotSame(instance1,instance2);
-  assertNotSame(instance1,dummyObject);
-  assertNotSame(instance2,dummyObject);
+  assertNotSame(instance1,response);
+  assertNotSame(instance2,response);
 }
