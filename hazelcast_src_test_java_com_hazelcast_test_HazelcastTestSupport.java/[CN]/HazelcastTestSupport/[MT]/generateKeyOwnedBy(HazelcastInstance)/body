@@ -1,10 +1,11 @@
 {
   final Member localMember=instance.getCluster().getLocalMember();
   final PartitionService partitionService=instance.getPartitionService();
-  int k=(int)(Math.random() * 1000);
-  while (!localMember.equals(partitionService.getPartition(String.valueOf(k)).getOwner())) {
-    k++;
-    Thread.sleep(10);
+  for (; ; ) {
+    String id=UUID.randomUUID().toString();
+    Partition partition=partitionService.getPartition(id);
+    if (localMember.equals(partition.getOwner())) {
+      return id;
+    }
   }
-  return String.valueOf(k);
 }

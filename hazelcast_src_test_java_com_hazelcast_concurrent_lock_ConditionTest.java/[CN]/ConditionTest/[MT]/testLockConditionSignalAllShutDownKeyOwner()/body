@@ -1,0 +1,48 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final String name=randomString();
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance();
+  final AtomicInteger count=new AtomicInteger(0);
+  final int size=50;
+  int k=0;
+  final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance();
+  warmUpPartitions(instance,keyOwner);
+  while (!keyOwner.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++k).getOwner())) {
+    Thread.sleep(10);
+  }
+  final int key=k;
+  final ILock lock=instance.getLock(key);
+  final ICondition condition=lock.newCondition(name);
+  final CountDownLatch awaitLatch=new CountDownLatch(size);
+  final CountDownLatch finalLatch=new CountDownLatch(size);
+  for (int i=0; i < size; i++) {
+    new Thread(new Runnable(){
+      public void run(){
+        lock.lock();
+        try {
+          awaitLatch.countDown();
+          condition.await();
+          Thread.sleep(5);
+          if (lock.isLockedByCurrentThread()) {
+            count.incrementAndGet();
+          }
+        }
+ catch (        InterruptedException ignored) {
+        }
+ finally {
+          lock.unlock();
+          finalLatch.countDown();
+        }
+      }
+    }
+).start();
+  }
+  ILock lock1=keyOwner.getLock(key);
+  ICondition condition1=lock1.newCondition(name);
+  awaitLatch.await(1,TimeUnit.MINUTES);
+  lock1.lock();
+  condition1.signalAll();
+  lock1.unlock();
+  finalLatch.await(2,TimeUnit.MINUTES);
+  assertEquals(size,count.get());
+}
