@@ -3,19 +3,15 @@
   final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance();
   final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
   final HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
-  int k=0;
-  final AtomicInteger atomicInteger=new AtomicInteger(0);
-  while (keyOwner.getCluster().getLocalMember().equals(instance1.getPartitionService().getPartition(k++).getOwner())) {
-    Thread.sleep(10);
-  }
-  final int key=k;
+  final AtomicInteger signalCounter=new AtomicInteger(0);
+  final String key=generateKeyOwnedBy(instance1);
   final ILock lock1=instance1.getLock(key);
-  final String name=randomString();
-  final ICondition condition1=lock1.newCondition(name);
+  final String conditionName=randomString();
+  final ICondition condition1=lock1.newCondition(conditionName);
   Thread t=new Thread(new Runnable(){
     public void run(){
-      final ILock lock=instance2.getLock(key);
-      final ICondition condition=lock.newCondition(name);
+      ILock lock=instance2.getLock(key);
+      ICondition condition=lock.newCondition(conditionName);
       lock.lock();
       try {
         condition.await();
@@ -26,7 +22,7 @@
  finally {
         lock.unlock();
       }
-      atomicInteger.incrementAndGet();
+      signalCounter.incrementAndGet();
     }
   }
 );
@@ -38,5 +34,5 @@
   lock1.unlock();
   Thread.sleep(1000);
   t.join();
-  assertEquals(1,atomicInteger.get());
+  assertEquals(1,signalCounter.get());
 }
