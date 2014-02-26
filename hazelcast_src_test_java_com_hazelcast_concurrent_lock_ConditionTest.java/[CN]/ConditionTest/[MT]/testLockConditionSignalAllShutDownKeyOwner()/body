@@ -6,13 +6,12 @@
   final int size=50;
   int k=0;
   final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance();
+  warmUpPartitions(instance,keyOwner);
   while (!keyOwner.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++k).getOwner())) {
     Thread.sleep(10);
   }
-  final String key=generateKeyOwnedBy(keyOwner);
-  int x=getNode(instance).partitionService.getPartitionId(key);
+  final int key=k;
   final ILock lock=instance.getLock(key);
-  System.out.println("expected partitionid: " + x + "found partitonId:"+ ((LockProxy)lock).getPartitionId());
   final ICondition condition=lock.newCondition(name);
   final CountDownLatch awaitLatch=new CountDownLatch(size);
   final CountDownLatch finalLatch=new CountDownLatch(size);
@@ -38,13 +37,12 @@
     }
 ).start();
   }
-  ILock lock1=keyOwner.getLock(k);
+  ILock lock1=keyOwner.getLock(key);
   ICondition condition1=lock1.newCondition(name);
   awaitLatch.await(1,TimeUnit.MINUTES);
   lock1.lock();
   condition1.signalAll();
   lock1.unlock();
-  keyOwner.shutdown();
   finalLatch.await(2,TimeUnit.MINUTES);
   assertEquals(size,count.get());
 }
