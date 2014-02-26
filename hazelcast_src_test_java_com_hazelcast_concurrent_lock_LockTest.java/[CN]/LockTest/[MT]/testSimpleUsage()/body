@@ -1,24 +1,24 @@
 {
-  final HazelcastInstance instance=createHazelcastInstance();
+  HazelcastInstance instance=createHazelcastInstance();
   final AtomicInteger atomicInteger=new AtomicInteger(0);
   final ILock lock=instance.getLock("testSimpleUsage");
   assertEquals("testSimpleUsage",lock.getName());
-  final Runnable tryLockRunnable=new Runnable(){
+  Runnable tryLockRunnable=new Runnable(){
     public void run(){
       if (lock.tryLock())       atomicInteger.incrementAndGet();
     }
   }
 ;
-  final Runnable lockRunnable=new Runnable(){
+  Runnable lockRunnable=new Runnable(){
     public void run(){
       lock.lock();
     }
   }
 ;
-  assertEquals(false,lock.isLocked());
+  assertFalse(lock.isLocked());
   lock.lock();
-  assertEquals(true,lock.isLocked());
-  assertEquals(true,lock.tryLock());
+  assertTrue(lock.isLocked());
+  assertTrue(lock.tryLock());
   lock.unlock();
   Thread thread1=new Thread(tryLockRunnable);
   thread1.start();
@@ -29,13 +29,13 @@
   thread2.start();
   thread2.join();
   assertEquals(1,atomicInteger.get());
-  assertEquals(true,lock.isLocked());
+  assertTrue(lock.isLocked());
   lock.forceUnlock();
   Thread thread3=new Thread(lockRunnable);
   thread3.start();
   thread3.join();
-  assertEquals(true,lock.isLocked());
-  assertEquals(false,lock.tryLock(2,TimeUnit.SECONDS));
+  assertTrue(lock.isLocked());
+  assertFalse(lock.tryLock(2,TimeUnit.SECONDS));
   Thread thread4=new Thread(lockRunnable);
   thread4.start();
   assertTrueEventually(new AssertTask(){
