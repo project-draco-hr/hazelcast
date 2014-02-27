@@ -1,0 +1,96 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  Address masterAddress=nodeEngine.getMasterAddress();
+  if (!masterAddress.equals(migrationInfo.getMaster())) {
+    throw new RetryableHazelcastException("Migration initiator is not master node! => " + toString());
+  }
+  if (!masterAddress.equals(getCallerAddress())) {
+    throw new RetryableHazelcastException("Caller is not master node! => " + toString());
+  }
+  Address source=migrationInfo.getSource();
+  final Address destination=migrationInfo.getDestination();
+  Member target=nodeEngine.getClusterService().getMember(destination);
+  if (target == null) {
+    throw new TargetNotMemberException("Destination of migration could not be found! => " + toString());
+  }
+  if (destination.equals(source)) {
+    getLogger().warning("Source and destination addresses are the same! => " + toString());
+    success=false;
+    return;
+  }
+  if (source == null || !source.equals(nodeEngine.getThisAddress())) {
+    throw new RetryableHazelcastException("Source of migration is not this node! => " + toString());
+  }
+  PartitionServiceImpl partitionService=getService();
+  InternalPartition partition=partitionService.getPartition(migrationInfo.getPartitionId());
+  final Address owner=partition.getOwner();
+  if (owner == null) {
+    throw new RetryableHazelcastException("Cannot migrate at the moment! Owner of the partition is null => " + migrationInfo);
+  }
+  if (migrationInfo.startProcessing()) {
+    try {
+      if (!source.equals(owner)) {
+        throw new HazelcastException("Cannot migrate! This node is not owner of the partition => " + migrationInfo + " -> "+ partition);
+      }
+      partitionService.addActiveMigration(migrationInfo);
+      final long[] replicaVersions=partitionService.getPartitionReplicaVersions(migrationInfo.getPartitionId());
+      final long timeout=nodeEngine.getGroupProperties().PARTITION_MIGRATION_TIMEOUT.getLong();
+      final Collection<Operation> tasks=prepareMigrationTasks();
+      if (tasks.size() > 0) {
+        returnResponse=false;
+        final ResponseHandler responseHandler=getResponseHandler();
+        final SerializationService serializationService=nodeEngine.getSerializationService();
+        nodeEngine.getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR).execute(new Runnable(){
+          public void run(){
+            BufferObjectDataOutput out=serializationService.createObjectDataOutput(1024 * 32);
+            try {
+              out.writeInt(tasks.size());
+              for (              Operation task : tasks) {
+                serializationService.writeObject(out,task);
+              }
+              byte[] data;
+              boolean compress=nodeEngine.getGroupProperties().PARTITION_MIGRATION_ZIP_ENABLED.getBoolean();
+              if (compress) {
+                data=IOUtil.compress(out.toByteArray());
+              }
+ else {
+                data=out.toByteArray();
+              }
+              MigrationOperation migrationOperation=new MigrationOperation(migrationInfo,replicaVersions,data,tasks.size(),compress);
+              Future future=nodeEngine.getOperationService().createInvocationBuilder(PartitionService.SERVICE_NAME,migrationOperation,destination).setTryPauseMillis(1000).setReplicaIndex(getReplicaIndex()).invoke();
+              Boolean result=nodeEngine.toObject(future.get(timeout,TimeUnit.SECONDS));
+              migrationInfo.doneProcessing();
+              responseHandler.sendResponse(result);
+            }
+ catch (            Throwable e) {
+              responseHandler.sendResponse(Boolean.FALSE);
+              if (e instanceof ExecutionException) {
+                e=e.getCause() != null ? e.getCause() : e;
+              }
+              Level level=(e instanceof MemberLeftException || e instanceof InterruptedException) || !getNodeEngine().isActive() ? Level.INFO : Level.WARNING;
+              getLogger().log(level,e.getMessage(),e);
+            }
+ finally {
+              IOUtil.closeResource(out);
+            }
+          }
+        }
+);
+      }
+ else {
+        success=true;
+      }
+    }
+ catch (    Throwable e) {
+      getLogger().warning(e);
+      success=false;
+    }
+ finally {
+      migrationInfo.doneProcessing();
+    }
+  }
+ else {
+    getLogger().warning("Migration is cancelled -> " + migrationInfo);
+    success=false;
+  }
+}
