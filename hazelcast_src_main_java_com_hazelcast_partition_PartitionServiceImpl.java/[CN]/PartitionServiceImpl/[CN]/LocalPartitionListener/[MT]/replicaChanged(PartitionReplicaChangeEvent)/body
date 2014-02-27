@@ -1,19 +1,20 @@
 {
-  if (event.getReplicaIndex() > 0) {
+  int replicaIndex=event.getReplicaIndex();
+  Address newAddress=event.getNewAddress();
+  if (replicaIndex > 0) {
+    int partitionId=event.getPartitionId();
     if (thisAddress.equals(event.getOldAddress())) {
-      final InternalPartitionImpl partition=partitions[event.getPartitionId()];
+      InternalPartitionImpl partition=partitions[partitionId];
       if (!partition.isOwnerOrBackup(thisAddress)) {
-        clearPartitionReplica(event.getPartitionId(),event.getReplicaIndex());
+        clearPartitionReplica(partitionId,replicaIndex);
       }
     }
- else     if (thisAddress.equals(event.getNewAddress())) {
-      syncPartitionReplica(event.getPartitionId(),event.getReplicaIndex(),true);
+ else     if (thisAddress.equals(newAddress)) {
+      syncPartitionReplica(partitionId,replicaIndex,true);
     }
   }
-  if (event.getReplicaIndex() == 0 && event.getNewAddress() == null && node.isActive() && node.joined()) {
-    final String warning="Owner of partition is being removed! " + "Possible data loss for partition[" + event.getPartitionId() + "]. "+ event;
-    logger.warning(warning);
-    systemLogService.logWarningPartition(warning);
+  if (replicaIndex == 0 && newAddress == null && node.isActive() && node.joined()) {
+    logOwnerOfPartitionIsMoved(event);
   }
   if (node.isMaster()) {
     stateVersion.incrementAndGet();

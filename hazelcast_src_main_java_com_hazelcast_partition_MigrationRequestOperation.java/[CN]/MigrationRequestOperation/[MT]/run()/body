@@ -1,15 +1,15 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
-  final Address masterAddress=nodeEngine.getMasterAddress();
+  Address masterAddress=nodeEngine.getMasterAddress();
   if (!masterAddress.equals(migrationInfo.getMaster())) {
     throw new RetryableHazelcastException("Migration initiator is not master node! => " + toString());
   }
   if (!masterAddress.equals(getCallerAddress())) {
     throw new RetryableHazelcastException("Caller is not master node! => " + toString());
   }
-  final Address source=migrationInfo.getSource();
+  Address source=migrationInfo.getSource();
   final Address destination=migrationInfo.getDestination();
-  final Member target=nodeEngine.getClusterService().getMember(destination);
+  Member target=nodeEngine.getClusterService().getMember(destination);
   if (target == null) {
     throw new TargetNotMemberException("Destination of migration could not be found! => " + toString());
   }
@@ -42,13 +42,13 @@
         final SerializationService serializationService=nodeEngine.getSerializationService();
         nodeEngine.getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR).execute(new Runnable(){
           public void run(){
-            final BufferObjectDataOutput out=serializationService.createObjectDataOutput(1024 * 32);
+            BufferObjectDataOutput out=serializationService.createObjectDataOutput(1024 * 32);
             try {
               out.writeInt(tasks.size());
               for (              Operation task : tasks) {
                 serializationService.writeObject(out,task);
               }
-              final byte[] data;
+              byte[] data;
               boolean compress=nodeEngine.getGroupProperties().PARTITION_MIGRATION_ZIP_ENABLED.getBoolean();
               if (compress) {
                 data=IOUtil.compress(out.toByteArray());
@@ -56,7 +56,7 @@
  else {
                 data=out.toByteArray();
               }
-              final MigrationOperation migrationOperation=new MigrationOperation(migrationInfo,replicaVersions,data,tasks.size(),compress);
+              MigrationOperation migrationOperation=new MigrationOperation(migrationInfo,replicaVersions,data,tasks.size(),compress);
               Future future=nodeEngine.getOperationService().createInvocationBuilder(PartitionServiceImpl.SERVICE_NAME,migrationOperation,destination).setTryPauseMillis(1000).setReplicaIndex(getReplicaIndex()).invoke();
               Boolean result=nodeEngine.toObject(future.get(timeout,TimeUnit.SECONDS));
               migrationInfo.doneProcessing();

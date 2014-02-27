@@ -1,15 +1,15 @@
 {
-  final PartitionServiceImpl partitionService=getService();
-  final int partitionId=getPartitionId();
-  final int replicaIndex=getReplicaIndex();
-  final long[] currentVersions=partitionService.getPartitionReplicaVersions(partitionId);
-  final long currentVersion=currentVersions[replicaIndex];
-  if (currentVersion != version) {
-    getLogger().info("Backup partition version is not matching version of the owner " + "-> " + currentVersion + " -vs- "+ version);
-    partitionService.syncPartitionReplica(partitionId,replicaIndex,false);
-    response=false;
+  PartitionServiceImpl partitionService=getService();
+  int partitionId=getPartitionId();
+  int replicaIndex=getReplicaIndex();
+  long[] currentVersions=partitionService.getPartitionReplicaVersions(partitionId);
+  long currentVersion=currentVersions[replicaIndex];
+  if (currentVersion == version) {
+    response=true;
   }
  else {
-    response=true;
+    logBackupVersionMismatch(currentVersion);
+    partitionService.syncPartitionReplica(partitionId,replicaIndex,false);
+    response=false;
   }
 }
