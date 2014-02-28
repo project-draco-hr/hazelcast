@@ -16,7 +16,11 @@
       logger.finest("Started Migration : " + migrationInfo);
     }
     systemLogService.logPartition("Started Migration : " + migrationInfo);
-    if (fromMember != null) {
+    if (fromMember == null) {
+      logger.warning("Partition is lost! Assign new owner and exit...");
+      result=Boolean.TRUE;
+    }
+ else {
       Future future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(1000).invoke();
       try {
         Object response=future.get(partitionMigrationTimeout,TimeUnit.SECONDS);
@@ -26,10 +30,6 @@
         final Level level=node.isActive() && migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
         logger.log(level,"Failed migrating from " + fromMember,e);
       }
-    }
- else {
-      logger.warning("Partition is lost! Assign new owner and exit...");
-      result=Boolean.TRUE;
     }
     if (Boolean.TRUE.equals(result)) {
       String message="Finished Migration: " + migrationInfo;

@@ -6,10 +6,10 @@
         return;
       }
       migrationQueue.clear();
-      final PartitionStateGenerator psg=partitionStateGenerator;
-      final Set<Member> members=node.getClusterService().getMembers();
+      PartitionStateGenerator psg=partitionStateGenerator;
+      Set<Member> members=node.getClusterService().getMembers();
       Collection<MemberGroup> memberGroups=memberGroupFactory.createMemberGroups(members);
-      final Address[][] newState=psg.reArrange(memberGroups,partitions);
+      Address[][] newState=psg.reArrange(memberGroups,partitions);
       int migrationCount=0;
       int lostCount=0;
       lastRepartitionTime.set(Clock.currentTimeMillis());
@@ -28,8 +28,8 @@
  else         if (newOwner != null && !currentOwner.equals(newOwner)) {
           migrationCount++;
           MigrationInfo info=new MigrationInfo(partitionId,currentOwner,newOwner);
-          Migrator migrator=new Migrator(info,new BackupMigrationTask(partitionId,replicas));
-          migrationQueue.offer(migrator);
+          MigrateTask migrateTask=new MigrateTask(info,new BackupMigrationTask(partitionId,replicas));
+          migrationQueue.offer(migrateTask);
         }
  else {
           currentPartition.setPartitionInfo(replicas);
