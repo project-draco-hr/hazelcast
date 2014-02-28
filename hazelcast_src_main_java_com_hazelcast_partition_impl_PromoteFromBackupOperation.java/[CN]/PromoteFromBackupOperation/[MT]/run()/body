@@ -1,19 +1,5 @@
 {
-  NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-  Collection<MigrationAwareService> services=nodeEngine.getServices(MigrationAwareService.class);
-  int partitionId=getPartitionId();
-  PartitionMigrationEvent event=new PartitionMigrationEvent(MigrationEndpoint.DESTINATION,partitionId);
-  ILogger logger=getLogger();
-  if (logger.isFinestEnabled()) {
-    logger.finest("Promoting partition " + partitionId);
-  }
-  for (  MigrationAwareService service : services) {
-    try {
-      service.beforeMigration(event);
-      service.commitMigration(event);
-    }
- catch (    Exception e) {
-      logger.warning("While promoting partition " + partitionId,e);
-    }
-  }
+  logPromotingPartition();
+  PartitionMigrationEvent event=createPartitionMigrationEvent();
+  sendToAllMigrationAwareServices(event);
 }
