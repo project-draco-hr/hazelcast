@@ -1,6 +1,8 @@
 {
+  final int instanceCount=2;
   final int size=100000;
-  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(instanceCount);
+  final CountDownLatch countDownLatch=new CountDownLatch(instanceCount - 1);
   final Config cfg=new Config();
   GroupConfig groupConfig=new GroupConfig("testEager");
   cfg.setGroupConfig(groupConfig);
@@ -15,10 +17,17 @@
       HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
       final IMap<Object,Object> map=instance2.getMap("testInitialLoadModeEagerMultipleThread");
       assertEquals(size,map.size());
+      countDownLatch.countDown();
     }
   }
 ;
   new Thread(runnable).start();
+  try {
+    countDownLatch.await(120000,TimeUnit.MILLISECONDS);
+  }
+ catch (  InterruptedException e) {
+    e.printStackTrace();
+  }
   IMap map=instance1.getMap("testInitialLoadModeEagerMultipleThread");
   assertEquals(size,map.size());
 }
