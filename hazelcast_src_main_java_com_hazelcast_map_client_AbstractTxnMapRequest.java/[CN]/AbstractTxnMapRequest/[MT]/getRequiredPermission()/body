@@ -1,14 +1,28 @@
 {
-  String action=ActionConstants.ACTION_READ;
+  String action;
+  boolean isLock=true;
 switch (requestType) {
+case CONTAINS_KEY:
+case GET:
+case SIZE:
+case KEYSET:
+case KEYSET_BY_PREDICATE:
+case VALUES:
+case VALUES_BY_PREDICATE:
+    action=ActionConstants.ACTION_READ;
+  isLock=false;
+break;
+case GET_FOR_UPDATE:
+action=ActionConstants.ACTION_READ;
+break;
 case PUT:
 case PUT_IF_ABSENT:
-case PUT_WITH_TTL:
 case REPLACE:
 case REPLACE_IF_SAME:
 case SET:
-    action=ActionConstants.ACTION_PUT;
-  break;
+case PUT_WITH_TTL:
+action=ActionConstants.ACTION_PUT;
+break;
 case REMOVE:
 case DELETE:
 case REMOVE_IF_SAME:
@@ -16,6 +30,9 @@ action=ActionConstants.ACTION_REMOVE;
 break;
 default :
 throw new IllegalArgumentException("Invalid request type: " + requestType);
+}
+if (isLock) {
+return new MapPermission(name,action,ActionConstants.ACTION_LOCK);
 }
 return new MapPermission(name,action);
 }
