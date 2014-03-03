@@ -11,21 +11,21 @@
   }
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.KEY);
   QueryResultSet result=invoke(request);
-  List<K> keyList=new ArrayList<K>(result.size());
-  for (  Object data : result) {
-    K key=toObject((Data)data);
-    keyList.add(key);
-  }
-  if (pagingPredicate != null) {
-    Collections.sort(keyList,SortingUtil.newComparator(pagingPredicate.getComparator()));
-    if (keyList.size() > pagingPredicate.getPageSize()) {
-      keyList=keyList.subList(0,pagingPredicate.getPageSize());
+  if (pagingPredicate == null) {
+    final HashSet<K> keySet=new HashSet<K>();
+    for (    Object o : result) {
+      final K key=toObject(o);
+      keySet.add(key);
     }
-    Object anchor=null;
-    if (keyList.size() != 0) {
-      anchor=keyList.get(keyList.size() - 1);
-    }
-    PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,new AbstractMap.SimpleImmutableEntry(anchor,null));
+    return keySet;
   }
-  return new HashSet<K>(keyList);
+  final Comparator<Entry> comparator=SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.KEY);
+  final SortedQueryResultSet sortedResult=new SortedQueryResultSet(comparator,IterationType.KEY,pagingPredicate.getPageSize());
+  for (  QueryResultEntry entry : result.getEntries()) {
+    final K key=toObject(entry.getKeyData());
+    final V value=toObject(entry.getValueData());
+    sortedResult.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
+  }
+  PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,sortedResult.last());
+  return (Set<K>)sortedResult;
 }

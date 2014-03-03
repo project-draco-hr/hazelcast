@@ -1,0 +1,55 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
+  final IMap<Integer,Integer> map=instance1.getMap("testSort");
+  final int size=50;
+  final int pageSize=5;
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  for (int i=size; i < 2 * size; i++) {
+    map.put(i,i - size);
+  }
+  Integer value=8;
+  final Predicate lessEqual=Predicates.lessEqual("this",value);
+  final TestComparator comparator=new TestComparator(true,IterationType.VALUE);
+  final PagingPredicate predicate=new PagingPredicate(lessEqual,comparator,pageSize);
+  Collection<Integer> values=map.values(predicate);
+  assertEquals(pageSize,values.size());
+  Iterator<Integer> iterator=values.iterator();
+  assertEquals(0,iterator.next().intValue());
+  assertEquals(0,iterator.next().intValue());
+  assertEquals(1,iterator.next().intValue());
+  assertEquals(1,iterator.next().intValue());
+  assertEquals(2,iterator.next().intValue());
+  assertFalse(iterator.hasNext());
+  predicate.nextPage();
+  values=map.values(predicate);
+  assertEquals(pageSize,values.size());
+  iterator=values.iterator();
+  assertEquals(2,iterator.next().intValue());
+  assertEquals(3,iterator.next().intValue());
+  assertEquals(3,iterator.next().intValue());
+  assertEquals(4,iterator.next().intValue());
+  assertEquals(4,iterator.next().intValue());
+  assertFalse(iterator.hasNext());
+  predicate.nextPage();
+  values=map.values(predicate);
+  assertEquals(pageSize,values.size());
+  iterator=values.iterator();
+  assertEquals(5,iterator.next().intValue());
+  assertEquals(5,iterator.next().intValue());
+  assertEquals(6,iterator.next().intValue());
+  assertEquals(6,iterator.next().intValue());
+  assertEquals(7,iterator.next().intValue());
+  assertFalse(iterator.hasNext());
+  predicate.nextPage();
+  values=map.values(predicate);
+  assertEquals(pageSize - 2,values.size());
+  iterator=values.iterator();
+  assertEquals(7,iterator.next().intValue());
+  assertEquals(8,iterator.next().intValue());
+  assertEquals(8,iterator.next().intValue());
+  assertFalse(iterator.hasNext());
+}

@@ -1,0 +1,34 @@
+{
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final IMap<Integer,Integer> map=client.getMap("testSort");
+  final int size=50;
+  final int pageSize=5;
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  final PagingPredicate predicate=new PagingPredicate(pageSize);
+  predicate.nextPage();
+  predicate.nextPage();
+  Collection<Integer> values=map.values(predicate);
+  assertEquals(5,values.size());
+  Integer value=10;
+  for (  Integer val : values) {
+    assertEquals(value++,val);
+  }
+  predicate.previousPage();
+  values=map.values(predicate);
+  assertEquals(5,values.size());
+  value=5;
+  for (  Integer val : values) {
+    assertEquals(value++,val);
+  }
+  predicate.previousPage();
+  values=map.values(predicate);
+  assertEquals(5,values.size());
+  value=0;
+  for (  Integer val : values) {
+    assertEquals(value++,val);
+  }
+}

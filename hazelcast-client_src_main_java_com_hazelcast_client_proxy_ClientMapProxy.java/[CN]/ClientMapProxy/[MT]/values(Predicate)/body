@@ -11,21 +11,32 @@
   }
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.VALUE);
   QueryResultSet result=invoke(request);
-  List<V> values=new ArrayList<V>(result.size());
-  for (  Object data : result) {
-    V value=toObject((Data)data);
-    values.add(value);
+  if (pagingPredicate == null) {
+    final ArrayList<V> values=new ArrayList<V>(result.size());
+    for (    Object data : result) {
+      V value=toObject(data);
+      values.add(value);
+    }
+    return values;
   }
-  if (pagingPredicate != null) {
-    Collections.sort(values,SortingUtil.newComparator(pagingPredicate.getComparator()));
-    if (values.size() > pagingPredicate.getPageSize()) {
-      values=values.subList(0,pagingPredicate.getPageSize());
-    }
-    Object anchor=null;
-    if (values.size() != 0) {
-      anchor=values.get(values.size() - 1);
-    }
-    PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,new AbstractMap.SimpleImmutableEntry(null,anchor));
+  List<Entry<Object,V>> valueEntryList=new ArrayList<Entry<Object,V>>(result.size());
+  for (  QueryResultEntry entry : result.getEntries()) {
+    K key=toObject(entry.getKeyData());
+    V value=toObject(entry.getValueData());
+    valueEntryList.add(new AbstractMap.SimpleImmutableEntry<Object,V>(key,value));
+  }
+  Collections.sort(valueEntryList,SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.VALUE));
+  if (valueEntryList.size() > pagingPredicate.getPageSize()) {
+    valueEntryList=valueEntryList.subList(0,pagingPredicate.getPageSize());
+  }
+  Entry anchor=null;
+  if (valueEntryList.size() != 0) {
+    anchor=valueEntryList.get(valueEntryList.size() - 1);
+  }
+  PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,anchor);
+  final ArrayList<V> values=new ArrayList<V>(valueEntryList.size());
+  for (  Entry<Object,V> objectVEntry : valueEntryList) {
+    values.add(objectVEntry.getValue());
   }
   return values;
 }
