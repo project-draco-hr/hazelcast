@@ -1,25 +1,10 @@
 {
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
-  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
-  final IMap<Integer,Integer> map=instance1.getMap("testSort");
-  final int size=50;
-  final int pageSize=5;
-  for (int i=0; i < size; i++) {
-    map.put(i,i);
-  }
-  Integer value=3;
-  final Predicate lessEqual=Predicates.lessEqual("this",value);
+  final IMap<Integer,Integer> map=initMap();
+  final Predicate lessEqual=Predicates.lessEqual("this",3);
   final TestComparator comparator=new TestComparator(true,IterationType.VALUE);
   final PagingPredicate predicate=new PagingPredicate(lessEqual,comparator,pageSize);
   Collection<Integer> values=map.values(predicate);
-  assertEquals(4,values.size());
-  final Iterator<Integer> iter=values.iterator();
-  assertEquals(0,iter.next().intValue());
-  assertEquals(1,iter.next().intValue());
-  assertEquals(2,iter.next().intValue());
-  assertEquals(3,iter.next().intValue());
-  assertFalse(iter.hasNext());
+  assertIterableEquals(values,0,1,2,3);
   predicate.nextPage();
   values=map.values(predicate);
   assertEquals(0,values.size());
