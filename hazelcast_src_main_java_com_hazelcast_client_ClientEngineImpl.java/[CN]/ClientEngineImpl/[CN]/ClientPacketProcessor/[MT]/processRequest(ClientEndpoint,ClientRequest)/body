@@ -1,23 +1,7 @@
 {
   request.setEndpoint(endpoint);
-  String serviceName=request.getServiceName();
-  if (serviceName != null) {
-    Object service=nodeEngine.getService(serviceName);
-    if (service == null) {
-      if (nodeEngine.isActive()) {
-        throw new IllegalArgumentException("No service registered with name: " + serviceName);
-      }
-      throw new HazelcastInstanceNotActiveException();
-    }
-    request.setService(service);
-  }
+  initService(request);
   request.setClientEngine(ClientEngineImpl.this);
-  SecurityContext securityContext=getSecurityContext();
-  if (securityContext != null && request instanceof SecureRequest) {
-    Permission permission=((SecureRequest)request).getRequiredPermission();
-    if (permission != null) {
-      securityContext.checkPermission(endpoint.getSubject(),permission);
-    }
-  }
+  checkPermissions(endpoint,request);
   request.process();
 }

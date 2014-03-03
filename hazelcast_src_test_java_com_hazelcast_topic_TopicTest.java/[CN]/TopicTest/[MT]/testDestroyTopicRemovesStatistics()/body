@@ -1,9 +1,15 @@
 {
   HazelcastInstance instance=createHazelcastInstance();
-  ITopic topic=instance.getTopic("foo");
+  final ITopic topic=instance.getTopic("foo");
   topic.publish("foobar");
+  sleepSeconds(1);
   topic.destroy();
-  TopicService topicService=getNode(instance).nodeEngine.getService(TopicService.SERVICE_NAME);
-  boolean containsStats=topicService.statsMap.containsKey(topic.getName());
-  assertFalse(containsStats);
+  final TopicService topicService=getNode(instance).nodeEngine.getService(TopicService.SERVICE_NAME);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      boolean containsStats=topicService.statsMap.containsKey(topic.getName());
+      assertFalse(containsStats);
+    }
+  }
+);
 }

@@ -1,0 +1,19 @@
+{
+  if (!member.localMember()) {
+    updateMemberGroupsSize();
+  }
+  if (node.isMaster() && node.isActive()) {
+    lock.lock();
+    try {
+      migrationQueue.clear();
+      migrationQueue.add(new RepartitioningTask());
+      if (initialized) {
+        PartitionStateOperation op=new PartitionStateOperation(node.clusterService.getMemberList(),getPartitions(),new ArrayList<MigrationInfo>(completedMigrations),node.getClusterService().getClusterTime(),stateVersion.get());
+        nodeEngine.getOperationService().send(op,member.getAddress());
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

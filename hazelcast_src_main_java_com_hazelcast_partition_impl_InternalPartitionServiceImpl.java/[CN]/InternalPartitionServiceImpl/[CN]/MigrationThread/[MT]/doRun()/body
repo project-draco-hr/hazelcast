@@ -1,0 +1,27 @@
+{
+  for (; ; ) {
+    if (!migrationActive.get()) {
+      break;
+    }
+    Runnable r=migrationQueue.poll(1,TimeUnit.SECONDS);
+    if (r == null) {
+      break;
+    }
+    processTask(r);
+    if (partitionMigrationInterval > 0) {
+      Thread.sleep(partitionMigrationInterval);
+    }
+  }
+  boolean hasNoTasks=migrationQueue.isEmpty();
+  if (hasNoTasks) {
+    if (migrating) {
+      migrating=false;
+      logger.info("All migration tasks has been completed, queues are empty.");
+    }
+    evictCompletedMigrations();
+    Thread.sleep(sleepTime);
+  }
+ else   if (!migrationActive.get()) {
+    Thread.sleep(sleepTime);
+  }
+}

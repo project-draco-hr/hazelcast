@@ -1,0 +1,38 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance keyOwner=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
+  final AtomicInteger signalCounter=new AtomicInteger(0);
+  final String key=generateKeyOwnedBy(instance1);
+  final ILock lock1=instance1.getLock(key);
+  final String conditionName=randomString();
+  final ICondition condition1=lock1.newCondition(conditionName);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      ILock lock=instance2.getLock(key);
+      ICondition condition=lock.newCondition(conditionName);
+      lock.lock();
+      try {
+        condition.await();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+ finally {
+        lock.unlock();
+      }
+      signalCounter.incrementAndGet();
+    }
+  }
+);
+  t.start();
+  Thread.sleep(1000);
+  lock1.lock();
+  keyOwner.shutdown();
+  condition1.signal();
+  lock1.unlock();
+  Thread.sleep(1000);
+  t.join();
+  assertEquals(1,signalCounter.get());
+}
