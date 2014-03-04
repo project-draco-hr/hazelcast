@@ -1,0 +1,18 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final IMap<String,String> m=client.getMap("default");
+  final CountDownLatch latch=new CountDownLatch(1);
+  final EntryAdapter<String,String> listener=new EntryAdapter<String,String>(){
+    public void onEntryEvent(    EntryEvent<String,String> event){
+      latch.countDown();
+    }
+  }
+;
+  m.addEntryListener(listener,true);
+  h1.shutdown();
+  Hazelcast.newHazelcastInstance();
+  waitForClientReconnect(client,5);
+  m.put("key","value");
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+}
