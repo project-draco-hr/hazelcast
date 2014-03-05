@@ -1,33 +1,39 @@
 {
+  if (unresolvedResponse == NULL_RESPONSE) {
+    return null;
+  }
+  if (unresolvedResponse == TIMEOUT_RESPONSE) {
+    return new TimeoutException("Call " + BasicInvocation.this + " encountered a timeout");
+  }
+  if (unresolvedResponse == INTERRUPTED_RESPONSE) {
+    return new InterruptedException("Call " + BasicInvocation.this + " was interrupted");
+  }
+  Object response=unresolvedResponse;
   if (resultDeserialized && response instanceof Data) {
     response=nodeEngine.toObject(response);
+    if (response == null) {
+      return null;
+    }
+  }
+  if (response instanceof NormalResponse) {
+    NormalResponse responseObj=(NormalResponse)response;
+    response=responseObj.getValue();
+    if (response == null) {
+      return null;
+    }
+    if (resultDeserialized && response instanceof Data) {
+      response=nodeEngine.toObject(response);
+      if (response == null) {
+        return null;
+      }
+    }
   }
   if (response instanceof Throwable) {
+    Throwable throwable=((Throwable)response);
     if (remote) {
       fixRemoteStackTrace((Throwable)response,Thread.currentThread().getStackTrace());
     }
-    if (response instanceof ExecutionException) {
-      throw (ExecutionException)response;
-    }
-    if (response instanceof TimeoutException) {
-      throw (TimeoutException)response;
-    }
-    if (response instanceof Error) {
-      throw (Error)response;
-    }
-    if (response instanceof InterruptedException) {
-      throw (InterruptedException)response;
-    }
-    throw new ExecutionException((Throwable)response);
-  }
-  if (response == NULL_RESPONSE) {
-    return null;
-  }
-  if (response == TIMEOUT_RESPONSE) {
-    throw new TimeoutException();
-  }
-  if (response == INTERRUPTED_RESPONSE) {
-    throw new InterruptedException("Call " + BasicInvocation.this + " was interrupted");
+    return throwable;
   }
   return response;
 }
