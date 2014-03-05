@@ -1,6 +1,13 @@
 {
   HazelcastInstance h1=Hazelcast.newHazelcastInstance();
   final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final CountDownLatch connectedLatch=new CountDownLatch(2);
+  client.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      connectedLatch.countDown();
+    }
+  }
+);
   final IMap<String,String> m=client.getMap("default");
   final CountDownLatch latch=new CountDownLatch(1);
   final EntryAdapter<String,String> listener=new EntryAdapter<String,String>(){
@@ -11,9 +18,8 @@
 ;
   m.addEntryListener(listener,true);
   h1.shutdown();
-  Thread.sleep(1000);
-  final HazelcastInstance newInstance=Hazelcast.newHazelcastInstance();
-  waitForClientReconnect(client,newInstance);
+  Hazelcast.newHazelcastInstance();
+  assertOpenEventually(connectedLatch,10);
   m.put("key","value");
   assertOpenEventually(latch,10);
 }
