@@ -8,8 +8,8 @@
   boolean tooManyEntries=entries.size() > (partitionCount * factor);
   try {
     if (tooManyEntries) {
-      List<Future> flist=new LinkedList<Future>();
-      Map<Integer,MapEntrySet> entryMap=new HashMap<Integer,MapEntrySet>();
+      List<Future> futures=new LinkedList<Future>();
+      Map<Integer,MapEntrySet> entryMap=new HashMap<Integer,MapEntrySet>(nodeEngine.getPartitionService().getPartitionCount());
       for (      Entry entry : entries.entrySet()) {
         if (entry.getKey() == null) {
           throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
@@ -27,9 +27,9 @@
         final Integer partitionId=entry.getKey();
         final PutAllOperation op=new PutAllOperation(name,entry.getValue());
         op.setPartitionId(partitionId);
-        flist.add(operationService.invokeOnPartition(SERVICE_NAME,op,partitionId));
+        futures.add(operationService.invokeOnPartition(SERVICE_NAME,op,partitionId));
       }
-      for (      Future future : flist) {
+      for (      Future future : futures) {
         future.get();
       }
     }
