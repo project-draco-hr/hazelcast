@@ -1,10 +1,9 @@
 {
   final String name="testLockConditionSignalAllShutDownKeyOwner";
-  final HazelcastInstance instance=Hazelcast.newHazelcastInstance();
   final AtomicInteger count=new AtomicInteger(0);
   final int size=50;
   final HazelcastInstance keyOwner=Hazelcast.newHazelcastInstance();
-  warmUpPartitions(instance,keyOwner);
+  warmUpPartitions(hz,keyOwner);
   final String key=generateKeyOwnedBy(keyOwner);
   final ILock lock=client.getLock(key);
   final ICondition condition=lock.newCondition(name);
@@ -17,7 +16,6 @@
         try {
           awaitLatch.countDown();
           condition.await();
-          Thread.sleep(5);
           if (lock.isLockedByCurrentThread()) {
             count.incrementAndGet();
           }
