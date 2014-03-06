@@ -2,12 +2,13 @@
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   final HazelcastInstance node1=nodeFactory.newHazelcastInstance();
   final IMap map=node1.getMap("map");
-  final String KEY="key", VAL="val";
-  final int TTL_MILLIS=1000;
-  map.put(KEY,VAL,TTL_MILLIS,TimeUnit.MILLISECONDS);
+  final String KEY="key";
+  final String VAL="val";
+  final int TTL_SEC=1;
+  map.put(KEY,VAL,TTL_SEC,TimeUnit.SECONDS);
   map.lock(KEY);
-  Thread.sleep(TTL_MILLIS * 2);
-  assertEquals("waited until the TTL for KEY has expired, but as KEY is locked, we expect VAL",VAL,map.get(KEY));
+  sleepSeconds(TTL_SEC * 2);
+  assertEquals("TTL of KEY has expired, KEY is locked, we expect VAL",VAL,map.get(KEY));
   map.unlock(KEY);
-  assertEquals("unlocked the KEY after TTL of KEY has expired, we expect null",null,map.get(KEY));
+  assertEquals("TTL of KEY has expired, KEY is unlocked, we expect null",null,map.get(KEY));
 }
