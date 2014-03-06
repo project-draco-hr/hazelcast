@@ -1,0 +1,52 @@
+{
+  updateMemberGroupsSize();
+  final Address deadAddress=member.getAddress();
+  final Address thisAddress=node.getThisAddress();
+  if (deadAddress == null || deadAddress.equals(thisAddress)) {
+    return;
+  }
+  lock.lock();
+  try {
+    migrationQueue.clear();
+    if (!activeMigrations.isEmpty()) {
+      if (node.isMaster()) {
+        rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
+      }
+      for (      MigrationInfo migrationInfo : activeMigrations.values()) {
+        if (deadAddress.equals(migrationInfo.getSource()) || deadAddress.equals(migrationInfo.getDestination())) {
+          migrationInfo.invalidate();
+        }
+      }
+    }
+    pauseMigration();
+    for (    final InternalPartitionImpl partition : partitions) {
+      boolean promote=false;
+      if (deadAddress.equals(partition.getOwner()) && thisAddress.equals(partition.getReplicaAddress(1))) {
+        promote=true;
+      }
+      while (partition.onDeadAddress(deadAddress)) {
+      }
+      if (promote) {
+        final Operation op=new PromoteFromBackupOperation();
+        op.setPartitionId(partition.getPartitionId()).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
+        nodeEngine.getOperationService().executeOperation(op);
+      }
+    }
+    if (node.isMaster()) {
+      migrationQueue.add(new RepartitioningTask());
+    }
+    long migrationActivationDelay=node.groupProperties.CONNECTION_MONITOR_INTERVAL.getLong() * node.groupProperties.CONNECTION_MONITOR_MAX_FAULTS.getInteger() * 5;
+    long callTimeout=node.groupProperties.OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+    migrationActivationDelay=Math.min(migrationActivationDelay,callTimeout / 2);
+    migrationActivationDelay=Math.max(migrationActivationDelay,1000L);
+    nodeEngine.getExecutionService().schedule(new Runnable(){
+      @Override public void run(){
+        resumeMigration();
+      }
+    }
+,migrationActivationDelay,TimeUnit.MILLISECONDS);
+  }
+  finally {
+    lock.unlock();
+  }
+}

@@ -33,16 +33,20 @@
   int memberCount=nodeEngine.getClusterService().getMembers().size();
   int targetSizePerPartition=-1;
   int maxPartitionSize=0;
-  final MaxSizeConfig.MaxSizePolicy maxSizePolicy=mapConfig.getMaxSizeConfig().getMaxSizePolicy();
-  if (maxSizePolicy == MaxSizeConfig.MaxSizePolicy.PER_NODE) {
-    maxPartitionSize=(mapConfig.getMaxSizeConfig().getSize() * memberCount / nodeEngine.getPartitionService().getPartitionCount());
+  final MaxSizeConfig maxSizeConfig=mapConfig.getMaxSizeConfig();
+  final MaxSizePolicy maxSizePolicy=maxSizeConfig.getMaxSizePolicy();
+  final int maxSize=maxSizeConfig.getSize();
+  if (maxSizePolicy == MaxSizePolicy.PER_NODE) {
+    maxPartitionSize=(maxSize * memberCount / nodeEngine.getPartitionService().getPartitionCount());
     targetSizePerPartition=Double.valueOf(maxPartitionSize * ((100 - evictionPercentage) / 100.0)).intValue();
   }
- else   if (maxSizePolicy == MaxSizeConfig.MaxSizePolicy.PER_PARTITION) {
-    maxPartitionSize=mapConfig.getMaxSizeConfig().getSize();
+ else   if (maxSizePolicy == MaxSizePolicy.PER_PARTITION) {
+    maxPartitionSize=maxSize;
     targetSizePerPartition=Double.valueOf(maxPartitionSize * ((100 - evictionPercentage) / 100.0)).intValue();
   }
+  final String name=mapContainer.getName();
   for (int i=0; i < ExecutorConfig.DEFAULT_POOL_SIZE; i++) {
-    nodeEngine.getExecutionService().execute("hz:map-evict",new EvictRunner(i,mapConfig,targetSizePerPartition,comparator,evictionPercentage));
+    EvictRunner runner=new EvictRunner(name,i,maxSizePolicy,targetSizePerPartition,comparator,evictionPercentage);
+    nodeEngine.getExecutionService().execute("hz:map-evict",runner);
   }
 }

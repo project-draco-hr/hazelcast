@@ -1,12 +1,11 @@
 {
-  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  final Config config=new Config();
-  final HazelcastInstance lockOwner=nodeFactory.newHazelcastInstance(config);
-  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
-  final String name="testLockOwnerDies";
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance lockOwner=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  final String name=randomString();
   final ILock lock=lockOwner.getLock(name);
   lock.lock();
-  Assert.assertTrue(lock.isLocked());
+  assertTrue(lock.isLocked());
   final CountDownLatch latch=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
@@ -17,6 +16,6 @@
   }
 );
   t.start();
-  lockOwner.getLifecycleService().shutdown();
-  Assert.assertTrue(latch.await(10,TimeUnit.SECONDS));
+  lockOwner.shutdown();
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
 }

@@ -5,19 +5,23 @@
   final String uuid=event.getMember().getUuid();
   try {
     nodeEngine.getExecutionService().schedule(new Runnable(){
-      public void run(){
-        final Iterator<ClientEndpoint> iter=endpoints.values().iterator();
-        while (iter.hasNext()) {
-          final ClientEndpoint endpoint=iter.next();
-          if (uuid.equals(endpoint.getPrincipal().getOwnerUuid())) {
-            iter.remove();
+      @Override public void run(){
+        Iterator<ClientEndpoint> iterator=endpoints.values().iterator();
+        while (iterator.hasNext()) {
+          ClientEndpoint endpoint=iterator.next();
+          String ownerUuid=endpoint.getPrincipal().getOwnerUuid();
+          if (uuid.equals(ownerUuid)) {
+            iterator.remove();
             destroyEndpoint(endpoint,true);
           }
         }
       }
     }
-,10,TimeUnit.SECONDS);
+,ENDPOINT_REMOVE_DELAY_MS,TimeUnit.SECONDS);
   }
  catch (  RejectedExecutionException e) {
+    if (logger.isFinestEnabled()) {
+      logger.finest(e);
+    }
   }
 }

@@ -1,0 +1,16 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  try {
+    byte[] data=getTaskData();
+    MigrationOperation operation=new MigrationOperation(migrationInfo,replicaVersions,data,tasks.size(),compress);
+    Future future=nodeEngine.getOperationService().createInvocationBuilder(InternalPartitionService.SERVICE_NAME,operation,destination).setTryPauseMillis(TRY_PAUSE_MILLIS).setReplicaIndex(getReplicaIndex()).invoke();
+    Object response=future.get(timeout,TimeUnit.SECONDS);
+    Boolean result=nodeEngine.toObject(response);
+    migrationInfo.doneProcessing();
+    responseHandler.sendResponse(result);
+  }
+ catch (  Throwable e) {
+    responseHandler.sendResponse(Boolean.FALSE);
+    logThrowable(e);
+  }
+}

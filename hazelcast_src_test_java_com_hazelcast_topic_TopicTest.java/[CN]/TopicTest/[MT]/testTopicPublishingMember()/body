@@ -16,9 +16,10 @@
         ITopic<Long> topic=instance.getTopic(name);
         topic.addMessageListener(new MessageListener<Long>(){
           public void onMessage(          Message<Long> message){
-            if (message.getPublishingMember().equals(instance.getCluster().getLocalMember()))             count.incrementAndGet();
-            if (message.getPublishingMember().equals(message.getMessageObject()))             count1.incrementAndGet();
-            if (message.getPublishingMember().localMember())             count2.incrementAndGet();
+            Member publishingMember=message.getPublishingMember();
+            if (publishingMember.equals(instance.getCluster().getLocalMember()))             count.incrementAndGet();
+            if (publishingMember.equals(message.getMessageObject()))             count1.incrementAndGet();
+            if (publishingMember.localMember())             count2.incrementAndGet();
           }
         }
 );
@@ -31,17 +32,17 @@
     mainLatch.await(1,TimeUnit.MINUTES);
   }
  catch (  InterruptedException e) {
-    e.printStackTrace();
+    fail();
   }
   for (int i=0; i < k; i++) {
-    final HazelcastInstance instance=instances[i];
+    HazelcastInstance instance=instances[i];
     instance.getTopic(name).publish(instance.getCluster().getLocalMember());
   }
   assertTrueEventually(new AssertTask(){
     @Override public void run(){
-      Assert.assertEquals(k,count.get());
-      Assert.assertEquals(k * k,count1.get());
-      Assert.assertEquals(k,count2.get());
+      assertEquals(k,count.get());
+      assertEquals(k * k,count1.get());
+      assertEquals(k,count2.get());
     }
   }
 );
