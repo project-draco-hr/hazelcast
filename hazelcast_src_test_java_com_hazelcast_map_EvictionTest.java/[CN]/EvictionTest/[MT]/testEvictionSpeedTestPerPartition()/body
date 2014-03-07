@@ -14,7 +14,7 @@
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
   final HazelcastInstance[] instances=factory.newInstances(cfg);
   final int pnum=instances[0].getPartitionService().getPartitions().size();
-  final AtomicInteger failCount=new AtomicInteger(0);
+  final AtomicBoolean error=new AtomicBoolean(false);
   new Thread(){
     final IMap map=instances[0].getMap(mapName);
     public void run(){
@@ -24,7 +24,7 @@
           try {
             int msize=map.size();
             if (msize > (size * pnum * 1.2)) {
-              failCount.incrementAndGet();
+              error.set(true);
             }
             Thread.sleep(1000);
           }
@@ -43,7 +43,7 @@
     final IMap map=instances[i].getMap(mapName);
     new Thread(){
       public void run(){
-        for (int j=0; j < 100000; j++) {
+        for (int j=0; j < 10000; j++) {
           map.put(k + "-" + j,j);
         }
         latch.countDown();
@@ -51,6 +51,6 @@
     }
 .start();
   }
-  assertEquals(latch.await(10,TimeUnit.MINUTES),true);
-  assertEquals(0,failCount.get());
+  assertOpenEventually(latch);
+  assertFalse("map was not evicted properly!",error.get());
 }

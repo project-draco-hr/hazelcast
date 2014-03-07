@@ -2,7 +2,7 @@
   Config cfg=new Config();
   final String name="testMapRecordIdleEvictionOnMigration";
   MapConfig mc=cfg.getMapConfig(name);
-  int maxIdleSeconds=10;
+  int maxIdleSeconds=30;
   int size=100;
   final int nsize=size / 5;
   mc.setMaxIdleSeconds(maxIdleSeconds);
@@ -19,30 +19,12 @@
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  final Thread thread=new Thread(new Runnable(){
-    public void run(){
-      while (!Thread.currentThread().isInterrupted()) {
-        try {
-          for (int i=0; i < nsize; i++) {
-            map.get(i);
-          }
-          Thread.sleep(1000);
-        }
- catch (        HazelcastInstanceNotActiveException e) {
-          return;
-        }
-catch (        InterruptedException e) {
-          return;
-        }
-      }
-    }
+  sleepSeconds(maxIdleSeconds - 5);
+  for (int i=0; i < nsize; i++) {
+    map.get(i);
   }
-);
-  thread.start();
   HazelcastInstance instance2=factory.newHazelcastInstance(cfg);
   HazelcastInstance instance3=factory.newHazelcastInstance(cfg);
-  assertTrue(latch.await(1,TimeUnit.MINUTES));
-  assertEquals(nsize,map.size());
-  thread.interrupt();
-  thread.join(5000);
+  assertOpenEventually(latch);
+  assertEquals("not all idle values evicted!",nsize,map.size());
 }
