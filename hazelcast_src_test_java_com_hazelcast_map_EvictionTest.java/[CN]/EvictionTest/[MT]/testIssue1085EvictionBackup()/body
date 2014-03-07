@@ -1,13 +1,10 @@
 {
   Config config=new Config();
   config.getMapConfig("testIssue1085EvictionBackup").setTimeToLiveSeconds(3);
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(3).newInstances(config);
   int size=1000;
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
-  HazelcastInstance instance=factory.newHazelcastInstance(config);
-  HazelcastInstance instance2=factory.newHazelcastInstance(config);
-  HazelcastInstance instance3=factory.newHazelcastInstance(config);
   final CountDownLatch latch=new CountDownLatch(size);
-  final IMap map=instance.getMap("testIssue1085EvictionBackup");
+  final IMap map=instances[0].getMap("testIssue1085EvictionBackup");
   map.addEntryListener(new EntryAdapter(){
     @Override public void entryEvicted(    EntryEvent event){
       super.entryEvicted(event);
@@ -18,7 +15,8 @@
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  instance2.shutdown();
-  instance3.shutdown();
-  assertTrue("map size:" + map.size(),latch.await(30,TimeUnit.SECONDS));
+  instances[1].shutdown();
+  instances[2].shutdown();
+  assertOpenEventually(latch);
+  assertEquals("not all values evicted!",0,map.size());
 }

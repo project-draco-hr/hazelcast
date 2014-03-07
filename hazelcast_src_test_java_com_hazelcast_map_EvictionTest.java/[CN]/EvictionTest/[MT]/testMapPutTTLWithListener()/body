@@ -1,12 +1,11 @@
 {
   Config cfg=new Config();
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance[] instances=factory.newInstances(cfg);
+  final HazelcastInstance[] instances=createHazelcastInstanceFactory(2).newInstances(cfg);
   warmUpPartitions(instances);
   final int k=10;
-  final int putCount=10000;
+  final int putCount=1000;
   final CountDownLatch latch=new CountDownLatch(k * putCount);
-  final IMap map=instances[0].getMap("testMapEvictionTtlWithListener");
+  final IMap map=instances[0].getMap("testMapPutTTLWithListener");
   final AtomicBoolean error=new AtomicBoolean(false);
   final Set<Long> times=Collections.newSetFromMap(new ConcurrentHashMap<Long,Boolean>());
   map.addEntryListener(new EntryAdapter(){
@@ -29,6 +28,6 @@
       map.put(j + putCount * threadId,expectedEvictionTime,ttl,TimeUnit.MILLISECONDS);
     }
   }
-  assertTrue(latch.await(1,TimeUnit.MINUTES));
-  assertFalse("Some evictions took more than 3 seconds! -> " + times,error.get());
+  assertOpenEventually(latch);
+  assertFalse("Some evictions took more than 5 seconds! -> late eviction count:" + times.size(),error.get());
 }
