@@ -1,19 +1,14 @@
 {
-  final int maxSizePerNode=50;
   final int instanceCount=3;
+  final int ttl=1;
+  final int size=1000;
   final Config cfg=new Config();
   final String mapName="_testNearCacheEvictionByUsingMapTTLEviction_";
   final NearCacheConfig nearCacheConfig=new NearCacheConfig();
   nearCacheConfig.setInvalidateOnChange(true);
+  nearCacheConfig.setInMemoryFormat(InMemoryFormat.OBJECT);
   cfg.getMapConfig(mapName).setNearCacheConfig(nearCacheConfig);
   final MapConfig mapConfig=cfg.getMapConfig(mapName);
-  mapConfig.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
-  final MaxSizeConfig maxSizeConfig=new MaxSizeConfig();
-  maxSizeConfig.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
-  maxSizeConfig.setSize(maxSizePerNode);
-  mapConfig.setMaxSizeConfig(maxSizeConfig);
-  final int ttl=1;
-  final int size=1000;
   mapConfig.setTimeToLiveSeconds(ttl);
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(instanceCount);
   final HazelcastInstance instance1=factory.newHazelcastInstance(cfg);
@@ -30,16 +25,16 @@
   }
 ,false);
   for (int i=0; i < size; i++) {
+    map1.put(i,i);
     map1.get(i);
     map2.get(i);
     map3.get(i);
-    map1.put(i,i);
   }
   assertOpenEventually(latch);
   assertEquals(0,map1.size());
   assertEquals(0,map2.size());
   assertEquals(0,map3.size());
-  assertEquals(0,getNearCache(mapName,instance1).size());
-  assertEquals(0,getNearCache(mapName,instance2).size());
-  assertEquals(0,getNearCache(mapName,instance3).size());
+  assertEquals(0,countNotNullValuesInNearCacheSize(mapName,instance1));
+  assertEquals(0,countNotNullValuesInNearCacheSize(mapName,instance2));
+  assertEquals(0,countNotNullValuesInNearCacheSize(mapName,instance3));
 }
