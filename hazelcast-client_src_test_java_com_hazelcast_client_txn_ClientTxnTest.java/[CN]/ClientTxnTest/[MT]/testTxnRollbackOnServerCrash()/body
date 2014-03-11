@@ -1,12 +1,12 @@
 {
   final TransactionContext context=hz.newTransactionContext();
   CountDownLatch latch=new CountDownLatch(1);
+  context.beginTransaction();
+  final TransactionalQueue queue=context.getQueue("testTxnRollback");
+  String key=HazelcastTestSupport.generateKeyOwnedBy(server);
+  queue.offer(key);
+  server.getLifecycleService().terminate();
   try {
-    context.beginTransaction();
-    final TransactionalQueue queue=context.getQueue("testTxnRollback");
-    String key=HazelcastTestSupport.generateKeyOwnedBy(server);
-    queue.offer(key);
-    server.getLifecycleService().terminate();
     context.commitTransaction();
     fail("commit should throw exception!!!");
   }
