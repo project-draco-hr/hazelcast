@@ -22,10 +22,11 @@
   transactionManager=new ClientTransactionManager(this);
   executionService=new ClientExecutionServiceImpl(instanceName,threadGroup,Thread.currentThread().getContextClassLoader(),config.getExecutorPoolSize());
   clusterService=new ClientClusterServiceImpl(this);
-  LoadBalancer loadBalancer=config.getLoadBalancer();
-  if (loadBalancer == null) {
-    loadBalancer=new RoundRobinLB();
+  LoadBalancer lb=config.getLoadBalancer();
+  if (lb == null) {
+    lb=new RoundRobinLB();
   }
+  loadBalancer=lb;
   if (config.isSmartRouting()) {
     connectionManager=new SmartClientConnectionManager(this,clusterService.getAuthenticator(),loadBalancer);
   }
@@ -34,7 +35,6 @@
   }
   invocationService=new ClientInvocationServiceImpl(this);
   userContext=new ConcurrentHashMap<String,Object>();
-  loadBalancer.init(getCluster(),config);
   proxyManager.init(config);
   partitionService=new ClientPartitionServiceImpl(this);
 }
