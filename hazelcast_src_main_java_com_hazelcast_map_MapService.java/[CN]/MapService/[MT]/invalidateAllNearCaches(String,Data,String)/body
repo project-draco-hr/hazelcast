@@ -1,0 +1,21 @@
+{
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  for (  MemberImpl member : members) {
+    try {
+      final String uuid1=member.getUuid();
+      if (member.localMember() || uuid1.equals(uuid)) {
+        continue;
+      }
+      Operation operation=new InvalidateNearCacheOperation(mapName,key).setServiceName(SERVICE_NAME);
+      nodeEngine.getOperationService().send(operation,member.getAddress());
+    }
+ catch (    Throwable throwable) {
+      throw new HazelcastException(throwable);
+    }
+  }
+  final String uuid1=nodeEngine.getLocalMember().getUuid();
+  if (uuid1.equals(uuid)) {
+    return;
+  }
+  invalidateNearCache(mapName,key);
+}

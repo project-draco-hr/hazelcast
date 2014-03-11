@@ -1,18 +1,17 @@
 {
-  final IMap<String,Text> map=hcInstance.getMap(mapName);
+  final IMap<String,String> map=hcInstance.getMap(mapName);
   for (int k=0; k < numIterations; k++) {
     String key="executeOnKeys_" + String.valueOf(k);
-    Text value0=new Text("content" + k);
-    map.put(key,value0);
-    map.get(key);
-    Text value1=map.get(key);
-    Text value2=map.get(key);
-    assertTrue("reference in local near cache must be the same (k=" + k + ")"+ value1+ " =? "+ value2,value1 == value2);
+    final String expectedNull=map.get(key);
+    assertNull(expectedNull);
     final HashSet<String> keys=new HashSet<String>();
     keys.add(key);
-    map.executeOnKeys(keys,new ReadingEntryProcessor());
-    map.executeOnKeys(keys,new WritingEntryProcessor());
-    Text value4=map.get(key);
-    assertFalse("reference must change by writing (k=" + k + ")",value1 == value4);
+    final Object o=map.executeOnKeys(keys,new WritingEntryProcessor());
+    final Map<String,String> result=(Map)o;
+    for (    Map.Entry<String,String> e : result.entrySet()) {
+      final String newValue=e.getValue();
+      final String cachedValue=map.get(e.getKey());
+      assertEquals(newValue,cachedValue);
+    }
   }
 }
