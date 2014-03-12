@@ -1,4 +1,5 @@
 {
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(count);
   final Config config=new Config();
   config.setProperty("hazelcast.wait.seconds.before.join","5");
   config.getNetworkConfig().getJoin().getMulticastConfig().setMulticastTimeoutSeconds(25);
@@ -16,20 +17,16 @@
  catch (          InterruptedException ignored) {
           }
         }
-        HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+        HazelcastInstance h=nodeFactory.newHazelcastInstance(config);
         map.put(index,h);
         latch.countDown();
       }
     }
 );
   }
-  try {
-    assertTrue(latch.await(count * 10,TimeUnit.SECONDS));
-  }
-  finally {
-    ex.shutdown();
-  }
+  assertOpenEventually(latch);
   for (  HazelcastInstance h : map.values()) {
     assertEquals(count,h.getCluster().getMembers().size());
   }
+  ex.shutdown();
 }
