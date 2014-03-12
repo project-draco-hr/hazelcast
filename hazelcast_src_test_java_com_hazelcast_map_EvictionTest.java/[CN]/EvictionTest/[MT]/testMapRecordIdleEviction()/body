@@ -1,45 +1,31 @@
 {
+  final String mapName=randomMapName("testMapRecordIdleEviction");
+  final int maxIdleSeconds=5;
+  final int size=1000;
+  final int expectedEntryCountAfterIdleEviction=size / 100;
   Config cfg=new Config();
-  MapConfig mc=cfg.getMapConfig("testMapRecordIdleEviction");
-  int maxIdleSeconds=8;
-  int size=1000;
-  final int nsize=size / 10;
+  MapConfig mc=cfg.getMapConfig(mapName);
   mc.setMaxIdleSeconds(maxIdleSeconds);
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance[] instances=factory.newInstances(cfg);
-  final IMap map=instances[0].getMap("testMapRecordIdleEviction");
-  final CountDownLatch latch=new CountDownLatch(size - nsize);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=factory.newHazelcastInstance(cfg);
+  final IMap map=instance.getMap(mapName);
+  final CountDownLatch latch=new CountDownLatch(size - expectedEntryCountAfterIdleEviction);
   map.addEntryListener(new EntryAdapter(){
     public void entryEvicted(    EntryEvent event){
       latch.countDown();
     }
   }
 ,false);
-  final Thread thread=new Thread(new Runnable(){
-    public void run(){
-      while (!Thread.currentThread().isInterrupted()) {
-        try {
-          for (int i=0; i < nsize; i++) {
-            map.get(i);
-          }
-          Thread.sleep(100);
-        }
- catch (        HazelcastInstanceNotActiveException e) {
-          return;
-        }
-catch (        InterruptedException e) {
-          return;
-        }
-      }
-    }
-  }
-);
-  thread.start();
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  assertTrue(latch.await(1,TimeUnit.MINUTES));
-  assertEquals(nsize,map.size());
-  thread.interrupt();
-  thread.join(5000);
+  for (; ; ) {
+    for (int i=0; i < expectedEntryCountAfterIdleEviction; i++) {
+      map.get(i);
+    }
+    if (latch.getCount() == 0) {
+      break;
+    }
+  }
+  assertEquals(expectedEntryCountAfterIdleEviction,map.size());
 }
