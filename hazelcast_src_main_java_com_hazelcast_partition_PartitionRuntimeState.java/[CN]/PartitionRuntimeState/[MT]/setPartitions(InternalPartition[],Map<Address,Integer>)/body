@@ -1,14 +1,17 @@
 {
   for (  InternalPartition partition : partitions) {
     ShortPartitionInfo partitionInfo=new ShortPartitionInfo(partition.getPartitionId());
-    for (int i=0; i < InternalPartition.MAX_REPLICA_COUNT; i++) {
-      Address address=partition.getReplicaAddress(i);
+    for (int index=0; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
+      Address address=partition.getReplicaAddress(index);
       if (address == null) {
-        partitionInfo.addressIndexes[i]=-1;
+        partitionInfo.addressIndexes[index]=-1;
       }
  else {
         Integer knownIndex=addressIndexes.get(address);
-        partitionInfo.addressIndexes[i]=(knownIndex == null) ? -1 : knownIndex;
+        if (knownIndex == null && index == 0) {
+          throw new IllegalStateException("Unknown owner address in partition state! " + "Address: " + address + ", "+ partition);
+        }
+        partitionInfo.addressIndexes[index]=knownIndex != null ? addressIndexes.get(address) : -1;
       }
     }
     partitionInfos.add(partitionInfo);

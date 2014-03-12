@@ -5,6 +5,15 @@
   final InternalPartitionImpl partitionImpl=getPartition(partitionId);
   final Address target=partitionImpl.getOwner();
   if (target != null) {
+    if (target.equals(nodeEngine.getThisAddress())) {
+      if (force) {
+        throw new IllegalStateException("Replica target cannot be this node -> partitionId: " + partitionId + ", replicaIndex: "+ replicaIndex+ ", partition-info: "+ partitionImpl);
+      }
+ else {
+        logger.info("This node is now owner of partition, cannot sync replica -> partitionId: " + partitionId + ", replicaIndex: "+ replicaIndex+ ", partition-info: "+ partitionImpl);
+        return;
+      }
+    }
     final ReplicaSyncRequest syncRequest=new ReplicaSyncRequest();
     syncRequest.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
     final ReplicaSyncInfo currentSyncInfo=replicaSyncRequests.get(partitionId);
@@ -20,15 +29,11 @@
       replicaSyncRequests.set(partitionId,syncInfo);
       sendRequest=true;
     }
-    if (target.equals(nodeEngine.getThisAddress())) {
-      throw new IllegalStateException("Replica target cannot be this node -> partitionId: " + partitionId + ", replicaIndex: "+ replicaIndex+ ", partition-info: "+ partitionImpl);
-    }
     if (sendRequest) {
-      final Level level=Level.FINEST;
-      if (logger.isLoggable(level)) {
-        logger.log(level,"Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
+      if (logger.isFinestEnabled()) {
+        logger.finest("Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
       }
-      replicaSyncScheduler.schedule(15000,partitionId,syncInfo);
+      replicaSyncScheduler.schedule(10000,partitionId,syncInfo);
       nodeEngine.getOperationService().send(syncRequest,target);
     }
   }

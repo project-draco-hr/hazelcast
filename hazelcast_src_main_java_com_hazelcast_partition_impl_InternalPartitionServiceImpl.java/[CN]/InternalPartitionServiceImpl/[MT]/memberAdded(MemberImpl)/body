@@ -6,9 +6,10 @@
     lock.lock();
     try {
       migrationQueue.clear();
-      migrationQueue.add(new RepartitioningTask());
       if (initialized) {
-        PartitionStateOperation op=new PartitionStateOperation(node.clusterService.getMemberList(),getPartitions(),new ArrayList<MigrationInfo>(completedMigrations),node.getClusterService().getClusterTime(),stateVersion.get());
+        migrationQueue.add(new RepartitioningTask());
+        Collection<MemberImpl> members=node.clusterService.getMemberList();
+        PartitionStateOperation op=new PartitionStateOperation(createPartitionState(members));
         nodeEngine.getOperationService().send(op,member.getAddress());
       }
     }
