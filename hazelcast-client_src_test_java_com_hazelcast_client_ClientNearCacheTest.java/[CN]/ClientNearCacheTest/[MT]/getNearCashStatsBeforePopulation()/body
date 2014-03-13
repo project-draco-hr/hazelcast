@@ -1,0 +1,17 @@
+{
+  final String mapName="getNearCashStatsBeforePopulation";
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance();
+  final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setSmartRouting(false);
+  NearCacheConfig cashConfig=new NearCacheConfig();
+  cashConfig.setInMemoryFormat(InMemoryFormat.OBJECT);
+  clientConfig.addNearCacheConfig(mapName,cashConfig);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final IMap map=client.getMap(mapName);
+  for (int i=0; i < 300; i++) {
+    map.put("key" + i,"value" + i);
+  }
+  final NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
+  assertEquals(0,stats.getOwnedEntryCount());
+}

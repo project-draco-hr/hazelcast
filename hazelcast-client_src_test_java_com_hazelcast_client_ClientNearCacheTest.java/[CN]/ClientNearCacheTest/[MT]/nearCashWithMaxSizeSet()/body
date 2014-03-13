@@ -1,0 +1,27 @@
+{
+  final String mapName="nearCashWithMaxSizeSet";
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance();
+  final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setSmartRouting(false);
+  final int cashSize=2;
+  NearCacheConfig cashConfig=new NearCacheConfig();
+  cashConfig.setInMemoryFormat(InMemoryFormat.OBJECT);
+  cashConfig.setMaxSize(cashSize);
+  clientConfig.addNearCacheConfig(mapName,cashConfig);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final IMap map=client.getMap(mapName);
+  for (int i=0; i < cashSize * 100; i++) {
+    map.put("key" + i,"value" + i);
+  }
+  for (int i=0; i < cashSize * 100; i++) {
+    map.get(i);
+  }
+  final NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
+  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(cashSize,stats.getOwnedEntryCount());
+    }
+  }
+);
+}
