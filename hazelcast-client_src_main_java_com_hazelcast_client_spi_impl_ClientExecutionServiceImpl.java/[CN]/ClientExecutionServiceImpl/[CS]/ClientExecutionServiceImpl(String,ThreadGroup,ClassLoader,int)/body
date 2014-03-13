@@ -3,6 +3,14 @@
     final int cores=Runtime.getRuntime().availableProcessors();
     poolSize=cores * 5;
   }
+  internalExecutor=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(),new PoolExecutorThreadFactory(threadGroup,name + ".internal-",classLoader),new RejectedExecutionHandler(){
+    public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
+      if (logger.isFinestEnabled()) {
+        logger.finest("Internal executor rejected task: " + r + ", because client is shutting down...");
+      }
+    }
+  }
+);
   executor=new ThreadPoolExecutor(poolSize,poolSize,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(),new PoolExecutorThreadFactory(threadGroup,name + ".cached-",classLoader),new RejectedExecutionHandler(){
     public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
       if (logger.isFinestEnabled()) {
