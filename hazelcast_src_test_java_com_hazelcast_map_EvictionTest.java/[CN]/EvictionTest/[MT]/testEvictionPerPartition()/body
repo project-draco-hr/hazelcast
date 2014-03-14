@@ -14,10 +14,15 @@
   final HazelcastInstance[] instances=factory.newInstances(cfg);
   final int pnum=instances[0].getPartitionService().getPartitions().size();
   int insertCount=size * pnum * 2;
-  Map map=instances[0].getMap(mapName);
+  final Map map=instances[0].getMap(mapName);
   for (int i=0; i < insertCount; i++) {
     map.put(i,i);
   }
   Thread.sleep(2000);
-  assertTrue(map.size() < size * pnum * (100 - mc.getEvictionPercentage()) / 100);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(map.size() < size * pnum * (100 - mc.getEvictionPercentage()) / 100);
+    }
+  }
+);
 }

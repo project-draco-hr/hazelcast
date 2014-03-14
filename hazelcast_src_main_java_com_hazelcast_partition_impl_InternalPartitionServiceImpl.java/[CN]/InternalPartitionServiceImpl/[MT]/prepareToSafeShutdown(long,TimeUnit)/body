@@ -10,10 +10,13 @@
       }
       timeoutInMillis-=sleep;
     }
-    if (timeoutInMillis < 0) {
+    if (timeoutInMillis <= 0) {
       return false;
     }
-    if (!node.isMaster()) {
+    if (node.isMaster()) {
+      syncPartitionRuntimeState();
+    }
+ else {
       while (timeoutInMillis > 0 && hasOnGoingMigrationMaster(Level.WARNING)) {
         logger.info("Waiting for the master node to complete remaining migrations!");
         try {
@@ -23,7 +26,7 @@
         }
         timeoutInMillis-=sleep;
       }
-      if (timeoutInMillis < 0) {
+      if (timeoutInMillis <= 0) {
         return false;
       }
     }
@@ -35,10 +38,10 @@
       return true;
     }
  else {
-      if (timeoutInMillis < 0) {
+      if (timeoutInMillis <= 0) {
         return false;
       }
-      logger.info("Backup replica versions inconsistent, waiting for synchronization..");
+      logger.info("Some backup replicas are inconsistent with primary, waiting for synchronization...");
       try {
         Thread.sleep(sleep);
       }
