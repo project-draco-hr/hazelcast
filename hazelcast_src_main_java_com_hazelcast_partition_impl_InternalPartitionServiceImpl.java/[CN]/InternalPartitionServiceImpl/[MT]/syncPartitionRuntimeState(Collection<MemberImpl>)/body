@@ -1,0 +1,43 @@
+{
+  if (!initialized) {
+    return;
+  }
+  if (!node.isMaster() || !node.isActive() || !node.joined()) {
+    return;
+  }
+  lock.lock();
+  try {
+    PartitionRuntimeState partitionState=createPartitionState(members);
+    PartitionInfo[] pp=partitionState.getPartitions();
+    for (    PartitionInfo p : pp) {
+      if (p.getReplicaAddress(0) == null) {
+        new IllegalStateException(p.toString()).printStackTrace();
+      }
+    }
+    OperationService operationService=nodeEngine.getOperationService();
+    List<Future> calls=new ArrayList<Future>(members.size());
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        try {
+          PartitionStateOperation op=new PartitionStateOperation(partitionState,true);
+          Future<Object> f=operationService.invokeOnTarget(SERVICE_NAME,op,member.getAddress());
+          calls.add(f);
+        }
+ catch (        Exception e) {
+          logger.finest(e);
+        }
+      }
+    }
+    for (    Future f : calls) {
+      try {
+        f.get(3,TimeUnit.SECONDS);
+      }
+ catch (      Exception e) {
+        logger.info("Partition state sync invocation timed out: " + e);
+      }
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

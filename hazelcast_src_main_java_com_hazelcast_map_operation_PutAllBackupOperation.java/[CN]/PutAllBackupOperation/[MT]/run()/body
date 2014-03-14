@@ -1,20 +1,10 @@
 {
   int partitionId=getPartitionId();
   recordStore=mapService.getRecordStore(partitionId,name);
-  Set<Map.Entry<Data,Data>> entries=entrySet.getEntrySet();
-  for (  Map.Entry<Data,Data> entry : entries) {
-    Data dataKey=entry.getKey();
-    Data dataValue=entry.getValue();
-    Record record=recordStore.getRecord(dataKey);
-    if (record == null) {
-      record=mapService.createRecord(name,dataKey,dataValue,-1,false);
-      updateSizeEstimator(calculateRecordSize(record));
-      recordStore.putRecord(dataKey,record);
-    }
- else {
-      updateSizeEstimator(-calculateRecordSize(record));
-      mapContainer.getRecordFactory().setValue(record,dataValue);
-      updateSizeEstimator(calculateRecordSize(record));
-    }
+  for (int i=0; i < entries.size(); i++) {
+    final RecordInfo recordInfo=recordInfos.get(i);
+    final Map.Entry<Data,Data> entry=entries.get(i);
+    final Record record=recordStore.putBackup(entry.getKey(),entry.getValue(),-1,false);
+    mapService.applyRecordInfo(record,name,recordInfo);
   }
 }
