@@ -1,6 +1,5 @@
 {
   final DistributedObjectListenerRequest request=new DistributedObjectListenerRequest();
-  ClientContext context=new ClientContext(client.getSerializationService(),client.getClientClusterService(),client.getClientPartitionService(),client.getInvocationService(),client.getClientExecutionService(),this,client.getClientConfig());
   final EventHandler<PortableDistributedObjectEvent> eventHandler=new EventHandler<PortableDistributedObjectEvent>(){
     public void handle(    PortableDistributedObjectEvent e){
       final ObjectNamespace ns=new DefaultObjectNamespace(e.getServiceName(),e.getName());
@@ -8,7 +7,7 @@
       if (proxy == null) {
         proxy=getProxy(e.getServiceName(),e.getName());
       }
-      final DistributedObjectEvent event=new DistributedObjectEvent(e.getEventType(),e.getServiceName(),proxy);
+      DistributedObjectEvent event=new DistributedObjectEvent(e.getEventType(),e.getServiceName(),proxy);
       if (DistributedObjectEvent.EventType.CREATED.equals(e.getEventType())) {
         listener.distributedObjectCreated(event);
       }
@@ -18,5 +17,6 @@
     }
   }
 ;
-  return ListenerUtil.listen(context,request,null,eventHandler);
+  final ClientContext clientContext=new ClientContext(client,this);
+  return ListenerUtil.listen(clientContext,request,null,eventHandler);
 }

@@ -1,13 +1,9 @@
 {
   Map<Member,Future<T>> futureMap=new HashMap<Member,Future<T>>(members.size());
-  final ClientClusterService clusterService=getContext().getClusterService();
-  for (  Member m : members) {
-    final MemberImpl member=clusterService.getMember(m.getUuid());
-    if (member == null) {
-      throw new HazelcastException("Member is not available!!!");
-    }
-    Future<T> f=submitToTargetInternal(task,member.getAddress(),true);
-    futureMap.put(m,f);
+  for (  Member member : members) {
+    final Address memberAddress=getMemberAddress(member);
+    Future<T> f=_submitToTarget(task,memberAddress,null,true);
+    futureMap.put(member,f);
   }
   return futureMap;
 }
