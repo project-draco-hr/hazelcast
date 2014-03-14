@@ -12,10 +12,15 @@
 ).setLocal(true));
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   final HazelcastInstance[] instances=factory.newInstances(cfg);
-  IMap map=instances[0].getMap("testMapRecordEviction");
+  final IMap map=instances[0].getMap("testMapRecordEviction");
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
   assertOpenEventually(latch);
-  assertEquals(0,map.size());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,map.size());
+    }
+  }
+);
 }

@@ -1,33 +1,57 @@
 {
+  if (!initialized || !node.joined()) {
+    return true;
+  }
+  if (getMemberGroupsSize() < 2) {
+    return true;
+  }
   final Address thisAddress=node.getThisAddress();
   final Semaphore s=new Semaphore(0);
   final AtomicBoolean ok=new AtomicBoolean(true);
-  int empty=0;
-  for (  final InternalPartitionImpl partition : partitions) {
-    if (thisAddress.equals(partition.getOwner()) && partition.getReplicaAddress(1) != null) {
-      Callback<Object> callback=new Callback<Object>(){
-        @Override public void notify(        Object object){
-          if (Boolean.FALSE.equals(object)) {
-            ok.compareAndSet(true,false);
-          }
-          s.release();
-        }
+  final Callback<Object> callback=new Callback<Object>(){
+    @Override public void notify(    Object object){
+      if (Boolean.FALSE.equals(object)) {
+        ok.compareAndSet(true,false);
       }
-;
-      final SyncReplicaVersion op=new SyncReplicaVersion(1,callback);
-      op.setService(this);
-      op.setNodeEngine(nodeEngine);
-      op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
-      op.setPartitionId(partition.getPartitionId());
-      nodeEngine.getOperationService().executeOperation(op);
-    }
- else {
-      empty++;
+ else       if (object instanceof Throwable) {
+        ok.compareAndSet(true,false);
+      }
+      s.release();
     }
   }
-  s.release(empty);
+;
+  int notOwnedCount=0;
+  for (  InternalPartitionImpl partition : partitions) {
+    Address owner=partition.getOwner();
+    if (thisAddress.equals(owner)) {
+      if (partition.getReplicaAddress(1) != null) {
+        SyncReplicaVersion op=new SyncReplicaVersion(1,callback);
+        op.setService(this);
+        op.setNodeEngine(nodeEngine);
+        op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
+        op.setPartitionId(partition.getPartitionId());
+        nodeEngine.getOperationService().executeOperation(op);
+      }
+ else {
+        ok.set(false);
+        s.release();
+      }
+    }
+ else {
+      if (owner == null) {
+        ok.set(false);
+      }
+      notOwnedCount++;
+    }
+  }
+  s.release(notOwnedCount);
   try {
-    return s.tryAcquire(partitionCount,10,TimeUnit.SECONDS) && ok.get();
+    if (ok.get()) {
+      return s.tryAcquire(partitionCount,10,TimeUnit.SECONDS) && ok.get();
+    }
+ else {
+      return false;
+    }
   }
  catch (  InterruptedException ignored) {
     return false;

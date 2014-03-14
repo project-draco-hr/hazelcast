@@ -6,10 +6,14 @@
   int n=1;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
   HazelcastInstance h=factory.newHazelcastInstance(config);
-  IMap<String,String> map=h.getMap("testIssue585ZeroTTLShouldPreventEvictionWithSet");
+  final IMap<String,String> map=h.getMap("testIssue585ZeroTTLShouldPreventEvictionWithSet");
   map.set("key","value",1,TimeUnit.SECONDS);
   map.set("key","value2");
-  Thread.sleep(2000);
-  assertEquals(0,map.size());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,map.size());
+    }
+  }
+);
   h.shutdown();
 }
