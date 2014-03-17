@@ -1,0 +1,25 @@
+{
+  final String mapName=randomMapName("testMapStoreWriteDeleteOrder");
+  final int numIterations=40;
+  final int writeDelaySeconds=10;
+  Config config=new Config();
+  RecordingMapStore store=new RecordingMapStore();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setWriteDelaySeconds(writeDelaySeconds);
+  mapStoreConfig.setClassName(null);
+  mapStoreConfig.setImplementation(store);
+  MapConfig mapConfig=config.getMapConfig(mapName);
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance hzInstance=createHazelcastInstance(config);
+  IMap<String,String> map=hzInstance.getMap(mapName);
+  for (int k=0; k < numIterations; k++) {
+    String key=String.valueOf(k + 10);
+    String value="v:" + key;
+    map.put(key,value);
+    sleepMillis(300);
+    map.remove(key);
+  }
+  sleepMillis(2 * 1000 * writeDelaySeconds);
+  assertEquals(0,store.getStore().keySet().size());
+}
