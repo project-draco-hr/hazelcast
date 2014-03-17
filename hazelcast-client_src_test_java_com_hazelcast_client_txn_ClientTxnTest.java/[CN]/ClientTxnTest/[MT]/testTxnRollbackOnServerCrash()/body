@@ -1,8 +1,9 @@
 {
+  final String queueName="testTxnRollbackOnServerCrash";
   final TransactionContext context=hz.newTransactionContext();
   CountDownLatch latch=new CountDownLatch(1);
   context.beginTransaction();
-  final TransactionalQueue queue=context.getQueue("testTxnRollback");
+  final TransactionalQueue queue=context.getQueue(queueName);
   String key=HazelcastTestSupport.generateKeyOwnedBy(server);
   queue.offer(key);
   server.getLifecycleService().terminate();
@@ -15,7 +16,7 @@
     latch.countDown();
   }
   assertTrue(latch.await(10,TimeUnit.SECONDS));
-  final IQueue<Object> q=hz.getQueue("testTxnRollback");
+  final IQueue<Object> q=hz.getQueue(queueName);
   assertNull(q.poll());
   assertEquals(0,q.size());
 }
