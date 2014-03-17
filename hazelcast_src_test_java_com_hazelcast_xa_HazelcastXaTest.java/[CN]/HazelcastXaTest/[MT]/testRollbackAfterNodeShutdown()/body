@@ -1,4 +1,5 @@
 {
+  final HazelcastInstance instance=Hazelcast.newHazelcastInstance();
   tm.begin();
   final TransactionContext context=instance.newTransactionContext();
   final XAResource xaResource=context.getXaResource();
@@ -7,13 +8,14 @@
   boolean error=false;
   try {
     final TransactionalMap m=context.getMap("m");
-    m.put(random.nextInt(10),"value");
+    m.put("key","value");
+    throw new RuntimeException("Exception for rolling back");
   }
  catch (  Exception e) {
-    logger.severe("Exception during transaction",e);
     error=true;
   }
  finally {
     close(error,xaResource);
   }
+  assertNull(instance.getMap("m").get("key"));
 }
