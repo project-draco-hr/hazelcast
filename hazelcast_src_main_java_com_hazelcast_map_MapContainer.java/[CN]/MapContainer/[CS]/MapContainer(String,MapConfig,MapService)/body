@@ -38,7 +38,7 @@ store=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),mapStoreClas
  catch (Exception e) {
 throw ExceptionUtil.rethrow(e);
 }
-storeWrapper=new MapStoreWrapper(store,mapConfig.getName(),mapStoreConfig.isEnabled());
+storeWrapper=new MapStoreWrapper(store,name,mapStoreConfig.isEnabled());
 }
  else {
 storeWrapper=null;
@@ -50,9 +50,10 @@ if (store instanceof MapLoaderLifecycleSupport) {
 loadInitialKeys();
 if (mapStoreConfig.getWriteDelaySeconds() > 0) {
 final ExecutionService executionService=nodeEngine.getExecutionService();
-executionService.register(mapStoreScheduledExecutorName,1,100000);
-mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(executionService.getScheduledExecutor(mapStoreScheduledExecutorName),new MapStoreWriteProcessor(this,mapService),ScheduleType.FOR_EACH);
-mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(executionService.getScheduledExecutor(mapStoreScheduledExecutorName),new MapStoreDeleteProcessor(this,mapService),ScheduleType.SCHEDULE_IF_NEW);
+executionService.register(mapStoreScheduledExecutorName,1,100000,ExecutorType.CACHED);
+ScheduledExecutorService scheduledExecutor=executionService.getScheduledExecutor(mapStoreScheduledExecutorName);
+mapStoreWriteScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new MapStoreWriteProcessor(this,mapService),ScheduleType.FOR_EACH);
+mapStoreDeleteScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new MapStoreDeleteProcessor(this,mapService),ScheduleType.SCHEDULE_IF_NEW);
 }
  else {
 mapStoreDeleteScheduler=null;
@@ -63,8 +64,9 @@ mapStoreWriteScheduler=null;
 mapStoreDeleteScheduler=null;
 mapStoreWriteScheduler=null;
 }
-ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getDefaultScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
-idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(nodeEngine.getExecutionService().getDefaultScheduledExecutor(),new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
+ScheduledExecutorService defaultScheduledExecutor=nodeEngine.getExecutionService().getDefaultScheduledExecutor();
+ttlEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(defaultScheduledExecutor,new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
+idleEvictionScheduler=EntryTaskSchedulerFactory.newScheduler(defaultScheduledExecutor,new EvictionProcessor(nodeEngine,mapService,name),ScheduleType.POSTPONE);
 WanReplicationRef wanReplicationRef=mapConfig.getWanReplicationRef();
 if (wanReplicationRef != null) {
 this.wanReplicationPublisher=nodeEngine.getWanReplicationService().getWanReplicationListener(wanReplicationRef.getName());

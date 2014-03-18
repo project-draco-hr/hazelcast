@@ -1,14 +1,15 @@
 {
   response=new MapEntrySet();
-  final PartitionService partitionService=getNodeEngine().getPartitionService();
+  final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
   final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
   MapEntrySimple entry;
   for (  Data key : keys) {
     if (partitionService.getPartitionId(key) != getPartitionId())     continue;
     Object objectKey=mapService.toObject(key);
     final Map.Entry<Data,Object> mapEntry=recordStore.getMapEntry(key);
-    final Object valueBeforeProcess=mapService.toObject(mapEntry.getValue());
-    entry=new MapEntrySimple(objectKey,valueBeforeProcess);
+    final Object valueBeforeProcess=mapEntry.getValue();
+    final Object valueBeforeProcessObject=mapService.toObject(valueBeforeProcess);
+    entry=new MapEntrySimple(objectKey,valueBeforeProcessObject);
     final Object result=entryProcessor.process(entry);
     final Object valueAfterProcess=entry.getValue();
     Data dataValue=null;
@@ -22,7 +23,7 @@
       eventType=EntryEventType.REMOVED;
     }
  else {
-      if (valueBeforeProcess == null) {
+      if (valueBeforeProcessObject == null) {
         eventType=EntryEventType.ADDED;
       }
  else       if (!entry.isModified()) {
@@ -36,8 +37,10 @@
       }
     }
     if (eventType != __NO_NEED_TO_FIRE_EVENT) {
-      mapService.publishEvent(getCallerAddress(),name,eventType,key,(Data)mapEntry.getValue(),dataValue);
-      if (mapContainer.isNearCacheEnabled() && mapContainer.getMapConfig().getNearCacheConfig().isInvalidateOnChange()) {
+      final Data oldValue=mapService.toData(valueBeforeProcess);
+      final Data value=mapService.toData(valueAfterProcess);
+      mapService.publishEvent(getCallerAddress(),name,eventType,key,oldValue,value);
+      if (mapService.isNearCacheAndInvalidationEnabled(name)) {
         mapService.invalidateAllNearCaches(name,key);
       }
       if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
@@ -46,7 +49,11 @@
         }
  else {
           Record r=recordStore.getRecord(key);
-          SimpleEntryView entryView=new SimpleEntryView(key,mapService.toData(dataValue),r.getStatistics(),r.getCost(),r.getVersion());
+          Data tempValue=mapService.toData(dataValue);
+          RecordStatistics statistics=r.getStatistics();
+          long cost=r.getCost();
+          long version=r.getVersion();
+          SimpleEntryView entryView=new SimpleEntryView(key,tempValue,statistics,cost,version);
           mapService.publishWanReplicationUpdate(name,entryView);
         }
       }

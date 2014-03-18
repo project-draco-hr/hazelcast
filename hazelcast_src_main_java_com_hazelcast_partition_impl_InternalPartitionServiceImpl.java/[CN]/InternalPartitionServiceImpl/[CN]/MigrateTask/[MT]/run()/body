@@ -1,0 +1,54 @@
+{
+  if (!node.isActive() || !node.isMaster()) {
+    return;
+  }
+  final MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo);
+  try {
+    MigrationInfo info=migrationInfo;
+    InternalPartitionImpl partition=partitions[info.getPartitionId()];
+    if (!partition.getOwner().equals(info.getSource())) {
+      logger.severe("ERROR: partition owner is not the source of migration! -> " + partition + " -VS- "+ info);
+    }
+    sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
+    Boolean result=Boolean.FALSE;
+    MemberImpl fromMember=getMember(migrationInfo.getSource());
+    if (logger.isFinestEnabled()) {
+      logger.finest("Started Migration : " + migrationInfo);
+    }
+    systemLogService.logPartition("Started Migration : " + migrationInfo);
+    if (fromMember == null) {
+      logger.warning("Partition is lost! Assign new owner and exit...");
+      result=Boolean.TRUE;
+    }
+ else {
+      Future future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(1000).invoke();
+      try {
+        Object response=future.get(partitionMigrationTimeout,TimeUnit.SECONDS);
+        result=(Boolean)nodeEngine.toObject(response);
+      }
+ catch (      Throwable e) {
+        final Level level=node.isActive() && migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
+        logger.log(level,"Failed migrating from " + fromMember,e);
+      }
+    }
+    if (Boolean.TRUE.equals(result)) {
+      String message="Finished Migration: " + migrationInfo;
+      if (logger.isFinestEnabled()) {
+        logger.finest(message);
+      }
+      systemLogService.logPartition(message);
+      processMigrationResult();
+    }
+ else {
+      final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
+      logger.log(level,"Migration failed: " + migrationInfo);
+      migrationTaskFailed();
+    }
+  }
+ catch (  Throwable t) {
+    final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
+    logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] while executing "+ migrationRequestOp);
+    logger.finest(t);
+    migrationTaskFailed();
+  }
+}

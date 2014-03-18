@@ -1,0 +1,20 @@
+{
+  if (!member.localMember()) {
+    updateMemberGroupsSize();
+  }
+  if (node.isMaster() && node.isActive()) {
+    lock.lock();
+    try {
+      migrationQueue.clear();
+      if (initialized) {
+        migrationQueue.add(new RepartitioningTask());
+        Collection<MemberImpl> members=node.clusterService.getMemberList();
+        PartitionStateOperation op=new PartitionStateOperation(createPartitionState(members));
+        nodeEngine.getOperationService().send(op,member.getAddress());
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

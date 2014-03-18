@@ -1,0 +1,42 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  verifyGoodMaster(nodeEngine);
+  Address source=migrationInfo.getSource();
+  Address destination=migrationInfo.getDestination();
+  verifyExistingTarget(nodeEngine,destination);
+  if (destination.equals(source)) {
+    getLogger().warning("Source and destination addresses are the same! => " + toString());
+    success=false;
+    return;
+  }
+  verifyNotThisNode(nodeEngine,source);
+  InternalPartitionServiceImpl partitionService=getService();
+  InternalPartition partition=partitionService.getPartition(migrationInfo.getPartitionId());
+  Address owner=partition.getOwner();
+  verifyOwnerExists(owner);
+  if (!migrationInfo.startProcessing()) {
+    getLogger().warning("Migration is cancelled -> " + migrationInfo);
+    success=false;
+    return;
+  }
+  try {
+    verifyOwner(source,partition,owner);
+    partitionService.addActiveMigration(migrationInfo);
+    long[] replicaVersions=partitionService.getPartitionReplicaVersions(migrationInfo.getPartitionId());
+    Collection<Operation> tasks=prepareMigrationTasks();
+    if (tasks.size() > 0) {
+      returnResponse=false;
+      spawnMigrationRequestTask(destination,replicaVersions,tasks);
+    }
+ else {
+      success=true;
+    }
+  }
+ catch (  Throwable e) {
+    getLogger().warning(e);
+    success=false;
+  }
+ finally {
+    migrationInfo.doneProcessing();
+  }
+}

@@ -1,0 +1,59 @@
+{
+  if (node.isMaster() && node.isActive()) {
+    lock.lock();
+    try {
+      if (!initialized) {
+        return;
+      }
+      if (!isMigrationAllowed()) {
+        return;
+      }
+      migrationQueue.clear();
+      PartitionStateGenerator psg=partitionStateGenerator;
+      Collection<MemberImpl> members=node.getClusterService().getMemberList();
+      Collection<MemberGroup> memberGroups=memberGroupFactory.createMemberGroups(members);
+      Address[][] newState=psg.reArrange(memberGroups,partitions);
+      if (!isMigrationAllowed()) {
+        return;
+      }
+      int migrationCount=0;
+      int lostCount=0;
+      lastRepartitionTime.set(Clock.currentTimeMillis());
+      for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+        Address[] replicas=newState[partitionId];
+        InternalPartitionImpl currentPartition=partitions[partitionId];
+        Address currentOwner=currentPartition.getOwner();
+        Address newOwner=replicas[0];
+        if (currentOwner == null) {
+          lostCount++;
+          currentPartition.setPartitionInfo(replicas);
+          MigrationInfo migrationInfo=new MigrationInfo(partitionId,null,newOwner);
+          sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
+          sendMigrationEvent(migrationInfo,MigrationStatus.COMPLETED);
+        }
+ else         if (newOwner != null && !currentOwner.equals(newOwner)) {
+          migrationCount++;
+          MigrationInfo info=new MigrationInfo(partitionId,currentOwner,newOwner);
+          MigrateTask migrateTask=new MigrateTask(info,new BackupMigrationTask(partitionId,replicas));
+          migrationQueue.offer(migrateTask);
+        }
+ else {
+          currentPartition.setPartitionInfo(replicas);
+        }
+      }
+      syncPartitionRuntimeState(members);
+      if (lostCount > 0) {
+        logger.warning("Assigning new owners for " + lostCount + " LOST partitions!");
+      }
+      if (migrationCount > 0) {
+        logger.info("Re-partitioning cluster data... Migration queue size: " + migrationCount);
+      }
+ else {
+        logger.info("Partition balance is ok, no need to re-partition cluster data... ");
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  int replicaIndex=event.getReplicaIndex();
+  Address newAddress=event.getNewAddress();
+  if (replicaIndex > 0) {
+    int partitionId=event.getPartitionId();
+    if (thisAddress.equals(event.getOldAddress())) {
+      InternalPartitionImpl partition=partitionService.partitions[partitionId];
+      if (!partition.isOwnerOrBackup(thisAddress)) {
+        partitionService.clearPartitionReplica(partitionId,replicaIndex);
+      }
+    }
+ else     if (thisAddress.equals(newAddress)) {
+      partitionService.syncPartitionReplica(partitionId,replicaIndex,true);
+    }
+  }
+  Node node=partitionService.node;
+  if (replicaIndex == 0 && newAddress == null && node.isActive() && node.joined()) {
+    logOwnerOfPartitionIsRemoved(event);
+  }
+  if (partitionService.node.isMaster()) {
+    partitionService.stateVersion.incrementAndGet();
+  }
+}

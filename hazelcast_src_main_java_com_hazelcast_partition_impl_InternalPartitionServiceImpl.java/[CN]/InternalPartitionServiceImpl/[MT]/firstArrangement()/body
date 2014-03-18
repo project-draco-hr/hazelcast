@@ -1,0 +1,29 @@
+{
+  if (!node.isMaster() || !node.isActive()) {
+    return;
+  }
+  if (!initialized) {
+    lock.lock();
+    try {
+      if (initialized) {
+        return;
+      }
+      PartitionStateGenerator psg=partitionStateGenerator;
+      logger.info("Initializing cluster partition table first arrangement...");
+      final Set<Member> members=node.getClusterService().getMembers();
+      Address[][] newState=psg.initialize(memberGroupFactory.createMemberGroups(members),partitionCount);
+      if (newState != null) {
+        for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+          InternalPartitionImpl partition=partitions[partitionId];
+          Address[] replicas=newState[partitionId];
+          partition.setPartitionInfo(replicas);
+        }
+        initialized=true;
+        publishPartitionRuntimeState();
+      }
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

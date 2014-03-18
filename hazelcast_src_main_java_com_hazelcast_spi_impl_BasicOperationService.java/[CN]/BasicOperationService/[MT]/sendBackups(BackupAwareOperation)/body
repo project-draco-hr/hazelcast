@@ -1,42 +1,53 @@
 {
-  final Operation op=(Operation)backupAwareOp;
-  final boolean returnsResponse=op.returnsResponse();
-  final PartitionServiceImpl partitionService=(PartitionServiceImpl)nodeEngine.getPartitionService();
-  final int maxBackups=Math.min(partitionService.getMemberGroupsSize() - 1,InternalPartition.MAX_BACKUP_COUNT);
-  int syncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackups,backupAwareOp.getSyncBackupCount()) : 0;
-  int asyncBackupCount=(backupAwareOp.getAsyncBackupCount() > 0 && maxBackups > syncBackupCount) ? Math.min(maxBackups - syncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
+  Operation op=(Operation)backupAwareOp;
+  boolean returnsResponse=op.returnsResponse();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  int maxBackupCount=InternalPartition.MAX_BACKUP_COUNT;
+  int maxPossibleBackupCount=Math.min(partitionService.getMemberGroupsSize() - 1,maxBackupCount);
+  int requestedSyncBackupCount=backupAwareOp.getSyncBackupCount() > 0 ? Math.min(maxBackupCount,backupAwareOp.getSyncBackupCount()) : 0;
+  int requestedAsyncBackupCount=backupAwareOp.getAsyncBackupCount() > 0 ? Math.min(maxBackupCount - requestedSyncBackupCount,backupAwareOp.getAsyncBackupCount()) : 0;
+  int totalRequestedBackupCount=requestedSyncBackupCount + requestedAsyncBackupCount;
+  if (totalRequestedBackupCount == 0) {
+    return 0;
+  }
+  int partitionId=op.getPartitionId();
+  long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(partitionId,totalRequestedBackupCount);
+  int syncBackupCount=Math.min(maxPossibleBackupCount,requestedSyncBackupCount);
+  int asyncBackupCount=Math.min(maxPossibleBackupCount - syncBackupCount,requestedAsyncBackupCount);
   if (!returnsResponse) {
     asyncBackupCount+=syncBackupCount;
     syncBackupCount=0;
   }
-  final int totalBackupCount=syncBackupCount + asyncBackupCount;
-  if (totalBackupCount > 0) {
-    final String serviceName=op.getServiceName();
-    final int partitionId=op.getPartitionId();
-    long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(partitionId,totalBackupCount);
-    final InternalPartition partition=partitionService.getPartition(partitionId);
-    for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
-      final Operation backupOp=backupAwareOp.getBackupOperation();
-      if (backupOp == null) {
-        throw new IllegalArgumentException("Backup operation should not be null!");
-      }
-      backupOp.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName);
-      Backup backup=new Backup(backupOp,op.getCallerAddress(),replicaVersions,replicaIndex <= syncBackupCount);
-      backup.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName).setCallerUuid(nodeEngine.getLocalMember().getUuid());
-      OperationAccessor.setCallId(backup,op.getCallId());
-      final Address target=partition.getReplicaAddress(replicaIndex);
-      if (target != null) {
-        if (target.equals(node.getThisAddress())) {
-          throw new IllegalStateException("Normally shouldn't happen! Owner node and backup node " + "are the same! " + partition);
-        }
- else {
-          send(backup,target);
-        }
+  int totalBackupCount=syncBackupCount + asyncBackupCount;
+  if (totalBackupCount == 0) {
+    return 0;
+  }
+  int sentSyncBackupCount=0;
+  String serviceName=op.getServiceName();
+  InternalPartition partition=partitionService.getPartition(partitionId);
+  for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
+    Address target=partition.getReplicaAddress(replicaIndex);
+    if (target != null) {
+      if (target.equals(node.getThisAddress())) {
+        throw new IllegalStateException("Normally shouldn't happen! Owner node and backup node " + "are the same! " + partition);
       }
  else {
-        scheduleBackup(op,backup,partitionId,replicaIndex);
+        Operation backupOp=backupAwareOp.getBackupOperation();
+        if (backupOp == null) {
+          throw new IllegalArgumentException("Backup operation should not be null!");
+        }
+        backupOp.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName);
+        Data backupOpData=nodeEngine.getSerializationService().toData(backupOp);
+        boolean isSyncBackup=replicaIndex <= syncBackupCount;
+        Backup backup=new Backup(backupOpData,op.getCallerAddress(),replicaVersions,isSyncBackup);
+        backup.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(serviceName).setCallerUuid(nodeEngine.getLocalMember().getUuid());
+        OperationAccessor.setCallId(backup,op.getCallId());
+        send(backup,target);
+        if (isSyncBackup) {
+          sentSyncBackupCount++;
+        }
       }
     }
   }
-  return syncBackupCount;
+  return sentSyncBackupCount;
 }

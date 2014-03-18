@@ -1,6 +1,12 @@
 {
   CancellationOperation op=new CancellationOperation(uuid,interrupt);
-  InvocationBuilder builder=createInvocationBuilder(getServiceName(),op,target);
+  InvocationBuilder builder;
+  if (target != null) {
+    builder=createInvocationBuilder(getServiceName(),op,target);
+  }
+ else {
+    builder=createInvocationBuilder(getServiceName(),op,partitionId);
+  }
   builder.setTryCount(CANCEL_TRY_COUNT).setTryPauseMillis(CANCEL_TRY_PAUSE_MILLIS);
   InternalCompletableFuture future=builder.invoke();
   boolean result=false;
@@ -8,12 +14,10 @@
     result=(Boolean)future.get();
   }
  catch (  InterruptedException e) {
-    ILogger logger=getClientEngine().getLogger(CancellationRequest.class);
-    logger.warning(e);
+    logException(e);
   }
 catch (  ExecutionException e) {
-    ILogger logger=getClientEngine().getLogger(CancellationRequest.class);
-    logger.warning(e);
+    logException(e);
   }
   getEndpoint().sendResponse(result,getCallId());
 }

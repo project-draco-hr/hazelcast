@@ -1,7 +1,16 @@
 {
-  CancellationRequest request=new CancellationRequest(uuid,target,mayInterruptIfRunning);
+  CancellationRequest request;
+  Address address=target;
+  if (target != null) {
+    request=new CancellationRequest(uuid,target,mayInterruptIfRunning);
+  }
+ else {
+    final ClientPartitionService partitionService=context.getPartitionService();
+    address=partitionService.getPartitionOwner(partitionId);
+    request=new CancellationRequest(uuid,partitionId,mayInterruptIfRunning);
+  }
   try {
-    return context.getInvocationService().invokeOnTarget(request,target);
+    return context.getInvocationService().invokeOnTarget(request,address);
   }
  catch (  Exception e) {
     throw rethrow(e);
