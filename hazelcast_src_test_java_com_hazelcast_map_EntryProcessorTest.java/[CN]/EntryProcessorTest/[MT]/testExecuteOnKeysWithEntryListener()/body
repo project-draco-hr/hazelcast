@@ -1,0 +1,27 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=factory.newHazelcastInstance();
+  final IMap<String,String> map=instance.getMap("map");
+  map.put("key","value");
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter<String,String>(){
+    @Override public void onEntryEvent(    EntryEvent<String,String> event){
+      final String val=event.getValue();
+      final String oldValue=event.getOldValue();
+      if ("newValue".equals(val) && "value".equals(oldValue)) {
+        latch.countDown();
+      }
+    }
+  }
+,true);
+  final HashSet<String> keys=new HashSet<String>();
+  keys.add("key");
+  map.executeOnKeys(keys,new AbstractEntryProcessor(){
+    @Override public Object process(    Map.Entry entry){
+      entry.setValue("newValue");
+      return 5;
+    }
+  }
+);
+  assertOpenEventually(latch,5);
+}

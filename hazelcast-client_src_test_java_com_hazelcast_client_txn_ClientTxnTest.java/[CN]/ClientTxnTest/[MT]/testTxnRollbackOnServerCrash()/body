@@ -1,15 +1,15 @@
 {
-  final String queueName="testTxnRollback";
+  final String queueName="testTxnRollbackOnServerCrash";
   final TransactionContext context=hz.newTransactionContext();
   CountDownLatch latch=new CountDownLatch(1);
+  context.beginTransaction();
+  final TransactionalQueue queue=context.getQueue(queueName);
+  String key=HazelcastTestSupport.generateKeyOwnedBy(server);
+  queue.offer(key);
+  server.getLifecycleService().terminate();
   try {
-    context.beginTransaction();
-    assertNotNull(context.getTxnId());
-    final TransactionalQueue queue=context.getQueue(queueName);
-    queue.offer("item");
-    server.shutdown();
     context.commitTransaction();
-    fail("commit should throw exception!!!");
+    fail("commit should throw exception !");
   }
  catch (  TransactionException e) {
     context.rollbackTransaction();
