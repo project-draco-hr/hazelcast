@@ -12,7 +12,7 @@
     }
   }
 );
-  executorService.execute(new Runnable(){
+  final Future submit=executorService.submit(new Runnable(){
     public void run(){
       secondLatch.countDown();
     }
@@ -32,6 +32,11 @@
     sleepLatch.countDown();
   }
   assertOpenEventually(secondLatch);
+  try {
+    submit.get();
+  }
+ catch (  ExecutionException ignored) {
+  }
   final LocalExecutorStats stats=executorService.getLocalExecutorStats();
   assertEquals(2,stats.getStartedTaskCount());
   assertEquals(0,stats.getPendingTaskCount());
