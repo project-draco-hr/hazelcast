@@ -1,14 +1,22 @@
 {
   final Config conf=new Config();
-  final MapConfig mapConfig=conf.getMapConfig("map");
+  String name="map";
+  final CountDownLatch latch=new CountDownLatch(1);
+  final MapConfig mapConfig=conf.getMapConfig(name);
   mapConfig.setTimeToLiveSeconds(3);
+  mapConfig.addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
+    @Override public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+));
   final HazelcastInstance instance=Hazelcast.newHazelcastInstance(conf);
   final HTTPCommunicator communicator=new HTTPCommunicator(instance);
-  communicator.put("map","key","value");
-  String value=communicator.get("map","key");
+  communicator.put(name,"key","value");
+  String value=communicator.get(name,"key");
   assertNotNull(value);
   assertEquals("value",value);
-  Thread.sleep(4000);
-  value=communicator.get("map","key");
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  value=communicator.get(name,"key");
   assertTrue(value.isEmpty());
 }

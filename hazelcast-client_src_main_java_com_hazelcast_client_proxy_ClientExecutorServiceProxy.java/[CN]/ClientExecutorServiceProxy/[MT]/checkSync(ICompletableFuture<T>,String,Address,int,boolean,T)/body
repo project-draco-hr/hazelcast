@@ -1,0 +1,27 @@
+{
+  boolean sync=false;
+  final long last=lastSubmitTime;
+  final long now=Clock.currentTimeMillis();
+  if (last + 10 < now) {
+    consecutiveSubmits.set(0);
+  }
+ else   if (consecutiveSubmits.incrementAndGet() % 100 == 0) {
+    sync=true;
+  }
+  lastSubmitTime=now;
+  if (sync && !preventSync) {
+    Object response;
+    try {
+      response=f.get();
+    }
+ catch (    Exception e) {
+      response=e;
+    }
+    ExecutorService asyncExecutor=getContext().getExecutionService().getAsyncExecutor();
+    return new CompletedFuture<T>(getContext().getSerializationService(),response,asyncExecutor);
+  }
+  if (defaultValue != null) {
+    return new ClientCancellableDelegatingFuture<T>(f,getContext(),uuid,address,partitionId,defaultValue);
+  }
+  return new ClientCancellableDelegatingFuture<T>(f,getContext(),uuid,address,partitionId);
+}
