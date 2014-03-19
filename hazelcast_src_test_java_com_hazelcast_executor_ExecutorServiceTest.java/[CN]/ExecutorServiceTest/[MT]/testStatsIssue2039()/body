@@ -5,7 +5,6 @@
   final HazelcastInstance instance=createHazelcastInstanceFactory(1).newHazelcastInstance(config);
   final IExecutorService executorService=instance.getExecutorService(name);
   final CountDownLatch sleepLatch=new CountDownLatch(1);
-  final CountDownLatch secondLatch=new CountDownLatch(1);
   executorService.execute(new Runnable(){
     @Override public void run(){
       try {
@@ -18,7 +17,6 @@
 );
   final Future submit=executorService.submit(new Runnable(){
     public void run(){
-      secondLatch.countDown();
     }
   }
 );
@@ -35,7 +33,6 @@
  finally {
     sleepLatch.countDown();
   }
-  assertTrue(sleepLatch.await(60,TimeUnit.SECONDS));
   try {
     submit.get();
   }
