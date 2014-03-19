@@ -3,10 +3,12 @@
   String mapname="testContainsKeyShouldDelayEviction";
   cfg.getMapConfig(mapname).setMaxIdleSeconds(3);
   HazelcastInstance instance=createHazelcastInstance(cfg);
-  IMap<Object,Object> map=instance.getMap(mapname);
+  final IMap<Object,Object> map=instance.getMap(mapname);
   map.put(1,1);
-  for (int i=0; i < 20; i++) {
-    assertTrue(map.containsKey(1));
-    Thread.sleep(500);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(map.containsKey(1));
+    }
   }
+,5);
 }
