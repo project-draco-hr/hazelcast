@@ -1,10 +1,17 @@
 {
   if (valid) {
-    if (isExpired() && queue.remove(this)) {
-      waitSupport.onWaitExpire();
-    }
- else     if (isCancelled() && queue.remove(this)) {
-      op.getResponseHandler().sendResponse(error);
+    boolean expired=isExpired();
+    boolean cancelled=isCancelled();
+    if (expired || cancelled) {
+      if (queue.remove(this)) {
+        valid=false;
+        if (expired) {
+          waitSupport.onWaitExpire();
+        }
+ else {
+          op.getResponseHandler().sendResponse(error);
+        }
+      }
     }
   }
 }
