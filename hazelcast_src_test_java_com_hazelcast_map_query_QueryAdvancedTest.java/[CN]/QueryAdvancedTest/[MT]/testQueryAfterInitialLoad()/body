@@ -25,7 +25,12 @@
 );
   cfg.getMapConfig(name).setMapStoreConfig(mapStoreConfig);
   HazelcastInstance instance=createHazelcastInstance(cfg);
-  IMap map=instance.getMap(name);
-  Collection values=map.values(new SqlPredicate("active = true"));
-  assertEquals(size,values.size());
+  final IMap map=instance.getMap(name);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      Collection values=map.values(new SqlPredicate("active = true"));
+      assertEquals(size,values.size());
+    }
+  }
+);
 }
