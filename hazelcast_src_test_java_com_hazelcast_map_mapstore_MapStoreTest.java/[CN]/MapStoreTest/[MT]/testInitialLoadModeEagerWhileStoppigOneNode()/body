@@ -13,24 +13,18 @@
   cfg.getMapConfig("testInitialLoadModeEagerWhileStoppigOneNode").setMapStoreConfig(mapStoreConfig);
   final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
-  Runnable runnable=new Runnable(){
-    public void run(){
-      try {
-        Thread.sleep(3000);
-        instance1.getLifecycleService().terminate();
-        Thread.sleep(3000);
-        final IMap<Object,Object> map=instance2.getMap("testInitialLoadModeEagerWhileStoppigOneNode");
-        assertEquals(size,map.size());
-        countDownLatch.countDown();
-      }
- catch (      InterruptedException e) {
-        e.printStackTrace();
-      }
+  new Thread(new Runnable(){
+    @Override public void run(){
+      sleepSeconds(3);
+      instance1.getLifecycleService().terminate();
+      sleepSeconds(3);
+      final IMap<Object,Object> map=instance2.getMap("testInitialLoadModeEagerWhileStoppigOneNode");
+      assertEquals(size,map.size());
+      countDownLatch.countDown();
     }
   }
-;
-  new Thread(runnable).start();
-  assertOpenEventually(countDownLatch,120);
+).start();
+  assertOpenEventually(countDownLatch);
   final IMap<Object,Object> map2=instance2.getMap("testInitialLoadModeEagerWhileStoppigOneNode");
   final int map2Size=map2.size();
   assertEquals(size,map2Size);
