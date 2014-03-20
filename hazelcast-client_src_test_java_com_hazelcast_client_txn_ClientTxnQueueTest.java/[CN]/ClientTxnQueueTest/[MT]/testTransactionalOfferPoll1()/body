@@ -1,11 +1,12 @@
 {
-  final String name="testTransactionalOfferPoll1";
-  final TransactionContext context=hz.newTransactionContext();
+  final String item="offered";
+  final String queueName=randomString();
+  final IQueue queue=client.getQueue(queueName);
+  final TransactionContext context=client.newTransactionContext();
   context.beginTransaction();
-  TransactionalQueue<String> q=context.getQueue(name);
-  assertTrue(q.offer("ali"));
-  String s=q.poll();
-  assertEquals("ali",s);
+  TransactionalQueue txnQueue=context.getQueue(queueName);
+  txnQueue.offer(item);
+  assertEquals(item,txnQueue.poll());
   context.commitTransaction();
-  assertEquals(0,hz.getQueue(name).size());
+  assertEquals(0,queue.size());
 }
