@@ -2,8 +2,10 @@
   response=new MapEntrySet();
   MapEntrySimple entry;
   final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
+  final LocalMapStatsImpl mapStats=mapService.getLocalMapStatsImpl(name);
   final Map<Data,Record> records=recordStore.getReadonlyRecordMap();
   for (  final Map.Entry<Data,Record> recordEntry : records.entrySet()) {
+    final long start=System.currentTimeMillis();
     final Data dataKey=recordEntry.getKey();
     final Record record=recordEntry.getValue();
     final Object valueBeforeProcess=record.getValue();
@@ -27,16 +29,24 @@
     EntryEventType eventType;
     if (valueAfterProcess == null) {
       recordStore.remove(dataKey);
+      final long latency=System.currentTimeMillis() - start;
+      mapStats.incrementRemoves(latency);
       eventType=EntryEventType.REMOVED;
     }
  else {
       if (valueBeforeProcessObject == null) {
+        final long latency=System.currentTimeMillis() - start;
+        mapStats.incrementPuts(latency);
         eventType=EntryEventType.ADDED;
       }
  else       if (!entry.isModified()) {
+        final long latency=System.currentTimeMillis() - start;
+        mapStats.incrementGets(latency);
         eventType=__NO_NEED_TO_FIRE_EVENT;
       }
  else {
+        final long latency=System.currentTimeMillis() - start;
+        mapStats.incrementPuts(latency);
         eventType=EntryEventType.UPDATED;
       }
       if (eventType != __NO_NEED_TO_FIRE_EVENT) {

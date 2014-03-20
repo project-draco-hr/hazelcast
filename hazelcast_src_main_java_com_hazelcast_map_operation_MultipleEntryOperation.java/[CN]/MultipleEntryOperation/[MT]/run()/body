@@ -2,9 +2,11 @@
   response=new MapEntrySet();
   final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
   final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
+  final LocalMapStatsImpl mapStats=mapService.getLocalMapStatsImpl(name);
   MapEntrySimple entry;
   for (  Data key : keys) {
     if (partitionService.getPartitionId(key) != getPartitionId())     continue;
+    long start=System.currentTimeMillis();
     Object objectKey=mapService.toObject(key);
     final Map.Entry<Data,Object> mapEntry=recordStore.getMapEntry(key);
     final Object valueBeforeProcess=mapEntry.getValue();
@@ -20,16 +22,24 @@
     EntryEventType eventType;
     if (valueAfterProcess == null) {
       recordStore.remove(key);
+      final long latency=System.currentTimeMillis() - start;
+      mapStats.incrementRemoves(latency);
       eventType=EntryEventType.REMOVED;
     }
  else {
       if (valueBeforeProcessObject == null) {
+        final long latency=System.currentTimeMillis() - start;
+        mapStats.incrementPuts(latency);
         eventType=EntryEventType.ADDED;
       }
  else       if (!entry.isModified()) {
+        final long latency=System.currentTimeMillis() - start;
+        mapStats.incrementGets(latency);
         eventType=__NO_NEED_TO_FIRE_EVENT;
       }
  else {
+        final long latency=System.currentTimeMillis() - start;
+        mapStats.incrementPuts(latency);
         eventType=EntryEventType.UPDATED;
       }
       if (eventType != __NO_NEED_TO_FIRE_EVENT) {
