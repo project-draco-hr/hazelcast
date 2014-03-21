@@ -1,26 +1,27 @@
 {
-  assertEquals(0,q.size());
-  final CountDownLatch latch=new CountDownLatch(5);
-  ItemListener listener=new ItemListener(){
+  final int maxItems=10;
+  final CountDownLatch itemAddedLatch=new CountDownLatch(maxItems);
+  final CountDownLatch itemRemovedLatch=new CountDownLatch(maxItems);
+  final IQueue queue=client.getQueue(randomString());
+  String id=queue.addItemListener(new ItemListener(){
     public void itemAdded(    ItemEvent itemEvent){
-      latch.countDown();
+      itemAddedLatch.countDown();
     }
     public void itemRemoved(    ItemEvent item){
+      itemRemovedLatch.countDown();
     }
   }
-;
-  String id=q.addItemListener(listener,true);
-  Thread.sleep(500);
+,true);
   new Thread(){
     public void run(){
-      for (int i=0; i < 5; i++) {
-        if (!q.offer("event_item" + i)) {
-          throw new RuntimeException();
-        }
+      for (int i=0; i < maxItems; i++) {
+        queue.offer(i);
+        queue.remove(i);
       }
     }
   }
 .start();
-  assertTrue(latch.await(5,TimeUnit.SECONDS));
-  q.removeItemListener(id);
+  assertTrue(itemAddedLatch.await(5,TimeUnit.SECONDS));
+  assertTrue(itemRemovedLatch.await(5,TimeUnit.SECONDS));
+  queue.removeItemListener(id);
 }
