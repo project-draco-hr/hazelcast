@@ -1,5 +1,7 @@
 {
+  final long start=System.currentTimeMillis();
   oldValue=recordStore.getMapEntry(dataKey).getValue();
+  final LocalMapStatsImpl mapStats=mapService.getLocalMapStatsImpl(name);
   final Object valueBeforeProcess=mapService.toObject(oldValue);
   final MapEntrySimple entry=new MapEntrySimple(mapService.toObject(dataKey),valueBeforeProcess);
   response=mapService.toData(entryProcessor.process(entry));
@@ -9,16 +11,20 @@
   }
  else   if (valueAfterProcess == null) {
     recordStore.remove(dataKey);
+    mapStats.incrementRemoves(getLatencyFrom(start));
     eventType=EntryEventType.REMOVED;
   }
  else {
     if (oldValue == null) {
+      mapStats.incrementPuts(getLatencyFrom(start));
       eventType=EntryEventType.ADDED;
     }
  else     if (!entry.isModified()) {
+      mapStats.incrementGets(getLatencyFrom(start));
       eventType=__NO_NEED_TO_FIRE_EVENT;
     }
  else {
+      mapStats.incrementPuts(getLatencyFrom(start));
       eventType=EntryEventType.UPDATED;
     }
     if (eventType != __NO_NEED_TO_FIRE_EVENT) {
