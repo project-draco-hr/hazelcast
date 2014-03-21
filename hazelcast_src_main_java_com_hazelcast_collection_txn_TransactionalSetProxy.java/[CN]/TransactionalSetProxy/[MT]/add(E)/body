@@ -3,7 +3,10 @@
   throwExceptionIfNull(e);
   final NodeEngine nodeEngine=getNodeEngine();
   final Data value=nodeEngine.toData(e);
-  CollectionReserveAddOperation operation=new CollectionReserveAddOperation(name,tx.getTxnId(),null);
+  if (!getCollection().add(new CollectionItem(-1,value))) {
+    return false;
+  }
+  CollectionReserveAddOperation operation=new CollectionReserveAddOperation(name,tx.getTxnId(),value);
   try {
     Future<Long> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),operation,partitionId);
     Long itemId=f.get();
@@ -11,7 +14,6 @@
       if (!itemIdSet.add(itemId)) {
         throw new TransactionException("Duplicate itemId: " + itemId);
       }
-      getCollection().add(new CollectionItem(itemId,value));
       CollectionTxnAddOperation op=new CollectionTxnAddOperation(name,itemId,value);
       tx.addTransactionLog(new CollectionTransactionLog(itemId,name,partitionId,getServiceName(),tx.getTxnId(),op));
       return true;
