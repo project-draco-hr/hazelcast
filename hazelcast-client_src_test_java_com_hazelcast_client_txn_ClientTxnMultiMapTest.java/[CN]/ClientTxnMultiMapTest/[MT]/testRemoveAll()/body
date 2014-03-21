@@ -1,13 +1,14 @@
 {
-  final String NAME="test";
-  final String KEY="key";
-  final String VALUE="value";
+  final String mapName=randomString();
+  final String key="key";
+  MultiMap multiMap=client.getMultiMap(mapName);
   for (int i=0; i < 10; i++) {
-    hz.getMultiMap(NAME).put(KEY,VALUE + i);
+    multiMap.put(key,i);
   }
-  TransactionContext tx=hz.newTransactionContext();
+  TransactionContext tx=client.newTransactionContext();
   tx.beginTransaction();
-  tx.getMultiMap(NAME).remove(KEY);
+  TransactionalMultiMap txnMultiMap=tx.getMultiMap(mapName);
+  txnMultiMap.remove(key);
   tx.commitTransaction();
-  assertEquals(Collections.EMPTY_LIST,hz.getMultiMap(NAME).get(KEY));
+  assertEquals(Collections.EMPTY_LIST,multiMap.get(key));
 }
