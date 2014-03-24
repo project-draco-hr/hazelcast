@@ -1,11 +1,13 @@
 {
-  assertTrue(mm.tryLock("key1",2,TimeUnit.SECONDS));
-  final CountDownLatch latch=new CountDownLatch(1);
+  final MultiMap mm=client.getMultiMap(randomString());
+  final Object key="keyZ";
+  mm.lock(key);
+  final CountDownLatch tryLockFailed=new CountDownLatch(1);
   new Thread(){
     public void run(){
       try {
-        if (!mm.tryLock("key1",2,TimeUnit.SECONDS)) {
-          latch.countDown();
+        if (!mm.tryLock(key,2,TimeUnit.SECONDS)) {
+          tryLockFailed.countDown();
         }
       }
  catch (      InterruptedException e) {
@@ -14,14 +16,14 @@
     }
   }
 .start();
-  assertTrue(latch.await(100,TimeUnit.SECONDS));
-  assertTrue(mm.isLocked("key1"));
-  final CountDownLatch latch2=new CountDownLatch(1);
+  assertTrue(tryLockFailed.await(30,TimeUnit.SECONDS));
+  assertTrue(mm.isLocked(key));
+  final CountDownLatch tryLockReturnsTrue=new CountDownLatch(1);
   new Thread(){
     public void run(){
       try {
-        if (mm.tryLock("key1",20,TimeUnit.SECONDS)) {
-          latch2.countDown();
+        if (mm.tryLock(key,20,TimeUnit.SECONDS)) {
+          tryLockReturnsTrue.countDown();
         }
       }
  catch (      InterruptedException e) {
@@ -31,8 +33,8 @@
   }
 .start();
   Thread.sleep(1000);
-  mm.unlock("key1");
-  assertTrue(latch2.await(100,TimeUnit.SECONDS));
-  assertTrue(mm.isLocked("key1"));
-  mm.forceUnlock("key1");
+  mm.unlock(key);
+  assertTrue(tryLockReturnsTrue.await(30,TimeUnit.SECONDS));
+  assertTrue(mm.isLocked(key));
+  mm.forceUnlock(key);
 }

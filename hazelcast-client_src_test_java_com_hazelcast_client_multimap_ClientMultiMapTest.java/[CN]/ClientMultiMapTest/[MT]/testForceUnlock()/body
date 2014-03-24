@@ -1,13 +1,15 @@
 {
-  mm.lock("key1");
-  final CountDownLatch latch=new CountDownLatch(1);
+  final MultiMap mm=client.getMultiMap(randomString());
+  final Object key="key";
+  mm.lock(key);
+  final CountDownLatch forceUnlock=new CountDownLatch(1);
   new Thread(){
     public void run(){
-      mm.forceUnlock("key1");
-      latch.countDown();
+      mm.forceUnlock(key);
+      forceUnlock.countDown();
     }
   }
 .start();
-  assertTrue(latch.await(100,TimeUnit.SECONDS));
-  assertFalse(mm.isLocked("key1"));
+  assertTrue(forceUnlock.await(30,TimeUnit.SECONDS));
+  assertFalse(mm.isLocked(key));
 }

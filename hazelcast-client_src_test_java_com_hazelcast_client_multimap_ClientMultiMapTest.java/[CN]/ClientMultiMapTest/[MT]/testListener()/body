@@ -1,42 +1,16 @@
 {
-  final CountDownLatch latch1Add=new CountDownLatch(8);
-  final CountDownLatch latch1Remove=new CountDownLatch(4);
-  final CountDownLatch latch2Add=new CountDownLatch(3);
-  final CountDownLatch latch2Remove=new CountDownLatch(3);
-  EntryListener listener1=new EntryAdapter(){
-    public void entryAdded(    EntryEvent event){
-      latch1Add.countDown();
-    }
-    public void entryRemoved(    EntryEvent event){
-      latch1Remove.countDown();
-    }
-  }
-;
-  EntryListener listener2=new EntryAdapter(){
-    public void entryAdded(    EntryEvent event){
-      latch2Add.countDown();
-    }
-    public void entryRemoved(    EntryEvent event){
-      latch2Remove.countDown();
+  final int maxKeys=64;
+  final int maxItems=3;
+  final MultiMap mm=client.getMultiMap(randomString());
+  MyEntryListener listener=new MyEntryListener(maxKeys * maxItems);
+  final String id=mm.addEntryListener(listener,true);
+  for (int i=0; i < maxKeys; i++) {
+    for (int j=0; j < maxKeys; j++) {
+      mm.put(i,j);
+      mm.remove(i,j);
     }
   }
-;
-  final String firstRegId=mm.addEntryListener(listener1,true);
-  final String secondRegId=mm.addEntryListener(listener2,"key3",true);
-  mm.put("key1","value1");
-  mm.put("key1","value2");
-  mm.put("key1","value3");
-  mm.put("key2","value4");
-  mm.put("key2","value5");
-  mm.remove("key1","value2");
-  mm.put("key3","value6");
-  mm.put("key3","value7");
-  mm.put("key3","value8");
-  mm.remove("key3");
-  assertTrue(latch1Add.await(20,TimeUnit.SECONDS));
-  assertTrue(latch1Remove.await(20,TimeUnit.SECONDS));
-  assertTrue(latch2Add.await(20,TimeUnit.SECONDS));
-  assertTrue(latch2Remove.await(20,TimeUnit.SECONDS));
-  assertTrue(mm.removeEntryListener(firstRegId));
-  assertTrue(mm.removeEntryListener(secondRegId));
+  assertTrue(listener.addLatch.await(10,TimeUnit.SECONDS));
+  assertTrue(listener.removeLatch.await(10,TimeUnit.SECONDS));
+  assertTrue(mm.removeEntryListener(id));
 }
