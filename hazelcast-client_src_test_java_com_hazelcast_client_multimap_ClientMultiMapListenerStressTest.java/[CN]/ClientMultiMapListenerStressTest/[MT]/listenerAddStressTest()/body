@@ -1,5 +1,5 @@
 {
-  PutItemsThread[] putThreads=new PutItemsThread[NUMBER_OF_CLIENTS * THREADS_PER_CLIENT];
+  final PutItemsThread[] putThreads=new PutItemsThread[NUMBER_OF_CLIENTS * THREADS_PER_CLIENT];
   int idx=0;
   for (int i=0; i < NUMBER_OF_CLIENTS; i++) {
     HazelcastInstance client=HazelcastClient.newHazelcastClient();
@@ -11,10 +11,15 @@
   for (int i=0; i < putThreads.length; i++) {
     putThreads[i].start();
   }
-  assertJoinable(putThreads);
+  assertJoinable(MAX_SECONDS,putThreads);
   MultiMap mm=server.getMultiMap(MAP_NAME);
-  assertEquals(PutItemsThread.maxItems * putThreads.length,mm.size());
-  for (int i=0; i < putThreads.length; i++) {
-    putThreads[i].assertResult(PutItemsThread.maxItems * putThreads.length);
+  assertEquals(PutItemsThread.MAX_ITEMS * putThreads.length,mm.size());
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      for (int i=0; i < putThreads.length; i++) {
+        putThreads[i].assertResult(PutItemsThread.MAX_ITEMS * putThreads.length);
+      }
+    }
   }
+);
 }
