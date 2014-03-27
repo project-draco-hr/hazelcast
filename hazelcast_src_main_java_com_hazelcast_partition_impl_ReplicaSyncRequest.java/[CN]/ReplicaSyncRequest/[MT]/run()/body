@@ -1,61 +1,41 @@
 {
   NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
   InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)nodeEngine.getPartitionService();
-  ILogger logger=nodeEngine.getLogger(getClass());
   int partitionId=getPartitionId();
   int replicaIndex=getReplicaIndex();
+  InternalPartitionImpl partition=partitionService.getPartition(partitionId);
+  Address owner=partition.getOwner();
+  long[] replicaVersions=partitionService.getPartitionReplicaVersions(partitionId);
+  long currentVersion=replicaVersions[replicaIndex - 1];
+  ILogger logger=getLogger();
+  if (!nodeEngine.getThisAddress().equals(owner)) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Wrong target! " + toString() + " cannot be processed! Target should be: "+ owner);
+    }
+    sendRetryResponse();
+    return;
+  }
+  if (currentVersion == 0) {
+    sendEmptyResponse();
+    return;
+  }
   if (!partitionService.incrementReplicaSyncProcessCount()) {
     if (logger.isFinestEnabled()) {
-      logger.finest("Max parallel replication process limit exceeded! " + "Could not run replica sync -> " + toString());
+      logger.finest("Max parallel replication process limit exceeded! Could not run replica sync -> " + toString());
     }
-    ReplicaSyncRetryResponse response=new ReplicaSyncRetryResponse();
-    response.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
-    Address target=getCallerAddress();
-    OperationService operationService=nodeEngine.getOperationService();
-    operationService.send(response,target);
+    sendRetryResponse();
     return;
   }
   try {
-    Collection<ServiceInfo> services=nodeEngine.getServiceInfos(MigrationAwareService.class);
-    PartitionReplicationEvent event=new PartitionReplicationEvent(partitionId,replicaIndex);
-    List<Operation> tasks=new LinkedList<Operation>();
-    for (    ServiceInfo serviceInfo : services) {
-      MigrationAwareService service=(MigrationAwareService)serviceInfo.getService();
-      Operation op=service.prepareReplicationOperation(event);
-      if (op != null) {
-        op.setServiceName(serviceInfo.getName());
-        tasks.add(op);
-      }
-    }
-    byte[] data=null;
-    boolean compress=nodeEngine.getGroupProperties().PARTITION_MIGRATION_ZIP_ENABLED.getBoolean();
+    List<Operation> tasks=createReplicationOperations();
     if (tasks.isEmpty()) {
       logNoReplicaDataFound(partitionId,replicaIndex);
+      sendEmptyResponse();
     }
  else {
-      SerializationService serializationService=nodeEngine.getSerializationService();
-      BufferObjectDataOutput out=serializationService.createObjectDataOutput(1024 * 32);
-      try {
-        out.writeInt(tasks.size());
-        for (        Operation task : tasks) {
-          serializationService.writeObject(out,task);
-        }
-        data=out.toByteArray();
-        if (compress) {
-          data=IOUtil.compress(data);
-        }
-      }
-  finally {
-        closeResource(out);
-      }
+      byte[] data=createReplicationData(tasks);
+      sendResponse(data);
     }
-    long[] replicaVersions=partitionService.getPartitionReplicaVersions(partitionId);
-    ReplicaSyncResponse syncResponse=new ReplicaSyncResponse(data,replicaVersions,compress);
-    syncResponse.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
-    Address target=getCallerAddress();
-    logSendSyncResponse(partitionId,replicaIndex,target);
-    OperationService operationService=nodeEngine.getOperationService();
-    operationService.send(syncResponse,target);
   }
   finally {
     partitionService.decrementReplicaSyncProcessCount();
