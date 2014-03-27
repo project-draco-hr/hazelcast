@@ -1,0 +1,16 @@
+{
+  IExecutorService service=client.getExecutorService(randomString());
+  final String msg=randomString();
+  final CountDownLatch responseLatch=new CountDownLatch(1);
+  service.submitToKeyOwner(new CallableTask(msg),"key",new ExecutionCallback<String>(){
+    public void onResponse(    String response){
+      if (response.equals(msg + CallableTask.resultPostFix)) {
+        responseLatch.countDown();
+      }
+    }
+    public void onFailure(    Throwable t){
+    }
+  }
+);
+  assertOpenEventually(responseLatch,5);
+}
