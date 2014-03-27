@@ -3,10 +3,18 @@
     return;
   }
   live=false;
-  if (socketChannelWrapper != null && socketChannelWrapper.isOpen()) {
+  if (socketChannelWrapper.isOpen()) {
     socketChannelWrapper.close();
   }
   readHandler.shutdown();
   writeHandler.shutdown();
-  executionService.executeInternal(new CleanResourcesTask());
+  if (socketChannelWrapper.isBlocking()) {
+    return;
+  }
+  if (connectionManager.isLive()) {
+    executionService.executeInternal(new CleanResourcesTask());
+  }
+ else {
+    cleanResources(new HazelcastException("Client is shutting down!!!"));
+  }
 }
