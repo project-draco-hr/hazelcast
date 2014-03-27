@@ -1,10 +1,22 @@
 {
   userTx.begin();
   HazelcastConnection c=getConnection();
-  TransactionalMap<String,String> m=c.getTransactionalMap("testTransactionRollback");
-  m.put("key","value");
-  assertEquals("value",m.get("key"));
+  try {
+    TransactionalMap<String,String> m=c.getTransactionalMap("testTransactionRollback");
+    m.put("key","value");
+    assertEquals("value",m.get("key"));
+    doSql();
+  }
+  finally {
+    c.close();
+  }
   userTx.rollback();
   HazelcastConnection con2=getConnection();
-  assertEquals(null,con2.getMap("testTransactionRollback").get("key"));
+  try {
+    assertEquals(null,con2.getMap("testTransactionRollback").get("key"));
+    validateSQLdata(false);
+  }
+  finally {
+    con2.close();
+  }
 }
