@@ -1,49 +1,53 @@
 {
-  if (state == NO_TXN || state == ROLLED_BACK) {
-    throw new IllegalStateException("Transaction is not active");
-  }
-  checkThread();
-  state=ROLLING_BACK;
   try {
-    final List<Future> futures=new ArrayList<Future>(txLogs.size());
-    final OperationService operationService=nodeEngine.getOperationService();
-    if (durability > 0 && transactionType.equals(TransactionType.TWO_PHASE)) {
-      for (      Address backupAddress : backupAddresses) {
-        if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
-          final Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new RollbackTxBackupOperation(txnId),backupAddress);
-          futures.add(f);
+    if (state == NO_TXN || state == ROLLED_BACK) {
+      throw new IllegalStateException("Transaction is not active");
+    }
+    checkThread();
+    state=ROLLING_BACK;
+    try {
+      final List<Future> futures=new ArrayList<Future>(txLogs.size());
+      final OperationService operationService=nodeEngine.getOperationService();
+      if (durability > 0 && transactionType.equals(TransactionType.TWO_PHASE)) {
+        for (        Address backupAddress : backupAddresses) {
+          if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
+            final Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new RollbackTxBackupOperation(txnId),backupAddress);
+            futures.add(f);
+          }
         }
+        for (        Future future : futures) {
+          try {
+            future.get(timeoutMillis,TimeUnit.MILLISECONDS);
+          }
+ catch (          Throwable e) {
+            nodeEngine.getLogger(getClass()).warning("Error during tx rollback backup!",e);
+          }
+        }
+        futures.clear();
+      }
+      final ListIterator<TransactionLog> iter=txLogs.listIterator(txLogs.size());
+      while (iter.hasPrevious()) {
+        final TransactionLog txLog=iter.previous();
+        futures.add(txLog.rollback(nodeEngine));
       }
       for (      Future future : futures) {
         try {
-          future.get(timeoutMillis,TimeUnit.MILLISECONDS);
+          future.get(5,TimeUnit.MINUTES);
         }
  catch (        Throwable e) {
-          nodeEngine.getLogger(getClass()).warning("Error during tx rollback backup!",e);
+          nodeEngine.getLogger(getClass()).warning("Error during rollback!",e);
         }
       }
-      futures.clear();
+      purgeTxBackups();
     }
-    final ListIterator<TransactionLog> iter=txLogs.listIterator(txLogs.size());
-    while (iter.hasPrevious()) {
-      final TransactionLog txLog=iter.previous();
-      futures.add(txLog.rollback(nodeEngine));
+ catch (    Throwable e) {
+      throw ExceptionUtil.rethrow(e);
     }
-    for (    Future future : futures) {
-      try {
-        future.get(5,TimeUnit.MINUTES);
-      }
- catch (      Throwable e) {
-        nodeEngine.getLogger(getClass()).warning("Error during rollback!",e);
-      }
-    }
-    purgeTxBackups();
-  }
- catch (  Throwable e) {
-    throw ExceptionUtil.rethrow(e);
-  }
  finally {
-    state=ROLLED_BACK;
+      state=ROLLED_BACK;
+    }
+  }
+  finally {
     setThreadFlag(null);
   }
 }
