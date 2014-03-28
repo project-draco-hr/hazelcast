@@ -1,0 +1,26 @@
+{
+  final IExecutorService service=client.getExecutorService(randomString());
+  final CountDownLatch responseLatch=new CountDownLatch(CLUSTER_SIZE);
+  final CountDownLatch completeLatch=new CountDownLatch(CLUSTER_SIZE);
+  final String msg=randomString();
+  final Callable callable=new AppendCallable(msg);
+  final Collection collection=instance2.getCluster().getMembers();
+  service.submitToMembers(callable,collection,new MultiExecutionCallback(){
+    public void onResponse(    Member member,    Object value){
+      if (value.equals(msg + AppendCallable.APPENDAGE)) {
+        responseLatch.countDown();
+      }
+    }
+    public void onComplete(    Map<Member,Object> values){
+      for (      Member member : values.keySet()) {
+        Object value=values.get(member);
+        if (value.equals(msg + AppendCallable.APPENDAGE)) {
+          completeLatch.countDown();
+        }
+      }
+    }
+  }
+);
+  assertOpenEventually(responseLatch);
+  assertOpenEventually(completeLatch);
+}
