@@ -2,13 +2,17 @@
   if (node.isActive() && migrationActive.get()) {
     final Address thisAddress=node.getThisAddress();
     for (    final InternalPartitionImpl partition : partitions) {
-      if (thisAddress.equals(partition.getOwner()) && partition.getReplicaAddress(1) != null) {
-        final SyncReplicaVersion op=new SyncReplicaVersion(1,null);
-        op.setService(InternalPartitionServiceImpl.this);
-        op.setNodeEngine(nodeEngine);
-        op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
-        op.setPartitionId(partition.getPartitionId());
-        nodeEngine.getOperationService().executeOperation(op);
+      if (thisAddress.equals(partition.getOwner())) {
+        for (int index=1; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
+          if (partition.getReplicaAddress(index) != null) {
+            SyncReplicaVersion op=new SyncReplicaVersion(index,null);
+            op.setService(InternalPartitionServiceImpl.this);
+            op.setNodeEngine(nodeEngine);
+            op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
+            op.setPartitionId(partition.getPartitionId());
+            nodeEngine.getOperationService().executeOperation(op);
+          }
+        }
       }
     }
   }
