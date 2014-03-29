@@ -4,19 +4,22 @@
     ProxyServiceImpl proxyService=getService();
     for (    ProxyInfo proxy : proxies) {
       final ProxyRegistry registry=getOrPutIfAbsent(proxyService.registries,proxy.serviceName,proxyService.registryConstructor);
-      final DistributedObject object=registry.createProxy(proxy.objectName,false,false);
-      if (object != null && object instanceof InitializingObject) {
-        nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
-          public void run(){
-            try {
-              ((InitializingObject)object).initialize();
-            }
- catch (            Exception e) {
-              getLogger().warning("Error while initializing proxy: " + object,e);
+      DistributedObjectFuture future=registry.createProxy(proxy.objectName,false,false);
+      if (future != null) {
+        final DistributedObject object=future.get();
+        if (object instanceof InitializingObject) {
+          nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
+            public void run(){
+              try {
+                ((InitializingObject)object).initialize();
+              }
+ catch (              Exception e) {
+                getLogger().warning("Error while initializing proxy: " + object,e);
+              }
             }
           }
-        }
 );
+        }
       }
     }
   }
