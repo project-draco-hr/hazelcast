@@ -35,24 +35,16 @@
   setInvocationTime(op,nodeEngine.getClusterTime());
   remote=!thisAddress.equals(invTarget);
   if (remote) {
-    final RemotecallCallback call=this;
-    final long callId=operationService.registerRemoteCall(call);
-    if (op instanceof BackupAwareOperation) {
-      registerBackups((BackupAwareOperation)op,callId);
-    }
-    setCallId(op,callId);
+    final long callId=operationService.registerInvocation(this);
     boolean sent=operationService.send(op,invTarget);
     if (!sent) {
-      operationService.deregisterRemoteCall(callId);
-      operationService.deregisterBackupCall(callId);
+      operationService.deregisterInvocation(callId);
       notify(new RetryableIOException("Packet not responseReceived to -> " + invTarget));
     }
   }
  else {
     if (op instanceof BackupAwareOperation) {
-      final long callId=operationService.newCallId();
-      registerBackups((BackupAwareOperation)op,callId);
-      setCallId(op,callId);
+      operationService.registerInvocation(this);
     }
     responseReceived=Boolean.FALSE;
     op.setResponseHandler(this);
