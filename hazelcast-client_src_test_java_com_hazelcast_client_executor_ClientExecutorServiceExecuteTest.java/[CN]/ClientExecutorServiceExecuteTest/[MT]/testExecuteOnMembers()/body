@@ -1,0 +1,18 @@
+{
+  final IExecutorService service=client.getExecutorService(randomString());
+  final String mapName=randomString();
+  final Collection collection=new ArrayList();
+  final Member member1=instance1.getCluster().getLocalMember();
+  final Member member3=instance3.getCluster().getLocalMember();
+  collection.add(member1);
+  collection.add(member3);
+  service.executeOnMembers(new MapPutRunnable(mapName),collection);
+  final IMap map=client.getMap(mapName);
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      assertTrue(map.containsKey(member1.getUuid()));
+      assertTrue(map.containsKey(member3.getUuid()));
+    }
+  }
+);
+}

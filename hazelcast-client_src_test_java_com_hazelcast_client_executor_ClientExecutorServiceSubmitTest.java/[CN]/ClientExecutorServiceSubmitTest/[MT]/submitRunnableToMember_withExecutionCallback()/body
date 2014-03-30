@@ -1,0 +1,18 @@
+{
+  final IExecutorService service=client.getExecutorService(randomString());
+  final String mapName=randomString();
+  final Runnable runnable=new MapPutRunnable(mapName);
+  final Member member=instance2.getCluster().getLocalMember();
+  final CountDownLatch responseLatch=new CountDownLatch(1);
+  service.submitToMember(runnable,member,new ExecutionCallback(){
+    public void onResponse(    Object response){
+      responseLatch.countDown();
+    }
+    public void onFailure(    Throwable t){
+    }
+  }
+);
+  Map map=client.getMap(mapName);
+  assertOpenEventually(responseLatch);
+  assertEquals(1,map.size());
+}
