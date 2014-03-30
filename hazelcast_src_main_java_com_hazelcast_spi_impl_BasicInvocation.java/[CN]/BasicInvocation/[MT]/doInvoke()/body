@@ -4,7 +4,7 @@
     notify(new HazelcastInstanceNotActiveException());
     return;
   }
-  final Address invTarget=getTarget();
+  invTarget=getTarget();
   target=invTarget;
   invokeCount++;
   final Address thisAddress=nodeEngine.getThisAddress();
@@ -18,8 +18,8 @@
     }
     return;
   }
-  final MemberImpl member=nodeEngine.getClusterService().getMember(invTarget);
-  if (!isJoinOperation(op) && member == null) {
+  invTargetMember=nodeEngine.getClusterService().getMember(invTarget);
+  if (!isJoinOperation(op) && invTargetMember == null) {
     notify(new TargetNotMemberException(invTarget,partitionId,op.getClass().getName(),serviceName));
     return;
   }
@@ -35,7 +35,7 @@
   setInvocationTime(op,nodeEngine.getClusterTime());
   remote=!thisAddress.equals(invTarget);
   if (remote) {
-    final RemoteCall call=member != null ? new RemoteCall(member,this) : new RemoteCall(invTarget,this);
+    final RemotecallCallback call=this;
     final long callId=operationService.registerRemoteCall(call);
     if (op instanceof BackupAwareOperation) {
       registerBackups((BackupAwareOperation)op,callId);
