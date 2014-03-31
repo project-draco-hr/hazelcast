@@ -1,0 +1,22 @@
+{
+  final IExecutorService service=client.getExecutorService(randomString());
+  final String mapName=randomString();
+  final IMap map=client.getMap(mapName);
+  final String key=HazelcastTestSupport.generateKeyOwnedBy(instance2);
+  final Member member=instance2.getCluster().getLocalMember();
+  final Callable runnable=new MapPutPartitionAwareCallable(mapName,key);
+  final AtomicReference result=new AtomicReference();
+  final CountDownLatch responseLatch=new CountDownLatch(1);
+  service.submit(runnable,new ExecutionCallback(){
+    public void onResponse(    Object response){
+      result.set(response);
+      responseLatch.countDown();
+    }
+    public void onFailure(    Throwable t){
+    }
+  }
+);
+  assertOpenEventually(responseLatch);
+  assertEquals(member.getUuid(),result.get());
+  assertTrue(map.containsKey(member.getUuid()));
+}
