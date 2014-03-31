@@ -3,8 +3,9 @@
     if (!nodeEngine.isActive()) {
       throw new HazelcastInstanceNotActiveException();
     }
-    DistributedObject proxy=service.createDistributedObject(name);
-    if (proxies.putIfAbsent(name,proxy) == null) {
+    DistributedObjectFuture proxyFuture=new DistributedObjectFuture();
+    if (proxies.putIfAbsent(name,proxyFuture) == null) {
+      DistributedObject proxy=service.createDistributedObject(name);
       if (initialize && proxy instanceof InitializingObject) {
         try {
           ((InitializingObject)proxy).initialize();
@@ -17,7 +18,8 @@
       if (publishEvent) {
         publish(new DistributedObjectEventPacket(CREATED,serviceName,name));
       }
-      return proxy;
+      proxyFuture.set(proxy);
+      return proxyFuture;
     }
   }
   return null;

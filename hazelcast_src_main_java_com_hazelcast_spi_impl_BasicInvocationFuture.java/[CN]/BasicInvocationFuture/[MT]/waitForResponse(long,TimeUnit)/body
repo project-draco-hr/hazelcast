@@ -1,0 +1,54 @@
+{
+  if (response != null && response != BasicInvocation.WAIT_RESPONSE) {
+    return response;
+  }
+  long timeoutMs=unit.toMillis(time);
+  if (timeoutMs < 0)   timeoutMs=0;
+  final long maxCallTimeout=basicInvocation.callTimeout * 2 > 0 ? basicInvocation.callTimeout * 2 : Long.MAX_VALUE;
+  final boolean longPolling=timeoutMs > maxCallTimeout;
+  int pollCount=0;
+  while (timeoutMs >= 0) {
+    final long pollTimeoutMs=Math.min(maxCallTimeout,timeoutMs);
+    final long startMs=Clock.currentTimeMillis();
+    long lastPollTime=0;
+    pollCount++;
+    try {
+      if (pollTimeoutMs > 0) {
+synchronized (this) {
+          if (response == null || response == BasicInvocation.WAIT_RESPONSE) {
+            this.wait(pollTimeoutMs);
+          }
+        }
+      }
+      lastPollTime=Clock.currentTimeMillis() - startMs;
+      timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
+      if (response != null) {
+        if (response == BasicInvocation.WAIT_RESPONSE) {
+          continue;
+        }
+        if (response != BasicInvocation.INTERRUPTED_RESPONSE && interrupted) {
+          Thread.currentThread().interrupt();
+        }
+        return response;
+      }
+    }
+ catch (    InterruptedException e) {
+      interrupted=true;
+    }
+    if (!interrupted && longPolling) {
+      final Address target=basicInvocation.getTarget();
+      if (basicInvocation.nodeEngine.getThisAddress().equals(target)) {
+        continue;
+      }
+      basicInvocation.logger.warning("No response for " + lastPollTime + " ms. "+ toString());
+      boolean executing=isOperationExecuting(target);
+      if (!executing) {
+        if (response != null) {
+          continue;
+        }
+        return new OperationTimeoutException("No response for " + (pollTimeoutMs * pollCount) + " ms. Aborting invocation! "+ toString());
+      }
+    }
+  }
+  return BasicInvocation.TIMEOUT_RESPONSE;
+}
