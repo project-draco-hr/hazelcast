@@ -1,0 +1,54 @@
+{
+  final MapConfig mapConfig=this.mapConfig;
+  final String mapName=mapConfig.getName();
+  final MapService mapService=MapEvictionManager.this.mapService;
+  final NodeEngine nodeEngine=mapService.getNodeEngine();
+  Set<Data> keysGatheredForNearCacheEviction=Collections.emptySet();
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    if ((i % ExecutorConfig.DEFAULT_POOL_SIZE) != mod) {
+      continue;
+    }
+    final Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
+    if (nodeEngine.getThisAddress().equals(owner)) {
+      final PartitionContainer pc=mapService.getPartitionContainer(i);
+      final RecordStore recordStore=pc.getRecordStore(mapName);
+      final Collection<Record> values=recordStore.getReadonlyRecordMap().values();
+      if (values.isEmpty()) {
+        continue;
+      }
+      int evictSize=getEvictableSize(recordStore.size(),mapConfig);
+      final List<Record> evictableRecords=getEvictableRecords(recordStore,evictSize,mapConfig.getEvictionPolicy());
+      if (evictableRecords.isEmpty()) {
+        continue;
+      }
+      final Set<Record> recordSet=new HashSet<Record>(evictSize);
+      final Set<Data> keySet=new HashSet<Data>(evictSize);
+      for (      final Record record : evictableRecords) {
+        if (evictSize == 0) {
+          break;
+        }
+        recordSet.add(record);
+        keySet.add(record.getKey());
+        evictSize--;
+      }
+      if (keySet.isEmpty()) {
+        continue;
+      }
+      keysGatheredForNearCacheEviction=new HashSet<Data>(keySet.size());
+      keysGatheredForNearCacheEviction.addAll(keySet);
+      EvictKeysOperation evictKeysOperation=new EvictKeysOperation(mapName,keySet);
+      evictKeysOperation.setNodeEngine(nodeEngine);
+      evictKeysOperation.setServiceName(MapService.SERVICE_NAME);
+      evictKeysOperation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+      evictKeysOperation.setPartitionId(i);
+      OperationAccessor.setCallerAddress(evictKeysOperation,nodeEngine.getThisAddress());
+      nodeEngine.getOperationService().executeOperation(evictKeysOperation);
+      for (      final Record record : recordSet) {
+        mapService.publishEvent(nodeEngine.getThisAddress(),mapName,EntryEventType.EVICTED,record.getKey(),mapService.toData(record.getValue()),null);
+      }
+    }
+  }
+  if (mapService.isNearCacheAndInvalidationEnabled(mapName)) {
+    mapService.invalidateAllNearCaches(mapName,keysGatheredForNearCacheEviction);
+  }
+}
