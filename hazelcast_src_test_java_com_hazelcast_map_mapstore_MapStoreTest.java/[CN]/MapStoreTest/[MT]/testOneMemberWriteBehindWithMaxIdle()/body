@@ -1,5 +1,5 @@
 {
-  TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  final TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
   Config config=newConfig(testMapStore,5);
   config.getMapConfig("default").setMaxIdleSeconds(10);
   HazelcastInstance h1=createHazelcastInstance(config);
@@ -12,11 +12,16 @@
     }
   }
 ,true);
-  assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD_ALL_KEYS,testMapStore.waitForEvent(10));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD_ALL_KEYS,testMapStore.getEvents().poll());
+    }
+  }
+);
   for (int i=0; i < total; i++) {
     map.put(i,"value" + i);
   }
-  latch.await(30,TimeUnit.SECONDS);
+  assertOpenEventually(latch);
   assertEquals(0,map.size());
   assertEquals(total,testMapStore.getStore().size());
 }
