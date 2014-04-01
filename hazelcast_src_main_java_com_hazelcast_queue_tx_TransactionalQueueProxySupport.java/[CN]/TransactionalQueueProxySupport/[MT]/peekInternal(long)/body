@@ -1,8 +1,9 @@
 {
   final QueueItem offer=offeredQueue.peek();
-  final TxnPeekOperation operation=new TxnPeekOperation(name,timeout,offer == null ? -1 : offer.getItemId(),tx.getTxnId());
+  long itemId=offer == null ? -1 : offer.getItemId();
+  final TxnPeekOperation operation=new TxnPeekOperation(name,timeout,itemId,tx.getTxnId());
   try {
-    final Future<QueueItem> f=getNodeEngine().getOperationService().invokeOnPartition(QueueService.SERVICE_NAME,operation,partitionId);
+    final Future<QueueItem> f=invoke(operation);
     final QueueItem item=f.get();
     if (item != null) {
       if (offer != null && item.getItemId() == offer.getItemId()) {
