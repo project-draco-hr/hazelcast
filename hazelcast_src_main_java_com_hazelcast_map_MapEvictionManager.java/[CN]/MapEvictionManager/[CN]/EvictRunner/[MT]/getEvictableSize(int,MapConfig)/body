@@ -1,0 +1,30 @@
+{
+  int evictableSize;
+  final MaxSizeConfig.MaxSizePolicy maxSizePolicy=mapConfig.getMaxSizeConfig().getMaxSizePolicy();
+  final int evictionPercentage=mapConfig.getEvictionPercentage();
+switch (maxSizePolicy) {
+case PER_PARTITION:
+    int maxSize=mapConfig.getMaxSizeConfig().getSize();
+  int targetSizePerPartition=Double.valueOf(maxSize * ((100 - evictionPercentage) / 100.0)).intValue();
+int diffFromTargetSize=currentPartitionSize - targetSizePerPartition;
+int prunedSize=currentPartitionSize * evictionPercentage / 100 + 1;
+evictableSize=Math.max(diffFromTargetSize,prunedSize);
+break;
+case PER_NODE:
+maxSize=mapConfig.getMaxSizeConfig().getSize();
+int memberCount=mapService.getNodeEngine().getClusterService().getMembers().size();
+int maxPartitionSize=(maxSize * memberCount / mapService.getNodeEngine().getPartitionService().getPartitionCount());
+targetSizePerPartition=Double.valueOf(maxPartitionSize * ((100 - evictionPercentage) / 100.0)).intValue();
+diffFromTargetSize=currentPartitionSize - targetSizePerPartition;
+prunedSize=currentPartitionSize * evictionPercentage / 100 + 1;
+evictableSize=Math.max(diffFromTargetSize,prunedSize);
+break;
+case USED_HEAP_PERCENTAGE:
+case USED_HEAP_SIZE:
+evictableSize=currentPartitionSize * evictionPercentage / 100;
+break;
+default :
+throw new IllegalArgumentException("Max size policy is not defined [" + maxSizePolicy + "]");
+}
+return evictableSize;
+}
