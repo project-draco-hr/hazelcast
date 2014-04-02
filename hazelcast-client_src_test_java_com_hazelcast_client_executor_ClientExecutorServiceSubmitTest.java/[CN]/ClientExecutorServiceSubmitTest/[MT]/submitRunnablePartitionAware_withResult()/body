@@ -1,0 +1,17 @@
+{
+  final IExecutorService service=client.getExecutorService(randomString());
+  final String expectedResult="result";
+  final String mapName=randomString();
+  final String key=HazelcastTestSupport.generateKeyOwnedBy(instance2);
+  final Member member=instance2.getCluster().getLocalMember();
+  final Runnable runnable=new MapPutPartitionAwareRunnable(mapName,key);
+  Future result=service.submit(runnable,expectedResult);
+  final IMap map=client.getMap(mapName);
+  assertEquals(expectedResult,result.get());
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      assertTrue(map.containsKey(member.getUuid()));
+    }
+  }
+);
+}
