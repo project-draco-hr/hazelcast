@@ -1,36 +1,35 @@
 {
-  if (evictableSize <= 0) {
-    return Collections.EMPTY_LIST;
+  if (evictableSize <= 0 || recordStore.size() == 0L) {
+    return Collections.emptyList();
   }
   final Map<Data,Record> entries=recordStore.getReadonlyRecordMap();
   final int size=entries.size();
+  if (size == 0) {
+    return Collections.emptyList();
+  }
   final long[] criterias=new long[size];
   int index=0;
   for (  final Record record : entries.values()) {
-    if (record.getStatistics() == null) {
-      criterias[index]=0L;
-    }
- else {
-      final long criteriaValue=getEvictionCriteriaValue(record,evictionPolicy);
-      criterias[index]=criteriaValue;
-    }
+    criterias[index]=getEvictionCriteriaValue(record,evictionPolicy);
     index++;
     if (index == size) {
       break;
     }
   }
+  if (criterias.length == 0) {
+    return Collections.emptyList();
+  }
   Arrays.sort(criterias);
   final List<Record> evictableRecords=new ArrayList<Record>(evictableSize);
-  final long criteriaValue=criterias[evictableSize - 1];
-  int evictionCounter=0;
+  final int evictableBaseIndex=Math.min(evictableSize,criterias.length - 1);
+  final long criteriaValue=criterias[evictableBaseIndex];
   for (  final Map.Entry<Data,Record> entry : entries.entrySet()) {
     final Record record=entry.getValue();
     final long value=getEvictionCriteriaValue(record,evictionPolicy);
     if (value <= criteriaValue) {
       evictableRecords.add(record);
-      evictionCounter++;
     }
-    if (evictionCounter >= evictableSize) {
+    if (evictableRecords.size() >= evictableSize) {
       break;
     }
   }
