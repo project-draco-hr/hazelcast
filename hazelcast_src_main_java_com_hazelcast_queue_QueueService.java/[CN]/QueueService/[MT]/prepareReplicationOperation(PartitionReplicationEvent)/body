@@ -1,12 +1,18 @@
 {
   Map<String,QueueContainer> migrationData=new HashMap<String,QueueContainer>();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
   for (  Entry<String,QueueContainer> entry : containerMap.entrySet()) {
     String name=entry.getKey();
-    int partitionId=nodeEngine.getPartitionService().getPartitionId(StringPartitioningStrategy.getPartitionKey(name));
+    int partitionId=partitionService.getPartitionId(StringPartitioningStrategy.getPartitionKey(name));
     QueueContainer container=entry.getValue();
     if (partitionId == event.getPartitionId() && container.getConfig().getTotalBackupCount() >= event.getReplicaIndex()) {
       migrationData.put(name,container);
     }
   }
-  return migrationData.isEmpty() ? null : new QueueReplicationOperation(migrationData,event.getPartitionId(),event.getReplicaIndex());
+  if (migrationData.isEmpty()) {
+    return null;
+  }
+ else {
+    return new QueueReplicationOperation(migrationData,event.getPartitionId(),event.getReplicaIndex());
+  }
 }

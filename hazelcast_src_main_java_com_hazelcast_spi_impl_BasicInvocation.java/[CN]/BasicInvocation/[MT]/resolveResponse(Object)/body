@@ -1,0 +1,33 @@
+{
+  if (obj == null) {
+    return NULL_RESPONSE;
+  }
+  Throwable error=getError(obj);
+  if (error == null) {
+    return obj;
+  }
+  if (error instanceof CallTimeoutException) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Call timed-out during wait-notify phase, retrying call: " + toString());
+    }
+    if (op instanceof WaitSupport) {
+      long waitTimeout=op.getWaitTimeout();
+      waitTimeout-=callTimeout;
+      op.setWaitTimeout(waitTimeout);
+    }
+    invokeCount--;
+    return RETRY_RESPONSE;
+  }
+  final ExceptionAction action=onException(error);
+  final int localInvokeCount=invokeCount;
+  if (action == ExceptionAction.RETRY_INVOCATION && localInvokeCount < tryCount) {
+    if (localInvokeCount > 99 && localInvokeCount % 10 == 0) {
+      logger.warning("Retrying invocation: " + toString() + ", Reason: "+ error);
+    }
+    return RETRY_RESPONSE;
+  }
+  if (action == ExceptionAction.CONTINUE_WAIT) {
+    return WAIT_RESPONSE;
+  }
+  return error;
+}

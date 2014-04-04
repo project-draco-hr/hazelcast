@@ -1,42 +1,19 @@
 {
+  if (threadId != null) {
+    threadId=Thread.currentThread().getId();
+    setThreadFlag(Boolean.TRUE);
+  }
   if (state == ACTIVE) {
     throw new IllegalStateException("Transaction is already active");
   }
-  checkThread();
-  if (threadFlag.get() != null) {
+  if (THREAD_FLAG.get() != null) {
     throw new IllegalStateException("Nested transactions are not allowed!");
   }
-  setThreadFlag(Boolean.TRUE);
   startTime=Clock.currentTimeMillis();
   backupAddresses=transactionManagerService.pickBackupAddresses(durability);
   if (durability > 0 && backupAddresses != null && transactionType == TransactionType.TWO_PHASE) {
-    final OperationService operationService=nodeEngine.getOperationService();
-    List<Future> futures=new ArrayList<Future>(backupAddresses.length);
-    for (    Address backupAddress : backupAddresses) {
-      if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
-        final Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new BeginTxBackupOperation(txOwnerUuid,txnId,xid),backupAddress);
-        futures.add(f);
-      }
-    }
-    for (    Future future : futures) {
-      try {
-        future.get(timeoutMillis,TimeUnit.MILLISECONDS);
-      }
- catch (      MemberLeftException e) {
-        nodeEngine.getLogger(Transaction.class).warning("Member left while replicating tx begin: " + e);
-      }
-catch (      Throwable e) {
-        if (e instanceof ExecutionException) {
-          e=e.getCause() != null ? e.getCause() : e;
-        }
-        if (e instanceof TargetNotMemberException) {
-          nodeEngine.getLogger(Transaction.class).warning("Member left while replicating tx begin: " + e);
-        }
- else {
-          throw ExceptionUtil.rethrow(e);
-        }
-      }
-    }
+    List<Future> futures=startTxBackup();
+    awaitTxBackupCompletion(futures);
   }
   state=ACTIVE;
 }

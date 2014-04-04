@@ -1,11 +1,13 @@
 {
   final String setName=randomString();
-  final ISet set=instance.getSet(setName);
-  set.add("item1");
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance=factory.newInstances()[0];
+  final ISet<String> set=instance.getSet(setName);
+  set.add(ELEMENT);
   final TransactionContext context=instance.newTransactionContext();
   context.beginTransaction();
   final TransactionalSet<Object> setTxn=context.getSet(setName);
-  setTxn.add("item2");
+  setTxn.add("itemWillGetRollBacked");
   context.rollbackTransaction();
   assertEquals(1,set.size());
 }

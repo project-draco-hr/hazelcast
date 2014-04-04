@@ -1,0 +1,47 @@
+{
+  OperationService operationService=nodeEngine.getOperationService();
+  if (!uuid.equals(log.callerUuid)) {
+    return;
+  }
+  if (log.state == State.ACTIVE) {
+    Collection<MemberImpl> memberList=nodeEngine.getClusterService().getMemberList();
+    Collection<Future> futures=new ArrayList<Future>(memberList.size());
+    for (    MemberImpl member : memberList) {
+      Operation op=new BroadcastTxRollbackOperation(txnId);
+      Future f=operationService.invokeOnTarget(SERVICE_NAME,op,member.getAddress());
+      futures.add(f);
+    }
+    for (    Future future : futures) {
+      try {
+        future.get(TransactionOptions.getDefault().getTimeoutMillis(),TimeUnit.MILLISECONDS);
+      }
+ catch (      Exception e) {
+        logger.warning("Error while rolling-back tx!");
+      }
+    }
+  }
+ else {
+    if (log.state == State.COMMITTING && log.xid != null) {
+      logger.warning("This log is XA Managed " + log);
+      log.state=State.NO_TXN;
+      return;
+    }
+    TransactionImpl tx=new TransactionImpl(this,nodeEngine,txnId,log.txLogs,log.timeoutMillis,log.startTime,log.callerUuid);
+    if (log.state == State.COMMITTING) {
+      try {
+        tx.commit();
+      }
+ catch (      Throwable e) {
+        logger.warning("Error during committing from tx backup!",e);
+      }
+    }
+ else {
+      try {
+        tx.rollback();
+      }
+ catch (      Throwable e) {
+        logger.warning("Error during rolling-back from tx backup!",e);
+      }
+    }
+  }
+}
