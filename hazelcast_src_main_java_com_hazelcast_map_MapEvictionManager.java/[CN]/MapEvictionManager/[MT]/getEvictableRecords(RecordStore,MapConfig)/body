@@ -1,10 +1,16 @@
 {
-  if (evictableSize <= 0 || recordStore.size() == 0L) {
+  final int partitionSize=recordStore.size();
+  if (partitionSize < 1) {
     return Collections.emptyList();
   }
+  final int evictableSize=getEvictableSize(partitionSize,mapConfig);
+  if (evictableSize < 1) {
+    return Collections.emptyList();
+  }
+  final MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
   final Map<Data,Record> entries=recordStore.getReadonlyRecordMap();
   final int size=entries.size();
-  if (size == 0) {
+  if (entries.isEmpty()) {
     return Collections.emptyList();
   }
   final long[] criterias=new long[size];
@@ -19,9 +25,14 @@
   if (criterias.length == 0) {
     return Collections.emptyList();
   }
+  if (index < criterias.length) {
+    for (int i=index; i < criterias.length; i++) {
+      criterias[i]=Long.MAX_VALUE;
+    }
+  }
   Arrays.sort(criterias);
   final List<Record> evictableRecords=new ArrayList<Record>(evictableSize);
-  final int evictableBaseIndex=Math.min(evictableSize,criterias.length - 1);
+  final int evictableBaseIndex=Math.min(evictableSize,index - 1);
   final long criteriaValue=criterias[evictableBaseIndex];
   for (  final Map.Entry<Data,Record> entry : entries.entrySet()) {
     final Record record=entry.getValue();
@@ -32,6 +43,9 @@
     if (evictableRecords.size() >= evictableSize) {
       break;
     }
+  }
+  if (evictableRecords.isEmpty()) {
+    return Collections.emptyList();
   }
   return evictableRecords;
 }
