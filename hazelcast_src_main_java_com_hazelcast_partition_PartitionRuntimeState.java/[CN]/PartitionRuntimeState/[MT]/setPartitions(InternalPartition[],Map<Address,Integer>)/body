@@ -1,4 +1,5 @@
 {
+  List<String> unmatchAddresses=new LinkedList<String>();
   for (  InternalPartition partition : partitions) {
     ShortPartitionInfo partitionInfo=new ShortPartitionInfo(partition.getPartitionId());
     for (int index=0; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
@@ -9,11 +10,19 @@
  else {
         Integer knownIndex=addressIndexes.get(address);
         if (knownIndex == null && index == 0) {
-          throw new IllegalStateException("Unknown owner address in partition state! " + "Address: " + address + ", "+ partition);
+          unmatchAddresses.add(address + ":" + partition);
         }
-        partitionInfo.addressIndexes[index]=knownIndex != null ? addressIndexes.get(address) : -1;
+        if (knownIndex == null) {
+          partitionInfo.addressIndexes[index]=-1;
+        }
+ else {
+          partitionInfo.addressIndexes[index]=knownIndex;
+        }
       }
     }
     partitionInfos.add(partitionInfo);
+  }
+  if (!unmatchAddresses.isEmpty()) {
+    logger.warning("Unknown owner addresses in partition state! " + unmatchAddresses);
   }
 }
