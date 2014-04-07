@@ -16,20 +16,13 @@
       if (values.isEmpty()) {
         continue;
       }
-      int evictSize=getEvictableSize(recordStore.size(),mapConfig);
-      final List<Record> evictableRecords=getEvictableRecords(recordStore,evictSize,mapConfig.getEvictionPolicy());
+      final List<Record> evictableRecords=getEvictableRecords(recordStore,mapConfig);
       if (evictableRecords.isEmpty()) {
         continue;
       }
-      final Set<Record> recordSet=new HashSet<Record>(evictSize);
-      final Set<Data> keySet=new HashSet<Data>(evictSize);
+      final Set<Data> keySet=new HashSet<Data>(evictableRecords.size());
       for (      final Record record : evictableRecords) {
-        if (evictSize == 0) {
-          break;
-        }
-        recordSet.add(record);
         keySet.add(record.getKey());
-        evictSize--;
       }
       if (keySet.isEmpty()) {
         continue;
@@ -43,7 +36,7 @@
       evictKeysOperation.setPartitionId(i);
       OperationAccessor.setCallerAddress(evictKeysOperation,nodeEngine.getThisAddress());
       nodeEngine.getOperationService().executeOperation(evictKeysOperation);
-      for (      final Record record : recordSet) {
+      for (      final Record record : evictableRecords) {
         mapService.publishEvent(nodeEngine.getThisAddress(),mapName,EntryEventType.EVICTED,record.getKey(),mapService.toData(record.getValue()),null);
       }
     }
