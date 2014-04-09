@@ -2,16 +2,12 @@
   this.nodeEngine=nodeEngine;
   this.node=nodeEngine.getNode();
   this.logger=node.getLogger(OperationService.class);
-  defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+  this.defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+  this.executionService=nodeEngine.getExecutionService();
   int coreSize=Runtime.getRuntime().availableProcessors();
   boolean reallyMultiCore=coreSize >= 8;
   int concurrencyLevel=reallyMultiCore ? coreSize * 4 : 16;
-  int opThreadCount=node.getGroupProperties().OPERATION_THREAD_COUNT.getInteger();
-  operationThreadCount=opThreadCount > 0 ? opThreadCount : coreSize * 2;
-  executionService=nodeEngine.getExecutionService();
-  executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize * 5,coreSize * 100000,ExecutorType.CONCRETE);
-  responseExecutor=new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,responseWorkQueue,new SingleExecutorThreadFactory(node.threadGroup,node.getConfigClassLoader(),node.getThreadNamePrefix("response")));
-  executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(1000,0.75f,concurrencyLevel);
-  invocations=new ConcurrentHashMap<Long,BasicInvocation>(1000,0.75f,concurrencyLevel);
-  this.executor=new BasicOperationScheduler(node,executionService,operationThreadCount,new BasicOperationProcessorImpl());
+  this.executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(1000,0.75f,concurrencyLevel);
+  this.invocations=new ConcurrentHashMap<Long,BasicInvocation>(1000,0.75f,concurrencyLevel);
+  this.scheduler=new BasicOperationScheduler(node,executionService,new BasicOperationProcessorImpl());
 }
