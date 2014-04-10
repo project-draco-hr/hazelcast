@@ -1,7 +1,15 @@
 {
   TopicEvent topicEvent=(TopicEvent)event;
   Object msgObject=nodeEngine.toObject(topicEvent.data);
-  Message message=new Message(topicEvent.name,msgObject,topicEvent.publishTime,topicEvent.publishingMember);
+  ClusterService clusterService=nodeEngine.getClusterService();
+  MemberImpl member=clusterService.getMember(topicEvent.publisherAddress);
+  if (member == null) {
+    if (logger.isLoggable(Level.INFO)) {
+      logger.info("Dropping message " + msgObject + " from unknown address:"+ topicEvent.publisherAddress);
+    }
+    return;
+  }
+  Message message=new Message(topicEvent.name,msgObject,topicEvent.publishTime,member);
   incrementReceivedMessages(topicEvent.name);
   MessageListener messageListener=(MessageListener)listener;
   messageListener.onMessage(message);
