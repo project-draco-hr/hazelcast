@@ -1,0 +1,24 @@
+{
+  Set<ClassLoader> classLoaders=new HashSet<ClassLoader>();
+  if (classLoader != null) {
+    classLoaders.add(classLoader);
+  }
+  ClassLoader tccl=Thread.currentThread().getContextClassLoader();
+  if (tccl != classLoader) {
+    classLoaders.add(tccl);
+  }
+  ClassLoader coreClassLoader=ServiceLoader.class.getClassLoader();
+  if (coreClassLoader != classLoader && coreClassLoader != tccl) {
+    classLoaders.add(coreClassLoader);
+  }
+  try {
+    Class<?> hzClientClass=Class.forName("com.hazelcast.client.HazelcastClient");
+    ClassLoader clientClassLoader=hzClientClass.getClassLoader();
+    if (clientClassLoader != classLoader && clientClassLoader != tccl && clientClassLoader != coreClassLoader) {
+      classLoaders.add(clientClassLoader);
+    }
+  }
+ catch (  ClassNotFoundException ignore) {
+  }
+  return classLoaders;
+}
