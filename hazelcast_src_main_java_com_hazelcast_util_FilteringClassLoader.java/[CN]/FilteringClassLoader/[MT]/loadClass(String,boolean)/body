@@ -1,0 +1,29 @@
+{
+  ValidationUtil.isNotNull(name,"name");
+  for (  String excludePackage : excludePackages) {
+    if (name.startsWith(excludePackage)) {
+      throw new ClassNotFoundException(name + " - Package excluded explicitly!");
+    }
+  }
+  if (name.startsWith("com.hazelcast")) {
+    Class<?> clazz=cache.get(name);
+    if (clazz != null) {
+      return clazz;
+    }
+    URL url=getResource(name.replaceAll("\\.","/").concat(".class"));
+    try {
+      File classFile=new File(url.toURI());
+      byte[] data=new byte[(int)classFile.length()];
+      FileInputStream fis=new FileInputStream(classFile);
+      fis.read(data);
+      fis.close();
+      clazz=defineClass(name,data,0,data.length);
+      cache.put(name,clazz);
+      return clazz;
+    }
+ catch (    Exception e) {
+      throw new ClassNotFoundException(name,e);
+    }
+  }
+  return delegatingClassLoader.loadClass(name);
+}
