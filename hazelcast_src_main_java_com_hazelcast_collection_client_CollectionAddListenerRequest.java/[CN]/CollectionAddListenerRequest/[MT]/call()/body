@@ -11,14 +11,17 @@
     private void send(    ItemEvent event){
       if (endpoint.live()) {
         Data item=clientEngine.toData(event.getItem());
-        PortableItemEvent portableItemEvent=new PortableItemEvent(item,event.getEventType(),event.getMember().getUuid());
+        final ItemEventType eventType=event.getEventType();
+        final String uuid=event.getMember().getUuid();
+        PortableItemEvent portableItemEvent=new PortableItemEvent(item,eventType,uuid);
         endpoint.sendEvent(portableItemEvent,getCallId());
       }
     }
   }
 ;
   final EventService eventService=clientEngine.getEventService();
-  final EventRegistration registration=eventService.registerListener(getServiceName(),name,new CollectionEventFilter(includeValue),listener);
+  final CollectionEventFilter filter=new CollectionEventFilter(includeValue);
+  final EventRegistration registration=eventService.registerListener(getServiceName(),name,filter,listener);
   final String registrationId=registration.getId();
   endpoint.setListenerRegistration(getServiceName(),name,registrationId);
   return registrationId;

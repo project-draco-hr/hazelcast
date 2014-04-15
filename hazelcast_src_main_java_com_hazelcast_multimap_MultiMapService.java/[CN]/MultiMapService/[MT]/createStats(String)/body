@@ -2,9 +2,6 @@
   LocalMultiMapStatsImpl stats=getLocalMultiMapStatsImpl(name);
   long ownedEntryCount=0;
   long backupEntryCount=0;
-  long dirtyCount=0;
-  long ownedEntryMemoryCost=0;
-  long backupEntryMemoryCost=0;
   long hits=0;
   long lockedEntryCount=0;
   ClusterServiceImpl clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
@@ -17,33 +14,33 @@
       continue;
     }
     Address owner=partition.getOwnerOrNull();
-    if (owner == null) {
-    }
- else     if (owner.equals(thisAddress)) {
-      lockedEntryCount+=multiMapContainer.getLockedCount();
-      for (      MultiMapWrapper wrapper : multiMapContainer.multiMapWrappers.values()) {
-        hits+=wrapper.getHits();
-        ownedEntryCount+=wrapper.getCollection(false).size();
-      }
-    }
- else {
-      int backupCount=multiMapContainer.config.getTotalBackupCount();
-      for (int j=1; j <= backupCount; j++) {
-        Address replicaAddress=partition.getReplicaAddress(j);
-        int memberSize=nodeEngine.getClusterService().getMembers().size();
-        int tryCount=3;
-        while (memberSize > backupCount && replicaAddress == null && tryCount-- > 0) {
-          try {
-            Thread.sleep(1000);
-          }
- catch (          InterruptedException e) {
-            throw ExceptionUtil.rethrow(e);
-          }
-          replicaAddress=partition.getReplicaAddress(j);
+    if (owner != null) {
+      if (owner.equals(thisAddress)) {
+        lockedEntryCount+=multiMapContainer.getLockedCount();
+        for (        MultiMapWrapper wrapper : multiMapContainer.multiMapWrappers.values()) {
+          hits+=wrapper.getHits();
+          ownedEntryCount+=wrapper.getCollection(false).size();
         }
-        if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
-          for (          MultiMapWrapper wrapper : multiMapContainer.multiMapWrappers.values()) {
-            backupEntryCount+=wrapper.getCollection(false).size();
+      }
+ else {
+        int backupCount=multiMapContainer.config.getTotalBackupCount();
+        for (int j=1; j <= backupCount; j++) {
+          Address replicaAddress=partition.getReplicaAddress(j);
+          int memberSize=nodeEngine.getClusterService().getMembers().size();
+          int tryCount=REPLICA_ADDRESS_TRY_COUNT;
+          while (memberSize > backupCount && replicaAddress == null && tryCount-- > 0) {
+            try {
+              Thread.sleep(REPLICA_ADDRESS_SLEEP_WAIT_MILLIS);
+            }
+ catch (            InterruptedException e) {
+              throw ExceptionUtil.rethrow(e);
+            }
+            replicaAddress=partition.getReplicaAddress(j);
+          }
+          if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
+            for (            MultiMapWrapper wrapper : multiMapContainer.multiMapWrappers.values()) {
+              backupEntryCount+=wrapper.getCollection(false).size();
+            }
           }
         }
       }
