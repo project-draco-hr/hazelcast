@@ -11,18 +11,21 @@
       return clazz;
     }
     URL url=getResource(name.replaceAll("\\.","/").concat(".class"));
+    FileInputStream fis=null;
     try {
       File classFile=new File(url.toURI());
       byte[] data=new byte[(int)classFile.length()];
-      FileInputStream fis=new FileInputStream(classFile);
+      fis=new FileInputStream(classFile);
       fis.read(data);
-      fis.close();
       clazz=defineClass(name,data,0,data.length);
       cache.put(name,clazz);
       return clazz;
     }
  catch (    Exception e) {
       throw new ClassNotFoundException(name,e);
+    }
+ finally {
+      IOUtil.closeResource(fis);
     }
   }
   return delegatingClassLoader.loadClass(name);
