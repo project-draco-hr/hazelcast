@@ -7,11 +7,24 @@
   }
   ClientConnection clientConnection=connections.get(address);
   if (clientConnection == null) {
-synchronized (this) {
+    final Object lock=getLock(address);
+synchronized (lock) {
       clientConnection=connections.get(address);
       if (clientConnection == null) {
-        clientConnection=connect(address,authenticator,false);
-        connections.put(clientConnection.getRemoteEndpoint(),clientConnection);
+        final ConnectionProcessor connectionProcessor=new ConnectionProcessor(address,authenticator,false);
+        final ICompletableFuture<ClientConnection> future=executionService.submitInternal(connectionProcessor);
+        try {
+          clientConnection=future.get(5,TimeUnit.SECONDS);
+        }
+ catch (        Exception e) {
+          future.cancel(true);
+          throw new RetryableIOException(e);
+        }
+        ClientConnection current=connections.putIfAbsent(clientConnection.getRemoteEndpoint(),clientConnection);
+        if (current != null) {
+          clientConnection.innerClose();
+          clientConnection=current;
+        }
       }
     }
   }
