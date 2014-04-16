@@ -1,0 +1,34 @@
+{
+  ValidationUtil.isNotNull(name,"name");
+  for (  String excludePackage : excludePackages) {
+    if (name.startsWith(excludePackage)) {
+      throw new ClassNotFoundException(name + " - Package excluded explicitly!");
+    }
+  }
+  if (name.startsWith("com.hazelcast")) {
+    Class<?> clazz=cache.get(name);
+    if (clazz != null) {
+      return clazz;
+    }
+    InputStream is=getResourceAsStream(name.replaceAll("\\.","/").concat(".class"));
+    try {
+      byte[] temp=new byte[BUFFER_SIZE];
+      ByteArrayOutputStream baos=new ByteArrayOutputStream();
+      int length;
+      while ((length=is.read(temp)) != -1) {
+        baos.write(temp,0,length);
+      }
+      byte[] data=baos.toByteArray();
+      clazz=defineClass(name,data,0,data.length);
+      cache.put(name,clazz);
+      return clazz;
+    }
+ catch (    Exception e) {
+      throw new ClassNotFoundException(name,e);
+    }
+ finally {
+      IOUtil.closeResource(is);
+    }
+  }
+  return delegatingClassLoader.loadClass(name);
+}
