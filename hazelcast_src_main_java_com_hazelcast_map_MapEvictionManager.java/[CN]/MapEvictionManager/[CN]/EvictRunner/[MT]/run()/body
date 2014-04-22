@@ -16,13 +16,15 @@
       if (values.isEmpty()) {
         continue;
       }
-      final List<Record> evictableRecords=getEvictableRecords(recordStore,mapConfig);
-      if (evictableRecords.isEmpty()) {
+      final Object[][] evictableKeyValuePairs=getEvictableRecords(recordStore,mapConfig);
+      if (evictableKeyValuePairs.length == 0) {
         continue;
       }
-      final Set<Data> keySet=new HashSet<Data>(evictableRecords.size());
-      for (      final Record record : evictableRecords) {
-        keySet.add(record.getKey());
+      final Set<Data> keySet=new HashSet<Data>(evictableKeyValuePairs.length);
+      for (      final Object[] kvp : evictableKeyValuePairs) {
+        if (kvp[0] != null) {
+          keySet.add((Data)kvp[0]);
+        }
       }
       if (keySet.isEmpty()) {
         continue;
@@ -36,8 +38,10 @@
       evictKeysOperation.setPartitionId(i);
       OperationAccessor.setCallerAddress(evictKeysOperation,nodeEngine.getThisAddress());
       nodeEngine.getOperationService().executeOperation(evictKeysOperation);
-      for (      final Record record : evictableRecords) {
-        mapService.publishEvent(nodeEngine.getThisAddress(),mapName,EntryEventType.EVICTED,record.getKey(),mapService.toData(record.getValue()),null);
+      for (      final Object[] kvp : evictableKeyValuePairs) {
+        if (kvp[0] != null) {
+          mapService.publishEvent(nodeEngine.getThisAddress(),mapName,EntryEventType.EVICTED,(Data)kvp[0],mapService.toData(kvp[1]),null);
+        }
       }
     }
   }
