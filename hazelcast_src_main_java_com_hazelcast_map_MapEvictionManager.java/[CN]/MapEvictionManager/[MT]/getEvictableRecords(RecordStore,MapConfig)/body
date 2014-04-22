@@ -1,17 +1,17 @@
 {
   final int partitionSize=recordStore.size();
   if (partitionSize < 1) {
-    return Collections.emptyList();
+    return EmptyArrays.EMPTY_2D_OBJECT_ARRAY;
   }
   final int evictableSize=getEvictableSize(partitionSize,mapConfig);
   if (evictableSize < 1) {
-    return Collections.emptyList();
+    return EmptyArrays.EMPTY_2D_OBJECT_ARRAY;
   }
   final MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
   final Map<Data,Record> entries=recordStore.getReadonlyRecordMap();
   final int size=entries.size();
   if (entries.isEmpty()) {
-    return Collections.emptyList();
+    return EmptyArrays.EMPTY_2D_OBJECT_ARRAY;
   }
   final long[] criterias=new long[size];
   int index=0;
@@ -23,7 +23,7 @@
     }
   }
   if (criterias.length == 0) {
-    return Collections.emptyList();
+    return EmptyArrays.EMPTY_2D_OBJECT_ARRAY;
   }
   if (index < criterias.length) {
     for (int i=index; i < criterias.length; i++) {
@@ -31,21 +31,24 @@
     }
   }
   Arrays.sort(criterias);
-  final List<Record> evictableRecords=new ArrayList<Record>(evictableSize);
+  final Object[][] evictableKeyValuePairs=new Object[evictableSize][evictableSize];
+  int indexKVP=0;
   final int evictableBaseIndex=Math.min(evictableSize,index - 1);
   final long criteriaValue=criterias[evictableBaseIndex];
   for (  final Map.Entry<Data,Record> entry : entries.entrySet()) {
     final Record record=entry.getValue();
     final long value=getEvictionCriteriaValue(record,evictionPolicy);
     if (value <= criteriaValue) {
-      evictableRecords.add(record);
+      evictableKeyValuePairs[indexKVP][0]=record.getKey();
+      evictableKeyValuePairs[indexKVP][1]=record.getValue();
+      indexKVP++;
     }
-    if (evictableRecords.size() >= evictableSize) {
+    if (indexKVP >= evictableSize) {
       break;
     }
   }
-  if (evictableRecords.isEmpty()) {
-    return Collections.emptyList();
+  if (evictableKeyValuePairs.length == 0) {
+    return EmptyArrays.EMPTY_2D_OBJECT_ARRAY;
   }
-  return evictableRecords;
+  return evictableKeyValuePairs;
 }
