@@ -2,12 +2,22 @@
   if (task == null) {
     throw new NullPointerException();
   }
-  OperationThread operationThread=getOperationThread(partitionId);
-  if (priority) {
-    offerWork(operationThread.priorityQueue,task);
-    offerWork(operationThread.workQueue,priorityTaskTrigger);
+  BlockingQueue workQueue;
+  Queue priorityWorkQueue;
+  if (partitionId < 0) {
+    workQueue=genericWorkQueue;
+    priorityWorkQueue=genericPriorityWorkQueue;
   }
  else {
-    offerWork(operationThread.workQueue,task);
+    OperationThread partitionOperationThread=partitionOperationThreads[toPartitionThreadIndex(partitionId)];
+    workQueue=partitionOperationThread.workQueue;
+    priorityWorkQueue=partitionOperationThread.priorityWorkQueue;
+  }
+  if (priority) {
+    offerWork(priorityWorkQueue,task);
+    offerWork(workQueue,priorityTaskTrigger);
+  }
+ else {
+    offerWork(workQueue,task);
   }
 }
