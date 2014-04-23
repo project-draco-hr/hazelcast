@@ -1,0 +1,14 @@
+{
+  final List<Future> futures=new ArrayList<Future>(txLogs.size());
+  final OperationService operationService=nodeEngine.getOperationService();
+  for (  Address backupAddress : backupAddresses) {
+    if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
+      final Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new ReplicateTxOperation(txLogs,txOwnerUuid,txnId,timeoutMillis,startTime),backupAddress);
+      futures.add(f);
+    }
+  }
+  for (  Future future : futures) {
+    future.get(timeoutMillis,TimeUnit.MILLISECONDS);
+  }
+  futures.clear();
+}

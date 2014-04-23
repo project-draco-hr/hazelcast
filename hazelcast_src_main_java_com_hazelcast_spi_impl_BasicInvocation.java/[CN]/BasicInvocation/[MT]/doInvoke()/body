@@ -4,8 +4,7 @@
     notify(new HazelcastInstanceNotActiveException());
     return;
   }
-  final Address invTarget=getTarget();
-  target=invTarget;
+  invTarget=getTarget();
   invokeCount++;
   final Address thisAddress=nodeEngine.getThisAddress();
   if (invTarget == null) {
@@ -18,8 +17,8 @@
     }
     return;
   }
-  final MemberImpl member=nodeEngine.getClusterService().getMember(invTarget);
-  if (!isJoinOperation(op) && member == null) {
+  invTargetMember=nodeEngine.getClusterService().getMember(invTarget);
+  if (!isJoinOperation(op) && invTargetMember == null) {
     notify(new TargetNotMemberException(invTarget,partitionId,op.getClass().getName(),serviceName));
     return;
   }
@@ -35,28 +34,21 @@
   setInvocationTime(op,nodeEngine.getClusterTime());
   remote=!thisAddress.equals(invTarget);
   if (remote) {
-    final RemoteCall call=member != null ? new RemoteCall(member,this) : new RemoteCall(invTarget,this);
-    final long callId=operationService.registerRemoteCall(call);
-    if (op instanceof BackupAwareOperation) {
-      registerBackups((BackupAwareOperation)op,callId);
-    }
-    setCallId(op,callId);
+    final long callId=operationService.registerInvocation(this);
     boolean sent=operationService.send(op,invTarget);
     if (!sent) {
-      operationService.deregisterRemoteCall(callId);
-      operationService.deregisterBackupCall(callId);
-      notify(new RetryableIOException("Packet not sent to -> " + invTarget));
+      operationService.deregisterInvocation(callId);
+      notify(new RetryableIOException("Packet not send to -> " + invTarget));
     }
   }
  else {
     if (op instanceof BackupAwareOperation) {
-      final long callId=operationService.newCallId();
-      registerBackups((BackupAwareOperation)op,callId);
-      setCallId(op,callId);
+      operationService.registerInvocation(this);
     }
-    ResponseHandlerFactory.setLocalResponseHandler(op,this);
-    if (operationService.isAllowedToRunInCurrentThread(op)) {
-      operationService.runOperation(op);
+    responseReceived=Boolean.FALSE;
+    op.setResponseHandler(this);
+    if (operationService.scheduler.isAllowedToRunInCurrentThread(op)) {
+      operationService.runOperationOnCallingThread(op);
     }
  else {
       operationService.executeOperation(op);

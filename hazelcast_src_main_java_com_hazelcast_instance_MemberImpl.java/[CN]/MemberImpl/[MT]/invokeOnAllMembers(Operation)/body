@@ -1,0 +1,19 @@
+{
+  NodeEngineImpl nodeEngine=instance.node.nodeEngine;
+  OperationService os=nodeEngine.getOperationService();
+  String uuid=nodeEngine.getLocalMember().getUuid();
+  operation.setCallerUuid(uuid).setNodeEngine(nodeEngine);
+  try {
+    for (    MemberImpl member : nodeEngine.getClusterService().getMemberList()) {
+      if (!member.localMember()) {
+        os.send(operation,member.getAddress());
+      }
+ else {
+        os.executeOperation(operation);
+      }
+    }
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}

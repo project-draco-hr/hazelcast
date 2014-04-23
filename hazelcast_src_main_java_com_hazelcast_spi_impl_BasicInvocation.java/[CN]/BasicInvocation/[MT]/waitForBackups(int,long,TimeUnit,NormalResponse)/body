@@ -1,7 +1,7 @@
 {
 synchronized (this) {
-    this.expectedBackupCount=backupCount;
-    if (availableBackups == expectedBackupCount) {
+    this.backupsExpected=backupCount;
+    if (backupsCompleted == backupsExpected) {
       invocationFuture.set(response);
       return;
     }
@@ -10,11 +10,11 @@ synchronized (this) {
   nodeEngine.getExecutionService().schedule(ExecutionService.ASYNC_EXECUTOR,new Runnable(){
     @Override public void run(){
 synchronized (BasicInvocation.this) {
-        if (expectedBackupCount == availableBackups) {
+        if (backupsExpected == backupsCompleted) {
           return;
         }
       }
-      if (nodeEngine.getClusterService().getMember(target) != null) {
+      if (nodeEngine.getClusterService().getMember(invTarget) != null) {
 synchronized (BasicInvocation.this) {
           if (BasicInvocation.this.potentialResponse != null) {
             invocationFuture.set(BasicInvocation.this.potentialResponse);

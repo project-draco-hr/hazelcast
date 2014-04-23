@@ -3,20 +3,38 @@
   if (predicate == null) {
     throw new NullPointerException("Predicate can not be null!");
   }
+  if (predicate instanceof PagingPredicate) {
+    throw new IllegalArgumentException("Paging is not supported for Transactional queries");
+  }
   final MapService service=getService();
-  final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.VALUE,false);
-  final Set<Object> valueSet=new HashSet<Object>(queryResultSet);
+  final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
+  final Set<Object> valueSet=new HashSet<Object>();
+  final Set<Object> keyWontBeIncluded=new HashSet<Object>();
   for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
-    if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
-      final Object value=entry.getValue().value instanceof Data ? service.toObject(entry.getValue().value) : entry.getValue().value;
-      final QueryEntry queryEntry=new QueryEntry(null,service.toData(entry.getKey()),entry.getKey(),value);
-      if (predicate.apply(queryEntry)) {
-        valueSet.add(entry.getValue().value);
-      }
+    final boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
+    final boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
+    if (isRemoved) {
+      keyWontBeIncluded.add(entry.getKey());
     }
  else {
-      valueSet.remove(entry.getValue());
+      if (isUpdated) {
+        keyWontBeIncluded.add(entry.getKey());
+      }
+      final Object entryValue=entry.getValue().value;
+      final Object objectValue=entryValue instanceof Data ? service.toObject(entryValue) : entryValue;
+      final QueryEntry queryEntry=new QueryEntry(null,service.toData(entry.getKey()),entry.getKey(),objectValue);
+      if (predicate.apply(queryEntry)) {
+        valueSet.add(entryValue);
+      }
     }
+  }
+  final Iterator<Map.Entry> iterator=queryResultSet.rawIterator();
+  while (iterator.hasNext()) {
+    final Map.Entry entry=iterator.next();
+    if (keyWontBeIncluded.contains(entry.getKey())) {
+      continue;
+    }
+    valueSet.add(entry.getValue());
   }
   return valueSet;
 }

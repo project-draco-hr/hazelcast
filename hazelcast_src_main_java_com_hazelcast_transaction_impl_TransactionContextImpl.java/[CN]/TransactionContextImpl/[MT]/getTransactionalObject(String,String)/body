@@ -4,22 +4,23 @@
   }
   TransactionalObjectKey key=new TransactionalObjectKey(serviceName,name);
   TransactionalObject obj=txnObjectMap.get(key);
-  if (obj == null) {
-    final Object service=nodeEngine.getService(serviceName);
-    if (service instanceof TransactionalService) {
-      nodeEngine.getProxyService().initializeDistributedObject(serviceName,name);
-      obj=((TransactionalService)service).createTransactionalObject(name,transaction);
-      txnObjectMap.put(key,obj);
-    }
+  if (obj != null) {
+    return obj;
+  }
+  final Object service=nodeEngine.getService(serviceName);
+  if (service instanceof TransactionalService) {
+    nodeEngine.getProxyService().initializeDistributedObject(serviceName,name);
+    obj=((TransactionalService)service).createTransactionalObject(name,transaction);
+    txnObjectMap.put(key,obj);
+  }
  else {
-      if (service == null) {
-        if (!nodeEngine.isActive()) {
-          throw new HazelcastInstanceNotActiveException();
-        }
-        throw new IllegalArgumentException("Unknown Service[" + serviceName + "]!");
+    if (service == null) {
+      if (!nodeEngine.isActive()) {
+        throw new HazelcastInstanceNotActiveException();
       }
-      throw new IllegalArgumentException("Service[" + serviceName + "] is not transactional!");
+      throw new IllegalArgumentException("Unknown Service[" + serviceName + "]!");
     }
+    throw new IllegalArgumentException("Service[" + serviceName + "] is not transactional!");
   }
   return obj;
 }

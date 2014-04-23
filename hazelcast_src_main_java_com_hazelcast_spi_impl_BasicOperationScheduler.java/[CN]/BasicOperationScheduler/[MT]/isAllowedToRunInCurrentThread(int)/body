@@ -1,11 +1,15 @@
 {
-  if (partitionId > -1) {
-    Thread currentThread=Thread.currentThread();
-    if (currentThread instanceof PartitionThread) {
-      int threadId=((BasicOperationScheduler.PartitionThread)currentThread).threadId;
-      return toPartitionThreadIndex(partitionId) == threadId;
-    }
+  if (partitionId < 0) {
+    return true;
+  }
+  Thread currentThread=Thread.currentThread();
+  if (!(currentThread instanceof OperationThread)) {
     return false;
   }
-  return true;
+  OperationThread operationThread=(OperationThread)currentThread;
+  if (!operationThread.isPartitionSpecific) {
+    return false;
+  }
+  int threadId=operationThread.threadId;
+  return toPartitionThreadIndex(partitionId) == threadId;
 }

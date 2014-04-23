@@ -1,8 +1,9 @@
 {
   QueueItem reservedOffer=offeredQueue.peek();
-  TxnReservePollOperation operation=new TxnReservePollOperation(name,timeout,reservedOffer == null ? -1 : reservedOffer.getItemId(),tx.getTxnId());
+  long itemId=reservedOffer == null ? -1 : reservedOffer.getItemId();
+  TxnReservePollOperation operation=new TxnReservePollOperation(name,timeout,itemId,tx.getTxnId());
   try {
-    Future<QueueItem> f=getNodeEngine().getOperationService().invokeOnPartition(QueueService.SERVICE_NAME,operation,partitionId);
+    Future<QueueItem> f=invoke(operation);
     QueueItem item=f.get();
     if (item != null) {
       if (reservedOffer != null && item.getItemId() == reservedOffer.getItemId()) {
@@ -14,7 +15,9 @@
       if (!itemIdSet.add(item.getItemId())) {
         throw new TransactionException("Duplicate itemId: " + item.getItemId());
       }
-      tx.addTransactionLog(new QueueTransactionLog(tx.getTxnId(),item.getItemId(),name,partitionId,new TxnPollOperation(name,item.getItemId())));
+      TxnPollOperation op=new TxnPollOperation(name,item.getItemId());
+      QueueTransactionLog transactionLog=new QueueTransactionLog(tx.getTxnId(),item.getItemId(),name,partitionId,op);
+      tx.addTransactionLog(transactionLog);
       return item.getData();
     }
   }

@@ -1,16 +1,18 @@
 {
-  try {
-    Runnable r;
-    do {
-      r=workQueue.poll();
-      if (r != null) {
-        r.run();
+  for (; ; ) {
+    try {
+      try {
+        Runnable task=workQueue.take();
+        process(task);
+      }
+ catch (      InterruptedException e) {
+        if (!live) {
+          return;
+        }
       }
     }
- while (r != null);
-  }
-  finally {
-    scheduled.set(false);
-    schedule();
+ catch (    Throwable t) {
+      logger.severe(getName() + " caught an exception",t);
+    }
   }
 }
