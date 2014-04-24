@@ -4,10 +4,11 @@
     HttpURLConnection connection=openConnection(url);
     OutputStream outputStream=connection.getOutputStream();
     try {
-      identifier.write(outputStream);
-      ObjectDataOutputStream out=serializationService.createObjectDataOutputStream(outputStream);
+      JsonObject root=new JsonObject();
+      root.add("identifier",identifier.toJson());
       TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
-      timedMemberState.writeData(out);
+      root.add("timedMemberState",timedMemberState.toJson());
+      outputStream.write(root.toString().getBytes());
       outputStream.flush();
       post(connection);
     }

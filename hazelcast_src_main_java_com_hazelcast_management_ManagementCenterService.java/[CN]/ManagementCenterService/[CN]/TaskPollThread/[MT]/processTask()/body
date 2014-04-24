@@ -1,16 +1,30 @@
 {
-  ObjectDataInputStream inputStream=null;
+  InputStream inputStream=null;
   try {
     inputStream=openTaskInputStream();
-    int taskId=inputStream.readInt();
-    if (taskId <= 0) {
-      return;
+    BufferedReader in=new BufferedReader(new InputStreamReader(inputStream));
+    StringBuilder sb=new StringBuilder();
+    String input;
+    while ((input=in.readLine()) != null) {
+      sb.append(input);
     }
-    ConsoleRequest task=newTask(inputStream);
-    processTaskAndPostResponse(taskId,task);
+    JsonObject request=JsonObject.readFrom(sb.toString());
+    System.out.println("request = " + request);
+    if (!request.isEmpty()) {
+      JsonObject innerRequest=request.get("request").asObject();
+      final int type=innerRequest.get("type").asInt();
+      final int taskId=request.get("taskId").asInt();
+      Class<? extends ConsoleRequest> requestClass=consoleRequests.get(type);
+      if (requestClass == null) {
+        throw new RuntimeException("Failed to find a request for requestType:" + type);
+      }
+      ConsoleRequest task=requestClass.newInstance();
+      task.fromJson(innerRequest.get("request").asObject());
+      processTaskAndSendResponse(taskId,task);
+    }
   }
  catch (  Exception e) {
-    logger.finest(e);
+    logger.warning(e);
   }
  finally {
     IOUtil.closeResource(inputStream);
