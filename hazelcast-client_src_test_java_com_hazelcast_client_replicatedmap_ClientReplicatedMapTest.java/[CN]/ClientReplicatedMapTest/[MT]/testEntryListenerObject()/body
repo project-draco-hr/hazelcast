@@ -1,0 +1,62 @@
+{
+  final CountDownLatch added=new CountDownLatch(2);
+  final CountDownLatch updated=new CountDownLatch(2);
+  final CountDownLatch removed=new CountDownLatch(2);
+  EntryListener listener=new EntryListener(){
+    @Override public void entryAdded(    EntryEvent event){
+      added.countDown();
+    }
+    @Override public void entryRemoved(    EntryEvent event){
+      removed.countDown();
+    }
+    @Override public void entryUpdated(    EntryEvent event){
+      updated.countDown();
+      ;
+    }
+    @Override public void entryEvicted(    EntryEvent event){
+    }
+  }
+;
+  Config cfg=new Config();
+  ListenerConfig listenerConfig=new ListenerConfig().setImplementation(listener);
+  cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.OBJECT).getListenerConfigs().add(listenerConfig);
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=HazelcastClient.newHazelcastClient();
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  map2.addEntryListener(listener);
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.put("foo","bar");
+    }
+  }
+,2,EntryEventType.ADDED,map1,map2);
+  String value=map2.get("foo");
+  assertEquals("bar",value);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.put("foo","bar2");
+    }
+  }
+,2,EntryEventType.UPDATED,map1,map2);
+  value=map2.get("foo");
+  assertEquals("bar2",value);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map2.put("foo","bar3");
+    }
+  }
+,2,EntryEventType.UPDATED,map1,map2);
+  value=map1.get("foo");
+  assertEquals("bar3",value);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.remove("foo");
+    }
+  }
+,2,EntryEventType.REMOVED,map1,map2);
+  added.await();
+  updated.await();
+  removed.await();
+}

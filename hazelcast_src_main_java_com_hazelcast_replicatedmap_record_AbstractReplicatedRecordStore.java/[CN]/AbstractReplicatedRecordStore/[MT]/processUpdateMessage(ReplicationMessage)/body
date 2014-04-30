@@ -1,0 +1,45 @@
+{
+  if (localMember.equals(update.getOrigin())) {
+    return;
+  }
+  mapStats.incrementReceivedReplicationEvents();
+  K marshalledKey=(K)marshallKey(update.getKey());
+synchronized (getMutex(marshalledKey)) {
+    final ReplicatedRecord<K,V> localEntry=storage.get(marshalledKey);
+    if (localEntry == null) {
+      if (!update.isRemove()) {
+        V marshalledValue=(V)marshallValue(update.getValue());
+        VectorClock vectorClock=update.getVectorClock();
+        int updateHash=update.getUpdateHash();
+        long ttlMillis=update.getTtlMillis();
+        storage.put(marshalledKey,new ReplicatedRecord<K,V>(marshalledKey,marshalledValue,vectorClock,updateHash,ttlMillis));
+        if (ttlMillis > 0) {
+          scheduleTtlEntry(ttlMillis,marshalledKey,null);
+        }
+ else {
+          cancelTtlEntry(marshalledKey);
+        }
+        fireEntryListenerEvent(update.getKey(),null,update.getValue());
+      }
+    }
+ else {
+      final VectorClock currentVectorClock=localEntry.getVectorClock();
+      final VectorClock updateVectorClock=update.getVectorClock();
+      if (VectorClock.happenedBefore(updateVectorClock,currentVectorClock)) {
+      }
+ else       if (VectorClock.happenedBefore(currentVectorClock,updateVectorClock)) {
+        applyTheUpdate(update,localEntry);
+      }
+ else {
+        if (localEntry.getLatestUpdateHash() >= update.getUpdateHash()) {
+          applyTheUpdate(update,localEntry);
+        }
+ else {
+          applyVector(updateVectorClock,currentVectorClock);
+          incrementClock(currentVectorClock);
+          distributeReplicationMessage(new ReplicationMessage(name,update.getKey(),localEntry.getValue(),currentVectorClock,localMember,localEntry.getLatestUpdateHash(),update.getTtlMillis()),true);
+        }
+      }
+    }
+  }
+}

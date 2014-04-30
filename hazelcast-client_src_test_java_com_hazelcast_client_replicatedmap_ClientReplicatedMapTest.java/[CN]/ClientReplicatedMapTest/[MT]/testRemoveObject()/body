@@ -1,0 +1,25 @@
+{
+  Config cfg=new Config();
+  cfg.getReplicatedMapConfig("default").setInMemoryFormat(InMemoryFormat.OBJECT);
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=HazelcastClient.newHazelcastClient();
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.put("foo","bar");
+    }
+  }
+,2,EntryEventType.ADDED,map1,map2);
+  String value=map2.get("foo");
+  assertEquals("bar",value);
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      map1.remove("foo");
+    }
+  }
+,2,EntryEventType.REMOVED,map1,map2);
+  value=map2.get("foo");
+  assertNull(value);
+}
