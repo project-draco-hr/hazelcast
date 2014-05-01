@@ -1,0 +1,23 @@
+{
+  return new ConstructorFunction<String,ReplicatedRecordStore>(){
+    @Override public ReplicatedRecordStore createNew(    String name){
+      ReplicatedMapConfig replicatedMapConfig=getReplicatedMapConfig(name);
+      InMemoryFormat inMemoryFormat=replicatedMapConfig.getInMemoryFormat();
+      AbstractReplicatedRecordStore replicatedRecordStorage=null;
+switch (inMemoryFormat) {
+case OBJECT:
+        replicatedRecordStorage=new ObjectReplicatedRecordStorage(name,nodeEngine,cleanerRegistrator,ReplicatedMapService.this);
+      break;
+case BINARY:
+    replicatedRecordStorage=new DataReplicatedRecordStore(name,nodeEngine,cleanerRegistrator,ReplicatedMapService.this);
+  break;
+case OFFHEAP:
+throw new IllegalStateException("offheap not yet supported for replicated map");
+default :
+throw new IllegalStateException("Unhandeled in memory format:" + inMemoryFormat);
+}
+return replicatedRecordStorage;
+}
+}
+;
+}

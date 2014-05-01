@@ -6,7 +6,7 @@
     throw new IllegalArgumentException("ttl must be a positive integer");
   }
   long time=System.currentTimeMillis();
-  checkState();
+  storage.checkState();
   V oldValue=null;
   K marshalledKey=(K)marshallKey(key);
   V marshalledValue=(V)marshallValue(value);
@@ -30,8 +30,9 @@ synchronized (getMutex(marshalledKey)) {
  else {
       cancelTtlEntry(marshalledKey);
     }
-    incrementClock(vectorClock);
-    publishReplicatedMessage(new ReplicationMessage(name,key,value,vectorClock,localMember,localMemberHash,ttlMillis));
+    vectorClock.incrementClock(localMember);
+    ReplicationMessage message=new ReplicationMessage(getName(),key,value,vectorClock,localMember,localMemberHash,ttlMillis);
+    replicationPublisher.publishReplicatedMessage(message);
   }
   Object unmarshalledOldValue=unmarshallValue(oldValue);
   fireEntryListenerEvent(key,unmarshalledOldValue,value);

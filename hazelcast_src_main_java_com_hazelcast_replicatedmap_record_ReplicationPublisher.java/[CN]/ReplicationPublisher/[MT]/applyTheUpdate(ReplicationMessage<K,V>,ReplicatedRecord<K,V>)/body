@@ -1,0 +1,19 @@
+{
+  VectorClock localVectorClock=localEntry.getVectorClock();
+  VectorClock remoteVectorClock=update.getVectorClock();
+  K marshalledKey=(K)replicatedRecordStore.marshallKey(update.getKey());
+  V marshalledValue=(V)replicatedRecordStore.marshallValue(update.getValue());
+  long ttlMillis=update.getTtlMillis();
+  Object oldValue=localEntry.setValue(marshalledValue,update.getUpdateHash(),ttlMillis);
+  localVectorClock.applyVector(remoteVectorClock);
+  if (ttlMillis > 0) {
+    replicatedRecordStore.scheduleTtlEntry(ttlMillis,marshalledKey,null);
+  }
+ else {
+    replicatedRecordStore.cancelTtlEntry(marshalledKey);
+  }
+  V unmarshalledOldValue=(V)replicatedRecordStore.unmarshallValue(oldValue);
+  if (unmarshalledOldValue == null || !unmarshalledOldValue.equals(update.getValue()) || update.getTtlMillis() != localEntry.getTtlMillis()) {
+    replicatedRecordStore.fireEntryListenerEvent(update.getKey(),unmarshalledOldValue,update.getValue());
+  }
+}
