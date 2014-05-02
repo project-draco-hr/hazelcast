@@ -16,7 +16,7 @@ synchronized (getMutex(marshalledKey)) {
     final VectorClock vectorClock;
     if (old == null) {
       vectorClock=new VectorClock();
-      ReplicatedRecord<K,V> record=new ReplicatedRecord(marshalledKey,marshalledValue,vectorClock,localMemberHash,ttlMillis);
+      ReplicatedRecord<K,V> record=buildReplicatedRecord(marshalledKey,marshalledValue,vectorClock,ttlMillis);
       storage.put(marshalledKey,record);
     }
  else {
@@ -31,7 +31,7 @@ synchronized (getMutex(marshalledKey)) {
       cancelTtlEntry(marshalledKey);
     }
     vectorClock.incrementClock(localMember);
-    ReplicationMessage message=new ReplicationMessage(getName(),key,value,vectorClock,localMember,localMemberHash,ttlMillis);
+    ReplicationMessage message=buildReplicationMessage(key,value,vectorClock,ttlMillis);
     replicationPublisher.publishReplicatedMessage(message);
   }
   Object unmarshalledOldValue=unmarshallValue(oldValue);
