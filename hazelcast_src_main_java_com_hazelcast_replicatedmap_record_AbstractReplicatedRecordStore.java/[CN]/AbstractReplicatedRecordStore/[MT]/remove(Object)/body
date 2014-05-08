@@ -1,0 +1,29 @@
+{
+  ValidationUtil.isNotNull(key,"key");
+  long time=System.currentTimeMillis();
+  storage.checkState();
+  V oldValue;
+  K marshalledKey=(K)marshallKey(key);
+synchronized (getMutex(marshalledKey)) {
+    final ReplicatedRecord current=storage.get(marshalledKey);
+    final VectorClock vectorClock;
+    if (current == null) {
+      oldValue=null;
+    }
+ else {
+      vectorClock=current.getVectorClock();
+      oldValue=(V)current.getValue();
+      current.setValue(null,0,-1);
+      vectorClock.incrementClock(localMember);
+      ReplicationMessage message=buildReplicationMessage(key,null,vectorClock,-1);
+      replicationPublisher.publishReplicatedMessage(message);
+    }
+    cancelTtlEntry(marshalledKey);
+  }
+  Object unmarshalledOldValue=unmarshallValue(oldValue);
+  fireEntryListenerEvent(key,unmarshalledOldValue,null);
+  if (replicatedMapConfig.isStatisticsEnabled()) {
+    mapStats.incrementRemoves(System.currentTimeMillis() - time);
+  }
+  return unmarshalledOldValue;
+}
