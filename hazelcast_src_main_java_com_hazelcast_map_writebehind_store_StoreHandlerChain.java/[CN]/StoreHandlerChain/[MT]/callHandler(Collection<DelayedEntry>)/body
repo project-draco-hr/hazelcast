@@ -14,5 +14,11 @@
     final DelayedEntry delayedEntry=delayeds[delayeds.length - 1];
     return callSingleStoreWithListeners(delayedEntry);
   }
-  return callBatchStoreWithListeners(batchMap);
+  final Collection<DelayedEntry> collection=callBatchStoreWithListeners(batchMap);
+  final Collection<DelayedEntry> failedTries=new ArrayList<DelayedEntry>(collection.size());
+  for (  DelayedEntry entry : collection) {
+    final Collection<DelayedEntry> tmpFaileds=callSingleStoreWithListeners(entry);
+    failedTries.addAll(tmpFaileds);
+  }
+  return failedTries;
 }
