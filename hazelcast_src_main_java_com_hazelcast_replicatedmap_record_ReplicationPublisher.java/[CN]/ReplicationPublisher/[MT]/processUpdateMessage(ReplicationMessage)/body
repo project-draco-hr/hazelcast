@@ -1,0 +1,58 @@
+{
+  if (localMember.equals(update.getOrigin())) {
+    return;
+  }
+  mapStats.incrementReceivedReplicationEvents();
+  if (update.getKey() instanceof String) {
+    String key=(String)update.getKey();
+    if (AbstractReplicatedRecordStore.CLEAR_REPLICATION_MAGIC_KEY.equals(key)) {
+      storage.clear();
+      return;
+    }
+  }
+  K marshalledKey=(K)replicatedRecordStore.marshallKey(update.getKey());
+synchronized (replicatedRecordStore.getMutex(marshalledKey)) {
+    final ReplicatedRecord<K,V> localEntry=storage.get(marshalledKey);
+    if (localEntry == null) {
+      if (!update.isRemove()) {
+        V marshalledValue=(V)replicatedRecordStore.marshallValue(update.getValue());
+        VectorClock vectorClock=update.getVectorClock();
+        int updateHash=update.getUpdateHash();
+        long ttlMillis=update.getTtlMillis();
+        storage.put(marshalledKey,new ReplicatedRecord<K,V>(marshalledKey,marshalledValue,vectorClock,updateHash,ttlMillis));
+        if (ttlMillis > 0) {
+          replicatedRecordStore.scheduleTtlEntry(ttlMillis,marshalledKey,null);
+        }
+ else {
+          replicatedRecordStore.cancelTtlEntry(marshalledKey);
+        }
+        replicatedRecordStore.fireEntryListenerEvent(update.getKey(),null,update.getValue());
+      }
+    }
+ else {
+      final VectorClock currentVectorClock=localEntry.getVectorClock();
+      final VectorClock updateVectorClock=update.getVectorClock();
+      if (VectorClock.happenedBefore(updateVectorClock,currentVectorClock)) {
+        return;
+      }
+ else       if (VectorClock.happenedBefore(currentVectorClock,updateVectorClock)) {
+        applyTheUpdate(update,localEntry);
+      }
+ else {
+        if (localEntry.getLatestUpdateHash() >= update.getUpdateHash()) {
+          applyTheUpdate(update,localEntry);
+        }
+ else {
+          currentVectorClock.applyVector(updateVectorClock);
+          currentVectorClock.incrementClock(localMember);
+          Object key=update.getKey();
+          V value=localEntry.getValue();
+          long ttlMillis=update.getTtlMillis();
+          int latestUpdateHash=localEntry.getLatestUpdateHash();
+          ReplicationMessage message=new ReplicationMessage(name,key,value,currentVectorClock,localMember,latestUpdateHash,ttlMillis);
+          distributeReplicationMessage(message,true);
+        }
+      }
+    }
+  }
+}

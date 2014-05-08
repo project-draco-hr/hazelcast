@@ -1,0 +1,40 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int operations=100;
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < operations; i++) {
+        map1.put("foo-" + i,"bar",10,TimeUnit.MINUTES);
+      }
+    }
+  }
+,60,EntryEventType.ADDED,operations,0.75,map1,map2);
+  Set<Entry<String,String>> map2entries=map2.entrySet();
+  for (  Map.Entry<String,String> entry : map2entries) {
+    assertStartsWith("foo-",entry.getKey());
+    assertEquals("bar",entry.getValue());
+    ReplicatedRecord<String,String> record=getReplicatedRecord(map2,entry.getKey());
+    assertNotEquals(0,record.getTtlMillis());
+    record.setValue(record.getValue(),record.getLatestUpdateHash(),1);
+  }
+  Set<Entry<String,String>> map1entries=map1.entrySet();
+  for (  Map.Entry<String,String> entry : map1entries) {
+    assertStartsWith("foo-",entry.getKey());
+    assertEquals("bar",entry.getValue());
+    ReplicatedRecord<String,String> record=getReplicatedRecord(map1,entry.getKey());
+    assertNotEquals(0,record.getTtlMillis());
+    record.setValue(record.getValue(),record.getLatestUpdateHash(),1);
+  }
+  Thread.sleep(2000);
+  for (  Map.Entry<String,String> entry : map2entries) {
+    assertNull(map2.get(entry.getKey()));
+  }
+  for (  Map.Entry<String,String> entry : map1entries) {
+    assertNull(map1.get(entry.getKey()));
+  }
+}
