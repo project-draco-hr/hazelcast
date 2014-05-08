@@ -1,98 +1,35 @@
 {
-  final String instanceName=client.getName();
-  register(MapService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientMapProxy(instanceName,MapService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(QueueService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientQueueProxy(instanceName,QueueService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(MultiMapService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientMultiMapProxy(instanceName,MultiMapService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(ListService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientListProxy(instanceName,ListService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(SetService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientSetProxy(instanceName,SetService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(SemaphoreService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientSemaphoreProxy(instanceName,SemaphoreService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(TopicService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientTopicProxy(instanceName,TopicService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(AtomicLongService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientAtomicLongProxy(instanceName,AtomicLongService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(AtomicReferenceService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientAtomicReferenceProxy(instanceName,AtomicReferenceService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(DistributedExecutorService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientExecutorServiceProxy(instanceName,DistributedExecutorService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(LockServiceImpl.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientLockProxy(instanceName,LockServiceImpl.SERVICE_NAME,id);
-    }
-  }
-);
+  register(MapService.SERVICE_NAME,ClientMapProxy.class);
+  register(QueueService.SERVICE_NAME,ClientQueueProxy.class);
+  register(MultiMapService.SERVICE_NAME,ClientMultiMapProxy.class);
+  register(ListService.SERVICE_NAME,ClientListProxy.class);
+  register(SetService.SERVICE_NAME,ClientSetProxy.class);
+  register(SemaphoreService.SERVICE_NAME,ClientSemaphoreProxy.class);
+  register(TopicService.SERVICE_NAME,ClientTopicProxy.class);
+  register(AtomicLongService.SERVICE_NAME,ClientAtomicLongProxy.class);
+  register(AtomicReferenceService.SERVICE_NAME,ClientAtomicReferenceProxy.class);
+  register(DistributedExecutorService.SERVICE_NAME,ClientExecutorServiceProxy.class);
+  register(LockServiceImpl.SERVICE_NAME,ClientLockProxy.class);
+  register(CountDownLatchService.SERVICE_NAME,ClientCountDownLatchProxy.class);
+  register(MapReduceService.SERVICE_NAME,ClientMapReduceProxy.class);
+  register(ReplicatedMapService.SERVICE_NAME,ClientReplicatedMapProxy.class);
   register(IdGeneratorService.SERVICE_NAME,new ClientProxyFactory(){
     public ClientProxy create(    String id){
-      String name=String.valueOf(id);
-      IAtomicLong atomicLong=client.getAtomicLong(IdGeneratorService.ATOMIC_LONG_NAME + name);
-      return new ClientIdGeneratorProxy(instanceName,IdGeneratorService.SERVICE_NAME,name,atomicLong);
-    }
-  }
-);
-  register(CountDownLatchService.SERVICE_NAME,new ClientProxyFactory(){
-    public ClientProxy create(    String id){
-      return new ClientCountDownLatchProxy(instanceName,CountDownLatchService.SERVICE_NAME,String.valueOf(id));
-    }
-  }
-);
-  register(MapReduceService.SERVICE_NAME,new ClientProxyFactory(){
-    @Override public ClientProxy create(    String id){
-      return new ClientMapReduceProxy(instanceName,MapReduceService.SERVICE_NAME,id);
+      String instanceName=client.getName();
+      IAtomicLong atomicLong=client.getAtomicLong(IdGeneratorService.ATOMIC_LONG_NAME + id);
+      return new ClientIdGeneratorProxy(instanceName,IdGeneratorService.SERVICE_NAME,id,atomicLong);
     }
   }
 );
   for (  ProxyFactoryConfig proxyFactoryConfig : config.getProxyFactoryConfigs()) {
     try {
-      ClientProxyFactory clientProxyFactory=ClassLoaderUtil.newInstance(config.getClassLoader(),proxyFactoryConfig.getClassName());
+      ClassLoader classLoader=config.getClassLoader();
+      String className=proxyFactoryConfig.getClassName();
+      ClientProxyFactory clientProxyFactory=ClassLoaderUtil.newInstance(classLoader,className);
       register(proxyFactoryConfig.getService(),clientProxyFactory);
     }
  catch (    Exception e) {
-      logger.severe(e);
+      LOGGER.severe(e);
     }
   }
 }

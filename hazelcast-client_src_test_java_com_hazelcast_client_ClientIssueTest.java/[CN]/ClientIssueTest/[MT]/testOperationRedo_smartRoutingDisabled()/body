@@ -1,0 +1,28 @@
+{
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setRedoOperation(true);
+  clientConfig.setSmartRouting(false);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final Thread thread=new Thread(){
+    public void run(){
+      try {
+        Thread.sleep(10);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      hz1.getLifecycleService().terminate();
+    }
+  }
+;
+  final IMap map=client.getMap("m");
+  thread.start();
+  int expected=1000;
+  for (int i=0; i < expected; i++) {
+    map.put(i,i);
+  }
+  thread.join();
+  assertEquals(expected,map.size());
+}
