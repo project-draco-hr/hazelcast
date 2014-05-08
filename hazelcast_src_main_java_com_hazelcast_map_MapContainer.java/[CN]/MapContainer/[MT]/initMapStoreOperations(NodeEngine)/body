@@ -1,0 +1,27 @@
+{
+  if (!isMapStoreEnabled()) {
+    return;
+  }
+  storeWrapper=createMapStoreWrapper(mapConfig.getMapStoreConfig(),nodeEngine);
+  if (storeWrapper != null) {
+    initMapStore(storeWrapper.getImpl(),mapConfig.getMapStoreConfig(),nodeEngine);
+  }
+  final boolean writeBehindMapStoreEnabled=isWriteBehindMapStoreEnabled();
+  this.writeBehindQueueManager=WriteBehindManagers.createWriteBehindManager(name,mapService,storeWrapper,writeBehindMapStoreEnabled);
+  if (writeBehindMapStoreEnabled) {
+    this.writeBehindQueueManager.addStoreListener(new StoreListener<DelayedEntry>(){
+      @Override public void beforeStore(      StoreEvent<DelayedEntry> storeEvent){
+      }
+      @Override public void afterStore(      StoreEvent<DelayedEntry> storeEvent){
+        final Data key=(Data)storeEvent.getSource().getKey();
+        final int partitionId=mapService.getNodeEngine().getPartitionService().getPartitionId(key);
+        final PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
+        final RecordStore recordStore=partitionContainer.getRecordStore(name);
+        recordStore.removeFromWriteBehindWaitingDeletions(key);
+        ccc.incrementAndGet();
+      }
+    }
+);
+    this.writeBehindQueueManager.start();
+  }
+}

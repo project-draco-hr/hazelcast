@@ -1,0 +1,14 @@
+{
+  final MapService service=mapService;
+  final NodeEngine nodeEngine=service.getNodeEngine();
+  for (int partitionId=0; partitionId < nodeEngine.getPartitionService().getPartitionCount(); partitionId++) {
+    final Address owner=nodeEngine.getPartitionService().getPartitionOwner(partitionId);
+    final boolean isOwner=nodeEngine.getThisAddress().equals(owner);
+    if (!isOwner) {
+      continue;
+    }
+    final Operation expirationOperation=createExpirationOperation(partitionId);
+    OperationService operationService=mapService.getNodeEngine().getOperationService();
+    operationService.executeOperation(expirationOperation);
+  }
+}
