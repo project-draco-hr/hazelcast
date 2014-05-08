@@ -1,0 +1,17 @@
+{
+  final HazelcastInstance instance=createHazelcastInstanceFactory(1).newHazelcastInstance();
+  TransactionContext outerTnx=instance.newTransactionContext();
+  outerTnx.beginTransaction();
+  final String name=randomString();
+  final String item=randomString();
+  outerTnx.getQueue(name).offer(item);
+  try {
+    TransactionContext innerTnx=instance.newTransactionContext();
+    innerTnx.beginTransaction();
+    innerTnx.getQueue(name).offer(item);
+    innerTnx.commitTransaction();
+  }
+  finally {
+    outerTnx.rollbackTransaction();
+  }
+}
