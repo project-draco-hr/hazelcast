@@ -1,19 +1,20 @@
 {
   final ObjectNamespace ns=new DefaultObjectNamespace(service,id);
-  final ClientProxy proxy=proxies.get(ns);
-  if (proxy != null) {
-    return proxy;
+  ClientProxyFuture proxyFuture=proxies.get(ns);
+  if (proxyFuture != null) {
+    return proxyFuture.get();
   }
   final ClientProxyFactory factory=proxyFactories.get(service);
   if (factory == null) {
     throw new IllegalArgumentException("No factory registered for service: " + service);
   }
   final ClientProxy clientProxy=factory.create(id);
-  clientProxy.setContext(new ClientContext(client,this));
-  final ClientProxy current=proxies.putIfAbsent(ns,clientProxy);
+  final ClientProxyFuture future=new ClientProxyFuture();
+  final ClientProxyFuture current=proxies.putIfAbsent(ns,future);
   if (current != null) {
-    return current;
+    return current.get();
   }
   initialize(clientProxy);
+  future.set(clientProxy);
   return clientProxy;
 }
