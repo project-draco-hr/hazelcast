@@ -1,18 +1,16 @@
 {
+  final long nowInNanos=System.nanoTime();
   MapContainer mapContainer=getMapContainer(name);
   Record record=mapContainer.getRecordFactory().newRecord(dataKey,value);
-  if (shouldSchedule) {
-    if (ttl < 0 && mapContainer.getMapConfig().getTimeToLiveSeconds() > 0) {
-      final long delay=TimeUnit.SECONDS.toMillis(mapContainer.getMapConfig().getTimeToLiveSeconds());
-      scheduleTtlEviction(name,record,delay);
-    }
- else     if (ttl > 0) {
-      scheduleTtlEviction(name,record,ttl);
-    }
-    if (mapContainer.getMapConfig().getMaxIdleSeconds() > 0) {
-      final long delay=TimeUnit.SECONDS.toMillis(mapContainer.getMapConfig().getMaxIdleSeconds());
-      scheduleIdleEviction(name,dataKey,delay);
-    }
+  record.setCreationTime(nowInNanos);
+  record.setLastAccessTime(nowInNanos);
+  record.setLastUpdatedTime(nowInNanos);
+  final int timeToLiveSeconds=mapContainer.getMapConfig().getTimeToLiveSeconds();
+  if (ttl < 0L && timeToLiveSeconds > 0) {
+    record.setTtl(TimeUnit.SECONDS.toNanos(timeToLiveSeconds));
+  }
+ else   if (ttl > 0L) {
+    record.setTtl(TimeUnit.MILLISECONDS.toNanos(ttl));
   }
   return record;
 }
