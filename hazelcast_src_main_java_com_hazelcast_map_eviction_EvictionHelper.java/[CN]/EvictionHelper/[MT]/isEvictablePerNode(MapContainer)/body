@@ -1,0 +1,24 @@
+{
+  int nodeTotalSize=0;
+  final MapService mapService=mapContainer.getMapService();
+  final MaxSizeConfig maxSizeConfig=mapContainer.getMapConfig().getMaxSizeConfig();
+  final int maxSize=getApproximateMaxSize(maxSizeConfig.getSize());
+  final String mapName=mapContainer.getName();
+  final NodeEngine nodeEngine=mapService.getNodeEngine();
+  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  final int partitionCount=partitionService.getPartitionCount();
+  for (int i=0; i < partitionCount; i++) {
+    final Address owner=partitionService.getPartitionOwner(i);
+    if (nodeEngine.getThisAddress().equals(owner)) {
+      final PartitionContainer container=mapService.getPartitionContainer(i);
+      if (container == null) {
+        return false;
+      }
+      nodeTotalSize+=container.getRecordStore(mapName).size();
+      if (nodeTotalSize >= maxSize) {
+        return true;
+      }
+    }
+  }
+  return false;
+}

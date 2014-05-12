@@ -1,0 +1,17 @@
+{
+  for (  Map.Entry<Integer,Integer> entry : partitionToEntryCountHolder.entrySet()) {
+    final Integer partitionId=entry.getKey();
+    final PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
+    final RecordStore recordStore=partitionContainer.getExistingRecordStore(mapName);
+    if (recordStore == null) {
+      continue;
+    }
+    final WriteBehindQueue<DelayedEntry> queue=recordStore.getWriteBehindQueue();
+    removeProcessed(queue,partitionToEntryCountHolder.get(partitionId));
+    final Collection<DelayedEntry> faileds=failedsPerPartition.get(partitionId);
+    if (faileds == null || faileds.isEmpty()) {
+      continue;
+    }
+    queue.addFront(faileds);
+  }
+}
