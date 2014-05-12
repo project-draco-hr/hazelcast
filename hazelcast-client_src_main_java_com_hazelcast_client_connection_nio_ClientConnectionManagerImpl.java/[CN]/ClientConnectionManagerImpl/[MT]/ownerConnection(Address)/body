@@ -4,7 +4,10 @@
   ICompletableFuture<ClientConnection> future=executionService.submitInternal(connectionProcessor);
   try {
     final ClientConnection clientConnection=future.get(5,TimeUnit.SECONDS);
-    ownerConnectionAddress=clientConnection.getRemoteEndpoint();
+synchronized (ownerConnectionLock) {
+      ownerConnectionAddress=clientConnection.getRemoteEndpoint();
+      ownerConnectionLock.notifyAll();
+    }
     return clientConnection;
   }
  catch (  Exception e) {

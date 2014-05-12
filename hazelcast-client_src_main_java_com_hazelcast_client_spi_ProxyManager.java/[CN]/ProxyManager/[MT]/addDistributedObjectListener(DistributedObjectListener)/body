@@ -3,7 +3,8 @@
   final EventHandler<PortableDistributedObjectEvent> eventHandler=new EventHandler<PortableDistributedObjectEvent>(){
     public void handle(    PortableDistributedObjectEvent e){
       final ObjectNamespace ns=new DefaultObjectNamespace(e.getServiceName(),e.getName());
-      ClientProxy proxy=proxies.get(ns);
+      ClientProxyFuture future=proxies.get(ns);
+      ClientProxy proxy=future == null ? null : future.get();
       if (proxy == null) {
         proxy=getProxy(e.getServiceName(),e.getName());
       }
@@ -14,6 +15,8 @@
  else       if (DistributedObjectEvent.EventType.DESTROYED.equals(e.getEventType())) {
         listener.distributedObjectDestroyed(event);
       }
+    }
+    @Override public void onListenerRegister(){
     }
   }
 ;

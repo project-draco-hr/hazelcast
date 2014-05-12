@@ -7,16 +7,23 @@
       RecordStore recordStore=mapService.getRecordStore(getPartitionId(),mapName);
       for (      RecordReplicationInfo recordReplicationInfo : recordReplicationInfos) {
         Data key=recordReplicationInfo.getKey();
-        Record newRecord=mapService.createRecord(mapName,key,recordReplicationInfo.getValue(),-1,false);
-        mapService.applyRecordInfo(newRecord,mapName,recordReplicationInfo);
-        recordStore.putRecord(key,newRecord);
+        Record newRecord=mapService.createRecord(mapName,key,recordReplicationInfo.getValue(),-1);
+        mapService.applyRecordInfo(newRecord,recordReplicationInfo);
+        recordStore.putForReplication(key,newRecord);
       }
     }
   }
   if (mapInitialLoadInfo != null) {
-    for (    String mapName : mapInitialLoadInfo.keySet()) {
+    for (    Entry<String,Boolean> entry : mapInitialLoadInfo.entrySet()) {
+      final String mapName=entry.getKey();
       RecordStore recordStore=mapService.getRecordStore(getPartitionId(),mapName);
-      recordStore.setLoaded(mapInitialLoadInfo.get(mapName));
+      recordStore.setLoaded(entry.getValue());
     }
+  }
+  for (  Entry<String,List<DelayedEntry>> entry : delayedEntries.entrySet()) {
+    final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),entry.getKey());
+    final List<DelayedEntry> replicatedEntries=entry.getValue();
+    final WriteBehindQueue<DelayedEntry> writeBehindQueue=recordStore.getWriteBehindQueue();
+    writeBehindQueue.addEnd(replicatedEntries);
   }
 }

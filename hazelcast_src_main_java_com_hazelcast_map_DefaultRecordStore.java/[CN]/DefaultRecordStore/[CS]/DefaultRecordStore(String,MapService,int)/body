@@ -4,56 +4,12 @@
   this.mapService=mapService;
   this.mapContainer=mapService.getMapContainer(name);
   this.logger=mapService.getNodeEngine().getLogger(this.getName());
-  recordFactory=mapContainer.getRecordFactory();
+  this.recordFactory=mapContainer.getRecordFactory();
+  this.writeBehindQueue=WriteBehindQueues.createDefaultWriteBehindQueue(mapContainer.isWriteBehindMapStoreEnabled());
+  this.writeBehindWaitingDeletions=mapContainer.isWriteBehindMapStoreEnabled() ? Collections.newSetFromMap(new ConcurrentHashMap()) : (Set<Data>)Collections.EMPTY_SET;
   NodeEngine nodeEngine=mapService.getNodeEngine();
   final LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
   this.lockStore=lockService == null ? null : lockService.createLockStore(partitionId,new DefaultObjectNamespace(MapService.SERVICE_NAME,name));
   this.sizeEstimator=SizeEstimators.createMapSizeEstimator();
-  final int mapLoadChunkSize=nodeEngine.getGroupProperties().MAP_LOAD_CHUNK_SIZE.getInteger();
-  final Queue<Map> chunks=new LinkedList<Map>();
-  if (nodeEngine.getThisAddress().equals(nodeEngine.getPartitionService().getPartitionOwner(partitionId))) {
-    if (mapContainer.getStore() != null && !loaded.get()) {
-      Map<Data,Object> loadedKeys=mapContainer.getInitialKeys();
-      if (loadedKeys != null && !loadedKeys.isEmpty()) {
-        Map<Data,Object> partitionKeys=new HashMap<Data,Object>();
-        Iterator<Map.Entry<Data,Object>> iterator=loadedKeys.entrySet().iterator();
-        while (iterator.hasNext()) {
-          final Map.Entry<Data,Object> entry=iterator.next();
-          final Data data=entry.getKey();
-          if (partitionId == nodeEngine.getPartitionService().getPartitionId(data)) {
-            partitionKeys.put(data,entry.getValue());
-            if (partitionKeys.size() >= mapLoadChunkSize) {
-              chunks.add(partitionKeys);
-              partitionKeys=new HashMap<Data,Object>();
-            }
-            iterator.remove();
-          }
-        }
-        if (!partitionKeys.isEmpty()) {
-          chunks.add(partitionKeys);
-        }
-        if (!chunks.isEmpty()) {
-          try {
-            Map<Data,Object> chunkedKeys;
-            final AtomicInteger checkIfMapLoaded=new AtomicInteger(chunks.size());
-            while ((chunkedKeys=chunks.poll()) != null) {
-              nodeEngine.getExecutionService().submit("hz:map-load",new MapLoadAllTask(chunkedKeys,checkIfMapLoaded));
-            }
-          }
- catch (          Throwable t) {
-            throw ExceptionUtil.rethrow(t);
-          }
-        }
- else {
-          loaded.set(true);
-        }
-      }
- else {
-        loaded.set(true);
-      }
-    }
-  }
- else {
-    loaded.set(true);
-  }
+  loadFromMapStore(nodeEngine);
 }
