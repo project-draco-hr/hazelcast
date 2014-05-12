@@ -1,0 +1,20 @@
+{
+  List<MemberImpl> failedMembers=new ArrayList<MemberImpl>(clusterService.getMemberList());
+  for (int i=0; i < MAX_CLEAR_EXECUTION_RETRY; i++) {
+    Map<MemberImpl,InternalCompletableFuture> futures=executeClearOnMembers(failedMembers,emptyReplicationQueue);
+    failedMembers.clear();
+    for (    Map.Entry<MemberImpl,InternalCompletableFuture> future : futures.entrySet()) {
+      try {
+        future.getValue().get();
+      }
+ catch (      Exception e) {
+        nodeEngine.getLogger(ReplicationPublisher.class).finest(e);
+        failedMembers.add(future.getKey());
+      }
+    }
+    if (failedMembers.size() == 0) {
+      return;
+    }
+  }
+  throw new CallTimeoutException("ReplicatedMap::clear couldn't be finished, failed nodes: " + failedMembers);
+}
