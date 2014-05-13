@@ -1,0 +1,19 @@
+{
+  if (evictedKeyValueSequence == null || evictedKeyValueSequence.isEmpty()) {
+    return;
+  }
+  NodeEngine nodeEngine=getNodeEngine();
+  Address owner=nodeEngine.getPartitionService().getPartitionOwner(getPartitionId());
+  boolean isOwner=nodeEngine.getThisAddress().equals(owner);
+  for (int i=0; i < evictedKeyValueSequence.size(); i+=2) {
+    Data key=(Data)evictedKeyValueSequence.get(i);
+    Object value=evictedKeyValueSequence.get(i + 1);
+    mapService.interceptAfterRemove(name,value);
+    if (mapService.isNearCacheAndInvalidationEnabled(name)) {
+      mapService.invalidateAllNearCaches(name,key);
+    }
+    if (isOwner) {
+      EvictionHelper.fireEvent(key,value,name,mapService);
+    }
+  }
+}

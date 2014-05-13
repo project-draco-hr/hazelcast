@@ -3,9 +3,10 @@
   final int size=10;
   final String mapName="testEvictionPerPartition";
   Config cfg=new Config();
+  cfg.setProperty(GroupProperties.PROP_PARTITION_COUNT,"1");
   final MapConfig mc=cfg.getMapConfig(mapName);
   mc.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
-  mc.setEvictionPercentage(25);
+  mc.setEvictionPercentage(50);
   final MaxSizeConfig msc=new MaxSizeConfig();
   msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_PARTITION);
   msc.setSize(size);
@@ -16,12 +17,15 @@
   int insertCount=size * pnum * 2;
   final Map map=instances[0].getMap(mapName);
   for (int i=0; i < insertCount; i++) {
+    if (i == insertCount - 1) {
+      sleepMillis(1100);
+    }
     map.put(i,i);
   }
-  Thread.sleep(2000);
+  System.out.println(map.size());
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      assertTrue(map.size() < size * pnum * (100 - mc.getEvictionPercentage()) / 100);
+      assertTrue(map.size() < size);
     }
   }
 );

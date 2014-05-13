@@ -15,13 +15,15 @@
   int backupCount=mapContainer.getTotalBackupCount();
   ClusterService clusterService=nodeEngine.getClusterService();
   final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  final TimeUnit unit=TimeUnit.NANOSECONDS;
   Address thisAddress=clusterService.getThisAddress();
   for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
     InternalPartition partition=partitionService.getPartition(partitionId);
     Address owner=partition.getOwner();
     if (owner == null) {
+      continue;
     }
- else     if (owner.equals(thisAddress)) {
+    if (owner.equals(thisAddress)) {
       PartitionContainer partitionContainer=getPartitionContainer(partitionId);
       RecordStore recordStore=partitionContainer.getExistingRecordStore(mapName);
       if (recordStore != null) {
@@ -31,13 +33,14 @@
           RecordStatistics stats=record.getStatistics();
           ownedEntryCount++;
           ownedEntryMemoryCost+=record.getCost();
-          localMapStats.setLastAccessTime(stats.getLastAccessTime());
-          localMapStats.setLastUpdateTime(stats.getLastUpdateTime());
+          localMapStats.setLastAccessTime(unit.toMillis(record.getLastAccessTime()));
+          localMapStats.setLastUpdateTime(unit.toMillis(record.getLastUpdateTime()));
           hits+=stats.getHits();
           if (recordStore.isLocked(record.getKey())) {
             lockedEntryCount++;
           }
         }
+        dirtyCount+=recordStore.getWriteBehindQueue().size();
       }
     }
  else {
@@ -68,9 +71,6 @@
         }
       }
     }
-  }
-  if (mapContainer.getMapStoreScheduler() != null) {
-    dirtyCount=mapContainer.getMapStoreScheduler().size();
   }
   localMapStats.setBackupCount(backupCount);
   localMapStats.setDirtyEntryCount(zeroOrPositive(dirtyCount));

@@ -1,23 +1,25 @@
 {
   checkIfLoaded();
-  Data dataKey=entry.getKey();
+  earlyWriteCleanup();
+  Data key=entry.getKey();
   Object value=entry.getValue();
-  Record record=records.get(dataKey);
+  Record record=records.get(key);
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
-    value=writeMapStore(dataKey,value,null);
-    record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL);
-    records.put(dataKey,record);
+    value=mapStoreWrite(key,value,null);
+    record=mapService.createRecord(name,key,value,DEFAULT_TTL);
+    records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
   }
  else {
     final Object oldValue=record.getValue();
     value=mapService.interceptPut(name,oldValue,value);
-    value=writeMapStore(dataKey,value,record);
+    value=mapStoreWrite(key,value,record);
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,value);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
   }
+  removeFromWriteBehindWaitingDeletions(key);
 }
