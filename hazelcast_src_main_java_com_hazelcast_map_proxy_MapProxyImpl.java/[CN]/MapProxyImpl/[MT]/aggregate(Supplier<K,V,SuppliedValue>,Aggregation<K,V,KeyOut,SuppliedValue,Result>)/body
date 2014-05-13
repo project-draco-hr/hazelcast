@@ -1,0 +1,17 @@
+{
+  try {
+    HazelcastInstance hazelcastInstance=getNodeEngine().getHazelcastInstance();
+    JobTracker jobTracker=hazelcastInstance.getJobTracker("hz::aggregation-map-" + getName());
+    KeyValueSource<K,V> keyValueSource=KeyValueSource.fromMap(this);
+    Job<K,V> job=jobTracker.newJob(keyValueSource);
+    Mapper<K,V,KeyOut,SuppliedValue> mapper=aggregation.getMapper(supplier);
+    CombinerFactory<KeyOut,SuppliedValue,SuppliedValue> combinerFactory=aggregation.getCombinerFactory();
+    ReducerFactory<KeyOut,SuppliedValue,SuppliedValue> reducerFactory=aggregation.getReducerFactory();
+    Collator<Map.Entry<KeyOut,SuppliedValue>,Result> collator=aggregation.getCollator();
+    ICompletableFuture<Result> future=job.mapper(mapper).combiner(combinerFactory).reducer(reducerFactory).submit(collator);
+    return future.get();
+  }
+ catch (  Exception e) {
+    throw new HazelcastException(e);
+  }
+}
