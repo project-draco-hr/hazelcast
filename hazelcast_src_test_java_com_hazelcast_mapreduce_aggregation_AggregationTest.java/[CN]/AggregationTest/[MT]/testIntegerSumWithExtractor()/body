@@ -1,0 +1,13 @@
+{
+  String mapName=randomMapName();
+  IMap<String,IntegerValue> map=hz1.getMap(mapName);
+  int expectation=0;
+  for (int i=0; i < 100000; i++) {
+    map.put("key-" + i,new IntegerValue(i));
+    expectation+=i;
+  }
+  Supplier<String,IntegerValue,Integer> supplier=Supplier.all(new IntegerValuePropertyExtractor());
+  Aggregation<String,IntegerValue,String,Integer,Integer> aggregation=Aggregations.integerSum();
+  int sum=map.aggregate(supplier,aggregation);
+  assertEquals(expectation,sum);
+}
