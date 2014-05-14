@@ -1,12 +1,16 @@
 {
   checkIfLoaded();
-  Record record=records.get(dataKey);
+  Record record=records.get(key);
+  if (hasWaitingWriteBehindDeleteOperation(key)) {
+    return false;
+  }
+  record=nullIfExpired(record);
   if (record == null) {
     if (mapContainer.getStore() != null) {
-      Object value=mapContainer.getStore().load(mapService.toObject(dataKey));
+      Object value=mapContainer.getStore().load(mapService.toObject(key));
       if (value != null) {
-        record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL);
-        records.put(dataKey,record);
+        record=mapService.createRecord(name,key,value,DEFAULT_TTL);
+        records.put(key,record);
         updateSizeEstimator(calculateRecordSize(record));
       }
     }
@@ -15,5 +19,6 @@
   if (contains) {
     accessRecord(record);
   }
+  postReadCleanUp();
   return contains;
 }

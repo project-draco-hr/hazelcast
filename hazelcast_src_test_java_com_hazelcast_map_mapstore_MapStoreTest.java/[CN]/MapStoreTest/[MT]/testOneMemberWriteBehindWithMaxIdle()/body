@@ -1,22 +1,26 @@
 {
-  TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  final TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
   Config config=newConfig(testMapStore,5);
+  config.setProperty(GroupProperties.PROP_PARTITION_COUNT,"1");
   config.getMapConfig("default").setMaxIdleSeconds(10);
   HazelcastInstance h1=createHazelcastInstance(config);
-  IMap map=h1.getMap("default");
+  final IMap map=h1.getMap("default");
   final int total=10;
-  final CountDownLatch latch=new CountDownLatch(total);
-  map.addEntryListener(new EntryAdapter(){
-    public void entryEvicted(    EntryEvent event){
-      latch.countDown();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD_ALL_KEYS,testMapStore.getEvents().poll());
     }
   }
-,true);
-  assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD_ALL_KEYS,testMapStore.waitForEvent(10));
+);
   for (int i=0; i < total; i++) {
     map.put(i,"value" + i);
   }
-  latch.await(30,TimeUnit.SECONDS);
-  assertEquals(0,map.size());
+  sleepSeconds(10);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,map.size());
+    }
+  }
+);
   assertEquals(total,testMapStore.getStore().size());
 }

@@ -1,9 +1,10 @@
 {
-  Record record=records.get(dataKey);
+  Record record=records.get(key);
+  earlyWriteCleanup();
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
-    record=mapService.createRecord(name,dataKey,value,ttl);
-    records.put(dataKey,record);
+    record=mapService.createRecord(name,key,value,ttl);
+    records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
   }
  else {
@@ -14,4 +15,5 @@
     updateTtl(record,ttl);
   }
   saveIndex(record);
+  removeFromWriteBehindWaitingDeletions(key);
 }

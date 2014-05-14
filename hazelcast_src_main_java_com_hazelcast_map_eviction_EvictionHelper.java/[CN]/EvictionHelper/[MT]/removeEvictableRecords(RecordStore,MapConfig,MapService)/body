@@ -1,0 +1,57 @@
+{
+  final int partitionSize=recordStore.size();
+  if (partitionSize < 1) {
+    return;
+  }
+  final int evictableSize=getEvictableSize(partitionSize,mapConfig,mapService);
+  if (evictableSize < 1) {
+    return;
+  }
+  final MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
+  final Map<Data,Record> entries=recordStore.getReadonlyRecordMap();
+  final int size=entries.size();
+  if (entries.isEmpty()) {
+    return;
+  }
+  final long[] criterias=new long[size];
+  int index=0;
+  for (  final Record record : entries.values()) {
+    criterias[index]=getEvictionCriteriaValue(record,evictionPolicy);
+    index++;
+    if (index == size) {
+      break;
+    }
+  }
+  if (criterias.length == 0) {
+    return;
+  }
+  if (index < criterias.length) {
+    for (int i=index; i < criterias.length; i++) {
+      criterias[i]=Long.MAX_VALUE;
+    }
+  }
+  Arrays.sort(criterias);
+  final int evictableBaseIndex=index == 0 ? index : Math.min(evictableSize,index - 1);
+  final long criteriaValue=criterias[evictableBaseIndex];
+  int evictedRecordCounter=0;
+  for (  final Map.Entry<Data,Record> entry : entries.entrySet()) {
+    final Record record=entry.getValue();
+    final long value=getEvictionCriteriaValue(record,evictionPolicy);
+    if (value <= criteriaValue) {
+      final Data tmpKey=record.getKey();
+      final Object tmpValue=record.getValue();
+      if (evictIfNotLocked(tmpKey,recordStore)) {
+        evictedRecordCounter++;
+        final String mapName=mapConfig.getName();
+        mapService.interceptAfterRemove(mapName,value);
+        if (mapService.isNearCacheAndInvalidationEnabled(mapName)) {
+          mapService.invalidateAllNearCaches(mapName,tmpKey);
+        }
+        fireEvent(tmpKey,tmpValue,mapName,mapService);
+      }
+    }
+    if (evictedRecordCounter >= evictableSize) {
+      break;
+    }
+  }
+}

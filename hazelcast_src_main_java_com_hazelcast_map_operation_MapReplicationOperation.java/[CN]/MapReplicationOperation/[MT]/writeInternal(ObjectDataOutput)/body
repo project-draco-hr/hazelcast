@@ -13,4 +13,19 @@
     out.writeUTF(entry.getKey());
     out.writeBoolean(entry.getValue());
   }
+  final MapService mapService=getService();
+  out.writeInt(delayedEntries.size());
+  for (  Entry<String,List<DelayedEntry>> entry : delayedEntries.entrySet()) {
+    out.writeUTF(entry.getKey());
+    final List<DelayedEntry> delayedEntryList=entry.getValue();
+    out.writeInt(delayedEntryList.size());
+    for (    DelayedEntry e : delayedEntryList) {
+      final Data key=mapService.toData(e.getKey());
+      final Data value=mapService.toData(e.getValue());
+      IOUtil.writeNullableData(out,key);
+      IOUtil.writeNullableData(out,value);
+      out.writeLong(e.getStoreTime());
+      out.writeInt(e.getPartitionId());
+    }
+  }
 }

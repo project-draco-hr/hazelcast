@@ -1,0 +1,27 @@
+{
+  boolean result=false;
+  Throwable throwable=null;
+  int k=0;
+  for (; k < RETRY_TIMES_OF_A_FAILED_STORE_OPERATION; k++) {
+    try {
+      result=task.run();
+    }
+ catch (    Throwable t) {
+      throwable=t;
+    }
+    if (!result) {
+      sleepSeconds(RETRY_STORE_AFTER_WAIT_SECONDS);
+    }
+ else {
+      break;
+    }
+  }
+  if (k > 0) {
+    final String msg=String.format("Store operation failed and retries %s",result ? "succeeded." : "failed too.");
+    logger.warning(msg,throwable);
+    if (!result) {
+      return task.failedList();
+    }
+  }
+  return Collections.emptyList();
+}
