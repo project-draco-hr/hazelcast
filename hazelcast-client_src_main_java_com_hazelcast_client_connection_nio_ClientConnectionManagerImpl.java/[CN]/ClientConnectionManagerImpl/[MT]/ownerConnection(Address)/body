@@ -3,12 +3,11 @@
   final ConnectionProcessor connectionProcessor=new ConnectionProcessor(address,authenticator,true);
   ICompletableFuture<ClientConnection> future=executionService.submitInternal(connectionProcessor);
   try {
-    final ClientConnection clientConnection=future.get(5,TimeUnit.SECONDS);
+    ownerConnection=future.get(connectionTimeout + TIMEOUT_PLUS,TimeUnit.MILLISECONDS);
 synchronized (ownerConnectionLock) {
-      ownerConnectionAddress=clientConnection.getRemoteEndpoint();
       ownerConnectionLock.notifyAll();
     }
-    return clientConnection;
+    return ownerConnection;
   }
  catch (  Exception e) {
     future.cancel(true);

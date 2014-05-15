@@ -1,15 +1,19 @@
 {
   final int utflen=in.readShort();
-  int c=0, char2, char3;
+  int c=0;
+  int char2=0;
+  int char3=0;
   int count=0;
-  int chararr_count=beginIndex;
+  int charArrCount=beginIndex;
   int lastCount=-1;
   while (count < utflen) {
     c=buffered(buffer,count,utflen,in) & 0xff;
-    if (c > 127)     break;
+    if (c > 127) {
+      break;
+    }
     lastCount=count;
     count++;
-    data[chararr_count++]=(char)c;
+    data[charArrCount++]=(char)c;
   }
   while (count < utflen) {
     if (lastCount > -1 && lastCount < count) {
@@ -26,23 +30,31 @@ case 6:
 case 7:
       lastCount=count;
     count++;
-  data[chararr_count++]=(char)c;
+  data[charArrCount++]=(char)c;
 break;
 case 12:
 case 13:
 lastCount=count++;
-if (count + 1 > utflen) throw new UTFDataFormatException("malformed input: partial character at end");
+if (count + 1 > utflen) {
+throw new UTFDataFormatException("malformed input: partial character at end");
+}
 char2=buffered(buffer,count++,utflen,in);
-if ((char2 & 0xC0) != 0x80) throw new UTFDataFormatException("malformed input around byte " + count);
-data[chararr_count++]=(char)(((c & 0x1F) << 6) | (char2 & 0x3F));
+if ((char2 & 0xC0) != 0x80) {
+throw new UTFDataFormatException("malformed input around byte " + count);
+}
+data[charArrCount++]=(char)(((c & 0x1F) << 6) | (char2 & 0x3F));
 break;
 case 14:
 lastCount=count++;
-if (count + 2 > utflen) throw new UTFDataFormatException("malformed input: partial character at end");
+if (count + 2 > utflen) {
+throw new UTFDataFormatException("malformed input: partial character at end");
+}
 char2=buffered(buffer,count++,utflen,in);
 char3=buffered(buffer,count++,utflen,in);
-if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80)) throw new UTFDataFormatException("malformed input around byte " + (count - 1));
-data[chararr_count++]=(char)(((c & 0x0F) << 12) | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
+if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80)) {
+throw new UTFDataFormatException("malformed input around byte " + (count - 1));
+}
+data[charArrCount++]=(char)(((c & 0x0F) << 12) | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
 break;
 default :
 throw new UTFDataFormatException("malformed input around byte " + count);
