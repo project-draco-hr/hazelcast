@@ -1,5 +1,5 @@
 {
-  final long now=nanoNow();
+  final long now=nowInNanos();
   final MapService mapService=this.mapService;
   final NodeEngine nodeEngine=mapService.getNodeEngine();
   final ClusterService clusterService=nodeEngine.getClusterService();
@@ -23,7 +23,7 @@
     final WriteBehindQueue<DelayedEntry> queue=recordStore.getWriteBehindQueue();
     final List<DelayedEntry> delayedEntries=filterLessThanOrEqualToTime(queue,now,TimeUnit.NANOSECONDS);
     if (!owner.equals(thisAddress)) {
-      if (now < lastRunTimeInNanos + backupWorkIntervalTimeInNanos) {
+      if (now < lastRunTimeInNanos + backupRunIntervalTimeInNanos) {
         doInBackup(queue,delayedEntries,partitionId);
       }
       continue;
@@ -42,10 +42,9 @@
   if (sortedDelayedEntries.isEmpty()) {
     return;
   }
-  lastRunTimeInNanos=nanoNow();
+  lastRunTimeInNanos=nowInNanos();
   Collections.sort(sortedDelayedEntries,DELAYED_ENTRY_COMPARATOR);
-  final Map<Integer,Collection<DelayedEntry>> failedsPerPartition=new HashMap<Integer,Collection<DelayedEntry>>();
-  mapStoreManager.process(sortedDelayedEntries,failedsPerPartition);
-  removeProcessedEntries(mapService,mapName,partitionToEntryCountHolder,failedsPerPartition);
-  writeBehindManager.reset();
+  final Map<Integer,Collection<DelayedEntry>> failsPerPartition=new HashMap<Integer,Collection<DelayedEntry>>();
+  mapStoreManager.process(sortedDelayedEntries,failsPerPartition);
+  removeProcessedEntries(mapService,mapName,partitionToEntryCountHolder,failsPerPartition);
 }
