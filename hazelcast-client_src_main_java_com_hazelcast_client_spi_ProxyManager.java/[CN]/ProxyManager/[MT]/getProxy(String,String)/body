@@ -9,12 +9,19 @@
     throw new IllegalArgumentException("No factory registered for service: " + service);
   }
   final ClientProxy clientProxy=factory.create(id);
-  final ClientProxyFuture future=new ClientProxyFuture();
-  final ClientProxyFuture current=proxies.putIfAbsent(ns,future);
+  proxyFuture=new ClientProxyFuture();
+  final ClientProxyFuture current=proxies.putIfAbsent(ns,proxyFuture);
   if (current != null) {
     return current.get();
   }
-  initialize(clientProxy);
-  future.set(clientProxy);
+  try {
+    initialize(clientProxy);
+  }
+ catch (  Exception e) {
+    proxies.remove(ns);
+    proxyFuture.set(e);
+    throw ExceptionUtil.rethrow(e);
+  }
+  proxyFuture.set(clientProxy);
   return clientProxy;
 }
