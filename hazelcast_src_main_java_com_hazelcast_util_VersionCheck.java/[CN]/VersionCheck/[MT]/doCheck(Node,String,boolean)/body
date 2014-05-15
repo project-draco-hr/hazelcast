@@ -1,11 +1,17 @@
 {
-  URLClassLoader cl=(URLClassLoader)getClass().getClassLoader();
+  final ClassLoader cl=getClass().getClassLoader();
   String p="NULL";
   try {
-    URL url=cl.findResource("META-INF/MANIFEST.MF");
-    Manifest manifest=new Manifest(url.openStream());
-    final Attributes mainAttributes=manifest.getMainAttributes();
-    p=mainAttributes.getValue("clientId");
+    final Enumeration<URL> resources=cl.getResources("META-INF/MANIFEST.MF");
+    while (resources.hasMoreElements()) {
+      final URL url=resources.nextElement();
+      Manifest manifest=new Manifest(url.openStream());
+      final Attributes mainAttributes=manifest.getMainAttributes();
+      p=mainAttributes.getValue("hazelcast.downloadId");
+      if (p != null) {
+        break;
+      }
+    }
   }
  catch (  IOException ignored) {
   }
