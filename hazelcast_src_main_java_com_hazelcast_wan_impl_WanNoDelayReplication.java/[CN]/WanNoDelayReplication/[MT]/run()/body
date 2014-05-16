@@ -1,0 +1,33 @@
+{
+  Connection conn=null;
+  while (running) {
+    try {
+      WanReplicationEvent event=(failureQ.size() > 0) ? failureQ.removeFirst() : eventQueue.take();
+      if (conn == null) {
+        conn=getConnection();
+        if (conn != null) {
+          conn=authorizeConnection(conn);
+        }
+      }
+      if (conn != null && conn.live()) {
+        Data data=node.nodeEngine.getSerializationService().toData(event);
+        Packet packet=new Packet(data,node.nodeEngine.getSerializationContext());
+        packet.setHeader(Packet.HEADER_WAN_REPLICATION);
+        node.nodeEngine.send(packet,conn);
+      }
+ else {
+        failureQ.addFirst(event);
+        conn=null;
+      }
+    }
+ catch (    InterruptedException e) {
+      running=false;
+    }
+catch (    Throwable e) {
+      if (logger != null) {
+        logger.warning(e);
+      }
+      conn=null;
+    }
+  }
+}
