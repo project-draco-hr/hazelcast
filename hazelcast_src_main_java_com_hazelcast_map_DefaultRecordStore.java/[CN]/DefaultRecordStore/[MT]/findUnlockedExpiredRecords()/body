@@ -1,0 +1,25 @@
+{
+  checkIfLoaded();
+  final long nowInNanos=nowInNanos();
+  List<Object> expiredKeyValueSequence=Collections.emptyList();
+  boolean createLazy=true;
+  for (  Map.Entry<Data,Record> entry : records.entrySet()) {
+    final Data key=entry.getKey();
+    if (isLocked(key)) {
+      continue;
+    }
+    final Record record=entry.getValue();
+    if (isReachable(record,nowInNanos)) {
+      continue;
+    }
+    final Object value=record.getValue();
+    evict(key);
+    if (createLazy) {
+      expiredKeyValueSequence=new ArrayList<Object>();
+      createLazy=false;
+    }
+    expiredKeyValueSequence.add(key);
+    expiredKeyValueSequence.add(value);
+  }
+  return expiredKeyValueSequence;
+}
