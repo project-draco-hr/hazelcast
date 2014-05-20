@@ -1,6 +1,13 @@
 {
   EntryListener entryListener=(EntryListener)listener;
-  EntryEvent entryEvent=new EntryEvent(event.getName(),nodeEngine.getClusterService().getMember(event.getCaller()),event.getEventType().getType(),nodeEngine.toObject(event.getKey()),nodeEngine.toObject(event.getValue()));
+  final MemberImpl member=nodeEngine.getClusterService().getMember(event.getCaller());
+  EntryEvent entryEvent=new EntryEvent(event.getName(),member,event.getEventType().getType(),nodeEngine.toObject(event.getKey()),nodeEngine.toObject(event.getValue()));
+  if (member == null) {
+    if (logger.isLoggable(Level.INFO)) {
+      logger.info("Dropping event " + entryEvent + " from unknown address:"+ event.getCaller());
+    }
+    return;
+  }
   if (event.getEventType().equals(EntryEventType.ADDED)) {
     entryListener.entryAdded(entryEvent);
   }
