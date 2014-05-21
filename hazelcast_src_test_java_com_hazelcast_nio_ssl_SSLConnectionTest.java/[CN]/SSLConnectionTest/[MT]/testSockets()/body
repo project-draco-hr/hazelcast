@@ -1,52 +1,15 @@
 {
-  Properties props=TestKeyStoreUtil.createSslProperties();
   ServerSocketChannel serverSocketChannel=null;
   Socket socket=null;
   final ExecutorService ex=Executors.newCachedThreadPool();
   try {
     final int count=250;
-    BasicSSLContextFactory factory=new BasicSSLContextFactory();
-    factory.init(props);
-    final SSLContext context=factory.getSSLContext();
     serverSocketChannel=ServerSocketChannel.open();
-    serverSocketChannel.configureBlocking(true);
-    int port=13131;
-    serverSocketChannel.socket().bind(new InetSocketAddress(port));
-    final ServerSocketChannel ssc=serverSocketChannel;
-    ex.execute(new Runnable(){
-      public void run(){
-        SocketChannelWrapper socketChannel=null;
-        try {
-          socketChannel=new SSLSocketChannelWrapper(context,ssc.accept(),false);
-          final CountDownLatch latch=new CountDownLatch(2);
-          final BlockingQueue<Integer> queue=new ArrayBlockingQueue<Integer>(count);
-          ex.execute(new ChannelReader(socketChannel,count,latch){
-            void processData(            int i,            int data) throws Exception {
-              queue.add(data);
-            }
-          }
-);
-          ex.execute(new ChannelWriter(socketChannel,count,latch){
-            int prepareData(            int i) throws Exception {
-              int data=queue.poll(30,TimeUnit.SECONDS);
-              return data * 2 + 1;
-            }
-          }
-);
-          latch.await(2,TimeUnit.MINUTES);
-        }
- catch (        Exception e) {
-          e.printStackTrace();
-        }
- finally {
-          IOUtil.closeResource(socketChannel);
-        }
-      }
-    }
-);
-    javax.net.ssl.SSLSocketFactory socketFactory=context.getSocketFactory();
+    ex.execute(new ServerSocketChannelProcessor(serverSocketChannel,count,ex));
+    SSLContext clientContext=createClientSslContext();
+    javax.net.ssl.SSLSocketFactory socketFactory=clientContext.getSocketFactory();
     socket=socketFactory.createSocket();
-    socket.connect(new InetSocketAddress(port));
+    socket.connect(new InetSocketAddress(PORT));
     DataOutputStream out=new DataOutputStream(socket.getOutputStream());
     DataInputStream in=new DataInputStream(socket.getInputStream());
     for (int i=0; i < count; i++) {
