@@ -1,5 +1,12 @@
 {
-  ItemEvent itemEvent=new ItemEvent(event.name,event.eventType,nodeEngine.toObject(event.data),nodeEngine.getClusterService().getMember(event.caller));
+  final MemberImpl member=nodeEngine.getClusterService().getMember(event.caller);
+  ItemEvent itemEvent=new ItemEvent(event.name,event.eventType,nodeEngine.toObject(event.data),member);
+  if (member == null) {
+    if (logger.isLoggable(Level.INFO)) {
+      logger.info("Dropping event " + itemEvent + " from unknown address:"+ event.caller);
+    }
+    return;
+  }
   if (event.eventType.equals(ItemEventType.ADDED)) {
     listener.itemAdded(itemEvent);
   }
