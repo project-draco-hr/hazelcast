@@ -1,0 +1,18 @@
+{
+  long heapCost=0L;
+  final MapService mapService=MapEvictionManager.this.mapService;
+  final String mapName=mapContainer.getName();
+  final NodeEngine nodeEngine=mapService.getNodeEngine();
+  final Address thisAddress=nodeEngine.getThisAddress();
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    if (nodeEngine.getPartitionService().getPartition(i).isOwnerOrBackup(thisAddress)) {
+      final PartitionContainer container=mapService.getPartitionContainer(i);
+      if (container == null) {
+        return -1;
+      }
+      heapCost+=container.getRecordStore(mapName).getHeapCost();
+    }
+  }
+  heapCost+=mapContainer.getNearCacheSizeEstimator().getSize();
+  return heapCost;
+}

@@ -3,17 +3,21 @@
   final RecordStore recordStore=container.getRecordStore(name);
   LinkedList<QueryableEntry> partitionResult=new LinkedList<QueryableEntry>();
   for (  Record record : recordStore.getReadonlyRecordMap().values()) {
-    final Data key=record.getKey();
-    Object value=record.getCachedValue();
-    if (value == Record.NOT_CACHED) {
-      value=record.getValue();
-      if (value != null && value instanceof Data) {
-        value=ss.toObject(value);
+    Data key=record.getKey();
+    Object value;
+    if (record instanceof CachedDataRecord) {
+      CachedDataRecord cachedDataRecord=(CachedDataRecord)record;
+      value=cachedDataRecord.getCachedValue();
+      if (value == null) {
+        value=ss.toObject(cachedDataRecord.getValue());
+        cachedDataRecord.setCachedValue(value);
       }
     }
  else {
-      value=ss.toObject(record.getValue());
-      record.setCachedValue(value);
+      value=record.getValue();
+      if (value instanceof Data) {
+        value=ss.toObject((Data)value);
+      }
     }
     if (value == null) {
       continue;

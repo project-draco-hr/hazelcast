@@ -1,0 +1,19 @@
+{
+  checkIfLoaded();
+  EntryTaskScheduler writeScheduler=mapContainer.getMapStoreScheduler();
+  Set<Data> keys=new HashSet<Data>(1);
+  keys.add(key);
+  if (writeScheduler != null) {
+    Set<Data> processedKeys=writeScheduler.flush(keys);
+    for (    Data pkey : processedKeys) {
+      records.get(pkey).onStore();
+    }
+  }
+  EntryTaskScheduler deleteScheduler=mapContainer.getMapStoreScheduler();
+  if (deleteScheduler != null) {
+    if (toBeRemovedKeys.contains(key)) {
+      deleteScheduler.flush(keys);
+      toBeRemovedKeys.remove(key);
+    }
+  }
+}

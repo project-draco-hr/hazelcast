@@ -1,0 +1,51 @@
+{
+  final MapConfig mapConfig=this.mapConfig;
+  final String mapName=mapConfig.getName();
+  final MapService mapService=MapEvictionManager.this.mapService;
+  final NodeEngine nodeEngine=mapService.getNodeEngine();
+  Set<Data> keysGatheredForNearCacheEviction=Collections.emptySet();
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    if ((i % ExecutorConfig.DEFAULT_POOL_SIZE) != mod) {
+      continue;
+    }
+    final Address owner=nodeEngine.getPartitionService().getPartitionOwner(i);
+    if (nodeEngine.getThisAddress().equals(owner)) {
+      final PartitionContainer pc=mapService.getPartitionContainer(i);
+      final RecordStore recordStore=pc.getRecordStore(mapName);
+      final Collection<Record> values=recordStore.getReadonlyRecordMap().values();
+      if (values.isEmpty()) {
+        continue;
+      }
+      final Object[][] evictableKeyValuePairs=getEvictableRecords(recordStore,mapConfig);
+      if (evictableKeyValuePairs.length == 0) {
+        continue;
+      }
+      final Set<Data> keySet=new HashSet<Data>(evictableKeyValuePairs.length);
+      for (      final Object[] kvp : evictableKeyValuePairs) {
+        if (kvp[0] != null) {
+          keySet.add((Data)kvp[0]);
+        }
+      }
+      if (keySet.isEmpty()) {
+        continue;
+      }
+      keysGatheredForNearCacheEviction=new HashSet<Data>(keySet.size());
+      keysGatheredForNearCacheEviction.addAll(keySet);
+      EvictKeysOperation evictKeysOperation=new EvictKeysOperation(mapName,keySet);
+      evictKeysOperation.setNodeEngine(nodeEngine);
+      evictKeysOperation.setServiceName(MapService.SERVICE_NAME);
+      evictKeysOperation.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+      evictKeysOperation.setPartitionId(i);
+      OperationAccessor.setCallerAddress(evictKeysOperation,nodeEngine.getThisAddress());
+      nodeEngine.getOperationService().executeOperation(evictKeysOperation);
+      for (      final Object[] kvp : evictableKeyValuePairs) {
+        if (kvp[0] != null) {
+          mapService.publishEvent(nodeEngine.getThisAddress(),mapName,EntryEventType.EVICTED,(Data)kvp[0],mapService.toData(kvp[1]),null);
+        }
+      }
+    }
+  }
+  if (mapService.isNearCacheAndInvalidationEnabled(mapName)) {
+    mapService.invalidateAllNearCaches(mapName,keysGatheredForNearCacheEviction);
+  }
+}

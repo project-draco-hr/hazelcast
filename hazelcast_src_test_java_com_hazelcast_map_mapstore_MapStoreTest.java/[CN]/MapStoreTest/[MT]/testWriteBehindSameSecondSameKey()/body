@@ -1,27 +1,21 @@
 {
-  final TestMapStore testMapStore=new TestMapStore(100,0,0);
+  TestMapStore testMapStore=new TestMapStore(100,0,0);
   testMapStore.setLoadAllKeys(false);
   Config config=newConfig(testMapStore,2);
   HazelcastInstance h1=createHazelcastInstance(config);
   IMap<Object,Object> map=h1.getMap("testWriteBehindSameSecondSameKey");
   final int size1=20;
   final int size2=10;
+  testMapStore.latchStoreOpCount=new CountDownLatch(size1);
+  testMapStore.latchStoreAllOpCount=new CountDownLatch(size2);
   for (int i=0; i < size1; i++) {
     map.put("key","value" + i);
   }
   for (int i=0; i < size2; i++) {
     map.put("key" + i,"value" + i);
   }
-  assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
-      assertEquals("value" + (size1 - 1),testMapStore.getStore().get("key"));
-    }
-  }
-);
-  assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
-      assertEquals("value" + (size2 - 1),testMapStore.getStore().get("key" + (size2 - 1)));
-    }
-  }
-);
+  assertOpenEventually("store operations must be finished.",testMapStore.latchStoreOpCount);
+  assertOpenEventually("store all operations must be finished.",testMapStore.latchStoreAllOpCount);
+  assertEquals("value" + (size1 - 1),testMapStore.getStore().get("key"));
+  assertEquals("value" + (size2 - 1),testMapStore.getStore().get("key" + (size2 - 1)));
 }

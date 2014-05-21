@@ -1,10 +1,19 @@
 {
   checkIfLoaded();
-  final Collection<Data> processedKeys=mapContainer.getWriteBehindManager().flush(writeBehindQueue);
-  for (  Data pkey : processedKeys) {
-    final Record record=records.get(pkey);
-    if (record != null) {
-      record.onStore();
+  Set<Data> keys=new HashSet<Data>();
+  for (  Record record : records.values()) {
+    keys.add(record.getKey());
+  }
+  EntryTaskScheduler writeScheduler=mapContainer.getMapStoreScheduler();
+  if (writeScheduler != null) {
+    Set<Data> processedKeys=writeScheduler.flush(keys);
+    for (    Data key : processedKeys) {
+      records.get(key).onStore();
     }
+  }
+  EntryTaskScheduler deleteScheduler=mapContainer.getMapStoreScheduler();
+  if (deleteScheduler != null) {
+    deleteScheduler.flush(toBeRemovedKeys);
+    toBeRemovedKeys.clear();
   }
 }
