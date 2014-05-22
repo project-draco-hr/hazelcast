@@ -1,15 +1,16 @@
 {
   final MapStoreWrapper store=mapContainer.getStore();
-  if (store == null) {
-    return;
-  }
-  final long writeDelayMillis=mapContainer.getWriteDelayMillis();
-  if (writeDelayMillis < 1L) {
-    store.delete(mapService.toObject(key));
-    if (record != null) {
-      record.onStore();
+  if (store != null) {
+    long writeDelayMillis=mapContainer.getWriteDelayMillis();
+    if (writeDelayMillis == 0) {
+      store.delete(mapService.toObject(key));
+      if (record != null) {
+        record.onStore();
+      }
     }
-    return;
+ else {
+      mapService.scheduleMapStoreDelete(name,key,writeDelayMillis);
+      toBeRemovedKeys.add(key);
+    }
   }
-  addToDelayedStore(key,null);
 }

@@ -1,0 +1,39 @@
+{
+  if (entries.isEmpty())   return;
+  NodeEngine nodeEngine=mapService.getNodeEngine();
+  if (entries.size() == 1) {
+    ScheduledEntry<Data,Object> entry=entries.iterator().next();
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(entry.getKey());
+    if (nodeEngine.getThisAddress().equals(nodeEngine.getPartitionService().getPartitionOwner(partitionId))) {
+      Exception e=tryDelete(scheduler,entry);
+      if (e != null) {
+        logger.severe(e);
+      }
+    }
+  }
+ else {
+    Set keys=new HashSet();
+    Exception e=null;
+    for (    ScheduledEntry<Data,Object> entry : entries) {
+      int partitionId=nodeEngine.getPartitionService().getPartitionId(entry.getKey());
+      if (nodeEngine.getThisAddress().equals(nodeEngine.getPartitionService().getPartitionOwner(partitionId))) {
+        keys.add(mapService.toObject(entry.getKey()));
+      }
+    }
+    try {
+      mapContainer.getStore().deleteAll(keys);
+    }
+ catch (    Exception ex) {
+      logger.warning(mapContainer.getStore().getMapStore().getClass() + " --> deleteAll was failed, " + "now Hazelcast is trying to delete one by one: ",ex);
+      for (      ScheduledEntry<Data,Object> entry : entries) {
+        Exception temp=tryDelete(scheduler,entry);
+        if (temp != null) {
+          e=temp;
+        }
+      }
+    }
+    if (e != null) {
+      logger.severe(e);
+    }
+  }
+}

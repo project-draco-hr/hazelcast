@@ -1,5 +1,5 @@
 {
-  final TestMapStore testMapStore=new TestMapStore(2,0,0);
+  TestMapStore testMapStore=new TestMapStore(2,0,0);
   testMapStore.setLoadAllKeys(false);
   Config config=newConfig(testMapStore,5);
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
@@ -9,10 +9,6 @@
   map.put("key","value");
   Thread.sleep(2000);
   map.put("key","value2");
-  assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
-      assertEquals("value2",testMapStore.getStore().get("key"));
-    }
-  }
-);
+  testMapStore.latchStore.await(10,TimeUnit.SECONDS);
+  assertEquals("value2",testMapStore.getStore().get("key"));
 }
