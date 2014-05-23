@@ -1,13 +1,18 @@
 {
   checkIfLoaded();
   earlyWriteCleanup();
-  Record record=records.get(dataKey);
+  Record record=records.get(key);
   Object newValue;
   if (record == null) {
-    newValue=mergingEntry.getValue();
-    newValue=mapStoreWrite(dataKey,newValue,null);
-    record=mapService.createRecord(name,dataKey,newValue,DEFAULT_TTL);
-    records.put(dataKey,record);
+    final Object notExistingKey=mapService.toObject(key);
+    final EntryView<Object,Object> nullEntryView=EntryViews.createNullEntryView(notExistingKey);
+    newValue=mergePolicy.merge(name,mergingEntry,nullEntryView);
+    if (newValue == null) {
+      return false;
+    }
+    newValue=mapStoreWrite(key,newValue,null);
+    record=mapService.createRecord(name,key,newValue,DEFAULT_TTL);
+    records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
   }
  else {
@@ -15,16 +20,16 @@
     EntryView existingEntry=mapService.createSimpleEntryView(mapService.toObject(record.getKey()),mapService.toObject(record.getValue()),record);
     newValue=mergePolicy.merge(name,mergingEntry,existingEntry);
     if (newValue == null) {
-      removeIndex(dataKey);
-      mapStoreDelete(record,dataKey);
+      removeIndex(key);
+      mapStoreDelete(record,key);
       updateSizeEstimator(-calculateRecordSize(record));
-      deleteRecord(dataKey);
+      deleteRecord(key);
       return true;
     }
     if (mapService.compare(name,newValue,oldValue)) {
       return true;
     }
-    newValue=mapStoreWrite(dataKey,newValue,record);
+    newValue=mapStoreWrite(key,newValue,record);
     updateSizeEstimator(-calculateRecordSize(record));
     recordFactory.setValue(record,newValue);
     updateSizeEstimator(calculateRecordSize(record));
