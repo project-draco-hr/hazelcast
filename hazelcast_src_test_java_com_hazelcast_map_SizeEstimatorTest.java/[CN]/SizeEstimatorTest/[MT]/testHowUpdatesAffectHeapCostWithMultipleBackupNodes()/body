@@ -1,0 +1,24 @@
+{
+  final String mapName=randomMapName("testHowUpdatesAffectHeapCostWithMultipleBackupNodes");
+  final int nodeCount=3;
+  final int backupCount=nodeCount - 1;
+  final int expectedReplicaCount=nodeCount;
+  final long putCount=1000L;
+  final long expectedPerEntryHeapCost=160L;
+  final Config config=new Config();
+  config.getMapConfig(mapName).setBackupCount(backupCount);
+  final TestHazelcastInstanceFactory instanceFactory=new TestHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance[] nodes=instanceFactory.newInstances(config);
+  final IMap<Long,Long> map=nodes[0].getMap(mapName);
+  for (long i=0; i < putCount; i++) {
+    map.put(i,i);
+  }
+  for (long i=0; i < putCount; i++) {
+    map.put(i,i);
+  }
+  long heapCost=0L;
+  for (int i=0; i < nodeCount; i++) {
+    heapCost+=nodes[i].getMap(mapName).getLocalMapStats().getHeapCost();
+  }
+  assertEquals("Map heap cost calculation is wrong!",expectedPerEntryHeapCost * putCount * expectedReplicaCount,heapCost);
+}
