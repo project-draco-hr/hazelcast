@@ -1,18 +1,31 @@
 {
-  String configFile=System.getProperty("hazelcast.config");
+  String configSystemProperty=System.getProperty("hazelcast.config");
   try {
-    if (configFile != null) {
-      configurationFile=new File(configFile);
-      logger.info("Using configuration file at " + configurationFile.getAbsolutePath());
-      if (!configurationFile.exists()) {
-        String msg="Config file at '" + configurationFile.getAbsolutePath() + "' doesn't exist.";
-        msg+="\nHazelcast will try to use the hazelcast.xml config file in the working directory.";
-        logger.warning(msg);
-        configurationFile=null;
+    if (configSystemProperty != null) {
+      logger.info("Loading configuration " + configSystemProperty + " from System property 'hazelcast.config'");
+      if (configSystemProperty.startsWith("classpath:")) {
+        String resource=configSystemProperty.substring("classpath:".length());
+        logger.info("Using classpath resource at " + resource);
+        if (resource.isEmpty()) {
+          throw new HazelcastException("classpath resource can't be empty");
+        }
+        URL url=Config.class.getClassLoader().getResource(configSystemProperty);
+        if (url == null) {
+          throw new HazelcastException("Could not load classpath resource: " + resource);
+        }
+        configurationFile=new File(url.getFile());
+      }
+ else {
+        configurationFile=new File(configSystemProperty);
+        logger.info("Using configuration file at " + configurationFile.getAbsolutePath());
+        if (!configurationFile.exists()) {
+          String msg="Config file at '" + configurationFile.getAbsolutePath() + "' doesn't exist.";
+          throw new HazelcastException(msg);
+        }
       }
     }
     if (configurationFile == null) {
-      configFile="hazelcast.xml";
+      configSystemProperty="hazelcast.xml";
       configurationFile=new File("hazelcast.xml");
       if (!configurationFile.exists()) {
         configurationFile=null;
@@ -26,7 +39,7 @@
         usingSystemConfig=true;
       }
  catch (      final Exception e) {
-        String msg="Having problem reading config file at '" + configFile + "'.";
+        String msg="Having problem reading config file at '" + configSystemProperty + "'.";
         msg+="\nException message: " + e.getMessage();
         msg+="\nHazelcast will try to use the hazelcast.xml config file in classpath.";
         logger.warning(msg);
@@ -53,7 +66,13 @@
       }
     }
   }
- catch (  final Throwable e) {
-    logger.severe("Error while creating configuration:" + e.getMessage(),e);
+ catch (  HazelcastException e) {
+    throw e;
+  }
+catch (  final Error e) {
+    throw e;
+  }
+catch (  Exception e) {
+    throw new HazelcastException(e);
   }
 }
