@@ -1,0 +1,25 @@
+{
+  final ClassLoader cl=getClass().getClassLoader();
+  String downloadId="NULL";
+  InputStream is=null;
+  try {
+    final Enumeration<URL> resources=cl.getResources("META-INF/MANIFEST.MF");
+    while (resources.hasMoreElements()) {
+      final URL url=resources.nextElement();
+      is=url.openStream();
+      Manifest manifest=new Manifest(is);
+      final Attributes mainAttributes=manifest.getMainAttributes();
+      downloadId=mainAttributes.getValue("hazelcast.downloadId");
+      if (downloadId != null) {
+        break;
+      }
+    }
+  }
+ catch (  IOException ignored) {
+  }
+ finally {
+    IOUtil.closeResource(is);
+  }
+  String urlStr="http://www.hazelcast.com/version.jsp?version=" + version + "&m="+ hazelcastNode.getLocalMember().getUuid()+ "&e="+ isEnterprise+ "&l="+ toMD5String(hazelcastNode.getConfig().getLicenseKey())+ "&p="+ downloadId+ "&c="+ toMD5String(hazelcastNode.getConfig().getGroupConfig().getName())+ "&crsz="+ convertToLetter(hazelcastNode.getClusterService().getMembers().size())+ "&cssz="+ convertToLetter(hazelcastNode.clientEngine.getClientEndpointCount());
+  fetchWebService(urlStr);
+}
