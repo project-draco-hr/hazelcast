@@ -9,8 +9,10 @@
         Data key=recordReplicationInfo.getKey();
         Record newRecord=mapService.createRecord(mapName,key,recordReplicationInfo.getValue(),-1,false);
         mapService.applyRecordInfo(newRecord,mapName,recordReplicationInfo);
-        recordStore.putRecord(key,newRecord);
-        updateSizeEstimator(newRecord,recordStore);
+        final Record existingRecord=recordStore.putRecord(key,newRecord);
+        final SizeEstimator sizeEstimator=recordStore.getSizeEstimator();
+        updateSizeEstimator(-calculateRecordSize(existingRecord,sizeEstimator),sizeEstimator);
+        updateSizeEstimator(calculateRecordSize(newRecord,sizeEstimator),sizeEstimator);
       }
     }
   }
