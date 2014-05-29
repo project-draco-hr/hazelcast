@@ -10,15 +10,15 @@
     }
     JsonObject request=JsonObject.readFrom(sb.toString());
     if (!request.isEmpty()) {
-      JsonObject innerRequest=request.get("request").asObject();
-      final int type=innerRequest.get("type").asInt();
-      final int taskId=request.get("taskId").asInt();
+      JsonObject innerRequest=getObject(request,"request");
+      final int type=getInt(innerRequest,"type");
+      final int taskId=getInt(request,"taskId");
       Class<? extends ConsoleRequest> requestClass=consoleRequests.get(type);
       if (requestClass == null) {
         throw new RuntimeException("Failed to find a request for requestType:" + type);
       }
       ConsoleRequest task=requestClass.newInstance();
-      task.fromJson(innerRequest.get("request").asObject());
+      task.fromJson(getObject(innerRequest,"request"));
       processTaskAndSendResponse(taskId,task);
     }
   }

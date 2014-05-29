@@ -3,16 +3,19 @@
   try {
     HttpURLConnection connection=openConnection(url);
     OutputStream outputStream=connection.getOutputStream();
+    final OutputStreamWriter writer=new OutputStreamWriter(outputStream);
     try {
       JsonObject root=new JsonObject();
       root.add("identifier",identifier.toJson());
       TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
       root.add("timedMemberState",timedMemberState.toJson());
-      root.writeTo(new OutputStreamWriter(outputStream));
+      root.writeTo(writer);
+      writer.flush();
       outputStream.flush();
       post(connection);
     }
   finally {
+      closeResource(writer);
       closeResource(outputStream);
     }
   }
