@@ -1,0 +1,62 @@
+{
+  this.client=client;
+  this.addressTranslator=addressTranslator;
+  final ClientConfig config=client.getClientConfig();
+  final ClientNetworkConfig networkConfig=config.getNetworkConfig();
+  final GroupConfig groupConfig=config.getGroupConfig();
+  final ClientSecurityConfig securityConfig=config.getSecurityConfig();
+  Credentials c=securityConfig.getCredentials();
+  if (c == null) {
+    final String credentialsClassname=securityConfig.getCredentialsClassname();
+    if (credentialsClassname != null) {
+      try {
+        c=ClassLoaderUtil.newInstance(config.getClassLoader(),credentialsClassname);
+      }
+ catch (      Exception e) {
+        throw ExceptionUtil.rethrow(e);
+      }
+    }
+  }
+  if (c == null) {
+    c=new UsernamePasswordCredentials(groupConfig.getName(),groupConfig.getPassword());
+  }
+  int timeout=client.clientProperties.CONNECTION_TIMEOUT.getInteger();
+  this.connectionTimeout=timeout > 0 ? timeout : Integer.parseInt(PROP_CONNECTION_TIMEOUT_DEFAULT);
+  int interval=client.clientProperties.HEARTBEAT_INTERVAL.getInteger();
+  this.heartBeatInterval=interval > 0 ? interval : Integer.parseInt(PROP_HEARTBEAT_INTERVAL_DEFAULT);
+  int failedHeartbeat=client.clientProperties.MAX_FAILED_HEARTBEAT_COUNT.getInteger();
+  this.maxFailedHeartbeatCount=failedHeartbeat > 0 ? failedHeartbeat : Integer.parseInt(PROP_MAX_FAILED_HEARTBEAT_COUNT_DEFAULT);
+  this.smartRouting=networkConfig.isSmartRouting();
+  this.executionService=client.getClientExecutionService();
+  this.credentials=c;
+  router=new Router(loadBalancer);
+  inSelector=new ClientInSelectorImpl(client.getThreadGroup());
+  outSelector=new ClientOutSelectorImpl(client.getThreadGroup());
+  SocketInterceptorConfig sic=networkConfig.getSocketInterceptorConfig();
+  SocketInterceptor implementation=null;
+  if (sic != null && sic.isEnabled()) {
+    implementation=(SocketInterceptor)sic.getImplementation();
+    if (implementation == null && sic.getClassName() != null) {
+      try {
+        implementation=(SocketInterceptor)Class.forName(sic.getClassName()).newInstance();
+      }
+ catch (      Throwable e) {
+        LOGGER.severe("SocketInterceptor class cannot be instantiated!" + sic.getClassName(),e);
+      }
+    }
+  }
+  socketInterceptor=implementation;
+  if (socketInterceptor != null) {
+    LOGGER.info("SocketInterceptor is enabled");
+    socketInterceptor.init(sic.getProperties());
+  }
+  socketOptions=networkConfig.getSocketOptions();
+  SSLConfig sslConfig=networkConfig.getSSLConfig();
+  if (sslConfig != null && sslConfig.isEnabled()) {
+    socketChannelWrapperFactory=new SSLSocketChannelWrapperFactory(sslConfig);
+    LOGGER.info("SSL is enabled");
+  }
+ else {
+    socketChannelWrapperFactory=new DefaultSocketChannelWrapperFactory();
+  }
+}

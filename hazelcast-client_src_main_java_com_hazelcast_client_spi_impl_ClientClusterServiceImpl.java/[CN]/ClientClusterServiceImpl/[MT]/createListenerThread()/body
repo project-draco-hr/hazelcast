@@ -1,0 +1,14 @@
+{
+  final ClientAwsConfig awsConfig=client.getClientConfig().getNetworkConfig().getAwsConfig();
+  final Collection<ServiceAddressLoader> serviceAddressLoader=new LinkedList<ServiceAddressLoader>();
+  if (awsConfig != null && awsConfig.isEnabled()) {
+    try {
+      serviceAddressLoader.add(new AwsAddressLoader(awsConfig));
+    }
+ catch (    NoClassDefFoundError e) {
+      LOGGER.log(Level.WARNING,"hazelcast-cloud.jar might be missing!");
+      throw e;
+    }
+  }
+  return new ClusterListenerThread(client.getThreadGroup(),client.getName() + ".cluster-listener",serviceAddressLoader);
+}
