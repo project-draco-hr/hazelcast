@@ -1,0 +1,23 @@
+{
+  if (cd == null) {
+    return null;
+  }
+  if (cd instanceof ClassDefinitionImpl) {
+    final ClassDefinitionImpl cdImpl=(ClassDefinitionImpl)cd;
+    if (cdImpl.getVersion() < 0) {
+      cdImpl.version=getVersion();
+    }
+    setClassDefBinary(cdImpl);
+    registerNestedDefinitions(cdImpl);
+  }
+  final long versionedClassId=combineToLong(cd.getClassId(),cd.getVersion());
+  final ClassDefinition currentCd=versionedDefinitions.putIfAbsent(versionedClassId,cd);
+  if (currentCd == null) {
+    return cd;
+  }
+  if (currentCd instanceof ClassDefinitionImpl) {
+    return currentCd;
+  }
+  versionedDefinitions.put(versionedClassId,cd);
+  return cd;
+}
