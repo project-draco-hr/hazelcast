@@ -1,0 +1,37 @@
+{
+  Config config1=new Config();
+{
+    config1.setProperty("hazelcast.local.localAddress","127.0.0.1");
+    MulticastConfig multicastConfig=config1.getNetworkConfig().getJoin().getMulticastConfig();
+    multicastConfig.setEnabled(true);
+    multicastConfig.setLoopbackModeEnabled(false);
+  }
+  Config config2=new Config();
+{
+    config2.setProperty("hazelcast.local.localAddress","127.0.0.1");
+    MulticastConfig multicastConfig=config2.getNetworkConfig().getJoin().getMulticastConfig();
+    multicastConfig.setEnabled(true);
+    multicastConfig.setLoopbackModeEnabled(false);
+  }
+  String dataName=randomMapName(MulticastLoopbackModeTest.class.getName());
+  String myID=randomString();
+  HazelcastInstance hz1=HazelcastInstanceFactory.newHazelcastInstance(config1);
+  assertNotNull("cannot create the first hazelcastInstance",hz1);
+  try {
+    ISet<String> theMap=hz1.getSet(dataName);
+    theMap.add(myID);
+    HazelcastInstance hz2=HazelcastInstanceFactory.newHazelcastInstance(config2);
+    assertNotNull("cannot create the first hazelcastInstance",hz2);
+    try {
+      ISet<String> remoteMap=hz2.getSet(dataName);
+      sleepSeconds(1);
+      assertFalse(remoteMap.contains(myID));
+    }
+  finally {
+      if (hz2 != null)       TestUtil.terminateInstance(hz2);
+    }
+  }
+  finally {
+    if (hz1 != null)     TestUtil.terminateInstance(hz1);
+  }
+}
