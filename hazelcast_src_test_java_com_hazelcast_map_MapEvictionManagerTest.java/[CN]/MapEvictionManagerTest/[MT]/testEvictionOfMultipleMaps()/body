@@ -1,0 +1,14 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance();
+  final IMap<String,String> nonEvictableMap=instance.getMap("A");
+  final IMap<String,String> halfFullMap=getConfiguredMapFromInstance(instance,"B");
+  final IMap<String,String> toBeEvictedMap=getConfiguredMapFromInstance(instance,"C");
+  populateMap(nonEvictableMap,MAX_SIZE * 2);
+  populateMap(halfFullMap,MAX_SIZE / 2);
+  populateMap(toBeEvictedMap,MAX_SIZE * 2);
+  waitForEvictionToHappen();
+  assertEquals(nonEvictableMap.size(),MAX_SIZE * 2);
+  assertEquals(halfFullMap.size(),MAX_SIZE / 2);
+  assertTrue(toBeEvictedMap.size() < MAX_SIZE);
+}
