@@ -2,22 +2,9 @@
   if (event.getMember().localMember()) {
     return;
   }
-  final String uuid=event.getMember().getUuid();
+  final String deadMemberUuid=event.getMember().getUuid();
   try {
-    nodeEngine.getExecutionService().schedule(new Runnable(){
-      @Override public void run(){
-        Iterator<ClientEndpoint> iterator=endpoints.values().iterator();
-        while (iterator.hasNext()) {
-          ClientEndpoint endpoint=iterator.next();
-          String ownerUuid=endpoint.getPrincipal().getOwnerUuid();
-          if (uuid.equals(ownerUuid)) {
-            iterator.remove();
-            destroyEndpoint(endpoint,true);
-          }
-        }
-      }
-    }
-,ENDPOINT_REMOVE_DELAY_MS,TimeUnit.SECONDS);
+    nodeEngine.getExecutionService().schedule(new DestroyEndpointTask(deadMemberUuid),ENDPOINT_REMOVE_DELAY,TimeUnit.SECONDS);
   }
  catch (  RejectedExecutionException e) {
     if (logger.isFinestEnabled()) {
