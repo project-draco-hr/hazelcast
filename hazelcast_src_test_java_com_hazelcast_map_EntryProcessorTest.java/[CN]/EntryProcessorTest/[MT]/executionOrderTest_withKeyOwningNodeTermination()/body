@@ -1,7 +1,7 @@
 {
   String mapName=randomString();
   Config cfg=new Config();
-  cfg.getMapConfig(mapName).setInMemoryFormat(InMemoryFormat.BINARY);
+  cfg.getMapConfig(mapName).setInMemoryFormat(InMemoryFormat.OBJECT);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
   HazelcastInstance instance1=factory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=factory.newHazelcastInstance(cfg);
@@ -11,7 +11,7 @@
   final IMap<Object,List<Integer>> processorMap=instance1.getMap(mapName);
   processorMap.put(key,new ArrayList<Integer>());
   for (int i=0; i < maxTasks; i++) {
-    processorMap.executeOnKey(key,new SimpleEntryProcessor(i));
+    processorMap.submitToKey(key,new SimpleEntryProcessor(i));
     if (i == maxTasks / 2) {
       instance2.getLifecycleService().terminate();
     }
@@ -28,7 +28,7 @@
   assertTrueEventually(new AssertTask(){
     public void run() throws Exception {
       List<Integer> actualOrder=processorMap.get(key);
-      System.out.println("SIZE at assert = " + actualOrder.size());
+      System.out.println("list at assert = " + actualOrder);
       assertEquals(actualOrder.size(),maxTasks);
     }
   }
