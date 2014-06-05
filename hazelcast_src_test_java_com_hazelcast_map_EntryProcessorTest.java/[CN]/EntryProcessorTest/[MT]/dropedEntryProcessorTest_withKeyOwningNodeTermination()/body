@@ -2,26 +2,33 @@
   String mapName=randomString();
   Config cfg=new Config();
   cfg.getMapConfig(mapName).setInMemoryFormat(InMemoryFormat.OBJECT);
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(101);
+  final int maxItterations=50;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(maxItterations + 1);
   HazelcastInstance instance1=factory.newHazelcastInstance(cfg);
-  for (int go=0; go < 100; go++) {
-    System.out.println("======================" + go + "==============================");
+  for (int iteration=0; iteration < maxItterations; iteration++) {
+    System.out.println("======================" + iteration + "==============================");
     HazelcastInstance instance2=factory.newHazelcastInstance(cfg);
     final int maxTasks=20;
     final Object key=generateKeyOwnedBy(instance2);
     final IMap<Object,List<Integer>> processorMap=instance1.getMap(mapName);
     processorMap.put(key,new ArrayList<Integer>());
+    List<Future> futures=new ArrayList<Future>();
     for (int i=0; i < maxTasks; i++) {
-      processorMap.submitToKey(key,new SimpleEntryProcessor(i));
+      Future f=processorMap.submitToKey(key,new SimpleEntryProcessor(i));
+      futures.add(f);
       if (i == maxTasks / 2) {
         instance2.getLifecycleService().terminate();
       }
     }
+    for (    Future f : futures) {
+      f.get();
+    }
+    final int itter=iteration;
     assertTrueEventually(new AssertTask(){
       public void run() throws Exception {
         List<Integer> actualOrder=processorMap.get(key);
         System.out.println("list at assert = " + actualOrder + "size "+ actualOrder.size());
-        assertEquals(actualOrder.size(),maxTasks);
+        assertEquals("failed to execute all entry processor tasks at iteration " + itter,+actualOrder.size(),maxTasks);
       }
     }
 );
