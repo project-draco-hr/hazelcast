@@ -9,7 +9,11 @@
       ICompletableFuture<Object> future=startSupervisionTask(jobFuture,mapReduceService,nodeEngine,jobTracker);
       future.andThen(new ExecutionCallback<Object>(){
         @Override public void onResponse(        Object response){
-          endpoint.sendResponse(response,getCallId());
+          Object clientResponse=response;
+          if (clientResponse instanceof HashMap) {
+            clientResponse=new HashMapAdapter((HashMap)clientResponse);
+          }
+          endpoint.sendResponse(clientResponse,getCallId());
         }
         @Override public void onFailure(        Throwable t){
           Throwable throwable=t;
