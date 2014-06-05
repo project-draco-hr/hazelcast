@@ -1,9 +1,10 @@
 {
-  if (address == null) {
-    throw new NullPointerException("Address is required!");
-  }
   if (!smartRouting) {
-    address=waitForOwnerConnection();
+    target=waitForOwnerConnection();
+  }
+  Address address=addressTranslator.translate(target);
+  if (address == null) {
+    throw new IOException("Address is required!");
   }
   ClientConnection clientConnection=connections.get(address);
   if (clientConnection == null) {
@@ -20,7 +21,7 @@ synchronized (lock) {
           future.cancel(true);
           throw new RetryableIOException(e);
         }
-        ClientConnection current=connections.putIfAbsent(clientConnection.getRemoteEndpoint(),clientConnection);
+        ClientConnection current=connections.putIfAbsent(address,clientConnection);
         if (current != null) {
           clientConnection.innerClose();
           clientConnection=current;

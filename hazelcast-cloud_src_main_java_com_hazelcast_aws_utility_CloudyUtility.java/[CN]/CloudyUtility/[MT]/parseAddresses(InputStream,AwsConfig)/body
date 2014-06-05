@@ -1,0 +1,23 @@
+{
+  final DocumentBuilder builder;
+  try {
+    builder=DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    Document doc=builder.parse(in);
+    Element element=doc.getDocumentElement();
+    NodeHolder elementNodeHolder=new NodeHolder(element);
+    final Map<String,String> addresses=new LinkedHashMap<String,String>();
+    List<NodeHolder> reservationset=elementNodeHolder.getSubNodes("reservationset");
+    for (    NodeHolder reservation : reservationset) {
+      List<NodeHolder> items=reservation.getSubNodes("item");
+      for (      NodeHolder item : items) {
+        NodeHolder instancesset=item.getSub("instancesset");
+        addresses.putAll(instancesset.getAddresses(awsConfig));
+      }
+    }
+    return addresses;
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+  return new LinkedHashMap<String,String>();
+}
