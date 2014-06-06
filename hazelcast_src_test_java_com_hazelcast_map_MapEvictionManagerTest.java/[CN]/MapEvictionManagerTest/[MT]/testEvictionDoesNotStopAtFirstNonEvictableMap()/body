@@ -1,0 +1,19 @@
+{
+  mapA.addEntryListener(aMapEntryAddedListener,true);
+  mapB.addEntryListener(bMapEntryAddedListener,true);
+  mapA.put(randomString(),randomString());
+  mapB.put(randomString(),randomString());
+  aMapEntryAddedLatch.await();
+  bMapEntryAddedLatch.await();
+  lastMapInEvictionLoop.get().addEntryListener(entryEvictedListener,true);
+  for (int i=0; i < MAX_SIZE * 2; i++) {
+    lastMapInEvictionLoop.get().put(randomString(),randomString());
+  }
+  entryEvictedLatch.await(SCHEDULER_INITIAL_DELAY + SCHEDULER_PERIOD * 2,SCHEDULER_TIME_UNIT);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(lastMapInEvictionLoop.get().size() < MAX_SIZE);
+    }
+  }
+,SCHEDULER_TIME_UNIT.toSeconds(SCHEDULER_INITIAL_DELAY + SCHEDULER_PERIOD * 2));
+}
