@@ -9,9 +9,10 @@
     maxSize=100000;
     timeToLive=CacheEnvironment.getDefaultCacheTimeoutInMillis();
   }
-  if ((maxSize > 0 && maxSize != Integer.MAX_VALUE) || timeToLive > 0) {
+  boolean limitSize=maxSize > 0 && maxSize != Integer.MAX_VALUE;
+  if (limitSize || timeToLive > 0) {
     final Iterator<Entry<Object,Value>> iter=cache.entrySet().iterator();
-    SortedSet<EvictionEntry> entries=null;
+    List<EvictionEntry> entries=null;
     final long now=Clock.currentTimeMillis();
     while (iter.hasNext()) {
       final Entry<Object,Value> e=iter.next();
@@ -23,22 +24,21 @@
       if (v.getCreationTime() + timeToLive < now) {
         iter.remove();
       }
- else       if (maxSize > 0 && maxSize != Integer.MAX_VALUE) {
+ else       if (limitSize) {
         if (entries == null) {
-          entries=new TreeSet<EvictionEntry>();
+          entries=new ArrayList<EvictionEntry>(cache.size());
         }
         entries.add(new EvictionEntry(k,v));
       }
     }
     final int diff=cache.size() - maxSize;
-    final int k=diff >= 0 ? (diff + maxSize * 20 / 100) : 0;
-    if (k > 0 && entries != null) {
-      int i=0;
+    final int toRemove=diff >= 0 ? (diff + maxSize * 20 / 100) : 0;
+    if (toRemove > 0 && entries != null) {
+      Collections.sort(entries);
+      int removed=0;
       for (      EvictionEntry entry : entries) {
-        if (cache.remove(entry.key,entry.value)) {
-          if (++i == k) {
-            break;
-          }
+        if (cache.remove(entry.key,entry.value) && ++removed == toRemove) {
+          break;
         }
       }
     }
