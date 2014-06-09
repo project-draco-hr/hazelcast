@@ -1,18 +1,28 @@
 {
-  ObjectDataInputStream inputStream=null;
+  InputStream inputStream=null;
+  InputStreamReader reader=null;
   try {
     inputStream=openTaskInputStream();
-    int taskId=inputStream.readInt();
-    if (taskId <= 0) {
-      return;
+    reader=new InputStreamReader(inputStream,"UTF-8");
+    JsonObject request=JsonValue.readFrom(reader).asObject();
+    if (!request.isEmpty()) {
+      JsonObject innerRequest=getObject(request,"request");
+      final int type=getInt(innerRequest,"type");
+      final int taskId=getInt(request,"taskId");
+      Class<? extends ConsoleRequest> requestClass=consoleRequests.get(type);
+      if (requestClass == null) {
+        throw new RuntimeException("Failed to find a request for requestType:" + type);
+      }
+      ConsoleRequest task=requestClass.newInstance();
+      task.fromJson(getObject(innerRequest,"request"));
+      processTaskAndSendResponse(taskId,task);
     }
-    ConsoleRequest task=newTask(inputStream);
-    processTaskAndPostResponse(taskId,task);
   }
  catch (  Exception e) {
-    logger.finest(e);
+    logger.warning(e);
   }
  finally {
+    IOUtil.closeResource(reader);
     IOUtil.closeResource(inputStream);
   }
 }
