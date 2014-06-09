@@ -1,0 +1,28 @@
+{
+  if (delayedEntries == null || delayedEntries.isEmpty()) {
+    return Collections.emptyMap();
+  }
+  final Map<Integer,Collection<DelayedEntry>> failsPerPartition=new HashMap<Integer,Collection<DelayedEntry>>();
+  final List<DelayedEntry> entriesToProcess=new ArrayList<DelayedEntry>();
+  StoreOperationType operationType=null;
+  StoreOperationType previousOperationType;
+  for (  final DelayedEntry<Data,Object> entry : delayedEntries) {
+    previousOperationType=operationType;
+    if (entry.getValue() == null) {
+      operationType=StoreOperationType.DELETE;
+    }
+ else {
+      operationType=StoreOperationType.WRITE;
+    }
+    if (previousOperationType != null && !previousOperationType.equals(operationType)) {
+      final Collection<DelayedEntry> faileds=callHandler(entriesToProcess,previousOperationType);
+      addToFails(faileds,failsPerPartition);
+      entriesToProcess.clear();
+    }
+    entriesToProcess.add(entry);
+  }
+  final Collection<DelayedEntry> failures=callHandler(entriesToProcess,operationType);
+  addToFails(failures,failsPerPartition);
+  entriesToProcess.clear();
+  return failsPerPartition;
+}

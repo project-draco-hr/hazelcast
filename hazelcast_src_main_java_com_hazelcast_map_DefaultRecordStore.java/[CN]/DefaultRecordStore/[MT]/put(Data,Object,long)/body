@@ -1,6 +1,8 @@
 {
   checkIfLoaded();
-  earlyWriteCleanup();
+  final long now=getNow();
+  earlyWriteCleanup(now);
+  markRecordStoreExpirable(ttl);
   Record record=records.get(key);
   Object oldValue=null;
   if (record == null) {
@@ -8,8 +10,8 @@
       oldValue=mapContainer.getStore().load(mapService.toObject(key));
     }
     value=mapService.interceptPut(name,null,value);
-    value=mapStoreWrite(key,value,null);
-    record=mapService.createRecord(name,key,value,ttl);
+    value=mapStoreWrite(key,value,null,now);
+    record=mapService.createRecord(name,key,value,ttl,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
@@ -17,9 +19,9 @@
  else {
     oldValue=record.getValue();
     value=mapService.interceptPut(name,oldValue,value);
-    value=mapStoreWrite(key,value,record);
+    value=mapStoreWrite(key,value,record,now);
     updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
+    setRecordValue(record,value,now);
     updateSizeEstimator(calculateRecordSize(record));
     updateTtl(record,ttl);
     saveIndex(record);

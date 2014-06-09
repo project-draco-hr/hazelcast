@@ -1,0 +1,27 @@
+{
+  if (!mapContainer.isWriteBehindMapStoreEnabled()) {
+    return;
+  }
+  if (!inEvictableTimeWindow(now) || evictionStagingArea.isEmpty()) {
+    return;
+  }
+  final long lastRunTime=mapContainer.getWriteBehindManager().getLastRunTime();
+  final int size=evictionStagingArea.size();
+  final int evictionPercentage=20;
+  int maxIterationCount=getMaxIterationCount(size,evictionPercentage);
+  initStagingAreaIterator();
+  while (evictionStagingAreaIterator.hasNext()) {
+    if (maxIterationCount <= 0) {
+      break;
+    }
+    --maxIterationCount;
+    final DelayedEntry entry=evictionStagingAreaIterator.next();
+    if (lastRunTime > entry.getStoreTime()) {
+      evictionStagingAreaIterator.remove();
+    }
+    initExpirationIterator();
+    if (!evictionStagingAreaIterator.hasNext()) {
+      break;
+    }
+  }
+}
