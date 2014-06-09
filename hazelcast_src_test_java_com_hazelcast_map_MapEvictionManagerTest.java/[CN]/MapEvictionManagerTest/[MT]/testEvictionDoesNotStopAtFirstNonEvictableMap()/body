@@ -1,0 +1,16 @@
+{
+  final List<DistributedObject> distributedObjects=new ArrayList<DistributedObject>(instance.getDistributedObjects());
+  assertThat(distributedObjects.size(),equalTo(2));
+  final IMap lastMapInEvictionLoop=(IMap)distributedObjects.get(1);
+  lastMapInEvictionLoop.addEntryListener(entryEvictedListener,true);
+  for (int i=0; i < MAX_SIZE * 2; i++) {
+    lastMapInEvictionLoop.put(randomString(),randomString());
+  }
+  entryEvictedLatch.await(SCHEDULER_INITIAL_DELAY + SCHEDULER_PERIOD * 2,SCHEDULER_TIME_UNIT);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(lastMapInEvictionLoop.size() < MAX_SIZE);
+    }
+  }
+,SCHEDULER_TIME_UNIT.toSeconds(SCHEDULER_INITIAL_DELAY + SCHEDULER_PERIOD * 2));
+}
