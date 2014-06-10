@@ -1,0 +1,19 @@
+{
+  final String mapName=randomString();
+  Config config=new Config();
+  final MapConfig mapConfig=new MapConfig(mapName);
+  mapConfig.setInMemoryFormat(InMemoryFormat.OBJECT);
+  mapConfig.setStatisticsEnabled(true);
+  config.addMapConfig(mapConfig);
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  final IMap<String,SerializationValue> map=instance.getMap(mapName);
+  final SerializationValue serializationValue=new SerializationValue();
+  map.put("key",serializationValue);
+  map.executeOnKey("key",new AbstractEntryProcessor<String,SerializationValue>(){
+    @Override public Object process(    final Map.Entry<String,SerializationValue> entry){
+      return null;
+    }
+  }
+);
+  assertEquals(1,SerializationValue.deSerializeCount.get());
+}
