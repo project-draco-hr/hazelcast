@@ -1,0 +1,17 @@
+{
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
+  final NodeEngine engine=getNodeEngine();
+  final SerializationService serializationService=engine.getSerializationService();
+  final Data k=serializationService.toData(key);
+  final Data v=serializationService.toData(value);
+  final Operation op=new CacheGetAndReplaceOperation(name,k,v,expiryPolicy);
+  final InternalCompletableFuture<Object> f=engine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(engine,k));
+  return new DelegatingFuture<V>(f,serializationService);
+}

@@ -1,0 +1,32 @@
+{
+  super.writeInternal(out);
+  int count=source.size();
+  out.writeInt(count);
+  if (count > 0) {
+    long now=Clock.currentTimeMillis();
+    for (    Map.Entry<String,Map<Data,Record>> entry : source.entrySet()) {
+      Map<Data,Record> cacheMap=entry.getValue();
+      int subCount=cacheMap.size();
+      out.writeInt(subCount);
+      if (subCount > 0) {
+        out.writeUTF(entry.getKey());
+        for (        Map.Entry<Data,Record> e : cacheMap.entrySet()) {
+          Record record=e.getValue();
+          Data key=record.getKey();
+          Object value=record.getValue();
+          RecordStatistics statistics=record.getStatistics();
+          long expirationTime=statistics.getExpirationTime();
+          if (expirationTime > now) {
+            out.writeObject(key);
+            out.writeObject(value);
+            out.writeObject(statistics);
+          }
+          subCount--;
+        }
+        if (subCount != 0) {
+          throw new AssertionError("Cache iteration error, count is not zero!" + subCount);
+        }
+      }
+    }
+  }
+}

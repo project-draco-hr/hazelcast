@@ -1,0 +1,28 @@
+{
+  if (isClosed()) {
+    throw new IllegalStateException();
+  }
+  if (cacheName == null) {
+    throw new NullPointerException("cacheName must not be null");
+  }
+  if (configuration == null) {
+    throw new NullPointerException("configuration must not be null");
+  }
+  for (  String name : getCacheNames()) {
+    if (cacheName.equals(name)) {
+      throw new CacheException("A cache named " + cacheName + " already exists.");
+    }
+  }
+  final CacheConfig<K,V> cacheConfig;
+  if (configuration instanceof CompleteConfiguration) {
+    cacheConfig=new CacheConfig<K,V>((CompleteConfiguration)configuration);
+  }
+ else {
+    cacheConfig=new CacheConfig<K,V>();
+    cacheConfig.setStoreByValue(configuration.isStoreByValue());
+    cacheConfig.setTypes(configuration.getKeyType(),configuration.getValueType());
+  }
+  cacheConfig.setName(cacheName);
+  hazelcastInstance.getConfig().addCacheConfig(cacheConfig);
+  return getCache(cacheName);
+}

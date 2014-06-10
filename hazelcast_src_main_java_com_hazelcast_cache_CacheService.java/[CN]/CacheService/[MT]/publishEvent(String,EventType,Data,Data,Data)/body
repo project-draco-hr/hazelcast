@@ -1,0 +1,38 @@
+{
+  EventService eventService=getNodeEngine().getEventService();
+  Collection<EventRegistration> candidates=eventService.getRegistrations(CacheService.SERVICE_NAME,cacheName);
+  if (candidates.isEmpty()) {
+    return;
+  }
+  Set<EventRegistration> registrationsWithOldValue=new HashSet<EventRegistration>();
+  Set<EventRegistration> registrationsWithoutOldValue=new HashSet<EventRegistration>();
+  for (  EventRegistration candidate : candidates) {
+    EventFilter filter=candidate.getFilter();
+    final Object key=toObject(dataKey);
+    final Object newValue=toObject(dataValue);
+    final Object oldValue=toObject(dataOldValue);
+    if (filter instanceof CacheEventFilterAdaptor) {
+      final CacheEventFilterAdaptor<Object,Object> ceFilter=(CacheEventFilterAdaptor<Object,Object>)filter;
+      if (ceFilter.filterEventData(eventType,key,newValue,oldValue)) {
+        if (ceFilter.isOldValueRequired()) {
+          registrationsWithOldValue.add(candidate);
+        }
+ else {
+          registrationsWithoutOldValue.add(candidate);
+        }
+      }
+    }
+  }
+  if (registrationsWithOldValue.isEmpty() && registrationsWithoutOldValue.isEmpty()) {
+    return;
+  }
+  if (eventType == EventType.REMOVED || eventType == EventType.EXPIRED) {
+    dataValue=dataValue != null ? dataValue : dataOldValue;
+  }
+  final Address caller=null;
+  int orderKey=dataKey.hashCode();
+  EventData eventWithOldValue=new EventData("",cacheName,caller,dataKey,dataValue,dataOldValue,eventType.ordinal());
+  EventData eventWithOutOldValue=new EventData("",cacheName,caller,dataKey,dataValue,null,eventType.ordinal());
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithOldValue,eventWithOldValue,orderKey);
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithoutOldValue,eventWithOutOldValue,orderKey);
+}

@@ -1,0 +1,25 @@
+{
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (newValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (hasOldValue && oldValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (hasOldValue) {
+    validateConfiguredTypes(true,key,oldValue,newValue);
+  }
+ else {
+    validateConfiguredTypes(true,key,newValue);
+  }
+  final NodeEngine engine=getNodeEngine();
+  final SerializationService serializationService=engine.getSerializationService();
+  final Data k=serializationService.toData(key);
+  final Data o=serializationService.toData(oldValue);
+  final Data n=serializationService.toData(newValue);
+  final Operation op=new CacheReplaceOperation(name,k,o,n,expiryPolicy);
+  return engine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(engine,k));
+}

@@ -1,0 +1,30 @@
+{
+  HazelcastCachingProvider hcp=new HazelcastCachingProvider();
+  HazelcastCacheManager cacheManager=new HazelcastCacheManager(hcp,hz,hcp.getDefaultURI(),hcp.getDefaultClassLoader(),null);
+  CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
+  config.setName("SimpleCache");
+  config.setInMemoryFormat(InMemoryFormat.OBJECT);
+  Cache<Integer,String> simpleCache=cacheManager.createCache("simpleCache",config);
+  Cache<Integer,String> cache=cacheManager.getCache("simpleCache");
+  int testSize=100;
+  for (int i=0; i < testSize; i++) {
+    Integer key=i;
+    String value1="value" + i;
+    cache.put(key,value1);
+  }
+  final Iterator<Cache.Entry<Integer,String>> iterator=cache.iterator();
+  assertNotNull(iterator);
+  HashMap<Integer,String> resultMap=new HashMap<Integer,String>();
+  int c=0;
+  while (iterator.hasNext()) {
+    final Cache.Entry<Integer,String> next=iterator.next();
+    final Integer key=next.getKey();
+    final String value=next.getValue();
+    resultMap.put(key,value);
+    c++;
+    if (c > 98) {
+      System.out.print("ready");
+    }
+  }
+  assertEquals(testSize,resultMap.size());
+}

@@ -1,0 +1,34 @@
+{
+  ensureOpen();
+  final NodeEngine engine=getNodeEngine();
+  final SerializationService serializationService=engine.getSerializationService();
+  if (keys == null || keys.contains(null)) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  final Set<Data> ks=new HashSet(keys.size());
+  for (  K key : keys) {
+    final Data k=serializationService.toData(key);
+    ks.add(k);
+  }
+  if (keys.isEmpty()) {
+    return Collections.EMPTY_MAP;
+  }
+  final Map<K,V> result=new HashMap<K,V>();
+  final Collection<Integer> partitions=getPartitionsForKeys(ks);
+  try {
+    final CacheGetAllOperationFactory operationFactory=new CacheGetAllOperationFactory(name,ks,expiryPolicy);
+    final Map<Integer,Object> responses=engine.getOperationService().invokeOnPartitions(getServiceName(),operationFactory,partitions);
+    for (    Object response : responses.values()) {
+      final Set<Map.Entry<Data,Data>> entries=((MapEntrySet)serializationService.toObject(response)).getEntrySet();
+      for (      Map.Entry<Data,Data> entry : entries) {
+        final V value=serializationService.toObject(entry.getValue());
+        final K key=serializationService.toObject(entry.getKey());
+        result.put(key,value);
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return result;
+}

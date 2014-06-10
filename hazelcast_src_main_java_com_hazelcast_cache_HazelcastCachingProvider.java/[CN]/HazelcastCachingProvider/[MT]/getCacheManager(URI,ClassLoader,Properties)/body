@@ -1,0 +1,43 @@
+{
+  URI managerURI=uri == null ? getDefaultURI() : uri;
+  ClassLoader managerClassLoader=classLoader == null ? getDefaultClassLoader() : classLoader;
+  Properties managerProperties=properties == null ? new Properties() : properties;
+  HashMap<URI,CacheManager> cacheManagersByURI=cacheManagers.get(managerClassLoader);
+  if (cacheManagersByURI == null) {
+    cacheManagersByURI=new HashMap<URI,CacheManager>();
+  }
+  CacheManager cacheManager=cacheManagersByURI.get(managerURI);
+  if (cacheManager == null) {
+    try {
+      Config config=null;
+      if (managerURI.equals(getDefaultURI())) {
+        config=new Config();
+      }
+ else {
+        try {
+          URL url=new URL(managerURI.toString());
+          InputStream in=url.openStream();
+          if (in == null) {
+            logger.warning("Having problem opening URL:" + url.toString());
+          }
+          config=new XmlConfigBuilder(in).build();
+        }
+ catch (        IOException e) {
+          logger.warning("Error opening URI" + managerURI.toString() + ". Caused by :"+ e.getMessage());
+          config=new Config();
+        }
+      }
+      config.setClassLoader(managerClassLoader);
+      HazelcastInstance hazelcastInstance=Hazelcast.newHazelcastInstance(config);
+      cacheManager=new HazelcastCacheManager(this,hazelcastInstance,managerURI,managerClassLoader,managerProperties);
+      cacheManagersByURI.put(managerURI,cacheManager);
+    }
+ catch (    Throwable t) {
+      logger.warning("Error opening URI" + managerURI.toString() + ". Caused by :"+ t.getMessage());
+    }
+  }
+  if (!cacheManagers.containsKey(managerClassLoader)) {
+    cacheManagers.put(managerClassLoader,cacheManagersByURI);
+  }
+  return cacheManager;
+}

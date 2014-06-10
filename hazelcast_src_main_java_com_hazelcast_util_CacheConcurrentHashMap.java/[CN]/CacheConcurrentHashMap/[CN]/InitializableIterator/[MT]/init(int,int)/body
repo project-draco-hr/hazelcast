@@ -1,0 +1,28 @@
+{
+  nextSegmentIndex=segmentIndex < segments.length ? segmentIndex : segments.length - 1;
+  if (nextSegmentIndex < 0) {
+    return false;
+  }
+  final Segment<K,V> segment=segments[nextSegmentIndex];
+  if (tableIndex >= 0 && tableIndex < segment.table.length) {
+    this.currentTable=segment.table;
+    nextTableIndex=tableIndex;
+    if ((nextEntry=currentTable[nextTableIndex--]) != null)     return true;
+  }
+  while (nextTableIndex >= 0) {
+    if ((nextEntry=currentTable[nextTableIndex--]) != null)     return true;
+  }
+  while (nextSegmentIndex >= 0 && nextSegmentIndex < segments.length) {
+    Segment<K,V> seg=segments[nextSegmentIndex--];
+    if (seg.count != 0) {
+      this.currentTable=seg.table;
+      for (int j=currentTable.length - 1; j >= 0; --j) {
+        if ((nextEntry=currentTable[j]) != null) {
+          nextTableIndex=j - 1;
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}

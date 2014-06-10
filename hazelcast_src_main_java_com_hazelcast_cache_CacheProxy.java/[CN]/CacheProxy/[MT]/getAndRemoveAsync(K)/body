@@ -1,0 +1,12 @@
+{
+  ensureOpen();
+  final NodeEngine engine=getNodeEngine();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  final SerializationService serializationService=engine.getSerializationService();
+  final Data k=serializationService.toData(key);
+  final Operation op=new CacheGetAndRemoveOperation(name,k);
+  final InternalCompletableFuture<Object> f=engine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(engine,k));
+  return new DelegatingFuture<V>(f,serializationService);
+}

@@ -1,0 +1,36 @@
+{
+  HazelcastCachingProvider hcp=new HazelcastCachingProvider();
+  HazelcastCacheManager cacheManager=new HazelcastCacheManager(hcp,instance,hcp.getDefaultURI(),hcp.getDefaultClassLoader(),null);
+  final ICache<String,Object> cache=cacheManager.getCache(NAMESPACE);
+  for (int i=0; i < threadCount; i++) {
+    es.execute(new Runnable(){
+      public void run(){
+        try {
+          while (true) {
+            int key=(int)(random.nextFloat() * entryCount);
+            int operation=((int)(random.nextFloat() * 100));
+            if (operation < getPercentage) {
+              cache.get(String.valueOf(key));
+              stats.gets.incrementAndGet();
+            }
+ else             if (operation < getPercentage + putPercentage) {
+              cache.put(String.valueOf(key),createValue());
+              stats.puts.incrementAndGet();
+            }
+ else {
+              cache.remove(String.valueOf(key));
+              stats.removes.incrementAndGet();
+            }
+          }
+        }
+ catch (        HazelcastInstanceNotActiveException e) {
+          e.printStackTrace();
+        }
+catch (        Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+);
+  }
+}

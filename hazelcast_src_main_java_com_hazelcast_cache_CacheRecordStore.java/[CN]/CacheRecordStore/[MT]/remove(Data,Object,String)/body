@@ -1,0 +1,37 @@
+{
+  final ExpiryPolicy _expiryPolicy=cacheConfig.getExpiryPolicyFactory().create();
+  final long now=Clock.currentTimeMillis();
+  final long start=cacheConfig.isStatisticsEnabled() ? System.nanoTime() : 0;
+  Record record=records.get(key);
+  boolean isExpired=record != null && isExpiredAt(record.getStatistics().getExpirationTime(),now);
+  if (record == null || isExpired) {
+    return false;
+  }
+ else {
+    if (compare(record.getValue(),value)) {
+      deleteCacheEntry(key);
+      deleteRecord(key);
+    }
+ else {
+      long et=-1l;
+      try {
+        Duration expiryDuration=_expiryPolicy.getExpiryForAccess();
+        if (expiryDuration != null) {
+          et=expiryDuration.getAdjustedTime(now);
+          record.getStatistics().setExpirationTime(et);
+        }
+      }
+ catch (      Throwable t) {
+      }
+      if (isExpiredAt(et,now)) {
+        processExpiredEntry(key,record);
+      }
+      return false;
+    }
+  }
+  if (cacheConfig.isStatisticsEnabled()) {
+    statistics.increaseCacheRemovals(1);
+    statistics.addRemoveTimeNano(System.nanoTime() - start);
+  }
+  return true;
+}
