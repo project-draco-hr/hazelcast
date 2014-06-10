@@ -4,7 +4,7 @@
   logger=node.getLogger(ExecutionService.class.getName());
   final ClassLoader classLoader=node.getConfigClassLoader();
   final ThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("cached"),classLoader);
-  cachedExecutorService=new ThreadPoolExecutor(3,Integer.MAX_VALUE,60L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory,new RejectedExecutionHandler(){
+  cachedExecutorService=new ThreadPoolExecutor(CORE_POOL_SIZE,Integer.MAX_VALUE,KEEP_ALIVE_TIME,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory,new RejectedExecutionHandler(){
     public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
       if (logger.isFinestEnabled()) {
         logger.finest("Node is shutting down; discarding the task: " + r);
@@ -20,5 +20,5 @@
   register(SCHEDULED_EXECUTOR,coreSize * 5,coreSize * 100000,ExecutorType.CACHED);
   defaultScheduledExecutorServiceDelegate=getScheduledExecutor(SCHEDULED_EXECUTOR);
   completableFutureTask=new CompletableFutureTask();
-  scheduleWithFixedDelay(completableFutureTask,1000,100,TimeUnit.MILLISECONDS);
+  scheduleWithFixedDelay(completableFutureTask,INITIAL_DELAY,PERIOD,TimeUnit.MILLISECONDS);
 }
