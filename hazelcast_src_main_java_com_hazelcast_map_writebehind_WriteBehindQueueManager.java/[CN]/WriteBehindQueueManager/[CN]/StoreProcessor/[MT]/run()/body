@@ -38,9 +38,12 @@
   if (sortedDelayedEntries.isEmpty()) {
     return;
   }
-  lastRunTime=now;
   Collections.sort(sortedDelayedEntries,DELAYED_ENTRY_COMPARATOR);
-  Map<Integer,Collection<DelayedEntry>> failsPerPartition=mapStoreManager.process(sortedDelayedEntries);
-  removeProcessedEntries(mapName,partitionToEntryCountHolder);
-  addFailsToQueue(mapName,failsPerPartition);
+  if (writeBatchSize > 1) {
+    doStoreUsingBatchSize(sortedDelayedEntries,partitionToEntryCountHolder);
+  }
+ else {
+    doStore(sortedDelayedEntries,partitionToEntryCountHolder);
+  }
+  lastRunTime=now;
 }
