@@ -1,34 +1,7 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
   final ReplicatedRecordStore replicatedRecordStore=getReplicatedRecordStore();
-  EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
-    private void handleEvent(    EntryEvent<Object,Object> event){
-      if (endpoint.live()) {
-        Object key=event.getKey();
-        Object value=event.getValue();
-        Object oldValue=event.getOldValue();
-        EntryEventType eventType=event.getEventType();
-        String uuid=event.getMember().getUuid();
-        Portable portableEntryEvent=new ReplicatedMapPortableEntryEvent(key,value,oldValue,eventType,uuid);
-        endpoint.sendEvent(portableEntryEvent,getCallId());
-      }
-    }
-    public void entryAdded(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    public void entryRemoved(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    public void entryUpdated(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    public void entryEvicted(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    @Override public void evictedAll(    MapWideEvent event){
-    }
-  }
-;
+  final EntryListener<Object,Object> listener=new ClientReplicatedMapEntryListener();
   String registrationId;
   if (predicate == null) {
     registrationId=replicatedRecordStore.addEntryListener(listener,key);
