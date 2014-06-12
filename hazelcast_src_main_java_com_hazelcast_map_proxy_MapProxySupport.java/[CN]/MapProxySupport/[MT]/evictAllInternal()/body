@@ -1,0 +1,16 @@
+{
+  try {
+    clearNearCache();
+    final Operation operation=new EvictAllOperation(name);
+    final NodeEngine nodeEngine=getNodeEngine();
+    final Map<Integer,Object> resultMap=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new BinaryOperationFactory(operation,nodeEngine));
+    int numberOfAffectedEntries=0;
+    for (    Object o : resultMap.values()) {
+      numberOfAffectedEntries+=(Integer)o;
+    }
+    publishMapWideEvent(numberOfAffectedEntries,EntryEventType.EVICT_ALL);
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}
