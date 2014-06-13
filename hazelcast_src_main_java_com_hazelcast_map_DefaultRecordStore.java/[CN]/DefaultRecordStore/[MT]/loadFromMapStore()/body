@@ -1,0 +1,19 @@
+{
+  final NodeEngine nodeEngine=mapService.getNodeEngine();
+  final AtomicBoolean loadOccurred=loaded;
+  if (!mapContainer.isMapStoreEnabled() || loadOccurred.get()) {
+    return;
+  }
+  final Address partitionOwner=nodeEngine.getPartitionService().getPartitionOwner(partitionId);
+  final boolean isOwner=nodeEngine.getThisAddress().equals(partitionOwner);
+  if (!isOwner) {
+    loadOccurred.set(true);
+    return;
+  }
+  final Map<Data,Object> loadedKeys=mapContainer.getInitialKeys();
+  if (loadedKeys == null || loadedKeys.isEmpty()) {
+    loadOccurred.set(true);
+    return;
+  }
+  doChunkedLoad(loadedKeys,nodeEngine);
+}

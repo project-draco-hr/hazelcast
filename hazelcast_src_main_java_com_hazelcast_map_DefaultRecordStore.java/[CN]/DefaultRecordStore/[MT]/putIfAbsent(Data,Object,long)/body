@@ -1,26 +1,28 @@
 {
   checkIfLoaded();
-  earlyWriteCleanup();
+  final long now=getNow();
+  earlyWriteCleanup(now);
+  markRecordStoreExpirable(ttl);
   Record record=records.get(key);
   Object oldValue=null;
   if (record == null) {
     if (mapContainer.getStore() != null) {
       oldValue=mapContainer.getStore().load(mapService.toObject(key));
       if (oldValue != null) {
-        record=mapService.createRecord(name,key,oldValue,DEFAULT_TTL);
+        record=mapService.createRecord(name,key,oldValue,DEFAULT_TTL,now);
         records.put(key,record);
         updateSizeEstimator(calculateRecordSize(record));
       }
     }
   }
  else {
-    accessRecord(record);
+    accessRecord(record,now);
     oldValue=record.getValue();
   }
   if (oldValue == null) {
     value=mapService.interceptPut(name,null,value);
-    value=mapStoreWrite(key,value,record);
-    record=mapService.createRecord(name,key,value,ttl);
+    value=mapStoreWrite(key,value,record,now);
+    record=mapService.createRecord(name,key,value,ttl,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
     updateTtl(record,ttl);

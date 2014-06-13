@@ -1,0 +1,30 @@
+{
+  int evictedCount=0;
+  int checkedEntryCount=0;
+  initExpirationIterator();
+  while (expirationIterator.hasNext()) {
+    if (checkedEntryCount >= maxIterationCount) {
+      break;
+    }
+    checkedEntryCount++;
+    final Record record=expirationIterator.next();
+    final Data key=record.getKey();
+    if (isLocked(key)) {
+      continue;
+    }
+    if (isReachable(record,now)) {
+      continue;
+    }
+    final Object value=record.getValue();
+    evict0(key);
+    evictedCount++;
+    initExpirationIterator();
+    if (ownerPartition) {
+      doPostEvictionOperations(key,value);
+    }
+    if (!expirationIterator.hasNext()) {
+      break;
+    }
+  }
+  return evictedCount;
+}
