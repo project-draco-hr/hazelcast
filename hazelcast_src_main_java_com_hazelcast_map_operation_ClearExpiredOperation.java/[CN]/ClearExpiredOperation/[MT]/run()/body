@@ -1,8 +1,11 @@
 {
+  final MapService mapService=getService();
   final PartitionContainer partitionContainer=mapService.getPartitionContainer(getPartitionId());
-  final RecordStore recordStore=partitionContainer.getExistingRecordStore(name);
-  if (recordStore == null) {
-    return;
+  final ConcurrentMap<String,RecordStore> recordStores=partitionContainer.getMaps();
+  final boolean isOwnerPartition=isOwner();
+  for (  final RecordStore recordStore : recordStores.values()) {
+    if (recordStore.size() > 0 && recordStore.isExpirable()) {
+      recordStore.evictExpiredEntries(expirationPercentage,isOwnerPartition);
+    }
   }
-  expiredKeyValueSequence=recordStore.findUnlockedExpiredRecords();
 }

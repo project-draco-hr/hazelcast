@@ -1,5 +1,6 @@
 {
   checkIfLoaded();
+  final long now=getNow();
   final MapEntrySet mapEntrySet=new MapEntrySet();
   Map<Object,Data> keyMapForLoader=Collections.emptyMap();
   if (mapContainer.getStore() != null) {
@@ -27,6 +28,10 @@
   if (mapContainer.getStore() == null || keyMapForLoader.size() == 0) {
     return mapEntrySet;
   }
+  final Map<Object,Object> fromEvictionStagingArea=getFromEvictionStagingArea(keySet);
+  for (  Object o : fromEvictionStagingArea.keySet()) {
+    keyMapForLoader.remove(o);
+  }
   final Map<Object,Object> loadedKeys=mapContainer.getStore().loadAll(keyMapForLoader.keySet());
   for (  Map.Entry entry : loadedKeys.entrySet()) {
     final Object objectKey=entry.getKey();
@@ -36,7 +41,7 @@
       continue;
     }
     if (value != null) {
-      Record record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL);
+      Record record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL,now);
       records.put(dataKey,record);
       saveIndex(record);
       updateSizeEstimator(calculateRecordSize(record));
@@ -46,5 +51,6 @@
       mapEntrySet.add(new AbstractMap.SimpleImmutableEntry(dataKey,mapService.toData(value)));
     }
   }
+  postReadCleanUp(now);
   return mapEntrySet;
 }
