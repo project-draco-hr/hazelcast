@@ -1,13 +1,14 @@
 {
   checkIfLoaded();
-  earlyWriteCleanup();
+  final long now=getNow();
+  earlyWriteCleanup(now);
   Data key=entry.getKey();
   Object value=entry.getValue();
   Record record=records.get(key);
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
-    value=mapStoreWrite(key,value,null);
-    record=mapService.createRecord(name,key,value,DEFAULT_TTL);
+    value=mapStoreWrite(key,value,null,now);
+    record=mapService.createRecord(name,key,value,DEFAULT_TTL,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
@@ -15,9 +16,9 @@
  else {
     final Object oldValue=record.getValue();
     value=mapService.interceptPut(name,oldValue,value);
-    value=mapStoreWrite(key,value,record);
+    value=mapStoreWrite(key,value,record,now);
     updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
+    setRecordValue(record,value,now);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
   }

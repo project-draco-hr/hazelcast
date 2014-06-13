@@ -5,11 +5,11 @@
   this.mapContainer=mapService.getMapContainer(name);
   this.logger=mapService.getNodeEngine().getLogger(this.getName());
   this.recordFactory=mapContainer.getRecordFactory();
-  this.writeBehindQueue=WriteBehindQueues.createDefaultWriteBehindQueue(mapContainer.isWriteBehindMapStoreEnabled());
-  this.writeBehindWaitingDeletions=mapContainer.isWriteBehindMapStoreEnabled() ? Collections.newSetFromMap(new ConcurrentHashMap()) : (Set<Data>)Collections.EMPTY_SET;
-  NodeEngine nodeEngine=mapService.getNodeEngine();
-  final LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
-  this.lockStore=lockService == null ? null : lockService.createLockStore(partitionId,new DefaultObjectNamespace(MapService.SERVICE_NAME,name));
+  this.lockStore=createLockStore();
   this.sizeEstimator=SizeEstimators.createMapSizeEstimator();
-  loadFromMapStore(nodeEngine);
+  this.writeBehindQueue=createWriteBehindQueue();
+  this.writeBehindWaitingDeletions=createWriteBehindWaitingDeletionsSet();
+  this.expirable=isRecordStoreExpirable();
+  this.evictionStagingArea=createEvictionStagingArea();
+  loadFromMapStore();
 }
