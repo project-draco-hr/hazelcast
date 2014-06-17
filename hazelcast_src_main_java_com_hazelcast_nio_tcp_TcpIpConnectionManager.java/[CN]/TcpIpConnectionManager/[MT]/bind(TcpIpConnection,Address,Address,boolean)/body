@@ -1,0 +1,37 @@
+{
+  if (logger.isFinestEnabled()) {
+    log(Level.FINEST,"Binding " + connection + " to "+ remoteEndPoint+ ", reply is "+ reply);
+  }
+  final Address thisAddress=ioService.getThisAddress();
+  if (!connection.isClient() && !thisAddress.equals(localEndpoint)) {
+    log(Level.WARNING,"Wrong bind request from " + remoteEndPoint + "! This node is not requested endpoint: "+ localEndpoint);
+    connection.close();
+    return false;
+  }
+  connection.setEndPoint(remoteEndPoint);
+  if (reply) {
+    sendBindRequest(connection,remoteEndPoint,false);
+  }
+  final Connection existingConnection=connectionsMap.get(remoteEndPoint);
+  if (existingConnection != null && existingConnection.live()) {
+    if (existingConnection != connection) {
+      if (logger.isFinestEnabled()) {
+        log(Level.FINEST,existingConnection + " is already bound  to " + remoteEndPoint+ ", new one is "+ connection);
+      }
+      activeConnections.add(connection);
+    }
+    return false;
+  }
+  if (!remoteEndPoint.equals(thisAddress)) {
+    if (!connection.isClient()) {
+      connection.setMonitor(getConnectionMonitor(remoteEndPoint,true));
+    }
+    connectionsMap.put(remoteEndPoint,connection);
+    connectionsInProgress.remove(remoteEndPoint);
+    for (    ConnectionListener listener : connectionListeners) {
+      listener.connectionAdded(connection);
+    }
+    return true;
+  }
+  return false;
+}
