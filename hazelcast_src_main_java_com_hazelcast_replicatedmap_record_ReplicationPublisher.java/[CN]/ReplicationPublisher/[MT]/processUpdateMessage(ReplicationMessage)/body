@@ -16,10 +16,10 @@ synchronized (replicatedRecordStore.getMutex(marshalledKey)) {
     if (localEntry == null) {
       if (!update.isRemove()) {
         V marshalledValue=(V)replicatedRecordStore.marshallValue(update.getValue());
-        VectorClock vectorClock=update.getVectorClock();
+        VectorClockTimestamp timestamp=update.getVectorClockTimestamp();
         int updateHash=update.getUpdateHash();
         long ttlMillis=update.getTtlMillis();
-        storage.put(marshalledKey,new ReplicatedRecord<K,V>(marshalledKey,marshalledValue,vectorClock,updateHash,ttlMillis));
+        storage.put(marshalledKey,new ReplicatedRecord<K,V>(marshalledKey,marshalledValue,timestamp,updateHash,ttlMillis));
         if (ttlMillis > 0) {
           replicatedRecordStore.scheduleTtlEntry(ttlMillis,marshalledKey,null);
         }
@@ -30,12 +30,12 @@ synchronized (replicatedRecordStore.getMutex(marshalledKey)) {
       }
     }
  else {
-      final VectorClock currentVectorClock=localEntry.getVectorClock();
-      final VectorClock updateVectorClock=update.getVectorClock();
-      if (VectorClock.happenedBefore(updateVectorClock,currentVectorClock)) {
+      final VectorClockTimestamp currentVectorClockTimestamp=localEntry.getVectorClockTimestamp();
+      final VectorClockTimestamp updateVectorClockTimestamp=update.getVectorClockTimestamp();
+      if (VectorClockTimestamp.happenedBefore(updateVectorClockTimestamp,currentVectorClockTimestamp)) {
         return;
       }
- else       if (VectorClock.happenedBefore(currentVectorClock,updateVectorClock)) {
+ else       if (VectorClockTimestamp.happenedBefore(currentVectorClockTimestamp,updateVectorClockTimestamp)) {
         applyTheUpdate(update,localEntry);
       }
  else {
@@ -43,12 +43,12 @@ synchronized (replicatedRecordStore.getMutex(marshalledKey)) {
           applyTheUpdate(update,localEntry);
         }
  else {
-          VectorClock newVectorClock=localEntry.applyAndIncrementVectorClock(updateVectorClock,localMember);
+          VectorClockTimestamp newTimestamp=localEntry.applyAndIncrementVectorClock(updateVectorClockTimestamp,localMember);
           Object key=update.getKey();
           V value=localEntry.getValue();
           long ttlMillis=update.getTtlMillis();
           int latestUpdateHash=localEntry.getLatestUpdateHash();
-          ReplicationMessage message=new ReplicationMessage(name,key,value,newVectorClock,localMember,latestUpdateHash,ttlMillis);
+          ReplicationMessage message=new ReplicationMessage(name,key,value,newTimestamp,localMember,latestUpdateHash,ttlMillis);
           distributeReplicationMessage(message,true);
         }
       }
