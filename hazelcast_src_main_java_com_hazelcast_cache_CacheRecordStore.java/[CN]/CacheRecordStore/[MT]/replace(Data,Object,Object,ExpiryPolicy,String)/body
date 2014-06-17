@@ -1,9 +1,9 @@
 {
   final ExpiryPolicy _expiryPolicy=expiryPolicy != null ? expiryPolicy : cacheConfig.getExpiryPolicyFactory().create();
   final long now=Clock.currentTimeMillis();
-  final long start=cacheConfig.isStatisticsEnabled() ? System.nanoTime() : 0;
+  final long start=isStatisticsEnabled ? System.nanoTime() : 0;
   boolean isHit=false;
-  boolean result=false;
+  boolean result;
   Record record=records.get(key);
   boolean isExpired=record != null && isExpiredAt(record.getStatistics().getExpirationTime(),now);
   if (record == null || isExpired) {
@@ -13,24 +13,7 @@
     isHit=true;
     Object value=record.getValue();
     if (compare(value,oldValue)) {
-      long et=-1l;
-      try {
-        Duration expiryDuration=_expiryPolicy.getExpiryForUpdate();
-        if (expiryDuration != null) {
-          et=expiryDuration.getAdjustedTime(now);
-          record.getStatistics().setExpirationTime(et);
-        }
-      }
- catch (      Throwable t) {
-      }
-      if (isExpiredAt(et,now)) {
-        processExpiredEntry(key,record);
-      }
- else {
-        writeThroughCache(key,value);
-        updateRecord(record,newValue);
-        result=true;
-      }
+      result=updateRecordWithExpiry(key,value,record,_expiryPolicy,now);
     }
  else {
       try {
@@ -45,7 +28,7 @@
       result=false;
     }
   }
-  if (cacheConfig.isStatisticsEnabled()) {
+  if (isStatisticsEnabled) {
     if (result) {
       statistics.increaseCachePuts(1);
       statistics.addPutTimeNano(System.nanoTime() - start);

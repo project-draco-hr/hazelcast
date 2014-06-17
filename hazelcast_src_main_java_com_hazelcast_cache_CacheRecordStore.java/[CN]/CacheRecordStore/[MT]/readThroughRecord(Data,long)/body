@@ -1,0 +1,21 @@
+{
+  final ExpiryPolicy _expiryPolicy=cacheConfig.getExpiryPolicyFactory().create();
+  Object value=readThroughCache(key);
+  if (value == null) {
+    return null;
+  }
+  Duration expiryDuration=null;
+  try {
+    expiryDuration=_expiryPolicy.getExpiryForCreation();
+  }
+ catch (  Throwable t) {
+    expiryDuration=Duration.ETERNAL;
+  }
+  long et=expiryDuration.getAdjustedTime(now);
+  if (isExpiredAt(et,now)) {
+    return null;
+  }
+  final Record record=createRecord(key,value);
+  record.getStatistics().setExpirationTime(et);
+  return record;
+}

@@ -1,3 +1,23 @@
 {
-  throw new UnsupportedOperationException();
+  ensureOpen();
+  final NodeEngine engine=getNodeEngine();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (entryProcessor == null) {
+    throw new NullPointerException();
+  }
+  final SerializationService serializationService=engine.getSerializationService();
+  final Data k=serializationService.toData(key);
+  final Operation op=new CacheEntryProcessorOperation(name,k,entryProcessor,arguments);
+  try {
+    final InternalCompletableFuture<T> f=engine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(engine,k));
+    return f.getSafely();
+  }
+ catch (  CacheException ce) {
+    throw ce;
+  }
+catch (  Exception e) {
+    throw new EntryProcessorException(e);
+  }
 }

@@ -1,3 +1,22 @@
 {
-  throw new UnsupportedOperationException();
+  ensureOpen();
+  if (keys == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (entryProcessor == null) {
+    throw new NullPointerException();
+  }
+  Map<K,EntryProcessorResult<T>> allResult=new HashMap<K,EntryProcessorResult<T>>();
+  for (  K key : keys) {
+    CacheEntryProcessorResult<T> ceResult;
+    try {
+      final T result=this.invoke(key,entryProcessor,arguments);
+      ceResult=new CacheEntryProcessorResult<T>(result);
+    }
+ catch (    Exception e) {
+      ceResult=new CacheEntryProcessorResult<T>(e);
+    }
+    allResult.put(key,ceResult);
+  }
+  return allResult;
 }

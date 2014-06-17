@@ -7,5 +7,9 @@
   final SerializationService serializationService=engine.getSerializationService();
   final Operation op=new CacheGetOperation(name,key,null);
   final InternalCompletableFuture<Object> f=engine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(engine,key));
-  return serializationService.toObject(f.getSafely());
+  Object result=f.getSafely();
+  if (result instanceof Data) {
+    result=serializationService.toObject((Data)result);
+  }
+  return (V)result;
 }

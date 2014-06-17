@@ -1,8 +1,8 @@
 {
   final ExpiryPolicy _expiryPolicy=expiryPolicy != null ? expiryPolicy : cacheConfig.getExpiryPolicyFactory().create();
   final long now=Clock.currentTimeMillis();
-  final long start=cacheConfig.isStatisticsEnabled() ? System.nanoTime() : 0;
-  boolean isPutSucceed=false;
+  final long start=isStatisticsEnabled ? System.nanoTime() : 0;
+  boolean isPutSucceed;
   Object oldValue=null;
   Record record=records.get(key);
   boolean isExpired=record != null && isExpiredAt(record.getStatistics().getExpirationTime(),now);
@@ -10,47 +10,13 @@
     processExpiredEntry(key,record);
   }
   if (record == null || isExpired) {
-    Duration expiryDuration=null;
-    try {
-      expiryDuration=_expiryPolicy.getExpiryForCreation();
-    }
- catch (    Throwable t) {
-      expiryDuration=Duration.ETERNAL;
-    }
-    long et=expiryDuration.getAdjustedTime(now);
-    if (isExpiredAt(et,now)) {
-      processExpiredEntry(key,record);
-    }
- else {
-      writeThroughCache(key,value);
-      record=createRecord(key,value);
-      record.getStatistics().setExpirationTime(et);
-      records.put(key,record);
-      isPutSucceed=true;
-    }
+    isPutSucceed=createRecordWithExpiry(key,value,record,_expiryPolicy,now);
   }
  else {
     oldValue=record.getValue();
-    long et=-1l;
-    try {
-      Duration expiryDuration=_expiryPolicy.getExpiryForUpdate();
-      if (expiryDuration != null) {
-        et=expiryDuration.getAdjustedTime(now);
-        record.getStatistics().setExpirationTime(et);
-      }
-    }
- catch (    Throwable t) {
-    }
-    if (isExpiredAt(et,now)) {
-      processExpiredEntry(key,record);
-    }
- else {
-      writeThroughCache(key,value);
-      updateRecord(record,value);
-      isPutSucceed=true;
-    }
+    isPutSucceed=updateRecordWithExpiry(key,value,record,_expiryPolicy,now);
   }
-  if (cacheConfig.isStatisticsEnabled()) {
+  if (isStatisticsEnabled) {
     if (!getValue) {
       if (isPutSucceed) {
         statistics.increaseCachePuts(1);

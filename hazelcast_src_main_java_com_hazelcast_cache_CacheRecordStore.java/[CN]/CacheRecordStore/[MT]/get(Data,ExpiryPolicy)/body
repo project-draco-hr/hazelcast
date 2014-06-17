@@ -8,32 +8,19 @@
     processExpiredEntry(key,record);
   }
   if (record == null || isExpired) {
-    if (cacheConfig.isStatisticsEnabled()) {
+    if (isStatisticsEnabled) {
       statistics.increaseCacheMisses(1);
     }
     value=readThroughCache(key);
     if (value == null) {
       return null;
     }
-    Duration expiryDuration=null;
-    try {
-      expiryDuration=_expiryPolicy.getExpiryForCreation();
-    }
- catch (    Throwable t) {
-      expiryDuration=Duration.ETERNAL;
-    }
-    long et=expiryDuration.getAdjustedTime(now);
-    if (isExpiredAt(et,now)) {
-      return null;
-    }
-    record=createRecord(key,value);
-    record.getStatistics().setExpirationTime(et);
-    records.put(key,record);
-    return record.getValue();
+    createRecordWithExpiry(key,value,record,_expiryPolicy,now);
+    return value;
   }
  else {
     value=record.getValue();
-    long et=-1l;
+    final long et;
     try {
       Duration expiryDuration=_expiryPolicy.getExpiryForAccess();
       if (expiryDuration != null) {
@@ -43,14 +30,7 @@
     }
  catch (    Throwable t) {
     }
-    if (isExpiredAt(et,now)) {
-      processExpiredEntry(key,record);
-      if (cacheConfig.isStatisticsEnabled()) {
-        statistics.increaseCacheMisses(1);
-      }
-      return null;
-    }
-    if (cacheConfig.isStatisticsEnabled()) {
+    if (isStatisticsEnabled) {
       statistics.increaseCacheHits(1);
     }
     return value;
