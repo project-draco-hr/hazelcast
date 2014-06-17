@@ -43,13 +43,12 @@ synchronized (replicatedRecordStore.getMutex(marshalledKey)) {
           applyTheUpdate(update,localEntry);
         }
  else {
-          currentVectorClock.applyVector(updateVectorClock);
-          currentVectorClock.incrementClock(localMember);
+          VectorClock newVectorClock=localEntry.applyAndIncrementVectorClock(updateVectorClock,localMember);
           Object key=update.getKey();
           V value=localEntry.getValue();
           long ttlMillis=update.getTtlMillis();
           int latestUpdateHash=localEntry.getLatestUpdateHash();
-          ReplicationMessage message=new ReplicationMessage(name,key,value,currentVectorClock,localMember,latestUpdateHash,ttlMillis);
+          ReplicationMessage message=new ReplicationMessage(name,key,value,newVectorClock,localMember,latestUpdateHash,ttlMillis);
           distributeReplicationMessage(message,true);
         }
       }
