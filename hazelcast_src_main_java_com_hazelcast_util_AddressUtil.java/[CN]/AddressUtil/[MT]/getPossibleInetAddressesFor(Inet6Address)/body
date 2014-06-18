@@ -1,30 +1,20 @@
 {
-  if ((inet6Address.isSiteLocalAddress() || inet6Address.isLinkLocalAddress()) && inet6Address.getScopeId() <= 0 && inet6Address.getScopedInterface() == null) {
-    final LinkedList<Inet6Address> possibleAddresses=new LinkedList<Inet6Address>();
-    try {
-      final Enumeration<NetworkInterface> interfaces=NetworkInterface.getNetworkInterfaces();
-      while (interfaces.hasMoreElements()) {
-        NetworkInterface ni=interfaces.nextElement();
-        Enumeration<InetAddress> addresses=ni.getInetAddresses();
-        while (addresses.hasMoreElements()) {
-          InetAddress address=addresses.nextElement();
-          if (address instanceof Inet4Address) {
-            continue;
-          }
-          if (inet6Address.isLinkLocalAddress() && address.isLinkLocalAddress() || inet6Address.isSiteLocalAddress() && address.isSiteLocalAddress()) {
-            final Inet6Address newAddress=Inet6Address.getByAddress(null,inet6Address.getAddress(),((Inet6Address)address).getScopeId());
-            possibleAddresses.addFirst(newAddress);
-          }
-        }
-      }
-    }
- catch (    IOException ignored) {
-      EmptyStatement.ignore(ignored);
-    }
-    if (possibleAddresses.isEmpty()) {
-      throw new IllegalArgumentException("Could not find a proper network interface" + " to connect to " + inet6Address);
-    }
-    return possibleAddresses;
+  if ((!inet6Address.isSiteLocalAddress() && !inet6Address.isLinkLocalAddress()) || inet6Address.getScopeId() > 0 || inet6Address.getScopedInterface() != null) {
+    return Collections.singleton(inet6Address);
   }
-  return Collections.singleton(inet6Address);
+  LinkedList<Inet6Address> possibleAddresses=new LinkedList<Inet6Address>();
+  try {
+    Enumeration<NetworkInterface> interfaces=NetworkInterface.getNetworkInterfaces();
+    while (interfaces.hasMoreElements()) {
+      NetworkInterface ni=interfaces.nextElement();
+      addPossibleAddress(inet6Address,possibleAddresses,ni);
+    }
+  }
+ catch (  IOException ignored) {
+    EmptyStatement.ignore(ignored);
+  }
+  if (possibleAddresses.isEmpty()) {
+    throw new IllegalArgumentException("Could not find a proper network interface" + " to connect to " + inet6Address);
+  }
+  return possibleAddresses;
 }
