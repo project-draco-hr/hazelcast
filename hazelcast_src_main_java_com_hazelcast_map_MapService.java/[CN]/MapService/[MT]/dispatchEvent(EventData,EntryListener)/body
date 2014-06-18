@@ -1,30 +1,11 @@
 {
-  Member member=nodeEngine.getClusterService().getMember(eventData.getCaller());
-  EntryEvent event=new DataAwareEntryEvent(member,eventData.getEventType(),eventData.getMapName(),eventData.getDataKey(),eventData.getDataNewValue(),eventData.getDataOldValue(),getSerializationService());
-  if (member == null) {
-    if (logger.isLoggable(Level.INFO)) {
-      logger.info("Dropping event " + event + " from unknown address:"+ eventData.getCaller());
-    }
-    return;
+  if (eventData instanceof EntryEventData) {
+    dispatchEntryEventData(eventData,listener);
   }
-switch (event.getEventType()) {
-case ADDED:
-    listener.entryAdded(event);
-  break;
-case EVICTED:
-listener.entryEvicted(event);
-break;
-case UPDATED:
-listener.entryUpdated(event);
-break;
-case REMOVED:
-listener.entryRemoved(event);
-break;
-default :
-throw new IllegalArgumentException("Invalid event type: " + event.getEventType());
-}
-MapContainer mapContainer=getMapContainer(eventData.getMapName());
-if (mapContainer.getMapConfig().isStatisticsEnabled()) {
-getLocalMapStatsImpl(eventData.getMapName()).incrementReceivedEvents();
-}
+ else   if (eventData instanceof MapEventData) {
+    dispatchMapEventData(eventData,listener);
+  }
+ else {
+    throw new IllegalArgumentException("Unknown map event data");
+  }
 }

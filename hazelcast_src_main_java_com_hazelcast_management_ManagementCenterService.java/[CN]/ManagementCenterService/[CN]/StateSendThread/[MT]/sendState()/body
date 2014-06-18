@@ -3,15 +3,19 @@
   try {
     HttpURLConnection connection=openConnection(url);
     OutputStream outputStream=connection.getOutputStream();
+    final OutputStreamWriter writer=new OutputStreamWriter(outputStream,"UTF-8");
     try {
-      identifier.write(outputStream);
-      ObjectDataOutputStream out=serializationService.createObjectDataOutputStream(outputStream);
+      JsonObject root=new JsonObject();
+      root.add("identifier",identifier.toJson());
       TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
-      timedMemberState.writeData(out);
+      root.add("timedMemberState",timedMemberState.toJson());
+      root.writeTo(writer);
+      writer.flush();
       outputStream.flush();
       post(connection);
     }
   finally {
+      closeResource(writer);
       closeResource(outputStream);
     }
   }

@@ -1,23 +1,6 @@
 {
-  final List expiredKeyValueSequence=this.expiredKeyValueSequence;
-  if (expiredKeyValueSequence == null || expiredKeyValueSequence.isEmpty()) {
-    return;
-  }
-  final MapService mapService=this.mapService;
-  final String mapName=this.name;
-  final NodeEngine nodeEngine=getNodeEngine();
-  final Address owner=nodeEngine.getPartitionService().getPartitionOwner(getPartitionId());
-  final boolean isOwner=nodeEngine.getThisAddress().equals(owner);
-  final int size=expiredKeyValueSequence.size();
-  for (int i=0; i < size; i+=2) {
-    Data key=(Data)expiredKeyValueSequence.get(i);
-    Object value=expiredKeyValueSequence.get(i + 1);
-    mapService.interceptAfterRemove(mapName,value);
-    if (mapService.isNearCacheAndInvalidationEnabled(mapName)) {
-      mapService.invalidateAllNearCaches(mapName,key);
-    }
-    if (isOwner) {
-      EvictionHelper.fireEvent(key,value,mapName,mapService);
-    }
-  }
+  final MapService mapService=getService();
+  final PartitionContainer partitionContainer=mapService.getPartitionContainer(getPartitionId());
+  partitionContainer.setHasRunningCleanup(false);
+  partitionContainer.setLastCleanupTime(Clock.currentTimeMillis());
 }

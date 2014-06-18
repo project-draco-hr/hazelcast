@@ -1,17 +1,20 @@
 {
-  if (valid) {
-    boolean expired=isExpired();
-    boolean cancelled=isCancelled();
-    if (expired || cancelled) {
-      if (queue.remove(this)) {
-        valid=false;
-        if (expired) {
-          waitSupport.onWaitExpire();
-        }
+  if (!valid) {
+    return;
+  }
+  boolean expired=isExpired();
+  boolean cancelled=isCancelled();
+  if (!expired && !cancelled) {
+    return;
+  }
+  if (!queue.remove(this)) {
+    return;
+  }
+  valid=false;
+  if (expired) {
+    waitSupport.onWaitExpire();
+  }
  else {
-          op.getResponseHandler().sendResponse(error);
-        }
-      }
-    }
+    op.getResponseHandler().sendResponse(error);
   }
 }
