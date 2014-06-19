@@ -5,9 +5,10 @@
   long remaining=unit.toMillis(timeout);
   lock.lock();
   try {
-    while (response == null && remaining > 0) {
+    boolean timedOut=false;
+    while (response == null && remaining > 0 && !timedOut) {
       long start=Clock.currentTimeMillis();
-      noValue.await(remaining,TimeUnit.MILLISECONDS);
+      timedOut=noValue.await(remaining,TimeUnit.MILLISECONDS);
       remaining-=(Clock.currentTimeMillis() - start);
     }
     return getAndRemoveResponse();
