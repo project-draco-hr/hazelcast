@@ -3,6 +3,7 @@
   Record record=records.get(key);
   earlyWriteCleanup(now);
   markRecordStoreExpirable(ttl);
+  Object oldValue=null;
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
     record=mapService.createRecord(name,key,value,ttl,now);
@@ -10,6 +11,7 @@
     updateSizeEstimator(calculateRecordSize(record));
   }
  else {
+    oldValue=record.getValue();
     value=mapService.interceptPut(name,record.getValue(),value);
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,value,now);
@@ -18,4 +20,5 @@
   }
   saveIndex(record);
   removeFromWriteBehindWaitingDeletions(key);
+  return oldValue;
 }
