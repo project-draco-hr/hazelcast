@@ -1,0 +1,28 @@
+{
+  int notOwnedCount=0;
+  ILogger responseLogger=node.getLogger(SyncReplicaVersion.class);
+  for (  InternalPartitionImpl partition : partitions) {
+    Address owner=partition.getOwnerOrNull();
+    if (thisAddress.equals(owner)) {
+      if (partition.getReplicaAddress(1) != null) {
+        SyncReplicaVersion op=new SyncReplicaVersion(1,callback);
+        op.setService(this);
+        op.setNodeEngine(nodeEngine);
+        op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(responseLogger));
+        op.setPartitionId(partition.getPartitionId());
+        nodeEngine.getOperationService().executeOperation(op);
+      }
+ else {
+        ok.set(false);
+        s.release();
+      }
+    }
+ else {
+      if (owner == null) {
+        ok.set(false);
+      }
+      notOwnedCount++;
+    }
+  }
+  return notOwnedCount;
+}
