@@ -1,6 +1,6 @@
 {
   if (isRemoveAll) {
-    final Set<Data> _keys=keys == null ? records.keySet() : keys;
+    final Set<Data> _keys=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
     try {
       final int initialCount=_keys.size();
       deleteAllCacheEntry(_keys);
@@ -9,11 +9,14 @@
       }
     }
   finally {
-      final Set<Data> _keysToClean=keys == null ? records.keySet() : keys;
+      final Set<Data> _keysToClean=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
+      keys.clear();
       for (      Data key : _keysToClean) {
-        if (_keys.contains(key) && records.containsKey(key)) {
-          deleteRecord(key);
-          keys.remove(key);
+        if (_keys.contains(key)) {
+          if (records.containsKey(key)) {
+            deleteRecord(key);
+          }
+          keys.add(key);
         }
       }
     }

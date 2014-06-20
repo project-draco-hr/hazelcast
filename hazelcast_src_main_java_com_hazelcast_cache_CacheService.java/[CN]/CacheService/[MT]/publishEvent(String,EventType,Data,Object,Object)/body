@@ -1,0 +1,57 @@
+{
+  EventService eventService=getNodeEngine().getEventService();
+  Collection<EventRegistration> candidates=eventService.getRegistrations(CacheService.SERVICE_NAME,cacheName);
+  if (candidates.isEmpty()) {
+    return;
+  }
+  Set<EventRegistration> registrationsWithOldValue=new HashSet<EventRegistration>();
+  Set<EventRegistration> registrationsWithoutOldValue=new HashSet<EventRegistration>();
+  Data dataValue;
+  Object objectValue;
+  if (!(value instanceof Data)) {
+    dataValue=toData(value);
+    objectValue=value;
+  }
+ else {
+    dataValue=(Data)value;
+    objectValue=toData(value);
+    ;
+  }
+  Data dataOldValue;
+  Object objectOldValue;
+  if (!(value instanceof Data)) {
+    dataOldValue=toData(oldValue);
+    objectOldValue=oldValue;
+  }
+ else {
+    dataOldValue=(Data)oldValue;
+    objectOldValue=toData(oldValue);
+    ;
+  }
+  for (  EventRegistration candidate : candidates) {
+    EventFilter filter=candidate.getFilter();
+    final Object key=toObject(dataKey);
+    if (filter instanceof CacheEventFilterAdaptor) {
+      final CacheEventFilterAdaptor<Object,Object> ceFilter=(CacheEventFilterAdaptor<Object,Object>)filter;
+      if (ceFilter.filterEventData(eventType,key,objectValue,objectOldValue)) {
+        if (ceFilter.isOldValueRequired()) {
+          registrationsWithOldValue.add(candidate);
+        }
+ else {
+          registrationsWithoutOldValue.add(candidate);
+        }
+      }
+    }
+  }
+  if (registrationsWithOldValue.isEmpty() && registrationsWithoutOldValue.isEmpty()) {
+    return;
+  }
+  if (eventType == EventType.REMOVED || eventType == EventType.EXPIRED) {
+    dataValue=dataValue != null ? dataValue : dataOldValue;
+  }
+  int orderKey=dataKey.hashCode();
+  CacheEventData eventWithOldValue=new CacheEventData(cacheName,dataKey,dataValue,dataOldValue,eventType);
+  CacheEventData eventWithOutOldValue=new CacheEventData(cacheName,dataKey,dataValue,null,eventType);
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithOldValue,eventWithOldValue,orderKey);
+  nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithoutOldValue,eventWithOutOldValue,orderKey);
+}

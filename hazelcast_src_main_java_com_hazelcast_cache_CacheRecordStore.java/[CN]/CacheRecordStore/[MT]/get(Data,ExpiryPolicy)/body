@@ -2,8 +2,8 @@
   final ExpiryPolicy _expiryPolicy=expiryPolicy != null ? expiryPolicy : cacheConfig.getExpiryPolicyFactory().create();
   long now=Clock.currentTimeMillis();
   Object value;
-  Record record=records.get(key);
-  boolean isExpired=record != null && isExpiredAt(record.getStatistics().getExpirationTime(),now);
+  CacheRecord record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
   if (isExpired) {
     processExpiredEntry(key,record);
   }
@@ -25,7 +25,7 @@
       Duration expiryDuration=_expiryPolicy.getExpiryForAccess();
       if (expiryDuration != null) {
         et=expiryDuration.getAdjustedTime(now);
-        record.getStatistics().setExpirationTime(et);
+        record.setExpirationTime(et);
       }
     }
  catch (    Throwable t) {

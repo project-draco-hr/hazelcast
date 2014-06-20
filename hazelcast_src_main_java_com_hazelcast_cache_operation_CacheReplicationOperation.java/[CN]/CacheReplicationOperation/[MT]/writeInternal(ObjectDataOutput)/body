@@ -4,22 +4,19 @@
   out.writeInt(count);
   if (count > 0) {
     long now=Clock.currentTimeMillis();
-    for (    Map.Entry<String,Map<Data,Record>> entry : source.entrySet()) {
-      Map<Data,Record> cacheMap=entry.getValue();
+    for (    Map.Entry<String,Map<Data,CacheRecord>> entry : source.entrySet()) {
+      Map<Data,CacheRecord> cacheMap=entry.getValue();
       int subCount=cacheMap.size();
       out.writeInt(subCount);
       if (subCount > 0) {
         out.writeUTF(entry.getKey());
-        for (        Map.Entry<Data,Record> e : cacheMap.entrySet()) {
-          Record record=e.getValue();
-          Data key=record.getKey();
-          Object value=record.getValue();
-          RecordStatistics statistics=record.getStatistics();
-          long expirationTime=statistics.getExpirationTime();
+        for (        Map.Entry<Data,CacheRecord> e : cacheMap.entrySet()) {
+          final Data key=e.getKey();
+          final CacheRecord record=e.getValue();
+          final long expirationTime=record.getExpirationTime();
           if (expirationTime > now) {
-            out.writeObject(key);
-            out.writeObject(value);
-            out.writeObject(statistics);
+            key.writeData(out);
+            out.writeObject(record);
           }
           subCount--;
         }

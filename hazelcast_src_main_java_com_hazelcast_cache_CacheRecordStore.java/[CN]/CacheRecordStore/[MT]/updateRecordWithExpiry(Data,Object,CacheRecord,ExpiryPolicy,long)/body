@@ -1,0 +1,21 @@
+{
+  long et=-1l;
+  try {
+    Duration expiryDuration=_expiryPolicy.getExpiryForUpdate();
+    if (expiryDuration != null) {
+      et=expiryDuration.getAdjustedTime(now);
+      record.setExpirationTime(et);
+    }
+  }
+ catch (  Throwable t) {
+  }
+  if (isExpiredAt(et,now)) {
+    processExpiredEntry(key,record);
+  }
+ else {
+    writeThroughCache(key,value);
+    updateRecord(record,value);
+    return true;
+  }
+  return false;
+}
