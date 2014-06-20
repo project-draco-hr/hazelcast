@@ -1,0 +1,14 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  Field original=HazelcastInstanceProxy.class.getDeclaredField("original");
+  original.setAccessible(true);
+  HazelcastInstanceImpl impl=(HazelcastInstanceImpl)original.get(hz);
+  ComplexUtf8Object complexUtf8Object=buildComplexUtf8Object();
+  SerializationService ss=impl.node.getSerializationService();
+  ByteArrayOutputStream baos=new ByteArrayOutputStream(2048);
+  ObjectDataOutput out=ss.createObjectDataOutputStream(baos);
+  out.writeObject(complexUtf8Object);
+  ObjectDataInput in=ss.createObjectDataInput(baos.toByteArray());
+  ComplexUtf8Object result=in.readObject();
+  assertEquals(complexUtf8Object,result);
+}
