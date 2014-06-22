@@ -1,0 +1,15 @@
+{
+  NodeEngine engine=getNodeEngine();
+  EventService eventService=engine.getEventService();
+  Collection<EventRegistration> registrations=eventService.getRegistrations(MultiMapService.SERVICE_NAME,multiMapName);
+  for (  EventRegistration registration : registrations) {
+    MultiMapEventFilter filter=(MultiMapEventFilter)registration.getFilter();
+    if (filter.getKey() == null || filter.getKey().equals(key)) {
+      Data dataValue=filter.isIncludeValue() ? engine.toData(value) : null;
+      final Address caller=engine.getThisAddress();
+      final String source=caller.toString();
+      EntryEventData event=new EntryEventData(source,multiMapName,caller,key,dataValue,null,eventType.getType());
+      eventService.publishEvent(MultiMapService.SERVICE_NAME,registration,event,multiMapName.hashCode());
+    }
+  }
+}
