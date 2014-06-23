@@ -1,6 +1,6 @@
 {
   Config config=new Config();
-  final String name="defMM";
+  final String name=randomMapName();
   config.getMultiMapConfig(name).setValueCollectionType(MultiMapConfig.ValueCollectionType.LIST);
   final int insCount=4;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(insCount);
@@ -13,6 +13,9 @@
     public void entryRemoved(    EntryEvent event){
       keys.remove(event.getKey());
     }
+    @Override public void mapCleared(    MapEvent event){
+      keys.clear();
+    }
   }
 ;
   final String id=instances[0].getMultiMap(name).addLocalEntryListener(listener);
@@ -24,13 +27,21 @@
   instances[0].getMultiMap(name).put("key6","val6");
   instances[0].getMultiMap(name).put("key7","val7");
   instances[0].getMultiMap(name).put("key8","val8");
-  Thread.sleep(1500);
-  assertTrue(instances[0].getMultiMap(name).localKeySet().containsAll(keys));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      instances[0].getMultiMap(name).localKeySet().containsAll(keys);
+    }
+  }
+);
   if (keys.size() != 0) {
     instances[0].getMultiMap(name).remove(keys.iterator().next());
   }
-  Thread.sleep(1500);
-  assertTrue(instances[0].getMultiMap(name).localKeySet().containsAll(keys));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      instances[0].getMultiMap(name).localKeySet().containsAll(keys);
+    }
+  }
+);
   instances[0].getMultiMap(name).removeEntryListener(id);
   getMultiMap(instances,name).clear();
   keys.clear();
@@ -39,16 +50,13 @@
   getMultiMap(instances,name).put("key3","val33");
   getMultiMap(instances,name).put("key4","val4");
   getMultiMap(instances,name).remove("key3","val33");
-  Thread.sleep(1500);
-  assertEquals(1,keys.size());
+  assertSizeEventually(1,keys);
   getMultiMap(instances,name).clear();
-  Thread.sleep(1500);
-  assertEquals(0,keys.size());
+  assertSizeEventually(0,keys);
   instances[0].getMultiMap(name).removeEntryListener(id2);
   instances[0].getMultiMap(name).addEntryListener(listener,"key7",true);
   getMultiMap(instances,name).put("key2","val2");
   getMultiMap(instances,name).put("key3","val3");
   getMultiMap(instances,name).put("key7","val7");
-  Thread.sleep(1500);
-  assertEquals(1,keys.size());
+  assertSizeEventually(1,keys);
 }
