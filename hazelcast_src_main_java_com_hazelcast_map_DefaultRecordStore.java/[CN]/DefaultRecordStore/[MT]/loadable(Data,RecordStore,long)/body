@@ -1,0 +1,14 @@
+{
+  if (!mapContainer.isWriteBehindMapStoreEnabled()) {
+    return true;
+  }
+  if (isInWriteBehindWaitingDeletions(key) || isInEvictionStagingArea(key,now)) {
+    return false;
+  }
+  final Record record=recordStore.getRecord(key);
+  final long scheduledStoreTime=record.getLastUpdateTime() + mapContainer.getWriteDelayMillis();
+  if (now < scheduledStoreTime) {
+    return false;
+  }
+  return true;
+}
