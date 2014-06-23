@@ -1,34 +1,4 @@
 {
-  if (entries.isEmpty()) {
-    return;
-  }
-  CompletableFutureEntry[] copy;
-  entriesLock.lock();
-  try {
-    copy=new CompletableFutureEntry[entries.size()];
-    copy=this.entries.toArray(copy);
-  }
-  finally {
-    entriesLock.unlock();
-  }
-  List<CompletableFutureEntry> removes=null;
-  for (  CompletableFutureEntry entry : copy) {
-    if (entry.processState()) {
-      if (removes == null) {
-        removes=new ArrayList<CompletableFutureEntry>(copy.length / 2);
-      }
-      removes.add(entry);
-    }
-  }
-  if (removes != null && !removes.isEmpty()) {
-    entriesLock.lock();
-    try {
-      for (int i=0; i < removes.size(); i++) {
-        entries.remove(removes.get(i));
-      }
-    }
-  finally {
-      entriesLock.unlock();
-    }
-  }
+  List<CompletableFutureEntry> removableEntries=removableEntries();
+  removeEntries(removableEntries);
 }
