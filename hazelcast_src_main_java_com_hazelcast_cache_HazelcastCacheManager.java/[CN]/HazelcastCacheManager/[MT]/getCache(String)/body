@@ -1,7 +1,12 @@
 {
-  ICache<K,V> cache=hazelcastInstance.getDistributedObject(CacheService.SERVICE_NAME,cacheName);
-  if (cache != null && cache instanceof CacheProxy) {
-    ((CacheProxy<K,V>)cache).initCacheManager(this);
+  if (isClosed()) {
+    throw new IllegalStateException();
   }
-  return cache;
+  final CacheConfig<?,?> configuration=hazelcastInstance.getConfig().getCacheConfig(cacheName);
+  if (Object.class.equals(configuration.getKeyType()) && Object.class.equals(configuration.getValueType())) {
+    return getCacheObject(cacheName);
+  }
+ else {
+    throw new IllegalArgumentException("Cache " + cacheName + " was "+ "defined with specific types Cache<"+ configuration.getKeyType()+ ", "+ configuration.getValueType()+ "> "+ "in which case CacheManager.getCache(String, Class, Class) must be used");
+  }
 }

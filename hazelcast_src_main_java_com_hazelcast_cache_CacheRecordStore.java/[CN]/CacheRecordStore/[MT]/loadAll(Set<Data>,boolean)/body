@@ -1,0 +1,33 @@
+{
+  Set<Data> keysLoadad=new HashSet<Data>();
+  Map<Data,Object> loaded=loadAllCacheEntry(keys);
+  if (loaded != null && !loaded.isEmpty()) {
+    if (replaceExistingValues) {
+      for (      Map.Entry<Data,Object> entry : loaded.entrySet()) {
+        final Data key=entry.getKey();
+        final Object value=entry.getValue();
+        if (value != null) {
+          this.isWriteThrough=false;
+          put(key,value,null,null);
+          this.isWriteThrough=cacheConfig.isWriteThrough();
+          keysLoadad.add(key);
+        }
+      }
+    }
+ else {
+      for (      Map.Entry<Data,Object> entry : loaded.entrySet()) {
+        final Data key=entry.getKey();
+        final Object value=entry.getValue();
+        if (value != null) {
+          this.isWriteThrough=false;
+          final boolean hasPut=putIfAbsent(key,value,null,null);
+          this.isWriteThrough=cacheConfig.isWriteThrough();
+          if (hasPut) {
+            keysLoadad.add(key);
+          }
+        }
+      }
+    }
+  }
+  return keysLoadad;
+}
