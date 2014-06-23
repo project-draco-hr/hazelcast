@@ -1,4 +1,5 @@
 {
+  this.securityContext=context;
   this.ioService=ioService;
   this.serverSocketChannel=serverSocketChannel;
   this.logger=ioService.getLogger(TcpIpConnectionManager.class.getName());
@@ -22,30 +23,6 @@
   }
  else {
     socketChannelWrapperFactory=new DefaultSocketChannelWrapperFactory();
-  }
-  SocketInterceptor implementation=null;
-  SocketInterceptorConfig sic=ioService.getSocketInterceptorConfig();
-  if (sic != null && sic.isEnabled()) {
-    implementation=(SocketInterceptor)sic.getImplementation();
-    if (implementation == null && sic.getClassName() != null) {
-      try {
-        implementation=(SocketInterceptor)Class.forName(sic.getClassName()).newInstance();
-      }
- catch (      Throwable e) {
-        logger.severe("SocketInterceptor class cannot be instantiated!" + sic.getClassName(),e);
-      }
-    }
-    if (implementation != null) {
-      if (!(implementation instanceof MemberSocketInterceptor)) {
-        logger.severe("SocketInterceptor must be instance of " + MemberSocketInterceptor.class.getName());
-        implementation=null;
-      }
-    }
-  }
-  memberSocketInterceptor=(MemberSocketInterceptor)implementation;
-  if (memberSocketInterceptor != null) {
-    logger.info("SocketInterceptor is enabled");
-    memberSocketInterceptor.init(sic.getProperties());
   }
   portableContext=ioService.getSerializationContext();
 }
