@@ -1,0 +1,28 @@
+{
+  this.initializer=initializer;
+  this.ioService=ioService;
+  this.serverSocketChannel=serverSocketChannel;
+  this.logger=ioService.getLogger(TcpIpConnectionManager.class.getName());
+  this.socketReceiveBufferSize=ioService.getSocketReceiveBufferSize() * IOService.KILO_BYTE;
+  this.socketSendBufferSize=ioService.getSocketSendBufferSize() * IOService.KILO_BYTE;
+  this.socketLingerSeconds=ioService.getSocketLingerSeconds();
+  this.socketKeepAlive=ioService.getSocketKeepAlive();
+  this.socketNoDelay=ioService.getSocketNoDelay();
+  selectorThreadCount=ioService.getSelectorThreadCount();
+  inSelectors=new IOSelector[selectorThreadCount];
+  outSelectors=new IOSelector[selectorThreadCount];
+  final Collection<Integer> ports=ioService.getOutboundPorts();
+  outboundPortCount=ports == null ? 0 : ports.size();
+  if (ports != null) {
+    outboundPorts.addAll(ports);
+  }
+  SSLConfig sslConfig=ioService.getSSLConfig();
+  if (sslConfig != null && sslConfig.isEnabled()) {
+    socketChannelWrapperFactory=new SSLSocketChannelWrapperFactory(sslConfig);
+    logger.info("SSL is enabled");
+  }
+ else {
+    socketChannelWrapperFactory=new DefaultSocketChannelWrapperFactory();
+  }
+  portableContext=ioService.getSerializationContext();
+}
