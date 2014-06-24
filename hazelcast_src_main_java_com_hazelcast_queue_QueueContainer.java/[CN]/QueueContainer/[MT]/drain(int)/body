@@ -1,22 +1,11 @@
 {
-  if (maxSize < 0 || maxSize > getItemQueue().size()) {
-    maxSize=getItemQueue().size();
+  int maxSizeParam=maxSize;
+  if (maxSizeParam < 0 || maxSizeParam > getItemQueue().size()) {
+    maxSizeParam=getItemQueue().size();
   }
-  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(maxSize);
-  Iterator<QueueItem> iter=getItemQueue().iterator();
-  for (int i=0; i < maxSize; i++) {
-    QueueItem item=iter.next();
-    if (store.isEnabled() && item.getData() == null) {
-      try {
-        load(item);
-      }
- catch (      Exception e) {
-        throw new HazelcastException(e);
-      }
-    }
-    map.put(item.getItemId(),item.getData());
-  }
-  if (store.isEnabled() && maxSize != 0) {
+  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(maxSizeParam);
+  mapDrainIterator(maxSizeParam,map);
+  if (store.isEnabled() && maxSizeParam != 0) {
     try {
       store.deleteAll(map.keySet());
     }
@@ -25,11 +14,11 @@
     }
   }
   long current=Clock.currentTimeMillis();
-  for (int i=0; i < maxSize; i++) {
+  for (int i=0; i < maxSizeParam; i++) {
     QueueItem item=getItemQueue().poll();
     age(item,current);
   }
-  if (maxSize != 0) {
+  if (maxSizeParam != 0) {
     scheduleEvictionIfEmpty();
   }
   return map;
