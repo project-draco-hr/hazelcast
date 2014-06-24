@@ -5,45 +5,15 @@
   final ClientEndpoint endpoint=getEndpoint();
   QueryResultSet result=new QueryResultSet(null,iterationType,true);
   try {
-    List<Future> flist=new ArrayList<Future>();
+    List<Future> futures=new ArrayList<Future>();
     final Predicate predicate=getPredicate();
-    for (    MemberImpl member : members) {
-      Future future=createInvocationBuilder(SERVICE_NAME,new QueryOperation(name,predicate),member.getAddress()).invoke();
-      flist.add(future);
-    }
-    for (    Future future : flist) {
-      QueryResult queryResult=(QueryResult)future.get();
-      if (queryResult != null) {
-        final List<Integer> partitionIds=queryResult.getPartitionIds();
-        if (partitionIds != null) {
-          plist.addAll(partitionIds);
-          result.addAll(queryResult.getResult());
-        }
-      }
-    }
-    if (plist.size() != partitionCount) {
-      List<Integer> missingList=new ArrayList<Integer>();
-      for (int i=0; i < partitionCount; i++) {
-        if (!plist.contains(i)) {
-          missingList.add(i);
-        }
-      }
-      List<Future> futures=new ArrayList<Future>(missingList.size());
-      for (      Integer pid : missingList) {
-        QueryPartitionOperation queryPartitionOperation=new QueryPartitionOperation(name,predicate);
-        queryPartitionOperation.setPartitionId(pid);
-        try {
-          Future f=createInvocationBuilder(SERVICE_NAME,queryPartitionOperation,pid).invoke();
-          futures.add(f);
-        }
- catch (        Throwable t) {
-          throw ExceptionUtil.rethrow(t);
-        }
-      }
-      for (      Future future : futures) {
-        QueryResult queryResult=(QueryResult)future.get();
-        result.addAll(queryResult.getResult());
-      }
+    createInvocations(members,futures,predicate);
+    collectResults(plist,result,futures);
+    if (hasMissingPartitions(partitionCount,plist)) {
+      List<Integer> missingList=findMissingPartitions(partitionCount,plist);
+      List<Future> missingFutures=new ArrayList<Future>(missingList.size());
+      createInvocationsForMissingPartitions(predicate,missingList,missingFutures);
+      collectResultsFromMissingPartitions(result,missingFutures);
     }
   }
  catch (  Throwable t) {
