@@ -5,22 +5,7 @@
   threadGroup=new ThreadGroup(instanceName);
   lifecycleService=new LifecycleServiceImpl(this);
   clientProperties=new ClientProperties(config);
-  SerializationService ss;
-  try {
-    String partitioningStrategyClassName=System.getProperty(GroupProperties.PROP_PARTITIONING_STRATEGY_CLASS);
-    final PartitioningStrategy partitioningStrategy;
-    if (partitioningStrategyClassName != null && partitioningStrategyClassName.length() > 0) {
-      partitioningStrategy=ClassLoaderUtil.newInstance(config.getClassLoader(),partitioningStrategyClassName);
-    }
- else {
-      partitioningStrategy=new DefaultPartitioningStrategy();
-    }
-    ss=new SerializationServiceBuilder().setManagedContext(new HazelcastClientManagedContext(this,config.getManagedContext())).setClassLoader(config.getClassLoader()).setConfig(config.getSerializationConfig()).setPartitioningStrategy(partitioningStrategy).build();
-  }
- catch (  Exception e) {
-    throw ExceptionUtil.rethrow(e);
-  }
-  serializationService=(SerializationServiceImpl)ss;
+  serializationService=initSerializationService(config);
   proxyManager=new ProxyManager(this);
   executionService=new ClientExecutionServiceImpl(instanceName,threadGroup,Thread.currentThread().getContextClassLoader(),config.getExecutorPoolSize());
   transactionManager=new ClientTransactionManager(this);
@@ -29,7 +14,7 @@
     lb=new RoundRobinLB();
   }
   loadBalancer=lb;
-  connectionManager=new ClientConnectionManagerImpl(this,loadBalancer);
+  connectionManager=createClientConnectionManager();
   clusterService=new ClientClusterServiceImpl(this);
   invocationService=new ClientInvocationServiceImpl(this);
   userContext=new ConcurrentHashMap<String,Object>();

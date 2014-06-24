@@ -1,0 +1,35 @@
+{
+  endpoints.remove(endpoint.getConnection());
+  logger.info("Destroying " + endpoint);
+  try {
+    endpoint.destroy();
+  }
+ catch (  LoginException e) {
+    logger.warning(e);
+  }
+  final Connection connection=endpoint.getConnection();
+  if (closeImmediately) {
+    try {
+      connection.close();
+    }
+ catch (    Throwable e) {
+      logger.warning("While closing client connection: " + connection,e);
+    }
+  }
+ else {
+    nodeEngine.getExecutionService().schedule(new Runnable(){
+      public void run(){
+        if (connection.live()) {
+          try {
+            connection.close();
+          }
+ catch (          Throwable e) {
+            logger.warning("While closing client connection: " + e.toString());
+          }
+        }
+      }
+    }
+,DESTROY_ENDPOINT_DELAY_MS,TimeUnit.MILLISECONDS);
+  }
+  clientEngine.sendClientEvent(endpoint);
+}

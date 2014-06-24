@@ -6,16 +6,15 @@
   K marshalledKey=(K)marshallKey(key);
 synchronized (getMutex(marshalledKey)) {
     final ReplicatedRecord current=storage.get(marshalledKey);
-    final VectorClock vectorClock;
+    final VectorClockTimestamp vectorClockTimestamp;
     if (current == null) {
       oldValue=null;
     }
  else {
-      vectorClock=current.getVectorClock();
       oldValue=(V)current.getValue();
       storage.remove(marshalledKey,current);
-      vectorClock.incrementClock(localMember);
-      ReplicationMessage message=buildReplicationMessage(key,null,vectorClock,-1);
+      vectorClockTimestamp=current.incrementVectorClock(localMember);
+      ReplicationMessage message=buildReplicationMessage(key,null,vectorClockTimestamp,-1);
       replicationPublisher.publishReplicatedMessage(message);
     }
     cancelTtlEntry(marshalledKey);
