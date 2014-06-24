@@ -12,25 +12,10 @@
   if (reply) {
     sendBindRequest(connection,remoteEndPoint,false);
   }
-  final Connection existingConnection=connectionsMap.get(remoteEndPoint);
-  if (existingConnection != null && existingConnection.live()) {
-    if (existingConnection != connection) {
-      if (logger.isFinestEnabled()) {
-        log(Level.FINEST,existingConnection + " is already bound  to " + remoteEndPoint+ ", new one is "+ connection);
-      }
-      activeConnections.add(connection);
-    }
+  if (checkAlreadyConnected(connection,remoteEndPoint)) {
     return false;
   }
-  if (!remoteEndPoint.equals(thisAddress)) {
-    if (!connection.isClient()) {
-      connection.setMonitor(getConnectionMonitor(remoteEndPoint,true));
-    }
-    connectionsMap.put(remoteEndPoint,connection);
-    connectionsInProgress.remove(remoteEndPoint);
-    for (    ConnectionListener listener : connectionListeners) {
-      listener.connectionAdded(connection);
-    }
+  if (registerConnectionEndpoint(connection,remoteEndPoint,thisAddress)) {
     return true;
   }
   return false;
