@@ -1,30 +1,23 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
-  final ClientEngine clientEngine=getClientEngine();
   final MapService mapService=getService();
-  EntryListener<Object,Object> listener=new EntryListener<Object,Object>(){
-    private void handleEvent(    EntryEvent<Object,Object> event){
+  EntryListener listener=new EntryAdapter(){
+    @Override public void onEntryEvent(    EntryEvent event){
       if (endpoint.live()) {
-        Data key=clientEngine.toData(event.getKey());
-        Data value=clientEngine.toData(event.getValue());
-        Data oldValue=clientEngine.toData(event.getOldValue());
+        Data key=serializationService.toData(event.getKey());
+        Data value=serializationService.toData(event.getValue());
+        Data oldValue=serializationService.toData(event.getOldValue());
         PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
         endpoint.sendEvent(portableEntryEvent,getCallId());
       }
     }
-    public void entryAdded(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    public void entryRemoved(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    public void entryUpdated(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    public void entryEvicted(    EntryEvent<Object,Object> event){
-      handleEvent(event);
-    }
-    @Override public void mapEvicted(    MapEvent event){
+    @Override public void onMapEvent(    MapEvent event){
+      if (endpoint.live()) {
+        final EntryEventType type=event.getEventType();
+        final String uuid=event.getMember().getUuid();
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(type,uuid,event.getNumberOfEntriesAffected());
+        endpoint.sendEvent(portableEntryEvent,getCallId());
+      }
     }
   }
 ;
