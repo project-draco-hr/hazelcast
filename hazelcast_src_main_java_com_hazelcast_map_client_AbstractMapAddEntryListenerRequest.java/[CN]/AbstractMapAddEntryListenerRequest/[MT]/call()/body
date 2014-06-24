@@ -1,2 +1,34 @@
 {
+  final ClientEndpoint endpoint=getEndpoint();
+  final MapService mapService=getService();
+  EntryListener listener=new EntryAdapter(){
+    @Override public void onEntryEvent(    EntryEvent event){
+      if (endpoint.live()) {
+        Data key=serializationService.toData(event.getKey());
+        Data value=serializationService.toData(event.getValue());
+        Data oldValue=serializationService.toData(event.getOldValue());
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
+        endpoint.sendEvent(portableEntryEvent,getCallId());
+      }
+    }
+    @Override public void onMapEvent(    MapEvent event){
+      if (endpoint.live()) {
+        final EntryEventType type=event.getEventType();
+        final String uuid=event.getMember().getUuid();
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(type,uuid,event.getNumberOfEntriesAffected());
+        endpoint.sendEvent(portableEntryEvent,getCallId());
+      }
+    }
+  }
+;
+  EventFilter eventFilter;
+  if (getPredicate() == null) {
+    eventFilter=new EntryEventFilter(includeValue,key);
+  }
+ else {
+    eventFilter=new QueryEventFilter(includeValue,key,getPredicate());
+  }
+  String registrationId=mapService.addEventListener(listener,eventFilter,name);
+  endpoint.setListenerRegistration(MapService.SERVICE_NAME,name,registrationId);
+  return registrationId;
 }
