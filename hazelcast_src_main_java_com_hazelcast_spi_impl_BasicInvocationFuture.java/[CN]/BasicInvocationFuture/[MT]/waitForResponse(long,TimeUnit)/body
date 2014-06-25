@@ -2,32 +2,29 @@
   if (response != null && response != BasicInvocation.WAIT_RESPONSE) {
     return response;
   }
-  long timeoutMs=unit.toMillis(time);
-  if (timeoutMs < 0) {
-    timeoutMs=0;
-  }
-  final long maxCallTimeout=basicInvocation.callTimeout > 0 ? basicInvocation.callTimeout * 2 : Long.MAX_VALUE;
-  final boolean longPolling=timeoutMs > maxCallTimeout;
+  long timeoutMs=getTimeoutMs(time,unit);
+  long maxCallTimeoutMs=getMaxCallTimeoutMs();
+  boolean longPolling=timeoutMs > maxCallTimeoutMs;
   int pollCount=0;
   while (timeoutMs >= 0) {
-    final long pollTimeoutMs=Math.min(maxCallTimeout,timeoutMs);
-    final long startMs=Clock.currentTimeMillis();
+    long pollTimeoutMs=min(maxCallTimeoutMs,timeoutMs);
+    long startMs=Clock.currentTimeMillis();
     long lastPollTime=0;
     pollCount++;
     try {
       if (pollTimeoutMs > 0) {
 synchronized (this) {
           if (response == null || response == BasicInvocation.WAIT_RESPONSE) {
-            this.wait(pollTimeoutMs);
+            wait(pollTimeoutMs);
           }
         }
       }
       lastPollTime=Clock.currentTimeMillis() - startMs;
       timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
-      if (response != null) {
-        if (response == BasicInvocation.WAIT_RESPONSE) {
-          continue;
-        }
+      if (response == BasicInvocation.WAIT_RESPONSE) {
+        continue;
+      }
+ else       if (response != null) {
         if (response != BasicInvocation.INTERRUPTED_RESPONSE && interrupted) {
           Thread.currentThread().interrupt();
         }
@@ -38,7 +35,7 @@ synchronized (this) {
       interrupted=true;
     }
     if (!interrupted && longPolling) {
-      final Address target=basicInvocation.getTarget();
+      Address target=basicInvocation.getTarget();
       if (basicInvocation.nodeEngine.getThisAddress().equals(target)) {
         continue;
       }
