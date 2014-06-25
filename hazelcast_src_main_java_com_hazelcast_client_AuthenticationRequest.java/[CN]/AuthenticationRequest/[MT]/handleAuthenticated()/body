@@ -1,12 +1,13 @@
 {
   ClientEngineImpl clientEngine=getService();
-  if (principal != null && reAuth) {
-    principal=new ClientPrincipal(principal.getUuid(),clientEngine.getLocalMember().getUuid());
+  if (firstConnection) {
+    principal=new ClientPrincipal(endpoint.getUuid(),clientEngine.getLocalMember().getUuid());
     reAuthLocal();
     Collection<MemberImpl> members=clientEngine.getClusterService().getMemberList();
     for (    MemberImpl member : members) {
       if (!member.localMember()) {
-        ClientReAuthOperation op=new ClientReAuthOperation(principal.getUuid(),firstConnection);
+        ClientReAuthOperation op=new ClientReAuthOperation(endpoint.getUuid());
+        op.setCallerUuid(clientEngine.getLocalMember().getUuid());
         operationService.send(op,member.getAddress());
       }
     }
