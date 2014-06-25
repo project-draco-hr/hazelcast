@@ -1,7 +1,12 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
   try {
-    nodeEngine.getOperationService().invokeOnAllPartitions(MultiMapService.SERVICE_NAME,new MultiMapOperationFactory(name,OperationFactoryType.CLEAR));
+    final Map<Integer,Object> resultMap=nodeEngine.getOperationService().invokeOnAllPartitions(MultiMapService.SERVICE_NAME,new MultiMapOperationFactory(name,OperationFactoryType.CLEAR));
+    int numberOfAffectedEntries=0;
+    for (    Object o : resultMap.values()) {
+      numberOfAffectedEntries+=(Integer)o;
+    }
+    publishMultiMapEvent(numberOfAffectedEntries,EntryEventType.CLEAR_ALL);
   }
  catch (  Throwable throwable) {
     throw ExceptionUtil.rethrow(throwable);

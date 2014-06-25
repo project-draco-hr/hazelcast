@@ -1,0 +1,37 @@
+{
+  if (!connectionManager.isLive()) {
+    return;
+  }
+  SocketChannelWrapper socketChannelWrapper=null;
+  try {
+    final SocketChannel socketChannel=serverSocketChannel.accept();
+    if (socketChannel != null) {
+      socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,false);
+    }
+  }
+ catch (  Exception e) {
+    if (e instanceof ClosedChannelException && !connectionManager.isLive()) {
+      logger.finest("Terminating socket acceptor thread...",e);
+    }
+ else {
+      String error="Unexpected error while accepting connection! " + e.getClass().getName() + ": "+ e.getMessage();
+      log(Level.WARNING,error);
+      try {
+        serverSocketChannel.close();
+      }
+ catch (      Exception ignore) {
+      }
+      connectionManager.ioService.onFatalError(e);
+    }
+  }
+  if (socketChannelWrapper != null) {
+    final SocketChannelWrapper socketChannel=socketChannelWrapper;
+    log(Level.INFO,"Accepting socket connection from " + socketChannel.socket().getRemoteSocketAddress());
+    connectionManager.ioService.executeAsync(new Runnable(){
+      public void run(){
+        configureAndAssignSocket(socketChannel);
+      }
+    }
+);
+  }
+}

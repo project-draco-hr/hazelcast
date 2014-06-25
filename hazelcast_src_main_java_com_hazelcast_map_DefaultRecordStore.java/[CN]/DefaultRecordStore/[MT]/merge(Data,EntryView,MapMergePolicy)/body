@@ -1,6 +1,7 @@
 {
   checkIfLoaded();
-  earlyWriteCleanup();
+  final long now=getNow();
+  earlyWriteCleanup(now);
   Record record=records.get(key);
   Object newValue;
   if (record == null) {
@@ -10,8 +11,8 @@
     if (newValue == null) {
       return false;
     }
-    newValue=mapStoreWrite(key,newValue,null);
-    record=mapService.createRecord(name,key,newValue,DEFAULT_TTL);
+    newValue=mapStoreWrite(key,newValue,null,now);
+    record=mapService.createRecord(name,key,newValue,DEFAULT_TTL,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
   }
@@ -21,7 +22,7 @@
     newValue=mergePolicy.merge(name,mergingEntry,existingEntry);
     if (newValue == null) {
       removeIndex(key);
-      mapStoreDelete(record,key);
+      mapStoreDelete(record,key,now);
       updateSizeEstimator(-calculateRecordSize(record));
       deleteRecord(key);
       return true;
@@ -29,7 +30,7 @@
     if (mapService.compare(name,newValue,oldValue)) {
       return true;
     }
-    newValue=mapStoreWrite(key,newValue,record);
+    newValue=mapStoreWrite(key,newValue,record,now);
     updateSizeEstimator(-calculateRecordSize(record));
     recordFactory.setValue(record,newValue);
     updateSizeEstimator(calculateRecordSize(record));

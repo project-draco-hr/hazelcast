@@ -1,0 +1,35 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final MapService mapService=ExpirationManager.this.mapService;
+  final NodeEngine nodeEngine=mapService.getNodeEngine();
+  final int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
+  List<PartitionContainer> partitionContainers=Collections.emptyList();
+  boolean createLazy=true;
+  int currentlyRunningCleanupOperationsCount=0;
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    InternalPartition partition=nodeEngine.getPartitionService().getPartition(partitionId);
+    if (partition.isOwnerOrBackup(nodeEngine.getThisAddress())) {
+      final PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
+      if (isContainerEmpty(partitionContainer)) {
+        continue;
+      }
+      if (hasRunningCleanup(partitionContainer)) {
+        currentlyRunningCleanupOperationsCount++;
+        continue;
+      }
+      if (currentlyRunningCleanupOperationsCount > getMaxCleanupOperationCountInOneRound() || notInProcessableTimeWindow(partitionContainer,now) || notAnyExpirableRecord(partitionContainer)) {
+        continue;
+      }
+      if (createLazy) {
+        partitionContainers=new ArrayList<PartitionContainer>();
+        createLazy=false;
+      }
+      partitionContainers.add(partitionContainer);
+    }
+  }
+  if (partitionContainers.isEmpty()) {
+    return;
+  }
+  Collections.sort(partitionContainers,partitionContainerComparator);
+  sendCleanupOperations(partitionContainers);
+}

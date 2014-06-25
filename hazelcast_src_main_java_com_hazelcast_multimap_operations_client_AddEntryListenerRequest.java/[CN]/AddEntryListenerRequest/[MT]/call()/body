@@ -1,19 +1,23 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
-  final ClientEngine clientEngine=getClientEngine();
   final MultiMapService service=getService();
   EntryListener listener=new EntryAdapter(){
     @Override public void onEntryEvent(    EntryEvent event){
-      send(event);
-    }
-    private void send(    EntryEvent event){
       if (endpoint.live()) {
-        Data key=clientEngine.toData(event.getKey());
-        Data value=clientEngine.toData(event.getValue());
-        Data oldValue=clientEngine.toData(event.getOldValue());
+        Data key=serializationService.toData(event.getKey());
+        Data value=serializationService.toData(event.getValue());
+        Data oldValue=serializationService.toData(event.getOldValue());
         final EntryEventType type=event.getEventType();
         final String uuid=event.getMember().getUuid();
         PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,type,uuid);
+        endpoint.sendEvent(portableEntryEvent,getCallId());
+      }
+    }
+    @Override public void onMapEvent(    MapEvent event){
+      if (endpoint.live()) {
+        final EntryEventType type=event.getEventType();
+        final String uuid=event.getMember().getUuid();
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(type,uuid,event.getNumberOfEntriesAffected());
         endpoint.sendEvent(portableEntryEvent,getCallId());
       }
     }

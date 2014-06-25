@@ -1,17 +1,19 @@
 {
-  earlyWriteCleanup();
+  final long now=getNow();
+  earlyWriteCleanup(now);
+  markRecordStoreExpirable(ttl);
   Record record=records.get(key);
   if (record == null) {
-    record=mapService.createRecord(name,key,value,ttl);
+    record=mapService.createRecord(name,key,value,ttl,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
   }
  else {
     updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
+    setRecordValue(record,value,now);
     updateSizeEstimator(calculateRecordSize(record));
   }
   removeFromWriteBehindWaitingDeletions(key);
-  addToDelayedStore(key,record.getValue());
+  addToDelayedStore(key,record.getValue(),now);
   return record;
 }

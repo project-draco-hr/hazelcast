@@ -1,6 +1,6 @@
 {
-  final long now=nowInNanos();
   final MapService mapService=this.mapService;
+  final long now=Clock.currentTimeMillis();
   final NodeEngine nodeEngine=mapService.getNodeEngine();
   final ClusterService clusterService=nodeEngine.getClusterService();
   final InternalPartitionService partitionService=nodeEngine.getPartitionService();
@@ -12,23 +12,19 @@
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     final InternalPartition partition=partitionService.getPartition(partitionId);
     final Address owner=partition.getOwnerOrNull();
-    if (owner == null) {
-      continue;
-    }
-    final PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
-    final RecordStore recordStore=partitionContainer.getExistingRecordStore(mapName);
-    if (recordStore == null) {
+    RecordStore recordStore;
+    if (owner == null || (recordStore=getRecordStoreOrNull(mapName,partitionId)) == null) {
       continue;
     }
     final WriteBehindQueue<DelayedEntry> queue=recordStore.getWriteBehindQueue();
-    final List<DelayedEntry> delayedEntries=filterLessThanOrEqualToTime(queue,now,TimeUnit.NANOSECONDS);
-    if (!owner.equals(thisAddress)) {
-      if (now < lastRunTimeInNanos + backupRunIntervalTimeInNanos) {
-        doInBackup(queue,delayedEntries,partitionId);
-      }
+    final List<DelayedEntry> delayedEntries=filterItemsLessThanOrEqualToTime(queue,now);
+    if (delayedEntries.isEmpty()) {
       continue;
     }
-    if (delayedEntries.size() == 0) {
+    if (!owner.equals(thisAddress)) {
+      if (now < lastRunTime + backupRunIntervalTime) {
+        doInBackup(queue,delayedEntries,partitionId);
+      }
       continue;
     }
     if (createLazy) {
@@ -42,9 +38,12 @@
   if (sortedDelayedEntries.isEmpty()) {
     return;
   }
-  lastRunTimeInNanos=nowInNanos();
   Collections.sort(sortedDelayedEntries,DELAYED_ENTRY_COMPARATOR);
-  final Map<Integer,Collection<DelayedEntry>> failsPerPartition=new HashMap<Integer,Collection<DelayedEntry>>();
-  mapStoreManager.process(sortedDelayedEntries,failsPerPartition);
-  removeProcessedEntries(mapService,mapName,partitionToEntryCountHolder,failsPerPartition);
+  if (writeBatchSize > 1) {
+    doStoreUsingBatchSize(sortedDelayedEntries,partitionToEntryCountHolder);
+  }
+ else {
+    doStore(sortedDelayedEntries,partitionToEntryCountHolder);
+  }
+  lastRunTime=now;
 }

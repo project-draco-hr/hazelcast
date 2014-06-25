@@ -1,14 +1,15 @@
 {
   checkIfLoaded();
-  earlyWriteCleanup();
-  Record record=records.get(dataKey);
+  final long now=getNow();
+  earlyWriteCleanup(now);
+  Record record=records.get(key);
   Object oldValue=null;
   if (record == null) {
     if (mapContainer.getStore() != null) {
-      oldValue=mapContainer.getStore().load(mapService.toObject(dataKey));
+      oldValue=loadFromStoreOrStagingArea(key);
       if (oldValue != null) {
-        removeIndex(dataKey);
-        mapStoreDelete(null,dataKey);
+        removeIndex(key);
+        mapStoreDelete(null,key,now);
       }
     }
   }
@@ -16,11 +17,11 @@
     oldValue=record.getValue();
     oldValue=mapService.interceptRemove(name,oldValue);
     if (oldValue != null) {
-      removeIndex(dataKey);
-      mapStoreDelete(record,dataKey);
+      removeIndex(key);
+      mapStoreDelete(record,key,now);
     }
     updateSizeEstimator(-calculateRecordSize(record));
-    deleteRecord(dataKey);
+    deleteRecord(key);
   }
   return oldValue;
 }
