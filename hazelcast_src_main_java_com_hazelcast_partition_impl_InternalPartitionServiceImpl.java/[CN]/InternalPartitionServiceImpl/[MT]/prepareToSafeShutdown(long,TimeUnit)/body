@@ -1,14 +1,9 @@
 {
   long timeoutInMillis=unit.toMillis(timeout);
-  int sleep=1000;
+  int sleep=DEFAULT_PAUSE_MILLIS;
   while (timeoutInMillis > 0) {
     while (timeoutInMillis > 0 && shouldWaitMigrationOrBackups(Level.INFO)) {
-      try {
-        Thread.sleep(sleep);
-      }
- catch (      InterruptedException ignored) {
-      }
-      timeoutInMillis-=sleep;
+      timeoutInMillis=sleepWithBusyWait(timeoutInMillis,sleep);
     }
     if (timeoutInMillis <= 0) {
       return false;
@@ -17,15 +12,7 @@
       syncPartitionRuntimeState();
     }
  else {
-      while (timeoutInMillis > 0 && hasOnGoingMigrationMaster(Level.WARNING)) {
-        logger.info("Waiting for the master node to complete remaining migrations!");
-        try {
-          Thread.sleep(sleep);
-        }
- catch (        InterruptedException ignored) {
-        }
-        timeoutInMillis-=sleep;
-      }
+      timeoutInMillis=waitForOngoingMigrations(timeoutInMillis,sleep);
       if (timeoutInMillis <= 0) {
         return false;
       }
@@ -41,13 +28,8 @@
       if (timeoutInMillis <= 0) {
         return false;
       }
-      logger.info("Some backup replicas are inconsistent with primary, " + "waiting for synchronization. Timeout: " + timeoutInMillis + "ms");
-      try {
-        Thread.sleep(sleep);
-      }
- catch (      InterruptedException ignored) {
-      }
-      timeoutInMillis-=sleep;
+      logger.info("Some backup replicas are inconsistent with primary, waiting for synchronization. Timeout: " + timeoutInMillis + "ms");
+      timeoutInMillis=sleepWithBusyWait(timeoutInMillis,sleep);
     }
   }
   return false;

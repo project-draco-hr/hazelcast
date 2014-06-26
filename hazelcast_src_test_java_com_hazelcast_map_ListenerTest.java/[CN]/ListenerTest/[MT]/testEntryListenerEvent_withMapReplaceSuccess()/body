@@ -1,0 +1,27 @@
+{
+  final int instanceCount=1;
+  final HazelcastInstance instance=createHazelcastInstanceFactory(instanceCount).newInstances(new Config())[0];
+  final IMap map=instance.getMap(randomString());
+  final CounterEntryListener listener=new CounterEntryListener();
+  map.addEntryListener(listener,true);
+  final int putTotal=1000;
+  final int oldVal=1;
+  for (int i=0; i < putTotal; i++) {
+    map.put(i,oldVal);
+  }
+  final int replaceTotal=1000;
+  final int newVal=2;
+  for (int i=0; i < replaceTotal; i++) {
+    map.replace(i,oldVal,newVal);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      for (int i=0; i < replaceTotal; i++) {
+        assertEquals(newVal,map.get(i));
+      }
+      assertEquals(putTotal,listener.addCount.get());
+      assertEquals(replaceTotal,listener.updateCount.get());
+    }
+  }
+);
+}

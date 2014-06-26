@@ -5,17 +5,8 @@
   final InternalPartitionImpl partitionImpl=getPartition(partitionId);
   final Address target=partitionImpl.getOwnerOrNull();
   if (target != null) {
-    if (target.equals(nodeEngine.getThisAddress())) {
-      if (force) {
-        Address thisAddress=node.nodeEngine.getThisAddress();
-        throw new IllegalStateException("Replica target cannot be this node -> thisNode: " + thisAddress + " partitionId: "+ partitionId+ ", replicaIndex: "+ replicaIndex+ ", partition-info: "+ partitionImpl);
-      }
- else {
-        if (logger.isFinestEnabled()) {
-          logger.finest("This node is now owner of partition, cannot sync replica -> partitionId: " + partitionId + ", replicaIndex: "+ replicaIndex+ ", partition-info: "+ partitionImpl);
-        }
-        return;
-      }
+    if (checkSyncPartitionTarget(partitionId,replicaIndex,force,partitionImpl,target)) {
+      return;
     }
     final ReplicaSyncRequest syncRequest=new ReplicaSyncRequest();
     syncRequest.setPartitionId(partitionId).setReplicaIndex(replicaIndex);
@@ -33,17 +24,7 @@
       sendRequest=true;
     }
     if (sendRequest) {
-      if (logger.isFinestEnabled()) {
-        logger.finest("Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
-      }
-      replicaSyncScheduler.cancel(partitionId);
-      if (delayMillis <= 0) {
-        replicaSyncScheduler.schedule(DEFAULT_REPLICA_SYNC_DELAY,partitionId,syncInfo);
-        nodeEngine.getOperationService().send(syncRequest,target);
-      }
- else {
-        replicaSyncScheduler.schedule(delayMillis,partitionId,syncInfo);
-      }
+      fireSyncReplicaRequest(partitionId,replicaIndex,delayMillis,target,syncRequest,syncInfo);
     }
   }
  else {

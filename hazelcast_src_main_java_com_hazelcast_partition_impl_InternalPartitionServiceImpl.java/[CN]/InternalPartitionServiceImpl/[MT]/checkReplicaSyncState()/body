@@ -20,34 +20,11 @@
     }
   }
 ;
-  int notOwnedCount=0;
-  for (  InternalPartitionImpl partition : partitions) {
-    Address owner=partition.getOwnerOrNull();
-    if (thisAddress.equals(owner)) {
-      if (partition.getReplicaAddress(1) != null) {
-        SyncReplicaVersion op=new SyncReplicaVersion(1,callback);
-        op.setService(this);
-        op.setNodeEngine(nodeEngine);
-        op.setResponseHandler(ResponseHandlerFactory.createErrorLoggingResponseHandler(node.getLogger(SyncReplicaVersion.class)));
-        op.setPartitionId(partition.getPartitionId());
-        nodeEngine.getOperationService().executeOperation(op);
-      }
- else {
-        ok.set(false);
-        s.release();
-      }
-    }
- else {
-      if (owner == null) {
-        ok.set(false);
-      }
-      notOwnedCount++;
-    }
-  }
+  int notOwnedCount=syncReplicaVersion(thisAddress,s,ok,callback);
   s.release(notOwnedCount);
   try {
     if (ok.get()) {
-      return s.tryAcquire(partitionCount,10,TimeUnit.SECONDS) && ok.get();
+      return s.tryAcquire(partitionCount,DEFAULT_SLEEP_MILLIS,TimeUnit.SECONDS) && ok.get();
     }
  else {
       return false;

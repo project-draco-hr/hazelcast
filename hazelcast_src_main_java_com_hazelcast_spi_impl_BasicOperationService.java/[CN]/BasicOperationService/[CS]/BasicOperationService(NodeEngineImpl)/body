@@ -5,9 +5,12 @@
   this.defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
   this.executionService=nodeEngine.getExecutionService();
   int coreSize=Runtime.getRuntime().availableProcessors();
-  boolean reallyMultiCore=coreSize >= 8;
-  int concurrencyLevel=reallyMultiCore ? coreSize * 4 : 16;
-  this.executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(1000,0.75f,concurrencyLevel);
-  this.invocations=new ConcurrentHashMap<Long,BasicInvocation>(1000,0.75f,concurrencyLevel);
-  this.scheduler=new BasicOperationScheduler(node,executionService,new BasicOperationProcessorImpl());
+  boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
+  int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
+  this.executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(INITIAL_CAPACITY,LOAD_FACTOR,concurrencyLevel);
+  this.invocations=new ConcurrentHashMap<Long,BasicInvocation>(INITIAL_CAPACITY,LOAD_FACTOR,concurrencyLevel);
+  this.scheduler=new BasicOperationScheduler(node,executionService,new BasicDispatcherImpl());
+  this.operationHandler=new OperationHandler();
+  this.operationPacketHandler=new OperationPacketHandler();
+  this.responsePacketHandler=new ResponsePacketHandler();
 }
