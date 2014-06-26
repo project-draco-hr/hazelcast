@@ -9,12 +9,13 @@
     maxSize=MAX_SIZE;
     timeToLive=CacheEnvironment.getDefaultCacheTimeoutInMillis();
   }
-  if ((maxSize > 0 && maxSize != Integer.MAX_VALUE) || timeToLive > 0) {
-    SortedSet<EvictionEntry> entries=searchEvictableEntries(maxSize,timeToLive);
+  boolean limitSize=maxSize > 0 && maxSize != Integer.MAX_VALUE;
+  if (limitSize || timeToLive > 0) {
+    List<EvictionEntry> entries=searchEvictableEntries(timeToLive,limitSize);
     final int diff=cache.size() - maxSize;
-    final int k=calculateEvictionRate(diff,maxSize);
-    if (k > 0 && entries != null) {
-      evictEntries(entries,k);
+    final int evictionRate=calculateEvictionRate(diff,maxSize);
+    if (evictionRate > 0 && entries != null) {
+      evictEntries(entries,evictionRate);
     }
   }
 }
