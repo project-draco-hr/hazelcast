@@ -1,25 +1,7 @@
 {
   checkIfLoaded();
   long now=getNow();
-  Record record=records.get(key);
-  record=nullIfExpired(record);
-  Object value=null;
-  if (record == null) {
-    if (mapContainer.getStore() != null) {
-      value=loadFromStoreOrStagingArea(key);
-      if (value != null) {
-        record=mapService.createRecord(name,key,value,DEFAULT_TTL,now);
-        records.put(key,record);
-        saveIndex(record);
-        updateSizeEstimator(calculateRecordSize(record));
-      }
-    }
-  }
- else {
-    accessRecord(record,now);
-    value=record.getValue();
-  }
-  value=mapService.interceptGet(name,value);
+  final Object value=get0(key,now);
   postReadCleanUp(now);
   return value;
 }
