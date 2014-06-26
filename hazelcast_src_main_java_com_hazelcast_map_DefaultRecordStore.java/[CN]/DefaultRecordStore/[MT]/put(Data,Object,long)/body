@@ -4,13 +4,11 @@
   earlyWriteCleanup(now);
   markRecordStoreExpirable(ttl);
   Record record=records.get(key);
-  Object oldValue=null;
+  Object oldValue;
   if (record == null) {
-    if (mapContainer.getStore() != null) {
-      oldValue=loadFromStoreOrStagingArea(key);
-    }
+    oldValue=mapDataStore.load(key);
     value=mapService.interceptPut(name,null,value);
-    value=mapStoreWrite(key,value,null,now);
+    value=mapDataStore.add(key,value,now);
     record=mapService.createRecord(name,key,value,ttl,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
@@ -19,13 +17,13 @@
  else {
     oldValue=record.getValue();
     value=mapService.interceptPut(name,oldValue,value);
-    value=mapStoreWrite(key,value,record,now);
+    value=mapDataStore.add(key,value,now);
+    onStore(record);
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,value,now);
     updateSizeEstimator(calculateRecordSize(record));
     updateTtl(record,ttl);
     saveIndex(record);
   }
-  removeFromWriteBehindWaitingDeletions(key);
   return oldValue;
 }

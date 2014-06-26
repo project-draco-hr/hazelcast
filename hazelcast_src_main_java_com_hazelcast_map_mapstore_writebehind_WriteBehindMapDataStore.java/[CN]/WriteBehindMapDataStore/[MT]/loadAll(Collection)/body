@@ -1,0 +1,19 @@
+{
+  if (keys == null || keys.isEmpty()) {
+    return Collections.emptyMap();
+  }
+  final Map<Object,Object> map=new HashMap<Object,Object>();
+  final Iterator iterator=keys.iterator();
+  while (iterator.hasNext()) {
+    final Object key=iterator.next();
+    final Data dataKey=toData(key);
+    if (hasWaitingWriteBehindDeleteOperation(dataKey)) {
+      continue;
+    }
+    final Object valueFromStagingArea=getFromEvictionStagingArea(dataKey);
+    map.put(dataKey,valueFromStagingArea);
+    iterator.remove();
+  }
+  map.putAll(super.loadAll(keys));
+  return map;
+}

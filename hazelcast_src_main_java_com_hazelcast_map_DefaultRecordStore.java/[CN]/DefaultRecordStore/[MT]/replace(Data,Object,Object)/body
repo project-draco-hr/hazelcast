@@ -2,13 +2,14 @@
   checkIfLoaded();
   final long now=getNow();
   earlyWriteCleanup(now);
-  Record record=records.get(dataKey);
+  Record record=records.get(key);
   if (record == null) {
     return false;
   }
   if (mapService.compare(name,record.getValue(),testValue)) {
     newValue=mapService.interceptPut(name,record.getValue(),newValue);
-    newValue=mapStoreWrite(dataKey,newValue,record,now);
+    newValue=mapDataStore.add(key,newValue,now);
+    onStore(record);
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,newValue,now);
     updateSizeEstimator(calculateRecordSize(record));
