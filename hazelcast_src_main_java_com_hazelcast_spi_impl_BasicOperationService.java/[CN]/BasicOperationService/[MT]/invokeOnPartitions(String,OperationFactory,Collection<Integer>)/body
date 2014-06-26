@@ -1,11 +1,13 @@
 {
   final Map<Address,List<Integer>> memberPartitions=new HashMap<Address,List<Integer>>(3);
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
   for (  int partition : partitions) {
-    Address owner=waitUntilPartitionOwnerSet(partition);
+    Address owner=partitionService.getPartitionOwnerOrWait(partition);
     if (!memberPartitions.containsKey(owner)) {
       memberPartitions.put(owner,new ArrayList<Integer>());
     }
     memberPartitions.get(owner).add(partition);
   }
-  return invokeOnPartitions(serviceName,operationFactory,memberPartitions);
+  InvokeOnPartitions invokeOnPartitions=new InvokeOnPartitions(serviceName,operationFactory,memberPartitions);
+  return invokeOnPartitions.invoke();
 }

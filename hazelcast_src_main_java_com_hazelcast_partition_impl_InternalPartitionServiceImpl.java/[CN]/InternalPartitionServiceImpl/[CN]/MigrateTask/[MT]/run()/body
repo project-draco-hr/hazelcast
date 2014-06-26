@@ -27,29 +27,9 @@
       result=Boolean.TRUE;
     }
  else {
-      Future future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(1000).invoke();
-      try {
-        Object response=future.get(partitionMigrationTimeout,TimeUnit.SECONDS);
-        result=(Boolean)nodeEngine.toObject(response);
-      }
- catch (      Throwable e) {
-        final Level level=node.isActive() && migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
-        logger.log(level,"Failed migration from " + fromMember,e);
-      }
+      result=executeMigrateOperation(migrationRequestOp,fromMember);
     }
-    if (Boolean.TRUE.equals(result)) {
-      String message="Finished Migration: " + migrationInfo;
-      if (logger.isFinestEnabled()) {
-        logger.finest(message);
-      }
-      systemLogService.logPartition(message);
-      processMigrationResult();
-    }
- else {
-      final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
-      logger.log(level,"Migration failed: " + migrationInfo);
-      migrationTaskFailed();
-    }
+    processMigrationResult(result);
   }
  catch (  Throwable t) {
     final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;

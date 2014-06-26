@@ -19,28 +19,14 @@
       }
     }
     pauseMigration();
-    for (    InternalPartitionImpl partition : partitions) {
-      boolean promote=false;
-      if (deadAddress.equals(partition.getOwnerOrNull()) && thisAddress.equals(partition.getReplicaAddress(1))) {
-        promote=true;
-      }
-      partition.onDeadAddress(deadAddress);
-      if (partition.onDeadAddress(deadAddress)) {
-        throw new IllegalStateException("Duplicate address found in partition replicas!");
-      }
-      if (promote) {
-        final Operation op=new PromoteFromBackupOperation();
-        op.setPartitionId(partition.getPartitionId()).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
-        nodeEngine.getOperationService().executeOperation(op);
-      }
-    }
+    promoteFromBackups(deadAddress,thisAddress);
     if (node.isMaster() && initialized) {
       migrationQueue.add(new RepartitioningTask());
     }
     long migrationActivationDelay=node.groupProperties.CONNECTION_MONITOR_INTERVAL.getLong() * node.groupProperties.CONNECTION_MONITOR_MAX_FAULTS.getInteger() * 5;
     long callTimeout=node.groupProperties.OPERATION_CALL_TIMEOUT_MILLIS.getLong();
     migrationActivationDelay=Math.min(migrationActivationDelay,callTimeout / 2);
-    migrationActivationDelay=Math.max(migrationActivationDelay,1000L);
+    migrationActivationDelay=Math.max(migrationActivationDelay,MAX_ACTIVATION_DELAY);
     nodeEngine.getExecutionService().schedule(new Runnable(){
       @Override public void run(){
         resumeMigration();

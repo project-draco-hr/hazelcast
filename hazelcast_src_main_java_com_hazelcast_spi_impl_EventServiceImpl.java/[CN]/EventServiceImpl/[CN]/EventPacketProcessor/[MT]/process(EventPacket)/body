@@ -1,38 +1,12 @@
 {
-  Object eventObject=eventPacket.event;
-  if (eventObject instanceof Data) {
-    eventObject=nodeEngine.toObject(eventObject);
-  }
-  final String serviceName=eventPacket.serviceName;
-  EventPublishingService<Object,Object> service=nodeEngine.getService(serviceName);
+  Object eventObject=getEventObject(eventPacket);
+  String serviceName=eventPacket.serviceName;
+  EventPublishingService<Object,Object> service=getPublishingService(serviceName);
   if (service == null) {
-    if (nodeEngine.isActive()) {
-      logger.warning("There is no service named: " + serviceName);
-    }
     return;
   }
-  EventServiceSegment segment=getSegment(serviceName,false);
-  if (segment == null) {
-    if (nodeEngine.isActive()) {
-      logger.warning("No service registration found for " + serviceName);
-    }
-    return;
-  }
-  Registration registration=segment.registrationIdMap.get(eventPacket.id);
+  Registration registration=getRegistration(eventPacket,serviceName);
   if (registration == null) {
-    if (nodeEngine.isActive()) {
-      if (logger.isFinestEnabled()) {
-        logger.finest("No registration found for " + serviceName + " / "+ eventPacket.id);
-      }
-    }
-    return;
-  }
-  if (!isLocal(registration)) {
-    logger.severe("Invalid target for  " + registration);
-    return;
-  }
-  if (registration.listener == null) {
-    logger.warning("Something seems wrong! Subscriber is local but listener instance is null! -> " + registration);
     return;
   }
   service.dispatchEvent(eventObject,registration.listener);

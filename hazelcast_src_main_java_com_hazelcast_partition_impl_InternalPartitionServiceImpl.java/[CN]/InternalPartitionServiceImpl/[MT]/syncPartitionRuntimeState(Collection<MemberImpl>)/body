@@ -9,19 +9,7 @@
   try {
     PartitionRuntimeState partitionState=createPartitionState(members);
     OperationService operationService=nodeEngine.getOperationService();
-    List<Future> calls=new ArrayList<Future>(members.size());
-    for (    MemberImpl member : members) {
-      if (!member.localMember()) {
-        try {
-          PartitionStateOperation op=new PartitionStateOperation(partitionState,true);
-          Future<Object> f=operationService.invokeOnTarget(SERVICE_NAME,op,member.getAddress());
-          calls.add(f);
-        }
- catch (        Exception e) {
-          logger.finest(e);
-        }
-      }
-    }
+    List<Future> calls=firePartitionStateOperation(members,partitionState,operationService);
     for (    Future f : calls) {
       try {
         f.get(3,TimeUnit.SECONDS);
