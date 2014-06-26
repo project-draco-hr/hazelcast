@@ -7,7 +7,7 @@
   Record record=records.get(key);
   if (record == null) {
     value=mapService.interceptPut(name,null,value);
-    value=mapStoreWrite(key,value,null,now);
+    value=mapDataStore.add(key,value,now);
     record=mapService.createRecord(name,key,value,DEFAULT_TTL,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
@@ -16,11 +16,11 @@
  else {
     final Object oldValue=record.getValue();
     value=mapService.interceptPut(name,oldValue,value);
-    value=mapStoreWrite(key,value,record,now);
+    value=mapDataStore.add(key,value,now);
+    onStore(record);
     updateSizeEstimator(-calculateRecordSize(record));
     setRecordValue(record,value,now);
     updateSizeEstimator(calculateRecordSize(record));
     saveIndex(record);
   }
-  removeFromWriteBehindWaitingDeletions(key);
 }
