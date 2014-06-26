@@ -1,0 +1,20 @@
+{
+  final Map<Integer,List<DelayedEntry>> failsPerPartition=new HashMap<Integer,List<DelayedEntry>>();
+  int page=0;
+  List<DelayedEntry> delayedEntryList;
+  while ((delayedEntryList=getBatchChunk(sortedDelayedEntries,writeBatchSize,page++)) != null) {
+    final Map<Integer,List<DelayedEntry>> fails=process0(delayedEntryList);
+    final Set<Map.Entry<Integer,List<DelayedEntry>>> entries=fails.entrySet();
+    for (    Map.Entry<Integer,List<DelayedEntry>> entry : entries) {
+      final Integer partitionId=entry.getKey();
+      final List<DelayedEntry> tmpFailList=entry.getValue();
+      List<DelayedEntry> failList=failsPerPartition.get(partitionId);
+      if (failList == null || failList.isEmpty()) {
+        failsPerPartition.put(partitionId,tmpFailList);
+        failList=failsPerPartition.get(partitionId);
+      }
+      failList.addAll(tmpFailList);
+    }
+  }
+  return failsPerPartition;
+}

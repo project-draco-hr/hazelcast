@@ -1,0 +1,24 @@
+{
+  final MapService mapService=mapContainer.getMapService();
+  final WriteBehindProcessor writeBehindProcessor=WriteBehindProcessors.createWriteBehindProcessor(mapContainer);
+  writeBehindProcessor.addStoreListener(new StoreListener<DelayedEntry>(){
+    @Override public void beforeStore(    StoreEvent<DelayedEntry> storeEvent){
+    }
+    @Override public void afterStore(    StoreEvent<DelayedEntry> storeEvent){
+      final DelayedEntry delayedEntry=storeEvent.getSource();
+      final Object value=delayedEntry.getValue();
+      if (value != null) {
+        return;
+      }
+      final Data key=(Data)storeEvent.getSource().getKey();
+      final int partitionId=delayedEntry.getPartitionId();
+      final PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
+      final RecordStore recordStore=partitionContainer.getExistingRecordStore(mapContainer.getName());
+      if (recordStore != null) {
+        recordStore.getMapDataStore().addTransient(key,Clock.currentTimeMillis());
+      }
+    }
+  }
+);
+  return writeBehindProcessor;
+}
