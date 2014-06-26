@@ -1,13 +1,16 @@
 {
   Map.Entry<Data,Object> mapEntry=recordStore.getMapEntryForBackup(dataKey);
-  if (mapEntry.getValue() != null) {
-    Map.Entry<Object,Object> entry=new AbstractMap.SimpleEntry<Object,Object>(mapService.toObject(dataKey),mapService.toObject(mapEntry.getValue()));
-    entryProcessor.processBackup(entry);
-    if (entry.getValue() == null) {
-      recordStore.remove(dataKey);
-    }
+  Object objectKey=mapService.toObject(dataKey);
+  final Object valueBeforeProcess=mapService.toObject(mapEntry.getValue());
+  MapEntrySimple<Object,Object> entry=new MapEntrySimple<Object,Object>(objectKey,valueBeforeProcess);
+  entryProcessor.processBackup(entry);
+  if (!entry.isModified()) {
+    return;
+  }
+  if (entry.getValue() == null) {
+    recordStore.remove(dataKey);
+  }
  else {
-      recordStore.putBackup(dataKey,entry.getValue());
-    }
+    recordStore.putBackup(dataKey,entry.getValue());
   }
 }
