@@ -1,0 +1,17 @@
+{
+  int sentSyncBackupCount=0;
+  InternalPartition partition=partitionService.getPartition(partitionId);
+  for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
+    Address target=partition.getReplicaAddress(replicaIndex);
+    if (target == null) {
+      continue;
+    }
+    assertNoBackupOnPrimaryMember(partition,target);
+    boolean isSyncBackup=replicaIndex <= syncBackupCount;
+    makeBackup(replicaVersions,replicaIndex,target,isSyncBackup);
+    if (isSyncBackup) {
+      sentSyncBackupCount++;
+    }
+  }
+  return sentSyncBackupCount;
+}
