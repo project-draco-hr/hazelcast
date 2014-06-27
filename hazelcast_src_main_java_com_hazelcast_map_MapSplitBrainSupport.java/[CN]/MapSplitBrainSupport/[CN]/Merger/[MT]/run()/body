@@ -1,0 +1,24 @@
+{
+  for (  final MapContainer mapContainer : recordMap.keySet()) {
+    Collection<Record> recordList=recordMap.get(mapContainer);
+    String mergePolicyName=mapContainer.getMapConfig().getMergePolicy();
+    final MapMergePolicy finalMergePolicy=getMergePolicy(mergePolicyName);
+    for (    final Record record : recordList) {
+      nodeEngine.getExecutionService().submit("hz:map-merge",new Runnable(){
+        public void run(){
+          final EntryView entryView=EntryViews.createSimpleEntryView(record.getKey(),toData(record.getValue()),record);
+          MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,finalMergePolicy);
+          try {
+            int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
+            Future f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),operation,partitionId);
+            f.get();
+          }
+ catch (          Throwable t) {
+            throw ExceptionUtil.rethrow(t);
+          }
+        }
+      }
+);
+    }
+  }
+}
