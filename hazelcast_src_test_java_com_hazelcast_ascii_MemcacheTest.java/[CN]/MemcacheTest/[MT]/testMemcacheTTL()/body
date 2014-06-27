@@ -1,12 +1,16 @@
 {
   final HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
-  MemcachedClient client=getMemcacheClient(instance);
+  final MemcachedClient client=getMemcacheClient(instance);
   try {
-    OperationFuture<Boolean> future=client.set(String.valueOf(0),3,10);
+    OperationFuture<Boolean> future=client.set(String.valueOf(0),10,10);
     future.get();
     assertEquals(10,client.get(String.valueOf(0)));
-    Thread.sleep(6000);
-    assertEquals(null,client.get(String.valueOf(0)));
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(null,client.get(String.valueOf(0)));
+      }
+    }
+);
   }
   finally {
     client.shutdown();
