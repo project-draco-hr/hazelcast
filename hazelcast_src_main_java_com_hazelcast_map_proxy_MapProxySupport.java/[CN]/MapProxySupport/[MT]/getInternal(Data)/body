@@ -2,27 +2,27 @@
   final MapService mapService=getService();
   final boolean nearCacheEnabled=mapConfig.isNearCacheEnabled();
   if (nearCacheEnabled) {
-    Object cached=mapService.getNearCacheProvider().getFromNearCache(name,key);
+    Object cached=mapService.getMapServiceContext().getNearCacheProvider().getFromNearCache(name,key);
     if (cached != null) {
       if (NearCache.NULL_OBJECT.equals(cached)) {
         cached=null;
       }
-      mapService.interceptAfterGet(name,cached);
+      mapService.getMapServiceContext().interceptAfterGet(name,cached);
       return cached;
     }
   }
   NodeEngine nodeEngine=getNodeEngine();
   if (mapConfig.isReadBackupData()) {
     int backupCount=mapConfig.getTotalBackupCount();
-    InternalPartitionService partitionService=mapService.getNodeEngine().getPartitionService();
+    InternalPartitionService partitionService=mapService.getMapServiceContext().getNodeEngine().getPartitionService();
     for (int i=0; i <= backupCount; i++) {
       int partitionId=partitionService.getPartitionId(key);
       InternalPartition partition=partitionService.getPartition(partitionId);
       if (nodeEngine.getThisAddress().equals(partition.getReplicaAddress(i))) {
-        Object val=mapService.getPartitionContainer(partitionId).getRecordStore(name).get(key);
+        Object val=mapService.getMapServiceContext().getPartitionContainer(partitionId).getRecordStore(name).get(key);
         if (val != null) {
-          mapService.interceptAfterGet(name,val);
-          return mapService.toData(val);
+          mapService.getMapServiceContext().interceptAfterGet(name,val);
+          return mapService.getMapServiceContext().toData(val);
         }
       }
     }
@@ -32,7 +32,7 @@
   if (nearCacheEnabled) {
     int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
     if (!nodeEngine.getPartitionService().getPartitionOwner(partitionId).equals(nodeEngine.getClusterService().getThisAddress()) || mapConfig.getNearCacheConfig().isCacheLocalEntries()) {
-      return mapService.getNearCacheProvider().putNearCache(name,key,result);
+      return mapService.getMapServiceContext().getNearCacheProvider().putNearCache(name,key,result);
     }
   }
   return result;

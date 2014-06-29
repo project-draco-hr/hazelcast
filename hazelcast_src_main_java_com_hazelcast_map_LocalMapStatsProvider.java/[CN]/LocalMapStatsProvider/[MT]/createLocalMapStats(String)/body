@@ -1,8 +1,7 @@
 {
-  final NodeEngine nodeEngine=this.mapService.getNodeEngine();
-  final MapService mapService=this.mapService;
-  final MapContainer mapContainer=mapService.getMapContainer(mapName);
-  final LocalMapStatsImpl localMapStats=mapService.getLocalMapStatsImpl(mapName);
+  final NodeEngine nodeEngine=this.nodeEngine;
+  final MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
+  final LocalMapStatsImpl localMapStats=mapServiceContext.getLocalMapStatsImpl(mapName);
   if (!mapContainer.getMapConfig().isStatisticsEnabled()) {
     return localMapStats;
   }
@@ -25,7 +24,7 @@
       continue;
     }
     if (owner.equals(thisAddress)) {
-      PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
+      PartitionContainer partitionContainer=mapServiceContext.getPartitionContainer(partitionId);
       RecordStore recordStore=partitionContainer.getExistingRecordStore(mapName);
       if (recordStore != null) {
         heapCost+=recordStore.getHeapCost();
@@ -58,7 +57,7 @@
           replicaAddress=partition.getReplicaAddress(replica);
         }
         if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
-          PartitionContainer partitionContainer=mapService.getPartitionContainer(partitionId);
+          PartitionContainer partitionContainer=mapServiceContext.getPartitionContainer(partitionId);
           RecordStore recordStore=partitionContainer.getRecordStore(mapName);
           heapCost+=recordStore.getHeapCost();
           Map<Data,Record> records=recordStore.getReadonlyRecordMap();
@@ -68,7 +67,7 @@
           }
         }
  else         if (replicaAddress == null && clusterService.getSize() > backupCount) {
-          mapService.getLogger().warning("Partition: " + partition + ", replica: "+ replica+ " has no owner!");
+          nodeEngine.getLogger(getClass()).warning("Partition: " + partition + ", replica: "+ replica+ " has no owner!");
         }
       }
     }
@@ -84,7 +83,7 @@
   heapCost+=mapContainer.getNearCacheSizeEstimator().getSize();
   localMapStats.setHeapCost(heapCost);
   if (mapContainer.getMapConfig().isNearCacheEnabled()) {
-    final NearCacheStatsImpl nearCacheStats=mapService.getNearCacheProvider().getNearCache(mapName).getNearCacheStats();
+    final NearCacheStatsImpl nearCacheStats=mapServiceContext.getNearCacheProvider().getNearCache(mapName).getNearCacheStats();
     localMapStats.setNearCacheStats(nearCacheStats);
   }
   return localMapStats;

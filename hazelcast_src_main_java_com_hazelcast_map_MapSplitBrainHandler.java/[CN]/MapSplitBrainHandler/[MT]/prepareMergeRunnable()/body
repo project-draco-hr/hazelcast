@@ -1,0 +1,22 @@
+{
+  final Map<String,MapContainer> mapContainers=mapServiceContext.getMapContainers();
+  final Map<MapContainer,Collection<Record>> recordMap=new HashMap<MapContainer,Collection<Record>>(mapContainers.size());
+  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  final int partitionCount=partitionService.getPartitionCount();
+  final Address thisAddress=nodeEngine.getClusterService().getThisAddress();
+  for (  MapContainer mapContainer : mapContainers.values()) {
+    for (int i=0; i < partitionCount; i++) {
+      RecordStore recordStore=mapServiceContext.getPartitionContainer(i).getRecordStore(mapContainer.getName());
+      if (thisAddress.equals(partitionService.getPartitionOwner(i))) {
+        Collection<Record> records=recordMap.get(mapContainer);
+        if (records == null) {
+          records=new ArrayList<Record>();
+          recordMap.put(mapContainer,records);
+        }
+        records.addAll(recordStore.getReadonlyRecordMap().values());
+      }
+      recordStore.reset();
+    }
+  }
+  return new Merger(recordMap);
+}
