@@ -13,28 +13,23 @@
   for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
     final boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
     final boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
+    Object objectKey=entry.getKey();
     if (isRemoved) {
-      keyWontBeIncluded.add(entry.getKey());
+      keyWontBeIncluded.add(objectKey);
     }
  else {
       if (isUpdated) {
-        keyWontBeIncluded.add(entry.getKey());
+        keyWontBeIncluded.add(objectKey);
       }
-      final Object entryValue=entry.getValue().value;
-      final Object objectValue=entryValue instanceof Data ? service.toObject(entryValue) : entryValue;
-      final QueryEntry queryEntry=new QueryEntry(null,service.toData(entry.getKey()),entry.getKey(),objectValue);
+      Object entryValue=entry.getValue().value;
+      Object objectValue=entryValue instanceof Data ? service.toObject(entryValue) : entryValue;
+      Data dataKey=service.toData(objectKey);
+      final QueryEntry queryEntry=new QueryEntry(null,dataKey,objectKey,objectValue);
       if (predicate.apply(queryEntry)) {
         valueSet.add(entryValue);
       }
     }
   }
-  final Iterator<Map.Entry> iterator=queryResultSet.rawIterator();
-  while (iterator.hasNext()) {
-    final Map.Entry entry=iterator.next();
-    if (keyWontBeIncluded.contains(entry.getKey())) {
-      continue;
-    }
-    valueSet.add(entry.getValue());
-  }
+  removeFromResultSet(queryResultSet,valueSet,keyWontBeIncluded);
   return valueSet;
 }
