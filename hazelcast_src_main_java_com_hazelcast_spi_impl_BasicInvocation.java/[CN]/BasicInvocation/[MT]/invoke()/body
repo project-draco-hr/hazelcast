@@ -12,19 +12,13 @@
     if (op.getCallerUuid() == null) {
       op.setCallerUuid(nodeEngine.getLocalMember().getUuid());
     }
-    BasicOperationService operationService=(BasicOperationService)nodeEngine.operationService;
     if (!operationService.scheduler.isInvocationAllowedFromCurrentThread(op) && !isMigrationOperation(op)) {
       throw new IllegalThreadStateException(Thread.currentThread() + " cannot make remote call: " + op);
     }
     doInvoke();
   }
  catch (  Exception e) {
-    if (e instanceof RetryableException) {
-      notify(e);
-    }
- else {
-      throw ExceptionUtil.rethrow(e);
-    }
+    handleInvocationException(e);
   }
   return invocationFuture;
 }

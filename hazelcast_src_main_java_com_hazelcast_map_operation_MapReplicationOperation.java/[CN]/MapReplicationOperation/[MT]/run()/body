@@ -1,15 +1,17 @@
 {
   MapService mapService=getService();
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
   if (data != null) {
     for (    Entry<String,Set<RecordReplicationInfo>> dataEntry : data.entrySet()) {
       Set<RecordReplicationInfo> recordReplicationInfos=dataEntry.getValue();
       final String mapName=dataEntry.getKey();
-      RecordStore recordStore=mapService.getRecordStore(getPartitionId(),mapName);
+      RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),mapName);
       for (      RecordReplicationInfo recordReplicationInfo : recordReplicationInfos) {
         Data key=recordReplicationInfo.getKey();
         final Data value=recordReplicationInfo.getValue();
-        Record newRecord=mapService.createRecord(mapName,key,value,-1L,Clock.currentTimeMillis());
-        mapService.applyRecordInfo(newRecord,recordReplicationInfo);
+        final MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
+        Record newRecord=mapContainer.createRecord(key,value,-1L,Clock.currentTimeMillis());
+        applyRecordInfo(newRecord,recordReplicationInfo);
         recordStore.putRecord(key,newRecord);
       }
     }
@@ -17,12 +19,12 @@
   if (mapInitialLoadInfo != null) {
     for (    Entry<String,Boolean> entry : mapInitialLoadInfo.entrySet()) {
       final String mapName=entry.getKey();
-      RecordStore recordStore=mapService.getRecordStore(getPartitionId(),mapName);
+      RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),mapName);
       recordStore.setLoaded(entry.getValue());
     }
   }
   for (  Entry<String,List<DelayedEntry>> entry : delayedEntries.entrySet()) {
-    final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),entry.getKey());
+    final RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),entry.getKey());
     final List<DelayedEntry> replicatedEntries=entry.getValue();
     final WriteBehindQueue<DelayedEntry> writeBehindQueue=((WriteBehindStore)recordStore.getMapDataStore()).getWriteBehindQueue();
     writeBehindQueue.addEnd(replicatedEntries);

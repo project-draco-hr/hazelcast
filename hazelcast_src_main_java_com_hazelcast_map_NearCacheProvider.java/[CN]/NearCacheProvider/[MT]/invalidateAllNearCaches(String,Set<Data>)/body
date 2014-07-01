@@ -1,0 +1,24 @@
+{
+  if (!isNearCacheEnabled(mapName)) {
+    return;
+  }
+  if (keys == null || keys.isEmpty()) {
+    return;
+  }
+  Operation operation=new NearCacheKeySetInvalidationOperation(mapName,keys).setServiceName(MapService.SERVICE_NAME);
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  for (  MemberImpl member : members) {
+    try {
+      if (member.localMember()) {
+        continue;
+      }
+      nodeEngine.getOperationService().send(operation,member.getAddress());
+    }
+ catch (    Throwable throwable) {
+      nodeEngine.getLogger(getClass()).warning(throwable);
+    }
+  }
+  for (  final Data key : keys) {
+    invalidateNearCache(mapName,key);
+  }
+}

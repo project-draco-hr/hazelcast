@@ -1,31 +1,20 @@
 {
-  if (response == null) {
-    throw new IllegalArgumentException("response can't be null");
-  }
-  if (response instanceof NormalResponse) {
-    response=((NormalResponse)response).getValue();
-  }
-  if (response == null) {
-    response=BasicInvocation.NULL_RESPONSE;
-  }
+  offeredResponse=resolveInternalResponse(offeredResponse);
   ExecutionCallbackNode<E> callbackChain;
 synchronized (this) {
-    if (this.response != null && !(this.response instanceof BasicInvocation.InternalResponse)) {
+    if (response != null && !(response instanceof BasicInvocation.InternalResponse)) {
       basicInvocation.logger.info("The InvocationFuture.set method of " + basicInvocation + " can only be called once");
       return;
     }
-    this.response=response;
-    if (response == BasicInvocation.WAIT_RESPONSE) {
+    response=offeredResponse;
+    if (offeredResponse == BasicInvocation.WAIT_RESPONSE) {
       return;
     }
     callbackChain=callbackHead;
     callbackHead=null;
-    this.notifyAll();
+    notifyAll();
   }
   BasicOperationService operationService=(BasicOperationService)basicInvocation.nodeEngine.operationService;
   operationService.deregisterInvocation(basicInvocation.op.getCallId());
-  while (callbackChain != null) {
-    runAsynchronous(callbackChain.callback,callbackChain.executor);
-    callbackChain=callbackChain.next;
-  }
+  notifyCallbacks(callbackChain);
 }
