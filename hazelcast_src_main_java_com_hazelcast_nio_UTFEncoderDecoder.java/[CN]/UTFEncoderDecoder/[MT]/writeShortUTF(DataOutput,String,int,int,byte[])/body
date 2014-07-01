@@ -1,26 +1,17 @@
 {
-  int utfLength=0;
-  int c, count=0;
-  for (int i=beginIndex; i < endIndex; i++) {
-    c=str.charAt(i);
-    if ((c >= 0x0001) && (c <= 0x007F)) {
-      utfLength++;
-    }
- else     if (c > 0x07FF) {
-      utfLength+=3;
-    }
- else {
-      utfLength+=2;
-    }
-  }
+  int utfLength=calculateUtf8Length(str,beginIndex,endIndex);
   if (utfLength > 65535) {
     throw new UTFDataFormatException("encoded string too long:" + utfLength + " bytes");
   }
   out.writeShort(utfLength);
   int i;
+  int c=0;
+  int count=0;
   for (i=beginIndex; i < endIndex; i++) {
     c=str.charAt(i);
-    if (!((c >= 0x0001) && (c <= 0x007F)))     break;
+    if (!((c >= 0x0001) && (c <= 0x007F))) {
+      break;
+    }
     buffering(buffer,count++,(byte)c,out);
   }
   for (; i < endIndex; i++) {
