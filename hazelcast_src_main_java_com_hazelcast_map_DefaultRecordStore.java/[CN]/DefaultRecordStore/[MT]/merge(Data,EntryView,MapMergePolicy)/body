@@ -5,20 +5,20 @@
   Record record=records.get(key);
   Object newValue;
   if (record == null) {
-    final Object notExistingKey=mapService.toObject(key);
+    final Object notExistingKey=mapServiceContext.toObject(key);
     final EntryView<Object,Object> nullEntryView=EntryViews.createNullEntryView(notExistingKey);
     newValue=mergePolicy.merge(name,mergingEntry,nullEntryView);
     if (newValue == null) {
       return false;
     }
     newValue=mapDataStore.add(key,newValue,now);
-    record=mapService.createRecord(name,key,newValue,DEFAULT_TTL,now);
+    record=createRecord(key,newValue,now);
     records.put(key,record);
     updateSizeEstimator(calculateRecordSize(record));
   }
  else {
     Object oldValue=record.getValue();
-    EntryView existingEntry=EntryViews.createSimpleEntryView(mapService.toObject(record.getKey()),mapService.toObject(record.getValue()),record);
+    EntryView existingEntry=EntryViews.createSimpleEntryView(mapServiceContext.toObject(record.getKey()),mapServiceContext.toObject(record.getValue()),record);
     newValue=mergePolicy.merge(name,mergingEntry,existingEntry);
     if (newValue == null) {
       removeIndex(key);
@@ -28,7 +28,7 @@
       deleteRecord(key);
       return true;
     }
-    if (mapService.compare(name,newValue,oldValue)) {
+    if (mapServiceContext.compare(name,newValue,oldValue)) {
       return true;
     }
     newValue=mapDataStore.add(key,newValue,now);
