@@ -1,0 +1,25 @@
+{
+  long heapCost=0;
+  long backupEntryCount=0;
+  long backupEntryMemoryCost=0;
+  for (int replica=1; replica <= backupCount; replica++) {
+    final Address replicaAddress=getReplicaAddress(replica,partition,clusterService,backupCount);
+    if (replicaAddress == null && clusterService.getSize() > backupCount) {
+      nodeEngine.getLogger(getClass()).warning("Partition: " + partition + ", replica: "+ replica+ " has no owner!");
+      continue;
+    }
+    if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
+      PartitionContainer partitionContainer=mapServiceContext.getPartitionContainer(partitionId);
+      RecordStore recordStore=partitionContainer.getRecordStore(mapName);
+      heapCost+=recordStore.getHeapCost();
+      Map<Data,Record> records=recordStore.getReadonlyRecordMap();
+      backupEntryCount+=records.size();
+      for (      Record record : records.values()) {
+        backupEntryMemoryCost+=record.getCost();
+      }
+    }
+  }
+  localMapStats.incrementHeapCost(heapCost);
+  localMapStats.incrementBackupEntryCount(backupEntryCount);
+  localMapStats.incrementBackupEntryMemoryCost(backupEntryMemoryCost);
+}
