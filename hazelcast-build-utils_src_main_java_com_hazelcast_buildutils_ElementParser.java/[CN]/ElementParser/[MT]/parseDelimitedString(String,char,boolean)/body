@@ -1,0 +1,42 @@
+{
+  if (value == null) {
+    value="";
+  }
+  List<String> list=new ArrayList<String>();
+  int CHAR=1;
+  int DELIMITER=2;
+  int STARTQUOTE=4;
+  int ENDQUOTE=8;
+  StringBuilder sb=new StringBuilder();
+  int expecting=(CHAR | DELIMITER | STARTQUOTE);
+  for (int i=0; i < value.length(); i++) {
+    char p=i > 0 ? value.charAt(i - 1) : 0;
+    char c=value.charAt(i);
+    boolean isDelimiter=(delim == c) && (p != '\\');
+    boolean isQuote=((c == '"') || (c == '\'')) && (p != '\\');
+    if (isDelimiter && ((expecting & DELIMITER) > 0)) {
+      addPart(list,sb,trim);
+      sb.delete(0,sb.length());
+      expecting=(CHAR | DELIMITER | STARTQUOTE);
+    }
+ else     if (isQuote && ((expecting & STARTQUOTE) > 0)) {
+      sb.append(c);
+      expecting=CHAR | ENDQUOTE;
+    }
+ else     if (isQuote && ((expecting & ENDQUOTE) > 0)) {
+      sb.append(c);
+      expecting=(CHAR | STARTQUOTE | DELIMITER);
+    }
+ else     if ((expecting & CHAR) > 0) {
+      sb.append(c);
+    }
+ else {
+      String message=String.format("Invalid delimited string [%s] for delimiter: %s",value,delim);
+      throw new IllegalArgumentException(message);
+    }
+  }
+  if (sb.length() > 0) {
+    addPart(list,sb,trim);
+  }
+  return list;
+}
