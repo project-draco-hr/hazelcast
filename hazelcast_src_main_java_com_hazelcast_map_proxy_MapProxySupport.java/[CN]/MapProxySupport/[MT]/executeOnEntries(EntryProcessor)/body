@@ -1,22 +1,3 @@
 {
-  Map result=new HashMap();
-  try {
-    NodeEngine nodeEngine=getNodeEngine();
-    Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new PartitionWideEntryOperationFactory(name,entryProcessor));
-    for (    Object o : results.values()) {
-      if (o != null) {
-        final MapService service=getService();
-        final MapEntrySet mapEntrySet=(MapEntrySet)o;
-        for (        Entry<Data,Data> entry : mapEntrySet.getEntrySet()) {
-          final Data key=entry.getKey();
-          result.put(service.getMapServiceContext().toObject(entry.getKey()),service.getMapServiceContext().toObject(entry.getValue()));
-          invalidateNearCache(key);
-        }
-      }
-    }
-  }
- catch (  Throwable t) {
-    throw ExceptionUtil.rethrow(t);
-  }
-  return result;
+  return executeOnEntries(entryProcessor,TruePredicate.INSTANCE);
 }
