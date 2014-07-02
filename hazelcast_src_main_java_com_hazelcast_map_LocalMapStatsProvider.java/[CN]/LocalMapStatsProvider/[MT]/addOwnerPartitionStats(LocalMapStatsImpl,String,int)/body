@@ -1,6 +1,5 @@
 {
-  final PartitionContainer partitionContainer=mapServiceContext.getPartitionContainer(partitionId);
-  final RecordStore recordStore=partitionContainer.getExistingRecordStore(mapName);
+  final RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
   if (recordStore == null) {
     return;
   }
@@ -11,14 +10,11 @@
   long hits=0;
   final Map<Data,Record> records=recordStore.getReadonlyRecordMap();
   for (  Record record : records.values()) {
-    RecordStatistics stats=record.getStatistics();
+    hits+=getHits(record);
     ownedEntryMemoryCost+=record.getCost();
+    lockedEntryCount+=isLocked(record,recordStore);
     lastAccessTime=Math.max(lastAccessTime,record.getLastAccessTime());
     lastUpdateTime=Math.max(lastUpdateTime,record.getLastUpdateTime());
-    hits+=stats.getHits();
-    if (recordStore.isLocked(record.getKey())) {
-      lockedEntryCount++;
-    }
   }
   localMapStats.incrementOwnedEntryMemoryCost(ownedEntryMemoryCost);
   localMapStats.incrementLockedEntryCount(lockedEntryCount);
