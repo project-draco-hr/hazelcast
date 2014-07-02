@@ -1,0 +1,21 @@
+{
+  final int writeDelaySeconds=5;
+  String mapName="mapName";
+  Config config=new Config();
+  HazelcastInstance hzInstance=createHazelcastInstance(config);
+  IMap<String,String> map=hzInstance.getMap(mapName);
+  final MapStore<String,String> store=new SimpleMapStore<String,String>(map);
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setClassName(null);
+  mapStoreConfig.setWriteDelaySeconds(writeDelaySeconds);
+  mapStoreConfig.setImplementation(store);
+  MapConfig mapConfig=config.getMapConfig(mapName);
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  try {
+    map.destroy();
+  }
+  finally {
+    hzInstance.getLifecycleService().shutdown();
+  }
+}
