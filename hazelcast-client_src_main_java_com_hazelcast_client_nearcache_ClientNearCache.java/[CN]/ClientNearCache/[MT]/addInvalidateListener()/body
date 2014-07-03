@@ -6,20 +6,34 @@
       request=new MapAddEntryListenerRequest(mapName,false);
       handler=new EventHandler<PortableEntryEvent>(){
         public void handle(        PortableEntryEvent event){
-          cache.remove(event.getKey());
-        }
-        @Override public void onListenerRegister(){
-          cache.clear();
-        }
-      }
+switch (event.getEventType()) {
+case ADDED:
+case REMOVED:
+case UPDATED:
+case EVICTED:
+            final Data key=event.getKey();
+          cache.remove(key);
+        break;
+case CLEAR_ALL:
+case EVICT_ALL:
+      cache.clear();
+    break;
+default :
+  throw new IllegalArgumentException("Not a known event type " + event.getEventType());
+}
+}
+@Override public void onListenerRegister(){
+cache.clear();
+}
+}
 ;
-    }
+}
  else {
-      throw new IllegalStateException("Near cache is not available for this type of data structure");
-    }
-    registrationId=ListenerUtil.listen(context,request,null,handler);
-  }
- catch (  Exception e) {
-    Logger.getLogger(ClientNearCache.class).severe("-----------------\n Near Cache is not initialized!!! \n-----------------",e);
-  }
+throw new IllegalStateException("Near cache is not available for this type of data structure");
+}
+registrationId=ListenerUtil.listen(context,request,null,handler);
+}
+ catch (Exception e) {
+Logger.getLogger(ClientNearCache.class).severe("-----------------\n Near Cache is not initialized!!! \n-----------------",e);
+}
 }
