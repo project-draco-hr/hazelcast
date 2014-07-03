@@ -1,0 +1,28 @@
+{
+  final MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
+  final Map<Data,Record> entries=recordStore.getReadonlyRecordMap();
+  long[] criterias=createAndPopulateEvictionCriteriaArray(entries,evictionPolicy);
+  if (criterias == null) {
+    return;
+  }
+  Arrays.sort(criterias);
+  final int evictableBaseIndex=getEvictionStartIndex(criterias,evictableSize);
+  final long criteriaValue=criterias[evictableBaseIndex];
+  int evictedRecordCounter=0;
+  for (  final Record record : entries.values()) {
+    final long value=getEvictionCriteriaValue(record,evictionPolicy);
+    if (value <= criteriaValue) {
+      final Data tmpKey=record.getKey();
+      final Object tmpValue=record.getValue();
+      if (evictIfNotLocked(tmpKey,recordStore)) {
+        evictedRecordCounter++;
+        final String mapName=mapConfig.getName();
+        interceptAndInvalidate(mapServiceContext,value,tmpKey,mapName);
+        fireEvent(tmpKey,tmpValue,mapName,mapServiceContext);
+      }
+    }
+    if (evictedRecordCounter >= evictableSize) {
+      break;
+    }
+  }
+}
