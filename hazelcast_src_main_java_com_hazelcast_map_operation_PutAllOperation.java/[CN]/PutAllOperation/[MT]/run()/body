@@ -2,7 +2,8 @@
   backupRecordInfos=new ArrayList<RecordInfo>();
   backupEntrySet=new ArrayList<Map.Entry<Data,Data>>();
   int partitionId=getPartitionId();
-  RecordStore recordStore=mapService.getMapServiceContext().getRecordStore(partitionId,name);
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  RecordStore recordStore=mapServiceContext.getRecordStore(partitionId,name);
   Set<Map.Entry<Data,Data>> entries=entrySet.getEntrySet();
   InternalPartitionService partitionService=getNodeEngine().getPartitionService();
   Set<Data> keysToInvalidate=new HashSet<Data>();
@@ -15,16 +16,18 @@
         recordStore.putFromLoad(dataKey,dataValue,-1);
       }
  else {
-        dataOldValue=mapService.getMapServiceContext().toData(recordStore.put(dataKey,dataValue,-1));
+        dataOldValue=mapServiceContext.toData(recordStore.put(dataKey,dataValue,-1));
       }
-      mapService.getMapServiceContext().interceptAfterPut(name,dataValue);
+      mapServiceContext.interceptAfterPut(name,dataValue);
       EntryEventType eventType=dataOldValue == null ? EntryEventType.ADDED : EntryEventType.UPDATED;
-      mapService.getMapServiceContext().getMapEventPublisher().publishEvent(getCallerAddress(),name,eventType,dataKey,dataOldValue,dataValue);
+      final MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
+      mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,dataOldValue,dataValue);
       keysToInvalidate.add(dataKey);
       if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
         Record record=recordStore.getRecord(dataKey);
-        final EntryView entryView=EntryViews.createSimpleEntryView(dataKey,mapService.getMapServiceContext().toData(dataValue),record);
-        mapService.getMapServiceContext().getMapEventPublisher().publishWanReplicationUpdate(name,entryView);
+        final Data dataValueAsData=mapServiceContext.toData(dataValue);
+        final EntryView entryView=EntryViews.createSimpleEntryView(dataKey,dataValueAsData,record);
+        mapEventPublisher.publishWanReplicationUpdate(name,entryView);
       }
       backupEntrySet.add(entry);
       RecordInfo replicationInfo=Records.buildRecordInfo(recordStore.getRecord(dataKey));

@@ -39,33 +39,16 @@
       }
  else       if (!entry.isModified()) {
         mapStats.incrementGets(getLatencyFrom(start));
-        eventType=__NO_NEED_TO_FIRE_EVENT;
+        eventType=NO_NEED_TO_FIRE_EVENT;
       }
  else {
         mapStats.incrementPuts(getLatencyFrom(start));
         eventType=EntryEventType.UPDATED;
       }
-      if (eventType != __NO_NEED_TO_FIRE_EVENT) {
+      if (eventType != NO_NEED_TO_FIRE_EVENT) {
         recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,valueAfterProcess));
       }
     }
-    if (eventType != __NO_NEED_TO_FIRE_EVENT) {
-      final Data oldValue=mapService.getMapServiceContext().toData(valueBeforeProcess);
-      final Data value=mapService.getMapServiceContext().toData(valueAfterProcess);
-      mapService.getMapServiceContext().getMapEventPublisher().publishEvent(getCallerAddress(),name,eventType,dataKey,oldValue,value);
-      if (mapService.getMapServiceContext().getNearCacheProvider().isNearCacheAndInvalidationEnabled(name)) {
-        mapService.getMapServiceContext().getNearCacheProvider().invalidateAllNearCaches(name,dataKey);
-      }
-      if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
-        if (EntryEventType.REMOVED.equals(eventType)) {
-          mapService.getMapServiceContext().getMapEventPublisher().publishWanReplicationRemove(name,dataKey,Clock.currentTimeMillis());
-        }
- else {
-          Record r=recordStore.getRecord(dataKey);
-          final EntryView entryView=EntryViews.createSimpleEntryView(dataKey,dataValue,r);
-          mapService.getMapServiceContext().getMapEventPublisher().publishWanReplicationUpdate(name,entryView);
-        }
-      }
-    }
+    fireEvent(dataKey,dataValue,valueBeforeProcess,valueAfterProcess,recordStore,eventType);
   }
 }
