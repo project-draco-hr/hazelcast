@@ -4,16 +4,19 @@
     return;
   }
   final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
-  mapService.getMapServiceContext().getMapEventPublisher().publishEvent(getCallerAddress(),name,eventType,dataKey,mapServiceContext.toData(oldValue),dataValue);
+  final MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
+  final Data oldValueAsData=mapServiceContext.toData(oldValue);
+  mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,oldValueAsData,dataValue);
   invalidateNearCaches();
   if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
     if (EntryEventType.REMOVED.equals(eventType)) {
-      mapServiceContext.getMapEventPublisher().publishWanReplicationRemove(name,dataKey,Clock.currentTimeMillis());
+      mapEventPublisher.publishWanReplicationRemove(name,dataKey,Clock.currentTimeMillis());
     }
  else {
       Record record=recordStore.getRecord(dataKey);
-      final EntryView entryView=EntryViews.createSimpleEntryView(dataKey,mapServiceContext.toData(dataValue),record);
-      mapServiceContext.getMapEventPublisher().publishWanReplicationUpdate(name,entryView);
+      final Data dataValueAsData=mapServiceContext.toData(dataValue);
+      final EntryView entryView=EntryViews.createSimpleEntryView(dataKey,dataValueAsData,record);
+      mapEventPublisher.publishWanReplicationUpdate(name,entryView);
     }
   }
 }
