@@ -7,21 +7,12 @@
     return obj;
   }
   if (error instanceof CallTimeoutException) {
-    if (logger.isFinestEnabled()) {
-      logger.finest("Call timed-out during wait-notify phase, retrying call: " + toString());
-    }
-    if (op instanceof WaitSupport) {
-      long waitTimeout=op.getWaitTimeout();
-      waitTimeout-=callTimeout;
-      op.setWaitTimeout(waitTimeout);
-    }
-    invokeCount--;
-    return RETRY_RESPONSE;
+    return resolveCallTimeout();
   }
-  final ExceptionAction action=onException(error);
-  final int localInvokeCount=invokeCount;
+  ExceptionAction action=onException(error);
+  int localInvokeCount=invokeCount;
   if (action == ExceptionAction.RETRY_INVOCATION && localInvokeCount < tryCount) {
-    if (localInvokeCount > NINETY_NINE_COUNT && localInvokeCount % TEN_FACTOR == 0) {
+    if (localInvokeCount > LOG_MAX_INVOCATION_COUNT && localInvokeCount % LOG_INVOCATION_COUNT_MOD == 0) {
       logger.warning("Retrying invocation: " + toString() + ", Reason: "+ error);
     }
     return RETRY_RESPONSE;

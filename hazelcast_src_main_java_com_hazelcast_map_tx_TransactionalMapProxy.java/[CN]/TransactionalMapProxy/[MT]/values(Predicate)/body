@@ -7,6 +7,7 @@
     throw new IllegalArgumentException("Paging is not supported for Transactional queries");
   }
   final MapService service=getService();
+  final MapServiceContext mapServiceContext=service.getMapServiceContext();
   final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
   final Set<Object> valueSet=new HashSet<Object>();
   final Set<Object> keyWontBeIncluded=new HashSet<Object>();
@@ -22,8 +23,8 @@
         keyWontBeIncluded.add(objectKey);
       }
       Object entryValue=entry.getValue().value;
-      Object objectValue=entryValue instanceof Data ? service.toObject(entryValue) : entryValue;
-      Data dataKey=service.toData(objectKey);
+      final Object objectValue=entryValue instanceof Data ? mapServiceContext.toObject(entryValue) : entryValue;
+      Data dataKey=mapServiceContext.toData(objectKey);
       final QueryEntry queryEntry=new QueryEntry(null,dataKey,objectKey,objectValue);
       if (predicate.apply(queryEntry)) {
         valueSet.add(entryValue);
