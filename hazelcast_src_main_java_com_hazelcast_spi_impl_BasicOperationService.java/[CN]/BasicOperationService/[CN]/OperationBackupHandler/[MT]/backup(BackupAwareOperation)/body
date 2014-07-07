@@ -5,17 +5,18 @@
   if (totalRequestedBackupCount == 0) {
     return 0;
   }
-  long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(partitionId,totalRequestedBackupCount);
+  Operation op=(Operation)backupAwareOp;
+  InternalPartitionService partitionService=node.getPartitionService();
+  long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(op.getPartitionId(),totalRequestedBackupCount);
   int maxPossibleBackupCount=min(partitionService.getMemberGroupsSize() - 1,InternalPartition.MAX_BACKUP_COUNT);
   int syncBackupCount=min(maxPossibleBackupCount,requestedSyncBackupCount);
   int asyncBackupCount=min(maxPossibleBackupCount - syncBackupCount,requestedAsyncBackupCount);
-  if (!op.returnsResponse()) {
-    asyncBackupCount+=syncBackupCount;
-    syncBackupCount=0;
-  }
   int totalBackupCount=syncBackupCount + asyncBackupCount;
   if (totalBackupCount == 0) {
     return 0;
   }
-  return makeBackups(replicaVersions,syncBackupCount,totalBackupCount);
+  if (!op.returnsResponse()) {
+    syncBackupCount=0;
+  }
+  return makeBackups(backupAwareOp,op.getPartitionId(),replicaVersions,syncBackupCount,totalBackupCount);
 }
