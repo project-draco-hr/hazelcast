@@ -1,18 +1,21 @@
 {
   final IExecutorService service=client.getExecutorService(randomString());
   final CountDownLatch responseLatch=new CountDownLatch(CLUSTER_SIZE);
-  final CountDownLatch completeLatch=new CountDownLatch(1);
-  final String msg=randomString();
-  final Callable callable=new AppendCallable(msg);
-  final MemberSelector selector=new SelectAllMembers();
-  service.submitToMembers(callable,selector,new MultiExecutionCallback(){
+  final CountDownLatch completeLatch=new CountDownLatch(CLUSTER_SIZE);
+  final Callable callable=new NullCallable();
+  service.submitToAllMembers(callable,new MultiExecutionCallback(){
     public void onResponse(    final Member member,    final Object value){
-      if (value.equals(msg + AppendCallable.APPENDAGE)) {
+      if (value == null) {
         responseLatch.countDown();
       }
     }
     public void onComplete(    final Map<Member,Object> values){
-      completeLatch.countDown();
+      for (      Member member : values.keySet()) {
+        Object value=values.get(member);
+        if (value == null) {
+          completeLatch.countDown();
+        }
+      }
     }
   }
 );
