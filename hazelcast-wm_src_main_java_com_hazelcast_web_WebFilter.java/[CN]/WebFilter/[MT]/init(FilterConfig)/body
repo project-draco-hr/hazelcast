@@ -1,7 +1,10 @@
 {
   filterConfig=config;
   servletContext=config.getServletContext();
+  servletContext.setAttribute(WebFilter.class.getName(),this);
   initInstance();
+  initCookieParams();
+  initParams();
   String mapName=getParam("map-name");
   if (mapName != null) {
     clusterMapName=mapName;
@@ -10,9 +13,9 @@
     clusterMapName="_web_" + servletContext.getServletContextName();
   }
   try {
-    Config hzConfig=hazelcastInstance.getConfig();
     String sessionTTL=getParam("session-ttl-seconds");
     if (sessionTTL != null) {
+      Config hzConfig=hazelcastInstance.getConfig();
       MapConfig mapConfig=hzConfig.getMapConfig(clusterMapName);
       mapConfig.setTimeToLiveSeconds(Integer.parseInt(sessionTTL));
       hzConfig.addMapConfig(mapConfig);
@@ -21,8 +24,6 @@
  catch (  UnsupportedOperationException ignored) {
     LOGGER.info("client cannot access Config.");
   }
-  initCookieParams();
-  initParams();
   if (!stickySession) {
     getClusterMap().addEntryListener(new EntryListener<String,Object>(){
       public void entryAdded(      EntryEvent<String,Object> entryEvent){
