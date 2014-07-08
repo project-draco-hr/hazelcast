@@ -8,18 +8,25 @@
     Manifest manifest=new Manifest(inputStream);
     attributes=manifest.getMainAttributes();
   }
-  Set<String> imports=new LinkedHashSet<String>();
-  Set<String> exports=new LinkedHashSet<String>();
   String importPackages=attributes.getValue(IMPORT_PACKAGE);
   if (importPackages != null) {
-    imports.addAll(ElementParser.parseDelimitedString(importPackages,',',true));
+    List<String> definitions=ElementParser.parseDelimitedString(importPackages,',',true);
+    for (    String definition : definitions) {
+      PackageDefinition packageDefinition=new PackageDefinition(definition);
+      String packageName=packageDefinition.packageName;
+      PackageDefinition oldPackageDefinition=importedPackages.get(packageName);
+      importedPackages.put(packageName,findStrongerDefinition(packageDefinition,oldPackageDefinition));
+    }
   }
   String exportPackages=attributes.getValue(EXPORT_PACKAGE);
   if (exportPackages != null) {
-    exports.addAll(ElementParser.parseDelimitedString(exportPackages,',',true));
+    List<String> definitions=ElementParser.parseDelimitedString(exportPackages,',',true);
+    for (    String definition : definitions) {
+      PackageDefinition packageDefinition=new PackageDefinition(definition);
+      String packageName=packageDefinition.packageName;
+      PackageDefinition oldPackageDefinition=exportedPackages.get(packageName);
+      exportedPackages.put(packageName,mergeExportUsesConstraint(packageDefinition,oldPackageDefinition));
+    }
   }
-  importedPackages.removeAll(exports);
-  importedPackages.addAll(imports);
-  exportedPackages.addAll(exports);
   IOUtil.close(inputStream);
 }
