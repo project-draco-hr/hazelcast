@@ -1,0 +1,19 @@
+{
+  final MapService mapService=getService();
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  final NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
+  final int backupCount=getMapConfig().getTotalBackupCount();
+  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  for (int i=0; i <= backupCount; i++) {
+    int partitionId=partitionService.getPartitionId(key);
+    InternalPartition partition=partitionService.getPartition(partitionId);
+    if (nodeEngine.getThisAddress().equals(partition.getReplicaAddress(i))) {
+      Object val=mapServiceContext.getPartitionContainer(partitionId).getRecordStore(name).get(key);
+      if (val != null) {
+        mapServiceContext.interceptAfterGet(name,val);
+        return mapServiceContext.toData(val);
+      }
+    }
+  }
+  return null;
+}
