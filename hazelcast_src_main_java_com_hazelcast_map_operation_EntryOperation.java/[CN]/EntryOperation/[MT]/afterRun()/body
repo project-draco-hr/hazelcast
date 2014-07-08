@@ -3,7 +3,15 @@
   if (eventType == __NO_NEED_TO_FIRE_EVENT) {
     return;
   }
-  mapService.publishEvent(getCallerAddress(),name,eventType,dataKey,mapService.toData(oldValue),dataValue);
+  InMemoryFormat format=mapContainer.getMapConfig().getInMemoryFormat();
+  EventService eventService=mapService.getNodeEngine().getEventService();
+  String serviceName=getServiceName();
+  if (eventService.hasEventRegistration(serviceName,name)) {
+    if (format == InMemoryFormat.OBJECT && eventType != EntryEventType.REMOVED) {
+      oldValue=null;
+    }
+    mapService.publishEvent(getCallerAddress(),name,eventType,dataKey,mapService.toData(oldValue),dataValue);
+  }
   invalidateNearCaches();
   if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
     if (EntryEventType.REMOVED.equals(eventType)) {
