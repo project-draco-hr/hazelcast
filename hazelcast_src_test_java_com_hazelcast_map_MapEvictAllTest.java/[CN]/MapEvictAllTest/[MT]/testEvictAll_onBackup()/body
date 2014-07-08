@@ -5,8 +5,8 @@
   TestHazelcastInstanceFactory instanceFactory=new TestHazelcastInstanceFactory(5);
   HazelcastInstance node1=instanceFactory.newHazelcastInstance();
   HazelcastInstance node2=instanceFactory.newHazelcastInstance();
-  IMap<Integer,Integer> map1=node1.getMap(mapName);
-  IMap<Integer,Integer> map2=node2.getMap(mapName);
+  final IMap<Integer,Integer> map1=node1.getMap(mapName);
+  final IMap<Integer,Integer> map2=node2.getMap(mapName);
   map1.addEntryListener(new EntryAdapter<Integer,Integer>(){
     @Override public void mapEvicted(    MapEvent event){
       int numberOfEntries=event.getNumberOfEntriesAffected();
@@ -22,6 +22,16 @@
   map1.evictAll();
   assertOpenEventually(countDownLatch);
   assertEquals(0,countDownLatch.getCount());
-  assertEquals(0,map1.getLocalMapStats().getHeapCost());
-  assertEquals(0,map2.getLocalMapStats().getHeapCost());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,map1.getLocalMapStats().getHeapCost());
+    }
+  }
+);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,map2.getLocalMapStats().getHeapCost());
+    }
+  }
+);
 }
