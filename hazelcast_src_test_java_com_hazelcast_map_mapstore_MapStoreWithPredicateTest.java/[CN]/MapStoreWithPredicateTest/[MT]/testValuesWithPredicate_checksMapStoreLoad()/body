@@ -7,10 +7,15 @@
   testMapStore.getStore().putAll(mapForStore);
   Config config=newConfig(testMapStore,0);
   HazelcastInstance instance=createHazelcastInstance(config);
-  IMap map=instance.getMap("default");
-  final Collection values=map.values(Predicates.greaterThan("value",1));
-  assertEquals(3,values.size());
-  assertTrue(values.contains(17));
-  assertTrue(values.contains(37));
-  assertTrue(values.contains(47));
+  final IMap map=instance.getMap("default");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final Collection values=map.values(Predicates.greaterThan("value",1));
+      assertEquals(3,values.size());
+      assertTrue(values.contains(17));
+      assertTrue(values.contains(37));
+      assertTrue(values.contains(47));
+    }
+  }
+);
 }

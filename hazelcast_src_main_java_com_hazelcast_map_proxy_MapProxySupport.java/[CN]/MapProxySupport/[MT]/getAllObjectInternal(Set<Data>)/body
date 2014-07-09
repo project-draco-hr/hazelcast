@@ -1,20 +1,13 @@
 {
+  if (keys == null || keys.isEmpty()) {
+    return Collections.emptyMap();
+  }
   final NodeEngine nodeEngine=getNodeEngine();
   final MapService mapService=getService();
   Map<Object,Object> result=new HashMap<Object,Object>();
   final boolean nearCacheEnabled=getMapConfig().isNearCacheEnabled();
   if (nearCacheEnabled) {
-    final Iterator<Data> iterator=keys.iterator();
-    while (iterator.hasNext()) {
-      Data key=iterator.next();
-      Object cachedValue=mapService.getMapServiceContext().getNearCacheProvider().getFromNearCache(name,key);
-      if (cachedValue != null) {
-        if (!NearCache.NULL_OBJECT.equals(cachedValue)) {
-          result.put(mapService.getMapServiceContext().toObject(key),mapService.getMapServiceContext().toObject(cachedValue));
-        }
-        iterator.remove();
-      }
-    }
+    getFromNearCache(result,keys);
   }
   if (keys.isEmpty()) {
     return result;
@@ -28,9 +21,8 @@
       for (      Entry<Data,Data> entry : entries) {
         result.put(mapService.getMapServiceContext().toObject(entry.getKey()),mapService.getMapServiceContext().toObject(entry.getValue()));
         if (nearCacheEnabled) {
-          int partitionId=nodeEngine.getPartitionService().getPartitionId(entry.getKey());
-          if (!nodeEngine.getPartitionService().getPartitionOwner(partitionId).equals(nodeEngine.getClusterService().getThisAddress()) || getMapConfig().getNearCacheConfig().isCacheLocalEntries()) {
-            mapService.getMapServiceContext().getNearCacheProvider().putNearCache(name,entry.getKey(),entry.getValue());
+          if (notOwnerPartitionForKey(entry.getKey()) || cacheKeyAnyway()) {
+            putNearCache(entry.getKey(),entry.getValue());
           }
         }
       }
