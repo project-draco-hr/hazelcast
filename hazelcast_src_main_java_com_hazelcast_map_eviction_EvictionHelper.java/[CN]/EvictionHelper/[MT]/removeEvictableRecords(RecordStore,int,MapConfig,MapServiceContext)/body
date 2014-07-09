@@ -1,7 +1,6 @@
 {
   final MapConfig.EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
-  final Map<Data,Record> entries=recordStore.getReadonlyRecordMap();
-  long[] criterias=createAndPopulateEvictionCriteriaArray(entries,evictionPolicy);
+  long[] criterias=createAndPopulateEvictionCriteriaArray(recordStore,evictionPolicy);
   if (criterias == null) {
     return;
   }
@@ -9,7 +8,9 @@
   final int evictableBaseIndex=getEvictionStartIndex(criterias,evictableSize);
   final long criteriaValue=criterias[evictableBaseIndex];
   int evictedRecordCounter=0;
-  for (  final Record record : entries.values()) {
+  final Iterator<Record> iterator=recordStore.valueIterator();
+  while (iterator.hasNext()) {
+    final Record record=iterator.next();
     final long value=getEvictionCriteriaValue(record,evictionPolicy);
     if (value <= criteriaValue) {
       final Data tmpKey=record.getKey();
