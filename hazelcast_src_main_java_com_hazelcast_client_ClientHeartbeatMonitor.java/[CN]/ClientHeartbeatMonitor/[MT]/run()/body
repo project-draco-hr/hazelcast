@@ -1,0 +1,14 @@
+{
+  final String memberUuid=clientEngine.getLocalMember().getUuid();
+  for (  ClientEndpoint clientEndpoint : clientEndpointManager.getEndpoints()) {
+    final Connection connection=clientEndpoint.getConnection();
+    final long lastTimePackageReceived=connection.lastReadTime();
+    final long timeoutInMillis=TimeUnit.SECONDS.toMillis(heartbeatTimeoutSeconds);
+    if (lastTimePackageReceived + timeoutInMillis < System.currentTimeMillis()) {
+      if (memberUuid.equals(clientEndpoint.getPrincipal().getOwnerUuid())) {
+        logger.log(Level.WARNING,"Client heartbeat is timed out , closing connection to " + connection);
+        connection.close();
+      }
+    }
+  }
+}
