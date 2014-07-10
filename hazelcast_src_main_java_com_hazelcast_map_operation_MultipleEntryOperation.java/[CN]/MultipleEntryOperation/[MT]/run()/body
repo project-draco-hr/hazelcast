@@ -1,5 +1,5 @@
 {
-  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  final MapServiceContext mapServiceContext=getMapServiceContext();
   response=new MapEntrySet();
   final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
   final RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),name);
@@ -9,7 +9,7 @@
     if (partitionService.getPartitionId(key) != getPartitionId()) {
       continue;
     }
-    long start=System.currentTimeMillis();
+    long start=mapServiceContext.getNow();
     Object objectKey=mapServiceContext.toObject(key);
     final Map.Entry<Data,Object> mapEntry=recordStore.getMapEntry(key);
     final Object valueBeforeProcess=mapEntry.getValue();
@@ -45,6 +45,8 @@
         recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(key,valueAfterProcess));
       }
     }
-    fireEvent(key,valueBeforeProcess,valueAfterProcess,dataValue,recordStore,eventType);
+    fireEvent(key,valueBeforeProcess,valueAfterProcess,eventType);
+    invalidateNearCache(key);
+    publishWanReplicationEvent(key,dataValue,recordStore,eventType);
   }
 }
