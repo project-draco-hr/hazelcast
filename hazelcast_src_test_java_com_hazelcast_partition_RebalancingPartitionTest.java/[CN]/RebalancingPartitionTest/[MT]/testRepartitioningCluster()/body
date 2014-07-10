@@ -1,0 +1,56 @@
+{
+  CountDownLatch startLatch=new CountDownLatch(1);
+  CountDownLatch stopLatch=new CountDownLatch(1);
+  System.out.println("Starting 3 Hazelcast instances");
+  HazelcastInstance instance=newInstance();
+  HazelcastInstance instance2=newInstance();
+  HazelcastInstance instance3=newInstance();
+  System.out.println("Stable instance: " + instance.getCluster().getLocalMember().getUuid());
+  IMap<Integer,List<Integer>> map=instance.getMap(MAP_NAME);
+  List<Integer> expected=new ArrayList<Integer>();
+  InitListProcessor initProcessor=new InitListProcessor();
+  for (int i=0; i < ENTRIES; ++i) {
+    map.executeOnKey(i,initProcessor);
+  }
+  assertEquals(ENTRIES,map.size());
+  Thread bounceThread1=new Thread(new RestartNodeRunnable(instance2,startLatch,stopLatch));
+  Thread bounceThread2=new Thread(new RestartNodeRunnable(instance3,startLatch,stopLatch));
+  bounceThread1.start();
+  bounceThread2.start();
+  int iteration=0;
+  while (iteration < ITERATIONS) {
+    if (iteration % 10 == 0) {
+      System.out.println("iteration " + iteration);
+    }
+    if (iteration == 30) {
+      startLatch.countDown();
+    }
+    IncrementProcessor processor=new IncrementProcessor(iteration);
+    expected.add(iteration);
+    for (int i=0; i < ENTRIES; ++i) {
+      map.executeOnKey(i,processor);
+    }
+    ++iteration;
+  }
+  stopLatch.countDown();
+  System.out.println("waiting for bounceThreads to complete");
+  bounceThread1.join();
+  bounceThread2.join();
+  System.out.println("starting verification");
+  PartitionService partitionService=instance.getPartitionService();
+  List<String> errors=new ArrayList<String>();
+  for (int i=0; i < ENTRIES; ++i) {
+    System.out.print("verifying entry " + i);
+    List<Integer> list=map.get(i);
+    if (expected.size() <= list.size()) {
+      System.out.println(" - pass");
+      continue;
+    }
+    String owner=partitionService.getPartition(i).getOwner().getUuid();
+    String error=owner + "[" + i+ "] doesn't match! Expected/actual length: "+ expected.size()+ "/"+ list.size()+ "\nExpected : "+ expected.toString()+ "\nActual   : "+ list+ "\n";
+    System.out.println(" - fail");
+    System.err.println(error);
+    errors.add(error);
+  }
+  assertEquals(Collections.emptyList(),errors);
+}
