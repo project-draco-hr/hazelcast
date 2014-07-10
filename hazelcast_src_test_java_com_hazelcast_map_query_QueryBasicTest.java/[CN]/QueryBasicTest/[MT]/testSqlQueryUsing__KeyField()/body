@@ -1,10 +1,12 @@
 {
-  HazelcastInstance hz=createHazelcastInstance();
-  IMap<Object,Object> map=hz.getMap(randomMapName());
-  Object key=1;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  IMap<Object,Object> map=hz2.getMap(randomMapName());
+  Object key=generateKeyOwnedBy(hz1);
   Object value="value";
   map.put(key,value);
-  Collection<Object> values=map.values(new SqlPredicate("__key = 1"));
+  Collection<Object> values=map.values(new SqlPredicate("__key = '" + key + "'"));
   assertEquals(1,values.size());
   assertEquals(value,values.iterator().next());
 }
