@@ -1,22 +1,15 @@
 {
-  final ClassLoader cl=getClass().getClassLoader();
-  String downloadId="maven";
+  String downloadId="source";
   InputStream is=null;
   try {
-    final Enumeration<URL> resources=cl.getResources("META-INF/MANIFEST.MF");
-    while (resources.hasMoreElements()) {
-      final URL url=resources.nextElement();
-      is=url.openStream();
-      Manifest manifest=new Manifest(is);
-      final Attributes mainAttributes=manifest.getMainAttributes();
-      downloadId=mainAttributes.getValue("hazelcastDownloadId");
-      if (downloadId != null) {
-        break;
-      }
+    is=getClass().getClassLoader().getResourceAsStream("hazelcast-download.properties");
+    if (is != null) {
+      final Properties properties=new Properties();
+      properties.load(is);
+      downloadId=properties.getProperty("hazelcastDownloadId");
     }
   }
  catch (  IOException ignored) {
-    EmptyStatement.ignore(ignored);
   }
  finally {
     IOUtil.closeResource(is);
