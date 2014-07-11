@@ -1,16 +1,17 @@
 {
+  final MapServiceContext mapServiceContext=getMapServiceContext();
   response=new MapEntrySet();
   MapEntrySimple entry;
-  final RecordStore recordStore=mapService.getMapServiceContext().getRecordStore(getPartitionId(),name);
-  final LocalMapStatsImpl mapStats=mapService.getMapServiceContext().getLocalMapStatsProvider().getLocalMapStatsImpl(name);
+  final RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),name);
+  final LocalMapStatsImpl mapStats=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
   final Iterator<Record> iterator=recordStore.iterator();
   while (iterator.hasNext()) {
     final Record record=iterator.next();
-    final long start=System.currentTimeMillis();
+    final long start=Clock.currentTimeMillis();
     final Data key=record.getKey();
     final Object valueBeforeProcess=record.getValue();
-    final Object valueBeforeProcessObject=mapService.getMapServiceContext().toObject(valueBeforeProcess);
-    Object objectKey=mapService.getMapServiceContext().toObject(key);
+    final Object valueBeforeProcessObject=mapServiceContext.toObject(valueBeforeProcess);
+    Object objectKey=mapServiceContext.toObject(key);
     if (getPredicate() != null) {
       final SerializationService ss=getNodeEngine().getSerializationService();
       QueryEntry queryEntry=new QueryEntry(ss,key,objectKey,valueBeforeProcessObject);
@@ -23,7 +24,7 @@
     final Object valueAfterProcess=entry.getValue();
     Data dataValue=null;
     if (result != null) {
-      dataValue=mapService.getMapServiceContext().toData(result);
+      dataValue=mapServiceContext.toData(result);
       response.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(key,dataValue));
     }
     EntryEventType eventType;
@@ -49,6 +50,8 @@
         recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(key,valueAfterProcess));
       }
     }
-    fireEvent(key,dataValue,valueBeforeProcess,valueAfterProcess,recordStore,eventType);
+    fireEvent(key,valueBeforeProcess,valueAfterProcess,eventType);
+    invalidateNearCache(key);
+    publishWanReplicationEvent(key,dataValue,recordStore,eventType);
   }
 }
