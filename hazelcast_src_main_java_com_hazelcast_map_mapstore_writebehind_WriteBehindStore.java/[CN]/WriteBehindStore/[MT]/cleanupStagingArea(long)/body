@@ -1,23 +1,23 @@
 {
-  if (evictionStagingArea.isEmpty() || !inEvictableTimeWindow(now)) {
+  if (stagingArea.isEmpty() || !inEvictableTimeWindow(now)) {
     return;
   }
   final long nextItemsStoreTimeInWriteBehindQueue=getNextItemsStoreTimeInWriteBehindQueue();
-  final int size=evictionStagingArea.size();
+  final int size=stagingArea.size();
   final int evictionPercentage=20;
   int maxAllowedIterationCount=getMaxIterationCount(size,evictionPercentage);
   initStagingAreaIterator();
-  while (evictionStagingAreaIterator.hasNext()) {
+  while (stagingAreaIterator.hasNext()) {
     if (maxAllowedIterationCount <= 0) {
       break;
     }
     --maxAllowedIterationCount;
-    final DelayedEntry entry=evictionStagingAreaIterator.next();
+    final DelayedEntry entry=stagingAreaIterator.next();
     if (entry.getStoreTime() < nextItemsStoreTimeInWriteBehindQueue) {
-      evictionStagingAreaIterator.remove();
+      stagingAreaIterator.remove();
     }
     initStagingAreaIterator();
-    if (!evictionStagingAreaIterator.hasNext()) {
+    if (!stagingAreaIterator.hasNext()) {
       break;
     }
     lastCleanupTime=now;
