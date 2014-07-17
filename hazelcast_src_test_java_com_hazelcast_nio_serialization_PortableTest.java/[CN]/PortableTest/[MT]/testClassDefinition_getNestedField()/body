@@ -1,0 +1,18 @@
+{
+  SerializationService serializationService=new SerializationServiceBuilder().build();
+  PortableContext portableContext=serializationService.getPortableContext();
+  ChildPortableObject child=new ChildPortableObject(System.nanoTime());
+  ParentPortableObject parent=new ParentPortableObject(System.currentTimeMillis(),child);
+  GrandParentPortableObject grandParent=new GrandParentPortableObject(System.nanoTime(),parent);
+  Data data=serializationService.toData(grandParent);
+  ClassDefinition classDefinition=data.getClassDefinition();
+  FieldDefinition fd=portableContext.getFieldDefinition(classDefinition,"child");
+  assertNotNull(fd);
+  assertEquals(FieldType.PORTABLE,fd.getType());
+  fd=portableContext.getFieldDefinition(classDefinition,"child.child");
+  assertNotNull(fd);
+  assertEquals(FieldType.PORTABLE,fd.getType());
+  fd=portableContext.getFieldDefinition(classDefinition,"child.child.timestamp");
+  assertNotNull(fd);
+  assertEquals(FieldType.LONG,fd.getType());
+}
