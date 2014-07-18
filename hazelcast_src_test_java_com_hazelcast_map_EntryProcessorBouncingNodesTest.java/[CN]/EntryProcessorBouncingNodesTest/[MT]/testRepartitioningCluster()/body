@@ -4,8 +4,8 @@
   HazelcastInstance instance=newInstance();
   HazelcastInstance instance2=newInstance();
   HazelcastInstance instance3=newInstance();
-  IMap<Integer,List<Integer>> map=instance.getMap(MAP_NAME);
-  List<Integer> expected=new ArrayList<Integer>();
+  final IMap<Integer,List<Integer>> map=instance.getMap(MAP_NAME);
+  final List<Integer> expected=new ArrayList<Integer>();
   InitListProcessor initProcessor=new InitListProcessor();
   for (int i=0; i < ENTRIES; ++i) {
     map.executeOnKey(i,initProcessor);
@@ -30,16 +30,21 @@
   isRunning.set(false);
   bounceThread1.join();
   bounceThread2.join();
-  PartitionService partitionService=instance.getPartitionService();
-  List<String> errors=new ArrayList<String>();
+  final CountDownLatch latch=new CountDownLatch(ENTRIES);
   for (int i=0; i < ENTRIES; ++i) {
-    List<Integer> list=map.get(i);
-    if (expected.size() <= list.size()) {
-      continue;
+    final int id=i;
+    new Thread(new Runnable(){
+      @Override public void run(){
+        assertTrueEventually(new AssertTask(){
+          @Override public void run() throws Exception {
+            assertTrue(expected.size() <= map.get(id).size());
+          }
+        }
+);
+        latch.countDown();
+      }
     }
-    String owner=partitionService.getPartition(i).getOwner().getUuid();
-    String error=owner + "[" + i+ "] doesn't match! Expected/actual length: "+ expected.size()+ "/"+ list.size()+ "\nExpected : "+ expected.toString()+ "\nActual   : "+ list+ "\n";
-    errors.add(error);
+).start();
   }
-  assertEquals(Collections.emptyList(),errors);
+  assertOpenEventually(latch);
 }
