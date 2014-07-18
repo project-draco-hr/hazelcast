@@ -1,11 +1,14 @@
 {
-  FieldDefinition fd=cd.get(fieldName);
+  FieldDefinition fd=cd.getField(fieldName);
   if (fd == null) {
     throw throwUnknownFieldException(fieldName);
   }
+  if (fd.getType() != FieldType.PORTABLE_ARRAY) {
+    throw new HazelcastSerializationException("Not a Portable array field: " + fieldName);
+  }
   final int currentPos=in.position();
   try {
-    int pos=getPosition(fd);
+    int pos=readPosition(fd);
     in.position(pos);
     final int len=in.readInt();
     final Portable[] portables=new Portable[len];

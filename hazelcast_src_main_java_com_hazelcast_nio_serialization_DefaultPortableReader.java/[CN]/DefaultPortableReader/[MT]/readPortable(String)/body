@@ -1,11 +1,14 @@
 {
-  FieldDefinition fd=cd.get(fieldName);
+  FieldDefinition fd=cd.getField(fieldName);
   if (fd == null) {
     throw throwUnknownFieldException(fieldName);
   }
+  if (fd.getType() != FieldType.PORTABLE) {
+    throw new HazelcastSerializationException("Not a Portable field: " + fieldName);
+  }
   final int currentPos=in.position();
   try {
-    int pos=getPosition(fd);
+    int pos=readPosition(fd);
     in.position(pos);
     final boolean isNull=in.readBoolean();
     if (!isNull) {

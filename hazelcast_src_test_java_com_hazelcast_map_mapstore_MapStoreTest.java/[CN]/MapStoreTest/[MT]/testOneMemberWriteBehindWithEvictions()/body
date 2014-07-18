@@ -11,7 +11,13 @@
   for (int i=0; i < populationCount; i++) {
     map.put(i,"value" + i);
   }
-  assertTrue(testMapStore.storeLatch.await(10,TimeUnit.SECONDS));
+  assertOpenEventually(testMapStore.storeLatch);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,writeBehindQueueSize(node1,mapName));
+    }
+  }
+);
   testMapStore.storeLatch=new CountDownLatch(populationCount);
   for (int i=0; i < populationCount; i++) {
     map.evict(i);
