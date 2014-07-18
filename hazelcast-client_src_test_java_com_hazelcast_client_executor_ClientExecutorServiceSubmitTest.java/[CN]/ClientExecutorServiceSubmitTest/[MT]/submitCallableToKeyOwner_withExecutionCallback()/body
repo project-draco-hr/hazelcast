@@ -1,11 +1,11 @@
 {
-  final IExecutorService service=client.getExecutorService(randomString());
-  final String msg=randomString();
-  final Callable callable=new AppendCallable(msg);
+  IExecutorService service=client.getExecutorService(randomString());
+  String msg=randomString();
+  Callable<String> callable=new AppendCallable(msg);
   final CountDownLatch responseLatch=new CountDownLatch(1);
-  final AtomicReference result=new AtomicReference();
-  service.submitToKeyOwner(callable,"key",new ExecutionCallback(){
-    public void onResponse(    Object response){
+  final AtomicReference<String> result=new AtomicReference<String>();
+  service.submitToKeyOwner(callable,"key",new ExecutionCallback<String>(){
+    public void onResponse(    String response){
       result.set(response);
       responseLatch.countDown();
     }
@@ -13,6 +13,6 @@
     }
   }
 );
-  assertOpenEventually(responseLatch,5);
+  assertOpenEventually("responseLatch",responseLatch,5);
   assertEquals(msg + AppendCallable.APPENDAGE,result.get());
 }

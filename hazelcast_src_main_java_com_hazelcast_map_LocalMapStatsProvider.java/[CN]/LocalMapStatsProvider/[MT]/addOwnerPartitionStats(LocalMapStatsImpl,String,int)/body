@@ -1,6 +1,6 @@
 {
   final RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
-  if (recordStore == null) {
+  if (!hasRecords(recordStore)) {
     return;
   }
   int lockedEntryCount=0;
@@ -8,8 +8,9 @@
   long lastUpdateTime=0;
   long ownedEntryMemoryCost=0;
   long hits=0;
-  final Map<Data,Record> records=recordStore.getReadonlyRecordMap();
-  for (  Record record : records.values()) {
+  final Iterator<Record> iterator=recordStore.iterator();
+  while (iterator.hasNext()) {
+    final Record record=iterator.next();
     hits+=getHits(record);
     ownedEntryMemoryCost+=record.getCost();
     lockedEntryCount+=isLocked(record,recordStore);
@@ -23,5 +24,5 @@
   localMapStats.setLastAccessTime(lastAccessTime);
   localMapStats.setLastUpdateTime(lastUpdateTime);
   localMapStats.incrementHeapCost(recordStore.getHeapCost());
-  localMapStats.incrementOwnedEntryCount(records.size());
+  localMapStats.incrementOwnedEntryCount(recordStore.size());
 }
