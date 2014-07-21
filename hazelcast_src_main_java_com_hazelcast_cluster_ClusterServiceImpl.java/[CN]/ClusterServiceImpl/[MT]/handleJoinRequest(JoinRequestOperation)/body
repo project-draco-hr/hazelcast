@@ -5,52 +5,56 @@
     }
     return;
   }
+  JoinRequest joinRequest=op.getRequest();
+  if (!node.isMaster()) {
+    sendMasterAnswer(joinRequest.getAddress());
+    return;
+  }
+  Connection conn=op.getConnection();
+  if (!isValidJoinRequest(joinRequest)) {
+    logger.info("Received an invalid join request from " + joinRequest.getAddress());
+    conn.close();
+    return;
+  }
+  if (joinInProgress) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Join is in-progress. Cannot handle join request from " + joinRequest.getAddress() + " at the moment.");
+    }
+    return;
+  }
   lock.lock();
   try {
-    JoinRequest joinRequest=op.getRequest();
     long now=Clock.currentTimeMillis();
     if (logger.isFinestEnabled()) {
       String msg="Handling join from " + joinRequest.getAddress() + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
       logger.finest(msg);
     }
-    Connection conn=op.getConnection();
-    if (!isValidJoinRequest(joinRequest)) {
-      logger.info("Received an invalid join request from " + joinRequest.getAddress());
-      conn.close();
-      return;
-    }
     if (isJoinRequestFromAnExistingMember(joinRequest)) {
       return;
     }
-    if (!node.isMaster()) {
-      if (!isMulticastEnabled()) {
-        sendMasterAnswer(joinRequest.getAddress());
-      }
-      return;
-    }
     MemberInfo memberInfo=new MemberInfo(joinRequest.getAddress(),joinRequest.getUuid(),joinRequest.getAttributes());
-    try {
-      checkSecureLogin(joinRequest,memberInfo);
+    if (!setJoins.contains(memberInfo)) {
+      try {
+        checkSecureLogin(joinRequest,memberInfo);
+      }
+ catch (      Exception e) {
+        ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
+        sendAuthenticationFailure(joinRequest.getAddress());
+        securityLogger.severe(e);
+        return;
+      }
     }
- catch (    Exception e) {
-      ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
-      sentAuthenticationFailure(joinRequest.getAddress());
-      securityLogger.severe(e);
-      return;
+    if (firstJoinRequest == 0) {
+      firstJoinRequest=now;
     }
-    if (!joinInProgress) {
-      if (firstJoinRequest == 0) {
-        firstJoinRequest=now;
+    if (setJoins.add(memberInfo)) {
+      sendMasterAnswer(joinRequest.getAddress());
+      if (now - firstJoinRequest < maxWaitMillisBeforeJoin) {
+        timeToStartJoin=now + waitMillisBeforeJoin;
       }
-      if (setJoins.add(memberInfo)) {
-        sendMasterAnswer(joinRequest.getAddress());
-        if (now - firstJoinRequest < maxWaitMillisBeforeJoin) {
-          timeToStartJoin=now + waitMillisBeforeJoin;
-        }
-      }
-      if (now > timeToStartJoin) {
-        startJoin();
-      }
+    }
+    if (now > timeToStartJoin) {
+      startJoin();
     }
   }
   finally {
