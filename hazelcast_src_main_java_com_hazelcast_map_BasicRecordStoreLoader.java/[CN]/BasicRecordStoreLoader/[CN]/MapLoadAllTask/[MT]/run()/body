@@ -3,9 +3,7 @@
   try {
     Map values=mapDataStore.loadAll(keys.values());
     if (values == null || values.isEmpty()) {
-      if (checkIfMapLoaded.decrementAndGet() == 0) {
-        setLoaded(true);
-      }
+      decrementCounterAndMarkAsLoaded();
       return;
     }
     MapEntrySet entrySet=new MapEntrySet();
@@ -21,9 +19,7 @@
     operation.setNodeEngine(nodeEngine);
     operation.setResponseHandler(new ResponseHandler(){
       @Override public void sendResponse(      Object obj){
-        if (checkIfMapLoaded.decrementAndGet() == 0) {
-          setLoaded(true);
-        }
+        decrementCounterAndMarkAsLoaded();
       }
       public boolean isLocal(){
         return true;
@@ -36,7 +32,9 @@
     operation.setServiceName(MapService.SERVICE_NAME);
     nodeEngine.getOperationService().executeOperation(operation);
   }
- catch (  Exception e) {
-    logger.warning("Exception while load all task:" + e.toString());
+ catch (  Throwable t) {
+    decrementCounterAndMarkAsLoaded();
+    logger.warning("Exception while load all task:" + t.toString());
+    callback.notify(t);
   }
 }
