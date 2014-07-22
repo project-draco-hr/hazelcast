@@ -6,7 +6,7 @@
       decrementCounterAndMarkAsLoaded();
       return;
     }
-    MapEntrySet entrySet=new MapEntrySet();
+    final MapEntrySet entrySet=new MapEntrySet();
     for (    Data dataKey : keys.keySet()) {
       Object key=keys.get(dataKey);
       Object value=values.get(key);
@@ -16,21 +16,16 @@
       }
     }
     PutAllOperation operation=new PutAllOperation(name,entrySet,true);
-    operation.setNodeEngine(nodeEngine);
-    operation.setResponseHandler(new ResponseHandler(){
-      @Override public void sendResponse(      Object obj){
+    final OperationService operationService=nodeEngine.getOperationService();
+    operationService.createInvocationBuilder(MapService.SERVICE_NAME,operation,partitionId).setCallback(new Callback<Object>(){
+      @Override public void notify(      Object obj){
+        if (obj instanceof Throwable) {
+          return;
+        }
         decrementCounterAndMarkAsLoaded();
       }
-      public boolean isLocal(){
-        return true;
-      }
     }
-);
-    operation.setPartitionId(partitionId);
-    OperationAccessor.setCallerAddress(operation,nodeEngine.getThisAddress());
-    operation.setCallerUuid(nodeEngine.getLocalMember().getUuid());
-    operation.setServiceName(MapService.SERVICE_NAME);
-    nodeEngine.getOperationService().executeOperation(operation);
+).invoke();
   }
  catch (  Throwable t) {
     decrementCounterAndMarkAsLoaded();
