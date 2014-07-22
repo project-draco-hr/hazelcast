@@ -1,0 +1,26 @@
+{
+  long overallTimeoutNanos=calculateTimeout(overallTimeout,overallTimeUnit);
+  long perFutureTimeoutNanos=calculateTimeout(perFutureTimeout,perFutureTimeUnit);
+  long deadline=System.nanoTime() + overallTimeoutNanos;
+  List<V> results=new ArrayList<V>(futures.size());
+  for (  Future<V> future : futures) {
+    try {
+      long timeoutNanos=calculateFutureTimeout(perFutureTimeoutNanos,deadline);
+      V value=executeWithDeadline(future,timeoutNanos,exceptionHandler);
+      if (value != null) {
+        results.add(value);
+      }
+    }
+ catch (    TimeoutException e) {
+      if (deadline - System.nanoTime() <= 0) {
+        cancelAllFutures(futures);
+        throw (TimeoutException)e;
+      }
+    }
+catch (    Exception e) {
+      cancelAllFutures(futures);
+      ExceptionUtil.sneakyThrow(e);
+    }
+  }
+  return results;
+}

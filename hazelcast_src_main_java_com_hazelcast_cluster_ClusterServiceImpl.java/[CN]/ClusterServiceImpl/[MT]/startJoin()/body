@@ -24,18 +24,11 @@
         }
       }
       updateMembers(memberInfos);
-      for (      Future future : calls) {
-        try {
-          future.get(10,TimeUnit.SECONDS);
-        }
- catch (        TimeoutException ignored) {
-          if (logger.isFinestEnabled()) {
-            logger.finest("Finalize join call timed-out: " + future);
-          }
-        }
-catch (        Exception e) {
-          logger.warning("While waiting finalize join calls...",e);
-        }
+      try {
+        waitWithDeadline(calls,10,logAllExceptions("While waiting finalize join calls...",Level.WARNING));
+      }
+ catch (      TimeoutException e) {
+        logger.warning("While waiting finalize join calls...",e);
       }
     }
   finally {

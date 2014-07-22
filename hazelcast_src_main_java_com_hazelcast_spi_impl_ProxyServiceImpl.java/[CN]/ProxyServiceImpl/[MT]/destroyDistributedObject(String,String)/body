@@ -5,22 +5,22 @@
   if (name == null) {
     throw new NullPointerException("Object name is required!");
   }
+  OperationService operationService=nodeEngine.getOperationService();
   Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
   Collection<Future> calls=new ArrayList<Future>(members.size());
   for (  MemberImpl member : members) {
     if (member.localMember()) {
       continue;
     }
-    Future f=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new DistributedObjectDestroyOperation(serviceName,name),member.getAddress()).setTryCount(TRY_COUNT).invoke();
+    DistributedObjectDestroyOperation operation=new DistributedObjectDestroyOperation(serviceName,name);
+    Future f=operationService.createInvocationBuilder(SERVICE_NAME,operation,member.getAddress()).setTryCount(TRY_COUNT).invoke();
     calls.add(f);
   }
   destroyLocalDistributedObject(serviceName,name,true);
-  for (  Future f : calls) {
-    try {
-      f.get(TIME,TimeUnit.SECONDS);
-    }
- catch (    Exception e) {
-      logger.finest(e);
-    }
+  try {
+    FutureUtil.waitWithDeadline(calls,TIME,FutureUtil.logAllExceptions(Level.FINEST));
+  }
+ catch (  TimeoutException e) {
+    logger.finest(e);
   }
 }

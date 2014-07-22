@@ -4,17 +4,16 @@
   final Collection<Future> calls=new ArrayList<Future>();
   for (  MemberImpl member : memberList) {
     if (!member.localMember()) {
-      Future f=operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new PrepareMergeOperation(targetAddress),member.getAddress()).setTryCount(3).invoke();
+      Operation operation=new PrepareMergeOperation(targetAddress);
+      Future f=operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,operation,member.getAddress()).setTryCount(3).invoke();
       calls.add(f);
     }
   }
-  for (  Future f : calls) {
-    try {
-      f.get(1,TimeUnit.SECONDS);
-    }
- catch (    Exception e) {
-      logger.finest("While waiting merge response...",e);
-    }
+  try {
+    waitWithDeadline(calls,1,logAllExceptions("While waiting merge response...",Level.FINEST));
+  }
+ catch (  TimeoutException e) {
+    logger.warning("While waiting merge response...",e);
   }
   final PrepareMergeOperation prepareMergeOperation=new PrepareMergeOperation(targetAddress);
   prepareMergeOperation.setNodeEngine(node.nodeEngine).setService(node.getClusterService()).setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());

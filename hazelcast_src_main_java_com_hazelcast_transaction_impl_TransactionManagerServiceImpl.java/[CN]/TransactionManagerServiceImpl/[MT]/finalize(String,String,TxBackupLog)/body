@@ -11,13 +11,13 @@
       Future f=operationService.invokeOnTarget(SERVICE_NAME,op,member.getAddress());
       futures.add(f);
     }
-    for (    Future future : futures) {
-      try {
-        future.get(TransactionOptions.getDefault().getTimeoutMillis(),TimeUnit.MILLISECONDS);
-      }
- catch (      Exception e) {
-        logger.warning("Error while rolling-back tx!");
-      }
+    try {
+      long timeoutMillis=TransactionOptions.getDefault().getTimeoutMillis();
+      ExceptionHandler exceptionHandler=logAllExceptions(logger,"Error while rolling-back tx!",Level.WARNING);
+      waitWithDeadline(futures,timeoutMillis,TimeUnit.MILLISECONDS,exceptionHandler);
+    }
+ catch (    TimeoutException e) {
+      logger.warning("Timeout while rolling-back tx!",e);
     }
   }
  else {

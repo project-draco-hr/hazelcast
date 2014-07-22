@@ -10,13 +10,11 @@
     PartitionRuntimeState partitionState=createPartitionState(members);
     OperationService operationService=nodeEngine.getOperationService();
     List<Future> calls=firePartitionStateOperation(members,partitionState,operationService);
-    for (    Future f : calls) {
-      try {
-        f.get(3,TimeUnit.SECONDS);
-      }
- catch (      Exception e) {
-        logger.info("Partition state sync invocation timed out: " + e);
-      }
+    try {
+      waitWithDeadline(calls,3,logAllExceptions(EXCEPTION_MSG_PARTITION_STATE_SYNC_TIMEOUT,Level.INFO));
+    }
+ catch (    TimeoutException e) {
+      logger.finest(e);
     }
   }
   finally {
