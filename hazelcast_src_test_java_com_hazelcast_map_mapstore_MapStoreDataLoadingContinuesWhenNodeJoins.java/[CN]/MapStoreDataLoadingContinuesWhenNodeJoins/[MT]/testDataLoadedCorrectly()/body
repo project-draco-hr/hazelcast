@@ -3,7 +3,7 @@
   config.setProperty("hazelcast.logging.type","log4j");
   config.setProperty("hazelcast.jmx","false");
   MapConfig mapConfig=config.getMapConfig(mapName);
-  final InMemoryMapStore store=new InMemoryMapStore(false,300,false);
+  final InMemoryMapStore store=new InMemoryMapStore(300,false);
   store.preload(preloadSize);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
@@ -17,9 +17,14 @@
     @Override public void run(){
       HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
       try {
-        IMap<String,String> map=hcInstance.getMap(mapName);
-        int size=map.size();
-        mapSize.set(size);
+        final IMap<String,String> map=hcInstance.getMap(mapName);
+        mapSize.set(map.size());
+        assertTrueEventually(new AssertTask(){
+          @Override public void run() throws Exception {
+            assertEquals(preloadSize,map.size());
+          }
+        }
+,5);
       }
   finally {
         hcInstance.getLifecycleService().shutdown();
@@ -48,8 +53,5 @@
   thread1.join();
   if (simulateSecondNode) {
     thread2.join();
-  }
-  if (mapSize.get() != preloadSize) {
-    fail("Not all data loaded. actual size = " + mapSize.get() + " , expected size = "+ preloadSize);
   }
 }
