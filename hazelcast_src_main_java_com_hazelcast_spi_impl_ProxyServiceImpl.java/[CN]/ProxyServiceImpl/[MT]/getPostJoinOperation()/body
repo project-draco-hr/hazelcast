@@ -1,10 +1,14 @@
 {
   Collection<ProxyInfo> proxies=new LinkedList<ProxyInfo>();
   for (  ProxyRegistry registry : registries.values()) {
-    for (    DistributedObjectFuture future : registry.proxies.values()) {
-      DistributedObject distributedObject=future.get();
+    for (    Map.Entry<String,DistributedObjectFuture> entry : registry.proxies.entrySet()) {
+      final DistributedObjectFuture future=entry.getValue();
+      if (!future.isSet()) {
+        continue;
+      }
+      final DistributedObject distributedObject=future.get();
       if (distributedObject instanceof InitializingObject) {
-        proxies.add(new ProxyInfo(registry.serviceName,distributedObject.getName()));
+        proxies.add(new ProxyInfo(registry.serviceName,entry.getKey()));
       }
     }
   }
