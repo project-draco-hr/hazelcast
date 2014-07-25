@@ -1,0 +1,19 @@
+{
+  String mapName=randomMapName();
+  String serviceName="hz:impl:mapService";
+  Config config=new Config();
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<String,MyObject> map=instance.getMap(mapName);
+  MyObject myObjectExisting=new MyObject();
+  map.put("key",myObjectExisting);
+  NodeEngineImpl nodeEngine=HazelcastTestSupport.getNode(instance).nodeEngine;
+  MapService mapService=nodeEngine.getService(serviceName);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId("key");
+  Data dataKey=mapService.toData("key");
+  RecordStore recordStore=mapService.getRecordStore(partitionId,mapName);
+  MapMergePolicy mergePolicy=mapService.getMergePolicy(PutIfAbsentMapMergePolicy.class.getName());
+  EntryView<String,MyObject> mergingEntryView=new SimpleEntryView("key",new MyObject());
+  recordStore.merge(dataKey,mergingEntryView,mergePolicy);
+  int deSerializedCount=myObjectExisting.deserializedCount;
+  assertEquals(0,deSerializedCount);
+}
