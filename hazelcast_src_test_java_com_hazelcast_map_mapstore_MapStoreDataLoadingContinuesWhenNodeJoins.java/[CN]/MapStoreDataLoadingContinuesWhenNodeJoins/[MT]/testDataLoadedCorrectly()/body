@@ -3,7 +3,8 @@
   config.setProperty("hazelcast.logging.type","log4j");
   config.setProperty("hazelcast.jmx","false");
   MapConfig mapConfig=config.getMapConfig(mapName);
-  final InMemoryMapStore store=new InMemoryMapStore(300,false);
+  final CountDownLatch halfOfKeysAreLoaded=new CountDownLatch(1);
+  final InMemoryMapStore store=new InMemoryMapStore(300,false,halfOfKeysAreLoaded);
   store.preload(preloadSize);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
@@ -13,12 +14,16 @@
   mapStoreConfig.setImplementation(store);
   mapConfig.setMapStoreConfig(mapStoreConfig);
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final CountDownLatch node1Started=new CountDownLatch(1);
+  final CountDownLatch node1FinishedLoading=new CountDownLatch(1);
   Thread thread1=new Thread(new Runnable(){
     @Override public void run(){
       HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
+      node1Started.countDown();
       try {
         final IMap<String,String> map=hcInstance.getMap(mapName);
         mapSize.set(map.size());
+        node1FinishedLoading.countDown();
         assertTrueEventually(new AssertTask(){
           @Override public void run() throws Exception {
             assertEquals(preloadSize,map.size());
@@ -33,15 +38,18 @@
   }
 ,"Thread 1");
   thread1.start();
-  sleep(10000,true);
+  node1Started.await();
   Thread thread2=new Thread(new Runnable(){
     @Override public void run(){
       HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
       try {
         hcInstance.getMap(mapName);
-        sleep(20000,true);
+        final int loadTimeMillis=msPerLoad * preloadSize;
+        node1FinishedLoading.await(loadTimeMillis,TimeUnit.MILLISECONDS);
       }
-  finally {
+ catch (      InterruptedException e) {
+      }
+ finally {
         hcInstance.getLifecycleService().shutdown();
       }
     }
