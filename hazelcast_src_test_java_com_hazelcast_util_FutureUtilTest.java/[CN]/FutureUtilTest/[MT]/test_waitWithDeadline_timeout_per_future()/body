@@ -1,18 +1,20 @@
 {
   AtomicBoolean waitLock=new AtomicBoolean(true);
   final AtomicBoolean interrupted=new AtomicBoolean(false);
+  final AtomicLong deltaToInterrupted=new AtomicLong(0);
   ExecutorService executorService=Executors.newFixedThreadPool(2);
   List<Future> futures=new ArrayList<Future>();
   for (int i=0; i < 2; i++) {
-    futures.add(executorService.submit(new BlockingCallable(waitLock,interrupted)));
+    futures.add(executorService.submit(new BlockingTimeMeasureTask(waitLock,interrupted,deltaToInterrupted)));
   }
   try {
-    FutureUtil.returnWithDeadline(futures,5,FutureUtil.logAllExceptions(Level.WARNING));
+    waitWithDeadline(futures,60,TimeUnit.SECONDS,1,TimeUnit.SECONDS);
   }
  catch (  TimeoutException e) {
     assertTrueEventually(new AssertTask(){
       @Override public void run() throws Exception {
         assertEquals(true,interrupted.get());
+        assertTrue("perFutureTimeout greater than 65 seconds",TimeUnit.NANOSECONDS.toSeconds(deltaToInterrupted.get()) < 65);
       }
     }
 );

@@ -1,0 +1,22 @@
+{
+  AtomicBoolean waitLock=new AtomicBoolean(true);
+  final AtomicBoolean interrupted=new AtomicBoolean(false);
+  ExecutorService executorService=Executors.newFixedThreadPool(2);
+  List<Future> futures=new ArrayList<Future>();
+  for (int i=0; i < 2; i++) {
+    futures.add(executorService.submit(new BlockingCallable(waitLock,interrupted)));
+  }
+  try {
+    returnWithDeadline(futures,5,TimeUnit.SECONDS);
+  }
+ catch (  TimeoutException e) {
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(true,interrupted.get());
+      }
+    }
+);
+    return;
+  }
+  fail();
+}
