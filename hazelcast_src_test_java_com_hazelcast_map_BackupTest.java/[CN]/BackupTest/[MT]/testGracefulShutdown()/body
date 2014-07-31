@@ -3,20 +3,20 @@
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(4);
   final Config config=new Config();
   HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
-  IMap m1=h1.getMap(MAP_NAME);
+  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
   for (int i=0; i < size; i++) {
     m1.put(i,i);
   }
   HazelcastInstance h2=nodeFactory.newHazelcastInstance(config);
-  IMap m2=h2.getMap(MAP_NAME);
-  h1.shutdown();
-  assertEquals(size,m2.size());
+  IMap<Integer,Integer> m2=h2.getMap(MAP_NAME);
+  shutdownAndWait(h1);
+  waitForMigrationAndCheckSize(size,h2,m2);
   HazelcastInstance h3=nodeFactory.newHazelcastInstance(config);
-  IMap m3=h3.getMap(MAP_NAME);
-  h2.shutdown();
-  assertEquals(size,m3.size());
+  IMap<Integer,Integer> m3=h3.getMap(MAP_NAME);
+  shutdownAndWait(h2);
+  waitForMigrationAndCheckSize(size,h3,m3);
   HazelcastInstance h4=nodeFactory.newHazelcastInstance(config);
-  IMap m4=h4.getMap(MAP_NAME);
-  h3.shutdown();
-  assertEquals(size,m4.size());
+  IMap<Integer,Integer> m4=h4.getMap(MAP_NAME);
+  shutdownAndWait(h3);
+  waitForMigrationAndCheckSize(size,h4,m4);
 }
