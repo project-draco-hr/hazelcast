@@ -8,13 +8,12 @@
         futures.add(f);
       }
     }
-    for (    Future future : futures) {
-      try {
-        future.get(timeoutMillis,TimeUnit.MILLISECONDS);
-      }
- catch (      Throwable e) {
-        nodeEngine.getLogger(getClass()).warning("Error during tx rollback backup!",e);
-      }
+    try {
+      waitWithDeadline(futures,timeoutMillis,TimeUnit.MILLISECONDS,rollbackTxExceptionHandler);
+    }
+ catch (    TimeoutException e) {
+      ILogger logger=nodeEngine.getLogger(getClass());
+      logger.warning("Timeout during tx rollback backup!",e);
     }
     futures.clear();
   }
