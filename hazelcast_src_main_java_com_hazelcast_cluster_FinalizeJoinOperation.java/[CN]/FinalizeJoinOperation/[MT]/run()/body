@@ -4,13 +4,15 @@
     final ClusterServiceImpl clusterService=getService();
     final NodeEngineImpl nodeEngine=clusterService.getNodeEngine();
     final Operation[] postJoinOperations=nodeEngine.getPostJoinOperations();
+    final OperationService operationService=nodeEngine.getOperationService();
     Collection<Future> calls=null;
     if (postJoinOperations != null && postJoinOperations.length > 0) {
       final Collection<MemberImpl> members=clusterService.getMemberList();
       calls=new ArrayList<Future>(members.size());
       for (      MemberImpl member : members) {
         if (!member.localMember()) {
-          Future f=nodeEngine.getOperationService().createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new PostJoinOperation(postJoinOperations),member.getAddress()).setTryCount(10).setTryPauseMillis(100).invoke();
+          PostJoinOperation operation=new PostJoinOperation(postJoinOperations);
+          Future f=operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,operation,member.getAddress()).setTryCount(10).setTryPauseMillis(100).invoke();
           calls.add(f);
         }
       }
@@ -20,24 +22,10 @@
       OperationAccessor.setCallerAddress(postJoinOp,getCallerAddress());
       OperationAccessor.setConnection(postJoinOp,getConnection());
       postJoinOp.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
-      nodeEngine.getOperationService().runOperationOnCallingThread(postJoinOp);
+      operationService.runOperationOnCallingThread(postJoinOp);
     }
     if (calls != null) {
-      for (      Future f : calls) {
-        try {
-          f.get(1,TimeUnit.SECONDS);
-        }
- catch (        InterruptedException ignored) {
-        }
-catch (        TimeoutException ignored) {
-        }
-catch (        ExecutionException e) {
-          final ILogger logger=nodeEngine.getLogger(FinalizeJoinOperation.class);
-          if (logger.isFinestEnabled()) {
-            logger.finest("Error while executing post-join operations -> " + e.getClass().getSimpleName() + "["+ e.getMessage()+ "]");
-          }
-        }
-      }
+      FutureUtil.waitWithDeadline(calls,1,TimeUnit.SECONDS,exceptionHandler);
     }
   }
 }
