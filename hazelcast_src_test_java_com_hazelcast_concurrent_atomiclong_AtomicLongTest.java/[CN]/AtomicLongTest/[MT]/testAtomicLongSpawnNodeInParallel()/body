@@ -11,20 +11,31 @@
     for (int i=0; i < total / parallel; i++) {
       final HazelcastInstance[] instances=new HazelcastInstance[parallel];
       final CountDownLatch countDownLatch=new CountDownLatch(parallel);
+      final AtomicInteger exceptionCount=new AtomicInteger(0);
       for (int j=0; j < parallel; j++) {
         final int id=j;
         ex.execute(new Runnable(){
           public void run(){
-            instances[id]=nodeFactory.newHazelcastInstance();
-            instances[id].getAtomicLong(name).incrementAndGet();
-            countDownLatch.countDown();
+            try {
+              instances[id]=nodeFactory.newHazelcastInstance();
+              instances[id].getAtomicLong(name).incrementAndGet();
+            }
+ catch (            Exception e) {
+              exceptionCount.incrementAndGet();
+              e.printStackTrace();
+            }
+ finally {
+              countDownLatch.countDown();
+            }
           }
         }
 );
       }
-      assertTrue(countDownLatch.await(1,TimeUnit.MINUTES));
+      assertOpenEventually(countDownLatch);
+      final int thrownExceptionCount=exceptionCount.get();
+      final long expectedValue=(long)100 + (i + 1) * parallel - thrownExceptionCount;
       IAtomicLong newAtomicLong=instance.getAtomicLong(name);
-      assertEquals((long)100 + (i + 1) * parallel,newAtomicLong.get());
+      assertEquals(expectedValue,newAtomicLong.get());
       instance.shutdown();
       instance=instances[0];
     }
