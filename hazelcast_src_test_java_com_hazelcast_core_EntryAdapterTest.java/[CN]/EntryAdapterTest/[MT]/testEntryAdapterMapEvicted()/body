@@ -1,0 +1,18 @@
+{
+  String mapName=randomMapName();
+  Config cfg=new Config();
+  TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=instanceFactory.newHazelcastInstance(cfg);
+  IMap map=instance.getMap(mapName);
+  map.put(1,1);
+  map.put(2,2);
+  final CountDownLatch evictionLatch=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter(){
+    public void mapEvicted(    final MapEvent event){
+      evictionLatch.countDown();
+    }
+  }
+,false);
+  map.evictAll();
+  assertOpenEventually(evictionLatch);
+}
