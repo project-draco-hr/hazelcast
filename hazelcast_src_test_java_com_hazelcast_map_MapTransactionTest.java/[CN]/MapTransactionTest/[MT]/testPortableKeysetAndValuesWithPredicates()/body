@@ -1,0 +1,28 @@
+{
+  final String mapName=randomString();
+  final Config config=new Config();
+  config.getSerializationConfig().addPortableFactory(666,new PortableFactory(){
+    public Portable create(    int classId){
+      return new SampleObjects.PortableEmployee();
+    }
+  }
+);
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  IMap map=instance.getMap(mapName);
+  final SampleObjects.PortableEmployee emp1=new SampleObjects.PortableEmployee(34,"abc-123-xvz");
+  final SampleObjects.PortableEmployee emp2=new SampleObjects.PortableEmployee(20,"abc-123-xvz");
+  map.put(emp1,emp1);
+  final TransactionContext context=instance.newTransactionContext();
+  context.beginTransaction();
+  final TransactionalMap txMap=context.getMap(mapName);
+  assertNull(txMap.put(emp2,emp2));
+  assertEquals(2,txMap.size());
+  assertEquals(2,txMap.keySet().size());
+  assertEquals(0,txMap.keySet(new SqlPredicate("a = 10")).size());
+  assertEquals(0,txMap.values(new SqlPredicate("a = 10")).size());
+  assertEquals(2,txMap.keySet(new SqlPredicate("a >= 10")).size());
+  assertEquals(2,txMap.values(new SqlPredicate("a >= 10")).size());
+  context.commitTransaction();
+  assertEquals(2,map.size());
+  assertEquals(2,map.values().size());
+}
