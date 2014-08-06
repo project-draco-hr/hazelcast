@@ -1,0 +1,17 @@
+{
+  super.destroySession(session,invalidate);
+  if (invalidate) {
+    ApplicationContext appContext=WebApplicationContextUtils.getWebApplicationContext(servletContext);
+    if (appContext != null) {
+      ensureSessionRegistryInitialized(appContext);
+      if (sessionRegistry != null) {
+        String originalSessionId=session.getOriginalSessionId();
+        sessionRegistry.removeSessionInformation(originalSessionId);
+        appContext.publishEvent(new HttpSessionDestroyedEvent(session));
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.finest("Published destroy session event for Spring: " + session);
+        }
+      }
+    }
+  }
+}
