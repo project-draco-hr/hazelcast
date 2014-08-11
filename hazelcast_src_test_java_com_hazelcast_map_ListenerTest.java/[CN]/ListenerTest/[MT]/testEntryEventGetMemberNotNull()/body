@@ -1,0 +1,21 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  final String mapName=randomMapName();
+  final IMap<Object,Object> map=h1.getMap(mapName);
+  final IMap<Object,Object> map2=h2.getMap(mapName);
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter<Object,Object>(){
+    @Override public void entryAdded(    EntryEvent<Object,Object> event){
+      assertNotNull(event.getMember());
+      latch.countDown();
+    }
+  }
+,false);
+  final String key=generateKeyOwnedBy(h2);
+  final String value=randomString();
+  map2.put(key,value);
+  h2.getLifecycleService().terminate();
+  assertOpenEventually(latch);
+}
