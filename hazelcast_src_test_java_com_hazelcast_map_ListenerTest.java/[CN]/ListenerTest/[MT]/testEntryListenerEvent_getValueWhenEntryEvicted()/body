@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(new Config());
+  IMap<String,String> map=h1.getMap(name);
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter<String,String>(){
+    public void entryEvicted(    EntryEvent<String,String> event){
+      assertNull(event.getValue());
+      assertEquals("value",event.getOldValue());
+      latch.countDown();
+    }
+  }
+,true);
+  map.put("key","value",1,TimeUnit.SECONDS);
+  assertOpenEventually(latch,10);
+}
