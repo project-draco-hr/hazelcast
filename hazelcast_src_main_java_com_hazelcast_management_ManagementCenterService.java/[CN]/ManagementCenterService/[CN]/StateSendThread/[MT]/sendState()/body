@@ -13,6 +13,10 @@
       writer.flush();
       outputStream.flush();
       post(connection);
+      if (manCenterConnectionLost) {
+        logger.info("Connection to management center restored.");
+      }
+      manCenterConnectionLost=false;
     }
   finally {
       closeResource(writer);
@@ -20,11 +24,14 @@
     }
   }
  catch (  ConnectException e) {
-    if (logger.isFinestEnabled()) {
-      logger.finest(e);
-    }
+    if (!manCenterConnectionLost) {
+      manCenterConnectionLost=true;
+      if (logger.isFinestEnabled()) {
+        logger.finest("Failed to connect to:" + url,e);
+      }
  else {
-      logger.info("Failed to connect to:" + url);
+        logger.info("Failed to connect to:" + url);
+      }
     }
   }
 catch (  Exception e) {
