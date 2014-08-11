@@ -1,12 +1,14 @@
 {
-  closeTriggered=true;
-  HazelcastInstance hz=hazelcastInstance;
-  Collection<DistributedObject> distributedObjects=hz.getDistributedObjects();
-  for (  DistributedObject distributedObject : distributedObjects) {
-    if (distributedObject instanceof ICache) {
-      distributedObject.destroy();
+  if (!closeTriggered) {
+    HazelcastInstance hz=hazelcastInstance;
+    Collection<DistributedObject> distributedObjects=hz.getDistributedObjects();
+    for (    DistributedObject distributedObject : distributedObjects) {
+      if (distributedObject instanceof ICache) {
+        distributedObject.destroy();
+      }
     }
+    hz.shutdown();
+    cachingProvider.releaseCacheManager(uri,classLoaderReference.get());
   }
-  hz.shutdown();
-  cachingProvider.releaseCacheManager(uri,classLoaderReference.get());
+  closeTriggered=true;
 }

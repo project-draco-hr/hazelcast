@@ -5,22 +5,18 @@
   boolean result;
   CacheRecord record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
+  if (isExpired) {
+    processExpiredEntry(key,record);
+  }
   if (record == null || isExpired) {
+    result=createRecordWithExpiry(key,value,record,_expiryPolicy,now,disableWriteThrough);
+  }
+ else {
     result=false;
   }
- else {
-    result=updateRecordWithExpiry(key,value,record,_expiryPolicy,now,false);
-  }
-  if (isStatisticsEnabled()) {
-    statistics.addGetTimeNano(System.nanoTime() - start);
-    if (result) {
-      statistics.increaseCachePuts(1);
-      statistics.increaseCacheHits(1);
-      statistics.addPutTimeNano(System.nanoTime() - start);
-    }
- else {
-      statistics.increaseCacheMisses(1);
-    }
+  if (result && isStatisticsEnabled()) {
+    statistics.increaseCachePuts(1);
+    statistics.addPutTimeNano(System.nanoTime() - start);
   }
   return result;
 }
