@@ -1,0 +1,17 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance[] instances=factory.newInstances();
+  MultiMap<Object,Object> multiMap0=instances[0].getMultiMap("testHits_whenMultipleNodes");
+  MultiMap<Object,Object> multiMap1=instances[1].getMultiMap("testHits_whenMultipleNodes");
+  InternalPartitionService partitionService=getNode(instances[0]).getPartitionService();
+  Address address=partitionService.getPartitionOwner(partitionService.getPartitionId("test1"));
+  boolean inFirstInstance=address.equals(getNode(instances[0]).getThisAddress());
+  multiMap0.get("test0");
+  multiMap0.put("test1",1);
+  multiMap1.get("test1");
+  assertEquals(inFirstInstance ? 1 : 0,multiMap0.getLocalMultiMapStats().getHits());
+  assertEquals(inFirstInstance ? 0 : 1,multiMap1.getLocalMultiMapStats().getHits());
+  multiMap0.get("test1");
+  multiMap1.get("test1");
+  assertEquals(inFirstInstance ? 0 : 3,multiMap1.getLocalMultiMapStats().getHits());
+}
