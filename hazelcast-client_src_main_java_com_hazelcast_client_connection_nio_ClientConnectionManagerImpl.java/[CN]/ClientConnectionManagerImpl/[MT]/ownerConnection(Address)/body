@@ -1,16 +1,3 @@
 {
-  final ManagerAuthenticator authenticator=new ManagerAuthenticator();
-  final ConnectionProcessor connectionProcessor=new ConnectionProcessor(address,authenticator,true);
-  ICompletableFuture<ClientConnection> future=executionService.submitInternal(connectionProcessor);
-  try {
-synchronized (ownerConnectionLock) {
-      ownerConnection=future.get(5,TimeUnit.SECONDS);
-      ownerConnectionLock.notifyAll();
-      return ownerConnection;
-    }
-  }
- catch (  Exception e) {
-    future.cancel(true);
-    throw new RetryableIOException(e);
-  }
+  return ownerConnectionFuture.createNew(address);
 }
