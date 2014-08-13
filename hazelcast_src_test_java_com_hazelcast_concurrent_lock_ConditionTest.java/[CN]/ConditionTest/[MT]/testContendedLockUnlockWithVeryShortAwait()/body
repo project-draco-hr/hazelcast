@@ -1,0 +1,41 @@
+{
+  HazelcastInstance instance=createHazelcastInstance();
+  String lockName=randomString();
+  String conditionName=randomString();
+  final ILock lock=instance.getLock(lockName);
+  final ICondition condition=lock.newCondition(conditionName);
+  final int k=50;
+  final List<Exception> awaitExceptions=Collections.synchronizedList(new ArrayList<Exception>());
+  final AtomicBoolean running=new AtomicBoolean(true);
+  final CountDownLatch finalLatch=new CountDownLatch(k);
+  for (int i=0; i < k; i++) {
+    new Thread(new Runnable(){
+      @Override public void run(){
+        try {
+          while (running.get()) {
+            lock.lock();
+            try {
+              condition.await(1,TimeUnit.MILLISECONDS);
+            }
+ catch (            InterruptedException e) {
+            }
+catch (            IllegalStateException e) {
+              awaitExceptions.add(e);
+            }
+ finally {
+              lock.unlock();
+            }
+          }
+        }
+  finally {
+          finalLatch.countDown();
+        }
+      }
+    }
+).start();
+  }
+  Thread.sleep(30000);
+  running.set(false);
+  finalLatch.await(30,TimeUnit.SECONDS);
+  assertEquals("Calls to await() on condition of highly-contented lock threw IllegalStateExceptions",Collections.<Exception>emptyList(),awaitExceptions);
+}
