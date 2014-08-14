@@ -4,10 +4,15 @@
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
   CacheRecord record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
+  int hitCount=0;
   if (record == null || isExpired) {
+    if (isStatisticsEnabled()) {
+      statistics.increaseCacheMisses(1);
+    }
     return false;
   }
  else {
+    hitCount++;
     if (compare(record.getValue(),value)) {
       deleteCacheEntry(key);
       deleteRecord(key);
@@ -32,6 +37,12 @@
   if (isStatisticsEnabled()) {
     statistics.increaseCacheRemovals(1);
     statistics.addRemoveTimeNano(System.nanoTime() - start);
+    if (hitCount == 1) {
+      statistics.increaseCacheHits(hitCount);
+    }
+ else {
+      statistics.increaseCacheMisses(1);
+    }
   }
   return true;
 }
