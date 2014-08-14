@@ -1,0 +1,21 @@
+{
+  final ISemaphore semaphore=hz.getSemaphore("testRelease_whenBlockedAcquireThread");
+  int numberOfPermits=10;
+  semaphore.init(numberOfPermits);
+  semaphore.acquire(numberOfPermits);
+  CountDownLatch latch1=new CountDownLatch(1);
+  CountDownLatch latch2=new CountDownLatch(1);
+  CountDownLatch latch3=new CountDownLatch(1);
+  Thread thread1=new BlockAcquireThread(semaphore,latch1);
+  thread1.start();
+  Thread thread2=new BlockAcquireThread(semaphore,latch2);
+  thread2.start();
+  Thread thread3=new BlockAcquireThread(semaphore,latch3);
+  thread3.start();
+  semaphore.release();
+  assertOpenEventually(latch1);
+  semaphore.release();
+  assertOpenEventually(latch2);
+  semaphore.release();
+  assertOpenEventually(latch3);
+}
