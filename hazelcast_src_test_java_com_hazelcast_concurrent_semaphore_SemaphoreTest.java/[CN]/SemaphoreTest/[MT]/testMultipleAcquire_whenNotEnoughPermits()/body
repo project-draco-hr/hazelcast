@@ -1,11 +1,11 @@
 {
   final ISemaphore semaphore=hz.getSemaphore("testMultipleAcquire_whenNotEnoughPermits");
-  int numberOfPermits=10;
+  int numberOfPermits=5;
   semaphore.init(numberOfPermits);
   final Thread thread=new Thread(){
     @Override public void run(){
       try {
-        semaphore.acquire(5);
+        semaphore.acquire(6);
         assertEquals(5,semaphore.availablePermits());
         semaphore.acquire(6);
         assertEquals(5,semaphore.availablePermits());
@@ -17,7 +17,11 @@
   }
 ;
   thread.start();
-  thread.join(3000);
-  assertTrue(thread.isAlive());
-  assertEquals(5,semaphore.availablePermits());
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(thread.isAlive());
+      assertEquals(5,semaphore.availablePermits());
+    }
+  }
+,5);
 }

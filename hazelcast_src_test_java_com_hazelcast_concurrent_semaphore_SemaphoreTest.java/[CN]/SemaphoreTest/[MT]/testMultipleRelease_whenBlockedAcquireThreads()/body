@@ -3,17 +3,19 @@
   int numberOfPermits=10;
   semaphore.init(numberOfPermits);
   semaphore.acquire(numberOfPermits);
-  Thread[] threads=new Thread[4];
-  for (int i=0; i < 4; i++) {
-    threads[i]=new BlockAcquireThread();
-    threads[i].start();
-  }
+  CountDownLatch latch1=new CountDownLatch(1);
+  CountDownLatch latch2=new CountDownLatch(1);
+  CountDownLatch latch3=new CountDownLatch(1);
+  Thread thread1=new BlockAcquireThread(semaphore,latch1);
+  thread1.start();
+  Thread thread2=new BlockAcquireThread(semaphore,latch2);
+  thread2.start();
+  Thread thread3=new BlockAcquireThread(semaphore,latch3);
+  thread3.start();
   semaphore.release();
-  assertEquals(0,semaphore.availablePermits());
+  assertOpenEventually(latch1);
   semaphore.release();
-  assertEquals(0,semaphore.availablePermits());
+  assertOpenEventually(latch2);
   semaphore.release();
-  assertEquals(0,semaphore.availablePermits());
-  semaphore.release();
-  assertEquals(0,semaphore.availablePermits());
+  assertOpenEventually(latch3);
 }
