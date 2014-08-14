@@ -1,0 +1,36 @@
+{
+  final boolean isStatisticsEnabled=cacheRecordStore.cacheConfig.isStatisticsEnabled();
+  final CacheStatistics statistics=cacheRecordStore.statistics;
+switch (state) {
+case ACCESS:
+    cacheRecordStore.accessRecord(record,expiryPolicy,now);
+  break;
+case UPDATE:
+cacheRecordStore.updateRecordWithExpiry(keyData,value,record,expiryPolicy,now,false);
+if (isStatisticsEnabled) {
+statistics.increaseCachePuts(1);
+statistics.addGetTimeNano(System.nanoTime() - start);
+}
+break;
+case REMOVE:
+cacheRecordStore.remove(keyData,null);
+if (isStatisticsEnabled) {
+statistics.increaseCacheRemovals(1);
+statistics.addGetTimeNano(System.nanoTime() - start);
+}
+break;
+case CREATE:
+if (isStatisticsEnabled) {
+statistics.increaseCachePuts(1);
+statistics.addGetTimeNano(System.nanoTime() - start);
+}
+cacheRecordStore.createRecordWithExpiry(keyData,value,record,expiryPolicy,now,true);
+break;
+case LOAD:
+cacheRecordStore.createRecordWithExpiry(keyData,value,record,expiryPolicy,now,false);
+break;
+case NONE:
+default :
+break;
+}
+}
