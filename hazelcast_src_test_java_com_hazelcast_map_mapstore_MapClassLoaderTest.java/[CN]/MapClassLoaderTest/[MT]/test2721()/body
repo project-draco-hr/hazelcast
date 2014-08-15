@@ -1,19 +1,20 @@
 {
-  final Config config=new Config();
-  final MapConfig mapConfig=config.getMapConfig(MAP_NAME);
-  final InMemoryMapStore store=new InMemoryMapStore();
+  Config config=new Config();
+  MapConfig mapConfig=config.getMapConfig(MAP_NAME);
+  final InMemoryMapStore store=new InMemoryMapStore(50,false);
   store.preload(PRE_LOAD_SIZE);
-  final MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
   mapStoreConfig.setInitialLoadMode(MapStoreConfig.InitialLoadMode.EAGER);
   mapStoreConfig.setWriteDelaySeconds(WRITE_DELAY_SECONDS);
   mapStoreConfig.setClassName(null);
   mapStoreConfig.setImplementation(store);
   mapConfig.setMapStoreConfig(mapStoreConfig);
-  final HazelcastInstance instance=createHazelcastInstance(config);
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
   instance.getMap(MAP_NAME);
+  TreeMap<String,Boolean> contextClassLoaders=store.getContextClassLoaders();
   boolean anEmptyCtxClassLoaderExist=false;
-  for (  boolean hasCtxClassLoader : store.getContextClassLoaders().values()) {
+  for (  boolean hasCtxClassLoader : contextClassLoaders.values()) {
     if (!hasCtxClassLoader) {
       anEmptyCtxClassLoaderExist=true;
       break;
