@@ -1,0 +1,13 @@
+{
+  connection.registerCallId(future);
+  future.setConnection(connection);
+  final SerializationService ss=client.getSerializationService();
+  final Data data=ss.toData(future.getRequest());
+  Packet packet=new Packet(data,partitionId,ss.getPortableContext());
+  if (!connection.write(packet)) {
+    final int callId=future.getRequest().getCallId();
+    connection.deRegisterCallId(callId);
+    connection.deRegisterEventHandler(callId);
+    future.notify(new TargetNotMemberException("Address : " + connection.getRemoteEndpoint()));
+  }
+}

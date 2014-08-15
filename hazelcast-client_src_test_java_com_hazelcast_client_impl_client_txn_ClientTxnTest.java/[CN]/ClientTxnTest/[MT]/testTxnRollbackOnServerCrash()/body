@@ -1,11 +1,17 @@
 {
-  final String queueName="testTxnRollbackOnServerCrash";
+  final String queueName=randomString();
   final TransactionContext context=hz.newTransactionContext();
-  CountDownLatch latch=new CountDownLatch(1);
+  CountDownLatch txnRollbackLatch=new CountDownLatch(1);
+  final CountDownLatch memberRemovedLatch=new CountDownLatch(1);
   context.beginTransaction();
   final TransactionalQueue queue=context.getQueue(queueName);
-  String key=HazelcastTestSupport.generateKeyOwnedBy(server);
-  queue.offer(key);
+  queue.offer(randomString());
+  hz.getCluster().addMembershipListener(new MembershipAdapter(){
+    @Override public void memberRemoved(    MembershipEvent membershipEvent){
+      memberRemovedLatch.countDown();
+    }
+  }
+);
   server.getLifecycleService().terminate();
   try {
     context.commitTransaction();
@@ -13,9 +19,10 @@
   }
  catch (  Exception e) {
     context.rollbackTransaction();
-    latch.countDown();
+    txnRollbackLatch.countDown();
   }
-  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  assertOpenEventually(txnRollbackLatch);
+  assertOpenEventually(memberRemovedLatch);
   final IQueue<Object> q=hz.getQueue(queueName);
   assertNull(q.poll());
   assertEquals(0,q.size());
