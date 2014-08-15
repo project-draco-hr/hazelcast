@@ -1,0 +1,34 @@
+{
+  final MapProxyImpl mapProxy=(MapProxyImpl)map;
+  final MapService mapService=(MapService)mapProxy.getService();
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  final NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
+  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  for (int i=0; i < partitionService.getPartitionCount(); i++) {
+    final Address owner=partitionService.getPartitionOwner(i);
+    if (nodeEngine.getThisAddress().equals(owner)) {
+      final PartitionContainer container=mapServiceContext.getPartitionContainer(i);
+      if (container == null) {
+        continue;
+      }
+      final RecordStore recordStore=container.getRecordStore(map.getName());
+      final DefaultRecordStore defaultRecordStore=(DefaultRecordStore)recordStore;
+      defaultRecordStore.setSizeEstimator(new SizeEstimator(){
+        long size;
+        @Override public long getSize(){
+          return size;
+        }
+        @Override public void add(        long size){
+          this.size+=size;
+        }
+        @Override public long getCost(        Object record){
+          return convertMegaBytesToBytes(oneEntryHeapCostInMegaBytes);
+        }
+        @Override public void reset(){
+          size=0;
+        }
+      }
+);
+    }
+  }
+}
