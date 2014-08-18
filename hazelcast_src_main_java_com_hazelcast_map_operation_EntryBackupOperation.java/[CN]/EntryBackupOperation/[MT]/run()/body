@@ -1,16 +1,13 @@
 {
-  Map.Entry<Data,Object> mapEntry=recordStore.getMapEntryForBackup(dataKey);
-  Object objectKey=mapService.getMapServiceContext().toObject(dataKey);
-  final Object valueBeforeProcess=mapService.getMapServiceContext().toObject(mapEntry.getValue());
-  MapEntrySimple<Object,Object> entry=new MapEntrySimple<Object,Object>(objectKey,valueBeforeProcess);
-  entryProcessor.processBackup(entry);
-  if (!entry.isModified()) {
+  Map.Entry<Data,Object> entry=getEntry(dataKey);
+  final Object key=toObject(entry.getKey());
+  final Object value=toObject(entry.getValue());
+  entry=createMapEntry(key,value);
+  process(entry);
+  if (entryRemoved(entry)) {
     return;
   }
-  if (entry.getValue() == null) {
-    recordStore.removeBackup(dataKey);
-  }
- else {
-    recordStore.putBackup(dataKey,entry.getValue());
+  if (entryAddedOrUpdated(entry)) {
+    return;
   }
 }
