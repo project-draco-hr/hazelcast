@@ -3,14 +3,18 @@
   this.partitionId=partitionId;
   this.nodeEngine=nodeEngine;
   this.cacheService=cacheService;
-  cacheConfig=nodeEngine.getConfig().findCacheConfig(name);
+  this.cacheConfig=cacheService.getCacheConfig(name);
   if (cacheConfig.getCacheLoaderFactory() != null) {
-    cacheLoader=cacheConfig.getCacheLoaderFactory().create();
+    final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
+    cacheLoader=cacheLoaderFactory.create();
   }
   if (cacheConfig.getCacheWriterFactory() != null) {
-    cacheWriter=cacheConfig.getCacheWriterFactory().create();
+    final Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
+    cacheWriter=cacheWriterFactory.create();
   }
   evictionTaskFuture=nodeEngine.getExecutionService().scheduleWithFixedDelay("hz:cache",new EvictionTask(),5,5,TimeUnit.SECONDS);
   this.statistics=new CacheStatistics();
   this.cacheRecordFactory=new CacheRecordFactory(cacheConfig.getInMemoryFormat(),nodeEngine.getSerializationService());
+  final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
+  defaultExpiryPolicy=expiryPolicyFactory.create();
 }

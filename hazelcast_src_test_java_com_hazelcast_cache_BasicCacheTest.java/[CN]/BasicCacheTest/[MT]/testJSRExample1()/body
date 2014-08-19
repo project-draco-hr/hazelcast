@@ -1,11 +1,12 @@
 {
-  HazelcastCachingProvider hcp=new HazelcastCachingProvider();
-  HazelcastCacheManager cacheManager=new HazelcastCacheManager(hcp,hz,hcp.getDefaultURI(),hcp.getDefaultClassLoader(),null);
+  final String cacheName="simpleCache";
+  final CacheManager cacheManager=Caching.getCachingProvider().getCacheManager();
+  assertNotNull(cacheManager);
+  assertNull(cacheManager.getCache(cacheName));
   CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
-  config.setName("SimpleCache");
-  config.setInMemoryFormat(InMemoryFormat.OBJECT);
-  Cache<Integer,String> simpleCache=cacheManager.createCache("simpleCache",config);
-  Cache<Integer,String> cache=cacheManager.getCache("simpleCache");
+  Cache<Integer,String> cache=cacheManager.createCache(cacheName,config);
+  assertNotNull(cache);
+  Thread.sleep(2000);
   Integer key=1;
   String value1="value";
   cache.put(key,value1);
@@ -13,4 +14,14 @@
   assertEquals(value1,value2);
   cache.remove(key);
   assertNull(cache.get(key));
+  Cache<Integer,String> cache2=cacheManager.getCache(cacheName);
+  assertNotNull(cache2);
+  key=1;
+  value1="value";
+  cache.put(key,value1);
+  value2=cache.get(key);
+  assertEquals(value1,value2);
+  cache.remove(key);
+  assertNull(cache.get(key));
+  cacheManager.destroyCache(cacheName);
 }

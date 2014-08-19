@@ -1,0 +1,47 @@
+{
+  if (isClosed()) {
+    throw new IllegalStateException();
+  }
+  if (cacheName == null) {
+    throw new NullPointerException("cacheName must not be null");
+  }
+  if (configuration == null) {
+    throw new NullPointerException("configuration must not be null");
+  }
+synchronized (caches) {
+    final String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
+    final CacheConfig _cacheConfig=cacheService.getCacheConfig(cacheNameWithPrefix);
+    if (_cacheConfig == null) {
+      final CacheConfig cacheConfig;
+      if (configuration instanceof CompleteConfiguration) {
+        cacheConfig=new CacheConfig<K,V>((CompleteConfiguration)configuration);
+      }
+ else {
+        cacheConfig=new CacheConfig<K,V>();
+        cacheConfig.setStoreByValue(configuration.isStoreByValue());
+        cacheConfig.setTypes(configuration.getKeyType(),configuration.getValueType());
+      }
+      cacheConfig.setName(cacheNameWithPrefix);
+      final CacheCreateConfigOperation cacheCreateConfigOperation=new CacheCreateConfigOperation(cacheNameWithPrefix,cacheConfig,true);
+      final OperationService operationService=nodeEngine.getOperationService();
+      int partitionId=nodeEngine.getPartitionService().getPartitionId(cacheNameWithPrefix);
+      final InternalCompletableFuture<Boolean> f=operationService.invokeOnPartition(CacheService.SERVICE_NAME,cacheCreateConfigOperation,partitionId);
+      boolean created=f.getSafely();
+      final Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+      for (      MemberImpl member : members) {
+        if (!member.localMember()) {
+          final CacheCreateConfigOperation op=new CacheCreateConfigOperation(cacheNameWithPrefix,cacheConfig,true);
+          final InternalCompletableFuture<Object> f2=operationService.invokeOnTarget(CacheService.SERVICE_NAME,op,member.getAddress());
+          f2.getSafely();
+        }
+      }
+      cacheService.createCacheConfigIfAbsent(cacheConfig);
+      final CacheProxy<K,V> cacheProxy=new CacheProxy<K,V>(cacheName,cacheConfig,nodeEngine,cacheService,this);
+      caches.put(cacheNameWithPrefix,cacheProxy);
+      if (created) {
+        return cacheProxy;
+      }
+    }
+    throw new CacheException("A cache named " + cacheName + " already exists.");
+  }
+}

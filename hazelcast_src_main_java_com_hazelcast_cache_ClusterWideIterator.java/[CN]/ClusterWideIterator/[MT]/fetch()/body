@@ -1,25 +1,6 @@
 {
   final NodeEngine nodeEngine=cacheProxy.getNodeEngine();
-  final Operation op=new CacheKeyIteratorOperation(cacheProxy.getName(),segmentIndex,tableIndex,fetchSize);
-  final InternalCompletableFuture<Object> f=nodeEngine.getOperationService().invokeOnPartition(CacheService.SERVICE_NAME,op,partitionIndex);
-  final CacheKeyIteratorResult iteratorResult=(CacheKeyIteratorResult)f.getSafely();
-  if (iteratorResult != null) {
-    segmentIndex=iteratorResult.getSegmentIndex();
-    tableIndex=iteratorResult.getTableIndex();
-    keys=iteratorResult.getKeySet();
-    keysIterator=keys.iterator();
-    if (keysIterator.hasNext()) {
-      if (nextKey != null) {
-        lastKey=nextKey;
-      }
-      nextKey=this.keysIterator.next();
-      return;
-    }
-  }
-  segmentIndex=-1;
-  tableIndex=-1;
-  if (nextKey != null) {
-    lastKey=nextKey;
-  }
-  nextKey=null;
+  final Operation op=new CacheKeyIteratorOperation(cacheProxy.nameWithPrefix,lastTableIndex,fetchSize);
+  final InternalCompletableFuture<CacheKeyIteratorResult> f=nodeEngine.getOperationService().invokeOnPartition(CacheService.SERVICE_NAME,op,partitionIndex);
+  return f.getSafely();
 }

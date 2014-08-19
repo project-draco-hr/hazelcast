@@ -1,17 +1,15 @@
 {
-  HazelcastCachingProvider hcp=new HazelcastCachingProvider();
-  HazelcastCacheManager cacheManager=new HazelcastCacheManager(hcp,hz,hcp.getDefaultURI(),hcp.getDefaultClassLoader(),null);
+  final CacheManager cacheManager=Caching.getCachingProvider().getCacheManager();
   CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
   config.setName("SimpleCache");
-  config.setInMemoryFormat(InMemoryFormat.OBJECT);
-  Cache<Integer,String> simpleCache=cacheManager.createCache("simpleCache",config);
-  Cache<Integer,String> cache=cacheManager.getCache("simpleCache");
-  int testSize=100;
+  ICache<Integer,String> cache=(ICache<Integer,String>)cacheManager.createCache("simpleCache",config);
+  int testSize=1007;
   for (int i=0; i < testSize; i++) {
     Integer key=i;
     String value1="value" + i;
     cache.put(key,value1);
   }
+  assertEquals(testSize,cache.size());
   final Iterator<Cache.Entry<Integer,String>> iterator=cache.iterator();
   assertNotNull(iterator);
   HashMap<Integer,String> resultMap=new HashMap<Integer,String>();
@@ -22,9 +20,6 @@
     final String value=next.getValue();
     resultMap.put(key,value);
     c++;
-    if (c > 98) {
-      System.out.print("ready");
-    }
   }
-  assertEquals(testSize,resultMap.size());
+  assertEquals(testSize,c);
 }
