@@ -1,0 +1,19 @@
+{
+  ClientEngineImpl clientEngine=getService();
+  if (ownerConnection) {
+    final String uuid=getUuid();
+    principal=new ClientPrincipal(uuid,clientEngine.getLocalMember().getUuid());
+    reAuthLocal();
+    Collection<MemberImpl> members=clientEngine.getClusterService().getMemberList();
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        ClientReAuthOperation op=new ClientReAuthOperation(uuid);
+        op.setCallerUuid(clientEngine.getLocalMember().getUuid());
+        operationService.send(op,member.getAddress());
+      }
+    }
+  }
+  endpoint.authenticated(principal,credentials,ownerConnection);
+  clientEngine.bind(endpoint);
+  return new SerializableCollection(serializationService.toData(clientEngine.getThisAddress()),serializationService.toData(principal));
+}
