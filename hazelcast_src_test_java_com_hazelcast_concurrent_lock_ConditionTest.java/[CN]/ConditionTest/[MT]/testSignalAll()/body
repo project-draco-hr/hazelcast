@@ -3,9 +3,10 @@
   final ILock lock=instance.getLock(randomString());
   final ICondition condition=lock.newCondition(randomString());
   final CountDownLatch latch=new CountDownLatch(2);
-  createThreadWaitsForCondition(latch,lock,condition).start();
-  createThreadWaitsForCondition(latch,lock,condition).start();
-  sleepSeconds(1);
+  final CountDownLatch syncLatch=new CountDownLatch(2);
+  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
+  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
+  syncLatch.await();
   lock.lock();
   condition.signalAll();
   lock.unlock();
