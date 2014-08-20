@@ -1,18 +1,25 @@
 {
   if (isRemoveAll) {
+    final long now=Clock.currentTimeMillis();
     final Set<Data> _keys=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
     try {
-      final int initialCount=_keys.size();
       deleteAllCacheEntry(_keys);
-      if (isStatisticsEnabled()) {
-        statistics.increaseCacheRemovals(initialCount - _keys.size());
-      }
     }
   finally {
       final Set<Data> _keysToClean=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
       for (      Data key : _keysToClean) {
-        if (_keys.contains(key) && records.containsKey(key)) {
-          deleteRecord(key);
+        final CacheRecord record=records.get(key);
+        if (_keys.contains(key) && record != null) {
+          boolean isExpired=record.isExpiredAt(now);
+          if (isExpired) {
+            processExpiredEntry(key,record);
+          }
+ else {
+            deleteRecord(key);
+            if (isStatisticsEnabled()) {
+              statistics.increaseCacheRemovals(1);
+            }
+          }
         }
  else {
           keys.remove(key);

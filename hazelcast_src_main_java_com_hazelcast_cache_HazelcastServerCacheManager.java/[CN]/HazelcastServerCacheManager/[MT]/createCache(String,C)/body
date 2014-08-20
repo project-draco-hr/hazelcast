@@ -21,7 +21,9 @@ synchronized (caches) {
         cacheConfig.setStoreByValue(configuration.isStoreByValue());
         cacheConfig.setTypes(configuration.getKeyType(),configuration.getValueType());
       }
-      cacheConfig.setName(cacheNameWithPrefix);
+      cacheConfig.setName(cacheName);
+      cacheConfig.setManagerPrefix(this.cacheNamePrefix);
+      cacheConfig.setUriString(getURI().toString());
       final CacheCreateConfigOperation cacheCreateConfigOperation=new CacheCreateConfigOperation(cacheNameWithPrefix,cacheConfig,true);
       final OperationService operationService=nodeEngine.getOperationService();
       int partitionId=nodeEngine.getPartitionService().getPartitionId(cacheNameWithPrefix);
@@ -39,6 +41,12 @@ synchronized (caches) {
       final CacheProxy<K,V> cacheProxy=new CacheProxy<K,V>(cacheName,cacheConfig,nodeEngine,cacheService,this);
       caches.put(cacheNameWithPrefix,cacheProxy);
       if (created) {
+        if (cacheConfig.isStatisticsEnabled()) {
+          enableStatistics(cacheName,true);
+        }
+        if (cacheConfig.isManagementEnabled()) {
+          enableManagement(cacheName,true);
+        }
         return cacheProxy;
       }
     }
