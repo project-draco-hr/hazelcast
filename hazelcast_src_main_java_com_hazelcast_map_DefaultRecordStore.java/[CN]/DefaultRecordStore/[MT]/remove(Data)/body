@@ -1,6 +1,7 @@
 {
   checkIfLoaded();
   final long now=getNow();
+  evictEntries(now);
   Record record=records.get(key);
   Object oldValue;
   if (record == null) {
@@ -11,16 +12,7 @@
     }
   }
  else {
-    oldValue=record.getValue();
-    oldValue=mapServiceContext.interceptRemove(name,oldValue);
-    if (oldValue != null) {
-      removeIndex(key);
-      mapDataStore.remove(key,now);
-      onStore(record);
-    }
-    updateSizeEstimator(-calculateRecordHeapCost(record));
-    deleteRecord(key);
+    oldValue=removeRecord(key,record,now);
   }
-  evictEntries(now);
   return oldValue;
 }
