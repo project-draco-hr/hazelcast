@@ -1,31 +1,9 @@
 {
   super.afterRun();
-  if (eventType == NO_NEED_TO_FIRE_EVENT) {
+  if (eventType == null) {
     return;
   }
-  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
-  MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
-  String serviceName=mapServiceContext.serviceName();
-  InMemoryFormat format=mapContainer.getMapConfig().getInMemoryFormat();
-  EventService eventService=mapServiceContext.getNodeEngine().getEventService();
-  if (eventService.hasEventRegistration(serviceName,name)) {
-    if (format == InMemoryFormat.OBJECT && eventType != EntryEventType.REMOVED) {
-      oldValue=null;
-    }
-    mapService.getMapServiceContext().getMapEventPublisher().publishEvent(getCallerAddress(),name,eventType,dataKey,mapServiceContext.toData(oldValue),dataValue);
-  }
   invalidateNearCaches();
-  if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
-    if (EntryEventType.REMOVED.equals(eventType)) {
-      mapEventPublisher.publishWanReplicationRemove(name,dataKey,Clock.currentTimeMillis());
-    }
- else {
-      Record record=recordStore.getRecord(dataKey);
-      if (record != null) {
-        final Data dataValueAsData=mapServiceContext.toData(dataValue);
-        final EntryView entryView=createSimpleEntryView(dataKey,dataValueAsData,record);
-        mapEventPublisher.publishWanReplicationUpdate(name,entryView);
-      }
-    }
-  }
+  publishEntryEvent();
+  publishWanReplicationEvent();
 }
