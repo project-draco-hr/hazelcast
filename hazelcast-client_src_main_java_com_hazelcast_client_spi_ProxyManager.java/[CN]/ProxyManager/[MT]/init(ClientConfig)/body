@@ -15,21 +15,23 @@
   register(ReplicatedMapService.SERVICE_NAME,ClientReplicatedMapProxy.class);
   register(IdGeneratorService.SERVICE_NAME,new ClientProxyFactory(){
     public ClientProxy create(    String id){
-      String instanceName=client.getName();
       IAtomicLong atomicLong=client.getAtomicLong(IdGeneratorService.ATOMIC_LONG_NAME + id);
-      return new ClientIdGeneratorProxy(instanceName,IdGeneratorService.SERVICE_NAME,id,atomicLong);
+      return new ClientIdGeneratorProxy(IdGeneratorService.SERVICE_NAME,id,atomicLong);
     }
   }
 );
   for (  ProxyFactoryConfig proxyFactoryConfig : config.getProxyFactoryConfigs()) {
     try {
       ClassLoader classLoader=config.getClassLoader();
-      String className=proxyFactoryConfig.getClassName();
-      ClientProxyFactory clientProxyFactory=ClassLoaderUtil.newInstance(classLoader,className);
+      ClientProxyFactory clientProxyFactory=proxyFactoryConfig.getFactoryImpl();
+      if (clientProxyFactory == null) {
+        String className=proxyFactoryConfig.getClassName();
+        clientProxyFactory=ClassLoaderUtil.newInstance(classLoader,className);
+      }
       register(proxyFactoryConfig.getService(),clientProxyFactory);
     }
  catch (    Exception e) {
-      LOGGER.severe(e);
+      throw ExceptionUtil.rethrow(e);
     }
   }
 }
