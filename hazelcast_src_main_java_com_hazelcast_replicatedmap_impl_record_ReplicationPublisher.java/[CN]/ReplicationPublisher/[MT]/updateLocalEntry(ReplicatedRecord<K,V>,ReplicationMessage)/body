@@ -1,0 +1,27 @@
+{
+  final VectorClockTimestamp currentVectorClockTimestamp=localEntry.getVectorClockTimestamp();
+  final VectorClockTimestamp updateVectorClockTimestamp=update.getVectorClockTimestamp();
+  if (isOldTombstone(localEntry)) {
+    applyTheUpdate(update,localEntry);
+  }
+ else   if (VectorClockTimestamp.happenedBefore(currentVectorClockTimestamp,updateVectorClockTimestamp)) {
+    applyTheUpdate(update,localEntry);
+  }
+ else   if (VectorClockTimestamp.happenedBefore(updateVectorClockTimestamp,currentVectorClockTimestamp)) {
+    return;
+  }
+ else {
+    if (localEntry.getLatestUpdateHash() >= update.getUpdateHash()) {
+      applyTheUpdate(update,localEntry);
+    }
+ else {
+      VectorClockTimestamp newTimestamp=localEntry.applyAndIncrementVectorClock(updateVectorClockTimestamp,localMember);
+      Object key=update.getKey();
+      V value=localEntry.getValue();
+      long ttlMillis=update.getTtlMillis();
+      int latestUpdateHash=localEntry.getLatestUpdateHash();
+      ReplicationMessage message=new ReplicationMessage(name,key,value,newTimestamp,localMember,latestUpdateHash,ttlMillis);
+      distributeReplicationMessage(message,true);
+    }
+  }
+}
