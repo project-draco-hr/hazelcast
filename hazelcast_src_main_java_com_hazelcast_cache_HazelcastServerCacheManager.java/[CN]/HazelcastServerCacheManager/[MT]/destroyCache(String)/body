@@ -2,9 +2,17 @@
   if (isClosed()) {
     throw new IllegalStateException();
   }
-  HazelcastInstance hz=hazelcastInstance;
+  if (cacheName == null) {
+    throw new NullPointerException();
+  }
   final String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
+synchronized (caches) {
+    final ICache<?,?> destroy=caches.remove(cacheNameWithPrefix);
+    if (destroy != null) {
+      destroy.close();
+    }
+  }
+  HazelcastInstance hz=hazelcastInstance;
   DistributedObject cache=hz.getDistributedObject(CacheService.SERVICE_NAME,cacheNameWithPrefix);
   cache.destroy();
-  caches.remove(cacheNameWithPrefix);
 }

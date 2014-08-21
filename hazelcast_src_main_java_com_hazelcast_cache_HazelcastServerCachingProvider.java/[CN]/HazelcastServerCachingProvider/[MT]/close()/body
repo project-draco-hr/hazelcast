@@ -1,6 +1,11 @@
 {
-  final Set<ClassLoader> classLoaderSet=new HashSet<ClassLoader>(this.cacheManagers.keySet());
-  for (  ClassLoader classLoader : classLoaderSet) {
-    close(classLoader);
+  WeakHashMap<ClassLoader,HashMap<URI,CacheManager>> managersByClassLoader=this.cacheManagers;
+  this.cacheManagers=new WeakHashMap<ClassLoader,HashMap<URI,CacheManager>>();
+  for (  ClassLoader classLoader : managersByClassLoader.keySet()) {
+    for (    CacheManager cacheManager : managersByClassLoader.get(classLoader).values()) {
+      cacheManager.close();
+    }
   }
+  hazelcastInstance.shutdown();
+  hazelcastInstance=null;
 }
