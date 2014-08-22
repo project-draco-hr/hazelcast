@@ -1,0 +1,19 @@
+{
+  Duration expiryDuration;
+  try {
+    expiryDuration=_expiryPolicy.getExpiryForCreation();
+  }
+ catch (  Throwable t) {
+    expiryDuration=Duration.ETERNAL;
+  }
+  long et=expiryDuration.getAdjustedTime(now);
+  if (!disableWriteThrough) {
+    writeThroughCache(key,value);
+  }
+  if (!isExpiredAt(et,now)) {
+    CacheRecord record=createRecord(key,value,et);
+    records.put(key,record);
+    return true;
+  }
+  return false;
+}

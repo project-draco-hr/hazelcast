@@ -2,6 +2,11 @@
   final CacheEventFilterAdaptor<K,V> eventFilter=new CacheEventFilterAdaptor<K,V>(cacheProxy,cacheEntryListenerConfiguration);
   final CacheEventListenerAdaptor<K,V> entryListener=new CacheEventListenerAdaptor<K,V>(cacheProxy,cacheEntryListenerConfiguration);
   final EventService eventService=getNodeEngine().getEventService();
-  final EventRegistration registration=eventService.registerListener(CacheService.SERVICE_NAME,cacheProxy.getName(),eventFilter,entryListener);
-  eventRegistrationMap.put(cacheEntryListenerConfiguration,registration);
+  final EventRegistration registration=eventService.registerListener(CacheService.SERVICE_NAME,cacheProxy.getDistributedObjectName(),eventFilter,entryListener);
+  Map<CacheEntryListenerConfiguration,EventRegistration> map=eventRegistrationMap.get(cacheProxy.getDistributedObjectName());
+  if (map == null) {
+    map=new HashMap<CacheEntryListenerConfiguration,EventRegistration>();
+    eventRegistrationMap.put(cacheProxy.getDistributedObjectName(),map);
+  }
+  map.put(cacheEntryListenerConfiguration,registration);
 }

@@ -4,6 +4,8 @@
   if (candidates.isEmpty()) {
     return;
   }
+  ArrayList<CacheEventListenerAdaptor> syncListWithOldValue=new ArrayList<CacheEventListenerAdaptor>();
+  ArrayList<CacheEventListenerAdaptor> syncListWithoutOldValue=new ArrayList<CacheEventListenerAdaptor>();
   Set<EventRegistration> registrationsWithOldValue=new HashSet<EventRegistration>();
   Set<EventRegistration> registrationsWithoutOldValue=new HashSet<EventRegistration>();
   Object objectValue=toObject(value);
@@ -14,16 +16,27 @@
     if (filter instanceof CacheEventFilterAdaptor) {
       final CacheEventFilterAdaptor<Object,Object> ceFilter=(CacheEventFilterAdaptor<Object,Object>)filter;
       if (ceFilter.filterEventData(eventType,key,objectValue,objectOldValue)) {
-        if (ceFilter.isOldValueRequired()) {
-          registrationsWithOldValue.add(candidate);
+        if (ceFilter.isSynchronous()) {
+          final Object listener=((EventServiceImpl.Registration)candidate).getListener();
+          if (ceFilter.isOldValueRequired()) {
+            syncListWithOldValue.add((CacheEventListenerAdaptor)listener);
+          }
+ else {
+            syncListWithoutOldValue.add((CacheEventListenerAdaptor)listener);
+          }
         }
  else {
-          registrationsWithoutOldValue.add(candidate);
+          if (ceFilter.isOldValueRequired()) {
+            registrationsWithOldValue.add(candidate);
+          }
+ else {
+            registrationsWithoutOldValue.add(candidate);
+          }
         }
       }
     }
   }
-  if (registrationsWithOldValue.isEmpty() && registrationsWithoutOldValue.isEmpty()) {
+  if (registrationsWithOldValue.isEmpty() && registrationsWithoutOldValue.isEmpty() && syncListWithOldValue.isEmpty()&& syncListWithoutOldValue.isEmpty()) {
     return;
   }
   Data dataValue=toData(value);
@@ -36,4 +49,10 @@
   CacheEventData eventWithOutOldValue=new CacheEventData(cacheName,dataKey,dataValue,null,eventType);
   nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithOldValue,eventWithOldValue,orderKey);
   nodeEngine.getEventService().publishEvent(SERVICE_NAME,registrationsWithoutOldValue,eventWithOutOldValue,orderKey);
+  for (  CacheEventListenerAdaptor listener : syncListWithOldValue) {
+    dispatchEvent(eventWithOldValue,listener);
+  }
+  for (  CacheEventListenerAdaptor listener : syncListWithoutOldValue) {
+    dispatchEvent(eventWithOutOldValue,listener);
+  }
 }

@@ -12,7 +12,7 @@ synchronized (caches) {
     final String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
     final CacheConfig _cacheConfig=cacheService.getCacheConfig(cacheNameWithPrefix);
     if (_cacheConfig == null) {
-      final CacheConfig cacheConfig;
+      final CacheConfig<K,V> cacheConfig;
       if (configuration instanceof CompleteConfiguration) {
         cacheConfig=new CacheConfig<K,V>((CompleteConfiguration)configuration);
       }
@@ -47,6 +47,11 @@ synchronized (caches) {
         }
         if (cacheConfig.isManagementEnabled()) {
           enableManagement(cacheName,true);
+        }
+        final Iterator<CacheEntryListenerConfiguration<K,V>> iterator=cacheConfig.getCacheEntryListenerConfigurations().iterator();
+        while (iterator.hasNext()) {
+          final CacheEntryListenerConfiguration<K,V> listenerConfig=iterator.next();
+          cacheService.registerCacheEntryListener(cacheProxy,listenerConfig);
         }
         return cacheProxy;
       }
