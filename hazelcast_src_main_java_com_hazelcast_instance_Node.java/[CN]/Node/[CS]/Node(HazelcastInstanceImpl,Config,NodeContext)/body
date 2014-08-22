@@ -4,23 +4,8 @@
   this.config=config;
   configClassLoader=config.getClassLoader();
   this.groupProperties=new GroupProperties(config);
-  SerializationService ss;
-  try {
-    String partitioningStrategyClassName=groupProperties.PARTITIONING_STRATEGY_CLASS.getString();
-    final PartitioningStrategy partitioningStrategy;
-    if (partitioningStrategyClassName != null && partitioningStrategyClassName.length() > 0) {
-      partitioningStrategy=ClassLoaderUtil.newInstance(configClassLoader,partitioningStrategyClassName);
-    }
- else {
-      partitioningStrategy=new DefaultPartitioningStrategy();
-    }
-    ss=new SerializationServiceBuilder().setClassLoader(configClassLoader).setConfig(config.getSerializationConfig() != null ? config.getSerializationConfig() : new SerializationConfig()).setManagedContext(hazelcastInstance.managedContext).setPartitioningStrategy(partitioningStrategy).setHazelcastInstance(hazelcastInstance).build();
-  }
- catch (  Exception e) {
-    throw ExceptionUtil.rethrow(e);
-  }
   buildInfo=BuildInfoProvider.getBuildInfo();
-  serializationService=(SerializationServiceImpl)ss;
+  serializationService=(SerializationServiceImpl)createSerializationService(hazelcastInstance,config);
   systemLogService=new SystemLogService(groupProperties.SYSTEM_LOG_ENABLED.getBoolean());
   String loggingType=groupProperties.LOGGING_TYPE.getString();
   loggingService=new LoggingServiceImpl(systemLogService,config.getGroupConfig().getName(),loggingType,buildInfo);
@@ -32,14 +17,26 @@
     throw ExceptionUtil.rethrow(e);
   }
   final ServerSocketChannel serverSocketChannel=addressPicker.getServerSocketChannel();
-  address=addressPicker.getPublicAddress();
-  final Map<String,Object> memberAttributes=findMemberAttributes(config.getMemberAttributeConfig().asReadOnly());
-  localMember=new MemberImpl(address,true,UuidUtil.createMemberUuid(address),hazelcastInstance,memberAttributes);
-  loggingService.setThisMember(localMember);
-  logger=loggingService.getLogger(Node.class.getName());
-  initializer=NodeInitializerFactory.create(configClassLoader);
   try {
+    address=addressPicker.getPublicAddress();
+    final Map<String,Object> memberAttributes=findMemberAttributes(config.getMemberAttributeConfig().asReadOnly());
+    localMember=new MemberImpl(address,true,UuidUtil.createMemberUuid(address),hazelcastInstance,memberAttributes);
+    loggingService.setThisMember(localMember);
+    logger=loggingService.getLogger(Node.class.getName());
+    initializer=NodeInitializerFactory.create(configClassLoader);
     initializer.beforeInitialize(this);
+    securityContext=config.getSecurityConfig().isEnabled() ? initializer.getSecurityContext() : null;
+    nodeEngine=new NodeEngineImpl(this);
+    clientEngine=new ClientEngineImpl(this);
+    connectionManager=nodeContext.createConnectionManager(this,serverSocketChannel);
+    partitionService=new InternalPartitionServiceImpl(this);
+    clusterService=new ClusterServiceImpl(this);
+    textCommandService=new TextCommandServiceImpl(this);
+    initializer.printNodeInfo(this);
+    versionCheck.check(this,getBuildInfo().getVersion(),buildInfo.isEnterprise());
+    this.multicastService=createMulticastService(addressPicker);
+    initializeListeners(config);
+    joiner=nodeContext.createJoiner(this);
   }
  catch (  Throwable e) {
     try {
@@ -49,50 +46,4 @@
     }
     throw ExceptionUtil.rethrow(e);
   }
-  securityContext=config.getSecurityConfig().isEnabled() ? initializer.getSecurityContext() : null;
-  nodeEngine=new NodeEngineImpl(this);
-  clientEngine=new ClientEngineImpl(this);
-  connectionManager=nodeContext.createConnectionManager(this,serverSocketChannel);
-  partitionService=new InternalPartitionServiceImpl(this);
-  clusterService=new ClusterServiceImpl(this);
-  textCommandService=new TextCommandServiceImpl(this);
-  initializer.printNodeInfo(this);
-  versionCheck.check(this,getBuildInfo().getVersion(),buildInfo.isEnterprise());
-  JoinConfig join=config.getNetworkConfig().getJoin();
-  MulticastService mcService=null;
-  try {
-    if (join.getMulticastConfig().isEnabled()) {
-      MulticastConfig multicastConfig=join.getMulticastConfig();
-      MulticastSocket multicastSocket=new MulticastSocket(null);
-      multicastSocket.setReuseAddress(true);
-      multicastSocket.bind(new InetSocketAddress(multicastConfig.getMulticastPort()));
-      multicastSocket.setTimeToLive(multicastConfig.getMulticastTimeToLive());
-      try {
-        final Address bindAddress=addressPicker.getBindAddress();
-        if (!bindAddress.getInetAddress().isLoopbackAddress()) {
-          multicastSocket.setInterface(bindAddress.getInetAddress());
-        }
-      }
- catch (      Exception e) {
-        logger.warning(e);
-      }
-      multicastSocket.setReceiveBufferSize(64 * 1024);
-      multicastSocket.setSendBufferSize(64 * 1024);
-      String multicastGroup=System.getProperty("hazelcast.multicast.group");
-      if (multicastGroup == null) {
-        multicastGroup=multicastConfig.getMulticastGroup();
-      }
-      multicastConfig.setMulticastGroup(multicastGroup);
-      multicastSocket.joinGroup(InetAddress.getByName(multicastGroup));
-      multicastSocket.setSoTimeout(1000);
-      mcService=new MulticastService(this,multicastSocket);
-      mcService.addMulticastListener(new NodeMulticastListener(this));
-    }
-  }
- catch (  Exception e) {
-    logger.severe(e);
-  }
-  this.multicastService=mcService;
-  initializeListeners(config);
-  joiner=nodeContext.createJoiner(this);
 }

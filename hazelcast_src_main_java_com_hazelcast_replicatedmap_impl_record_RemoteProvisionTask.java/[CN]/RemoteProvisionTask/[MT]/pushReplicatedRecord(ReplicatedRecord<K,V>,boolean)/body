@@ -6,8 +6,11 @@
   Object key=replicatedRecordStore.unmarshallKey(replicatedRecord.getKey());
   Object value=replicatedRecordStore.unmarshallValue(replicatedRecord.getValue());
   VectorClockTimestamp vectorClockTimestamp=replicatedRecord.getVectorClockTimestamp();
-  long ttlMillis=replicatedRecord.getTtlMillis();
-  recordCache[recordCachePos++]=new ReplicatedRecord(key,value,vectorClockTimestamp,hash,ttlMillis);
+  long originalTtlMillis=replicatedRecord.getTtlMillis();
+  long remainingTtlMillis=getRemainingTtl(replicatedRecord);
+  if (originalTtlMillis == 0 || remainingTtlMillis > 0) {
+    recordCache[recordCachePos++]=new ReplicatedRecord(key,value,vectorClockTimestamp,hash,remainingTtlMillis);
+  }
   if (finalRecord) {
     sendChunk(finalRecord);
   }
