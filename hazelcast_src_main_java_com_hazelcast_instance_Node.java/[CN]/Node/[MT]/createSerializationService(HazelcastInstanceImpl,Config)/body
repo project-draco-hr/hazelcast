@@ -1,0 +1,18 @@
+{
+  SerializationService ss;
+  try {
+    String partitioningStrategyClassName=groupProperties.PARTITIONING_STRATEGY_CLASS.getString();
+    final PartitioningStrategy partitioningStrategy;
+    if (partitioningStrategyClassName != null && partitioningStrategyClassName.length() > 0) {
+      partitioningStrategy=ClassLoaderUtil.newInstance(configClassLoader,partitioningStrategyClassName);
+    }
+ else {
+      partitioningStrategy=new DefaultPartitioningStrategy();
+    }
+    ss=new SerializationServiceBuilder().setClassLoader(configClassLoader).setConfig(config.getSerializationConfig() != null ? config.getSerializationConfig() : new SerializationConfig()).setManagedContext(hazelcastInstance.managedContext).setPartitioningStrategy(partitioningStrategy).setHazelcastInstance(hazelcastInstance).build();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return ss;
+}

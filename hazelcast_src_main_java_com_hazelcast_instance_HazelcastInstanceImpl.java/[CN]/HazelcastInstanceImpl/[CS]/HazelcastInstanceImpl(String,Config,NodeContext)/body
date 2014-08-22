@@ -7,18 +7,24 @@
   managedContext=new HazelcastManagedContext(this,configuredManagedContext);
   userContext.putAll(config.getUserContext());
   node=new Node(this,config,nodeContext);
-  logger=node.getLogger(getClass().getName());
-  lifecycleService.fireLifecycleEvent(STARTING);
-  node.start();
-  if (!node.isActive()) {
-    node.connectionManager.shutdown();
-    throw new IllegalStateException("Node failed to start!");
-  }
-  managementService=new ManagementService(this);
-  if (configuredManagedContext != null) {
-    if (configuredManagedContext instanceof HazelcastInstanceAware) {
-      ((HazelcastInstanceAware)configuredManagedContext).setHazelcastInstance(this);
+  try {
+    logger=node.getLogger(getClass().getName());
+    lifecycleService.fireLifecycleEvent(STARTING);
+    node.start();
+    if (!node.isActive()) {
+      throw new IllegalStateException("Node failed to start!");
     }
+    managementService=new ManagementService(this);
+    initManagedContext(configuredManagedContext);
+    initHealthMonitor();
   }
-  initHealthMonitor();
+ catch (  Throwable e) {
+    try {
+      node.connectionManager.shutdown();
+    }
+ catch (    Throwable ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+    throw ExceptionUtil.rethrow(e);
+  }
 }
