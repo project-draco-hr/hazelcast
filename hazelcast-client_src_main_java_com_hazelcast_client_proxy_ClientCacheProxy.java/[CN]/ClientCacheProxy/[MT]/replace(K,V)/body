@@ -1,3 +1,25 @@
 {
-  return false;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CacheReplaceRequest request=new CacheReplaceRequest(name,keyData,valueData,null);
+  Boolean replaced=toObject(invoke(request,keyData));
+  if (replaced == null) {
+    return false;
+  }
+  if (replaced) {
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+  return replaced;
 }

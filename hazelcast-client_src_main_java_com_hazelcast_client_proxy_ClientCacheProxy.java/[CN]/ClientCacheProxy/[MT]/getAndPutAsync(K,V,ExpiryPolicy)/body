@@ -1,3 +1,29 @@
 {
-  return null;
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (shouldBeSync()) {
+    V oldValue=getAndPut(key,value,expiryPolicy);
+    return createCompletedFuture(oldValue);
+  }
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CachePutRequest request=new CachePutRequest(name,keyData,valueData,expiryPolicy,true);
+  ICompletableFuture future;
+  try {
+    future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<V>(future,getContext().getSerializationService());
 }

@@ -1,3 +1,13 @@
 {
-  return false;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  final Data keyData=toData(key);
+  Object cached=nearCache != null ? nearCache.get(keyData) : null;
+  if (cached != null && !ClientNearCache.NULL_OBJECT.equals(cached)) {
+    return true;
+  }
+  CacheContainsKeyRequest request=new CacheContainsKeyRequest(getDistributedObjectName(),keyData);
+  return toObject(invoke(request,keyData));
 }

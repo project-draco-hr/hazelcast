@@ -1,3 +1,21 @@
 {
-  return false;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CacheRemoveRequest request=new CacheRemoveRequest(name,keyData,valueData);
+  Boolean removed=toObject(invoke(request,keyData));
+  if (removed == null) {
+    return false;
+  }
+  if (removed) {
+    invalidateNearCache(keyData);
+  }
+  return removed;
 }

@@ -1,3 +1,21 @@
 {
-  return null;
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CacheGetAndReplaceRequest request=new CacheGetAndReplaceRequest(name,keyData,valueData);
+  V currentValue=toObject(invoke(request,keyData));
+  if (currentValue != null) {
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+  return currentValue;
 }

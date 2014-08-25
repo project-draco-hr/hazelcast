@@ -1,3 +1,35 @@
 {
-  return null;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (shouldBeSync()) {
+    V value=get(key);
+    return createCompletedFuture(value);
+  }
+  final Data keyData=toData(key);
+  Object cached=nearCache != null ? nearCache.get(keyData) : null;
+  if (cached != null && !ClientNearCache.NULL_OBJECT.equals(cached)) {
+    return createCompletedFuture(cached);
+  }
+  CacheGetRequest request=new CacheGetRequest(name,keyData);
+  ClientCallFuture future;
+  final ClientContext context=getContext();
+  try {
+    future=(ClientCallFuture)context.getInvocationService().invokeOnKeyOwner(request,keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  if (nearCache != null) {
+    future.andThenInternal(new ExecutionCallback<Data>(){
+      public void onResponse(      Data valueData){
+        storeInNearCache(keyData,valueData,null);
+      }
+      public void onFailure(      Throwable t){
+      }
+    }
+);
+  }
+  return new DelegatingFuture<V>(future,getContext().getSerializationService());
 }

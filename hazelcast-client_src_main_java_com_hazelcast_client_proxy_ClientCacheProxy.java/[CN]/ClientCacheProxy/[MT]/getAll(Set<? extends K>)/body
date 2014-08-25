@@ -1,3 +1,37 @@
 {
-  return null;
+  ensureOpen();
+  if (keys == null || keys.contains(null)) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  Set<Data> keySet=new HashSet(keys.size());
+  Map<K,V> result=new HashMap<K,V>();
+  for (  Object key : keys) {
+    keySet.add(toData(key));
+  }
+  if (keySet.isEmpty()) {
+    return result;
+  }
+  if (nearCache != null) {
+    final Iterator<Data> iterator=keySet.iterator();
+    while (iterator.hasNext()) {
+      Data key=iterator.next();
+      Object cached=nearCache.get(key);
+      if (cached != null && !ClientNearCache.NULL_OBJECT.equals(cached)) {
+        result.put((K)toObject(key),(V)cached);
+        iterator.remove();
+      }
+    }
+  }
+  CacheGetAllRequest request=new CacheGetAllRequest(getDistributedObjectName(),keySet);
+  MapEntrySet mapEntrySet=invoke(request);
+  Set<Map.Entry<Data,Data>> entrySet=mapEntrySet.getEntrySet();
+  for (  Map.Entry<Data,Data> dataEntry : entrySet) {
+    final Data valueData=dataEntry.getValue();
+    final Data keyData=dataEntry.getKey();
+    final K key=toObject(keyData);
+    final V value=toObject(valueData);
+    result.put(key,value);
+    storeInNearCache(keyData,valueData,value);
+  }
+  return result;
 }
