@@ -1,0 +1,17 @@
+{
+  Config config=new Config();
+  final String name=randomString();
+  QueueConfig queueConfig=config.getQueueConfig(name);
+  queueConfig.setMaxSize(100);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance=factory.newHazelcastInstance(config);
+  HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  IQueue<Object> queue=instance.getQueue(name);
+  IQueue<Object> queue2=instance2.getQueue(name);
+  for (int i=0; i < 10; i++) {
+    queue.offer("item" + i);
+  }
+  queue.clear();
+  assertSizeEventually(0,queue);
+  assertSizeEventually(0,queue2);
+}
