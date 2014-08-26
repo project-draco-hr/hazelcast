@@ -4,25 +4,16 @@
     setAsMaster();
     return;
   }
-  final long maxJoinMillis=getGroupProperties().MAX_JOIN_SECONDS.getInteger() * 1000;
-  int rejoinCount=0;
-  for (; ; ) {
-    final long joinStartTime=joiner.getStartTime();
-    try {
-      joiner.join();
-      return;
-    }
- catch (    Exception e) {
-      rejoinCount++;
-      if (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis) {
-        logger.warning("Trying to rejoin for the " + rejoinCount + " time: "+ e.getMessage());
-        prepareForRejoin();
-      }
- else {
-        logger.severe("Could not join cluster after " + rejoinCount + " attempts, shutting down!",e);
-        shutdown(true);
-        return;
-      }
-    }
+  try {
+    prepareForJoin();
+    joiner.join();
+  }
+ catch (  Throwable e) {
+    logger.severe("Error while joining the cluster!",e);
+  }
+  if (!joined()) {
+    long maxJoinTime=groupProperties.MAX_JOIN_SECONDS.getInteger() * 1000L;
+    logger.severe("Could not join cluster in " + maxJoinTime + " ms. Shutting down now!");
+    shutdown(true);
   }
 }

@@ -1,17 +1,6 @@
 {
-  MapMergePolicy mergePolicy=mergePolicyMap.get(mergePolicyName);
-  if (mergePolicy == null && mergePolicyName != null) {
-    try {
-      mergePolicy=ClassLoaderUtil.newInstance(nodeEngine.getConfigClassLoader(),mergePolicyName);
-      mergePolicyMap.put(mergePolicyName,mergePolicy);
-    }
- catch (    Exception e) {
-      nodeEngine.getLogger(getClass()).severe(e);
-      throw ExceptionUtil.rethrow(e);
-    }
+  if (className == null) {
+    throw new NullPointerException("Class name is mandatory!");
   }
-  if (mergePolicy == null) {
-    return mergePolicyMap.get(MapConfig.DEFAULT_MAP_MERGE_POLICY);
-  }
-  return mergePolicy;
+  return ConcurrencyUtil.getOrPutIfAbsent(mergePolicyMap,className,policyConstructorFunction);
 }
