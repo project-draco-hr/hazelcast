@@ -9,7 +9,8 @@
     hazelcastSession=getSessionWithId(requestedSessionId);
     if (hazelcastSession == null) {
       final Boolean existing=(Boolean)getClusterMap().executeOnKey(requestedSessionId,new ReferenceSessionEntryProcessor());
-      if (existing != null && existing && create) {
+      boolean canOrMustCreate=create || !RequestWrapper.this.res.isCommitted() || getOriginalSession(false) != null;
+      if (existing != null && existing && canOrMustCreate) {
         hazelcastSession=createNewSession(RequestWrapper.this,requestedSessionId);
       }
     }
