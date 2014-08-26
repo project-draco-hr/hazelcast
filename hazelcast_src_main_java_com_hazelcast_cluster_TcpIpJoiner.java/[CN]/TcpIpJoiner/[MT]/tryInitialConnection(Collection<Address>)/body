@@ -1,0 +1,18 @@
+{
+  long connectionTimeoutMillis=getConnTimeoutSeconds() * 1000L;
+  long start=Clock.currentTimeMillis();
+  while (Clock.currentTimeMillis() - start < connectionTimeoutMillis) {
+    if (possibleAddresses.isEmpty()) {
+      return false;
+    }
+    if (logger.isFinestEnabled()) {
+      logger.finest("Will send master question to each address in: " + possibleAddresses);
+    }
+    if (sendMasterQuestion(possibleAddresses)) {
+      return true;
+    }
+    Thread.sleep(JOIN_RETRY_WAIT_TIME);
+    removeBlacklistedAddresses(possibleAddresses);
+  }
+  return false;
+}
