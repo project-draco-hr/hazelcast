@@ -1,3 +1,26 @@
 {
-  return false;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CachePutIfAbsentRequest request=new CachePutIfAbsentRequest(getDistributedObjectName(),keyData,valueData,expiryPolicy);
+  Boolean put=toObject(invoke(request,keyData));
+  if (put == null) {
+    return false;
+  }
+  if (put) {
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+  return put;
 }

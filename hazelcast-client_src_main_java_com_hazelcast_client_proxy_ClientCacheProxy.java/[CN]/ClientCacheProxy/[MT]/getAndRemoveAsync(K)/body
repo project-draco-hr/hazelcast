@@ -1,3 +1,22 @@
 {
-  return null;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (shouldBeSync()) {
+    V value=get(key);
+    return createCompletedFuture(value);
+  }
+  final Data keyData=toData(key);
+  CacheGetAndRemoveRequest request=new CacheGetAndRemoveRequest(getDistributedObjectName(),keyData);
+  ClientCallFuture future;
+  final ClientContext context=getContext();
+  try {
+    future=(ClientCallFuture)context.getInvocationService().invokeOnKeyOwner(request,keyData);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<V>(future,getContext().getSerializationService());
 }

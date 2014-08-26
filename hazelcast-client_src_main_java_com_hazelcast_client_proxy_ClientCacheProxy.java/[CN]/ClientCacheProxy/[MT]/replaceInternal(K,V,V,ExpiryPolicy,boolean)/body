@@ -1,0 +1,35 @@
+{
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (newValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (hasOldValue && oldValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (hasOldValue) {
+    validateConfiguredTypes(true,key,oldValue,newValue);
+  }
+ else {
+    validateConfiguredTypes(true,key,newValue);
+  }
+  final Data keyData=toData(key);
+  final Data currentValueData=oldValue != null ? toData(oldValue) : null;
+  final Data valueData=newValue != null ? toData(newValue) : null;
+  CacheReplaceRequest request=new CacheReplaceRequest(getDistributedObjectName(),keyData,currentValueData,valueData,expiryPolicy);
+  Boolean replaced=toObject(invoke(request,keyData));
+  if (replaced == null) {
+    return false;
+  }
+  if (replaced) {
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,newValue);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+  return replaced;
+}

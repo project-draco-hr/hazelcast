@@ -1,0 +1,35 @@
+{
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (newValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (hasOldValue && oldValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (hasOldValue) {
+    validateConfiguredTypes(true,key,oldValue,newValue);
+  }
+ else {
+    validateConfiguredTypes(true,key,newValue);
+  }
+  if (shouldBeSync()) {
+    final Boolean isRemoved=replaceInternal(key,oldValue,newValue,expiryPolicy,true);
+    return createCompletedFuture(isRemoved);
+  }
+  final Data keyData=toData(key);
+  final Data currentValueData=oldValue != null ? toData(oldValue) : null;
+  final Data valueData=newValue != null ? toData(newValue) : null;
+  CacheReplaceRequest request=new CacheReplaceRequest(getDistributedObjectName(),keyData,currentValueData,valueData,expiryPolicy);
+  ICompletableFuture future;
+  try {
+    future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<Boolean>(future,getContext().getSerializationService());
+}

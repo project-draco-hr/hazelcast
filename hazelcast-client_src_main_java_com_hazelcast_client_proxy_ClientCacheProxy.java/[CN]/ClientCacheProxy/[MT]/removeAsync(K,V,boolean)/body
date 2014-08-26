@@ -3,17 +3,17 @@
   if (key == null) {
     throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
   }
-  if (value == null) {
+  if (hasOldValue && oldValue == null) {
     throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
   }
-  validateConfiguredTypes(true,key,value);
+  validateConfiguredTypes(hasOldValue,key,oldValue);
   if (shouldBeSync()) {
-    final Boolean put=putIfAbsent(key,value,expiryPolicy);
-    return createCompletedFuture(put);
+    final Boolean isRemoved=remove(key,oldValue);
+    return createCompletedFuture(isRemoved);
   }
   final Data keyData=toData(key);
-  final Data valueData=toData(value);
-  CachePutIfAbsentRequest request=new CachePutIfAbsentRequest(getDistributedObjectName(),keyData,valueData,expiryPolicy);
+  final Data valueData=oldValue != null ? toData(oldValue) : null;
+  CacheRemoveRequest request=new CacheRemoveRequest(getDistributedObjectName(),keyData,valueData);
   ICompletableFuture future;
   try {
     future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);

@@ -1,3 +1,26 @@
 {
-  return null;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
+  if (shouldBeSync()) {
+    V oldValue=getAndPut(key,value,expiryPolicy);
+    return createCompletedFuture(oldValue);
+  }
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CacheGetAndReplaceRequest request=new CacheGetAndReplaceRequest(getDistributedObjectName(),keyData,valueData,expiryPolicy);
+  ICompletableFuture future;
+  try {
+    future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<V>(future,getContext().getSerializationService());
 }

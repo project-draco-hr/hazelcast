@@ -1,3 +1,21 @@
 {
-  return null;
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  final Data keyData=toData(key);
+  final Object cached=nearCache != null ? nearCache.get(keyData) : null;
+  if (cached != null && !ClientNearCache.NULL_OBJECT.equals(cached)) {
+    return (V)cached;
+  }
+  final CacheGetRequest request=new CacheGetRequest(getDistributedObjectName(),keyData,expiryPolicy);
+  try {
+    final Data resultData=(Data)invoke(request,keyData);
+    final V result=toObject(resultData);
+    storeInNearCache(keyData,resultData,result);
+    return result;
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }
