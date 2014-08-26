@@ -2,27 +2,17 @@
   if (!live) {
     return;
   }
-  begin=Clock.currentTimeMillis();
-  final Map<ClientConnection,Future> futureMap=new HashMap<ClientConnection,Future>();
+  final long now=Clock.currentTimeMillis();
   for (  ClientConnection connection : connections.values()) {
-    if (begin - connection.lastReadTime() > heartBeatTimeout) {
+    if (now - connection.lastReadTime() > heartBeatTimeout) {
+      connection.heartBeatingFailed();
+    }
+    if (now - connection.lastReadTime() > heartBeatInterval) {
       final ClientPingRequest request=new ClientPingRequest();
-      final ICompletableFuture future=invocationService.send(request,connection);
-      futureMap.put(connection,future);
+      invocationService.send(request,connection);
     }
  else {
       connection.heartBeatingSucceed();
-    }
-  }
-  for (  Map.Entry<ClientConnection,Future> entry : futureMap.entrySet()) {
-    final Future future=entry.getValue();
-    final ClientConnection connection=entry.getKey();
-    try {
-      future.get(getRemainingTimeout(),TimeUnit.MILLISECONDS);
-      connection.heartBeatingSucceed();
-    }
- catch (    Exception ignored) {
-      connection.heartBeatingFailed();
     }
   }
 }

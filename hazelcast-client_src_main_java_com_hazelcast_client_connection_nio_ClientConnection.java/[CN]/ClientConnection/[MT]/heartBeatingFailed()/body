@@ -1,15 +1,13 @@
 {
-  failedHeartBeat++;
-  final int maxFailedHeartbeatCount=connectionManager.getMaxFailedHeartbeatCount();
-  logger.warning("Heartbeat to connection  " + getRemoteEndpoint() + " is failed. "+ "Retry count is  "+ failedHeartBeat+ " , threshold is  "+ maxFailedHeartbeatCount);
-  if (failedHeartBeat == maxFailedHeartbeatCount) {
-    connectionManager.onDetectingUnresponsiveConnection(this);
-    final Iterator<ClientCallFuture> iterator=eventHandlerMap.values().iterator();
-    final TargetDisconnectedException response=new TargetDisconnectedException(remoteEndpoint);
-    while (iterator.hasNext()) {
-      final ClientCallFuture future=iterator.next();
-      iterator.remove();
-      future.notify(response);
-    }
+  heartBeating=false;
+  final RemoveAllListeners request=new RemoveAllListeners();
+  invocationService.send(request,ClientConnection.this);
+  connectionManager.onDetectingUnresponsiveConnection(this);
+  final Iterator<ClientCallFuture> iterator=eventHandlerMap.values().iterator();
+  final TargetDisconnectedException response=new TargetDisconnectedException(remoteEndpoint);
+  while (iterator.hasNext()) {
+    final ClientCallFuture future=iterator.next();
+    iterator.remove();
+    future.notify(response);
   }
 }
