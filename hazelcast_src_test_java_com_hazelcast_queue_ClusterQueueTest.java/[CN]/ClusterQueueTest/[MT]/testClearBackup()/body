@@ -2,14 +2,14 @@
   HazelcastInstance[] instances=createHazelcastInstances();
   HazelcastInstance instance1=instances[0];
   HazelcastInstance instance2=instances[1];
-  String name=generateKeyNotOwnedBy(instance1);
+  String name=generateKeyOwnedBy(instance1);
   IQueue<Object> queue1=instance1.getQueue(name);
   IQueue<Object> queue2=instance2.getQueue(name);
-  for (int i=0; i < 10; i++) {
+  for (int i=0; i < 4; i++) {
     queue1.offer("item" + i);
   }
-  assertSizeEventually(10,queue2);
-  assertTrue(queue2.contains("item1") && queue2.contains("item9"));
+  assertSizeEventually(4,queue2);
+  assertIterableEquals(queue2,"item0","item1","item2","item3");
   queue1.clear();
   instance1.shutdown();
   assertSizeEventually(0,queue2);
