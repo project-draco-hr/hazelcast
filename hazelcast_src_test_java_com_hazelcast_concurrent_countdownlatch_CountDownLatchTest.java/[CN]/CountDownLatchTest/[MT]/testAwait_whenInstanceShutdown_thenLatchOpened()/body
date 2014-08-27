@@ -1,14 +1,15 @@
 {
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
-  final HazelcastInstance instance=factory.newHazelcastInstance(new Config());
-  ICountDownLatch latch=instance.getCountDownLatch(randomString());
+  HazelcastInstance instance=createHazelcastInstance();
+  final ICountDownLatch latch=instance.getCountDownLatch(randomString());
   latch.trySetCount(10);
-  Thread thread=(new Thread(){
-    public void run(){
-      instance.shutdown();
+  final TestThread awaitThread=new TestThread(){
+    @Override public void doRun() throws Exception {
+      latch.await(1,TimeUnit.HOURS);
     }
   }
-);
-  thread.start();
-  assertOpenEventually(latch);
+;
+  awaitThread.start();
+  sleepSeconds(5);
+  instance.shutdown();
+  awaitThread.assertFailsEventually(HazelcastInstanceNotActiveException.class);
 }
