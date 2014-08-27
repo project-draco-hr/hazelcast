@@ -1,0 +1,43 @@
+{
+  final int nodeCount=10;
+  final int groupCount=3;
+  final int basePort=12301;
+  final CountDownLatch latch=new CountDownLatch(nodeCount);
+  final AtomicReferenceArray<HazelcastInstance> instances=new AtomicReferenceArray<HazelcastInstance>(nodeCount);
+  final Map<String,AtomicInteger> groups=new HashMap<String,AtomicInteger>(groupCount);
+  for (int i=0; i < groupCount; i++) {
+    groups.put("group-" + i,new AtomicInteger(0));
+  }
+  ExecutorService ex=Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+  for (int i=0; i < nodeCount; i++) {
+    final int portSeed=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        sleepRandom(1,1000);
+        Config config=new Config();
+        String name="group-" + (int)(Math.random() * groupCount);
+        config.getGroupConfig().setName(name);
+        groups.get(name).incrementAndGet();
+        initNetworkConfig(config.getNetworkConfig(),basePort,portSeed,multicast,nodeCount);
+        HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+        instances.set(portSeed,h);
+        latch.countDown();
+      }
+    }
+);
+  }
+  try {
+    latch.await(200,TimeUnit.SECONDS);
+  }
+  finally {
+    ex.shutdown();
+  }
+  for (int i=0; i < nodeCount; i++) {
+    HazelcastInstance hz=instances.get(i);
+    assertNotNull(hz);
+    int clusterSize=hz.getCluster().getMembers().size();
+    String groupName=hz.getConfig().getGroupConfig().getName();
+    int shouldBeClusterSize=groups.get(groupName).get();
+    assertEquals(groupName + ": ",shouldBeClusterSize,clusterSize);
+  }
+}

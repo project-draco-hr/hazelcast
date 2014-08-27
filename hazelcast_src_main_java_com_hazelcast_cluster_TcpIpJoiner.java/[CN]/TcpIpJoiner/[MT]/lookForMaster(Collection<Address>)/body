@@ -1,37 +1,47 @@
 {
   int tryCount=0;
-  claimingMaster=false;
-  while (!node.joined() && tryCount++ < 20 && (node.getMasterAddress() == null)) {
-    connectAndSendJoinRequest(colPossibleAddresses);
-    Thread.sleep(1000L);
-  }
-  int requestCount=0;
-  colPossibleAddresses.removeAll(node.getFailedConnections());
-  if (colPossibleAddresses.size() == 0) {
-    node.setAsMaster();
-    if (logger.isFinestEnabled()) {
-      logger.finest(node.getThisAddress() + " Setting myself as master! group " + node.getConfig().getGroupConfig().getName()+ " no possible addresses without failed connection");
+  while (node.getMasterAddress() == null && tryCount++ < 20) {
+    sendMasterQuestion(possibleAddresses);
+    Thread.sleep(JOIN_RETRY_WAIT_TIME);
+    possibleAddresses.removeAll(blacklistedAddresses);
+    if (possibleAddresses.size() == 0) {
+      break;
     }
+  }
+  if (node.joined()) {
     return;
   }
-  if (logger.isFinestEnabled()) {
-    logger.finest(node.getThisAddress() + " joining to master " + node.getMasterAddress()+ ", group "+ node.getConfig().getGroupConfig().getName());
+  if (possibleAddresses.size() == 0 && node.getMasterAddress() == null) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Setting myself as master! No possible addresses remaining to connect...");
+    }
+    node.setAsMaster();
+    return;
   }
-  while (node.isActive() && !node.joined()) {
-    Thread.sleep(1000L);
-    final Address master=node.getMasterAddress();
+  long maxMasterJoinTime=(node.getGroupProperties().MAX_WAIT_SECONDS_BEFORE_JOIN.getInteger() + 10) * 1000L;
+  long start=Clock.currentTimeMillis();
+  while (node.isActive() && !node.joined() && Clock.currentTimeMillis() - start < maxMasterJoinTime) {
+    Address master=node.getMasterAddress();
     if (master != null) {
-      node.clusterService.sendJoinRequest(master,true);
-      if (requestCount++ > node.getGroupProperties().MAX_WAIT_SECONDS_BEFORE_JOIN.getInteger() + 10) {
-        logger.warning("Couldn't join to the master : " + master);
-        return;
+      if (logger.isFinestEnabled()) {
+        logger.finest("Joining to master " + master);
       }
+      node.clusterService.sendJoinRequest(master,true);
+    }
+ else {
+      break;
+    }
+    Thread.sleep(JOIN_RETRY_WAIT_TIME);
+  }
+  if (!node.joined()) {
+    Address master=node.getMasterAddress();
+    if (master != null) {
+      logger.warning("Couldn't join to the master : " + master);
     }
  else {
       if (logger.isFinestEnabled()) {
-        logger.finest(node.getThisAddress() + " couldn't find a master! but there was connections available: " + colPossibleAddresses);
+        logger.finest("Couldn't find a master! But there was connections available: " + possibleAddresses);
       }
-      return;
     }
   }
 }
