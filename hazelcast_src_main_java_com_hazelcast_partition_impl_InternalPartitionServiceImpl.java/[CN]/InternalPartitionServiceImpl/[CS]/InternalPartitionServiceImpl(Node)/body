@@ -20,6 +20,15 @@
   migrationThread=new MigrationThread(node);
   proxy=new PartitionServiceProxy(this);
   replicaSyncRequests=new AtomicReferenceArray<ReplicaSyncInfo>(new ReplicaSyncInfo[partitionCount]);
-  ScheduledExecutorService scheduledExecutor=nodeEngine.getExecutionService().getDefaultScheduledExecutor();
+  ExecutionService executionService=nodeEngine.getExecutionService();
+  ScheduledExecutorService scheduledExecutor=executionService.getDefaultScheduledExecutor();
   replicaSyncScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new ReplicaSyncEntryProcessor(this),ScheduleType.SCHEDULE_IF_NEW);
+  long maxMigrationDelayMs=calculateMaxMigrationDelayOnMemberRemoved();
+  long minMigrationDelayMs=calculateMigrationDelayOnMemberRemoved(maxMigrationDelayMs);
+  this.delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,minMigrationDelayMs,maxMigrationDelayMs,new Runnable(){
+    @Override public void run(){
+      resumeMigration();
+    }
+  }
+);
 }
