@@ -11,15 +11,9 @@
   for (int i=0; i < putThreads.length; i++) {
     putThreads[i].start();
   }
-  MultiMap mm=server.getMultiMap(MAP_NAME);
+  MultiMap multiMap=server.getMultiMap(MAP_NAME);
   assertJoinable(MAX_SECONDS,putThreads);
-  assertEquals(PutItemsThread.MAX_ITEMS * putThreads.length,mm.size());
-  assertTrueEventually(new AssertTask(){
-    public void run() throws Exception {
-      for (int i=0; i < putThreads.length; i++) {
-        putThreads[i].assertResult(PutItemsThread.MAX_ITEMS * putThreads.length);
-      }
-    }
-  }
-);
+  final int expectedSize=PutItemsThread.MAX_ITEMS * putThreads.length;
+  assertEquals(expectedSize,multiMap.size());
+  assertReceivedEventsSize(expectedSize,putThreads);
 }
