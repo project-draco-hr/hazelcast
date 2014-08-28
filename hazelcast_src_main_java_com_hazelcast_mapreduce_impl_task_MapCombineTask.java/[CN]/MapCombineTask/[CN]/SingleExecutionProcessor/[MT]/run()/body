@@ -1,5 +1,6 @@
 {
   try {
+    MapReduceUtil.enforcePartitionTableWarmup(mapReduceService);
     RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestMemberIdAssignment(name,jobId),name);
     if (result.getResultState() == NO_SUPERVISOR) {
       return;
@@ -12,16 +13,7 @@
     if (supervisor.getConfiguration().isCommunicateStats()) {
       delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
     }
-    delegate.reset();
-    if (delegate.open(nodeEngine)) {
-      DefaultContext<KeyOut,ValueOut> context=supervisor.getOrCreateContext(MapCombineTask.this);
-      processMapping(partitionId,context,delegate);
-      delegate.close();
-      finalizeMapping(partitionId,context);
-    }
- else {
-      postponePartitionProcessing(partitionId);
-    }
+    processPartitionMapping(delegate,partitionId);
   }
  catch (  Throwable t) {
     handleProcessorThrowable(t);
