@@ -1,29 +1,19 @@
 {
   long joinStartTime=Clock.currentTimeMillis();
   long maxJoinMillis=getMaxJoinMillis();
+  Address thisAddress=node.getThisAddress();
   while (node.isActive() && !node.joined() && (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
-    Address masterAddressNow=getTargetAddress();
-    if (masterAddressNow == null) {
-      masterAddressNow=findMasterWithMulticast();
+    node.setMasterAddress(null);
+    Address masterAddress=getTargetAddress();
+    if (masterAddress == null) {
+      masterAddress=findMasterWithMulticast();
     }
-    node.setMasterAddress(masterAddressNow);
-    if (node.getMasterAddress() == null || node.getThisAddress().equals(node.getMasterAddress())) {
+    node.setMasterAddress(masterAddress);
+    if (masterAddress == null || thisAddress.equals(masterAddress)) {
       node.setAsMaster();
       return;
     }
-    if (logger.isFinestEnabled()) {
-      logger.finest("Joining to master node: " + node.getMasterAddress());
-    }
-    if (!node.getMasterAddress().equals(node.getThisAddress())) {
-      connectAndSendJoinRequest(node.getMasterAddress());
-    }
- else {
-      node.setMasterAddress(null);
-    }
-    try {
-      Thread.sleep(500L);
-    }
- catch (    InterruptedException ignored) {
-    }
+    logger.info("Trying to join to discovered node: " + masterAddress);
+    joinMaster();
   }
 }
