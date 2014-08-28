@@ -1,0 +1,41 @@
+{
+  TestHazelcastInstanceFactory hazelcastInstanceFactory=createHazelcastInstanceFactory(HAZELCAST_INSTANCE_COUNT);
+  HazelcastInstance[] instances=new HazelcastInstance[HAZELCAST_INSTANCE_COUNT];
+  for (int i=0; i < HAZELCAST_INSTANCE_COUNT; i++) {
+    instances[i]=hazelcastInstanceFactory.newHazelcastInstance();
+  }
+  for (int i=0; i < HAZELCAST_INSTANCE_COUNT; i++) {
+    assertClusterSizeEventually(HAZELCAST_INSTANCE_COUNT,instances[i]);
+  }
+  IMap<Integer,Integer> m1=instances[0].getMap(MAP_NAME);
+  for (int i=0; i < MAP_ELEMENTS; i++) {
+    m1.put(i,i);
+  }
+  AtomicReferenceArray<Object> resultHolder=new AtomicReferenceArray<Object>(PARALLEL_TASKS);
+  CountDownLatch latch=new CountDownLatch(PARALLEL_TASKS);
+  int[] expectedResults=new int[4];
+  for (int i=0; i < MAP_ELEMENTS; i++) {
+    int index=i % 4;
+    expectedResults[index]+=i;
+  }
+  Random random=new Random();
+  for (int o=0; o < PARALLEL_TASKS; o++) {
+    HazelcastInstance hazelcastInstance=instances[random.nextInt(instances.length)];
+    IMap<Integer,Integer> map=hazelcastInstance.getMap(MAP_NAME);
+    Runnable task=new MapReduceOperation(hazelcastInstance,map,o,resultHolder,latch);
+    Thread thread=new Thread(task);
+    thread.start();
+  }
+  latch.await();
+  for (int o=0; o < PARALLEL_TASKS; o++) {
+    Object result=resultHolder.get(o);
+    if (result instanceof Throwable) {
+      ((Throwable)result).printStackTrace();
+      fail();
+    }
+    Map<Integer,Integer> map=(Map<Integer,Integer>)result;
+    for (int i=0; i < 4; i++) {
+      assertEquals(BigInteger.valueOf(expectedResults[i]),map.get(String.valueOf(i)));
+    }
+  }
+}

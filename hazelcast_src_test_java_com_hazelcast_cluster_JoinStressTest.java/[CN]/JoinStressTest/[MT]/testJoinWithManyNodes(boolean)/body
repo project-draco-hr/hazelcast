@@ -1,0 +1,32 @@
+{
+  final int nodeCount=20;
+  final int basePort=12301;
+  final CountDownLatch latch=new CountDownLatch(nodeCount);
+  final AtomicReferenceArray<HazelcastInstance> instances=new AtomicReferenceArray<HazelcastInstance>(nodeCount);
+  ExecutorService ex=Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+  for (int i=0; i < nodeCount; i++) {
+    final int portSeed=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        sleepRandom(1,1000);
+        Config config=new Config();
+        initNetworkConfig(config.getNetworkConfig(),basePort,portSeed,multicast,nodeCount);
+        HazelcastInstance h=Hazelcast.newHazelcastInstance(config);
+        instances.set(portSeed,h);
+        latch.countDown();
+      }
+    }
+);
+  }
+  try {
+    latch.await(200,TimeUnit.SECONDS);
+  }
+  finally {
+    ex.shutdown();
+  }
+  for (int i=0; i < nodeCount; i++) {
+    HazelcastInstance hz=instances.get(i);
+    assertNotNull(hz);
+    assertEquals(nodeCount,hz.getCluster().getMembers().size());
+  }
+}

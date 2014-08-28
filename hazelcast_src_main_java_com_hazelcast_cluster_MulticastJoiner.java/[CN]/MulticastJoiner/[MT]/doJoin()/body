@@ -1,40 +1,19 @@
 {
-  int tryCount=0;
   long joinStartTime=Clock.currentTimeMillis();
-  long maxJoinMillis=node.getGroupProperties().MAX_JOIN_SECONDS.getInteger() * 1000;
+  long maxJoinMillis=getMaxJoinMillis();
+  Address thisAddress=node.getThisAddress();
   while (node.isActive() && !node.joined() && (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
-    Address masterAddressNow=getTargetAddress();
-    if (masterAddressNow == null) {
-      masterAddressNow=findMasterWithMulticast();
+    node.setMasterAddress(null);
+    Address masterAddress=getTargetAddress();
+    if (masterAddress == null) {
+      masterAddress=findMasterWithMulticast();
     }
-    node.setMasterAddress(masterAddressNow);
-    String msg="Joining to master node: " + node.getMasterAddress();
-    logger.finest(msg);
-    systemLogService.logJoin(msg);
-    if (node.getMasterAddress() == null || node.getThisAddress().equals(node.getMasterAddress())) {
-      TcpIpConfig tcpIpConfig=config.getNetworkConfig().getJoin().getTcpIpConfig();
-      if (tcpIpConfig != null && tcpIpConfig.isEnabled()) {
-        doTCP();
-      }
- else {
-        node.setAsMaster();
-      }
+    node.setMasterAddress(masterAddress);
+    if (masterAddress == null || thisAddress.equals(masterAddress)) {
+      node.setAsMaster();
       return;
     }
-    if (++tryCount > 49) {
-      failedJoiningToMaster(true,tryCount);
-    }
-    if (!node.getMasterAddress().equals(node.getThisAddress())) {
-      connectAndSendJoinRequest(node.getMasterAddress());
-    }
- else {
-      node.setMasterAddress(null);
-      tryCount=0;
-    }
-    try {
-      Thread.sleep(500L);
-    }
- catch (    InterruptedException ignored) {
-    }
+    logger.info("Trying to join to discovered node: " + masterAddress);
+    joinMaster();
   }
 }

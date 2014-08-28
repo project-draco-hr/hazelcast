@@ -1,0 +1,26 @@
+{
+  long maxMasterJoinTime=getMaxJoinTimeToMasterNode();
+  long start=Clock.currentTimeMillis();
+  while (node.isActive() && !node.joined() && Clock.currentTimeMillis() - start < maxMasterJoinTime) {
+    Address master=node.getMasterAddress();
+    if (master != null) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Joining to master " + master);
+      }
+      node.clusterService.sendJoinRequest(master,true);
+    }
+ else {
+      break;
+    }
+    try {
+      Thread.sleep(JOIN_RETRY_INTERVAL);
+    }
+ catch (    InterruptedException e) {
+      EmptyStatement.ignore(e);
+    }
+    if (isBlacklisted(master)) {
+      node.setMasterAddress(null);
+      return;
+    }
+  }
+}

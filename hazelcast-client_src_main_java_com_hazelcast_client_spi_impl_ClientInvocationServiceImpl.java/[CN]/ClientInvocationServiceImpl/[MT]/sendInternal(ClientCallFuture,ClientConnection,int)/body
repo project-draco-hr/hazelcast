@@ -2,10 +2,11 @@
   connection.registerCallId(future);
   future.setConnection(connection);
   final SerializationService ss=client.getSerializationService();
-  final Data data=ss.toData(future.getRequest());
+  final ClientRequest request=future.getRequest();
+  final Data data=ss.toData(request);
   Packet packet=new Packet(data,partitionId,ss.getPortableContext());
-  if (!connection.write(packet)) {
-    final int callId=future.getRequest().getCallId();
+  if (!isAllowedToSendRequest(connection,request) || !connection.write(packet)) {
+    final int callId=request.getCallId();
     connection.deRegisterCallId(callId);
     connection.deRegisterEventHandler(callId);
     future.notify(new TargetNotMemberException("Address : " + connection.getRemoteEndpoint()));
