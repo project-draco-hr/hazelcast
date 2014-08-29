@@ -10,7 +10,7 @@
  else   if (VectorClockTimestamp.happenedBefore(updateVectorClockTimestamp,currentVectorClockTimestamp)) {
     return;
   }
- else {
+ else   if (!updateVectorClockTimestamp.equals(currentVectorClockTimestamp)) {
     if (localEntry.getLatestUpdateHash() >= update.getUpdateHash()) {
       applyTheUpdate(update,localEntry);
     }
@@ -23,5 +23,8 @@
       ReplicationMessage message=new ReplicationMessage(name,key,value,newTimestamp,localMember,latestUpdateHash,ttlMillis);
       distributeReplicationMessage(message,true);
     }
+  }
+ else {
+    LOGGER.finest("Received an update with the same state of vector clock I currently have. " + "This can happened during initialization. Ignoring the update.");
   }
 }
