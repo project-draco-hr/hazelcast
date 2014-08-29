@@ -1,0 +1,27 @@
+{
+  final String name=randomString();
+  final int count=100;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance[] instances=factory.newInstances();
+  IList list1=instances[0].getList(name);
+  IList list2=instances[1].getList(name);
+  for (int i=0; i < count; i++) {
+    assertTrue(list1.add("item" + i));
+    assertTrue(list2.add("item" + i));
+  }
+  assertSizeEventually(200,list1);
+  assertSizeEventually(200,list2);
+  assertEquals("item0",list1.get(0));
+  assertEquals("item0",list2.get(0));
+  assertEquals("item99",list1.get(199));
+  assertEquals("item99",list2.get(199));
+  for (int i=0; i < count; i++) {
+    assertEquals("item" + i,list1.remove(i));
+  }
+  assertSizeEventually(100,list2);
+  for (int i=0; i < count; i++) {
+    assertTrue(list2.remove("item" + i));
+  }
+  assertSizeEventually(0,list1);
+  assertSizeEventually(0,list2);
+}
