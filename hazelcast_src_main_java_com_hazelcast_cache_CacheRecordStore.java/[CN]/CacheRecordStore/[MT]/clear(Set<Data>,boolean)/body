@@ -8,6 +8,7 @@
   finally {
       final Set<Data> keysToClean=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
       for (      Data key : keysToClean) {
+        isEventBatchingEnabled=true;
         final CacheRecord record=records.get(key);
         if (localKeys.contains(key) && record != null) {
           boolean isExpired=record.isExpiredAt(now);
@@ -24,6 +25,9 @@
  else {
           keys.remove(key);
         }
+        isEventBatchingEnabled=false;
+        int orderKey=keys != null ? keys.hashCode() : 1;
+        publishBatchedEvents(name,CacheEventType.REMOVED,orderKey);
       }
     }
   }

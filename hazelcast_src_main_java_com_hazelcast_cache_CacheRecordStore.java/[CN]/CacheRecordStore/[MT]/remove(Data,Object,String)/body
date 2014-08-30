@@ -5,11 +5,12 @@
   CacheRecord record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   int hitCount=0;
+  boolean result=true;
   if (record == null || isExpired) {
     if (isStatisticsEnabled()) {
       statistics.increaseCacheMisses(1);
     }
-    return false;
+    result=false;
   }
  else {
     hitCount++;
@@ -31,10 +32,10 @@
       if (isExpiredAt(et,now)) {
         processExpiredEntry(key,record);
       }
-      return false;
+      result=false;
     }
   }
-  if (isStatisticsEnabled()) {
+  if (result && isStatisticsEnabled()) {
     statistics.increaseCacheRemovals(1);
     statistics.addRemoveTimeNano(System.nanoTime() - start);
     if (hitCount == 1) {

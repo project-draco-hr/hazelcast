@@ -1,6 +1,17 @@
 {
   records.remove(key);
   if (isEventsEnabled) {
-    cacheService.publishEvent(name,EventType.EXPIRED,key,record.getValue(),null);
-  }
+    final Data dataOldValue;
+switch (cacheConfig.getInMemoryFormat()) {
+case BINARY:
+      dataOldValue=(Data)record.getValue();
+    break;
+case OBJECT:
+  dataOldValue=cacheService.toData(record.getValue());
+break;
+default :
+throw new IllegalArgumentException("Invalid storage format: " + cacheConfig.getInMemoryFormat());
+}
+publishEvent(name,CacheEventType.EXPIRED,key,dataOldValue,null,true);
+}
 }

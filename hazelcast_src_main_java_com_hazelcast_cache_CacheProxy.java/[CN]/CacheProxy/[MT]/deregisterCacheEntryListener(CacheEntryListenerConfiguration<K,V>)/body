@@ -3,16 +3,29 @@
     throw new NullPointerException("CacheEntryListenerConfiguration can't be " + "null");
   }
   final CacheService service=getService();
-  service.unregisterCacheEntryListener(getDistributedObjectName(),cacheEntryListenerConfiguration);
-  cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
-  final NodeEngine nodeEngine=getNodeEngine();
-  final OperationService operationService=nodeEngine.getOperationService();
-  final Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
-  for (  MemberImpl member : members) {
-    if (!member.localMember()) {
-      final Operation op=new CacheListenerRegistrationOperation(getDistributedObjectName(),cacheEntryListenerConfiguration,false);
-      final InternalCompletableFuture<Object> f2=operationService.invokeOnTarget(CacheService.SERVICE_NAME,op,member.getAddress());
-      f2.getSafely();
+  final ConcurrentHashMap<CacheEntryListenerConfiguration,String> regs;
+  if (cacheEntryListenerConfiguration.isSynchronous()) {
+    regs=syncListenerRegistrations;
+  }
+ else {
+    regs=asyncListenerRegistrations;
+  }
+  final String regId=regs.remove(cacheEntryListenerConfiguration);
+  if (regId != null) {
+    if (!service.deregisterListener(getDistributedObjectName(),regId)) {
+      regs.putIfAbsent(cacheEntryListenerConfiguration,regId);
+    }
+ else {
+      cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
+      final OperationService operationService=nodeEngine.getOperationService();
+      final Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+      for (      MemberImpl member : members) {
+        if (!member.localMember()) {
+          final Operation op=new CacheListenerRegistrationOperation(getDistributedObjectName(),cacheEntryListenerConfiguration,false);
+          final InternalCompletableFuture<Object> f2=operationService.invokeOnTarget(CacheService.SERVICE_NAME,op,member.getAddress());
+          f2.getSafely();
+        }
+      }
     }
   }
 }
