@@ -1,4 +1,12 @@
 {
-  final InternalCompletableFuture<Boolean> f=removeAsync(key);
-  return f.getSafely();
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(false,key);
+  final Integer completionId=registerCompletionLatch(1);
+  final InternalCompletableFuture<Boolean> f=removeAsyncInternal(key,null,completionId);
+  final Boolean isRemoved=f.getSafely();
+  waitCompletionLatch(completionId);
+  return isRemoved;
 }

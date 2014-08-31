@@ -1,4 +1,22 @@
 {
-  final InternalCompletableFuture<Boolean> f=replaceAsync(key,oldValue,newValue,expiryPolicy);
-  return f.getSafely();
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (newValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  if (oldValue == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,oldValue,newValue);
+  final Data k=serializationService.toData(key);
+  final Data o=serializationService.toData(oldValue);
+  final Data n=serializationService.toData(newValue);
+  final Integer completionId=registerCompletionLatch(1);
+  final Operation op=new CacheReplaceOperation(getDistributedObjectName(),k,o,n,expiryPolicy,completionId);
+  final InternalCompletableFuture<Boolean> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
+  final Boolean isReplaced=f.getSafely();
+  waitCompletionLatch(completionId);
+  return isReplaced;
 }

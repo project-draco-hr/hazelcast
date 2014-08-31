@@ -1,13 +1,21 @@
 {
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
   final Integer completionId=registerCompletionLatch(1);
-  final Future<V> f=getAndPutAsync(key,value,null);
+  final InternalCompletableFuture<Object> f=putAsyncInternal(key,value,expiryPolicy,true,completionId);
   try {
-    return f.get();
+    final Object oldValueData=f.get();
+    waitCompletionLatch(completionId);
+    return serializationService.toObject(oldValueData);
   }
  catch (  Throwable e) {
-    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
-  }
- finally {
     deregisterCompletionListener();
+    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
   }
 }

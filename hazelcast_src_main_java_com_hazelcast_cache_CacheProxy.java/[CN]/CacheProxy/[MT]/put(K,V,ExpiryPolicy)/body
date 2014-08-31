@@ -1,5 +1,20 @@
 {
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
   final Integer completionId=registerCompletionLatch(1);
-  putAsyncInternal(key,value,expiryPolicy,false,completionId).getSafely();
-  waitCompletionLatch(completionId);
+  final InternalCompletableFuture<Object> f=putAsyncInternal(key,value,expiryPolicy,false,completionId);
+  try {
+    f.get();
+    waitCompletionLatch(completionId);
+  }
+ catch (  Throwable e) {
+    deregisterCompletionListener();
+    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
+  }
 }

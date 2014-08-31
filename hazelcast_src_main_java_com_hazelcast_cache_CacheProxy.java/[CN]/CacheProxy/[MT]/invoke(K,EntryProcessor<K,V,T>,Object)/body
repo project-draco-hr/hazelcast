@@ -7,15 +7,20 @@
     throw new NullPointerException();
   }
   final Data k=serializationService.toData(key);
-  final Operation op=new CacheEntryProcessorOperation(getDistributedObjectName(),k,-1,entryProcessor,arguments);
+  final Integer completionId=registerCompletionLatch(1);
+  final Operation op=new CacheEntryProcessorOperation(getDistributedObjectName(),k,completionId,entryProcessor,arguments);
   try {
     final InternalCompletableFuture<T> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
-    return f.getSafely();
+    final T safely=f.getSafely();
+    waitCompletionLatch(completionId);
+    return safely;
   }
  catch (  CacheException ce) {
+    deregisterCompletionListener();
     throw ce;
   }
 catch (  Exception e) {
+    deregisterCompletionListener();
     throw new EntryProcessorException(e);
   }
 }

@@ -1,9 +1,20 @@
 {
-  final Future<V> f=getAndRemoveAsync(key);
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(false,key);
+  final Data k=serializationService.toData(key);
+  final Integer completionId=registerCompletionLatch(1);
+  final Operation op=new CacheGetAndRemoveOperation(getDistributedObjectName(),k,completionId);
+  final InternalCompletableFuture<Object> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
   try {
-    return f.get();
+    final Object oldValue=f.get();
+    waitCompletionLatch(completionId);
+    return serializationService.toObject(oldValue);
   }
  catch (  Throwable e) {
+    deregisterCompletionListener();
     throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
   }
 }

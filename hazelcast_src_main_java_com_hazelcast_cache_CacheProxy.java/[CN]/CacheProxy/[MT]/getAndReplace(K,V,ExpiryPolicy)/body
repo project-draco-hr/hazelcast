@@ -1,9 +1,24 @@
 {
-  final Future<V> f=getAndReplaceAsync(key,value,expiryPolicy);
+  ensureOpen();
+  if (key == null) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  if (value == null) {
+    throw new NullPointerException(NULL_VALUE_IS_NOT_ALLOWED);
+  }
+  validateConfiguredTypes(true,key,value);
+  final Data k=serializationService.toData(key);
+  final Data v=serializationService.toData(value);
+  final Integer completionId=registerCompletionLatch(1);
+  final Operation op=new CacheGetAndReplaceOperation(getDistributedObjectName(),k,v,expiryPolicy,completionId);
+  final InternalCompletableFuture<Object> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
   try {
-    return f.get();
+    final Object oldValue=f.get();
+    waitCompletionLatch(completionId);
+    return serializationService.toObject(oldValue);
   }
  catch (  Throwable e) {
+    deregisterCompletionListener();
     throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
   }
 }
