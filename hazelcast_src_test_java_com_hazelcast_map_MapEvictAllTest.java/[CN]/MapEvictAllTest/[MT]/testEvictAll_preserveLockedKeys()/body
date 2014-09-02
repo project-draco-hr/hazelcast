@@ -3,7 +3,9 @@
   int numberOfLockedKeys=123;
   int expectedNumberOfEvictedKeys=numberOfEntries - numberOfLockedKeys;
   final CountDownLatch countDownLatch=new CountDownLatch(expectedNumberOfEvictedKeys);
-  HazelcastInstance node=createHazelcastInstance();
+  Config cfg=new Config();
+  cfg.setProperty(GroupProperties.PROP_PARTITION_COUNT,"1");
+  HazelcastInstance node=createHazelcastInstance(cfg);
   IMap<Integer,Integer> map=node.getMap(randomMapName());
   map.addLocalEntryListener(new EntryAdapter<Integer,Integer>(){
     @Override public void mapEvicted(    MapEvent event){
@@ -23,4 +25,5 @@
   map.evictAll();
   assertOpenEventually(countDownLatch);
   assertEquals(0,countDownLatch.getCount());
+  assertEquals(numberOfLockedKeys,map.size());
 }
