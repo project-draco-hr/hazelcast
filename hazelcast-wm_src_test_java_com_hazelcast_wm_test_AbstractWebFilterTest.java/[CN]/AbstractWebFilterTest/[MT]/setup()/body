@@ -1,12 +1,14 @@
 {
-  final URL root=new URL(TestServlet.class.getResource("/"),"../test-classes");
-  final String baseDir=new File(root.getFile().replaceAll("%20"," ")).toString();
-  final String sourceDir=baseDir + "/../../src/test/webapp";
-  hz=Hazelcast.newHazelcastInstance(new FileSystemXmlConfig(new File(sourceDir + "/WEB-INF/","hazelcast.xml")));
-  serverPort1=availablePort();
-  server1=getServletContainer(serverPort1,sourceDir,serverXml1);
-  if (serverXml2 != null) {
-    serverPort2=availablePort();
-    server2=getServletContainer(serverPort2,sourceDir,serverXml2);
+  ContainerContext cc=CONTAINER_CONTEXT_MAP.get(getClass());
+  if (cc == null) {
+    ensureInstanceIsUp();
+    CONTAINER_CONTEXT_MAP.put(getClass(),new ContainerContext(this,serverXml1,serverXml2,serverPort1,serverPort2,server1,server2,hz));
   }
+ else {
+    cc.copyInto(this);
+    ensureInstanceIsUp();
+    cc.copyFrom(this);
+  }
+  IMap<String,Object> map=hz.getMap(DEFAULT_MAP_NAME);
+  map.clear();
 }
