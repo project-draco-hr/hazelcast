@@ -1,6 +1,5 @@
 {
   ensureOpen();
-  final OperationService operationService=nodeEngine.getOperationService();
   if (keys == null || keys.contains(null)) {
     throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
   }
@@ -13,22 +12,35 @@
     }
     return;
   }
-  final SerializationService ss=nodeEngine.getSerializationService();
   HashSet<Data> keysData=new HashSet<Data>();
   for (  K key : keys) {
-    keysData.add(ss.toData(key));
+    keysData.add(serializationService.toData(key));
   }
-  OperationFactory operationFactory=new CacheLoadAllOperationFactory(getDistributedObjectName(),keysData,replaceExistingValues);
+  final OperationFactory operationFactory=new CacheLoadAllOperationFactory(getDistributedObjectName(),keysData,replaceExistingValues);
   try {
-    final Map<Integer,Object> results=operationService.invokeOnAllPartitions(getServiceName(),operationFactory);
-    loadAllHelper(results);
-    if (completionListener != null) {
-      completionListener.onCompletion();
+    nodeEngine.getExecutionService().execute("loadAll runner",new Runnable(){
+      @Override public void run(){
+        try {
+          final OperationService operationService=nodeEngine.getOperationService();
+          final Map<Integer,Object> results=operationService.invokeOnAllPartitions(getServiceName(),operationFactory);
+          loadAllHelper(results);
+          if (completionListener != null) {
+            completionListener.onCompletion();
+          }
+        }
+ catch (        Exception e) {
+          if (completionListener != null) {
+            completionListener.onException(e);
+          }
+        }
+      }
     }
+);
   }
  catch (  Exception e) {
     if (completionListener != null) {
       completionListener.onException(e);
     }
+    throw new CacheException(e);
   }
 }
