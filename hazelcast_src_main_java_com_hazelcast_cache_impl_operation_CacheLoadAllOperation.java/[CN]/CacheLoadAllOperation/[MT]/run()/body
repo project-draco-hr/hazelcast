@@ -1,0 +1,30 @@
+{
+  final int partitionId=getPartitionId();
+  final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+  Set<Data> filteredKeys=new HashSet<Data>();
+  if (keys != null) {
+    for (    Data k : keys) {
+      if (partitionService.getPartitionId(k) == partitionId) {
+        filteredKeys.add(k);
+      }
+    }
+  }
+  if (filteredKeys.isEmpty()) {
+    return;
+  }
+  try {
+    final CacheService service=getService();
+    cache=service.getOrCreateCache(name,partitionId);
+    final Set<Data> keysLoaded=cache.loadAll(filteredKeys,replaceExistingValues);
+    shouldBackup=!keysLoaded.isEmpty();
+    if (shouldBackup) {
+      backupRecords=new HashMap<Data,CacheRecord>();
+      for (      Data key : keysLoaded) {
+        backupRecords.put(key,cache.getRecord(key));
+      }
+    }
+  }
+ catch (  CacheException e) {
+    response=new CacheClearResponse(e);
+  }
+}

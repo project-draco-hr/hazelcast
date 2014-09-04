@@ -1,0 +1,18 @@
+{
+  ensureOpen();
+  validateNotNull(key,value);
+  validateConfiguredTypes(true,key,value);
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CacheGetAndReplaceRequest request=new CacheGetAndReplaceRequest(getDistributedObjectName(),keyData,valueData,expiryPolicy);
+  V currentValue=toObject(invokeWithCompletion(request,keyData));
+  if (currentValue != null) {
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+  return currentValue;
+}
