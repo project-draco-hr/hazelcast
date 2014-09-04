@@ -1,0 +1,28 @@
+{
+  ensureOpen();
+  if (hasOldValue) {
+    validateNotNull(key,newValue,oldValue);
+    validateConfiguredTypes(true,key,oldValue,newValue);
+  }
+ else {
+    validateNotNull(key,newValue);
+    validateConfiguredTypes(true,key,newValue);
+  }
+  final Data keyData=toData(key);
+  final Data currentValueData=oldValue != null ? toData(oldValue) : null;
+  final Data valueData=newValue != null ? toData(newValue) : null;
+  CacheReplaceRequest request=new CacheReplaceRequest(getDistributedObjectName(),keyData,currentValueData,valueData,expiryPolicy);
+  Boolean replaced=toObject(invokeWithCompletion(request,keyData));
+  if (replaced == null) {
+    return false;
+  }
+  if (replaced) {
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,newValue);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+  return replaced;
+}

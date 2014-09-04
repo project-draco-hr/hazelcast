@@ -1,0 +1,33 @@
+{
+  super.writeInternal(out);
+  int confSize=configs.size();
+  out.writeInt(confSize);
+  if (confSize > 0) {
+    for (    CacheConfig config : configs) {
+      out.writeObject(config);
+    }
+  }
+  int count=data.size();
+  out.writeInt(count);
+  if (count > 0) {
+    long now=Clock.currentTimeMillis();
+    for (    Map.Entry<String,Map<Data,CacheRecord>> entry : data.entrySet()) {
+      Map<Data,CacheRecord> cacheMap=entry.getValue();
+      int subCount=cacheMap.size();
+      out.writeInt(subCount);
+      if (subCount > 0) {
+        out.writeUTF(entry.getKey());
+        for (        Map.Entry<Data,CacheRecord> e : cacheMap.entrySet()) {
+          final Data key=e.getKey();
+          final CacheRecord record=e.getValue();
+          final long expirationTime=record.getExpirationTime();
+          if (expirationTime > now) {
+            key.writeData(out);
+            out.writeObject(record);
+          }
+        }
+        new Data().writeData(out);
+      }
+    }
+  }
+}

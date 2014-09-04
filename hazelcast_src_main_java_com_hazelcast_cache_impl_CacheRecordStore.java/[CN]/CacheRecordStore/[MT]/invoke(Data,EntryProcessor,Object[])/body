@@ -1,0 +1,25 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  CacheRecord record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  if (isExpired) {
+    processExpiredEntry(key,record);
+    record=null;
+  }
+  if (isStatisticsEnabled()) {
+    if (record == null || isExpired) {
+      statistics.increaseCacheMisses(1);
+    }
+ else {
+      statistics.increaseCacheHits(1);
+    }
+  }
+  if (isStatisticsEnabled()) {
+    statistics.addGetTimeNano(System.nanoTime() - start);
+  }
+  CacheEntryProcessorEntry entry=new CacheEntryProcessorEntry(key,record,this,now);
+  final Object process=entryProcessor.process(entry,arguments);
+  entry.applyChanges();
+  return process;
+}

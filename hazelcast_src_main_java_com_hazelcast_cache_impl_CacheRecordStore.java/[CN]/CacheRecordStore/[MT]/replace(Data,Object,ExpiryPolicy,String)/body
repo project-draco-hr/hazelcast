@@ -1,0 +1,26 @@
+{
+  final ExpiryPolicy localExpiryPolicy=expiryPolicy != null ? expiryPolicy : defaultExpiryPolicy;
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  boolean result;
+  CacheRecord record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  if (record == null || isExpired) {
+    result=false;
+  }
+ else {
+    result=updateRecordWithExpiry(key,value,record,localExpiryPolicy,now,false);
+  }
+  if (isStatisticsEnabled()) {
+    statistics.addGetTimeNano(System.nanoTime() - start);
+    if (result) {
+      statistics.increaseCachePuts(1);
+      statistics.increaseCacheHits(1);
+      statistics.addPutTimeNano(System.nanoTime() - start);
+    }
+ else {
+      statistics.increaseCacheMisses(1);
+    }
+  }
+  return result;
+}
