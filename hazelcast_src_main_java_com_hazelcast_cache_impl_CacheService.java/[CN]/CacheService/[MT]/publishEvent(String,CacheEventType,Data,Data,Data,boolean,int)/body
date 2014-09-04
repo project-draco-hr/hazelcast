@@ -1,0 +1,31 @@
+{
+  final EventService eventService=getNodeEngine().getEventService();
+  final Collection<EventRegistration> candidates=eventService.getRegistrations(CacheService.SERVICE_NAME,cacheName);
+  if (candidates.isEmpty()) {
+    return;
+  }
+  final Object eventData;
+switch (eventType) {
+case CREATED:
+case UPDATED:
+case REMOVED:
+case EXPIRED:
+    final CacheEventData cacheEventData=new CacheEventDataImpl(cacheName,eventType,dataKey,dataValue,dataOldValue,isOldValueAvailable);
+  CacheEventSet eventSet=new CacheEventSet(eventType);
+eventSet.addEventData(cacheEventData);
+eventData=eventSet;
+break;
+case EVICTED:
+eventData=new CacheEventDataImpl(cacheName,CacheEventType.EVICTED,dataKey,null,null,false);
+break;
+case INVALIDATED:
+eventData=new CacheEventDataImpl(cacheName,CacheEventType.INVALIDATED,dataKey,null,null,false);
+break;
+case COMPLETED:
+eventData=new CacheEventDataImpl(cacheName,CacheEventType.COMPLETED,dataKey,dataValue,null,false);
+break;
+default :
+throw new IllegalArgumentException("Event Type not defined to create an eventData during publish : " + eventType.name());
+}
+nodeEngine.getEventService().publishEvent(SERVICE_NAME,candidates,eventData,orderKey);
+}

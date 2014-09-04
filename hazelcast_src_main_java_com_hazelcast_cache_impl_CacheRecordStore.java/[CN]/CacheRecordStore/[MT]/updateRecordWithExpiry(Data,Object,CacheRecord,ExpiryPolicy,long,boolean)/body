@@ -1,0 +1,24 @@
+{
+  long expiryTime=-1L;
+  try {
+    Duration expiryDuration=localExpiryPolicy.getExpiryForUpdate();
+    if (expiryDuration != null) {
+      expiryTime=expiryDuration.getAdjustedTime(now);
+      record.setExpirationTime(expiryTime);
+    }
+  }
+ catch (  Throwable t) {
+    EmptyStatement.ignore(t);
+  }
+  if (!disableWriteThrough) {
+    writeThroughCache(key,value);
+  }
+  updateRecord(record,value);
+  if (isExpiredAt(expiryTime,now)) {
+    processExpiredEntry(key,record);
+  }
+ else {
+    return true;
+  }
+  return false;
+}

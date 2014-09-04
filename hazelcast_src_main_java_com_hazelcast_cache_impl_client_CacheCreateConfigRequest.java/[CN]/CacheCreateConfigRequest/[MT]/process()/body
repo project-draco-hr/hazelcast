@@ -1,0 +1,19 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  final Operation op=prepareOperation();
+  op.setCallerUuid(endpoint.getUuid());
+  final InvocationBuilder builder;
+  if (target != null) {
+    builder=operationService.createInvocationBuilder(getServiceName(),op,target);
+  }
+ else {
+    builder=operationService.createInvocationBuilder(getServiceName(),op,partitionId);
+  }
+  builder.setTryCount(TRY_COUNT).setResultDeserialized(false).setCallback(new Callback<Object>(){
+    public void notify(    Object object){
+      endpoint.sendResponse(object,getCallId());
+    }
+  }
+);
+  builder.invoke();
+}
