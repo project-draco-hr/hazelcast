@@ -1,0 +1,35 @@
+{
+  if (Clock.currentTimeMillis() < (lastCleanup + CLEANUP_INTERVAL)) {
+    return;
+  }
+  if (canCleanUp.compareAndSet(true,false)) {
+    try {
+      nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
+        public void run(){
+          try {
+            lastCleanup=Clock.currentTimeMillis();
+            for (            Map.Entry<Data,CacheRecord> entry : cache.entrySet()) {
+              if (entry.getValue().expired()) {
+                final Data key=entry.getKey();
+                final CacheRecord record=cache.remove(key);
+                if (record != null) {
+                  updateSizeEstimator(-calculateCost(record));
+                }
+              }
+            }
+          }
+  finally {
+            canCleanUp.set(true);
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canCleanUp.set(true);
+    }
+catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}

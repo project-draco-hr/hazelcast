@@ -1,0 +1,34 @@
+{
+  if (preparingToMerge.get()) {
+    logger.warning("Cluster-merge process is ongoing, won't process member removal: " + deadAddress);
+    return;
+  }
+  if (!node.joined()) {
+    return;
+  }
+  if (deadAddress.equals(thisAddress)) {
+    return;
+  }
+  lock.lock();
+  try {
+    if (deadAddress.equals(node.getMasterAddress())) {
+      assignNewMaster();
+    }
+    if (node.isMaster()) {
+      setJoins.remove(new MemberInfo(deadAddress));
+      resetMemberMasterConfirmations();
+    }
+    final Connection conn=node.connectionManager.getConnection(deadAddress);
+    if (destroyConnection && conn != null) {
+      node.connectionManager.destroyConnection(conn);
+    }
+    MemberImpl deadMember=getMember(deadAddress);
+    if (deadMember != null) {
+      removeMember(deadMember);
+      logger.info(membersString());
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

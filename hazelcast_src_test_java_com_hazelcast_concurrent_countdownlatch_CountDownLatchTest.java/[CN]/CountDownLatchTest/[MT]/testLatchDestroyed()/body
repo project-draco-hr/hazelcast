@@ -1,0 +1,15 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  final ICountDownLatch latch=hz1.getCountDownLatch("test");
+  latch.trySetCount(2);
+  new TestThread(){
+    public void doRun() throws Exception {
+      sleep(1000);
+      latch.destroy();
+    }
+  }
+.start();
+  hz2.getCountDownLatch("test").await(5,TimeUnit.SECONDS);
+}

@@ -1,0 +1,33 @@
+{
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setRedoOperation(true);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final CountDownLatch connectedLatch=new CountDownLatch(2);
+  client.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      connectedLatch.countDown();
+    }
+  }
+);
+  final IMap<Object,Object> map=client.getMap("default");
+  final AtomicInteger eventCount=new AtomicInteger();
+  final EntryAdapter<Object,Object> listener=new EntryAdapter<Object,Object>(){
+    public void onEntryEvent(    EntryEvent<Object,Object> event){
+      eventCount.incrementAndGet();
+    }
+  }
+;
+  map.addEntryListener(listener,true);
+  h1.shutdown();
+  Hazelcast.newHazelcastInstance();
+  assertOpenEventually(connectedLatch,10);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      map.put("key","value");
+      int count=eventCount.get();
+      assertTrue("No events generated!",count > 0);
+    }
+  }
+,30);
+}

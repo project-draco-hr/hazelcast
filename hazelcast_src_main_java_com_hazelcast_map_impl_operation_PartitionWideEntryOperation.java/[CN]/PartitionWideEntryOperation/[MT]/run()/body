@@ -1,0 +1,24 @@
+{
+  final Iterator<Record> iterator=recordStore.iterator();
+  while (iterator.hasNext()) {
+    final Record record=iterator.next();
+    final Data dataKey=record.getKey();
+    final Object oldValue=record.getValue();
+    final Object key=toObject(dataKey);
+    final Object value=toObject(oldValue);
+    if (!applyPredicate(dataKey,key,value)) {
+      continue;
+    }
+    final long now=getNow();
+    final Map.Entry entry=createMapEntry(key,value);
+    final Data response=process(entry);
+    addToResponses(dataKey,response);
+    if (noOp(entry,oldValue)) {
+      continue;
+    }
+    if (entryRemoved(entry,dataKey,oldValue,now)) {
+      continue;
+    }
+    entryAddedOrUpdated(entry,dataKey,oldValue,now);
+  }
+}

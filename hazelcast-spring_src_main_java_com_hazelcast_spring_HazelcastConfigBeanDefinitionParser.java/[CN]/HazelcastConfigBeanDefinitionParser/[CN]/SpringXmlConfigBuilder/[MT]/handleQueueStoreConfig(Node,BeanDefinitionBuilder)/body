@@ -1,0 +1,23 @@
+{
+  BeanDefinitionBuilder queueStoreConfigBuilder=createBeanBuilder(QueueStoreConfig.class);
+  final AbstractBeanDefinition beanDefinition=queueStoreConfigBuilder.getBeanDefinition();
+  for (  org.w3c.dom.Node child : new IterableNodeList(node,Node.ELEMENT_NODE)) {
+    if ("properties".equals(cleanNodeName(child))) {
+      handleProperties(child,queueStoreConfigBuilder);
+      break;
+    }
+  }
+  final String implAttrName="store-implementation";
+  final String factoryImplAttrName="factory-implementation";
+  fillAttributeValues(node,queueStoreConfigBuilder,implAttrName,factoryImplAttrName);
+  final NamedNodeMap attributes=node.getAttributes();
+  final Node implRef=attributes.getNamedItem(implAttrName);
+  final Node factoryImplRef=attributes.getNamedItem(factoryImplAttrName);
+  if (factoryImplRef != null) {
+    queueStoreConfigBuilder.addPropertyReference(xmlToJavaName(factoryImplAttrName),getTextContent(factoryImplRef));
+  }
+  if (implRef != null) {
+    queueStoreConfigBuilder.addPropertyReference(xmlToJavaName(implAttrName),getTextContent(implRef));
+  }
+  queueConfigBuilder.addPropertyValue("queueStoreConfig",beanDefinition);
+}

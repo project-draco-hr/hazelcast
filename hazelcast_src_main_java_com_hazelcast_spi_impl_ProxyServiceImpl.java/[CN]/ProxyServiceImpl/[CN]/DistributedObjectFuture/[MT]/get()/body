@@ -1,0 +1,26 @@
+{
+  if (proxy != null) {
+    return proxy;
+  }
+  if (error != null) {
+    throw ExceptionUtil.rethrow(error);
+  }
+  boolean interrupted=false;
+synchronized (this) {
+    while (proxy == null && error == null) {
+      try {
+        wait();
+      }
+ catch (      InterruptedException e) {
+        interrupted=true;
+      }
+    }
+  }
+  if (interrupted) {
+    Thread.currentThread().interrupt();
+  }
+  if (proxy != null) {
+    return proxy;
+  }
+  throw ExceptionUtil.rethrow(error);
+}

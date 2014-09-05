@@ -1,0 +1,14 @@
+{
+  final int k=simpleTestNodeCount;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  final HazelcastInstance[] instances=factory.newInstances(new Config());
+  for (int i=0; i < k; i++) {
+    final IExecutorService service=instances[i].getExecutorService("testExecuteMultipleNode");
+    final String script="hazelcast.getAtomicLong('count').incrementAndGet();";
+    final int rand=new Random().nextInt(100);
+    final Future<Integer> future=service.submit(new ScriptRunnable(script,null),rand);
+    assertEquals(Integer.valueOf(rand),future.get());
+  }
+  final IAtomicLong count=instances[0].getAtomicLong("count");
+  assertEquals(k,count.get());
+}

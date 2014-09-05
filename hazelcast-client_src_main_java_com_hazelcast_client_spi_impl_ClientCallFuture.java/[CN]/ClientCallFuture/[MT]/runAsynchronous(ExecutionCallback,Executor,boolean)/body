@@ -1,0 +1,27 @@
+{
+  try {
+    executor.execute(new Runnable(){
+      @Override public void run(){
+        try {
+          Object resp=resolveResponse();
+          if (deserialized) {
+            resp=serializationService.toObject(resp);
+          }
+          if (resp == null || !(resp instanceof Throwable)) {
+            callback.onResponse(resp);
+          }
+ else {
+            callback.onFailure((Throwable)resp);
+          }
+        }
+ catch (        Throwable t) {
+          LOGGER.severe("Failed to execute callback: " + callback + "! Request: "+ request+ ", response: "+ response,t);
+        }
+      }
+    }
+);
+  }
+ catch (  RejectedExecutionException e) {
+    LOGGER.warning("Execution of callback: " + callback + " is rejected!",e);
+  }
+}

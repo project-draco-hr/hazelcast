@@ -1,0 +1,14 @@
+{
+  LockStoreImpl lockStore=getLockStore();
+  if (!lockStore.lock(key,getCallerUuid(),threadId)) {
+    throw new IllegalMonitorStateException("Current thread is not owner of the lock! -> " + lockStore.getOwnerInfo(key));
+  }
+  if (expired) {
+    response=false;
+  }
+ else {
+    lockStore.removeSignalKey(getWaitKey());
+    lockStore.removeAwait(key,conditionId,getCallerUuid(),threadId);
+    response=true;
+  }
+}

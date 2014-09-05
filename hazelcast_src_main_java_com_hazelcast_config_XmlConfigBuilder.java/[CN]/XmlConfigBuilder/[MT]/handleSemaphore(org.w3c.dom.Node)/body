@@ -1,26 +1,19 @@
 {
   final Node attName=node.getAttributes().getNamedItem("name");
   final String name=getTextContent(attName);
-  final SemaphoreConfig sConfig=new SemaphoreConfig(name);
+  final SemaphoreConfig sConfig=new SemaphoreConfig();
+  sConfig.setName(name);
   for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes())) {
     final String nodeName=cleanNodeName(n.getNodeName());
     final String value=getTextContent(n).trim();
     if ("initial-permits".equals(nodeName)) {
-      sConfig.setInitialPermits(getIntegerValue("initial-permits",value,MapConfig.DEFAULT_BACKUP_COUNT));
+      sConfig.setInitialPermits(getIntegerValue("initial-permits",value,0));
     }
- else     if ("semaphore-factory".equals(nodeName)) {
-      final NamedNodeMap atts=n.getAttributes();
-      for (int a=0; a < atts.getLength(); a++) {
-        final org.w3c.dom.Node att=atts.item(a);
-        if (att.getNodeName().equals("enabled")) {
-          sConfig.setFactoryEnabled(checkTrue(getTextContent(att).trim()));
-          for (          org.w3c.dom.Node subNode : new IterableNodeList(n.getChildNodes())) {
-            if ("class-name".equals(cleanNodeName(subNode.getNodeName()))) {
-              sConfig.setFactoryClassName(getTextContent(n).trim());
-            }
-          }
-        }
-      }
+ else     if ("backup-count".equals(nodeName)) {
+      sConfig.setBackupCount(getIntegerValue("backup-count",value,SemaphoreConfig.DEFAULT_SYNC_BACKUP_COUNT));
+    }
+ else     if ("async-backup-count".equals(nodeName)) {
+      sConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value,SemaphoreConfig.DEFAULT_ASYNC_BACKUP_COUNT));
     }
   }
   config.addSemaphoreConfig(sConfig);

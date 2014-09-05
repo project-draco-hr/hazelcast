@@ -1,0 +1,29 @@
+{
+  final NamedNodeMap atts=element.getAttributes();
+  String instanceRefName="instance";
+  String mode="DISTRIBUTED";
+  if (atts != null) {
+    for (int a=0; a < atts.getLength(); a++) {
+      final Node att=atts.item(a);
+      final String name=att.getNodeName();
+      if ("instance-ref".equals(name)) {
+        instanceRefName=att.getTextContent();
+      }
+ else       if ("mode".equals(name)) {
+        mode=att.getTextContent();
+      }
+    }
+  }
+  final BeanDefinitionBuilder builder;
+  if ("DISTRIBUTED".equals(mode)) {
+    builder=BeanDefinitionBuilder.rootBeanDefinition(HazelcastCacheRegionFactory.class);
+  }
+ else   if ("LOCAL".equals(mode)) {
+    builder=BeanDefinitionBuilder.rootBeanDefinition(HazelcastLocalCacheRegionFactory.class);
+  }
+ else {
+    throw new IllegalArgumentException("Unknown Hibernate L2 cache mode: " + mode);
+  }
+  builder.addConstructorArgReference(instanceRefName);
+  return builder.getBeanDefinition();
+}

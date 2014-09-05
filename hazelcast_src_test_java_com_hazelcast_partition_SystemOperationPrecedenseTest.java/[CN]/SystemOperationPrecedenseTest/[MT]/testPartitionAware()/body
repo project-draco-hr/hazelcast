@@ -1,0 +1,17 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  OperationService opService=getNode(hz).nodeEngine.getOperationService();
+  int pendingOperations=10000;
+  final CountDownLatch latch=new CountDownLatch(1);
+  int partitionid=1;
+  for (int k=0; k < pendingOperations; k++) {
+    opService.executeOperation(new NormalPartitionAwareOperation(partitionid));
+  }
+  opService.executeOperation(new UrgentPartitionAwareOperation(latch,partitionid));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(0,latch.getCount());
+    }
+  }
+);
+}

@@ -1,0 +1,29 @@
+{
+  try {
+    if (state == NO_TXN || state == ROLLED_BACK) {
+      throw new IllegalStateException("Transaction is not active");
+    }
+    checkThread();
+    state=ROLLING_BACK;
+    try {
+      rollbackTxBackup();
+      final List<Future> futures=new ArrayList<Future>(txLogs.size());
+      final ListIterator<TransactionLog> iter=txLogs.listIterator(txLogs.size());
+      while (iter.hasPrevious()) {
+        final TransactionLog txLog=iter.previous();
+        futures.add(txLog.rollback(nodeEngine));
+      }
+      waitWithDeadline(futures,ROLLBACK_TIMEOUT_MINUTES,TimeUnit.MINUTES,rollbackExceptionHandler);
+      purgeTxBackups();
+    }
+ catch (    Throwable e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+ finally {
+      state=ROLLED_BACK;
+    }
+  }
+  finally {
+    setThreadFlag(null);
+  }
+}

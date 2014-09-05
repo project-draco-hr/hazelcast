@@ -1,0 +1,19 @@
+{
+  checkIfLoaded();
+  final long now=getNow();
+  Record record=getRecord(key,false);
+  if (record == null) {
+    Object value=mapDataStore.load(key);
+    if (value != null) {
+      record=createRecord(key,value,now);
+      records.put(key,record);
+      updateSizeEstimator(calculateRecordHeapCost(record));
+    }
+  }
+  boolean contains=record != null;
+  if (contains) {
+    accessRecord(record,now);
+  }
+  postReadCleanUp(now,false);
+  return contains;
+}

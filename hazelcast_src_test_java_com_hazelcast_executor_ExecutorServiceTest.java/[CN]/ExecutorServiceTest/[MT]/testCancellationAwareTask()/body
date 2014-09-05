@@ -1,0 +1,24 @@
+{
+  SleepingTask task=new SleepingTask(5000);
+  ExecutorService executor=createSingleNodeExecutorService("testCancellationAwareTask");
+  Future future=executor.submit(task);
+  try {
+    future.get(2,TimeUnit.SECONDS);
+    fail("Should throw TimeoutException!");
+  }
+ catch (  TimeoutException expected) {
+  }
+  assertFalse(future.isDone());
+  assertTrue(future.cancel(true));
+  assertTrue(future.isCancelled());
+  assertTrue(future.isDone());
+  try {
+    future.get();
+    fail("Should not complete the task successfully");
+  }
+ catch (  CancellationException expected) {
+  }
+catch (  Exception e) {
+    fail("Unexpected exception " + e);
+  }
+}

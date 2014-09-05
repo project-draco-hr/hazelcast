@@ -1,0 +1,14 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  RemoveOperation operation=new RemoveOperation(name,key);
+  operation.setThreadId(ThreadUtil.getThreadId());
+  try {
+    ICompletableFuture<Data> future=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    invalidateNearCache(key);
+    return future;
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}

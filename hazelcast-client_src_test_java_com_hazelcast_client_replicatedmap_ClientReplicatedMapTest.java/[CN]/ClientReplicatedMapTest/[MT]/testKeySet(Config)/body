@@ -1,0 +1,34 @@
+{
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance instance2=HazelcastClient.newHazelcastClient();
+  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
+  final AbstractMap.SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
+  final List<Integer> keySetTestValues=new ArrayList<Integer>(testValues.length);
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      int half=testValues.length / 2;
+      for (int i=0; i < testValues.length; i++) {
+        final ReplicatedMap map=i < half ? map1 : map2;
+        final AbstractMap.SimpleEntry<Integer,Integer> entry=testValues[i];
+        map.put(entry.getKey(),entry.getValue());
+        keySetTestValues.add(entry.getKey());
+      }
+    }
+  }
+,2,EntryEventType.ADDED,100,0.75,map1,map2);
+  List<Integer> keySet1=new ArrayList<Integer>(map1.keySet());
+  List<Integer> keySet2=new ArrayList<Integer>(map2.keySet());
+  int map1Contains=0;
+  int map2Contains=0;
+  for (  Integer value : keySetTestValues) {
+    if (keySet2.contains(value)) {
+      map2Contains++;
+    }
+    if (keySet1.contains(value)) {
+      map1Contains++;
+    }
+  }
+  assertMatchSuccessfulOperationQuota(0.75,testValues.length,map1Contains,map2Contains);
+}

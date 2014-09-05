@@ -1,0 +1,33 @@
+{
+  final Map<Integer,Integer> map=hz.getMap("map");
+  final int itemCount=10000;
+  for (int k=0; k < itemCount; k++) {
+    map.put(k,k);
+  }
+  RestartThread restartThread=new RestartThread();
+  restartThread.start();
+  TestThread[] testThreads=new TestThread[THREAD_COUNT];
+  for (int k=0; k < testThreads.length; k++) {
+    testThreads[k]=new TestThread("GetThread-" + k){
+      @Override void doRun(){
+        long endTime=System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(DURATION_SECONDS);
+        Random random=new Random();
+        for (; ; ) {
+          int key=random.nextInt(itemCount);
+          assertEquals(new Integer(key),map.get(key));
+          if (System.currentTimeMillis() > endTime) {
+            break;
+          }
+        }
+      }
+    }
+;
+    testThreads[k].start();
+  }
+  Thread.sleep(TimeUnit.SECONDS.toMillis(DURATION_SECONDS));
+  for (  TestThread t : testThreads) {
+    t.join(TimeUnit.MINUTES.toMillis(1));
+    t.assertDiedPeacefully();
+  }
+  restartThread.stop=true;
+}

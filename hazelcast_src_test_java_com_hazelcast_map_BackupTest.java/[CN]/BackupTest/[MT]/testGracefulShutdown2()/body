@@ -1,0 +1,36 @@
+{
+  Config config=new Config();
+  config.getMapConfig(MAP_NAME).setBackupCount(2);
+  TestHazelcastInstanceFactory f=createHazelcastInstanceFactory(6);
+  final HazelcastInstance hz=f.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map=hz.getMap(MAP_NAME);
+  final int size=50000;
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  final HazelcastInstance hz2=f.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map2=hz2.getMap(MAP_NAME);
+  waitForSafeStateAndCheckSize(size,hz2,map2);
+  final HazelcastInstance hz3=f.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map3=hz3.getMap(MAP_NAME);
+  final HazelcastInstance hz4=f.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map4=hz4.getMap(MAP_NAME);
+  waitForSafeStateAndCheckSize(size,hz3,map3);
+  waitForSafeStateAndCheckSize(size,hz4,map4);
+  final HazelcastInstance hz5=f.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map5=hz5.getMap(MAP_NAME);
+  final HazelcastInstance hz6=f.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map6=hz6.getMap(MAP_NAME);
+  waitForSafeStateAndCheckSize(size,hz5,map5);
+  waitForSafeStateAndCheckSize(size,hz6,map6);
+  shutdownAndWait(hz);
+  shutdownAndWait(hz2);
+  waitForSafeStateAndCheckSize(size,hz3,map3);
+  waitForSafeStateAndCheckSize(size,hz4,map4);
+  waitForSafeStateAndCheckSize(size,hz5,map5);
+  waitForSafeStateAndCheckSize(size,hz6,map6);
+  shutdownAndWait(hz3);
+  shutdownAndWait(hz4);
+  waitForSafeStateAndCheckSize(size,hz5,map5);
+  waitForSafeStateAndCheckSize(size,hz6,map6);
+}

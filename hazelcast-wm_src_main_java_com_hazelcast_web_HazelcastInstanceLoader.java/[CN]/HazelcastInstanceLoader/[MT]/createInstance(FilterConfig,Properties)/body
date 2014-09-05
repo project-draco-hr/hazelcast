@@ -12,26 +12,7 @@
     configUrl=getConfigURL(filterConfig,configLocation);
   }
   if (useClient) {
-    logger.log(Level.WARNING,"Creating HazelcastClient, make sure this node has access to an already running cluster...");
-    ClientConfig clientConfig;
-    if (configUrl == null) {
-      clientConfig=new ClientConfig();
-      clientConfig.setUpdateAutomatic(true);
-      clientConfig.setInitialConnectionAttemptLimit(3);
-      clientConfig.setReconnectionAttemptLimit(5);
-    }
- else {
-      try {
-        clientConfig=new ClientConfigBuilder(configUrl).build();
-      }
- catch (      IOException e) {
-        throw new ServletException(e);
-      }
-    }
-    return HazelcastClient.newHazelcastClient(clientConfig);
-  }
-  if (configUrl == null && isEmpty(instanceName)) {
-    return Hazelcast.getDefaultInstance();
+    return createClientInstance(configUrl);
   }
   Config config;
   if (configUrl == null) {
@@ -45,20 +26,5 @@
       throw new ServletException(e);
     }
   }
-  if (!isEmpty(instanceName)) {
-    config.setInstanceName(instanceName);
-    HazelcastInstance instance=Hazelcast.getHazelcastInstanceByName(instanceName);
-    if (instance == null) {
-      try {
-        instance=Hazelcast.newHazelcastInstance(config);
-      }
- catch (      DuplicateInstanceNameException ignored) {
-        instance=Hazelcast.getHazelcastInstanceByName(instanceName);
-      }
-    }
-    return instance;
-  }
- else {
-    return Hazelcast.newHazelcastInstance(config);
-  }
+  return createHazelcastInstance(instanceName,config);
 }

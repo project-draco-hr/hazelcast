@@ -1,0 +1,21 @@
+{
+  if (isDone() || cancelled) {
+    return false;
+  }
+  final Future f=invokeCancelRequest(mayInterruptIfRunning);
+  try {
+    final Boolean b=context.getSerializationService().toObject(f.get());
+    if (b != null && b) {
+      setError(new CancellationException());
+      cancelled=true;
+      return true;
+    }
+    return false;
+  }
+ catch (  Exception e) {
+    throw rethrow(e);
+  }
+ finally {
+    setDone();
+  }
+}

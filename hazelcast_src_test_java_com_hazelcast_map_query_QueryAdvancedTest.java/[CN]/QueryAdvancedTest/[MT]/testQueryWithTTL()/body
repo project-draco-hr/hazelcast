@@ -1,0 +1,35 @@
+{
+  Config cfg=new Config();
+  MapConfig mapConfig=new MapConfig();
+  mapConfig.setTimeToLiveSeconds(5);
+  mapConfig.setName("employees");
+  cfg.addMapConfig(mapConfig);
+  HazelcastInstance h1=createHazelcastInstance(cfg);
+  IMap imap=h1.getMap("employees");
+  imap.addIndex("name",false);
+  imap.addIndex("age",false);
+  imap.addIndex("active",true);
+  int passiveEmployees=5;
+  int activeEmployees=5;
+  int allEmployees=passiveEmployees + activeEmployees;
+  final CountDownLatch latch=new CountDownLatch(allEmployees);
+  imap.addEntryListener(new EntryAdapter(){
+    @Override public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,false);
+  for (int i=0; i < activeEmployees; i++) {
+    Employee employee=new Employee("activeEmployee" + i,60,true,Double.valueOf(i));
+    imap.put("activeEmployee" + i,employee);
+  }
+  for (int i=0; i < passiveEmployees; i++) {
+    Employee employee=new Employee("passiveEmployee" + i,60,false,Double.valueOf(i));
+    imap.put("passiveEmployee" + i,employee);
+  }
+  Collection values=imap.values(new SqlPredicate("active"));
+  assertEquals(activeEmployees,values.size());
+  assertOpenEventually(latch);
+  values=imap.values(new SqlPredicate("active"));
+  assertEquals(0,values.size());
+}

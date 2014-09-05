@@ -1,0 +1,23 @@
+{
+  final long now=getNow();
+  markRecordStoreExpirable(ttl);
+  Record record=getRecord(key,false);
+  Object oldValue=null;
+  if (record == null) {
+    value=mapServiceContext.interceptPut(name,null,value);
+    record=createRecord(key,value,ttl,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+  }
+ else {
+    oldValue=record.getValue();
+    value=mapServiceContext.interceptPut(name,record.getValue(),value);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    setRecordValue(record,value,now);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+    updateTtl(record,ttl);
+  }
+  saveIndex(record);
+  evictEntries(now,false);
+  return oldValue;
+}

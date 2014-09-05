@@ -1,0 +1,46 @@
+{
+  if (node.isMaster() && node.isActive()) {
+    lock.lock();
+    try {
+      if (!initialized) {
+        return;
+      }
+      if (!isMigrationAllowed()) {
+        return;
+      }
+      migrationQueue.clear();
+      PartitionStateGenerator psg=partitionStateGenerator;
+      Collection<MemberImpl> members=node.getClusterService().getMemberList();
+      Collection<MemberGroup> memberGroups=memberGroupFactory.createMemberGroups(members);
+      Address[][] newState=psg.reArrange(memberGroups,partitions);
+      if (!isMigrationAllowed()) {
+        return;
+      }
+      int migrationCount=0;
+      int lostCount=0;
+      lastRepartitionTime.set(Clock.currentTimeMillis());
+      for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+        Address[] replicas=newState[partitionId];
+        InternalPartitionImpl currentPartition=partitions[partitionId];
+        Address currentOwner=currentPartition.getOwnerOrNull();
+        Address newOwner=replicas[0];
+        if (currentOwner == null) {
+          lostCount++;
+          assignNewPartitionOwner(partitionId,replicas,currentPartition,newOwner);
+        }
+ else         if (newOwner != null && !currentOwner.equals(newOwner)) {
+          migrationCount++;
+          migratePartitionToNewOwner(partitionId,replicas,currentOwner,newOwner);
+        }
+ else {
+          currentPartition.setPartitionInfo(replicas);
+        }
+      }
+      syncPartitionRuntimeState(members);
+      logMigrationStatistics(migrationCount,lostCount);
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+}

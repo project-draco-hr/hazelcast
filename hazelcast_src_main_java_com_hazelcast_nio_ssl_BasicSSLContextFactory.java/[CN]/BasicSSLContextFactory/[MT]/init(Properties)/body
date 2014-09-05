@@ -1,28 +1,29 @@
 {
   KeyStore ks=KeyStore.getInstance("JKS");
   KeyStore ts=KeyStore.getInstance("JKS");
-  String keyStorePassword=properties.getProperty("keyStorePassword");
-  if (keyStorePassword == null) {
-    keyStorePassword=System.getProperty("javax.net.ssl.keyStorePassword");
+  String keyStorePassword=getProperty(properties,"keyStorePassword");
+  String keyStore=getProperty(properties,"keyStore");
+  String trustStore=getProperty(properties,"trustStore",keyStore);
+  String trustStorePassword=getProperty(properties,"trustStorePassword",keyStorePassword);
+  String keyManagerAlgorithm=properties.getProperty("keyManagerAlgorithm",KeyManagerFactory.getDefaultAlgorithm());
+  String trustManagerAlgorithm=properties.getProperty("trustManagerAlgorithm",TrustManagerFactory.getDefaultAlgorithm());
+  String protocol=properties.getProperty("protocol","TLS");
+  KeyManager[] keyManagers=null;
+  if (keyStore != null) {
+    KeyManagerFactory kmf=KeyManagerFactory.getInstance(keyManagerAlgorithm);
+    char[] passPhrase=keyStorePassword != null ? keyStorePassword.toCharArray() : null;
+    loadKeyStore(ks,passPhrase,keyStore);
+    kmf.init(ks,passPhrase);
+    keyManagers=kmf.getKeyManagers();
   }
-  String keyStore=properties.getProperty("keyStore");
-  if (keyStore == null) {
-    keyStore=System.getProperty("javax.net.ssl.keyStore");
+  TrustManager[] trustManagers=null;
+  if (trustStore != null) {
+    TrustManagerFactory tmf=TrustManagerFactory.getInstance(trustManagerAlgorithm);
+    char[] passPhrase=trustStorePassword != null ? trustStorePassword.toCharArray() : null;
+    loadKeyStore(ts,passPhrase,trustStore);
+    tmf.init(ts);
+    trustManagers=tmf.getTrustManagers();
   }
-  if (keyStore == null || keyStorePassword == null) {
-    throw new RuntimeException("SSL is enabled but keyStore[Password] properties aren't set!");
-  }
-  String keyManagerAlgorithm=getProperty(properties,"keyManagerAlgorithm","SunX509");
-  String trustManagerAlgorithm=getProperty(properties,"trustManagerAlgorithm","SunX509");
-  String protocol=getProperty(properties,"protocol","TLS");
-  final char[] passPhrase=keyStorePassword.toCharArray();
-  final String keyStoreFile=keyStore;
-  ks.load(new FileInputStream(keyStoreFile),passPhrase);
-  ts.load(new FileInputStream(keyStoreFile),passPhrase);
-  KeyManagerFactory kmf=KeyManagerFactory.getInstance(keyManagerAlgorithm);
-  kmf.init(ks,passPhrase);
-  TrustManagerFactory tmf=TrustManagerFactory.getInstance(trustManagerAlgorithm);
-  tmf.init(ts);
   sslContext=SSLContext.getInstance(protocol);
-  sslContext.init(kmf.getKeyManagers(),tmf.getTrustManagers(),null);
+  sslContext.init(keyManagers,trustManagers,null);
 }

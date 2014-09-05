@@ -1,0 +1,30 @@
+{
+  live=false;
+  log(Level.FINEST,"Stopping ConnectionManager");
+  shutdownSocketAcceptor();
+  for (  SocketChannelWrapper socketChannel : acceptedSockets) {
+    IOUtil.closeResource(socketChannel);
+  }
+  for (  Connection conn : connectionsMap.values()) {
+    try {
+      destroyConnection(conn);
+    }
+ catch (    final Throwable ignore) {
+      logger.finest(ignore);
+    }
+  }
+  for (  TcpIpConnection conn : activeConnections) {
+    try {
+      destroyConnection(conn);
+    }
+ catch (    final Throwable ignore) {
+      logger.finest(ignore);
+    }
+  }
+  shutdownIOSelectors();
+  acceptedSockets.clear();
+  connectionsInProgress.clear();
+  connectionsMap.clear();
+  monitors.clear();
+  activeConnections.clear();
+}

@@ -1,0 +1,14 @@
+{
+  final String mapName=randomMapName();
+  final Config config=createNewConfig(mapName);
+  final HazelcastInstance node=createHazelcastInstance(config);
+  final IMap<Object,Object> map=node.getMap(mapName);
+  final int itemCount=1000;
+  populateMap(map,itemCount);
+  evictRange(map,0,700);
+  final CountDownLatch addEventCounter=new CountDownLatch(700);
+  addListener(map,addEventCounter);
+  map.loadAll(false);
+  assertOpenEventually(addEventCounter);
+  assertEquals(itemCount,map.size());
+}

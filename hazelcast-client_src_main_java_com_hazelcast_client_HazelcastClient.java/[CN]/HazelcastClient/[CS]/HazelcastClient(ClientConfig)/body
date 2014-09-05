@@ -1,43 +1,24 @@
 {
-  if (config.getAddressList().size() == 0) {
-    config.addAddress("localhost");
-  }
-  if (config.getCredentials() == null) {
-    config.setCredentials(new UsernamePasswordCredentials(config.getGroupConfig().getName(),config.getGroupConfig().getPassword()));
-  }
   this.config=config;
-  this.id=clientIdCounter.incrementAndGet();
-  lifecycleService=new LifecycleServiceClientImpl(this);
-  lifecycleService.fireLifecycleEvent(STARTING);
-  connectionManager=new ConnectionManager(this,config,lifecycleService);
-  connectionManager.setBinder(new DefaultClientBinder(this));
-  out=new OutRunnable(this,calls,new PacketWriter());
-  in=new InRunnable(this,out,calls,new PacketReader());
-  listenerManager=new ListenerManager(this);
-  try {
-    final Connection c=connectionManager.getInitConnection();
-    if (c == null) {
-      connectionManager.shutdown();
-      lifecycleService.destroy();
-      throw new IllegalStateException("Unable to connect to cluster");
-    }
+  final GroupConfig groupConfig=config.getGroupConfig();
+  instanceName="hz.client_" + id + (groupConfig != null ? "_" + groupConfig.getName() : "");
+  threadGroup=new ThreadGroup(instanceName);
+  lifecycleService=new LifecycleServiceImpl(this);
+  clientProperties=new ClientProperties(config);
+  serializationService=initSerializationService(config);
+  proxyManager=new ProxyManager(this);
+  executionService=initExecutorService();
+  transactionManager=new ClientTransactionManager(this);
+  LoadBalancer lb=config.getLoadBalancer();
+  if (lb == null) {
+    lb=new RoundRobinLB();
   }
- catch (  IOException e) {
-    connectionManager.shutdown();
-    lifecycleService.destroy();
-    throw new ClusterClientException(e.getMessage(),e);
-  }
-  final String prefix="hz.client." + this.id + ".";
-  new Thread(out,prefix + "OutThread").start();
-  new Thread(in,prefix + "InThread").start();
-  new Thread(listenerManager,prefix + "Listener").start();
-  clusterClientProxy=new ClusterClientProxy(this);
-  partitionClientProxy=new PartitionClientProxy(this);
-  if (config.isUpdateAutomatic()) {
-    this.getCluster().addMembershipListener(connectionManager);
-    connectionManager.updateMembers();
-  }
-  lifecycleService.fireLifecycleEvent(STARTED);
-  connectionManager.scheduleHeartbeatTimerTask();
-  lsClients.add(HazelcastClient.this);
+  loadBalancer=lb;
+  connectionManager=createClientConnectionManager();
+  clusterService=new ClientClusterServiceImpl(this);
+  invocationService=new ClientInvocationServiceImpl(this);
+  listenerService=initListenerService();
+  userContext=new ConcurrentHashMap<String,Object>();
+  proxyManager.init(config);
+  partitionService=new ClientPartitionServiceImpl(this);
 }

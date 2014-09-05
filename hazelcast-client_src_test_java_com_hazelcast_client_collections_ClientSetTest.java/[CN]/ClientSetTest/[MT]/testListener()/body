@@ -1,0 +1,23 @@
+{
+  final ISet tempSet=set;
+  final CountDownLatch latch=new CountDownLatch(6);
+  ItemListener listener=new ItemListener(){
+    public void itemAdded(    ItemEvent itemEvent){
+      latch.countDown();
+    }
+    public void itemRemoved(    ItemEvent item){
+    }
+  }
+;
+  String registrationId=tempSet.addItemListener(listener,true);
+  new Thread(){
+    public void run(){
+      for (int i=0; i < 5; i++) {
+        tempSet.add("item" + i);
+      }
+      tempSet.add("done");
+    }
+  }
+.start();
+  assertTrue(latch.await(20,TimeUnit.SECONDS));
+}

@@ -1,0 +1,54 @@
+{
+  LocalMultiMapStatsImpl stats=getLocalMultiMapStatsImpl(name);
+  long ownedEntryCount=0;
+  long backupEntryCount=0;
+  long hits=0;
+  long lockedEntryCount=0;
+  ClusterServiceImpl clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
+  Address thisAddress=clusterService.getThisAddress();
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    InternalPartition partition=nodeEngine.getPartitionService().getPartition(i);
+    MultiMapPartitionContainer partitionContainer=getPartitionContainer(i);
+    MultiMapContainer multiMapContainer=partitionContainer.getCollectionContainer(name);
+    if (multiMapContainer == null) {
+      continue;
+    }
+    Address owner=partition.getOwnerOrNull();
+    if (owner != null) {
+      if (owner.equals(thisAddress)) {
+        lockedEntryCount+=multiMapContainer.getLockedCount();
+        for (        MultiMapWrapper wrapper : multiMapContainer.getMultiMapWrappers().values()) {
+          hits+=wrapper.getHits();
+          ownedEntryCount+=wrapper.getCollection(false).size();
+        }
+      }
+ else {
+        int backupCount=multiMapContainer.getConfig().getTotalBackupCount();
+        for (int j=1; j <= backupCount; j++) {
+          Address replicaAddress=partition.getReplicaAddress(j);
+          int memberSize=nodeEngine.getClusterService().getMembers().size();
+          int tryCount=REPLICA_ADDRESS_TRY_COUNT;
+          while (memberSize > backupCount && replicaAddress == null && tryCount-- > 0) {
+            try {
+              Thread.sleep(REPLICA_ADDRESS_SLEEP_WAIT_MILLIS);
+            }
+ catch (            InterruptedException e) {
+              throw ExceptionUtil.rethrow(e);
+            }
+            replicaAddress=partition.getReplicaAddress(j);
+          }
+          if (replicaAddress != null && replicaAddress.equals(thisAddress)) {
+            for (            MultiMapWrapper wrapper : multiMapContainer.getMultiMapWrappers().values()) {
+              backupEntryCount+=wrapper.getCollection(false).size();
+            }
+          }
+        }
+      }
+    }
+  }
+  stats.setOwnedEntryCount(ownedEntryCount);
+  stats.setBackupEntryCount(backupEntryCount);
+  stats.setHits(hits);
+  stats.setLockedEntryCount(lockedEntryCount);
+  return stats;
+}

@@ -1,0 +1,40 @@
+{
+  try {
+    textCommandService.lock(mapName,key);
+  }
+ catch (  Exception e) {
+    setCommand.setResponse(TextCommandConstants.NOT_STORED);
+    if (setCommand.shouldReply()) {
+      textCommandService.sendResponse(setCommand);
+    }
+    return;
+  }
+  Object oldValue=textCommandService.get(mapName,key);
+  MemcacheEntry entry=null;
+  if (oldValue != null) {
+    if (oldValue instanceof MemcacheEntry) {
+      final MemcacheEntry oldEntry=(MemcacheEntry)oldValue;
+      entry=new MemcacheEntry(setCommand.getKey(),ByteUtil.concatenate(oldEntry.getValue(),setCommand.getValue()),0);
+    }
+ else     if (oldValue instanceof byte[]) {
+      entry=new MemcacheEntry(setCommand.getKey(),ByteUtil.concatenate(((byte[])oldValue),setCommand.getValue()),0);
+    }
+ else     if (oldValue instanceof String) {
+      entry=new MemcacheEntry(setCommand.getKey(),ByteUtil.concatenate(stringToBytes((String)oldValue),setCommand.getValue()),0);
+    }
+ else {
+      try {
+        entry=new MemcacheEntry(setCommand.getKey(),ByteUtil.concatenate(textCommandService.toByteArray(oldValue),setCommand.getValue()),0);
+      }
+ catch (      Exception e) {
+        logger.warning(e);
+      }
+    }
+    textCommandService.put(mapName,key,entry,ttl);
+    setCommand.setResponse(TextCommandConstants.STORED);
+  }
+ else {
+    setCommand.setResponse(TextCommandConstants.NOT_STORED);
+  }
+  textCommandService.unlock(mapName,key);
+}

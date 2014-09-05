@@ -1,0 +1,19 @@
+{
+  final String mapName=randomMapName("testUpdatesInTxnFiringUpdateEvent");
+  final HazelcastInstance node=createHazelcastInstance();
+  final IMap<String,String> map=node.getMap(mapName);
+  final CountDownLatch expectedUpdateEventCount=new CountDownLatch(1);
+  map.addEntryListener(new EntryAdapter<String,String>(){
+    @Override public void entryUpdated(    EntryEvent<String,String> event){
+      expectedUpdateEventCount.countDown();
+    }
+  }
+,true);
+  map.put("foo","one");
+  TransactionContext context=node.newTransactionContext();
+  context.beginTransaction();
+  TransactionalMap<String,String> transactionalMap=context.getMap(mapName);
+  transactionalMap.put("foo","three");
+  context.commitTransaction();
+  assertOpenEventually("Not reached expected update event count",expectedUpdateEventCount);
+}

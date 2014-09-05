@@ -1,0 +1,29 @@
+{
+  final int k=simpleTestNodeCount;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  final HazelcastInstance[] instances=factory.newInstances(new Config());
+  final AtomicInteger count=new AtomicInteger(0);
+  final CountDownLatch latch=new CountDownLatch(k);
+  final ExecutionCallback callback=new ExecutionCallback(){
+    public void onResponse(    Object response){
+      if (response == null) {
+        count.incrementAndGet();
+      }
+      latch.countDown();
+    }
+    public void onFailure(    Throwable t){
+    }
+  }
+;
+  for (int i=0; i < k; i++) {
+    final HazelcastInstance instance=instances[i];
+    final IExecutorService service=instance.getExecutorService("testSubmitToMemberRunnable");
+    final String script="if(!hazelcast.getCluster().getLocalMember().equals(member)) " + "hazelcast.getAtomicLong('testSubmitToMemberRunnable').incrementAndGet();";
+    final HashMap map=new HashMap();
+    map.put("member",instance.getCluster().getLocalMember());
+    service.submitToMember(new ScriptRunnable(script,map),instance.getCluster().getLocalMember(),callback);
+  }
+  latch.await(10,TimeUnit.SECONDS);
+  assertEquals(0,instances[0].getAtomicLong("testSubmitToMemberRunnable").get());
+  assertEquals(k,count.get());
+}

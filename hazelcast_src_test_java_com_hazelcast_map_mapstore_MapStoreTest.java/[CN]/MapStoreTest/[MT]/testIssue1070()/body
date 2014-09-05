@@ -1,0 +1,15 @@
+{
+  CountDownLatch latch=new CountDownLatch(1);
+  final NoDuplicateMapStore myMapStore=new NoDuplicateMapStore();
+  myMapStore.store.put(1,2);
+  Config config=new Config();
+  config.getMapConfig("testIssue1070").setMapStoreConfig(new MapStoreConfig().setImplementation(myMapStore));
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hc=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance hc2=nodeFactory.newHazelcastInstance(config);
+  IMap<Object,Object> map=hc.getMap("testIssue1070");
+  for (int i=0; i < 271; i++) {
+    map.get(i);
+  }
+  assertFalse(myMapStore.failed);
+}

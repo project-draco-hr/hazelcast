@@ -1,0 +1,19 @@
+{
+  final QueueItem offer=offeredQueue.peek();
+  long itemId=offer == null ? -1 : offer.getItemId();
+  final TxnPeekOperation operation=new TxnPeekOperation(name,timeout,itemId,tx.getTxnId());
+  try {
+    final Future<QueueItem> f=invoke(operation);
+    final QueueItem item=f.get();
+    if (item != null) {
+      if (offer != null && item.getItemId() == offer.getItemId()) {
+        return offer.getData();
+      }
+      return item.getData();
+    }
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+  return null;
+}

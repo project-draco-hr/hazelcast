@@ -1,0 +1,12 @@
+{
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance();
+  final ClientConfig clientConfig=new ClientConfig();
+  final CountDownLatch latch1=new CountDownLatch(1);
+  clientConfig.addListenerConfig(new ListenerConfig().setImplementation(new StaticMemberListener(latch1)));
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  assertTrue("Before starting",latch1.await(5,TimeUnit.SECONDS));
+  final CountDownLatch latch2=new CountDownLatch(1);
+  client.getCluster().addMembershipListener(new StaticMemberListener(latch2));
+  assertTrue("After starting",latch2.await(5,TimeUnit.SECONDS));
+}

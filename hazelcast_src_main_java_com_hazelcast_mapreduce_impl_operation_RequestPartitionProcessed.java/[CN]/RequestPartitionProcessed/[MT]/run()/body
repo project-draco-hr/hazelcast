@@ -1,0 +1,15 @@
+{
+  MapReduceService mapReduceService=getService();
+  JobSupervisor supervisor=mapReduceService.getJobSupervisor(getName(),getJobId());
+  if (supervisor == null) {
+    result=new RequestPartitionResult(NO_SUPERVISOR,-1);
+    return;
+  }
+  JobProcessInformationImpl processInformation=supervisor.getJobProcessInformation();
+  JobPartitionState.State nextState=stateChange(getCallerAddress(),partitionId,currentState,processInformation,supervisor.getConfiguration());
+  if (nextState == PROCESSED) {
+    result=new RequestPartitionResult(SUCCESSFUL,partitionId);
+    return;
+  }
+  result=new RequestPartitionResult(CHECK_STATE_FAILED,-1);
+}

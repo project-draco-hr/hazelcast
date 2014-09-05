@@ -1,0 +1,23 @@
+{
+  final int executions=20;
+  ScheduledExecutorService ex=Executors.newSingleThreadScheduledExecutor();
+  try {
+    ex.schedule(new Runnable(){
+      @Override public void run(){
+        instances.get(1).shutdown();
+      }
+    }
+,1000,TimeUnit.MILLISECONDS);
+    Task task=new Task();
+    runClient(task,executions);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run(){
+        assertEquals(executions,COUNTER.get());
+      }
+    }
+);
+  }
+  finally {
+    ex.shutdown();
+  }
+}

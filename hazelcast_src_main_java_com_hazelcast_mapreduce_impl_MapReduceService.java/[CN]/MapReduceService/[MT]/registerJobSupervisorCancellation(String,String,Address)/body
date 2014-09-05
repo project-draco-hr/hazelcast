@@ -1,0 +1,18 @@
+{
+  NodeJobTracker jobTracker=(NodeJobTracker)createDistributedObject(name);
+  if (jobTracker.registerJobSupervisorCancellation(jobId) && getLocalAddress().equals(jobOwner)) {
+    for (    MemberImpl member : clusterService.getMemberList()) {
+      if (!member.getAddress().equals(jobOwner)) {
+        try {
+          ProcessingOperation operation=new CancelJobSupervisorOperation(name,jobId);
+          processRequest(member.getAddress(),operation,name);
+        }
+ catch (        Exception ignore) {
+          LOGGER.finest("Member might be already unavailable",ignore);
+        }
+      }
+    }
+    return true;
+  }
+  return false;
+}

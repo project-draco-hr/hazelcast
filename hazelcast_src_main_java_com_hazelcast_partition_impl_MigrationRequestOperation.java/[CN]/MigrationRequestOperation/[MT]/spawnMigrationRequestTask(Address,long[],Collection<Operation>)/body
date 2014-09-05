@@ -1,0 +1,17 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  SerializationService serializationService=nodeEngine.getSerializationService();
+  BufferObjectDataOutput out=createDataOutput(serializationService);
+  out.writeInt(tasks.size());
+  Iterator<Operation> iter=tasks.iterator();
+  while (iter.hasNext()) {
+    Operation task=iter.next();
+    if (task instanceof NonThreadSafe) {
+      serializationService.writeObject(out,task);
+      iter.remove();
+    }
+  }
+  ManagedExecutorService executor=nodeEngine.getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR);
+  MigrationRequestTask task=new MigrationRequestTask(tasks,out,replicaVersions,destination);
+  executor.execute(task);
+}

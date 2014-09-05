@@ -1,0 +1,17 @@
+{
+  InternalPartitionServiceImpl partitionService=getService();
+  int partitionId=getPartitionId();
+  MigrationInfo migrationInfo=partitionService.getActiveMigration(partitionId);
+  if (migrationInfo == null) {
+    return;
+  }
+  NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  PartitionMigrationEvent event=new PartitionMigrationEvent(endpoint,partitionId);
+  for (  MigrationAwareService service : nodeEngine.getServices(MigrationAwareService.class)) {
+    finishMigration(event,service);
+  }
+  partitionService.removeActiveMigration(partitionId);
+  if (success) {
+    nodeEngine.onPartitionMigrate(migrationInfo);
+  }
+}

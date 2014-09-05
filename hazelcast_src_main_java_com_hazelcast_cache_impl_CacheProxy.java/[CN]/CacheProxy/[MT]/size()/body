@@ -1,0 +1,23 @@
+{
+  ensureOpen();
+  try {
+    final SerializationService serializationService=nodeEngine.getSerializationService();
+    final CacheSizeOperationFactory operationFactory=new CacheSizeOperationFactory(getDistributedObjectName());
+    final Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(getServiceName(),operationFactory);
+    int total=0;
+    for (    Object result : results.values()) {
+      Integer size;
+      if (result instanceof Data) {
+        size=serializationService.toObject((Data)result);
+      }
+ else {
+        size=(Integer)result;
+      }
+      total+=size;
+    }
+    return total;
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrowAllowedTypeFirst(t,CacheException.class);
+  }
+}

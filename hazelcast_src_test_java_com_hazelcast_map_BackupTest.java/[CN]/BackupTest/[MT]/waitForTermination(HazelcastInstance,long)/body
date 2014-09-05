@@ -1,0 +1,27 @@
+{
+  final Node node=TestUtil.getNode(instance);
+  if (node != null) {
+    assertTrueEventually(new AssertTask(){
+      public void run(){
+        assertFalse(node.isActive());
+      }
+    }
+);
+  }
+  sleepMillis((int)migrationActivationDelay);
+  assertTrueEventually(new AssertTask(){
+    public void run(){
+      boolean allNodesAreInSafeState=true;
+      for (      HazelcastInstance hz : HazelcastInstanceFactory.getAllHazelcastInstances()) {
+        if (hz != instance) {
+          if (!isInSafeState(hz)) {
+            allNodesAreInSafeState=false;
+            break;
+          }
+        }
+      }
+      assertTrue(allNodesAreInSafeState);
+    }
+  }
+);
+}

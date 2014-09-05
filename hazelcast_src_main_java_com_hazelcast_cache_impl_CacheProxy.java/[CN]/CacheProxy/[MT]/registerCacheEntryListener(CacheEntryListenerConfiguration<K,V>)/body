@@ -1,0 +1,20 @@
+{
+  ensureOpen();
+  if (cacheEntryListenerConfiguration == null) {
+    throw new NullPointerException("CacheEntryListenerConfiguration can't be " + "null");
+  }
+  final CacheService service=getService();
+  final CacheEventListenerAdaptor<K,V> entryListener=new CacheEventListenerAdaptor<K,V>(this,cacheEntryListenerConfiguration,nodeEngine.getSerializationService());
+  final String regId=service.registerListener(getDistributedObjectName(),entryListener);
+  if (regId != null) {
+    cacheConfig.addCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
+    if (cacheEntryListenerConfiguration.isSynchronous()) {
+      syncListenerRegistrations.putIfAbsent(cacheEntryListenerConfiguration,regId);
+      registerCompletionListener();
+    }
+ else {
+      asyncListenerRegistrations.putIfAbsent(cacheEntryListenerConfiguration,regId);
+    }
+    registrationOtherNodes(cacheEntryListenerConfiguration,true);
+  }
+}

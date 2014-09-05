@@ -1,0 +1,23 @@
+{
+  blacklistedAddresses.clear();
+  if (logger.isFinestEnabled()) {
+    logger.finest("PostJoin master: " + node.getMasterAddress() + ", isMaster: "+ node.isMaster());
+  }
+  if (!node.isActive()) {
+    return;
+  }
+  if (tryCount.incrementAndGet() == 5) {
+    logger.warning("Join try count exceed limit, setting this node as master!");
+    node.setAsMaster();
+  }
+  if (node.joined()) {
+    if (!node.isMaster()) {
+      ensureConnectionToAllMembers();
+    }
+    if (node.getClusterService().getSize() == 1) {
+      final StringBuilder sb=new StringBuilder("\n");
+      sb.append(node.clusterService.membersString());
+      logger.info(sb.toString());
+    }
+  }
+}

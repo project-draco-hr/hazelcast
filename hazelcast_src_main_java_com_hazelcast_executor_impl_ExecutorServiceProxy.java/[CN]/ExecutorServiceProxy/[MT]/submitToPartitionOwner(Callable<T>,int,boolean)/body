@@ -1,0 +1,24 @@
+{
+  if (task == null) {
+    throw new NullPointerException();
+  }
+  if (isShutdown()) {
+    throw new RejectedExecutionException(getRejectionMessage());
+  }
+  NodeEngine nodeEngine=getNodeEngine();
+  String uuid=buildRandomUuidString();
+  boolean sync=!preventSync && checkSync();
+  CallableTaskOperation op=new CallableTaskOperation(name,uuid,task);
+  ICompletableFuture future=invoke(partitionId,op);
+  if (sync) {
+    Object response;
+    try {
+      response=future.get();
+    }
+ catch (    Exception e) {
+      response=e;
+    }
+    return new CompletedFuture<T>(nodeEngine.getSerializationService(),response,getAsyncExecutor());
+  }
+  return new CancellableDelegatingFuture<T>(future,nodeEngine,uuid,partitionId);
+}

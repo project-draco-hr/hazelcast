@@ -1,0 +1,27 @@
+{
+  final String name=randomMapName("testIssue1085WriteBehindBackup");
+  final int expectedStoreCount=3;
+  final int nodeCount=3;
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_MAP_REPLICA_SCHEDULED_TASK_DELAY_SECONDS,"30");
+  MapConfig writeBehindBackupConfig=config.getMapConfig(name);
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setWriteDelaySeconds(5);
+  final MapStoreWithStoreCount mapStore=new MapStoreWithStoreCount(expectedStoreCount,300,100);
+  mapStoreConfig.setImplementation(mapStore);
+  writeBehindBackupConfig.setMapStoreConfig(mapStoreConfig);
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  HazelcastInstance node1=factory.newHazelcastInstance(config);
+  HazelcastInstance node2=factory.newHazelcastInstance(config);
+  HazelcastInstance node3=factory.newHazelcastInstance(config);
+  final String keyOwnedByNode1=generateKeyOwnedBy(node1);
+  final String keyOwnedByNode2=generateKeyOwnedBy(node2);
+  final String keyOwnedByNode3=generateKeyOwnedBy(node3);
+  final IMap map=node1.getMap(name);
+  map.put(keyOwnedByNode1,1);
+  map.put(keyOwnedByNode2,2);
+  map.put(keyOwnedByNode3,3);
+  node2.getLifecycleService().shutdown();
+  mapStore.awaitStores();
+  assertTrue(expectedStoreCount <= mapStore.count.intValue());
+}

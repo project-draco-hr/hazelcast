@@ -1,0 +1,32 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final Config config=new Config();
+  config.getSerializationConfig().setGlobalSerializerConfig(new GlobalSerializerConfig().setImplementation(new StreamSerializer(){
+    public void write(    ObjectDataOutput out,    Object object) throws IOException {
+    }
+    public Object read(    ObjectDataInput in) throws IOException {
+      return new DummyValue();
+    }
+    public int getTypeId(){
+      return 123;
+    }
+    public void destroy(){
+    }
+  }
+));
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
+  IMap<Object,Object> map=hz.getMap("test");
+  for (int i=0; i < 10; i++) {
+    map.put(i,new DummyValue());
+  }
+  assertEquals(10,map.size());
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  IMap<Object,Object> map2=hz2.getMap("test");
+  assertEquals(10,map2.size());
+  assertEquals(10,map.size());
+  for (int i=0; i < 10; i++) {
+    Object o=map2.get(i);
+    assertNotNull(o);
+    assertTrue(o instanceof DummyValue);
+  }
+}

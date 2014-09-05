@@ -1,0 +1,24 @@
+{
+  final Enumeration<NetworkInterface> networkInterfaces=NetworkInterface.getNetworkInterfaces();
+  final boolean preferIPv4Stack=preferIPv4Stack();
+  while (networkInterfaces.hasMoreElements()) {
+    final NetworkInterface ni=networkInterfaces.nextElement();
+    final Enumeration<InetAddress> e=ni.getInetAddresses();
+    while (e.hasMoreElements()) {
+      final InetAddress inetAddress=e.nextElement();
+      if (preferIPv4Stack && inetAddress instanceof Inet6Address) {
+        continue;
+      }
+      if (interfaces != null && !interfaces.isEmpty()) {
+        final AddressDefinition address;
+        if ((address=match(inetAddress,interfaces)) != null) {
+          return address;
+        }
+      }
+ else       if (!inetAddress.isLoopbackAddress()) {
+        return new AddressDefinition(inetAddress);
+      }
+    }
+  }
+  return null;
+}

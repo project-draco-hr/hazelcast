@@ -1,44 +1,28 @@
 {
   if (hazelcastSession != null && !hazelcastSession.isValid()) {
-    log("Session is invalid!");
+    LOGGER.finest("Session is invalid!");
     destroySession(hazelcastSession,true);
     hazelcastSession=null;
   }
-  if (hazelcastSession == null) {
-    HttpSession originalSession=getOriginalSession(false);
-    if (originalSession != null) {
-      String hazelcastSessionId=mapOriginalSessions.get(originalSession.getId());
-      if (hazelcastSessionId != null) {
-        hazelcastSession=mapSessions.get(hazelcastSessionId);
-      }
-      if (hazelcastSession == null) {
-        mapOriginalSessions.remove(originalSession.getId());
-        originalSession.invalidate();
-      }
- else       if (hazelcastSession.isDirty()) {
-        hazelcastSession=null;
-      }
-    }
+ else   if (hazelcastSession != null) {
+    return hazelcastSession;
   }
-  if (hazelcastSession != null)   return hazelcastSession;
-  final String requestedSessionId=fetchHazelcastSessionId();
-  if (requestedSessionId != null) {
-    hazelcastSession=getSessionWithId(requestedSessionId);
-    if (hazelcastSession == null) {
-      final Map mapSession=(Map)getClusterMap().get(requestedSessionId);
-      if (mapSession != null) {
-        hazelcastSession=createNewSession(RequestWrapper.this,requestedSessionId);
-        overrideSession(hazelcastSession,mapSession);
-      }
+  HttpSession originalSession=getOriginalSession(false);
+  if (originalSession != null) {
+    String hazelcastSessionId=originalSessions.get(originalSession.getId());
+    if (hazelcastSessionId != null) {
+      hazelcastSession=sessions.get(hazelcastSessionId);
+      return hazelcastSession;
     }
+    originalSessions.remove(originalSession.getId());
+    originalSession.invalidate();
   }
+  hazelcastSession=fetchHazelcastSession(create);
   if (hazelcastSession == null && create) {
     hazelcastSession=createNewSession(RequestWrapper.this,null);
   }
- else   if (hazelcastSession != null && !stickySession && requestedSessionId != null && hazelcastSession.isDirty()) {
-    log(requestedSessionId + " is dirty reloading.");
-    final Map mapSession=(Map)getClusterMap().get(requestedSessionId);
-    overrideSession(hazelcastSession,mapSession);
+  if (deferredWrite) {
+    prepareReloadingSession(hazelcastSession);
   }
   return hazelcastSession;
 }

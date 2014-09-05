@@ -1,0 +1,14 @@
+{
+  final Address caller=getCallerAddress();
+  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  final Node node=nodeEngine.getNode();
+  final Address masterAddress=node.getMasterAddress();
+  final ILogger logger=node.loggingService.getLogger(this.getClass().getName());
+  boolean local=caller == null;
+  if (!local && !caller.equals(masterAddress)) {
+    logger.warning("Merge instruction sent from non-master endpoint: " + caller);
+    return;
+  }
+  logger.warning(node.getThisAddress() + " is merging to " + newTargetAddress+ ", because: instructed by master "+ masterAddress);
+  node.getClusterService().merge(newTargetAddress);
+}

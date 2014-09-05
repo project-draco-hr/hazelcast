@@ -1,0 +1,22 @@
+{
+  final String mapName=randomMapName();
+  int entryCount=10;
+  Config config=new Config();
+  config.getMapConfig(mapName).setTimeToLiveSeconds(3);
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(2).newInstances(config);
+  final CountDownLatch latch=new CountDownLatch(entryCount);
+  final IMap map=instances[0].getMap(mapName);
+  map.addEntryListener(new EntryAdapter(){
+    @Override public void entryEvicted(    EntryEvent event){
+      super.entryEvicted(event);
+      latch.countDown();
+    }
+  }
+,false);
+  for (int i=0; i < entryCount; i++) {
+    map.put(i,i);
+  }
+  assertOpenEventually(latch);
+  assertSizeEventually(0,map);
+  assertHeapCostsZeroEventually(mapName,instances);
+}

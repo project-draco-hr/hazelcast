@@ -1,0 +1,17 @@
+{
+  if (logger.isFinestEnabled()) {
+    logger.finest("Registering service: '" + serviceName + "'");
+  }
+  final ServiceInfo serviceInfo=new ServiceInfo(serviceName,service);
+  final ServiceInfo currentServiceInfo=services.putIfAbsent(serviceName,serviceInfo);
+  if (currentServiceInfo != null) {
+    logger.warning("Replacing " + currentServiceInfo + " with "+ serviceInfo);
+    if (currentServiceInfo.isCoreService()) {
+      throw new HazelcastException("Can not replace a CoreService! Name: " + serviceName + ", Service: "+ currentServiceInfo.getService());
+    }
+    if (currentServiceInfo.isManagedService()) {
+      shutdownService((ManagedService)currentServiceInfo.getService(),false);
+    }
+    services.put(serviceName,serviceInfo);
+  }
+}

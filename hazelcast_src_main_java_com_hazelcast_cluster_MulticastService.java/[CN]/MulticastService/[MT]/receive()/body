@@ -1,0 +1,39 @@
+{
+  try {
+    try {
+      multicastSocket.receive(datagramPacketReceive);
+    }
+ catch (    IOException ignore) {
+      return null;
+    }
+    try {
+      final byte[] data=datagramPacketReceive.getData();
+      final int offset=datagramPacketReceive.getOffset();
+      final BufferObjectDataInput input=node.getSerializationService().createObjectDataInput(data);
+      input.position(offset);
+      final byte packetVersion=input.readByte();
+      if (packetVersion != Packet.VERSION) {
+        logger.warning("Received a JoinRequest with a different packet version! This -> " + Packet.VERSION + ", Incoming -> "+ packetVersion+ ", Sender -> "+ datagramPacketReceive.getAddress());
+        return null;
+      }
+      try {
+        return input.readObject();
+      }
+  finally {
+        input.close();
+      }
+    }
+ catch (    Exception e) {
+      if (e instanceof EOFException || e instanceof HazelcastSerializationException) {
+        logger.warning("Received data format is invalid." + " (An old version of Hazelcast may be running here.)",e);
+      }
+ else {
+        throw e;
+      }
+    }
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+  return null;
+}

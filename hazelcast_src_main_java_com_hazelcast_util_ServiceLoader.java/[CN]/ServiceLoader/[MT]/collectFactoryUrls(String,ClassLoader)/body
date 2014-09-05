@@ -1,0 +1,24 @@
+{
+  final String resourceName="META-INF/services/" + factoryId;
+  try {
+    final Enumeration<URL> configs;
+    if (classLoader != null) {
+      configs=classLoader.getResources(resourceName);
+    }
+ else {
+      configs=ClassLoader.getSystemResources(resourceName);
+    }
+    Set<URLDefinition> urlDefinitions=new HashSet<URLDefinition>();
+    while (configs.hasMoreElements()) {
+      URL url=configs.nextElement();
+      final URI uri=url.toURI();
+      ClassLoader highestClassLoader=findHighestReachableClassLoader(url,classLoader,resourceName);
+      urlDefinitions.add(new URLDefinition(uri,highestClassLoader));
+    }
+    return urlDefinitions;
+  }
+ catch (  Exception e) {
+    LOGGER.severe(e);
+  }
+  return Collections.emptySet();
+}

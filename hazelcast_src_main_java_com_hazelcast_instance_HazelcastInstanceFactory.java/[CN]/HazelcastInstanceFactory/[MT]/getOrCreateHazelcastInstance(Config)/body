@@ -1,0 +1,24 @@
+{
+  if (config == null) {
+    throw new NullPointerException("config can't be null");
+  }
+  String name=config.getInstanceName();
+  hasText(name,"instanceName");
+  InstanceFuture future=INSTANCE_MAP.get(name);
+  if (future != null) {
+    return future.get();
+  }
+  future=new InstanceFuture();
+  InstanceFuture found=INSTANCE_MAP.putIfAbsent(name,future);
+  if (found != null) {
+    return found.get();
+  }
+  try {
+    return constructHazelcastInstance(config,name,new DefaultNodeContext(),future);
+  }
+ catch (  Throwable t) {
+    INSTANCE_MAP.remove(name,future);
+    future.setFailure(t);
+    throw ExceptionUtil.rethrow(t);
+  }
+}

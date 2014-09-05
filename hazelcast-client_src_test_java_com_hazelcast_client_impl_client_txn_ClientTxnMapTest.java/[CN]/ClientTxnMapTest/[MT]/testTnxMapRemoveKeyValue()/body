@@ -1,0 +1,18 @@
+{
+  final String mapName=randomString();
+  final String key1="key1";
+  final String oldValue1="old1";
+  final String key2="key2";
+  final String oldValue2="old2";
+  IMap map=client.getMap(mapName);
+  map.put(key1,oldValue1);
+  map.put(key2,oldValue2);
+  final TransactionContext context=client.newTransactionContext();
+  context.beginTransaction();
+  final TransactionalMap txMap=context.getMap(mapName);
+  txMap.remove(key1,oldValue1);
+  txMap.remove(key2,"NO_REMOVE_AS_NOT_VALUE");
+  context.commitTransaction();
+  assertNull(map.get(key1));
+  assertEquals(oldValue2,map.get(key2));
+}

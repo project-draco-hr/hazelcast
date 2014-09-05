@@ -1,0 +1,23 @@
+{
+  Collection<MemberImpl> members=getClientEngine().getClusterService().getMemberList();
+  int partitionCount=getClientEngine().getPartitionService().getPartitionCount();
+  Set<Integer> plist=new HashSet<Integer>(partitionCount);
+  final ClientEndpoint endpoint=getEndpoint();
+  QueryResultSet result=new QueryResultSet(null,iterationType,true);
+  try {
+    List<Future> futures=new ArrayList<Future>();
+    final Predicate predicate=getPredicate();
+    createInvocations(members,futures,predicate);
+    collectResults(plist,result,futures);
+    if (hasMissingPartitions(partitionCount,plist)) {
+      List<Integer> missingList=findMissingPartitions(partitionCount,plist);
+      List<Future> missingFutures=new ArrayList<Future>(missingList.size());
+      createInvocationsForMissingPartitions(predicate,missingList,missingFutures);
+      collectResultsFromMissingPartitions(result,missingFutures);
+    }
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+  endpoint.sendResponse(result,getCallId());
+}

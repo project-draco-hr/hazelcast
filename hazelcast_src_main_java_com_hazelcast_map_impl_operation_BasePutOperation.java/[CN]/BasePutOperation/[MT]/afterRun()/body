@@ -1,0 +1,17 @@
+{
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  final MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
+  mapServiceContext.interceptAfterPut(name,dataValue);
+  eventType=getEventType();
+  mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,dataOldValue,dataValue);
+  invalidateNearCaches();
+  if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
+    Record record=recordStore.getRecord(dataKey);
+    if (record == null) {
+      return;
+    }
+    final Data valueConvertedData=mapServiceContext.toData(dataValue);
+    final EntryView entryView=EntryViews.createSimpleEntryView(dataKey,valueConvertedData,record);
+    mapEventPublisher.publishWanReplicationUpdate(name,entryView);
+  }
+}

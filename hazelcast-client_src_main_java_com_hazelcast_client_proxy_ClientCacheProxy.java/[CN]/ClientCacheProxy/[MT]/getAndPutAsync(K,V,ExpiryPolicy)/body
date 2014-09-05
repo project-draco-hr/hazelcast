@@ -1,0 +1,26 @@
+{
+  ensureOpen();
+  validateNotNull(key,value);
+  validateConfiguredTypes(true,key,value);
+  if (shouldBeSync()) {
+    V oldValue=getAndPut(key,value,expiryPolicy);
+    return createCompletedFuture(oldValue);
+  }
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  CachePutRequest request=new CachePutRequest(getDistributedObjectName(),keyData,valueData,expiryPolicy,true);
+  ICompletableFuture future;
+  try {
+    future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<V>(future,getContext().getSerializationService());
+}

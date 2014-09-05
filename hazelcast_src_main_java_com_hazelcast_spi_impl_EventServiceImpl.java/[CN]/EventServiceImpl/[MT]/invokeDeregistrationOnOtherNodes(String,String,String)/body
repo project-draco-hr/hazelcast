@@ -1,0 +1,18 @@
+{
+  OperationService operationService=nodeEngine.getOperationService();
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  Collection<Future> calls=new ArrayList<Future>(members.size());
+  for (  MemberImpl member : members) {
+    if (!member.localMember()) {
+      DeregistrationOperation operation=new DeregistrationOperation(topic,id);
+      Future f=operationService.invokeOnTarget(serviceName,operation,member.getAddress());
+      calls.add(f);
+    }
+  }
+  try {
+    FutureUtil.waitWithDeadline(calls,REGISTRATION_TIMEOUT_SECONDS,TimeUnit.SECONDS,deregistrationExceptionHandler);
+  }
+ catch (  TimeoutException e) {
+    logger.finest(e);
+  }
+}

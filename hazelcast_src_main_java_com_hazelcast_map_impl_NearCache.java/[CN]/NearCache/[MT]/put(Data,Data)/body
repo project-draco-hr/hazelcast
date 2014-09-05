@@ -1,0 +1,30 @@
+{
+  fireTtlCleanup();
+  if (evictionPolicy == EvictionPolicy.NONE && cache.size() >= maxSize) {
+    if (data == null) {
+      return null;
+    }
+ else {
+      return inMemoryFormat.equals(InMemoryFormat.OBJECT) ? serializationService.toObject(data) : data;
+    }
+  }
+  if (evictionPolicy != EvictionPolicy.NONE && cache.size() >= maxSize) {
+    fireEvictCache();
+  }
+  final Object value;
+  if (data == null) {
+    value=NULL_OBJECT;
+  }
+ else {
+    value=inMemoryFormat.equals(InMemoryFormat.OBJECT) ? serializationService.toObject(data) : data;
+  }
+  final CacheRecord record=new CacheRecord(key,value);
+  cache.put(key,record);
+  updateSizeEstimator(calculateCost(record));
+  if (NULL_OBJECT.equals(value)) {
+    return null;
+  }
+ else {
+    return value;
+  }
+}

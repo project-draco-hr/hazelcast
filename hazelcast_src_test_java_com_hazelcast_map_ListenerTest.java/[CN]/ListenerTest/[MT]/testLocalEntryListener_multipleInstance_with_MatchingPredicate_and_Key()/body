@@ -1,0 +1,18 @@
+{
+  int instanceCount=1;
+  HazelcastInstance instance=createHazelcastInstanceFactory(instanceCount).newInstances(new Config())[0];
+  String mapName="myMap";
+  IMap<String,String> map=instance.getMap(mapName);
+  boolean includeValue=false;
+  map.addLocalEntryListener(createEntryListener(false),matchingPredicate(),"key500",includeValue);
+  int count=1000;
+  for (int i=0; i < count; i++) {
+    map.put("key" + i,"value" + i);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertTrue(globalCount.get() == 1);
+    }
+  }
+);
+}

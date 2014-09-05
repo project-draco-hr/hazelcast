@@ -1,0 +1,26 @@
+{
+  Map<Integer,MemberGroup> memberGroups=new HashMap<Integer,MemberGroup>();
+  for (  Member member : members) {
+    String host=((MemberImpl)member).getAddress().getHost();
+    for (    Entry<Integer,MemberGroupConfig> entry : memberGroupConfigMap.entrySet()) {
+      Collection<String> interfaces=entry.getValue().getInterfaces();
+      boolean match;
+      if (AddressUtil.isIpAddress(host)) {
+        match=AddressUtil.matchAnyInterface(host,interfaces);
+      }
+ else {
+        match=AddressUtil.matchAnyDomain(host,interfaces);
+      }
+      if (match) {
+        MemberGroup group=memberGroups.get(entry.getKey());
+        if (group == null) {
+          group=new DefaultMemberGroup();
+          memberGroups.put(entry.getKey(),group);
+        }
+        group.addMember(member);
+        break;
+      }
+    }
+  }
+  return new HashSet<MemberGroup>(memberGroups.values());
+}

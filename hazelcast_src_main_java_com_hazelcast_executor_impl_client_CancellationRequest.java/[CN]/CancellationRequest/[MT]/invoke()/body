@@ -1,0 +1,23 @@
+{
+  CancellationOperation op=new CancellationOperation(uuid,interrupt);
+  InvocationBuilder builder;
+  if (target != null) {
+    builder=createInvocationBuilder(getServiceName(),op,target);
+  }
+ else {
+    builder=createInvocationBuilder(getServiceName(),op,partitionId);
+  }
+  builder.setTryCount(CANCEL_TRY_COUNT).setTryPauseMillis(CANCEL_TRY_PAUSE_MILLIS);
+  InternalCompletableFuture future=builder.invoke();
+  boolean result=false;
+  try {
+    result=(Boolean)future.get();
+  }
+ catch (  InterruptedException e) {
+    logException(e);
+  }
+catch (  ExecutionException e) {
+    logException(e);
+  }
+  getEndpoint().sendResponse(result,getCallId());
+}

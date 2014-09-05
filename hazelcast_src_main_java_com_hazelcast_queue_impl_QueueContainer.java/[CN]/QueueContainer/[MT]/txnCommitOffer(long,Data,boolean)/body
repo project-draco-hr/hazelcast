@@ -1,0 +1,26 @@
+{
+  QueueItem item=txMap.remove(itemId);
+  if (item == null && !backup) {
+    throw new TransactionException("No reserve :" + itemId);
+  }
+ else   if (item == null) {
+    item=new QueueItem(this,itemId,data);
+  }
+  item.setData(data);
+  if (!backup) {
+    getItemQueue().offer(item);
+    cancelEvictionIfExists();
+  }
+ else {
+    getBackupMap().put(itemId,item);
+  }
+  if (store.isEnabled() && !backup) {
+    try {
+      store.store(item.getItemId(),data);
+    }
+ catch (    Exception e) {
+      logger.warning("Exception during store",e);
+    }
+  }
+  return true;
+}

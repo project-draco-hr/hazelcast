@@ -1,0 +1,30 @@
+{
+  initNearCache();
+  final Data keyData=toData(key);
+  if (nearCache != null) {
+    Object cached=nearCache.get(keyData);
+    if (cached != null && !ClientNearCache.NULL_OBJECT.equals(cached)) {
+      return new CompletedFuture(getContext().getSerializationService(),cached,getContext().getExecutionService().getAsyncExecutor());
+    }
+  }
+  final MapGetRequest request=new MapGetRequest(name,keyData);
+  request.setAsAsync();
+  try {
+    final ICompletableFuture future=getContext().getInvocationService().invokeOnKeyOwner(request,keyData);
+    final DelegatingFuture<V> delegatingFuture=new DelegatingFuture<V>(future,getContext().getSerializationService());
+    delegatingFuture.andThen(new ExecutionCallback<V>(){
+      @Override public void onResponse(      V response){
+        if (nearCache != null) {
+          nearCache.put(keyData,response);
+        }
+      }
+      @Override public void onFailure(      Throwable t){
+      }
+    }
+);
+    return delegatingFuture;
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

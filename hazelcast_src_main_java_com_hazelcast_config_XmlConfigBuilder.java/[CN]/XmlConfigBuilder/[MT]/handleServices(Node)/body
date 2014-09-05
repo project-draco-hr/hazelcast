@@ -1,0 +1,45 @@
+{
+  final Node attDefaults=node.getAttributes().getNamedItem("enable-defaults");
+  final boolean enableDefaults=attDefaults == null || checkTrue(getTextContent(attDefaults));
+  ServicesConfig servicesConfig=config.getServicesConfig();
+  servicesConfig.setEnableDefaults(enableDefaults);
+  for (  Node child : new IterableNodeList(node.getChildNodes())) {
+    final String nodeName=cleanNodeName(child.getNodeName());
+    if ("service".equals(nodeName)) {
+      ServiceConfig serviceConfig=new ServiceConfig();
+      String enabledValue=getAttribute(child,"enabled");
+      boolean enabled=checkTrue(enabledValue);
+      serviceConfig.setEnabled(enabled);
+      for (      org.w3c.dom.Node n : new IterableNodeList(child.getChildNodes())) {
+        final String value=cleanNodeName(n.getNodeName());
+        if ("name".equals(value)) {
+          String name=getTextContent(n);
+          serviceConfig.setName(name);
+        }
+ else         if ("class-name".equals(value)) {
+          String className=getTextContent(n);
+          serviceConfig.setClassName(className);
+        }
+ else         if ("properties".equals(value)) {
+          fillProperties(n,serviceConfig.getProperties());
+        }
+ else         if ("configuration".equals(value)) {
+          Node parserNode=n.getAttributes().getNamedItem("parser");
+          String parserClass=getTextContent(parserNode);
+          if (parserNode == null || parserClass == null) {
+            throw new IllegalArgumentException("Parser is required!");
+          }
+          try {
+            ServiceConfigurationParser parser=ClassLoaderUtil.newInstance(config.getClassLoader(),parserClass);
+            Object obj=parser.parse((Element)n);
+            serviceConfig.setConfigObject(obj);
+          }
+ catch (          Exception e) {
+            ExceptionUtil.sneakyThrow(e);
+          }
+        }
+      }
+      servicesConfig.addServiceConfig(serviceConfig);
+    }
+  }
+}

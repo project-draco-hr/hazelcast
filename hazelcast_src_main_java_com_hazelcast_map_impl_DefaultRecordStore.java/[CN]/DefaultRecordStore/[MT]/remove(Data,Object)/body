@@ -1,0 +1,27 @@
+{
+  checkIfLoaded();
+  final long now=getNow();
+  Record record=getRecord(key,false);
+  Object oldValue;
+  boolean removed=false;
+  if (record == null) {
+    oldValue=mapDataStore.load(key);
+    if (oldValue == null) {
+      return false;
+    }
+  }
+ else {
+    oldValue=record.getValue();
+  }
+  if (mapServiceContext.compare(name,testValue,oldValue)) {
+    mapServiceContext.interceptRemove(name,oldValue);
+    removeIndex(key);
+    mapDataStore.remove(key,now);
+    onStore(record);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    deleteRecord(key);
+    removed=true;
+  }
+  evictEntries(now,false);
+  return removed;
+}

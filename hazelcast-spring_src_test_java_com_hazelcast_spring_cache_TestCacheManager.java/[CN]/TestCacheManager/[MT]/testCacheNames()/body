@@ -1,0 +1,24 @@
+{
+  final String testMap="test-map";
+  final CountDownLatch distributionSignal=new CountDownLatch(1);
+  instance.addDistributedObjectListener(new DistributedObjectListener(){
+    @Override public void distributedObjectCreated(    DistributedObjectEvent event){
+      DistributedObject distributedObject=event.getDistributedObject();
+      if (distributedObject instanceof IMap) {
+        IMap<?,?> map=(IMap)distributedObject;
+        if (testMap.equals(map.getName())) {
+          distributionSignal.countDown();
+        }
+      }
+    }
+    @Override public void distributedObjectDestroyed(    DistributedObjectEvent event){
+    }
+  }
+);
+  HazelcastInstance testInstance=Hazelcast.newHazelcastInstance();
+  testInstance.getMap(testMap);
+  HazelcastTestSupport.assertOpenEventually(distributionSignal);
+  Collection<String> test=cacheManager.getCacheNames();
+  Assert.assertTrue(test.contains(testMap));
+  testInstance.shutdown();
+}

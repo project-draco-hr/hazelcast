@@ -1,0 +1,31 @@
+{
+  checkIfLoaded();
+  final long now=getNow();
+  markRecordStoreExpirable(ttl);
+  Record record=getRecord(key,false);
+  Object oldValue;
+  if (record == null) {
+    oldValue=mapDataStore.load(key);
+    if (oldValue != null) {
+      record=createRecord(key,oldValue,now);
+      records.put(key,record);
+      updateSizeEstimator(calculateRecordHeapCost(record));
+    }
+  }
+ else {
+    accessRecord(record,now);
+    oldValue=record.getValue();
+  }
+  if (oldValue == null) {
+    value=mapServiceContext.interceptPut(name,null,value);
+    value=mapDataStore.add(key,value,now);
+    onStore(record);
+    record=createRecord(key,value,ttl,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+    updateTtl(record,ttl);
+  }
+  saveIndex(record);
+  evictEntries(now,false);
+  return oldValue;
+}

@@ -1,0 +1,36 @@
+{
+  lock.lock();
+  try {
+    if (!node.isActive() || !node.joined()) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Node should be active(" + node.isActive() + ") and joined("+ node.joined()+ ") to be able to process partition table!");
+      }
+      return;
+    }
+    final Address sender=partitionState.getEndpoint();
+    final Address master=node.getMasterAddress();
+    if (node.isMaster()) {
+      logger.warning("This is the master node and received a PartitionRuntimeState from " + sender + ". Ignoring incoming state! ");
+      return;
+    }
+ else {
+      if (sender == null || !sender.equals(master)) {
+        if (node.clusterService.getMember(sender) == null) {
+          logger.severe("Received a ClusterRuntimeState from an unknown member!" + " => Sender: " + sender + ", Master: "+ master+ "! ");
+          return;
+        }
+ else {
+          logger.warning("Received a ClusterRuntimeState, but its sender doesn't seem to be master!" + " => Sender: " + sender + ", Master: "+ master+ "! "+ "(Ignore if master node has changed recently.)");
+        }
+      }
+    }
+    stateVersion.set(partitionState.getVersion());
+    initialized=true;
+    PartitionInfo[] state=partitionState.getPartitions();
+    filterAndLogUnknownAddressesInPartitionTable(sender,state);
+    finalizeOrRollbackMigration(partitionState,state);
+  }
+  finally {
+    lock.unlock();
+  }
+}

@@ -1,0 +1,22 @@
+{
+  checkIfLoaded();
+  resetSizeEstimator();
+  final Collection<Data> lockedKeys=lockStore != null ? lockStore.getLockedKeys() : Collections.<Data>emptySet();
+  final Map<Data,Record> lockedRecords=new HashMap<Data,Record>(lockedKeys.size());
+  for (  Data key : lockedKeys) {
+    Record record=getRecord(key,false);
+    if (record != null) {
+      lockedRecords.put(key,record);
+      updateSizeEstimator(calculateRecordHeapCost(record));
+    }
+  }
+  Set<Data> keysToDelete=records.keySet();
+  keysToDelete.removeAll(lockedRecords.keySet());
+  mapDataStore.removeAll(keysToDelete);
+  int numOfClearedEntries=keysToDelete.size();
+  removeIndex(keysToDelete);
+  clearRecordsMap(lockedRecords);
+  resetAccessSequenceNumber();
+  mapDataStore.reset();
+  return numOfClearedEntries;
+}

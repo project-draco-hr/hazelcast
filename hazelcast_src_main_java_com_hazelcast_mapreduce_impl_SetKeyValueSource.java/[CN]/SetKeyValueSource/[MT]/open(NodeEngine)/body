@@ -1,0 +1,19 @@
+{
+  NodeEngineImpl nei=(NodeEngineImpl)nodeEngine;
+  ss=nei.getSerializationService();
+  Address thisAddress=nei.getThisAddress();
+  InternalPartitionService ps=nei.getPartitionService();
+  Data data=ss.toData(setName,StringAndPartitionAwarePartitioningStrategy.INSTANCE);
+  int partitionId=ps.getPartitionId(data);
+  Address partitionOwner=ps.getPartitionOwner(partitionId);
+  if (partitionOwner == null) {
+    return false;
+  }
+  if (thisAddress.equals(partitionOwner)) {
+    SetService setService=nei.getService(SetService.SERVICE_NAME);
+    SetContainer setContainer=setService.getOrCreateContainer(setName,false);
+    List<CollectionItem> items=new ArrayList<CollectionItem>(setContainer.getCollection());
+    iterator=items.iterator();
+  }
+  return true;
+}

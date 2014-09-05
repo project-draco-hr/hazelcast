@@ -1,0 +1,29 @@
+{
+  final Node node=getNode();
+  final Collection<MemberImpl> memberList=node.clusterService.getMemberList();
+  if (memberList == null || memberList.isEmpty() || memberList.size() < 2) {
+    return true;
+  }
+  final Collection<Future> futures=new ArrayList<Future>(memberList.size());
+  for (  MemberImpl member : memberList) {
+    final Address target=member.getAddress();
+    final Operation operation=new SafeStateCheckOperation();
+    final InternalCompletableFuture future=node.getNodeEngine().getOperationService().invokeOnTarget(InternalPartitionService.SERVICE_NAME,operation,target);
+    futures.add(future);
+  }
+  final int maxWaitTime=getMaxWaitTime(node);
+  for (  Future future : futures) {
+    try {
+      final Object result=future.get(maxWaitTime,TimeUnit.SECONDS);
+      final boolean safe=(Boolean)result;
+      if (!safe) {
+        return false;
+      }
+    }
+ catch (    Exception e) {
+      logger.warning("Error while querying cluster's safe state",e);
+      return false;
+    }
+  }
+  return true;
+}

@@ -1,0 +1,12 @@
+{
+  Future future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,migrationInfo.getSource()).setTryPauseMillis(DEFAULT_PAUSE_MILLIS).invoke();
+  try {
+    Object response=future.get(partitionMigrationTimeout,TimeUnit.SECONDS);
+    return (Boolean)nodeEngine.toObject(response);
+  }
+ catch (  Throwable e) {
+    final Level level=node.isActive() && migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
+    logger.log(level,"Failed migration from " + fromMember,e);
+  }
+  return Boolean.FALSE;
+}

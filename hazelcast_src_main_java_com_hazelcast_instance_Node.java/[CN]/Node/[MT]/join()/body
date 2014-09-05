@@ -1,0 +1,19 @@
+{
+  if (joiner == null) {
+    logger.warning("No join method is enabled! Starting standalone.");
+    setAsMaster();
+    return;
+  }
+  try {
+    prepareForJoin();
+    joiner.join();
+  }
+ catch (  Throwable e) {
+    logger.severe("Error while joining the cluster!",e);
+  }
+  if (!joined()) {
+    long maxJoinTime=groupProperties.MAX_JOIN_SECONDS.getInteger() * 1000L;
+    logger.severe("Could not join cluster in " + maxJoinTime + " ms. Shutting down now!");
+    shutdown(true);
+  }
+}

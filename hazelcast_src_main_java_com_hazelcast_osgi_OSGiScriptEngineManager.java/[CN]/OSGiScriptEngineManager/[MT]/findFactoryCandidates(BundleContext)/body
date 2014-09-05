@@ -1,0 +1,30 @@
+{
+  Bundle[] bundles=context.getBundles();
+  List<String> factoryCandidates=new ArrayList<String>();
+  for (  Bundle bundle : bundles) {
+    if (bundle == null) {
+      continue;
+    }
+    if ("system.bundle".equals(bundle.getSymbolicName())) {
+      continue;
+    }
+    Enumeration urls=bundle.findEntries("META-INF/services","javax.script.ScriptEngineFactory",false);
+    if (urls == null) {
+      continue;
+    }
+    while (urls.hasMoreElements()) {
+      URL u=(URL)urls.nextElement();
+      BufferedReader reader=new BufferedReader(new InputStreamReader(u.openStream(),"UTF-8"));
+      String line;
+      while ((line=reader.readLine()) != null) {
+        line=line.trim();
+        if (!line.startsWith("#") && line.length() > 0) {
+          factoryCandidates.add(line);
+        }
+      }
+      reader.close();
+    }
+  }
+  factoryCandidates.add("com.sun.script.javascript.RhinoScriptEngineFactory");
+  return factoryCandidates;
+}

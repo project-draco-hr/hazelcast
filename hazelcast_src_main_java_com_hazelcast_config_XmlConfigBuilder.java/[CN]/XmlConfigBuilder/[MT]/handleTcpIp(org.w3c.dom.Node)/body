@@ -1,26 +1,27 @@
 {
   final NamedNodeMap atts=node.getAttributes();
-  final Join join=config.getNetworkConfig().getJoin();
+  final JoinConfig join=config.getNetworkConfig().getJoin();
+  final TcpIpConfig tcpIpConfig=join.getTcpIpConfig();
   for (int a=0; a < atts.getLength(); a++) {
     final org.w3c.dom.Node att=atts.item(a);
     final String value=getTextContent(att).trim();
     if (att.getNodeName().equals("enabled")) {
-      join.getTcpIpConfig().setEnabled(checkTrue(value));
+      tcpIpConfig.setEnabled(checkTrue(value));
     }
- else     if (att.getNodeName().equals("conn-timeout-seconds")) {
-      join.getTcpIpConfig().setConnectionTimeoutSeconds(getIntegerValue("conn-timeout-seconds",value,5));
+ else     if (att.getNodeName().equals("connection-timeout-seconds")) {
+      tcpIpConfig.setConnectionTimeoutSeconds(getIntegerValue("connection-timeout-seconds",value,DEFAULT_VALUE));
     }
   }
   final NodeList nodelist=node.getChildNodes();
-  final Set<String> memberTags=new HashSet<String>(Arrays.asList("hostname","address","interface","member","members"));
+  final Set<String> memberTags=new HashSet<String>(Arrays.asList("interface","member","members"));
   for (int i=0; i < nodelist.getLength(); i++) {
     final org.w3c.dom.Node n=nodelist.item(i);
     final String value=getTextContent(n).trim();
     if (cleanNodeName(n.getNodeName()).equals("required-member")) {
-      join.getTcpIpConfig().setRequiredMember(value);
+      tcpIpConfig.setRequiredMember(value);
     }
  else     if (memberTags.contains(cleanNodeName(n.getNodeName()))) {
-      join.getTcpIpConfig().addMember(value);
+      tcpIpConfig.addMember(value);
     }
   }
 }

@@ -1,0 +1,34 @@
+{
+  final int size=10000;
+  TestMapStore testMapStore=new TestMapStore(size * 2,1,1);
+  testMapStore.setLoadAllKeys(false);
+  Config config=newConfig(testMapStore,0);
+  config.setProperty(GroupProperties.PROP_PARTITION_COUNT,"1");
+  MaxSizeConfig maxSizeConfig=new MaxSizeConfig();
+  maxSizeConfig.setSize(size);
+  MapConfig mapConfig=config.getMapConfig("default");
+  mapConfig.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
+  mapConfig.setMaxSizeConfig(maxSizeConfig);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
+  IMap map=h1.getMap("default");
+  final CountDownLatch countDownLatch=new CountDownLatch(10000);
+  map.addEntryListener(new EntryAdapter(){
+    @Override public void entryEvicted(    EntryEvent event){
+      countDownLatch.countDown();
+    }
+  }
+,false);
+  for (int i=0; i < size * 2; i++) {
+    if (i == (size * 2) - 1 || i == size) {
+      sleepMillis(1001);
+    }
+    map.put(i,new Employee("joe",i,true,100.00));
+  }
+  assertEquals(testMapStore.getStore().size(),size * 2);
+  assertOpenEventually(countDownLatch);
+  final String msgFailure=String.format("map size: %d put count: %d",map.size(),size);
+  assertTrue(msgFailure,map.size() > size / 2);
+  assertTrue(msgFailure,map.size() <= size);
+  assertEquals(testMapStore.getStore().size(),size * 2);
+}

@@ -1,0 +1,22 @@
+{
+  final Set<Data> keys=this.keys;
+  for (  Data dataKey : keys) {
+    if (keyNotOwnedByThisPartition(dataKey)) {
+      continue;
+    }
+    final long now=getNow();
+    final Object oldValue=getValueFor(dataKey);
+    final Object key=toObject(dataKey);
+    final Object value=toObject(oldValue);
+    final Map.Entry entry=createMapEntry(key,value);
+    final Data response=process(entry);
+    addToResponses(dataKey,response);
+    if (noOp(entry,oldValue)) {
+      continue;
+    }
+    if (entryRemoved(entry,dataKey,oldValue,now)) {
+      continue;
+    }
+    entryAddedOrUpdated(entry,dataKey,oldValue,now);
+  }
+}

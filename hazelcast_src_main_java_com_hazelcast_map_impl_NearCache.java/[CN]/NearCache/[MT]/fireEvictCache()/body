@@ -1,0 +1,32 @@
+{
+  if (canEvict.compareAndSet(true,false)) {
+    try {
+      nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
+        public void run(){
+          try {
+            TreeSet<CacheRecord> records=new TreeSet<CacheRecord>(cache.values());
+            int evictSize=cache.size() * EVICTION_PERCENTAGE / HUNDRED_PERCENT;
+            int i=0;
+            for (            CacheRecord record : records) {
+              cache.remove(record.key);
+              updateSizeEstimator(-calculateCost(record));
+              if (++i > evictSize) {
+                break;
+              }
+            }
+          }
+  finally {
+            canEvict.set(true);
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canEvict.set(true);
+    }
+catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}

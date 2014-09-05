@@ -1,0 +1,30 @@
+{
+  this.name=name;
+  this.threadGroup=new ThreadGroup(name);
+  threadMonitoringService=new ThreadMonitoringService(threadGroup);
+  lifecycleService=new LifecycleServiceImpl(this);
+  ManagedContext configuredManagedContext=config.getManagedContext();
+  managedContext=new HazelcastManagedContext(this,configuredManagedContext);
+  userContext.putAll(config.getUserContext());
+  node=new Node(this,config,nodeContext);
+  try {
+    logger=node.getLogger(getClass().getName());
+    lifecycleService.fireLifecycleEvent(STARTING);
+    node.start();
+    if (!node.isActive()) {
+      throw new IllegalStateException("Node failed to start!");
+    }
+    managementService=new ManagementService(this);
+    initManagedContext(configuredManagedContext);
+    initHealthMonitor();
+  }
+ catch (  Throwable e) {
+    try {
+      node.connectionManager.shutdown();
+    }
+ catch (    Throwable ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+    throw ExceptionUtil.rethrow(e);
+  }
+}

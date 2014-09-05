@@ -1,0 +1,21 @@
+{
+  super(name,jobTrackerConfig,nodeEngine,mapReduceService);
+  ExecutionService es=nodeEngine.getExecutionService();
+  InternalPartitionService ps=nodeEngine.getPartitionService();
+  int maxThreadSize=jobTrackerConfig.getMaxThreadSize();
+  if (maxThreadSize <= 0) {
+    maxThreadSize=Runtime.getRuntime().availableProcessors();
+  }
+  int queueSize=jobTrackerConfig.getQueueSize();
+  if (queueSize <= 0) {
+    queueSize=ps.getPartitionCount() * 2;
+  }
+  try {
+    String executorName=MapReduceUtil.buildExecutorName(name);
+    es.register(executorName,maxThreadSize,queueSize,ExecutorType.CACHED);
+  }
+ catch (  Exception ignore) {
+    ILogger logger=nodeEngine.getLogger(NodeJobTracker.class);
+    logger.finest("This is likely happened due to a previously cancelled job",ignore);
+  }
+}

@@ -1,0 +1,34 @@
+{
+  final int k=simpleTestNodeCount;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  final HazelcastInstance[] instances=factory.newInstances(new Config());
+  final AtomicInteger count=new AtomicInteger(0);
+  final CountDownLatch latch=new CountDownLatch(k);
+  final MultiExecutionCallback callback=new MultiExecutionCallback(){
+    public void onResponse(    Member member,    Object value){
+      count.incrementAndGet();
+    }
+    public void onComplete(    Map<Member,Object> values){
+      latch.countDown();
+    }
+  }
+;
+  int sum=0;
+  final Set<Member> membersSet=instances[0].getCluster().getMembers();
+  final Member[] members=membersSet.toArray(new Member[membersSet.size()]);
+  final Random random=new Random();
+  final String name="testSubmitToMembersCallable";
+  for (int i=0; i < k; i++) {
+    final IExecutorService service=instances[i].getExecutorService(name);
+    final String script="hazelcast.getAtomicLong('" + name + "').incrementAndGet();";
+    final int n=random.nextInt(k) + 1;
+    sum+=n;
+    Member[] m=new Member[n];
+    System.arraycopy(members,0,m,0,n);
+    service.submitToMembers(new ScriptCallable(script,null),Arrays.asList(m),callback);
+  }
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  final IAtomicLong result=instances[0].getAtomicLong(name);
+  assertEquals(sum,result.get());
+  assertEquals(sum,count.get());
+}

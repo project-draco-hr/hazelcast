@@ -1,0 +1,20 @@
+{
+  final OperationService operationService=nodeEngine.getOperationService();
+  final List<Future> futures=new ArrayList<Future>(txLogs.size());
+  if (durability > 0 && transactionType.equals(TransactionType.TWO_PHASE)) {
+    for (    Address backupAddress : backupAddresses) {
+      if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
+        final Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new RollbackTxBackupOperation(txnId),backupAddress);
+        futures.add(f);
+      }
+    }
+    try {
+      waitWithDeadline(futures,timeoutMillis,TimeUnit.MILLISECONDS,rollbackTxExceptionHandler);
+    }
+ catch (    TimeoutException e) {
+      ILogger logger=nodeEngine.getLogger(getClass());
+      logger.warning("Timeout during tx rollback backup!",e);
+    }
+    futures.clear();
+  }
+}

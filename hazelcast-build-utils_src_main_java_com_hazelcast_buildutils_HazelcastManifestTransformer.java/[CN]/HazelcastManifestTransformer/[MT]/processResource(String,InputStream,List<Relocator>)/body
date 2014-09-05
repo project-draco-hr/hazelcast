@@ -1,0 +1,32 @@
+{
+  Attributes attributes;
+  if (shadedManifest == null) {
+    shadedManifest=new Manifest(inputStream);
+    attributes=shadedManifest.getMainAttributes();
+  }
+ else {
+    Manifest manifest=new Manifest(inputStream);
+    attributes=manifest.getMainAttributes();
+  }
+  String importPackages=attributes.getValue(IMPORT_PACKAGE);
+  if (importPackages != null) {
+    List<String> definitions=ElementParser.parseDelimitedString(importPackages,',',true);
+    for (    String definition : definitions) {
+      PackageDefinition packageDefinition=new PackageDefinition(definition);
+      String packageName=packageDefinition.packageName;
+      PackageDefinition oldPackageDefinition=importedPackages.get(packageName);
+      importedPackages.put(packageName,findStrongerDefinition(packageDefinition,oldPackageDefinition));
+    }
+  }
+  String exportPackages=attributes.getValue(EXPORT_PACKAGE);
+  if (exportPackages != null) {
+    List<String> definitions=ElementParser.parseDelimitedString(exportPackages,',',true);
+    for (    String definition : definitions) {
+      PackageDefinition packageDefinition=new PackageDefinition(definition);
+      String packageName=packageDefinition.packageName;
+      PackageDefinition oldPackageDefinition=exportedPackages.get(packageName);
+      exportedPackages.put(packageName,mergeExportUsesConstraint(packageDefinition,oldPackageDefinition));
+    }
+  }
+  IOUtil.close(inputStream);
+}

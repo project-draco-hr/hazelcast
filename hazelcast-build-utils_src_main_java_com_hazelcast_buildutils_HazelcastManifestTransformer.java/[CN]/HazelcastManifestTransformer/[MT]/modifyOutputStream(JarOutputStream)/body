@@ -1,0 +1,21 @@
+{
+  if (shadedManifest == null) {
+    shadedManifest=new Manifest();
+  }
+  precompileOverrideInstructions();
+  Attributes attributes=shadedManifest.getMainAttributes();
+  attributes.putValue(IMPORT_PACKAGE,StringUtils.join(shadeImports().iterator(),","));
+  attributes.putValue(EXPORT_PACKAGE,StringUtils.join(shadeExports().iterator(),","));
+  attributes.putValue("Created-By","HazelcastManifestTransformer through Shade Plugin");
+  if (mainClass != null) {
+    attributes.put(Attributes.Name.MAIN_CLASS,mainClass);
+  }
+  if (manifestEntries != null) {
+    for (    Map.Entry<String,Attributes> entry : manifestEntries.entrySet()) {
+      attributes.put(new Attributes.Name(entry.getKey()),entry.getValue());
+    }
+  }
+  jarOutputStream.putNextEntry(new JarEntry(JarFile.MANIFEST_NAME));
+  shadedManifest.write(jarOutputStream);
+  jarOutputStream.flush();
+}

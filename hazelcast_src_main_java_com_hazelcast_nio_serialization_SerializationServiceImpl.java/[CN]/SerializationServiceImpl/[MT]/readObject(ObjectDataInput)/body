@@ -1,0 +1,32 @@
+{
+  try {
+    final boolean isNull=in.readBoolean();
+    if (isNull) {
+      return null;
+    }
+    final int typeId=in.readInt();
+    final SerializerAdapter serializer=serializerFor(typeId);
+    if (serializer == null) {
+      if (active) {
+        throw new HazelcastSerializationException("There is no suitable de-serializer for type " + typeId);
+      }
+      throw new HazelcastInstanceNotActiveException();
+    }
+    if (typeId == SerializationConstants.CONSTANT_TYPE_PORTABLE && in instanceof PortableContextAwareInputStream) {
+      ClassDefinition classDefinition=new ClassDefinitionImpl();
+      classDefinition.readData(in);
+      classDefinition=serializationContext.registerClassDefinition(classDefinition);
+      PortableContextAwareInputStream ctxIn=(PortableContextAwareInputStream)in;
+      ctxIn.setClassDefinition(classDefinition);
+    }
+    Object obj=serializer.read(in);
+    if (managedContext != null) {
+      obj=managedContext.initialize(obj);
+    }
+    return obj;
+  }
+ catch (  Throwable e) {
+    handleException(e);
+  }
+  return null;
+}

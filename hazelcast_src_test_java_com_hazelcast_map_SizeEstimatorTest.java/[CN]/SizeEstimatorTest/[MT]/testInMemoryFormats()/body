@@ -1,0 +1,29 @@
+{
+  final String BINARY_MAP="testBinaryFormat";
+  final String OBJECT_MAP="testObjectFormat";
+  final Config config=new Config();
+  config.getMapConfig(BINARY_MAP).setInMemoryFormat(InMemoryFormat.BINARY).setBackupCount(0);
+  config.getMapConfig(OBJECT_MAP).setInMemoryFormat(InMemoryFormat.OBJECT).setBackupCount(0);
+  final int n=2;
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
+  final HazelcastInstance[] h=factory.newInstances(config);
+  warmUpPartitions(h);
+  final IMap<String,String> binaryMap=h[0].getMap(BINARY_MAP);
+  for (int i=0; i < 1000; i++) {
+    binaryMap.put("key" + i,"value" + i);
+  }
+  final IMap<String,String> objectMap=h[0].getMap(OBJECT_MAP);
+  for (int i=0; i < 1000; i++) {
+    objectMap.put("key" + i,"value" + i);
+  }
+  for (int i=0; i < n; i++) {
+    assertTrue(h[i].getMap(BINARY_MAP).getLocalMapStats().getHeapCost() > 0);
+    assertEquals(0,h[i].getMap(OBJECT_MAP).getLocalMapStats().getHeapCost());
+  }
+  binaryMap.clear();
+  objectMap.clear();
+  for (int i=0; i < n; i++) {
+    assertEquals(0,h[i].getMap(BINARY_MAP).getLocalMapStats().getHeapCost());
+    assertEquals(0,h[i].getMap(OBJECT_MAP).getLocalMapStats().getHeapCost());
+  }
+}

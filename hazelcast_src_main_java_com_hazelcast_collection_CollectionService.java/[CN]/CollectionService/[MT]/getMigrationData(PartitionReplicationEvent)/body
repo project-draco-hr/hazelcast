@@ -1,0 +1,13 @@
+{
+  Map<String,CollectionContainer> migrationData=new HashMap<String,CollectionContainer>();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  for (  Map.Entry<String,? extends CollectionContainer> entry : getContainerMap().entrySet()) {
+    String name=entry.getKey();
+    int partitionId=partitionService.getPartitionId(StringPartitioningStrategy.getPartitionKey(name));
+    CollectionContainer container=entry.getValue();
+    if (partitionId == event.getPartitionId() && container.getConfig().getTotalBackupCount() >= event.getReplicaIndex()) {
+      migrationData.put(name,container);
+    }
+  }
+  return migrationData;
+}

@@ -1,0 +1,15 @@
+{
+  String mapName="mapstore-test";
+  InputStream is=getClass().getResourceAsStream("/com/hazelcast/config/hazelcast-mapstore-config.xml");
+  XmlConfigBuilder builder=new XmlConfigBuilder(is);
+  Config config=builder.build();
+  HazelcastInstance hz=createHazelcastInstance(config);
+  MapProxyImpl map=(MapProxyImpl)hz.getMap(mapName);
+  MapService mapService=(MapService)map.getService();
+  MapContainer mapContainer=mapService.getMapServiceContext().getMapContainer(mapName);
+  MapStoreWrapper mapStoreWrapper=mapContainer.getStore();
+  Set keys=mapStoreWrapper.loadAllKeys();
+  assertEquals(2,keys.size());
+  assertEquals("true",mapStoreWrapper.load("my-prop-1"));
+  assertEquals("foo",mapStoreWrapper.load("my-prop-2"));
+}

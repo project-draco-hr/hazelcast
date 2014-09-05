@@ -1,0 +1,21 @@
+{
+  try {
+    MapReduceUtil.enforcePartitionTableWarmup(mapReduceService);
+    RequestPartitionResult result=mapReduceService.processRequest(supervisor.getJobOwner(),new RequestMemberIdAssignment(name,jobId),name);
+    if (result.getResultState() == NO_SUPERVISOR) {
+      return;
+    }
+ else     if (result.getResultState() == NO_MORE_PARTITIONS) {
+      return;
+    }
+    int partitionId=result.getPartitionId();
+    KeyValueSource<KeyIn,ValueIn> delegate=keyValueSource;
+    if (supervisor.getConfiguration().isCommunicateStats()) {
+      delegate=new KeyValueSourceFacade<KeyIn,ValueIn>(keyValueSource,supervisor);
+    }
+    processPartitionMapping(delegate,partitionId);
+  }
+ catch (  Throwable t) {
+    handleProcessorThrowable(t);
+  }
+}

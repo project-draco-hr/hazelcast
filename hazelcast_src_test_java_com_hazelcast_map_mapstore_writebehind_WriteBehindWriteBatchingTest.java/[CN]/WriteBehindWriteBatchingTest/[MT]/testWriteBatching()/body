@@ -1,0 +1,15 @@
+{
+  final int writeBatchSize=8;
+  final MapStoreWithCounter mapStore=new MapStoreWithCounter<Integer,String>();
+  final IMap<Object,Object> map=TestMapUsingMapStoreBuilder.create().withMapStore(mapStore).withNodeCount(1).withWriteDelaySeconds(3).withPartitionCount(1).withWriteBatchSize(writeBatchSize).build();
+  final int numberOfItems=1024;
+  populateMap(map,numberOfItems);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final int expectedBatchOpCount=(numberOfItems / writeBatchSize) / 2;
+      final int numberOfBatchOperationsEqualWriteBatchSize=mapStore.findNumberOfBatchsEqualWriteBatchSize(writeBatchSize);
+      assertTrue(numberOfBatchOperationsEqualWriteBatchSize >= expectedBatchOpCount);
+    }
+  }
+,20);
+}

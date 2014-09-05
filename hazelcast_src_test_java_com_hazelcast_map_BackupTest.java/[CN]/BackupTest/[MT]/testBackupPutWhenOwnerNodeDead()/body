@@ -1,0 +1,52 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final String name=MAP_NAME;
+  final HazelcastInstance hz=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance hz2=nodeFactory.newHazelcastInstance();
+  final IMap<Integer,byte[]> map=hz2.getMap(name);
+  final int size=100000;
+  final byte[] data=new byte[250];
+  final int threads=100;
+  final int l=size / threads;
+  final CountDownLatch latch=new CountDownLatch(threads);
+  ExecutorService ex=Executors.newFixedThreadPool(threads);
+  new Thread(){
+    public void run(){
+      while (hz.getMap(name).size() < size / 2) {
+        try {
+          sleep(5);
+        }
+ catch (        InterruptedException ignored) {
+          return;
+        }
+      }
+      TestUtil.terminateInstance(hz);
+    }
+  }
+.start();
+  for (int i=0; i < threads; i++) {
+    final int n=i;
+    ex.execute(new Runnable(){
+      public void run(){
+        for (int j=(n * l); j < (n + 1) * l; j++) {
+          map.put(j,data);
+          try {
+            Thread.sleep(1);
+          }
+ catch (          InterruptedException ignored) {
+            return;
+          }
+        }
+        latch.countDown();
+      }
+    }
+);
+  }
+  try {
+    assertTrue(latch.await(5,TimeUnit.MINUTES));
+    assertEquals("Data lost!",size,map.size());
+  }
+  finally {
+    ex.shutdownNow();
+  }
+}

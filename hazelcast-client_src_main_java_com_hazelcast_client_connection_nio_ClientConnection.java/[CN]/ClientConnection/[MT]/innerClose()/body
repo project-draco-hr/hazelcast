@@ -1,0 +1,25 @@
+{
+  if (!live) {
+    return;
+  }
+  live=false;
+  if (socketChannelWrapper.isOpen()) {
+    socketChannelWrapper.close();
+  }
+  readHandler.shutdown();
+  writeHandler.shutdown();
+  if (socketChannelWrapper.isBlocking()) {
+    return;
+  }
+  if (connectionManager.isLive()) {
+    try {
+      executionService.execute(new CleanResourcesTask());
+    }
+ catch (    RejectedExecutionException e) {
+      logger.warning("Execution rejected ",e);
+    }
+  }
+ else {
+    cleanResources(new HazelcastException("Client is shutting down!!!"));
+  }
+}

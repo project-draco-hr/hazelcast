@@ -1,0 +1,31 @@
+{
+  ValidationUtil.isNotNull(className,"className");
+  if (className.length() <= MAX_PRIM_CLASSNAME_LENGTH && Character.isLowerCase(className.charAt(0))) {
+    final Class primitiveClass=PRIMITIVE_CLASSES.get(className);
+    if (primitiveClass != null) {
+      return primitiveClass;
+    }
+  }
+  ClassLoader theClassLoader=classLoader;
+  if (theClassLoader == null) {
+    theClassLoader=Thread.currentThread().getContextClassLoader();
+  }
+  if (theClassLoader != null) {
+    try {
+      return tryLoadClass(className,theClassLoader);
+    }
+ catch (    ClassNotFoundException ignore) {
+      theClassLoader=null;
+    }
+  }
+  if (className.startsWith(HAZELCAST_BASE_PACKAGE) || className.startsWith(HAZELCAST_ARRAY)) {
+    theClassLoader=ClassLoaderUtil.class.getClassLoader();
+  }
+  if (theClassLoader == null) {
+    theClassLoader=Thread.currentThread().getContextClassLoader();
+  }
+  if (theClassLoader != null) {
+    return tryLoadClass(className,theClassLoader);
+  }
+  return Class.forName(className);
+}

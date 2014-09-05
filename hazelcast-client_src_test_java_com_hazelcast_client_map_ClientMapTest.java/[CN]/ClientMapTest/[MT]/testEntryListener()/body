@@ -1,0 +1,29 @@
+{
+  final CountDownLatch gateAdd=new CountDownLatch(3);
+  final CountDownLatch gateRemove=new CountDownLatch(1);
+  final CountDownLatch gateEvict=new CountDownLatch(1);
+  final CountDownLatch gateUpdate=new CountDownLatch(1);
+  final CountDownLatch gateClearAll=new CountDownLatch(1);
+  final CountDownLatch gateEvictAll=new CountDownLatch(1);
+  final String mapName=randomString();
+  final IMap<Object,Object> serverMap=server.getMap(mapName);
+  serverMap.put(3,new Deal(3));
+  final IMap<Object,Object> clientMap=client.getMap(mapName);
+  assertEquals(1,clientMap.size());
+  final EntryListener listener=new EntListener(gateAdd,gateRemove,gateEvict,gateUpdate,gateClearAll,gateEvictAll);
+  clientMap.addEntryListener(listener,new SqlPredicate("id=1"),2,true);
+  clientMap.put(2,new Deal(1));
+  clientMap.put(2,new Deal(1));
+  clientMap.remove(2);
+  clientMap.put(2,new Deal(1));
+  clientMap.evict(2);
+  clientMap.clear();
+  clientMap.put(2,new Deal(1));
+  clientMap.evictAll();
+  assertTrue(gateAdd.await(10,TimeUnit.SECONDS));
+  assertTrue(gateRemove.await(10,TimeUnit.SECONDS));
+  assertTrue(gateEvict.await(10,TimeUnit.SECONDS));
+  assertTrue(gateUpdate.await(10,TimeUnit.SECONDS));
+  assertTrue(gateClearAll.await(10,TimeUnit.SECONDS));
+  assertTrue(gateEvictAll.await(10,TimeUnit.SECONDS));
+}

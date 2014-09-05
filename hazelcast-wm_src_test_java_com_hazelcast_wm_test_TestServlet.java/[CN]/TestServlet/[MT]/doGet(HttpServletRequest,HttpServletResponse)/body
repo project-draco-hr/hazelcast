@@ -1,0 +1,63 @@
+{
+  if (req.getRequestURI().endsWith("redirect")) {
+    resp.sendRedirect("/");
+    return;
+  }
+  if (req.getRequestURI().endsWith("readIfExist")) {
+    HttpSession session=req.getSession(false);
+    Object value=session.getAttribute("key");
+    resp.getWriter().write(value.toString());
+    return;
+  }
+  HttpSession session=req.getSession();
+  if (req.getRequestURI().endsWith("write")) {
+    session.setAttribute("key","value");
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("read")) {
+    Object value=session.getAttribute("key");
+    resp.getWriter().write(value == null ? "null" : value.toString());
+  }
+ else   if (req.getRequestURI().endsWith("remove")) {
+    session.removeAttribute("key");
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("remove_set_null")) {
+    session.setAttribute("key",null);
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("invalidate")) {
+    session.invalidate();
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("update")) {
+    session.setAttribute("key","value-updated");
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("update-and-read-same-request")) {
+    session.setAttribute("key","value-updated");
+    Object value=session.getAttribute("key");
+    resp.getWriter().write(value == null ? "null" : value.toString());
+  }
+ else   if (req.getRequestURI().endsWith("names")) {
+    List<String> names=Collections.list(session.getAttributeNames());
+    String nameList=names.toString();
+    resp.getWriter().write(nameList.substring(1,nameList.length() - 1).replace(", ",","));
+  }
+ else   if (req.getRequestURI().endsWith("reload")) {
+    session.invalidate();
+    session=req.getSession();
+    session.setAttribute("first-key","first-value");
+    session.setAttribute("second-key","second-value");
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("timeout")) {
+    session=req.getSession();
+    session.setMaxInactiveInterval(1);
+    resp.getWriter().write("true");
+  }
+ else   if (req.getRequestURI().endsWith("isNew")) {
+    session=req.getSession();
+    resp.getWriter().write(session.isNew() == true ? "true" : "false");
+  }
+}

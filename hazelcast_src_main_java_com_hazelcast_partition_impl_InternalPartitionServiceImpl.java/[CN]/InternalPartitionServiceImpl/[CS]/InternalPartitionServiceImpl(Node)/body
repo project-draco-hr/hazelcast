@@ -1,0 +1,34 @@
+{
+  this.partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
+  this.node=node;
+  this.nodeEngine=node.nodeEngine;
+  this.logger=node.getLogger(InternalPartitionService.class);
+  this.partitions=new InternalPartitionImpl[partitionCount];
+  PartitionListener partitionListener=new LocalPartitionListener(this,node.getThisAddress());
+  for (int i=0; i < partitionCount; i++) {
+    this.partitions[i]=new InternalPartitionImpl(i,partitionListener);
+  }
+  replicaVersions=new PartitionReplicaVersions[partitionCount];
+  for (int i=0; i < replicaVersions.length; i++) {
+    replicaVersions[i]=new PartitionReplicaVersions(i);
+  }
+  memberGroupFactory=MemberGroupFactoryFactory.newMemberGroupFactory(node.getConfig().getPartitionGroupConfig());
+  partitionStateGenerator=new PartitionStateGeneratorImpl();
+  partitionMigrationInterval=node.groupProperties.PARTITION_MIGRATION_INTERVAL.getLong() * DEFAULT_PAUSE_MILLIS;
+  long defaultMigrationTimeout=node.groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong();
+  partitionMigrationTimeout=(long)(defaultMigrationTimeout * DEFAULT_MIGRATION_TIMEOUT_MULTIPLICATOR);
+  migrationThread=new MigrationThread(node);
+  proxy=new PartitionServiceProxy(this);
+  replicaSyncRequests=new AtomicReferenceArray<ReplicaSyncInfo>(new ReplicaSyncInfo[partitionCount]);
+  ExecutionService executionService=nodeEngine.getExecutionService();
+  ScheduledExecutorService scheduledExecutor=executionService.getDefaultScheduledExecutor();
+  replicaSyncScheduler=EntryTaskSchedulerFactory.newScheduler(scheduledExecutor,new ReplicaSyncEntryProcessor(this),ScheduleType.SCHEDULE_IF_NEW);
+  long maxMigrationDelayMs=calculateMaxMigrationDelayOnMemberRemoved();
+  long minMigrationDelayMs=calculateMigrationDelayOnMemberRemoved(maxMigrationDelayMs);
+  this.delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,minMigrationDelayMs,maxMigrationDelayMs,new Runnable(){
+    @Override public void run(){
+      resumeMigration();
+    }
+  }
+);
+}

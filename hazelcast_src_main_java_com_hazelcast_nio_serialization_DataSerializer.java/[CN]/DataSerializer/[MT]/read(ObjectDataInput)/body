@@ -1,0 +1,36 @@
+{
+  final DataSerializable ds;
+  final boolean identified=in.readBoolean();
+  int id=0;
+  int factoryId=0;
+  String className=null;
+  try {
+    if (identified) {
+      factoryId=in.readInt();
+      final DataSerializableFactory dsf=factories.get(factoryId);
+      if (dsf == null) {
+        throw new HazelcastSerializationException("No DataSerializerFactory registered for namespace: " + factoryId);
+      }
+      id=in.readInt();
+      ds=dsf.create(id);
+      if (ds == null) {
+        throw new HazelcastSerializationException(dsf + " is not be able to create an instance for id: " + id+ " on factoryId: "+ factoryId);
+      }
+    }
+ else {
+      className=in.readUTF();
+      ds=ClassLoaderUtil.newInstance(in.getClassLoader(),className);
+    }
+    ds.readData(in);
+    return ds;
+  }
+ catch (  Exception e) {
+    if (e instanceof IOException) {
+      throw (IOException)e;
+    }
+    if (e instanceof HazelcastSerializationException) {
+      throw (HazelcastSerializationException)e;
+    }
+    throw new HazelcastSerializationException("Problem while reading DataSerializable, namespace: " + factoryId + ", id: "+ id+ ", class: '"+ className+ "'"+ ", exception: "+ e.getMessage(),e);
+  }
+}

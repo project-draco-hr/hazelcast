@@ -1,0 +1,19 @@
+{
+  if (state == ACTIVE) {
+    throw new IllegalStateException("Transaction is already active");
+  }
+  if (THREAD_FLAG.get() != null) {
+    throw new IllegalStateException("Nested transactions are not allowed!");
+  }
+  startTime=Clock.currentTimeMillis();
+  backupAddresses=transactionManagerService.pickBackupAddresses(durability);
+  if (durability > 0 && backupAddresses != null && transactionType == TransactionType.TWO_PHASE) {
+    List<Future> futures=startTxBackup();
+    awaitTxBackupCompletion(futures);
+  }
+  if (threadId == null) {
+    threadId=Thread.currentThread().getId();
+    setThreadFlag(Boolean.TRUE);
+  }
+  state=ACTIVE;
+}

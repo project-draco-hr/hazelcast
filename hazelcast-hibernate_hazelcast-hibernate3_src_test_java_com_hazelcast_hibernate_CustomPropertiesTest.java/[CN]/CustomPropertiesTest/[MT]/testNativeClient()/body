@@ -1,0 +1,32 @@
+{
+  HazelcastInstance main=Hazelcast.newHazelcastInstance(new ClasspathXmlConfig("hazelcast-custom.xml"));
+  Properties props=getDefaultProperties();
+  props.remove(CacheEnvironment.CONFIG_FILE_PATH_LEGACY);
+  props.setProperty(Environment.CACHE_REGION_FACTORY,HazelcastCacheRegionFactory.class.getName());
+  props.setProperty(CacheEnvironment.USE_NATIVE_CLIENT,"true");
+  props.setProperty(CacheEnvironment.NATIVE_CLIENT_GROUP,"dev-custom");
+  props.setProperty(CacheEnvironment.NATIVE_CLIENT_PASSWORD,"dev-pass");
+  props.setProperty(CacheEnvironment.NATIVE_CLIENT_ADDRESS,"localhost");
+  SessionFactory sf=createSessionFactory(props);
+  HazelcastInstance hz=HazelcastAccessor.getHazelcastInstance(sf);
+  assertTrue(hz instanceof HazelcastClientProxy);
+  assertEquals(1,main.getCluster().getMembers().size());
+  HazelcastClientProxy client=(HazelcastClientProxy)hz;
+  ClientConfig clientConfig=client.getClientConfig();
+  assertEquals("dev-custom",clientConfig.getGroupConfig().getName());
+  assertEquals("dev-pass",clientConfig.getGroupConfig().getPassword());
+  assertTrue(clientConfig.getNetworkConfig().isSmartRouting());
+  assertTrue(clientConfig.getNetworkConfig().isRedoOperation());
+  Hazelcast.newHazelcastInstance(new ClasspathXmlConfig("hazelcast-custom.xml"));
+  assertEquals(2,hz.getCluster().getMembers().size());
+  main.shutdown();
+  Thread.sleep(1000 * 3);
+  assertEquals(1,hz.getCluster().getMembers().size());
+  Session session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  session.save(new DummyEntity(1L,"dummy",0,new Date()));
+  tx.commit();
+  session.close();
+  sf.close();
+  Hazelcast.shutdownAll();
+}

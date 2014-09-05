@@ -1,0 +1,14 @@
+{
+synchronized (lifecycleLock) {
+    fireLifecycleEvent(SHUTTING_DOWN);
+    instance.managementService.destroy();
+    final Node node=instance.node;
+    if (node != null) {
+      final NodeShutdownLatch shutdownLatch=new NodeShutdownLatch(node);
+      node.shutdown(false);
+      HazelcastInstanceFactory.remove(instance);
+      shutdownLatch.await(getShutdownTimeoutSeconds(node),TimeUnit.SECONDS);
+    }
+    fireLifecycleEvent(SHUTDOWN);
+  }
+}

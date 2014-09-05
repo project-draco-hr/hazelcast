@@ -1,0 +1,19 @@
+{
+  final HazelcastInstance instance=createHazelcastInstance();
+  final int putCount=100;
+  final CountDownLatch latch=new CountDownLatch(putCount);
+  final IMap map=instance.getMap("testMapPutTTLWithListener");
+  final AtomicBoolean error=new AtomicBoolean(false);
+  final Set<Long> times=Collections.newSetFromMap(new ConcurrentHashMap<Long,Boolean>());
+  map.addEntryListener(new EntryAdapter(){
+    public void entryEvicted(    final EntryEvent event){
+      latch.countDown();
+    }
+  }
+,true);
+  int ttl=(int)(Math.random() * 3000);
+  for (int j=0; j < putCount; j++) {
+    map.put(j,j,ttl,TimeUnit.MILLISECONDS);
+  }
+  assertOpenEventually(latch);
+}

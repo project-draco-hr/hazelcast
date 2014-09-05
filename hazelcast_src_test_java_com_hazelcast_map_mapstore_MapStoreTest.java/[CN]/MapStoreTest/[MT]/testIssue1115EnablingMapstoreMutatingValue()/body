@@ -1,0 +1,50 @@
+{
+  Config cfg=new Config();
+  String mapName="testIssue1115";
+  MapStore mapStore=new ProcessingStore();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setImplementation(mapStore);
+  cfg.getMapConfig(mapName).setMapStoreConfig(mapStoreConfig);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  IMap<Integer,Employee> map=instance1.getMap(mapName);
+  Random random=new Random();
+  for (int i=0; i < 10; i++) {
+    Employee emp=new Employee();
+    emp.setAge(random.nextInt(20) + 20);
+    map.put(i,emp);
+  }
+  for (int i=0; i < 10; i++) {
+    Employee employee=map.get(i);
+    assertEquals(employee.getAge() * 1000,employee.getSalary(),0);
+  }
+  for (int i=0; i < 10; i++) {
+    Employee emp=map.get(i);
+    emp.setAge(random.nextInt(20) + 20);
+    map.put(i,emp);
+  }
+  for (int i=0; i < 10; i++) {
+    Employee employee=map.get(i);
+    assertEquals(employee.getAge() * 1000,employee.getSalary(),0);
+  }
+  for (int i=0; i < 10; i++) {
+    Employee emp=map.get(i);
+    emp.setAge(random.nextInt(20) + 20);
+    map.replace(i,emp);
+  }
+  for (int i=0; i < 10; i++) {
+    Employee employee=map.get(i);
+    assertEquals(employee.getAge() * 1000,employee.getSalary(),0);
+  }
+  for (int i=10; i < 20; i++) {
+    Employee emp=new Employee();
+    emp.setAge(random.nextInt(20) + 20);
+    map.putIfAbsent(i,emp);
+  }
+  for (int i=10; i < 20; i++) {
+    Employee employee=map.get(i);
+    assertEquals(employee.getAge() * 1000,employee.getSalary(),0);
+  }
+}

@@ -1,0 +1,25 @@
+{
+  int maxSizeParam=maxSize;
+  if (maxSizeParam < 0 || maxSizeParam > getItemQueue().size()) {
+    maxSizeParam=getItemQueue().size();
+  }
+  LinkedHashMap<Long,Data> map=new LinkedHashMap<Long,Data>(maxSizeParam);
+  mapDrainIterator(maxSizeParam,map);
+  if (store.isEnabled() && maxSizeParam != 0) {
+    try {
+      store.deleteAll(map.keySet());
+    }
+ catch (    Exception e) {
+      throw new HazelcastException(e);
+    }
+  }
+  long current=Clock.currentTimeMillis();
+  for (int i=0; i < maxSizeParam; i++) {
+    QueueItem item=getItemQueue().poll();
+    age(item,current);
+  }
+  if (maxSizeParam != 0) {
+    scheduleEvictionIfEmpty();
+  }
+  return map;
+}

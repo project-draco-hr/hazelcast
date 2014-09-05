@@ -1,0 +1,34 @@
+{
+  if (op instanceof TxnRemoveOperation) {
+    TxnRemoveOperation removeOperation=(TxnRemoveOperation)op;
+    Iterator<Operation> iter=opList.iterator();
+    while (iter.hasNext()) {
+      Operation opp=iter.next();
+      if (opp instanceof TxnPutOperation) {
+        TxnPutOperation putOperation=(TxnPutOperation)opp;
+        if (putOperation.getRecordId() == removeOperation.getRecordId()) {
+          iter.remove();
+          return;
+        }
+      }
+    }
+  }
+ else   if (op instanceof TxnRemoveAllOperation) {
+    TxnRemoveAllOperation removeAllOperation=(TxnRemoveAllOperation)op;
+    Collection<Long> recordIds=removeAllOperation.getRecordIds();
+    Iterator<Operation> iter=opList.iterator();
+    while (iter.hasNext()) {
+      Operation opp=iter.next();
+      if (opp instanceof TxnPutOperation) {
+        TxnPutOperation putOperation=(TxnPutOperation)opp;
+        if (recordIds.remove(putOperation.getRecordId())) {
+          iter.remove();
+        }
+      }
+    }
+    if (recordIds.isEmpty()) {
+      return;
+    }
+  }
+  opList.add(op);
+}

@@ -1,0 +1,26 @@
+{
+  ManagedDescription descAnn=getClass().getAnnotation(ManagedDescription.class);
+  if (descAnn != null) {
+    description=descAnn.value();
+  }
+  for (  Method method : getClass().getMethods()) {
+    if (method.isAnnotationPresent(ManagedAnnotation.class)) {
+      ManagedAnnotation ann=method.getAnnotation(ManagedAnnotation.class);
+      String name=ann.value();
+      if (name.isEmpty()) {
+        throw new IllegalArgumentException("Name cannot be empty!");
+      }
+      boolean operation=ann.operation();
+      HashMap<String,BeanInfo> map=operation ? operationMap : attributeMap;
+      if (map.containsKey(name)) {
+        throw new IllegalArgumentException("Duplicate name: " + name);
+      }
+      descAnn=method.getAnnotation(ManagedDescription.class);
+      String desc=null;
+      if (descAnn != null) {
+        desc=descAnn.value();
+      }
+      map.put(name,new BeanInfo(name,desc,method));
+    }
+  }
+}

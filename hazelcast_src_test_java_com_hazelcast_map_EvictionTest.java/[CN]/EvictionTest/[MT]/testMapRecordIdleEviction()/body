@@ -1,0 +1,31 @@
+{
+  final String mapName=randomMapName("testMapRecordIdleEviction");
+  final int maxIdleSeconds=5;
+  final int size=1000;
+  final int expectedEntryCountAfterIdleEviction=size / 100;
+  Config cfg=new Config();
+  MapConfig mc=cfg.getMapConfig(mapName);
+  mc.setMaxIdleSeconds(maxIdleSeconds);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=factory.newHazelcastInstance(cfg);
+  final IMap map=instance.getMap(mapName);
+  final CountDownLatch latch=new CountDownLatch(size - expectedEntryCountAfterIdleEviction);
+  map.addEntryListener(new EntryAdapter(){
+    public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,false);
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  for (; ; ) {
+    for (int i=0; i < expectedEntryCountAfterIdleEviction; i++) {
+      map.get(i);
+    }
+    if (latch.getCount() == 0) {
+      break;
+    }
+  }
+  assertSizeEventually(expectedEntryCountAfterIdleEviction,map);
+}

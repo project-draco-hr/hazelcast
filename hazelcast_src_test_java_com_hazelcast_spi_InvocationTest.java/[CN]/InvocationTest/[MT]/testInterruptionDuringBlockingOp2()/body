@@ -1,0 +1,27 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  final ILock lock=hz.getLock("lock");
+  lock.lock();
+  assertTrue(lock.isLockedByCurrentThread());
+  final CountDownLatch latch=new CountDownLatch(1);
+  final AtomicBoolean interruptedFlag=new AtomicBoolean(false);
+  final OpThread thread=new OpThread("Lock-Thread",latch,interruptedFlag){
+    protected void doOp() throws InterruptedException {
+      assertTrue(lock.tryLock(1,TimeUnit.MINUTES));
+    }
+  }
+;
+  thread.start();
+  Thread.sleep(5000);
+  thread.interrupt();
+  lock.unlock();
+  assertTrue(latch.await(1,TimeUnit.MINUTES));
+  if (thread.isInterruptionCaught()) {
+    assertFalse("Thread interrupted flag should not be set!",interruptedFlag.get());
+    assertFalse("Lock should not be in 'locked' state!",lock.isLocked());
+  }
+ else {
+    assertTrue("Thread interrupted flag should be set! " + thread,interruptedFlag.get());
+    assertTrue("Lock should be 'locked' state!",lock.isLocked());
+  }
+}

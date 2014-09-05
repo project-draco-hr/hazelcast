@@ -4,7 +4,7 @@
   }
  else {
     if (req instanceof RequestWrapper) {
-      log("Request is instance of RequestWrapper! Continue...");
+      LOGGER.finest("Request is instance of RequestWrapper! Continue...");
       chain.doFilter(req,res);
       return;
     }
@@ -12,39 +12,19 @@
     RequestWrapper existingReq=(RequestWrapper)req.getAttribute(HAZELCAST_REQUEST);
     final ResponseWrapper resWrapper=new ResponseWrapper((HttpServletResponse)res);
     final RequestWrapper reqWrapper=new RequestWrapper(httpReq,resWrapper);
-    resWrapper.setRequest(reqWrapper);
     if (existingReq != null) {
       reqWrapper.setHazelcastSession(existingReq.hazelcastSession,existingReq.requestedSessionId);
     }
-    req=null;
-    res=null;
-    httpReq=null;
     chain.doFilter(reqWrapper,resWrapper);
-    if (existingReq != null)     return;
-    req=null;
+    if (existingReq != null) {
+      return;
+    }
     HazelcastHttpSession session=reqWrapper.getSession(false);
     if (session != null && session.isValid()) {
-      session.setAccessed();
-      final Enumeration<String> attNames=session.getAttributeNames();
-      Map mapData=null;
-      while (attNames.hasMoreElements()) {
-        final String attName=attNames.nextElement();
-        final Object value=session.getAttribute(attName);
-        if (mapData == null) {
-          mapData=new HashMap<String,Object>();
-        }
-        mapData.put(attName,value);
+      if (LOGGER.isFinestEnabled()) {
+        LOGGER.finest("UPDATING SESSION " + session.getId());
       }
-      Data data=session.writeObject(mapData);
-      boolean sessionChanged=session.sessionChanged(data);
-      if (sessionChanged) {
-        if (data == null) {
-          mapData=new HashMap<String,Object>();
-          data=session.writeObject(mapData);
-        }
-        log("PUTTING SESSION " + session.getId());
-        getClusterMap().put(session.getId(),data);
-      }
+      session.sessionDeferredWrite();
     }
   }
 }

@@ -1,0 +1,27 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final Config config=new Config();
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final String name="testLockEvictionWithMigration";
+  final IMap map=instance1.getMap(name);
+  for (int i=0; i < 1000; i++) {
+    map.lock(i,20,TimeUnit.SECONDS);
+  }
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance3=nodeFactory.newHazelcastInstance(config);
+  for (int i=0; i < 1000; i++) {
+    assertTrue(map.isLocked(i));
+  }
+  final CountDownLatch latch=new CountDownLatch(1000);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      for (int i=0; i < 1000; i++) {
+        map.lock(i);
+        latch.countDown();
+      }
+    }
+  }
+);
+  t.start();
+  assertOpenEventually(latch);
+}

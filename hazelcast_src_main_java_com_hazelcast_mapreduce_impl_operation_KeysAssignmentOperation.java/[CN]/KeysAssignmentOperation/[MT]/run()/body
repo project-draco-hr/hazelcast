@@ -1,0 +1,29 @@
+{
+  MapReduceService mapReduceService=getService();
+  JobSupervisor supervisor=mapReduceService.getJobSupervisor(getName(),getJobId());
+  if (supervisor == null) {
+    this.result=new KeysAssignmentResult(NO_SUPERVISOR,null);
+    return;
+  }
+  Map<Object,Address> assignment=new HashMap<Object,Address>();
+  if (!supervisor.checkAssignedMembersAvailable()) {
+    TopologyChangedStrategy tcs=supervisor.getConfiguration().getTopologyChangedStrategy();
+    if (tcs == CANCEL_RUNNING_OPERATION) {
+      Exception exception=new TopologyChangedException();
+      supervisor.cancelAndNotify(exception);
+      this.result=new KeysAssignmentResult(CHECK_STATE_FAILED,assignment);
+      return;
+    }
+ else {
+      Exception exception=new TopologyChangedException("Unknown or unsupported TopologyChangedStrategy");
+      supervisor.cancelAndNotify(exception);
+      this.result=new KeysAssignmentResult(CHECK_STATE_FAILED,assignment);
+      return;
+    }
+  }
+  for (  Object key : keys) {
+    Address address=supervisor.assignKeyReducerAddress(key);
+    assignment.put(key,address);
+  }
+  this.result=new KeysAssignmentResult(SUCCESSFUL,assignment);
+}

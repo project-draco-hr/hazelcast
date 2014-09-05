@@ -1,0 +1,32 @@
+{
+  try {
+    final ClientEndpoint endpoint=getEndpoint();
+    MapReduceService mapReduceService=getService();
+    NodeEngine nodeEngine=mapReduceService.getNodeEngine();
+    AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.createDistributedObject(name);
+    TrackableJobFuture jobFuture=new TrackableJobFuture(name,jobId,jobTracker,nodeEngine,null);
+    if (jobTracker.registerTrackableJob(jobFuture)) {
+      ICompletableFuture<Object> future=startSupervisionTask(jobFuture,mapReduceService,nodeEngine,jobTracker);
+      future.andThen(new ExecutionCallback<Object>(){
+        @Override public void onResponse(        Object response){
+          Object clientResponse=response;
+          if (clientResponse instanceof HashMap) {
+            clientResponse=new HashMapAdapter((HashMap)clientResponse);
+          }
+          endpoint.sendResponse(clientResponse,getCallId());
+        }
+        @Override public void onFailure(        Throwable t){
+          Throwable throwable=t;
+          if (throwable instanceof ExecutionException) {
+            throwable=throwable.getCause();
+          }
+          endpoint.sendResponse(throwable,getCallId());
+        }
+      }
+);
+    }
+  }
+ catch (  Exception e) {
+    throw new IllegalStateException("Could not register map reduce job",e);
+  }
+}

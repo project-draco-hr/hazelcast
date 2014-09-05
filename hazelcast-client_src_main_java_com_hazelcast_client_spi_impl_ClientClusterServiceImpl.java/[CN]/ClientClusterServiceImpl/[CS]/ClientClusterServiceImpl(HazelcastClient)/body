@@ -1,0 +1,23 @@
+{
+  this.client=client;
+  this.connectionManager=client.getConnectionManager();
+  this.clusterThread=createListenerThread();
+  final ClientConfig clientConfig=getClientConfig();
+  final List<ListenerConfig> listenerConfigs=client.getClientConfig().getListenerConfigs();
+  if (listenerConfigs != null && !listenerConfigs.isEmpty()) {
+    for (    ListenerConfig listenerConfig : listenerConfigs) {
+      EventListener listener=listenerConfig.getImplementation();
+      if (listener == null) {
+        try {
+          listener=ClassLoaderUtil.newInstance(clientConfig.getClassLoader(),listenerConfig.getClassName());
+        }
+ catch (        Exception e) {
+          LOGGER.severe(e);
+        }
+      }
+      if (listener instanceof MembershipListener) {
+        addMembershipListenerWithoutInit((MembershipListener)listener);
+      }
+    }
+  }
+}

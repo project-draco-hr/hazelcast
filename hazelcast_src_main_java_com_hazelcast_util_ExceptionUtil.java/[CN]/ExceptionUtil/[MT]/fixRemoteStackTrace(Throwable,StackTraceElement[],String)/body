@@ -1,0 +1,15 @@
+{
+  Throwable throwable=remoteCause;
+  if (remoteCause instanceof ExecutionException && throwable.getCause() != null) {
+    throwable=throwable.getCause();
+  }
+  String msg=EXCEPTION_MESSAGE_SEPARATOR.replace("%MSG%",localExceptionMessage);
+  StackTraceElement[] remoteStackTrace=throwable.getStackTrace();
+  StackTraceElement[] newStackTrace=new StackTraceElement[localSideStackTrace.length + remoteStackTrace.length + 1];
+  System.arraycopy(remoteStackTrace,0,newStackTrace,0,remoteStackTrace.length);
+  newStackTrace[remoteStackTrace.length]=new StackTraceElement(EXCEPTION_SEPARATOR,"",null,-1);
+  StackTraceElement nextElement=localSideStackTrace[1];
+  newStackTrace[remoteStackTrace.length + 1]=new StackTraceElement(msg,nextElement.getMethodName(),nextElement.getFileName(),nextElement.getLineNumber());
+  System.arraycopy(localSideStackTrace,1,newStackTrace,remoteStackTrace.length + 2,localSideStackTrace.length - 1);
+  throwable.setStackTrace(newStackTrace);
+}

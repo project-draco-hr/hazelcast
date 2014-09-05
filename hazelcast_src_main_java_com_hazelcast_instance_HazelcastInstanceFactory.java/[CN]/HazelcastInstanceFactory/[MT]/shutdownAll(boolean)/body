@@ -1,0 +1,29 @@
+{
+  final List<HazelcastInstanceProxy> instances=new LinkedList<HazelcastInstanceProxy>();
+  for (  InstanceFuture f : INSTANCE_MAP.values()) {
+    try {
+      HazelcastInstanceProxy instanceProxy=f.get();
+      instances.add(instanceProxy);
+    }
+ catch (    RuntimeException ignore) {
+    }
+  }
+  INSTANCE_MAP.clear();
+  OutOfMemoryErrorDispatcher.clear();
+  ManagementService.shutdownAll();
+  Collections.sort(instances,new Comparator<HazelcastInstanceProxy>(){
+    public int compare(    HazelcastInstanceProxy o1,    HazelcastInstanceProxy o2){
+      return o1.getName().compareTo(o2.getName());
+    }
+  }
+);
+  for (  HazelcastInstanceProxy proxy : instances) {
+    if (terminate) {
+      proxy.getLifecycleService().terminate();
+    }
+ else {
+      proxy.getLifecycleService().shutdown();
+    }
+    proxy.original=null;
+  }
+}

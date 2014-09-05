@@ -1,0 +1,19 @@
+{
+  try {
+    MapReduceService mapReduceService=supervisor.getMapReduceService();
+    String name=supervisor.getConfiguration().getName();
+    String jobId=supervisor.getConfiguration().getJobId();
+    KeysAssignmentResult assignmentResult=mapReduceService.processRequest(supervisor.getJobOwner(),new KeysAssignmentOperation(name,jobId,keys),name);
+    if (assignmentResult.getResultState() == SUCCESSFUL) {
+      Map<Object,Address> assignment=assignmentResult.getAssignment();
+      for (      Map.Entry<Object,Address> entry : assignment.entrySet()) {
+        if (!supervisor.assignKeyReducerAddress(entry.getKey(),entry.getValue())) {
+          throw new IllegalStateException("Key reducer assignment in illegal state");
+        }
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw new RuntimeException(e);
+  }
+}

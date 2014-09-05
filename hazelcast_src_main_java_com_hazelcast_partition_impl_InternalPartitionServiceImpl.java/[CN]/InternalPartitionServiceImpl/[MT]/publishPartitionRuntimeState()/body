@@ -1,0 +1,31 @@
+{
+  if (!initialized) {
+    return;
+  }
+  if (!node.isMaster() || !node.isActive() || !node.joined()) {
+    return;
+  }
+  if (!migrationActive.get()) {
+    return;
+  }
+  lock.lock();
+  try {
+    Collection<MemberImpl> members=node.clusterService.getMemberList();
+    PartitionRuntimeState partitionState=createPartitionState(members);
+    PartitionStateOperation op=new PartitionStateOperation(partitionState);
+    OperationService operationService=nodeEngine.getOperationService();
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        try {
+          operationService.send(op,member.getAddress());
+        }
+ catch (        Exception e) {
+          logger.finest(e);
+        }
+      }
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

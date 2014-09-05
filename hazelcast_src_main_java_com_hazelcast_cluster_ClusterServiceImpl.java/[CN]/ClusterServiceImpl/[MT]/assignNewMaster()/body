@@ -1,0 +1,35 @@
+{
+  final Address oldMasterAddress=node.getMasterAddress();
+  if (node.joined()) {
+    final Collection<MemberImpl> members=getMemberList();
+    MemberImpl newMaster=null;
+    final int size=members.size();
+    if (size > 1) {
+      final Iterator<MemberImpl> iter=members.iterator();
+      final MemberImpl member=iter.next();
+      if (member.getAddress().equals(oldMasterAddress)) {
+        newMaster=iter.next();
+      }
+ else {
+        logger.severe("Old master " + oldMasterAddress + " is dead but the first of member list is a different member "+ member+ "!");
+        newMaster=member;
+      }
+    }
+ else {
+      logger.warning("Old master is dead and this node is not master " + "but member list contains only " + size + " members! -> "+ members);
+    }
+    logger.info("Master " + oldMasterAddress + " left the cluster. Assigning new master "+ newMaster);
+    if (newMaster != null) {
+      node.setMasterAddress(newMaster.getAddress());
+    }
+ else {
+      node.setMasterAddress(null);
+    }
+  }
+ else {
+    node.setMasterAddress(null);
+  }
+  if (logger.isFinestEnabled()) {
+    logger.finest("Now Master " + node.getMasterAddress());
+  }
+}

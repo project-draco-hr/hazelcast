@@ -1,11 +1,10 @@
 {
   filterConfig=config;
   servletContext=config.getServletContext();
+  servletContext.setAttribute(WEB_FILTER_ATTRIBUTE_KEY,this);
   initInstance();
-  String debugParam=getParam("debug");
-  if (debugParam != null) {
-    debug=Boolean.valueOf(debugParam);
-  }
+  initCookieParams();
+  initParams();
   String mapName=getParam("map-name");
   if (mapName != null) {
     clusterMapName=mapName;
@@ -13,56 +12,40 @@
  else {
     clusterMapName="_web_" + servletContext.getServletContextName();
   }
-  Config hzConfig=hazelcastInstance.getConfig();
-  String sessionTTL=getParam("session-ttl-seconds");
-  if (sessionTTL != null) {
-    MapConfig mapConfig=new MapConfig(clusterMapName);
-    mapConfig.setTimeToLiveSeconds(Integer.valueOf(sessionTTL));
-    hzConfig.addMapConfig(mapConfig);
+  try {
+    String sessionTTL=getParam("session-ttl-seconds");
+    if (sessionTTL != null) {
+      Config hzConfig=hazelcastInstance.getConfig();
+      MapConfig mapConfig=hzConfig.getMapConfig(clusterMapName);
+      mapConfig.setTimeToLiveSeconds(Integer.parseInt(sessionTTL));
+      hzConfig.addMapConfig(mapConfig);
+    }
   }
-  String cookieName=getParam("cookie-name");
-  if (cookieName != null) {
-    sessionCookieName=cookieName;
-  }
-  String cookieDomain=getParam("cookie-domain");
-  if (cookieDomain != null) {
-    sessionCookieDomain=cookieDomain;
-  }
-  String cookieSecure=getParam("cookie-secure");
-  if (cookieSecure != null) {
-    sessionCookieSecure=Boolean.valueOf(cookieSecure);
-  }
-  String cookieHttpOnly=getParam("cookie-http-only");
-  if (cookieHttpOnly != null) {
-    sessionCookieHttpOnly=Boolean.valueOf(cookieHttpOnly);
-  }
-  String stickySessionParam=getParam("sticky-session");
-  if (stickySessionParam != null) {
-    stickySession=Boolean.valueOf(stickySessionParam);
-  }
-  String shutdownOnDestroyParam=getParam("shutdown-on-destroy");
-  if (shutdownOnDestroyParam != null) {
-    shutdownOnDestroy=Boolean.valueOf(shutdownOnDestroyParam);
+ catch (  UnsupportedOperationException ignored) {
+    LOGGER.info("client cannot access Config.");
   }
   if (!stickySession) {
-    getClusterMap().addEntryListener(new EntryListener(){
-      public void entryAdded(      EntryEvent entryEvent){
+    getClusterMap().addEntryListener(new EntryListener<String,Object>(){
+      public void entryAdded(      EntryEvent<String,Object> entryEvent){
       }
-      public void entryRemoved(      EntryEvent entryEvent){
+      public void entryRemoved(      EntryEvent<String,Object> entryEvent){
         if (entryEvent.getMember() == null || !entryEvent.getMember().localMember()) {
-          removeSessionLocally((String)entryEvent.getKey());
+          removeSessionLocally(entryEvent.getKey());
         }
       }
-      public void entryUpdated(      EntryEvent entryEvent){
-        if (entryEvent.getMember() == null || !entryEvent.getMember().localMember()) {
-          markSessionDirty((String)entryEvent.getKey());
-        }
+      public void entryUpdated(      EntryEvent<String,Object> entryEvent){
       }
-      public void entryEvicted(      EntryEvent entryEvent){
+      public void entryEvicted(      EntryEvent<String,Object> entryEvent){
         entryRemoved(entryEvent);
+      }
+      @Override public void mapEvicted(      MapEvent event){
+      }
+      @Override public void mapCleared(      MapEvent event){
       }
     }
 ,false);
   }
-  log("sticky:" + stickySession + ", debug: "+ debug+ ", shutdown-on-destroy: "+ shutdownOnDestroy+ ", map-name: "+ clusterMapName);
+  if (LOGGER.isLoggable(Level.FINEST)) {
+    LOGGER.finest("sticky:" + stickySession + ", shutdown-on-destroy: "+ shutdownOnDestroy+ ", map-name: "+ clusterMapName);
+  }
 }

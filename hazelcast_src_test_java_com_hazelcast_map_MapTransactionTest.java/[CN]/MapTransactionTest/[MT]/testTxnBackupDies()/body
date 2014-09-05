@@ -1,0 +1,49 @@
+{
+  Config config=new Config();
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance h1=factory.newHazelcastInstance(config);
+  final HazelcastInstance h2=factory.newHazelcastInstance(config);
+  final IMap map1=h1.getMap("default");
+  final int size=100;
+  final CountDownLatch latch=new CountDownLatch(size + 1);
+  final CountDownLatch latch2=new CountDownLatch(1);
+  Runnable runnable=new Runnable(){
+    public void run(){
+      try {
+        final int oneThird=size / 3;
+        final int threshold=new Random().nextInt(oneThird) + oneThird;
+        h1.executeTransaction(options,new TransactionalTask<Boolean>(){
+          public Boolean execute(          TransactionalTaskContext context) throws TransactionException {
+            final TransactionalMap<Object,Object> txMap=context.getMap("default");
+            for (int i=0; i < size; i++) {
+              if (i == threshold) {
+                latch2.countDown();
+              }
+              txMap.put(i,i);
+              try {
+                Thread.sleep(100);
+              }
+ catch (              InterruptedException ignored) {
+              }
+              latch.countDown();
+            }
+            return true;
+          }
+        }
+);
+        fail();
+      }
+ catch (      Exception ignored) {
+      }
+      latch.countDown();
+    }
+  }
+;
+  new Thread(runnable).start();
+  assertTrue(latch2.await(20,TimeUnit.SECONDS));
+  h2.shutdown();
+  assertTrue(latch.await(60,TimeUnit.SECONDS));
+  for (int i=0; i < size; i++) {
+    assertNull(map1.get(i));
+  }
+}

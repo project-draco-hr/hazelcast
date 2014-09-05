@@ -1,0 +1,30 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance=nodeFactory.newHazelcastInstance();
+  nodeFactory.newHazelcastInstance();
+  final String name=randomString();
+  final ILock lock=instance.getLock(name);
+  final ICondition condition=lock.newCondition("condition");
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        latch.await(1,TimeUnit.MINUTES);
+        Thread.sleep(5000);
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+      instance.shutdown();
+    }
+  }
+).start();
+  lock.lock();
+  try {
+    latch.countDown();
+    condition.await();
+  }
+ catch (  InterruptedException e) {
+  }
+  lock.unlock();
+}

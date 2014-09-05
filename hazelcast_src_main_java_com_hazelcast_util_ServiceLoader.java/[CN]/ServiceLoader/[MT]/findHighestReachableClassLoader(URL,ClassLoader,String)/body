@@ -1,0 +1,28 @@
+{
+  if (classLoader.getParent() == null) {
+    return classLoader;
+  }
+  ClassLoader highestClassLoader=classLoader;
+  ClassLoader current=classLoader;
+  while (current.getParent() != null) {
+    if (FILTERING_CLASS_LOADER.equals(current.getClass().getCanonicalName())) {
+      break;
+    }
+    ClassLoader parent=current.getParent();
+    try {
+      Enumeration<URL> enumeration=parent.getResources(resourceName);
+      while (enumeration.hasMoreElements()) {
+        URL testURL=enumeration.nextElement();
+        if (url.toURI().equals(testURL.toURI())) {
+          highestClassLoader=parent;
+        }
+      }
+    }
+ catch (    IOException ignore) {
+    }
+catch (    URISyntaxException e) {
+    }
+    current=current.getParent();
+  }
+  return highestClassLoader;
+}

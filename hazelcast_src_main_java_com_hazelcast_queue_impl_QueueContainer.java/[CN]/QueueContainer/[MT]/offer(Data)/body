@@ -1,0 +1,17 @@
+{
+  QueueItem item=new QueueItem(this,nextId(),null);
+  if (store.isEnabled()) {
+    try {
+      store.store(item.getItemId(),data);
+    }
+ catch (    Exception e) {
+      throw new HazelcastException(e);
+    }
+  }
+  if (!store.isEnabled() || store.getMemoryLimit() > getItemQueue().size()) {
+    item.setData(data);
+  }
+  getItemQueue().offer(item);
+  cancelEvictionIfExists();
+  return item.getItemId();
+}

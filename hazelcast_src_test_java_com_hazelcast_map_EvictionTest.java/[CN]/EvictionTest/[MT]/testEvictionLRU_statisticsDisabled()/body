@@ -1,0 +1,32 @@
+{
+  final int nodeCount=2;
+  final int size=100000;
+  final String mapName=randomMapName("_testEvictionLRU_statisticsDisabled_");
+  Config cfg=new Config();
+  cfg.setProperty(GroupProperties.PROP_PARTITION_COUNT,"1");
+  MapConfig mc=cfg.getMapConfig(mapName);
+  mc.setStatisticsEnabled(false);
+  mc.setEvictionPolicy(MapConfig.EvictionPolicy.LRU);
+  mc.setEvictionPercentage(10);
+  MaxSizeConfig msc=new MaxSizeConfig();
+  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
+  msc.setSize(size);
+  mc.setMaxSizeConfig(msc);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance[] instances=factory.newInstances(cfg);
+  IMap<Object,Object> map=instances[0].getMap(mapName);
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+    if (i < size / 2) {
+      map.get(i);
+    }
+  }
+  sleepSeconds(3);
+  int recentlyUsedEvicted=0;
+  for (int i=0; i < size / 2; i++) {
+    if (map.get(i) == null) {
+      recentlyUsedEvicted++;
+    }
+  }
+  assertEquals(0,recentlyUsedEvicted);
+}

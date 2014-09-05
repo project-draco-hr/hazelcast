@@ -1,0 +1,19 @@
+{
+  final HazelcastInstance inst=createHazelcastInstance();
+  IMap map=inst.getMap("default");
+  EntryListener<String,Integer> l=new EntryAdapter<String,Integer>(){
+  }
+;
+  EntryObject e=new PredicateBuilder().getEntryObject();
+  Predicate<String,Integer> p=e.equal(1);
+  map.addEntryListener(l,p,null,false);
+  for (Integer i=0; i < 100; i++) {
+    TransactionContext context=inst.newTransactionContext();
+    context.beginTransaction();
+    TransactionalMap<String,Integer> txnMap=context.getMap("default");
+    txnMap.remove(i.toString());
+    context.commitTransaction();
+  }
+  assertEquals(0,map.size());
+  inst.shutdown();
+}

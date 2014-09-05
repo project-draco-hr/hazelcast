@@ -1,0 +1,22 @@
+{
+  checkIfLoaded();
+  final long now=getNow();
+  Record record=getRecord(key,false);
+  if (record == null) {
+    return false;
+  }
+  if (mapServiceContext.compare(name,record.getValue(),testValue)) {
+    newValue=mapServiceContext.interceptPut(name,record.getValue(),newValue);
+    newValue=mapDataStore.add(key,newValue,now);
+    onStore(record);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    setRecordValue(record,newValue,now);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+  }
+ else {
+    return false;
+  }
+  saveIndex(record);
+  evictEntries(now,false);
+  return true;
+}

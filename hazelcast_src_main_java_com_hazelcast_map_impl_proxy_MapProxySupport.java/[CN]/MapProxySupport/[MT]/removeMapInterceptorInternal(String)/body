@@ -1,0 +1,19 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  final MapService mapService=getService();
+  mapService.getMapServiceContext().removeInterceptor(name,id);
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  for (  Member member : members) {
+    try {
+      if (member.localMember()) {
+        continue;
+      }
+      MemberImpl memberImpl=(MemberImpl)member;
+      Future f=nodeEngine.getOperationService().invokeOnTarget(SERVICE_NAME,new RemoveInterceptorOperation(name,id),memberImpl.getAddress());
+      f.get();
+    }
+ catch (    Throwable t) {
+      throw ExceptionUtil.rethrow(t);
+    }
+  }
+}

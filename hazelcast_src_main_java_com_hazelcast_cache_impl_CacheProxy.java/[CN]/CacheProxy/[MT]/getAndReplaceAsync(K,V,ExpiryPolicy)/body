@@ -1,0 +1,10 @@
+{
+  ensureOpen();
+  validateNotNull(key,value);
+  validateConfiguredTypes(true,key,value);
+  final Data k=serializationService.toData(key);
+  final Data v=serializationService.toData(value);
+  final Operation op=new CacheGetAndReplaceOperation(getDistributedObjectName(),k,v,expiryPolicy,IGNORE_COMPLETION);
+  final InternalCompletableFuture<Object> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
+  return new DelegatingFuture<V>(f,serializationService);
+}

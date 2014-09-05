@@ -1,0 +1,27 @@
+{
+  Config c=new Config();
+  c.getGroupConfig().setName("testIssue304EvictionDespitePut");
+  final HashMap<String,MapConfig> mapConfigs=new HashMap<String,MapConfig>();
+  final MapConfig value=new MapConfig();
+  value.setMaxIdleSeconds(5);
+  mapConfigs.put("default",value);
+  c.setMapConfigs(mapConfigs);
+  int n=1;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
+  final HazelcastInstance hazelcastInstance=factory.newHazelcastInstance(c);
+  IMap<String,Long> map=hazelcastInstance.getMap("testIssue304EvictionDespitePut");
+  final AtomicInteger evictCount=new AtomicInteger(0);
+  map.addEntryListener(new EntryAdapter<String,Long>(){
+    public void entryEvicted(    EntryEvent<String,Long> event){
+      evictCount.incrementAndGet();
+    }
+  }
+,true);
+  String key="key";
+  for (int i=0; i < 5; i++) {
+    map.put(key,System.currentTimeMillis());
+    sleepMillis(500);
+  }
+  assertEquals(evictCount.get(),0);
+  assertNotNull(map.get(key));
+}

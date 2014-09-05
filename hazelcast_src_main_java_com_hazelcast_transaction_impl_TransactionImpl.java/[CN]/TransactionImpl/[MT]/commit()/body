@@ -1,0 +1,37 @@
+{
+  try {
+    if (transactionType.equals(TransactionType.TWO_PHASE) && state != PREPARED) {
+      throw new IllegalStateException("Transaction is not prepared");
+    }
+    if (transactionType.equals(TransactionType.LOCAL) && state != ACTIVE) {
+      throw new IllegalStateException("Transaction is not active");
+    }
+    checkThread();
+    checkTimeout();
+    try {
+      final List<Future> futures=new ArrayList<Future>(txLogs.size());
+      state=COMMITTING;
+      for (      TransactionLog txLog : txLogs) {
+        futures.add(txLog.commit(nodeEngine));
+      }
+      waitWithDeadline(futures,COMMIT_TIMEOUT_MINUTES,TimeUnit.MINUTES,commitExceptionHandler);
+      for (      Future future : futures) {
+        try {
+          future.get(COMMIT_TIMEOUT_MINUTES,TimeUnit.MINUTES);
+        }
+ catch (        Throwable e) {
+          nodeEngine.getLogger(getClass()).warning("Error during commit!",e);
+        }
+      }
+      state=COMMITTED;
+      purgeTxBackups();
+    }
+ catch (    Throwable e) {
+      state=COMMIT_FAILED;
+      throw ExceptionUtil.rethrow(e,TransactionException.class);
+    }
+  }
+  finally {
+    setThreadFlag(null);
+  }
+}

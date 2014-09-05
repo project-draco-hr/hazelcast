@@ -1,0 +1,22 @@
+{
+  final String mapName=randomMapName();
+  final int size=1000;
+  final CountDownLatch latch=new CountDownLatch(size);
+  final Config cfg=new Config();
+  MapConfig mc=cfg.getMapConfig(mapName);
+  mc.setTimeToLiveSeconds(1);
+  mc.addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
+    public void entryEvicted(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+).setLocal(true));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance[] instances=factory.newInstances(cfg);
+  final IMap map=instances[0].getMap(mapName);
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  assertOpenEventually("Can not complete eviction map size is " + map.size(),latch,300);
+  assertSizeEventually(0,map);
+}

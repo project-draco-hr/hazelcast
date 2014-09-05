@@ -1,0 +1,31 @@
+{
+  final ConcurrentMap<Integer,Integer> map=hz.getMap("map");
+  final int itemCount=10000;
+  for (int k=0; k < itemCount; k++) {
+    map.put(k,0);
+  }
+  RestartThread restartThread=new RestartThread();
+  restartThread.start();
+  UpdateThread[] testThreads=new UpdateThread[THREAD_COUNT];
+  for (int l=0; l < testThreads.length; l++) {
+    testThreads[l]=new UpdateThread(l,itemCount,map);
+    testThreads[l].start();
+  }
+  Thread.sleep(TimeUnit.SECONDS.toMillis(DURATION_SECONDS));
+  for (  TestThread t : testThreads) {
+    t.join(TimeUnit.MINUTES.toMillis(1));
+    t.assertDiedPeacefully();
+  }
+  int[] expectedValues=new int[itemCount];
+  for (  UpdateThread t : testThreads) {
+    for (int k=0; k < itemCount; k++) {
+      expectedValues[k]+=t.values[k];
+    }
+  }
+  for (int k=0; k < itemCount; k++) {
+    int expected=expectedValues[k];
+    int found=map.get(k);
+    assertEquals("value not the same",expected,found);
+  }
+  restartThread.stop=true;
+}

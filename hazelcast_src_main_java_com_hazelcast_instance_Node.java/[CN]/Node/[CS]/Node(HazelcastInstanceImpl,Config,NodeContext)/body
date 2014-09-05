@@ -1,0 +1,48 @@
+{
+  this.hazelcastInstance=hazelcastInstance;
+  this.threadGroup=hazelcastInstance.threadGroup;
+  this.config=config;
+  configClassLoader=config.getClassLoader();
+  this.groupProperties=new GroupProperties(config);
+  buildInfo=BuildInfoProvider.getBuildInfo();
+  serializationService=(SerializationServiceImpl)createSerializationService(hazelcastInstance,config);
+  String loggingType=groupProperties.LOGGING_TYPE.getString();
+  loggingService=new LoggingServiceImpl(config.getGroupConfig().getName(),loggingType,buildInfo);
+  final AddressPicker addressPicker=nodeContext.createAddressPicker(this);
+  try {
+    addressPicker.pickAddress();
+  }
+ catch (  Throwable e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  final ServerSocketChannel serverSocketChannel=addressPicker.getServerSocketChannel();
+  try {
+    address=addressPicker.getPublicAddress();
+    final Map<String,Object> memberAttributes=findMemberAttributes(config.getMemberAttributeConfig().asReadOnly());
+    localMember=new MemberImpl(address,true,UuidUtil.createMemberUuid(address),hazelcastInstance,memberAttributes);
+    loggingService.setThisMember(localMember);
+    logger=loggingService.getLogger(Node.class.getName());
+    initializer=NodeInitializerFactory.create(configClassLoader);
+    initializer.beforeInitialize(this);
+    securityContext=config.getSecurityConfig().isEnabled() ? initializer.getSecurityContext() : null;
+    nodeEngine=new NodeEngineImpl(this);
+    clientEngine=new ClientEngineImpl(this);
+    connectionManager=nodeContext.createConnectionManager(this,serverSocketChannel);
+    partitionService=new InternalPartitionServiceImpl(this);
+    clusterService=new ClusterServiceImpl(this);
+    textCommandService=new TextCommandServiceImpl(this);
+    initializer.printNodeInfo(this);
+    versionCheck.check(this,getBuildInfo().getVersion(),buildInfo.isEnterprise());
+    this.multicastService=createMulticastService(addressPicker);
+    initializeListeners(config);
+    joiner=nodeContext.createJoiner(this);
+  }
+ catch (  Throwable e) {
+    try {
+      serverSocketChannel.close();
+    }
+ catch (    Throwable ignored) {
+    }
+    throw ExceptionUtil.rethrow(e);
+  }
+}

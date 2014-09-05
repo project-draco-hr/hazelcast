@@ -1,0 +1,16 @@
+{
+  if (lock.tryLock()) {
+    try {
+      if (!initialized && !node.isMaster() && node.getMasterAddress() != null && node.joined()) {
+        Future f=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new AssignPartitions(),node.getMasterAddress()).setTryCount(1).invoke();
+        f.get(1,TimeUnit.SECONDS);
+      }
+    }
+ catch (    Exception e) {
+      logger.finest(e);
+    }
+ finally {
+      lock.unlock();
+    }
+  }
+}

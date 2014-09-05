@@ -1,0 +1,35 @@
+{
+  int maxPartitionPerGroup=avgPartitionPerGroup + 1;
+  int maxTries=underLoadedGroups.size() * overLoadedGroups.size() * DEFAULT_RETRY_MULTIPLIER;
+  int tries=0;
+  int expectedPartitionCount=plusOneGroupCount > 0 ? maxPartitionPerGroup : avgPartitionPerGroup;
+  while (tries++ < maxTries && !underLoadedGroups.isEmpty()) {
+    NodeGroup toGroup=underLoadedGroups.poll();
+    Iterator<NodeGroup> overLoadedGroupsIterator=overLoadedGroups.iterator();
+    while (overLoadedGroupsIterator.hasNext()) {
+      NodeGroup fromGroup=overLoadedGroupsIterator.next();
+      selectToGroupPartitions(index,expectedPartitionCount,toGroup,fromGroup);
+      int fromCount=fromGroup.getPartitionCount(index);
+      if (plusOneGroupCount > 0 && fromCount == maxPartitionPerGroup) {
+        if (--plusOneGroupCount == 0) {
+          expectedPartitionCount=avgPartitionPerGroup;
+        }
+      }
+      if (fromCount <= expectedPartitionCount) {
+        overLoadedGroupsIterator.remove();
+      }
+      int toCount=toGroup.getPartitionCount(index);
+      if (plusOneGroupCount > 0 && toCount == maxPartitionPerGroup) {
+        if (--plusOneGroupCount == 0) {
+          expectedPartitionCount=avgPartitionPerGroup;
+        }
+      }
+      if (toCount >= expectedPartitionCount) {
+        break;
+      }
+    }
+    if (toGroup.getPartitionCount(index) < avgPartitionPerGroup) {
+      underLoadedGroups.offer(toGroup);
+    }
+  }
+}

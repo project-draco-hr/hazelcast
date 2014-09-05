@@ -1,15 +1,17 @@
 {
-  ExecutorConfig ec=lookupByPattern(executorConfigs,name);
-  if (ec != null) {
-    return ec;
+  String baseName=getBaseName(name);
+  ExecutorConfig config=lookupByPattern(executorConfigs,baseName);
+  if (config != null) {
+    return config;
   }
-  ExecutorConfig defaultConfig=executorConfigs.get("default");
-  if (defaultConfig != null) {
-    ec=new ExecutorConfig(name,defaultConfig.getCorePoolSize(),defaultConfig.getMaxPoolSize(),defaultConfig.getKeepAliveSeconds());
+  ExecutorConfig defConfig=executorConfigs.get("default");
+  if (defConfig == null) {
+    defConfig=new ExecutorConfig();
+    defConfig.setName("default");
+    addExecutorConfig(defConfig);
   }
-  if (ec == null) {
-    ec=new ExecutorConfig(name);
-    executorConfigs.put(name,ec);
-  }
-  return ec;
+  config=new ExecutorConfig(defConfig);
+  config.setName(name);
+  addExecutorConfig(config);
+  return config;
 }

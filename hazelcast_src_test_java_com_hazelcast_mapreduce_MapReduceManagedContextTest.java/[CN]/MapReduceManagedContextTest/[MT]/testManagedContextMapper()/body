@@ -1,0 +1,20 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  IMap<String,Integer> m1=h1.getMap(MAP_NAME);
+  for (int i=0; i < 100; i++) {
+    m1.put("key-" + i,i);
+  }
+  JobTracker tracker=h1.getJobTracker("default");
+  KeyValueSource<String,Integer> source=KeyValueSource.fromMap(m1);
+  KeyValueSource<String,Integer> wrapper=new InjectedKeyValueSource<String,Integer>(source);
+  Job<String,Integer> job=tracker.newJob(wrapper);
+  ICompletableFuture<Map<String,Integer>> future=job.mapper(new InjectedMapper()).combiner(new InjectedCombinerFactory()).reducer(new InjectedReducerFactory()).submit();
+  Map<String,Integer> result=future.get();
+  assertNotNull(result);
+}

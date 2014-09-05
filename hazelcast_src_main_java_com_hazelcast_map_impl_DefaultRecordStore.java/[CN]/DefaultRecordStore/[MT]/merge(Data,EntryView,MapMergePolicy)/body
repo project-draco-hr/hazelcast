@@ -1,0 +1,42 @@
+{
+  checkIfLoaded();
+  final long now=getNow();
+  Record record=getRecord(key,false);
+  Object newValue;
+  if (record == null) {
+    final Object notExistingKey=mapServiceContext.toObject(key);
+    final EntryView nullEntryView=EntryViews.createNullEntryView(notExistingKey);
+    newValue=mergePolicy.merge(name,mergingEntry,nullEntryView);
+    if (newValue == null) {
+      return false;
+    }
+    newValue=mapDataStore.add(key,newValue,now);
+    record=createRecord(key,newValue,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+  }
+ else {
+    Object oldValue=record.getValue();
+    EntryView existingEntry=EntryViews.createLazyEntryView(record.getKey(),record.getValue(),record,serializationService,mergePolicy);
+    newValue=mergePolicy.merge(name,mergingEntry,existingEntry);
+    if (newValue == null) {
+      removeIndex(key);
+      mapDataStore.remove(key,now);
+      onStore(record);
+      updateSizeEstimator(-calculateRecordHeapCost(record));
+      deleteRecord(key);
+      return true;
+    }
+    if (mapServiceContext.compare(name,newValue,oldValue)) {
+      return true;
+    }
+    newValue=mapDataStore.add(key,newValue,now);
+    onStore(record);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    recordFactory.setValue(record,newValue);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+  }
+  saveIndex(record);
+  evictEntries(now,false);
+  return newValue != null;
+}
