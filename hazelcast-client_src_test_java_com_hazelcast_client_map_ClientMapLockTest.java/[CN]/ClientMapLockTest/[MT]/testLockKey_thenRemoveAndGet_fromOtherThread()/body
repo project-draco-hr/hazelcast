@@ -1,0 +1,25 @@
+{
+  final IMap map=client.getMap(randomString());
+  final String key="key";
+  final String value="oldValue";
+  final CountDownLatch removeWhileLocked=new CountDownLatch(1);
+  final CountDownLatch checkingKey=new CountDownLatch(1);
+  map.put(key,value);
+  new Thread(){
+    public void run(){
+      try {
+        map.lock(key);
+        map.remove(key);
+        removeWhileLocked.countDown();
+        checkingKey.await();
+        map.unlock(key);
+      }
+ catch (      Exception e) {
+      }
+    }
+  }
+.start();
+  removeWhileLocked.await();
+  assertEquals(null,map.get(key));
+  checkingKey.countDown();
+}

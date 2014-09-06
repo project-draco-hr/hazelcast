@@ -1,23 +1,26 @@
 {
   checkIfLoaded();
-  Data dataKey=entry.getKey();
+  final long now=getNow();
+  Data key=entry.getKey();
   Object value=entry.getValue();
-  Record record=records.get(dataKey);
+  Record record=getRecord(key,false);
   if (record == null) {
-    value=mapService.interceptPut(name,null,value);
-    value=writeMapStore(dataKey,value,null);
-    record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL);
-    records.put(dataKey,record);
-    updateSizeEstimator(calculateRecordSize(record));
+    value=mapServiceContext.interceptPut(name,null,value);
+    value=mapDataStore.add(key,value,now);
+    record=createRecord(key,value,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
     saveIndex(record);
   }
  else {
     final Object oldValue=record.getValue();
-    value=mapService.interceptPut(name,oldValue,value);
-    value=writeMapStore(dataKey,value,record);
-    updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
-    updateSizeEstimator(calculateRecordSize(record));
+    value=mapServiceContext.interceptPut(name,oldValue,value);
+    value=mapDataStore.add(key,value,now);
+    onStore(record);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    setRecordValue(record,value,now);
+    updateSizeEstimator(calculateRecordHeapCost(record));
     saveIndex(record);
   }
+  evictEntries(now,false);
 }

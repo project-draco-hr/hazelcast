@@ -1,0 +1,25 @@
+{
+  if (!live) {
+    return;
+  }
+  try {
+    close0();
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+  Object connAddress=(endPoint == null) ? socketChannel.socket().getRemoteSocketAddress() : endPoint;
+  String message="Connection [" + connAddress + "] lost. Reason: ";
+  if (t != null) {
+    message+=t.getClass().getName() + "[" + t.getMessage()+ "]";
+  }
+ else {
+    message+="Socket explicitly closed";
+  }
+  logger.info(message);
+  connectionManager.destroyConnection(this);
+  connectionManager.ioService.onDisconnect(endPoint);
+  if (t != null && monitor != null) {
+    monitor.onError(t);
+  }
+}

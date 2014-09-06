@@ -2,23 +2,22 @@
   if (task == null) {
     throw new NullPointerException();
   }
-  if (partitionId > -1) {
-    PartitionThread partitionThread=partitionThreads[toPartitionThreadIndex(partitionId)];
-    if (priority) {
-      offerWork(partitionThread.priorityQueue,task);
-      offerWork(partitionThread.workQueue,triggerTask);
-    }
- else {
-      offerWork(partitionThread.workQueue,task);
-    }
+  BlockingQueue workQueue;
+  Queue priorityWorkQueue;
+  if (partitionId < 0) {
+    workQueue=genericWorkQueue;
+    priorityWorkQueue=genericPriorityWorkQueue;
   }
  else {
-    if (priority) {
-      offerWork(globalExecutorPriorityQueue,task);
-      globalExecutor.execute(new ProcessTask(null));
-    }
+    OperationThread partitionOperationThread=partitionOperationThreads[toPartitionThreadIndex(partitionId)];
+    workQueue=partitionOperationThread.workQueue;
+    priorityWorkQueue=partitionOperationThread.priorityWorkQueue;
+  }
+  if (priority) {
+    offerWork(priorityWorkQueue,task);
+    offerWork(workQueue,priorityTaskTrigger);
+  }
  else {
-      globalExecutor.execute(new ProcessTask(task));
-    }
+    offerWork(workQueue,task);
   }
 }

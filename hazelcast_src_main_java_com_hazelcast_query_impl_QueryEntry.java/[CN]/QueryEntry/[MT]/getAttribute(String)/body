@@ -1,11 +1,21 @@
 {
-  final Data data=getValueData();
-  if (data != null && data.isPortable()) {
-    FieldDefinition fd=data.getClassDefinition().get(attributeName);
-    if (fd != null) {
-      PortableReader reader=getOrCreatePortableReader();
-      return extractor.extract(reader,attributeName,fd.getType().getId());
-    }
+  if (KEY_ATTRIBUTE_NAME.equals(attributeName)) {
+    return (Comparable)getKey();
   }
-  return extractViaReflection(attributeName);
+ else   if (THIS_ATTRIBUTE_NAME.equals(attributeName)) {
+    return (Comparable)getValue();
+  }
+  boolean key=attributeName.startsWith(KEY_ATTRIBUTE_NAME);
+  Data data;
+  if (key) {
+    attributeName=attributeName.substring(KEY_ATTRIBUTE_NAME.length() + 1);
+    data=getKeyData();
+  }
+ else {
+    data=getValueData();
+  }
+  if (data != null && data.isPortable()) {
+    return extractViaPortable(attributeName,data);
+  }
+  return extractViaReflection(attributeName,key);
 }

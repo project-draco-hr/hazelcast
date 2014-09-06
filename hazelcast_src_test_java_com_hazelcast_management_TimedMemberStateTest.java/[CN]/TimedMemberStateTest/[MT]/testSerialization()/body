@@ -1,9 +1,14 @@
 {
   HazelcastInstance hz=createHazelcastInstance();
-  SerializationService serializationService=getNode(hz).getSerializationService();
   TimedMemberStateFactory timedMemberStateFactory=new TimedMemberStateFactory(getHazelcastInstanceImpl(hz));
   TimedMemberState state=timedMemberStateFactory.createTimedMemberState();
-  Data data=serializationService.toData(state);
-  TimedMemberState result=serializationService.toObject(data);
-  assertNotNull(result);
+  JsonObject json=state.toJson();
+  TimedMemberState deserialized=new TimedMemberState();
+  deserialized.fromJson(json);
+  assertNotNull(deserialized);
+  assertEquals(state.getMemberList(),deserialized.getMemberList());
+  assertEquals(state.getClusterName(),deserialized.getClusterName());
+  assertEquals(state.getInstanceNames(),deserialized.getInstanceNames());
+  assertEquals(state.getMaster(),deserialized.getMaster());
+  assertEquals(state.getMemberState(),deserialized.getMemberState());
 }

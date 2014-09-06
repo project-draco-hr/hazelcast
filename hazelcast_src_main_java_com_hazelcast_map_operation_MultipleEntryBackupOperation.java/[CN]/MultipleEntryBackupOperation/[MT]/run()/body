@@ -1,22 +1,20 @@
 {
-  final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
-  final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
-  MapEntrySimple entry;
-  for (  Data key : keys) {
-    if (partitionService.getPartitionId(key) != getPartitionId())     continue;
-    Object objectKey=mapService.toObject(key);
-    final Map.Entry<Data,Object> mapEntry=recordStore.getMapEntry(key);
-    final Object valueBeforeProcess=mapService.toObject(mapEntry.getValue());
-    entry=new MapEntrySimple(objectKey,valueBeforeProcess);
-    backupProcessor.processBackup(entry);
-    if (!entry.isModified()) {
+  final Set<Data> keys=this.keys;
+  for (  Data dataKey : keys) {
+    if (keyNotOwnedByThisPartition(dataKey)) {
       continue;
     }
-    if (entry.getValue() == null) {
-      recordStore.deleteRecord(key);
+    final Object oldValue=getValueFor(dataKey);
+    final Object key=toObject(dataKey);
+    final Object value=toObject(oldValue);
+    final Map.Entry entry=createMapEntry(key,value);
+    processBackup(entry);
+    if (noOp(entry,oldValue)) {
+      continue;
     }
- else {
-      recordStore.putBackup(key,entry.getValue());
+    if (entryRemovedBackup(entry,dataKey)) {
+      continue;
     }
+    entryAddedOrUpdatedBackup(entry,dataKey);
   }
 }

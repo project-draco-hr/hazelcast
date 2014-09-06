@@ -1,0 +1,20 @@
+{
+  if (isClosed()) {
+    throw new IllegalStateException();
+  }
+  if (cacheName == null) {
+    throw new NullPointerException();
+  }
+  final ClientInvocationService invocationService=clientContext.getInvocationService();
+  final Collection<MemberImpl> members=clientContext.getClusterService().getMemberList();
+  for (  MemberImpl member : members) {
+    try {
+      CacheManagementConfigRequest request=new CacheManagementConfigRequest(getCacheNameWithPrefix(cacheName),true,enabled,member.getAddress());
+      final Future future=invocationService.invokeOnTarget(request,member.getAddress());
+      future.get();
+    }
+ catch (    Exception e) {
+      ExceptionUtil.sneakyThrow(e);
+    }
+  }
+}

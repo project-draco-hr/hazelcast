@@ -1,34 +1,6 @@
 {
-  for (  Map.Entry<Integer,PortableFactory> entry : config.getPortableFactories().entrySet()) {
-    Integer factoryId=entry.getKey();
-    PortableFactory factory=entry.getValue();
-    if (factoryId <= 0) {
-      throw new IllegalArgumentException("PortableFactory factoryId must be positive! -> " + factory);
-    }
-    if (portableFactories.containsKey(factoryId)) {
-      throw new IllegalArgumentException("PortableFactory with factoryId '" + factoryId + "' is already registered!");
-    }
-    portableFactories.put(factoryId,factory);
-  }
-  final Map<Integer,String> portableFactoryClasses=config.getPortableFactoryClasses();
-  for (  Map.Entry<Integer,String> entry : portableFactoryClasses.entrySet()) {
-    Integer factoryId=entry.getKey();
-    String factoryClassName=entry.getValue();
-    if (factoryId <= 0) {
-      throw new IllegalArgumentException("PortableFactory factoryId must be positive! -> " + factoryClassName);
-    }
-    if (portableFactories.containsKey(factoryId)) {
-      throw new IllegalArgumentException("PortableFactory with factoryId '" + factoryId + "' is already registered!");
-    }
-    PortableFactory factory;
-    try {
-      factory=ClassLoaderUtil.newInstance(cl,factoryClassName);
-    }
- catch (    Exception e) {
-      throw new HazelcastSerializationException(e);
-    }
-    portableFactories.put(factoryId,factory);
-  }
+  registerPortableFactories(portableFactories,config);
+  buildPortableFactories(portableFactories,config,cl);
   for (  PortableFactory f : portableFactories.values()) {
     if (f instanceof HazelcastInstanceAware) {
       ((HazelcastInstanceAware)f).setHazelcastInstance(hazelcastInstance);

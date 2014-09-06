@@ -1,0 +1,22 @@
+{
+  if (!syncListenerRegistrations.isEmpty() && completionRegistrationId == null) {
+    final EventHandler<Object> handler=new EventHandler<Object>(){
+      @Override public void handle(      Object eventObject){
+        if (eventObject instanceof CacheEventData) {
+          CacheEventData cacheEventData=(CacheEventData)eventObject;
+          if (cacheEventData.getCacheEventType() == CacheEventType.COMPLETED) {
+            Integer completionId=toObject(cacheEventData.getDataValue());
+            countDownCompletionLatch(completionId);
+          }
+        }
+      }
+      @Override public void beforeListenerRegister(){
+      }
+      @Override public void onListenerRegister(){
+      }
+    }
+;
+    final CacheAddEntryListenerRequest registrationRequest=new CacheAddEntryListenerRequest(getDistributedObjectName());
+    completionRegistrationId=getContext().getListenerService().listen(registrationRequest,null,handler);
+  }
+}

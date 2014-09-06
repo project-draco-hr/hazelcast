@@ -1,0 +1,18 @@
+{
+  final IMap map=client.getMap(randomString());
+  final String key="key";
+  map.lock(key);
+  final CountDownLatch beforeLock=new CountDownLatch(1);
+  final CountDownLatch afterLock=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      beforeLock.countDown();
+      map.lock(key);
+      afterLock.countDown();
+    }
+  }
+.start();
+  beforeLock.await();
+  map.unlock(key);
+  assertOpenEventually(afterLock);
+}

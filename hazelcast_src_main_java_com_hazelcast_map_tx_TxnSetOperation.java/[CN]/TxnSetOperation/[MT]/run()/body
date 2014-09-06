@@ -1,9 +1,14 @@
 {
-  recordStore.unlock(dataKey,ownerUuid,getThreadId());
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  final EventService eventService=getNodeEngine().getEventService();
+  recordStore.unlock(dataKey,ownerUuid,threadId);
   Record record=recordStore.getRecord(dataKey);
   if (record == null || version == record.getVersion()) {
+    if (eventService.hasEventRegistration(MapService.SERVICE_NAME,getName())) {
+      dataOldValue=record == null ? null : mapServiceContext.toData(record.getValue());
+    }
+    eventType=record == null ? EntryEventType.ADDED : EntryEventType.UPDATED;
     recordStore.set(dataKey,dataValue,ttl);
     shouldBackup=true;
-    eventType=(record == null ? EntryEventType.ADDED : EntryEventType.UPDATED);
   }
 }

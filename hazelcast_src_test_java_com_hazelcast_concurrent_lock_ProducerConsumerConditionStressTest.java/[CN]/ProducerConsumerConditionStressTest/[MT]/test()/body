@@ -1,0 +1,26 @@
+{
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(INSTANCE_COUNT).newInstances();
+  HazelcastInstance hz=instances[0];
+  ILock lock=hz.getLock(randomString());
+  ICondition condition=lock.newCondition(randomString());
+  ConsumerThread[] consumers=new ConsumerThread[CONSUMER_COUNT];
+  for (int k=0; k < consumers.length; k++) {
+    ConsumerThread thread=new ConsumerThread(1,lock,condition);
+    thread.start();
+    consumers[k]=thread;
+  }
+  ProducerThread[] producers=new ProducerThread[PRODUCER_COUNT];
+  for (int k=0; k < producers.length; k++) {
+    ProducerThread thread=new ProducerThread(1,lock,condition);
+    thread.start();
+    producers[k]=thread;
+  }
+  assertJoinable(600,producers);
+  assertJoinable(600,consumers);
+  for (  TestThread consumer : consumers) {
+    assertNull(consumer.throwable);
+  }
+  for (  TestThread producer : producers) {
+    assertNull(producer.throwable);
+  }
+}

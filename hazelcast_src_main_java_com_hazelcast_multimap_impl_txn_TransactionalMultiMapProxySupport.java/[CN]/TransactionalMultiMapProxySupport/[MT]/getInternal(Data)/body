@@ -1,0 +1,18 @@
+{
+  throwExceptionIfNull(key);
+  Collection<MultiMapRecord> coll=txMap.get(key);
+  if (coll == null) {
+    GetAllOperation operation=new GetAllOperation(name,key);
+    try {
+      int partitionId=getNodeEngine().getPartitionService().getPartitionId(key);
+      final OperationService operationService=getNodeEngine().getOperationService();
+      Future<MultiMapResponse> f=operationService.invokeOnPartition(MultiMapService.SERVICE_NAME,operation,partitionId);
+      MultiMapResponse response=f.get();
+      coll=response.getRecordCollection(getNodeEngine());
+    }
+ catch (    Throwable t) {
+      throw ExceptionUtil.rethrow(t);
+    }
+  }
+  return coll;
+}

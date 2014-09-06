@@ -4,7 +4,14 @@
   try {
     ClearOperation clearOperation=new ClearOperation(mapName);
     clearOperation.setServiceName(SERVICE_NAME);
-    nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new BinaryOperationFactory(clearOperation,nodeEngine));
+    final Map<Integer,Object> resultMap=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new BinaryOperationFactory(clearOperation,nodeEngine));
+    int numberOfAffectedEntries=0;
+    for (    Object o : resultMap.values()) {
+      numberOfAffectedEntries+=(Integer)o;
+    }
+    if (numberOfAffectedEntries > 0) {
+      publishMapEvent(numberOfAffectedEntries,EntryEventType.CLEAR_ALL);
+    }
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);

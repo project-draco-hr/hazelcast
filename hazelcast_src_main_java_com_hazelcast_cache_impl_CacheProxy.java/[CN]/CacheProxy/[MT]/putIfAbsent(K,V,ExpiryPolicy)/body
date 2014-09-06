@@ -1,0 +1,13 @@
+{
+  ensureOpen();
+  validateNotNull(key,value);
+  validateConfiguredTypes(true,key,value);
+  final Integer completionId=registerCompletionLatch(1);
+  final Data k=serializationService.toData(key);
+  final Data v=serializationService.toData(value);
+  final Operation op=new CachePutIfAbsentOperation(getDistributedObjectName(),k,v,expiryPolicy,completionId);
+  final InternalCompletableFuture<Boolean> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
+  final Boolean isPut=f.getSafely();
+  waitCompletionLatch(completionId);
+  return isPut;
+}

@@ -1,0 +1,15 @@
+{
+  HazelcastInstance instance=createHazelcastInstance();
+  final ICountDownLatch latch=instance.getCountDownLatch(randomString());
+  latch.trySetCount(10);
+  final TestThread awaitThread=new TestThread(){
+    @Override public void doRun() throws Exception {
+      latch.await(1,TimeUnit.HOURS);
+    }
+  }
+;
+  awaitThread.start();
+  sleepSeconds(5);
+  instance.shutdown();
+  awaitThread.assertFailsEventually(HazelcastInstanceNotActiveException.class);
+}

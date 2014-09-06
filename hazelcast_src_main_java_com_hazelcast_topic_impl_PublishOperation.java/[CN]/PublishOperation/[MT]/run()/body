@@ -1,0 +1,14 @@
+{
+  TopicService service=getService();
+  TopicEvent topicEvent=new TopicEvent(name,message,getCallerAddress());
+  EventService eventService=getNodeEngine().getEventService();
+  Collection<EventRegistration> registrations=eventService.getRegistrations(TopicService.SERVICE_NAME,name);
+  Lock lock=service.getOrderLock(name);
+  lock.lock();
+  try {
+    eventService.publishEvent(TopicService.SERVICE_NAME,registrations,topicEvent,name.hashCode());
+  }
+  finally {
+    lock.unlock();
+  }
+}

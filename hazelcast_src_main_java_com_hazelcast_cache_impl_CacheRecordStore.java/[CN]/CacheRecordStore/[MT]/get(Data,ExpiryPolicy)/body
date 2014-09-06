@@ -1,0 +1,39 @@
+{
+  final ExpiryPolicy localExpiryPolicy=expiryPolicy != null ? expiryPolicy : defaultExpiryPolicy;
+  long now=Clock.currentTimeMillis();
+  Object value;
+  CacheRecord record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  if (isExpired) {
+    processExpiredEntry(key,record);
+  }
+  if (record == null || isExpired) {
+    if (isStatisticsEnabled()) {
+      statistics.increaseCacheMisses(1);
+    }
+    value=readThroughCache(key);
+    if (value == null) {
+      return null;
+    }
+    createRecordWithExpiry(key,value,localExpiryPolicy,now,true);
+    return value;
+  }
+ else {
+    value=record.getValue();
+    final long expiryTime;
+    try {
+      Duration expiryDuration=localExpiryPolicy.getExpiryForAccess();
+      if (expiryDuration != null) {
+        expiryTime=expiryDuration.getAdjustedTime(now);
+        record.setExpirationTime(expiryTime);
+      }
+    }
+ catch (    Throwable t) {
+      EmptyStatement.ignore(t);
+    }
+    if (isStatisticsEnabled()) {
+      statistics.increaseCacheHits(1);
+    }
+    return value;
+  }
+}

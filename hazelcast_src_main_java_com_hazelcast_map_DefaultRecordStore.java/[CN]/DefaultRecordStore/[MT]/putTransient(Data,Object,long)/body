@@ -1,18 +1,22 @@
 {
   checkIfLoaded();
-  Record record=records.get(dataKey);
+  final long now=getNow();
+  markRecordStoreExpirable(ttl);
+  Record record=getRecord(key,false);
   if (record == null) {
-    value=mapService.interceptPut(name,null,value);
-    record=mapService.createRecord(name,dataKey,value,ttl);
-    records.put(dataKey,record);
-    updateSizeEstimator(calculateRecordSize(record));
+    value=mapServiceContext.interceptPut(name,null,value);
+    record=createRecord(key,value,ttl,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
   }
  else {
-    value=mapService.interceptPut(name,record.getValue(),value);
-    updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
-    updateSizeEstimator(calculateRecordSize(record));
+    value=mapServiceContext.interceptPut(name,record.getValue(),value);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    setRecordValue(record,value,now);
+    updateSizeEstimator(calculateRecordHeapCost(record));
     updateTtl(record,ttl);
   }
   saveIndex(record);
+  evictEntries(now,false);
+  mapDataStore.addTransient(key,now);
 }

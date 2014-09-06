@@ -1,0 +1,31 @@
+{
+  if (Clock.currentTimeMillis() < (lastCleanup + TTL_CLEANUP_INTERVAL_MILLS)) {
+    return;
+  }
+  if (canCleanUp.compareAndSet(true,false)) {
+    try {
+      context.getExecutionService().execute(new Runnable(){
+        public void run(){
+          try {
+            lastCleanup=Clock.currentTimeMillis();
+            for (            Map.Entry<K,CacheRecord<K>> entry : cache.entrySet()) {
+              if (entry.getValue().expired()) {
+                cache.remove(entry.getKey());
+              }
+            }
+          }
+  finally {
+            canCleanUp.set(true);
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canCleanUp.set(true);
+    }
+catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}

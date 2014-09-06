@@ -1,39 +1,27 @@
 {
-  final MapService mapService=getService();
-  final boolean nearCacheEnabled=getMapConfig().isNearCacheEnabled();
+  final MapConfig mapConfig=getMapConfig();
+  final boolean nearCacheEnabled=mapConfig.isNearCacheEnabled();
   if (nearCacheEnabled) {
-    Object cached=mapService.getFromNearCache(name,key);
-    if (cached != null) {
-      if (NearCache.NULL_OBJECT.equals(cached)) {
-        cached=null;
+    final Object fromNearCache=getFromNearCache(key);
+    if (fromNearCache != null) {
+      if (isCachedAsNullInNearCache(fromNearCache)) {
+        return null;
       }
-      mapService.interceptAfterGet(name,cached);
-      return cached;
+      return fromNearCache;
     }
   }
-  NodeEngine nodeEngine=getNodeEngine();
-  if (getMapConfig().isReadBackupData()) {
-    int backupCount=getMapConfig().getTotalBackupCount();
-    InternalPartitionService partitionService=mapService.getNodeEngine().getPartitionService();
-    for (int i=0; i <= backupCount; i++) {
-      int partitionId=partitionService.getPartitionId(key);
-      InternalPartition partition=partitionService.getPartition(partitionId);
-      if (nodeEngine.getThisAddress().equals(partition.getReplicaAddress(i))) {
-        Object val=mapService.getPartitionContainer(partitionId).getRecordStore(name).get(key);
-        if (val != null) {
-          mapService.interceptAfterGet(name,val);
-          return mapService.toData(val);
-        }
-      }
+  if (mapConfig.isReadBackupData()) {
+    final Object fromBackup=readBackupDataOrNull(key);
+    if (fromBackup != null) {
+      return fromBackup;
     }
   }
-  GetOperation operation=new GetOperation(name,key);
-  Data result=(Data)invokeOperation(key,operation);
+  final GetOperation operation=new GetOperation(name,key);
+  final Data value=(Data)invokeOperation(key,operation);
   if (nearCacheEnabled) {
-    int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-    if (!nodeEngine.getPartitionService().getPartitionOwner(partitionId).equals(nodeEngine.getClusterService().getThisAddress()) || getMapConfig().getNearCacheConfig().isCacheLocalEntries()) {
-      mapService.putNearCache(name,key,result);
+    if (notOwnerPartitionForKey(key) || cacheKeyAnyway()) {
+      return putNearCache(key,value);
     }
   }
-  return result;
+  return value;
 }

@@ -1,0 +1,32 @@
+{
+  if (canEvict.compareAndSet(true,false)) {
+    try {
+      context.getExecutionService().execute(new Runnable(){
+        public void run(){
+          try {
+            TreeSet<CacheRecord<K>> records=new TreeSet<CacheRecord<K>>(comparator);
+            records.addAll(cache.values());
+            int evictSize=cache.size() * EVICTION_PERCENTAGE / HUNDRED_PERCENTAGE;
+            int i=0;
+            for (            CacheRecord<K> record : records) {
+              cache.remove(record.key);
+              if (++i > evictSize) {
+                break;
+              }
+            }
+          }
+  finally {
+            canEvict.set(true);
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canEvict.set(true);
+    }
+catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}

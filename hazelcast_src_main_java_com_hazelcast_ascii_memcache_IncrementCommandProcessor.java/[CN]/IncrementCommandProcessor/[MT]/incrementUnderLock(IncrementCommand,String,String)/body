@@ -1,0 +1,39 @@
+{
+  Object value=textCommandService.get(mapName,key);
+  MemcacheEntry entry=null;
+  if (value != null) {
+    if (value instanceof MemcacheEntry) {
+      entry=(MemcacheEntry)value;
+    }
+ else     if (value instanceof byte[]) {
+      entry=new MemcacheEntry(incrementCommand.getKey(),(byte[])value,0);
+    }
+ else     if (value instanceof String) {
+      entry=new MemcacheEntry(incrementCommand.getKey(),stringToBytes((String)value),0);
+    }
+ else {
+      try {
+        entry=new MemcacheEntry(incrementCommand.getKey(),textCommandService.toByteArray(value),0);
+      }
+ catch (      Exception e) {
+        throw ExceptionUtil.rethrow(e);
+      }
+    }
+    final byte[] value1=entry.getValue();
+    final long current=(value1 == null || value1.length == 0) ? 0 : byteArrayToLong(value1);
+    long result=-1;
+    result=incrementCommandTypeCheck(incrementCommand,result,current);
+    incrementCommand.setResponse(ByteUtil.concatenate(stringToBytes(String.valueOf(result)),TextCommandConstants.RETURN));
+    MemcacheEntry newValue=new MemcacheEntry(key,longToByteArray(result),entry.getFlag());
+    textCommandService.put(mapName,key,newValue);
+  }
+ else {
+    if (incrementCommand.getType() == TextCommandConstants.TextCommandType.INCREMENT) {
+      textCommandService.incrementIncMissCount();
+    }
+ else {
+      textCommandService.incrementDecrMissCount();
+    }
+    incrementCommand.setResponse(TextCommandConstants.NOT_FOUND);
+  }
+}

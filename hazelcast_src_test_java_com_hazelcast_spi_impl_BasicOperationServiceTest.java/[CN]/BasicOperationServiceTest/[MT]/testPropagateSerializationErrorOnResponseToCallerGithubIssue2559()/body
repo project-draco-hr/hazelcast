@@ -1,0 +1,14 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  Field original=HazelcastInstanceProxy.class.getDeclaredField("original");
+  original.setAccessible(true);
+  HazelcastInstanceImpl impl=(HazelcastInstanceImpl)original.get(hz1);
+  OperationService operationService=impl.node.nodeEngine.getOperationService();
+  Address address=((MemberImpl)hz2.getCluster().getLocalMember()).getAddress();
+  Operation operation=new GithubIssue2559Operation();
+  String serviceName=DistributedExecutorService.SERVICE_NAME;
+  InvocationBuilder invocationBuilder=operationService.createInvocationBuilder(serviceName,operation,address);
+  invocationBuilder.invoke().get();
+}

@@ -1,22 +1,15 @@
 {
   checkIfLoaded();
-  Record record=records.get(dataKey);
-  Object value=null;
+  long now=getNow();
+  Record record=getRecord(key,false);
   if (record == null) {
-    if (mapContainer.getStore() != null) {
-      value=mapContainer.getStore().load(mapService.toObject(dataKey));
-      if (value != null) {
-        record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL);
-        records.put(dataKey,record);
-        saveIndex(record);
-        updateSizeEstimator(calculateRecordSize(record));
-      }
-    }
+    record=loadRecordOrNull(key,true);
   }
  else {
-    accessRecord(record);
-    value=record.getValue();
+    accessRecord(record,now);
   }
-  value=mapService.interceptGet(name,value);
+  Object value=record == null ? null : record.getValue();
+  value=mapServiceContext.interceptGet(name,value);
+  postReadCleanUp(now,false);
   return value;
 }

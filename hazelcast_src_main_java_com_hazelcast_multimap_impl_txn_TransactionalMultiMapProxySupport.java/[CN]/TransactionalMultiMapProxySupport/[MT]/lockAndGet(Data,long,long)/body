@@ -1,0 +1,13 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  TxnLockAndGetOperation operation=new TxnLockAndGetOperation(name,key,timeout,ttl,getThreadId());
+  try {
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+    final OperationService operationService=nodeEngine.getOperationService();
+    Future<MultiMapResponse> f=operationService.invokeOnPartition(MultiMapService.SERVICE_NAME,operation,partitionId);
+    return f.get();
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}

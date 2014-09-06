@@ -1,25 +1,18 @@
 {
+  OperationService operationService=nodeEngine.getOperationService();
   Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
   Collection<Future> calls=new ArrayList<Future>(members.size());
   for (  MemberImpl member : members) {
     if (!member.localMember()) {
-      Future f=nodeEngine.getOperationService().invokeOnTarget(serviceName,new DeregistrationOperation(topic,id),member.getAddress());
+      DeregistrationOperation operation=new DeregistrationOperation(topic,id);
+      Future f=operationService.invokeOnTarget(serviceName,operation,member.getAddress());
       calls.add(f);
     }
   }
-  for (  Future f : calls) {
-    try {
-      f.get(5,TimeUnit.SECONDS);
-    }
- catch (    InterruptedException ignored) {
-    }
-catch (    TimeoutException ignored) {
-    }
-catch (    MemberLeftException e) {
-      logger.finest("Member left while de-registering listener...",e);
-    }
-catch (    ExecutionException e) {
-      throw new HazelcastException(e);
-    }
+  try {
+    FutureUtil.waitWithDeadline(calls,REGISTRATION_TIMEOUT_SECONDS,TimeUnit.SECONDS,deregistrationExceptionHandler);
+  }
+ catch (  TimeoutException e) {
+    logger.finest(e);
   }
 }

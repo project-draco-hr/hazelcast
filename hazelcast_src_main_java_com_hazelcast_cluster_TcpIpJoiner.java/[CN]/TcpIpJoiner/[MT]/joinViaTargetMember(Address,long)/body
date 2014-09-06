@@ -1,0 +1,31 @@
+{
+  try {
+    if (targetAddress == null) {
+      throw new IllegalArgumentException("Invalid target address -> NULL");
+    }
+    if (logger.isFinestEnabled()) {
+      logger.finest("Joining over target member " + targetAddress);
+    }
+    if (targetAddress.equals(node.getThisAddress()) || isLocalAddress(targetAddress)) {
+      node.setAsMaster();
+      return;
+    }
+    long joinStartTime=Clock.currentTimeMillis();
+    Connection connection;
+    while (node.isActive() && !node.joined() && (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
+      connection=node.connectionManager.getOrConnect(targetAddress);
+      if (connection == null) {
+        Thread.sleep(JOIN_RETRY_WAIT_TIME);
+        continue;
+      }
+      if (logger.isFinestEnabled()) {
+        logger.finest("Sending joinRequest " + targetAddress);
+      }
+      node.clusterService.sendJoinRequest(targetAddress,true);
+      Thread.sleep(JOIN_RETRY_WAIT_TIME);
+    }
+  }
+ catch (  final Exception e) {
+    logger.warning(e);
+  }
+}

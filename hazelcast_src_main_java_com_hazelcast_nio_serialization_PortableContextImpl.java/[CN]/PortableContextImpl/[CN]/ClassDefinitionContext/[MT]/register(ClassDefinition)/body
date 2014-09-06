@@ -1,0 +1,24 @@
+{
+  if (cd == null) {
+    return null;
+  }
+  if (cd instanceof ClassDefinitionImpl) {
+    final ClassDefinitionImpl cdImpl=(ClassDefinitionImpl)cd;
+    cdImpl.setVersionIfNotSet(getVersion());
+    setClassDefBinary(cdImpl);
+    registerNestedDefinitions(cdImpl);
+  }
+  final long versionedClassId=combineToLong(cd.getClassId(),cd.getVersion());
+  final ClassDefinition currentCd=versionedDefinitions.putIfAbsent(versionedClassId,cd);
+  if (currentCd == null) {
+    return cd;
+  }
+  if (currentCd instanceof ClassDefinitionImpl) {
+    if (!currentCd.equals(cd)) {
+      throw new HazelcastSerializationException("Incompatible class-definitions with same class-id: " + cd + " VS "+ currentCd);
+    }
+    return currentCd;
+  }
+  versionedDefinitions.put(versionedClassId,cd);
+  return cd;
+}

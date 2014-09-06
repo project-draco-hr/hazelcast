@@ -1,25 +1,22 @@
 {
-  Map.Entry entry;
-  RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
-  Map<Data,Record> records=recordStore.getReadonlyRecordMap();
-  for (  Map.Entry<Data,Record> recordEntry : records.entrySet()) {
-    Data dataKey=recordEntry.getKey();
-    Record record=recordEntry.getValue();
-    Object objectKey=mapService.toObject(record.getKey());
-    Object valueBeforeProcess=mapService.toObject(record.getValue());
-    if (getPredicate() != null) {
-      QueryEntry queryEntry=new QueryEntry(getNodeEngine().getSerializationService(),dataKey,objectKey,valueBeforeProcess);
-      if (!getPredicate().apply(queryEntry)) {
-        continue;
-      }
+  final Iterator<Record> iterator=recordStore.iterator();
+  while (iterator.hasNext()) {
+    final Record record=iterator.next();
+    final Data dataKey=record.getKey();
+    final Object oldValue=record.getValue();
+    final Object key=toObject(dataKey);
+    final Object value=toObject(oldValue);
+    if (!applyPredicate(dataKey,key,value)) {
+      continue;
     }
-    entry=new AbstractMap.SimpleEntry(objectKey,valueBeforeProcess);
-    entryProcessor.processBackup(entry);
-    if (entry.getValue() == null) {
-      recordStore.remove(dataKey);
+    final Map.Entry entry=createMapEntry(key,value);
+    processBackup(entry);
+    if (noOp(entry,oldValue)) {
+      continue;
     }
- else {
-      recordStore.putBackup(dataKey,entry.getValue());
+    if (entryRemovedBackup(entry,dataKey)) {
+      continue;
     }
+    entryAddedOrUpdatedBackup(entry,dataKey);
   }
 }
