@@ -3,11 +3,11 @@
   final int expectedStoreCount=3;
   final int nodeCount=3;
   Config config=new Config();
-  config.setProperty(GroupProperties.PROP_MAP_REPLICA_SCHEDULED_TASK_DELAY_SECONDS,"30");
+  config.setProperty(GroupProperties.PROP_MAP_REPLICA_SCHEDULED_TASK_DELAY_SECONDS,"0");
   MapConfig writeBehindBackupConfig=config.getMapConfig(name);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setWriteDelaySeconds(5);
-  final MapStoreWithStoreCount mapStore=new MapStoreWithStoreCount(expectedStoreCount,300,50);
+  final MapStoreWithStoreCount mapStore=new MapStoreWithStoreCount(expectedStoreCount,300,10);
   mapStoreConfig.setImplementation(mapStore);
   writeBehindBackupConfig.setMapStoreConfig(mapStoreConfig);
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
@@ -23,5 +23,11 @@
   map.put(keyOwnedByNode3,3);
   node2.getLifecycleService().shutdown();
   mapStore.awaitStores();
-  assertTrue(expectedStoreCount <= mapStore.count.intValue());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      int mapStoreSize=mapStore.count.intValue();
+      assertEquals("expected : " + expectedStoreCount + ", actual : "+ mapStoreSize,expectedStoreCount,mapStoreSize);
+    }
+  }
+);
 }
