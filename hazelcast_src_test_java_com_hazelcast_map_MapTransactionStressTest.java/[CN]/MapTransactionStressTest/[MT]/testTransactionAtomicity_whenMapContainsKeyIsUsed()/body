@@ -1,0 +1,37 @@
+{
+  Config config=new Config();
+  ServicesConfig servicesConfig=config.getServicesConfig();
+  final String dummyTxService="dummy-tx-service";
+  servicesConfig.addServiceConfig(new ServiceConfig().setName(dummyTxService).setEnabled(true).setServiceImpl(new DummyTransactionalService(dummyTxService)));
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  final String name=HazelcastTestSupport.generateRandomString(5);
+  Thread producerThread=new ProducerThread(hz,name,dummyTxService);
+  producerThread.start();
+  try {
+    IQueue<String> q=hz.getQueue(name);
+    for (int i=0; i < 1000; i++) {
+      String id=q.poll();
+      if (id != null) {
+        TransactionContext tx=hz.newTransactionContext();
+        try {
+          tx.beginTransaction();
+          TransactionalMap<String,Object> map=tx.getMap(name);
+          assertTrue(map.containsKey(id));
+          map.delete(id);
+          tx.commitTransaction();
+        }
+ catch (        TransactionException e) {
+          tx.rollbackTransaction();
+          e.printStackTrace();
+        }
+      }
+ else {
+        LockSupport.parkNanos(100);
+      }
+    }
+  }
+  finally {
+    producerThread.interrupt();
+    producerThread.join(10000);
+  }
+}
