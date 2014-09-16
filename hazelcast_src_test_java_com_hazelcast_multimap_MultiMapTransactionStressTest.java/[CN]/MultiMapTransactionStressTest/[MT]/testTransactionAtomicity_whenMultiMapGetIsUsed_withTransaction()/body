@@ -1,0 +1,32 @@
+{
+  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(createConfigWithDummyTxService());
+  final String name=HazelcastTestSupport.generateRandomString(5);
+  Thread producerThread=startProducerThread(hz,name);
+  try {
+    IQueue<String> q=hz.getQueue(name);
+    for (int i=0; i < 1000; i++) {
+      String id=q.poll();
+      if (id != null) {
+        TransactionContext tx=hz.newTransactionContext();
+        try {
+          tx.beginTransaction();
+          TransactionalMultiMap<Object,Object> multiMap=tx.getMultiMap(name);
+          Collection<Object> values=multiMap.get(id);
+          assertFalse(values.isEmpty());
+          multiMap.remove(id);
+          tx.commitTransaction();
+        }
+ catch (        TransactionException e) {
+          tx.rollbackTransaction();
+          e.printStackTrace();
+        }
+      }
+ else {
+        LockSupport.parkNanos(100);
+      }
+    }
+  }
+  finally {
+    stopProducerThread(producerThread);
+  }
+}
