@@ -10,24 +10,22 @@
   }
   final String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
   final CacheConfig<K,V> cacheConfig=getCacheConfigLocal(cacheNameWithPrefix);
-  if (cacheConfig == null) {
+  if (cacheConfig != null) {
     final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
     final boolean created=createConfigOnPartition(newCacheConfig);
     if (created) {
       createConfigOnAllMembers(newCacheConfig);
       addCacheConfigIfAbsentToLocal(newCacheConfig);
       final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
-      final ICache<?,?> entries=caches.putIfAbsent(cacheNameWithPrefix,cacheProxy);
-      if (entries == null) {
-        if (newCacheConfig.isStatisticsEnabled()) {
-          enableStatistics(cacheName,true);
-        }
-        if (newCacheConfig.isManagementEnabled()) {
-          enableManagement(cacheName,true);
-        }
-        registerListeners(newCacheConfig,cacheProxy);
-        return cacheProxy;
+      caches.put(cacheNameWithPrefix,cacheProxy);
+      if (newCacheConfig.isStatisticsEnabled()) {
+        enableStatistics(cacheName,true);
       }
+      if (newCacheConfig.isManagementEnabled()) {
+        enableManagement(cacheName,true);
+      }
+      registerListeners(newCacheConfig,cacheProxy);
+      return cacheProxy;
     }
  else {
       final CacheConfig<K,V> cacheConfigFromPartition=getCacheConfigFromPartition(cacheNameWithPrefix);
