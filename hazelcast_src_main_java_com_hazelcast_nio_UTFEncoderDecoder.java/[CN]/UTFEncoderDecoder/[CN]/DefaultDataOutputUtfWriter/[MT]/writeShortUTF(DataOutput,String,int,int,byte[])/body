@@ -1,0 +1,62 @@
+{
+  char[] chars=(char[])UNSAFE.getObject(str,STRING_VALUE_FIELD_OFFSET);
+  int utfLength=calculateUtf8Length(chars,beginIndex,endIndex);
+  if (utfLength > 65535) {
+    throw new UTFDataFormatException("encoded string too long:" + utfLength + " bytes");
+  }
+  out.writeShort(utfLength);
+  int i;
+  int c;
+  int bufferPos=0;
+  if (utfLength >= buffer.length) {
+    for (i=beginIndex; i < endIndex; i++) {
+      c=chars[i];
+      if (!((c <= 0x007F) && (c >= 0x0001))) {
+        break;
+      }
+      bufferPos=buffering(buffer,bufferPos,(byte)c,out);
+    }
+    for (; i < endIndex; i++) {
+      c=chars[i];
+      if (c <= 0) {
+        bufferPos=buffering(buffer,bufferPos,(byte)(0xC0 | ((c >> 6) & 0x1F)),out);
+        bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c) & 0x3F)),out);
+      }
+ else       if (c > 0x007F) {
+        bufferPos=buffering(buffer,bufferPos,(byte)(0xE0 | ((c >> 12) & 0x0F)),out);
+        bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c >> 6) & 0x3F)),out);
+        bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c) & 0x3F)),out);
+      }
+ else {
+        bufferPos=buffering(buffer,bufferPos,(byte)c,out);
+      }
+    }
+    int length=bufferPos % buffer.length;
+    out.write(buffer,0,length == 0 ? buffer.length : length);
+  }
+ else {
+    for (i=beginIndex; i < endIndex; i++) {
+      c=chars[i];
+      if (!((c <= 0x007F) && (c >= 0x0001))) {
+        break;
+      }
+      buffer[bufferPos++]=(byte)c;
+    }
+    for (; i < endIndex; i++) {
+      c=chars[i];
+      if (c <= 0) {
+        buffer[bufferPos++]=(byte)(0xC0 | ((c >> 6) & 0x1F));
+        buffer[bufferPos++]=(byte)(0x80 | ((c) & 0x3F));
+      }
+ else       if (c > 0x007F) {
+        buffer[bufferPos++]=(byte)(0xE0 | ((c >> 12) & 0x0F));
+        buffer[bufferPos++]=(byte)(0x80 | ((c >> 6) & 0x3F));
+        buffer[bufferPos++]=(byte)(0x80 | ((c) & 0x3F));
+      }
+ else {
+        buffer[bufferPos++]=(byte)c;
+      }
+    }
+    out.write(buffer,0,bufferPos);
+  }
+}
