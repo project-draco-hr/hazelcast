@@ -3,18 +3,14 @@
   final CacheManager cacheManager2=cachingProvider2.getCacheManager();
   final MutableConfiguration configuration=new MutableConfiguration();
   final Cache c1=cacheManager.createCache("c1",configuration);
-  final Cache c2=cacheManager2.getCache("c1");
+  final Cache c2=cacheManager2.createCache("c2",configuration);
   c1.put("key","value");
-  cacheManager.destroyCache("c1");
-  assertTrueEventually(new AssertTask(){
+  c2.put("key","value");
+  cacheManager.close();
+  assertTrueAllTheTime(new AssertTask(){
     @Override public void run() throws Exception {
-      try {
-        c2.get("key");
-        throw new AssertionError("get should throw IllegalStateException");
-      }
- catch (      IllegalStateException e) {
-      }
+      c2.get("key");
     }
   }
-);
+,10);
 }
