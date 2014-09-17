@@ -1,0 +1,24 @@
+{
+  this.name=cacheConfig.getName();
+  this.cacheConfig=cacheConfig;
+  this.delegate=delegate;
+  if (cacheConfig.getCacheLoaderFactory() != null) {
+    final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
+    cacheLoader=cacheLoaderFactory.create();
+  }
+ else {
+    cacheLoader=null;
+  }
+  asyncListenerRegistrations=new ConcurrentHashMap<CacheEntryListenerConfiguration,String>();
+  syncListenerRegistrations=new ConcurrentHashMap<CacheEntryListenerConfiguration,String>();
+  syncLocks=new ConcurrentHashMap<Integer,CountDownLatch>();
+  NearCacheConfig nearCacheConfig=cacheConfig.getNearCacheConfig();
+  if (nearCacheConfig != null) {
+    nearCache=new ClientHeapNearCache<Data>(getDistributedObjectName(),delegate.getClientContext(),nearCacheConfig);
+    cacheOnUpdate=nearCacheConfig.getLocalUpdatePolicy() == NearCacheConfig.LocalUpdatePolicy.CACHE;
+  }
+ else {
+    nearCache=null;
+    cacheOnUpdate=false;
+  }
+}

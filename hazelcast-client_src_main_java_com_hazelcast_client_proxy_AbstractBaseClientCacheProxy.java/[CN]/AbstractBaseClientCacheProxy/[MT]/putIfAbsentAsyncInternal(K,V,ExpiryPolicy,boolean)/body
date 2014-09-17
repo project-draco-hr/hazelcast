@@ -1,0 +1,22 @@
+{
+  ensureOpen();
+  validateNotNull(key,value);
+  CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  final CachePutIfAbsentRequest request=new CachePutIfAbsentRequest(getDistributedObjectName(),keyData,valueData,expiryPolicy);
+  ICompletableFuture<Boolean> future;
+  try {
+    future=invoke(request,keyData,withCompletionEvent);
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<Boolean>(future,getContext().getSerializationService());
+}

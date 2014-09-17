@@ -1,26 +1,20 @@
 {
   ensureOpen();
-  if (keys == null || keys.contains(null)) {
-    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
-  }
-  for (  K key : keys) {
-    validateConfiguredTypes(false,key);
-  }
+  validateNotNull(keys);
+  validateConfiguredTypes(keys);
+  validateCacheLoader(completionListener);
   HashSet<Data> keysData=new HashSet<Data>();
   for (  K key : keys) {
     keysData.add(toData(key));
   }
-  CacheLoadAllRequest request=new CacheLoadAllRequest(getDistributedObjectName(),keysData,replaceExistingValues);
+  final CacheLoadAllRequest request=new CacheLoadAllRequest(getDistributedObjectName(),keysData,replaceExistingValues);
   try {
-    final Map<Integer,Object> results=invoke(request);
-    validateResults(results);
-    if (completionListener != null) {
-      completionListener.onCompletion();
-    }
+    submitLoadAllTask(request,completionListener);
   }
  catch (  Exception e) {
     if (completionListener != null) {
       completionListener.onException(e);
     }
+    throw new CacheException(e);
   }
 }
