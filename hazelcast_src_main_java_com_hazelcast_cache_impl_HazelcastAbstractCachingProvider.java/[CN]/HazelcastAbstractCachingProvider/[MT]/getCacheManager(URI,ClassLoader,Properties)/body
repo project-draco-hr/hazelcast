@@ -2,22 +2,22 @@
   final URI managerURI=getManagerUri(uri);
   final ClassLoader managerClassLoader=getManagerClassLoader(classLoader);
   final Properties managerProperties=properties == null ? new Properties() : properties;
-  if (cacheManagers.get(managerClassLoader) == null) {
-    cacheManagers.putIfAbsent(managerClassLoader,new ConcurrentHashMap<URI,CacheManager>());
-  }
-  final ConcurrentMap<URI,CacheManager> cacheManagersByURI=cacheManagers.get(managerClassLoader);
-  CacheManager cacheManager=cacheManagersByURI.get(managerURI);
-  if (cacheManager == null) {
-    try {
-      cacheManager=createHazelcastCacheManager(uri,classLoader,managerProperties);
-      final CacheManager oldCacheManager=cacheManagersByURI.putIfAbsent(managerURI,cacheManager);
-      if (oldCacheManager != null) {
-        cacheManager=oldCacheManager;
+synchronized (cacheManagers) {
+    Map<URI,CacheManager> cacheManagersByURI=cacheManagers.get(managerClassLoader);
+    if (cacheManagersByURI == null) {
+      cacheManagersByURI=new HashMap<URI,CacheManager>();
+      cacheManagers.put(managerClassLoader,cacheManagersByURI);
+    }
+    CacheManager cacheManager=cacheManagersByURI.get(managerURI);
+    if (cacheManager == null || cacheManager.isClosed()) {
+      try {
+        cacheManager=createHazelcastCacheManager(uri,classLoader,managerProperties);
+        cacheManagersByURI.put(managerURI,cacheManager);
+      }
+ catch (      Exception e) {
+        throw new CacheException("Error opening URI" + managerURI.toString(),e);
       }
     }
- catch (    Exception e) {
-      throw new CacheException("Error opening URI" + managerURI.toString(),e);
-    }
+    return cacheManager;
   }
-  return cacheManager;
 }
