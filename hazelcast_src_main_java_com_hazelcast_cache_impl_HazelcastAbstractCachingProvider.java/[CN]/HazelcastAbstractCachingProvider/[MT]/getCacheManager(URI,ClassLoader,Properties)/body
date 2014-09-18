@@ -1,23 +1,23 @@
 {
-  URI managerURI=uri == null ? getDefaultURI() : uri;
-  ClassLoader managerClassLoader=classLoader == null ? getDefaultClassLoader() : classLoader;
-  Properties managerProperties=properties == null ? new Properties() : properties;
-  HashMap<URI,CacheManager> cacheManagersByURI=cacheManagers.get(managerClassLoader);
-  if (cacheManagersByURI == null) {
-    cacheManagersByURI=new HashMap<URI,CacheManager>();
-  }
-  CacheManager cacheManager=cacheManagersByURI.get(managerURI);
-  if (cacheManager == null) {
-    try {
-      cacheManager=getHazelcastCacheManager(uri,classLoader,managerProperties);
-      cacheManagersByURI.put(managerURI,cacheManager);
+  final URI managerURI=getManagerUri(uri);
+  final ClassLoader managerClassLoader=getManagerClassLoader(classLoader);
+  final Properties managerProperties=properties == null ? new Properties() : properties;
+synchronized (cacheManagers) {
+    Map<URI,CacheManager> cacheManagersByURI=cacheManagers.get(managerClassLoader);
+    if (cacheManagersByURI == null) {
+      cacheManagersByURI=new HashMap<URI,CacheManager>();
+      cacheManagers.put(managerClassLoader,cacheManagersByURI);
     }
- catch (    Throwable t) {
-      LOGGER.warning("Error opening URI" + managerURI.toString() + ". Caused by :"+ t.getMessage());
+    CacheManager cacheManager=cacheManagersByURI.get(managerURI);
+    if (cacheManager == null || cacheManager.isClosed()) {
+      try {
+        cacheManager=createHazelcastCacheManager(uri,classLoader,managerProperties);
+        cacheManagersByURI.put(managerURI,cacheManager);
+      }
+ catch (      Exception e) {
+        throw new CacheException("Error opening URI" + managerURI.toString(),e);
+      }
     }
+    return cacheManager;
   }
-  if (!cacheManagers.containsKey(managerClassLoader)) {
-    cacheManagers.put(managerClassLoader,cacheManagersByURI);
-  }
-  return cacheManager;
 }

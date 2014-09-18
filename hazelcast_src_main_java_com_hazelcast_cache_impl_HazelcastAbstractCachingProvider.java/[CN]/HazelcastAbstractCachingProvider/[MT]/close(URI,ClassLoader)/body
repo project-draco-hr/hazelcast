@@ -1,9 +1,16 @@
 {
-  final HashMap<URI,CacheManager> uriCacheManagerHashMap=this.cacheManagers.get(classLoader);
-  if (uriCacheManagerHashMap != null) {
-    final CacheManager cacheManager=uriCacheManagerHashMap.get(uri);
-    if (cacheManager != null) {
-      cacheManager.close();
+  final URI managerURI=getManagerUri(uri);
+  final ClassLoader managerClassLoader=getManagerClassLoader(classLoader);
+synchronized (cacheManagers) {
+    final Map<URI,CacheManager> cacheManagersByURI=this.cacheManagers.get(managerClassLoader);
+    if (cacheManagersByURI != null) {
+      final CacheManager cacheManager=cacheManagersByURI.remove(managerURI);
+      if (cacheManager != null) {
+        cacheManager.close();
+      }
+      if (cacheManagersByURI.isEmpty()) {
+        cacheManagers.remove(classLoader);
+      }
     }
   }
 }
