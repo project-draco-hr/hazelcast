@@ -1,13 +1,22 @@
 {
   CachingProvider cp=null;
-  try {
-    cp=ClassLoaderUtil.newInstance(getClass().getClassLoader(),CLIENT_CACHING_PROVIDER_CLASS);
+  String providerType=System.getProperty(GroupProperties.PROP_JCACHE_PROVIDER_TYPE);
+  if (providerType != null) {
+    if ("client".equals(providerType)) {
+      cp=createClientProvider();
+    }
+    if ("server".equals(providerType)) {
+      cp=new HazelcastServerCachingProvider();
+    }
+    if (cp == null) {
+      throw new CacheException("CacheProvider cannot created with the provided type:" + providerType);
+    }
   }
- catch (  Exception e) {
-    LOGGER.warning("Could not load client CachingProvider! Fallback to server one... " + e.toString());
-  }
-  if (cp == null) {
-    cp=new HazelcastServerCachingProvider();
+ else {
+    cp=createClientProvider();
+    if (cp == null) {
+      cp=new HazelcastServerCachingProvider();
+    }
   }
   delegate=cp;
 }
