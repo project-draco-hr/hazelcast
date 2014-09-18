@@ -1,18 +1,12 @@
 {
   NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
   InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)nodeEngine.getPartitionService();
-  SerializationService serializationService=nodeEngine.getSerializationService();
   int partitionId=getPartitionId();
   int replicaIndex=getReplicaIndex();
-  BufferObjectDataInput in=null;
   try {
-    if (data != null && data.length > 0) {
+    if (tasks != null && tasks.size() > 0) {
       logApplyReplicaSync(partitionId,replicaIndex);
-      byte[] taskData=compressed ? IOUtil.decompress(data) : data;
-      in=serializationService.createObjectDataInput(taskData);
-      int size=in.readInt();
-      for (int i=0; i < size; i++) {
-        Operation op=(Operation)serializationService.readObject(in);
+      for (      Operation op : tasks) {
         try {
           ErrorLoggingResponseHandler responseHandler=new ErrorLoggingResponseHandler(nodeEngine.getLogger(op.getClass()));
           op.setNodeEngine(nodeEngine).setPartitionId(partitionId).setReplicaIndex(replicaIndex).setResponseHandler(responseHandler);
@@ -24,10 +18,10 @@
           logException(op,e);
         }
       }
+      tasks.clear();
     }
   }
   finally {
-    closeResource(in);
-    partitionService.finalizeReplicaSync(partitionId,replicaVersions);
+    partitionService.finalizeReplicaSync(partitionId,replicaIndex,replicaVersions);
   }
 }
