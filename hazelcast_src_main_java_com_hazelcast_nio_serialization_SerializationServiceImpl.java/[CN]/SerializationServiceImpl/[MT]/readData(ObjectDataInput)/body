@@ -1,0 +1,33 @@
+{
+  try {
+    boolean isNull=in.readBoolean();
+    if (isNull) {
+      return null;
+    }
+    int typeId=in.readInt();
+    int partitionHash=in.readInt();
+    byte[] header=null;
+    int len=in.readInt();
+    if (len > 0) {
+      if (!(in instanceof PortableDataInput)) {
+        throw new HazelcastSerializationException("PortableDataInput is required to be able " + "to read Portable header.");
+      }
+      PortableDataInput input=(PortableDataInput)in;
+      ByteBuffer headerBuffer=input.getHeaderBuffer();
+      int pos=in.readInt();
+      headerBuffer.position(pos);
+      header=new byte[len];
+      headerBuffer.get(header);
+    }
+    int dataSize=in.readInt();
+    byte[] data=null;
+    if (dataSize > 0) {
+      data=new byte[dataSize];
+      in.readFully(data);
+    }
+    return new HeapData(typeId,data,partitionHash,header);
+  }
+ catch (  Throwable e) {
+    throw handleException(e);
+  }
+}
