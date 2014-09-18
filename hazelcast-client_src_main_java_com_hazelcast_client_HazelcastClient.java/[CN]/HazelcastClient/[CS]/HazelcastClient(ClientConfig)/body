@@ -2,10 +2,12 @@
   this.config=config;
   final GroupConfig groupConfig=config.getGroupConfig();
   instanceName="hz.client_" + id + (groupConfig != null ? "_" + groupConfig.getName() : "");
+  initializer=createClientInitializer(config.getClassLoader());
+  initializer.beforeInitialize(this);
   threadGroup=new ThreadGroup(instanceName);
   lifecycleService=new LifecycleServiceImpl(this);
   clientProperties=new ClientProperties(config);
-  serializationService=initSerializationService(config);
+  serializationService=initializer.createSerializationService();
   proxyManager=new ProxyManager(this);
   executionService=initExecutorService();
   transactionManager=new ClientTransactionManager(this);
@@ -21,4 +23,5 @@
   userContext=new ConcurrentHashMap<String,Object>();
   proxyManager.init(config);
   partitionService=new ClientPartitionServiceImpl(this);
+  initializer.afterInitialize(this);
 }
