@@ -1,29 +1,23 @@
 {
-  FieldDefinition fd=cd.get(fieldName);
+  FieldDefinition fd=cd.getField(fieldName);
   if (fd == null) {
     throw throwUnknownFieldException(fieldName);
   }
+  if (fd.getType() != FieldType.PORTABLE_ARRAY) {
+    throw new HazelcastSerializationException("Not a Portable array field: " + fieldName);
+  }
   final int currentPos=in.position();
   try {
-    int pos=getPosition(fd);
+    int pos=readPosition(fd);
     in.position(pos);
     final int len=in.readInt();
     final Portable[] portables=new Portable[len];
     if (len > 0) {
       final int offset=in.position();
-      final PortableContextAwareInputStream ctxIn=(PortableContextAwareInputStream)in;
-      try {
-        ctxIn.setFactoryId(fd.getFactoryId());
-        ctxIn.setClassId(fd.getClassId());
-        for (int i=0; i < len; i++) {
-          final int start=in.readInt(offset + i * 4);
-          in.position(start);
-          portables[i]=serializer.readAndInitialize(in);
-        }
-      }
-  finally {
-        ctxIn.setFactoryId(cd.getFactoryId());
-        ctxIn.setClassId(cd.getClassId());
+      for (int i=0; i < len; i++) {
+        final int start=in.readInt(offset + i * 4);
+        in.position(start);
+        portables[i]=serializer.readAndInitialize(in,fd.getFactoryId(),fd.getClassId(),fd.getVersion());
       }
     }
     return portables;

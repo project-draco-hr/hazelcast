@@ -1,0 +1,20 @@
+{
+  final ExpiryPolicy localExpiryPolicy=defaultExpiryPolicy;
+  Object value=readThroughCache(key);
+  if (value == null) {
+    return null;
+  }
+  Duration expiryDuration;
+  try {
+    expiryDuration=localExpiryPolicy.getExpiryForCreation();
+  }
+ catch (  Exception e) {
+    expiryDuration=Duration.ETERNAL;
+  }
+  long expiryTime=expiryDuration.getAdjustedTime(now);
+  if (isExpiredAt(expiryTime,now)) {
+    return null;
+  }
+  final CacheRecord record=createRecord(key,value,expiryTime);
+  return record;
+}

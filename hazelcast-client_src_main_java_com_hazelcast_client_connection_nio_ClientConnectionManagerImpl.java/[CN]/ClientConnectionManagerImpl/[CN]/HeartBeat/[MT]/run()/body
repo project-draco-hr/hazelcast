@@ -1,0 +1,18 @@
+{
+  if (!live) {
+    return;
+  }
+  final long now=Clock.currentTimeMillis();
+  for (  ClientConnection connection : connections.values()) {
+    if (now - connection.lastReadTime() > heartBeatTimeout) {
+      connection.heartBeatingFailed();
+    }
+    if (now - connection.lastReadTime() > heartBeatInterval) {
+      final ClientPingRequest request=new ClientPingRequest();
+      invocationService.send(request,connection);
+    }
+ else {
+      connection.heartBeatingSucceed();
+    }
+  }
+}

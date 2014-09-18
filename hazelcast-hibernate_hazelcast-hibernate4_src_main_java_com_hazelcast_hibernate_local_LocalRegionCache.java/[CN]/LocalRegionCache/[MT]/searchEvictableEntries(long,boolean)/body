@@ -1,0 +1,23 @@
+{
+  List<EvictionEntry> entries=null;
+  Iterator<Entry<Object,Value>> iter=cache.entrySet().iterator();
+  long now=Clock.currentTimeMillis();
+  while (iter.hasNext()) {
+    final Entry<Object,Value> e=iter.next();
+    final Object k=e.getKey();
+    final Value v=e.getValue();
+    if (v.getLock() == LOCK_SUCCESS) {
+      continue;
+    }
+    if (v.getCreationTime() + timeToLive < now) {
+      iter.remove();
+    }
+ else     if (limitSize) {
+      if (entries == null) {
+        entries=new ArrayList<EvictionEntry>(cache.size());
+      }
+      entries.add(new EvictionEntry(k,v));
+    }
+  }
+  return entries;
+}

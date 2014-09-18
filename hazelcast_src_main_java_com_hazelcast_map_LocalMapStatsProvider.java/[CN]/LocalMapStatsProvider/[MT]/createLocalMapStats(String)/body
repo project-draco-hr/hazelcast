@@ -1,0 +1,29 @@
+{
+  final NodeEngine nodeEngine=this.nodeEngine;
+  final MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
+  final LocalMapStatsImpl localMapStats=getLocalMapStatsImpl(mapName);
+  if (!mapContainer.getMapConfig().isStatisticsEnabled()) {
+    return localMapStats;
+  }
+  final int backupCount=mapContainer.getTotalBackupCount();
+  final ClusterService clusterService=nodeEngine.getClusterService();
+  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  final Address thisAddress=clusterService.getThisAddress();
+  localMapStats.init();
+  localMapStats.setBackupCount(backupCount);
+  addNearCacheStats(localMapStats,mapContainer);
+  for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
+    InternalPartition partition=partitionService.getPartition(partitionId);
+    Address owner=partition.getOwnerOrNull();
+    if (owner == null) {
+      continue;
+    }
+    if (owner.equals(thisAddress)) {
+      addOwnerPartitionStats(localMapStats,mapName,partitionId);
+    }
+ else {
+      addReplicaPartitionStats(localMapStats,mapName,partitionId,partition,clusterService,backupCount,thisAddress);
+    }
+  }
+  return localMapStats;
+}

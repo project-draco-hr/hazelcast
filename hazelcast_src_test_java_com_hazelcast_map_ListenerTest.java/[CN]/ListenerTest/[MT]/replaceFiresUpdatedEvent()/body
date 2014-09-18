@@ -1,0 +1,19 @@
+{
+  final AtomicInteger entryUpdatedEventCount=new AtomicInteger(0);
+  HazelcastInstance node=createHazelcastInstance();
+  IMap<Integer,Integer> map=node.getMap(randomMapName());
+  map.put(1,1);
+  map.addEntryListener(new EntryAdapter<Integer,Integer>(){
+    @Override public void entryUpdated(    EntryEvent<Integer,Integer> event){
+      entryUpdatedEventCount.incrementAndGet();
+    }
+  }
+,true);
+  map.replace(1,1,2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(1,entryUpdatedEventCount.get());
+    }
+  }
+);
+}

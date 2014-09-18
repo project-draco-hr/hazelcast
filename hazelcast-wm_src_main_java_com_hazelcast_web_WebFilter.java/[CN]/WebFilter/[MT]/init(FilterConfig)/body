@@ -1,7 +1,10 @@
 {
   filterConfig=config;
   servletContext=config.getServletContext();
+  servletContext.setAttribute(WEB_FILTER_ATTRIBUTE_KEY,this);
   initInstance();
+  initCookieParams();
+  initParams();
   String mapName=getParam("map-name");
   if (mapName != null) {
     clusterMapName=mapName;
@@ -10,43 +13,16 @@
     clusterMapName="_web_" + servletContext.getServletContextName();
   }
   try {
-    Config hzConfig=hazelcastInstance.getConfig();
     String sessionTTL=getParam("session-ttl-seconds");
     if (sessionTTL != null) {
+      Config hzConfig=hazelcastInstance.getConfig();
       MapConfig mapConfig=hzConfig.getMapConfig(clusterMapName);
       mapConfig.setTimeToLiveSeconds(Integer.parseInt(sessionTTL));
       hzConfig.addMapConfig(mapConfig);
     }
   }
  catch (  UnsupportedOperationException ignored) {
-  }
-  String cookieName=getParam("cookie-name");
-  if (cookieName != null) {
-    sessionCookieName=cookieName;
-  }
-  String cookieDomain=getParam("cookie-domain");
-  if (cookieDomain != null) {
-    sessionCookieDomain=cookieDomain;
-  }
-  String cookieSecure=getParam("cookie-secure");
-  if (cookieSecure != null) {
-    sessionCookieSecure=Boolean.valueOf(cookieSecure);
-  }
-  String cookieHttpOnly=getParam("cookie-http-only");
-  if (cookieHttpOnly != null) {
-    sessionCookieHttpOnly=Boolean.valueOf(cookieHttpOnly);
-  }
-  String stickySessionParam=getParam("sticky-session");
-  if (stickySessionParam != null) {
-    stickySession=Boolean.valueOf(stickySessionParam);
-  }
-  String shutdownOnDestroyParam=getParam("shutdown-on-destroy");
-  if (shutdownOnDestroyParam != null) {
-    shutdownOnDestroy=Boolean.valueOf(shutdownOnDestroyParam);
-  }
-  String deferredWriteParam=getParam("deferred-write");
-  if (deferredWriteParam != null) {
-    deferredWrite=Boolean.parseBoolean(deferredWriteParam);
+    LOGGER.info("client cannot access Config.");
   }
   if (!stickySession) {
     getClusterMap().addEntryListener(new EntryListener<String,Object>(){
@@ -62,10 +38,14 @@
       public void entryEvicted(      EntryEvent<String,Object> entryEvent){
         entryRemoved(entryEvent);
       }
+      @Override public void mapEvicted(      MapEvent event){
+      }
+      @Override public void mapCleared(      MapEvent event){
+      }
     }
 ,false);
   }
-  if (logger.isLoggable(Level.FINEST)) {
-    logger.finest("sticky:" + stickySession + ", shutdown-on-destroy: "+ shutdownOnDestroy+ ", map-name: "+ clusterMapName);
+  if (LOGGER.isLoggable(Level.FINEST)) {
+    LOGGER.finest("sticky:" + stickySession + ", shutdown-on-destroy: "+ shutdownOnDestroy+ ", map-name: "+ clusterMapName);
   }
 }

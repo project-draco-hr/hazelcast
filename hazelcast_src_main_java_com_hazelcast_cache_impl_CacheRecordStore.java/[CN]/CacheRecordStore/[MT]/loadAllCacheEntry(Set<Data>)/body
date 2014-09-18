@@ -1,0 +1,30 @@
+{
+  if (cacheLoader != null) {
+    Map<Object,Data> keysToLoad=new HashMap<Object,Data>();
+    for (    Data key : keys) {
+      final Object localKeyObj=cacheService.toObject(key);
+      keysToLoad.put(localKeyObj,key);
+    }
+    Map<Object,Object> loaded;
+    try {
+      loaded=cacheLoader.loadAll(keysToLoad.keySet());
+    }
+ catch (    Throwable e) {
+      if (!(e instanceof CacheLoaderException)) {
+        throw new CacheLoaderException("Exception in CacheLoader during loadAll",e);
+      }
+ else {
+        throw (CacheLoaderException)e;
+      }
+    }
+    Map<Data,Object> result=new HashMap<Data,Object>();
+    for (    Map.Entry<Object,Data> entry : keysToLoad.entrySet()) {
+      final Object keyObj=entry.getKey();
+      final Object valueObject=loaded.get(keyObj);
+      final Data keyData=entry.getValue();
+      result.put(keyData,valueObject);
+    }
+    return result;
+  }
+  return null;
+}

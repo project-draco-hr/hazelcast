@@ -1,0 +1,36 @@
+{
+  if (cacheEntryListenerConfiguration == null) {
+    throw new NullPointerException("CacheEntryListenerConfiguration can't be " + "null");
+  }
+  final ConcurrentMap<CacheEntryListenerConfiguration,String> regs;
+  if (cacheEntryListenerConfiguration.isSynchronous()) {
+    regs=syncListenerRegistrations;
+  }
+ else {
+    regs=asyncListenerRegistrations;
+  }
+  final String regId=regs.remove(cacheEntryListenerConfiguration);
+  if (regId != null) {
+    CacheRemoveEntryListenerRequest removeRequest=new CacheRemoveEntryListenerRequest(getDistributedObjectName(),regId);
+    boolean isDeregistered=getContext().getListenerService().stopListening(removeRequest,regId);
+    if (!isDeregistered) {
+      regs.putIfAbsent(cacheEntryListenerConfiguration,regId);
+    }
+ else {
+      cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
+      deregisterCompletionListener();
+      final ClientInvocationService invocationService=getContext().getInvocationService();
+      final Collection<MemberImpl> members=getContext().getClusterService().getMemberList();
+      for (      MemberImpl member : members) {
+        try {
+          final CacheListenerRegistrationRequest request=new CacheListenerRegistrationRequest(getDistributedObjectName(),cacheEntryListenerConfiguration,false,member.getAddress());
+          final Future future=invocationService.invokeOnTarget(request,member.getAddress());
+          future.get();
+        }
+ catch (        Exception e) {
+          ExceptionUtil.sneakyThrow(e);
+        }
+      }
+    }
+  }
+}

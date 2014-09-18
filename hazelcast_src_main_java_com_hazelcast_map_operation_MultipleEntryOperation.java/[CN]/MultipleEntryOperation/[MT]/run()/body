@@ -1,65 +1,22 @@
 {
-  response=new MapEntrySet();
-  final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
-  final RecordStore recordStore=mapService.getRecordStore(getPartitionId(),name);
-  final LocalMapStatsImpl mapStats=mapService.getLocalMapStatsImpl(name);
-  MapEntrySimple entry;
-  for (  Data key : keys) {
-    if (partitionService.getPartitionId(key) != getPartitionId())     continue;
-    long start=System.currentTimeMillis();
-    Object objectKey=mapService.toObject(key);
-    final Map.Entry<Data,Object> mapEntry=recordStore.getMapEntry(key);
-    final Object valueBeforeProcess=mapEntry.getValue();
-    final Object valueBeforeProcessObject=mapService.toObject(valueBeforeProcess);
-    entry=new MapEntrySimple(objectKey,valueBeforeProcessObject);
-    final Object result=entryProcessor.process(entry);
-    final Object valueAfterProcess=entry.getValue();
-    Data dataValue=null;
-    if (result != null) {
-      dataValue=mapService.toData(result);
-      response.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(key,dataValue));
+  final Set<Data> keys=this.keys;
+  for (  Data dataKey : keys) {
+    if (keyNotOwnedByThisPartition(dataKey)) {
+      continue;
     }
-    EntryEventType eventType;
-    if (valueAfterProcess == null) {
-      recordStore.remove(key);
-      mapStats.incrementRemoves(getLatencyFrom(start));
-      eventType=EntryEventType.REMOVED;
+    final long now=getNow();
+    final Object oldValue=getValueFor(dataKey);
+    final Object key=toObject(dataKey);
+    final Object value=toObject(oldValue);
+    final Map.Entry entry=createMapEntry(key,value);
+    final Data response=process(entry);
+    addToResponses(dataKey,response);
+    if (noOp(entry,oldValue)) {
+      continue;
     }
- else {
-      if (valueBeforeProcessObject == null) {
-        mapStats.incrementPuts(getLatencyFrom(start));
-        eventType=EntryEventType.ADDED;
-      }
- else       if (!entry.isModified()) {
-        mapStats.incrementGets(getLatencyFrom(start));
-        eventType=__NO_NEED_TO_FIRE_EVENT;
-      }
- else {
-        mapStats.incrementPuts(getLatencyFrom(start));
-        eventType=EntryEventType.UPDATED;
-      }
-      if (eventType != __NO_NEED_TO_FIRE_EVENT) {
-        recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(key,valueAfterProcess));
-      }
+    if (entryRemoved(entry,dataKey,oldValue,now)) {
+      continue;
     }
-    if (eventType != __NO_NEED_TO_FIRE_EVENT) {
-      final Data oldValue=mapService.toData(valueBeforeProcess);
-      final Data value=mapService.toData(valueAfterProcess);
-      mapService.publishEvent(getCallerAddress(),name,eventType,key,oldValue,value);
-      if (mapService.isNearCacheAndInvalidationEnabled(name)) {
-        mapService.invalidateAllNearCaches(name,key);
-      }
-      if (mapContainer.getWanReplicationPublisher() != null && mapContainer.getWanMergePolicy() != null) {
-        if (EntryEventType.REMOVED.equals(eventType)) {
-          mapService.publishWanReplicationRemove(name,key,Clock.currentTimeMillis());
-        }
- else {
-          Record record=recordStore.getRecord(key);
-          Data tempValue=mapService.toData(dataValue);
-          final SimpleEntryView entryView=mapService.createSimpleEntryView(key,tempValue,record);
-          mapService.publishWanReplicationUpdate(name,entryView);
-        }
-      }
-    }
+    entryAddedOrUpdated(entry,dataKey,oldValue,now);
   }
 }

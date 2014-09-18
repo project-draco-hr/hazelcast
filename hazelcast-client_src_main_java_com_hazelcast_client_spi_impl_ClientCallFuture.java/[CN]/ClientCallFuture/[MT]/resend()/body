@@ -2,9 +2,12 @@
   if (request.isSingleConnection()) {
     return false;
   }
-  if (handler == null && reSendCount.incrementAndGet() > MAX_RESEND_COUNT) {
+  if (handler == null && reSendCount.incrementAndGet() > retryCount) {
     return false;
   }
-  executionService.execute(new ReSendTask());
+  if (handler != null) {
+    handler.beforeListenerRegister();
+  }
+  executionService.schedule(new ReSendTask(),retryWaitTime,TimeUnit.MILLISECONDS);
   return true;
 }

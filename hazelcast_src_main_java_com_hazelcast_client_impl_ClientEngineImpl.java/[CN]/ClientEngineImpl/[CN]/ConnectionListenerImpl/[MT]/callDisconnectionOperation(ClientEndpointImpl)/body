@@ -1,0 +1,12 @@
+{
+  Collection<MemberImpl> memberList=nodeEngine.getClusterService().getMemberList();
+  OperationService operationService=nodeEngine.getOperationService();
+  ClientDisconnectionOperation op=createClientDisconnectionOperation(endpoint.getUuid());
+  operationService.runOperationOnCallingThread(op);
+  for (  MemberImpl member : memberList) {
+    if (!member.localMember()) {
+      op=createClientDisconnectionOperation(endpoint.getUuid());
+      operationService.send(op,member.getAddress());
+    }
+  }
+}

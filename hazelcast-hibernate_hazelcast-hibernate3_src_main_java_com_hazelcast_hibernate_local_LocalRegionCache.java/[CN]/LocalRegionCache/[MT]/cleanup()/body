@@ -3,44 +3,19 @@
   final long timeToLive;
   if (config != null) {
     maxSize=config.getMaxSizeConfig().getSize();
-    timeToLive=config.getTimeToLiveSeconds() * 1000L;
+    timeToLive=config.getTimeToLiveSeconds() * SEC_TO_MS;
   }
  else {
-    maxSize=100000;
+    maxSize=MAX_SIZE;
     timeToLive=CacheEnvironment.getDefaultCacheTimeoutInMillis();
   }
   boolean limitSize=maxSize > 0 && maxSize != Integer.MAX_VALUE;
   if (limitSize || timeToLive > 0) {
-    final Iterator<Entry<Object,Value>> iter=cache.entrySet().iterator();
-    List<EvictionEntry> entries=null;
-    final long now=Clock.currentTimeMillis();
-    while (iter.hasNext()) {
-      final Entry<Object,Value> e=iter.next();
-      final Object k=e.getKey();
-      final Value v=e.getValue();
-      if (v.getLock() == LOCK_SUCCESS) {
-        continue;
-      }
-      if (v.getCreationTime() + timeToLive < now) {
-        iter.remove();
-      }
- else       if (limitSize) {
-        if (entries == null) {
-          entries=new ArrayList<EvictionEntry>(cache.size());
-        }
-        entries.add(new EvictionEntry(k,v));
-      }
-    }
+    List<EvictionEntry> entries=searchEvictableEntries(timeToLive,limitSize);
     final int diff=cache.size() - maxSize;
-    final int toRemove=diff >= 0 ? (diff + maxSize * 20 / 100) : 0;
-    if (toRemove > 0 && entries != null) {
-      Collections.sort(entries);
-      int removed=0;
-      for (      EvictionEntry entry : entries) {
-        if (cache.remove(entry.key,entry.value) && ++removed == toRemove) {
-          break;
-        }
-      }
+    final int evictionRate=calculateEvictionRate(diff,maxSize);
+    if (evictionRate > 0 && entries != null) {
+      evictEntries(entries,evictionRate);
     }
   }
 }

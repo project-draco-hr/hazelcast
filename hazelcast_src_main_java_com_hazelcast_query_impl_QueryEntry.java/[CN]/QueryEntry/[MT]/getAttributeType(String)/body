@@ -1,10 +1,22 @@
 {
-  final Data data=getValueData();
-  if (data != null && data.isPortable()) {
-    FieldDefinition fd=data.getClassDefinition().get(attributeName);
-    if (fd != null) {
-      return AttributeType.getAttributeType(fd.getType().getId());
-    }
+  if (KEY_ATTRIBUTE_NAME.equals(attributeName)) {
+    return ReflectionHelper.getAttributeType(getKey().getClass());
   }
-  return getAttributeTypeViaReflection(attributeName);
+ else   if (THIS_ATTRIBUTE_NAME.equals(attributeName)) {
+    return ReflectionHelper.getAttributeType(getValue().getClass());
+  }
+  boolean key=attributeName.startsWith(KEY_ATTRIBUTE_NAME);
+  Data data;
+  if (key) {
+    attributeName=attributeName.substring(KEY_ATTRIBUTE_NAME.length() + 1);
+    data=getKeyData();
+  }
+ else {
+    data=getValueData();
+  }
+  if (data != null && data.isPortable()) {
+    PortableContext portableContext=serializationService.getPortableContext();
+    return PortableExtractor.getAttributeType(portableContext,data,attributeName);
+  }
+  return ReflectionHelper.getAttributeType(key ? getKey() : getValue(),attributeName);
 }

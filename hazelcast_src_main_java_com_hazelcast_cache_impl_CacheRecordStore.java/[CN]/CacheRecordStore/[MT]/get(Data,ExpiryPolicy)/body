@@ -1,0 +1,26 @@
+{
+  final ExpiryPolicy localExpiryPolicy=expiryPolicy != null ? expiryPolicy : defaultExpiryPolicy;
+  long now=Clock.currentTimeMillis();
+  Object value;
+  CacheRecord record=records.get(key);
+  final boolean isExpired=processExpiredEntry(key,record,now);
+  if (record == null || isExpired) {
+    if (isStatisticsEnabled()) {
+      statistics.increaseCacheMisses(1);
+    }
+    value=readThroughCache(key);
+    if (value == null) {
+      return null;
+    }
+    createRecordWithExpiry(key,value,localExpiryPolicy,now,true);
+    return value;
+  }
+ else {
+    value=record.getValue();
+    updateAccessDuration(record,localExpiryPolicy,now);
+    if (isStatisticsEnabled()) {
+      statistics.increaseCacheHits(1);
+    }
+    return value;
+  }
+}

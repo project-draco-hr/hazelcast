@@ -1,35 +1,15 @@
 {
-  final long start=System.currentTimeMillis();
-  oldValue=recordStore.getMapEntry(dataKey).getValue();
-  final LocalMapStatsImpl mapStats=mapService.getLocalMapStatsImpl(name);
-  final Object valueBeforeProcess=mapService.toObject(oldValue);
-  final MapEntrySimple entry=new MapEntrySimple(mapService.toObject(dataKey),valueBeforeProcess);
-  response=mapService.toData(entryProcessor.process(entry));
-  final Object valueAfterProcess=entry.getValue();
-  if (oldValue == null && valueAfterProcess == null) {
-    eventType=__NO_NEED_TO_FIRE_EVENT;
+  final long now=getNow();
+  oldValue=getValueFor(dataKey);
+  final Object key=toObject(dataKey);
+  final Object value=toObject(oldValue);
+  final Map.Entry entry=createMapEntry(key,value);
+  response=process(entry);
+  if (noOp(entry)) {
+    return;
   }
- else   if (valueAfterProcess == null) {
-    recordStore.remove(dataKey);
-    mapStats.incrementRemoves(getLatencyFrom(start));
-    eventType=EntryEventType.REMOVED;
+  if (entryRemoved(entry,now)) {
+    return;
   }
- else {
-    if (oldValue == null) {
-      mapStats.incrementPuts(getLatencyFrom(start));
-      eventType=EntryEventType.ADDED;
-    }
- else     if (!entry.isModified()) {
-      mapStats.incrementGets(getLatencyFrom(start));
-      eventType=__NO_NEED_TO_FIRE_EVENT;
-    }
- else {
-      mapStats.incrementPuts(getLatencyFrom(start));
-      eventType=EntryEventType.UPDATED;
-    }
-    if (eventType != __NO_NEED_TO_FIRE_EVENT) {
-      recordStore.put(new AbstractMap.SimpleImmutableEntry<Data,Object>(dataKey,entry.getValue()));
-      dataValue=mapService.toData(entry.getValue());
-    }
-  }
+  entryAddedOrUpdated(entry,now);
 }

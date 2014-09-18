@@ -1,44 +1,18 @@
 {
   checkIfLoaded();
+  final long now=getNow();
   final MapEntrySet mapEntrySet=new MapEntrySet();
-  Map<Object,Data> keyMapForLoader=null;
-  if (mapContainer.getStore() != null) {
-    keyMapForLoader=new HashMap<Object,Data>();
-  }
-  for (  Data dataKey : keySet) {
-    Record record=records.get(dataKey);
-    if (record == null) {
-      if (mapContainer.getStore() != null) {
-        keyMapForLoader.put(mapService.toObject(dataKey),dataKey);
-      }
-    }
- else {
+  final Iterator<Data> iterator=keys.iterator();
+  while (iterator.hasNext()) {
+    final Data key=iterator.next();
+    Record record=getRecordOrNull(key,false);
+    if (record != null) {
+      addMapEntrySet(record.getKey(),record.getValue(),mapEntrySet);
       accessRecord(record);
-      Object value=record.getValue();
-      value=mapService.interceptGet(name,value);
-      if (value != null) {
-        mapEntrySet.add(new AbstractMap.SimpleImmutableEntry(dataKey,mapService.toData(value)));
-      }
+      iterator.remove();
     }
   }
-  if (mapContainer.getStore() == null || keyMapForLoader.size() == 0) {
-    return mapEntrySet;
-  }
-  final Map<Object,Object> loadedKeys=mapContainer.getStore().loadAll(keyMapForLoader.keySet());
-  for (  Map.Entry entry : loadedKeys.entrySet()) {
-    final Object objectKey=entry.getKey();
-    Object value=entry.getValue();
-    Data dataKey=keyMapForLoader.get(objectKey);
-    if (value != null) {
-      Record record=mapService.createRecord(name,dataKey,value,DEFAULT_TTL);
-      records.put(dataKey,record);
-      saveIndex(record);
-      updateSizeEstimator(calculateRecordSize(record));
-    }
-    value=mapService.interceptGet(name,value);
-    if (value != null) {
-      mapEntrySet.add(new AbstractMap.SimpleImmutableEntry(dataKey,mapService.toData(value)));
-    }
-  }
+  addMapEntrySet(mapDataStore.loadAll(keys),mapEntrySet);
+  postReadCleanUp(now,false);
   return mapEntrySet;
 }

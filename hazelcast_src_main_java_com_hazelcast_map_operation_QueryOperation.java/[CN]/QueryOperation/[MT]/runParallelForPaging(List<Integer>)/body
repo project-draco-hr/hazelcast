@@ -1,10 +1,10 @@
 {
-  final SerializationService ss=getNodeEngine().getSerializationService();
-  final ExecutorService executor=getNodeEngine().getExecutionService().getExecutor(ExecutionService.QUERY_EXECUTOR);
+  final NodeEngine nodeEngine=getNodeEngine();
+  final ExecutorService executor=nodeEngine.getExecutionService().getExecutor(ExecutionService.QUERY_EXECUTOR);
   final List<Future<Collection<QueryableEntry>>> lsFutures=new ArrayList<Future<Collection<QueryableEntry>>>(initialPartitions.size());
   final Comparator<Map.Entry> wrapperComparator=SortingUtil.newComparator(pagingPredicate);
-  for (  final Integer partition : initialPartitions) {
-    Future<Collection<QueryableEntry>> f=executor.submit(new PartitionCallable(ss,partition,wrapperComparator));
+  for (  final Integer partitionId : initialPartitions) {
+    Future<Collection<QueryableEntry>> f=executor.submit(new PartitionCallable(partitionId));
     lsFutures.add(f);
   }
   List<QueryableEntry> toMerge=new LinkedList<QueryableEntry>();

@@ -1,0 +1,21 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+  OperationService operationService=nodeEngine.getOperationService();
+  Collection<Future> calls=new LinkedList<Future>();
+  for (  MemberImpl member : members) {
+    if (member.localMember()) {
+      getService().shutdownExecutor(name);
+    }
+ else {
+      Future f=submitShutdownOperation(operationService,member);
+      calls.add(f);
+    }
+  }
+  try {
+    waitWithDeadline(calls,1,TimeUnit.SECONDS,WHILE_SHUTDOWN_EXCEPTION_HANDLER);
+  }
+ catch (  TimeoutException e) {
+    logger.finest(e);
+  }
+}

@@ -1,0 +1,26 @@
+{
+  ensureOpen();
+  if (keys == null || keys.contains(null)) {
+    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  }
+  for (  K key : keys) {
+    validateConfiguredTypes(false,key);
+  }
+  HashSet<Data> keysData=new HashSet<Data>();
+  for (  K key : keys) {
+    keysData.add(toData(key));
+  }
+  CacheLoadAllRequest request=new CacheLoadAllRequest(getDistributedObjectName(),keysData,replaceExistingValues);
+  try {
+    final Map<Integer,Object> results=invoke(request);
+    validateResults(results);
+    if (completionListener != null) {
+      completionListener.onCompletion();
+    }
+  }
+ catch (  Exception e) {
+    if (completionListener != null) {
+      completionListener.onException(e);
+    }
+  }
+}

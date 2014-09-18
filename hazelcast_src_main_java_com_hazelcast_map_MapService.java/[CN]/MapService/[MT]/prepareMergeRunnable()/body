@@ -1,21 +1,3 @@
 {
-  Map<MapContainer,Collection<Record>> recordMap=new HashMap<MapContainer,Collection<Record>>(mapContainers.size());
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  int partitionCount=partitionService.getPartitionCount();
-  Address thisAddress=nodeEngine.getClusterService().getThisAddress();
-  for (  MapContainer mapContainer : mapContainers.values()) {
-    for (int i=0; i < partitionCount; i++) {
-      RecordStore recordStore=getPartitionContainer(i).getRecordStore(mapContainer.getName());
-      if (thisAddress.equals(partitionService.getPartitionOwner(i))) {
-        Collection<Record> records=recordMap.get(mapContainer);
-        if (records == null) {
-          records=new ArrayList<Record>();
-          recordMap.put(mapContainer,records);
-        }
-        records.addAll(recordStore.getReadonlyRecordMap().values());
-      }
-      recordStore.reset();
-    }
-  }
-  return new Merger(recordMap);
+  return splitBrainHandlerService.prepareMergeRunnable();
 }

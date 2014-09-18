@@ -1,18 +1,18 @@
 {
   checkIfLoaded();
-  Record record=records.get(dataKey);
-  Object oldValue=null;
-  if (record != null && record.getValue() != null) {
-    oldValue=record.getValue();
-    value=mapService.interceptPut(name,oldValue,value);
-    value=writeMapStore(dataKey,value,record);
-    updateSizeEstimator(-calculateRecordSize(record));
-    setRecordValue(record,value);
-    updateSizeEstimator(calculateRecordSize(record));
-  }
- else {
+  final Record record=getRecordOrNull(key,false);
+  if (record == null || record.getValue() == null) {
     return null;
   }
+  final Object oldValue=record.getValue();
+  update=mapServiceContext.interceptPut(name,oldValue,update);
+  final long now=getNow();
+  update=mapDataStore.add(key,update,now);
+  onStore(record);
+  updateSizeEstimator(-calculateRecordHeapCost(record));
+  setRecordValue(record,update,now);
+  updateSizeEstimator(calculateRecordHeapCost(record));
   saveIndex(record);
+  evictEntries(now,false);
   return oldValue;
 }

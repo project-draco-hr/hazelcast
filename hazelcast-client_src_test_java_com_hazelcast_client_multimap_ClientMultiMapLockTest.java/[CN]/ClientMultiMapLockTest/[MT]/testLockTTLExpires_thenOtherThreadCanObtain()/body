@@ -1,0 +1,20 @@
+{
+  final MultiMap mm=client.getMultiMap(randomString());
+  final Object key="Key";
+  mm.lock(key,2,TimeUnit.SECONDS);
+  final CountDownLatch tryLockSuccess=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      try {
+        if (mm.tryLock(key,4,TimeUnit.SECONDS)) {
+          tryLockSuccess.countDown();
+        }
+      }
+ catch (      InterruptedException e) {
+        fail(e.getMessage());
+      }
+    }
+  }
+.start();
+  assertOpenEventually(tryLockSuccess);
+}

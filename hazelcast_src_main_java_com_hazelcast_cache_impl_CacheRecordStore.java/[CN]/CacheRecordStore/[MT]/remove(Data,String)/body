@@ -1,0 +1,19 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  deleteCacheEntry(key);
+  CacheRecord record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  boolean result=true;
+  if (record == null || isExpired) {
+    result=false;
+  }
+ else {
+    deleteRecord(key);
+  }
+  if (result && isStatisticsEnabled()) {
+    statistics.increaseCacheRemovals(1);
+    statistics.addRemoveTimeNano(System.nanoTime() - start);
+  }
+  return result;
+}

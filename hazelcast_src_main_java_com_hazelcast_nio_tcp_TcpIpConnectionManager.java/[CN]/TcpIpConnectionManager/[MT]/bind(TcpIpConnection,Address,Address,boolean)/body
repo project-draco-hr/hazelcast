@@ -1,0 +1,22 @@
+{
+  if (logger.isFinestEnabled()) {
+    log(Level.FINEST,"Binding " + connection + " to "+ remoteEndPoint+ ", reply is "+ reply);
+  }
+  final Address thisAddress=ioService.getThisAddress();
+  if (!connection.isClient() && !thisAddress.equals(localEndpoint)) {
+    log(Level.WARNING,"Wrong bind request from " + remoteEndPoint + "! This node is not requested endpoint: "+ localEndpoint);
+    connection.close();
+    return false;
+  }
+  connection.setEndPoint(remoteEndPoint);
+  if (reply) {
+    sendBindRequest(connection,remoteEndPoint,false);
+  }
+  if (checkAlreadyConnected(connection,remoteEndPoint)) {
+    return false;
+  }
+  if (registerConnectionEndpoint(connection,remoteEndPoint,thisAddress)) {
+    return true;
+  }
+  return false;
+}

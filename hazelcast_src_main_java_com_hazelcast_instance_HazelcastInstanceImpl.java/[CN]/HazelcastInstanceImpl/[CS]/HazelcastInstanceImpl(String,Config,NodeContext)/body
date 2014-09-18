@@ -7,23 +7,24 @@
   managedContext=new HazelcastManagedContext(this,configuredManagedContext);
   userContext.putAll(config.getUserContext());
   node=new Node(this,config,nodeContext);
-  logger=node.getLogger(getClass().getName());
-  lifecycleService.fireLifecycleEvent(STARTING);
-  node.start();
-  if (!node.isActive()) {
-    node.connectionManager.shutdown();
-    throw new IllegalStateException("Node failed to start!");
-  }
-  managementService=new ManagementService(this);
-  if (configuredManagedContext != null) {
-    if (configuredManagedContext instanceof HazelcastInstanceAware) {
-      ((HazelcastInstanceAware)configuredManagedContext).setHazelcastInstance(this);
+  try {
+    logger=node.getLogger(getClass().getName());
+    lifecycleService.fireLifecycleEvent(STARTING);
+    node.start();
+    if (!node.isActive()) {
+      throw new IllegalStateException("Node failed to start!");
     }
+    managementService=new ManagementService(this);
+    initManagedContext(configuredManagedContext);
+    initHealthMonitor();
   }
-  HealthMonitorLevel healthLevel=HealthMonitorLevel.valueOf(node.getGroupProperties().HEALTH_MONITORING_LEVEL.getString());
-  if (healthLevel != HealthMonitorLevel.OFF) {
-    logger.finest("Starting health monitor");
-    int delaySeconds=node.getGroupProperties().HEALTH_MONITORING_DELAY_SECONDS.getInteger();
-    new HealthMonitor(this,healthLevel,delaySeconds).start();
+ catch (  Throwable e) {
+    try {
+      node.connectionManager.shutdown();
+    }
+ catch (    Throwable ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+    throw ExceptionUtil.rethrow(e);
   }
 }

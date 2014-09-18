@@ -1,29 +1,31 @@
 {
   checkIfLoaded();
-  Record record=records.get(dataKey);
-  Object oldValue=null;
+  final long now=getNow();
+  markRecordStoreExpirable(ttl);
+  Record record=getRecordOrNull(key,false);
+  Object oldValue;
   if (record == null) {
-    if (mapContainer.getStore() != null) {
-      oldValue=mapContainer.getStore().load(mapService.toObject(dataKey));
-      if (oldValue != null) {
-        record=mapService.createRecord(name,dataKey,oldValue,DEFAULT_TTL);
-        records.put(dataKey,record);
-        updateSizeEstimator(calculateRecordSize(record));
-      }
+    oldValue=mapDataStore.load(key);
+    if (oldValue != null) {
+      record=createRecord(key,oldValue,now);
+      records.put(key,record);
+      updateSizeEstimator(calculateRecordHeapCost(record));
     }
   }
  else {
-    accessRecord(record);
+    accessRecord(record,now);
     oldValue=record.getValue();
   }
   if (oldValue == null) {
-    value=mapService.interceptPut(name,null,value);
-    value=writeMapStore(dataKey,value,record);
-    record=mapService.createRecord(name,dataKey,value,ttl);
-    records.put(dataKey,record);
-    updateSizeEstimator(calculateRecordSize(record));
+    value=mapServiceContext.interceptPut(name,null,value);
+    value=mapDataStore.add(key,value,now);
+    onStore(record);
+    record=createRecord(key,value,ttl,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
     updateTtl(record,ttl);
   }
   saveIndex(record);
+  evictEntries(now,false);
   return oldValue;
 }

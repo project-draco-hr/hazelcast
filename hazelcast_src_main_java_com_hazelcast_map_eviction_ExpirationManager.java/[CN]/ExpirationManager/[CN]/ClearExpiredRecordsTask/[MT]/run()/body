@@ -1,0 +1,34 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final NodeEngine nodeEngine=ExpirationManager.this.nodeEngine;
+  final int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
+  List<PartitionContainer> partitionContainers=Collections.emptyList();
+  boolean createLazy=true;
+  int currentlyRunningCleanupOperationsCount=0;
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    InternalPartition partition=nodeEngine.getPartitionService().getPartition(partitionId,false);
+    if (partition.isOwnerOrBackup(nodeEngine.getThisAddress())) {
+      final PartitionContainer partitionContainer=mapServiceContext.getPartitionContainer(partitionId);
+      if (isContainerEmpty(partitionContainer)) {
+        continue;
+      }
+      if (hasRunningCleanup(partitionContainer)) {
+        currentlyRunningCleanupOperationsCount++;
+        continue;
+      }
+      if (currentlyRunningCleanupOperationsCount > getMaxCleanupOperationCountInOneRound() || notInProcessableTimeWindow(partitionContainer,now) || notHaveAnyExpirableRecord(partitionContainer)) {
+        continue;
+      }
+      if (createLazy) {
+        partitionContainers=new ArrayList<PartitionContainer>();
+        createLazy=false;
+      }
+      partitionContainers.add(partitionContainer);
+    }
+  }
+  if (partitionContainers.isEmpty()) {
+    return;
+  }
+  sortPartitionContainers(partitionContainers);
+  sendCleanupOperations(partitionContainers);
+}

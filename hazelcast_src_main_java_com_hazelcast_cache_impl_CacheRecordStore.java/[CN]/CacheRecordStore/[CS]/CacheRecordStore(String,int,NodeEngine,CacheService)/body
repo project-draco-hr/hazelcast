@@ -1,0 +1,22 @@
+{
+  this.name=name;
+  this.partitionId=partitionId;
+  this.nodeEngine=nodeEngine;
+  this.cacheService=cacheService;
+  this.cacheConfig=cacheService.getCacheConfig(name);
+  if (this.cacheConfig == null) {
+    throw new IllegalStateException("Cache already destroyed");
+  }
+  if (cacheConfig.getCacheLoaderFactory() != null) {
+    final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
+    cacheLoader=cacheLoaderFactory.create();
+  }
+  if (cacheConfig.getCacheWriterFactory() != null) {
+    final Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
+    cacheWriter=cacheWriterFactory.create();
+  }
+  evictionTaskFuture=nodeEngine.getExecutionService().scheduleWithFixedDelay("hz:cache",new EvictionTask(),INITIAL_DELAY,PERIOD,TimeUnit.SECONDS);
+  this.cacheRecordFactory=new CacheRecordFactory(cacheConfig.getInMemoryFormat(),nodeEngine.getSerializationService());
+  final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
+  defaultExpiryPolicy=expiryPolicyFactory.create();
+}

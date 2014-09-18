@@ -3,19 +3,20 @@
   TxnValueWrapper wrapper=txMap.get(key);
   boolean haveTxnPast=wrapper != null;
   MapService service=getService();
+  final MapServiceContext mapServiceContext=service.getMapServiceContext();
   if (haveTxnPast) {
     if (wrapper.type != TxnValueWrapper.Type.REMOVED) {
       return wrapper.value;
     }
-    putInternal(service.toData(key,partitionStrategy),service.toData(value));
+    putInternal(mapServiceContext.toData(key,partitionStrategy),mapServiceContext.toData(value));
     txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
     return null;
   }
  else {
-    Data oldValue=putIfAbsentInternal(service.toData(key,partitionStrategy),service.toData(value));
+    Data oldValue=putIfAbsentInternal(mapServiceContext.toData(key,partitionStrategy),mapServiceContext.toData(value));
     if (oldValue == null) {
       txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
     }
-    return service.toObject(oldValue);
+    return mapServiceContext.toObject(oldValue);
   }
 }

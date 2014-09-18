@@ -1,0 +1,24 @@
+{
+  ensureOpen();
+  validateNotNull(key);
+  if (entryProcessor == null) {
+    throw new NullPointerException("Entry Processor is null");
+  }
+  final Data k=serializationService.toData(key);
+  final Integer completionId=registerCompletionLatch(1);
+  final Operation op=new CacheEntryProcessorOperation(getDistributedObjectName(),k,completionId,entryProcessor,arguments);
+  try {
+    final InternalCompletableFuture<T> f=nodeEngine.getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(nodeEngine,k));
+    final T safely=f.getSafely();
+    waitCompletionLatch(completionId);
+    return safely;
+  }
+ catch (  CacheException ce) {
+    deregisterCompletionLatch(completionId);
+    throw ce;
+  }
+catch (  Exception e) {
+    deregisterCompletionLatch(completionId);
+    throw new EntryProcessorException(e);
+  }
+}

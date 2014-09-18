@@ -1,0 +1,27 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  final QueueService service=getService();
+  ItemListener listener=new ItemListener(){
+    @Override public void itemAdded(    ItemEvent item){
+      send(item);
+    }
+    @Override public void itemRemoved(    ItemEvent item){
+      send(item);
+    }
+    private void send(    ItemEvent event){
+      if (endpoint.live()) {
+        if (!(event instanceof DataAwareItemEvent)) {
+          throw new IllegalArgumentException("Expecting: DataAwareItemEvent, Found: " + event.getClass().getSimpleName());
+        }
+        DataAwareItemEvent dataAwareItemEvent=(DataAwareItemEvent)event;
+        Data item=dataAwareItemEvent.getItemData();
+        PortableItemEvent portableItemEvent=new PortableItemEvent(item,event.getEventType(),event.getMember().getUuid());
+        endpoint.sendEvent(portableItemEvent,getCallId());
+      }
+    }
+  }
+;
+  String registrationId=service.addItemListener(name,listener,includeValue);
+  endpoint.setListenerRegistration(QueueService.SERVICE_NAME,name,registrationId);
+  return registrationId;
+}

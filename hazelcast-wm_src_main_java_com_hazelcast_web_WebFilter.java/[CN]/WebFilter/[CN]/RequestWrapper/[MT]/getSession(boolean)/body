@@ -1,35 +1,23 @@
 {
   if (hazelcastSession != null && !hazelcastSession.isValid()) {
-    logger.finest("Session is invalid!");
+    LOGGER.finest("Session is invalid!");
     destroySession(hazelcastSession,true);
     hazelcastSession=null;
   }
-  if (hazelcastSession == null) {
-    HttpSession originalSession=getOriginalSession(false);
-    if (originalSession != null) {
-      String hazelcastSessionId=mapOriginalSessions.get(originalSession.getId());
-      if (hazelcastSessionId != null) {
-        hazelcastSession=mapSessions.get(hazelcastSessionId);
-      }
-      if (hazelcastSession == null) {
-        mapOriginalSessions.remove(originalSession.getId());
-        originalSession.invalidate();
-      }
-    }
-  }
-  if (hazelcastSession != null) {
+ else   if (hazelcastSession != null) {
     return hazelcastSession;
   }
-  final String requestedSessionId=fetchHazelcastSessionId();
-  if (requestedSessionId != null) {
-    hazelcastSession=getSessionWithId(requestedSessionId);
-    if (hazelcastSession == null) {
-      final Boolean existing=(Boolean)getClusterMap().get(requestedSessionId);
-      if (existing != null && existing && create) {
-        hazelcastSession=createNewSession(RequestWrapper.this,requestedSessionId);
-      }
+  HttpSession originalSession=getOriginalSession(false);
+  if (originalSession != null) {
+    String hazelcastSessionId=originalSessions.get(originalSession.getId());
+    if (hazelcastSessionId != null) {
+      hazelcastSession=sessions.get(hazelcastSessionId);
+      return hazelcastSession;
     }
+    originalSessions.remove(originalSession.getId());
+    originalSession.invalidate();
   }
+  hazelcastSession=fetchHazelcastSession(create);
   if (hazelcastSession == null && create) {
     hazelcastSession=createNewSession(RequestWrapper.this,null);
   }

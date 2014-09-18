@@ -1,0 +1,43 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_MERGE_FIRST_RUN_DELAY_SECONDS,"5");
+  config.setProperty(GroupProperties.PROP_MERGE_NEXT_RUN_DELAY_SECONDS,"3");
+  NetworkConfig networkConfig=config.getNetworkConfig();
+  JoinConfig join=networkConfig.getJoin();
+  join.getMulticastConfig().setEnabled(multicast);
+  join.getTcpIpConfig().setEnabled(!multicast);
+  join.getTcpIpConfig().addMember("127.0.0.1");
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final CountDownLatch splitLatch=new CountDownLatch(2);
+  h3.getCluster().addMembershipListener(new MembershipListener(){
+    @Override public void memberAdded(    MembershipEvent membershipEvent){
+    }
+    @Override public void memberRemoved(    MembershipEvent membershipEvent){
+      splitLatch.countDown();
+    }
+    @Override public void memberAttributeChanged(    MemberAttributeEvent memberAttributeEvent){
+    }
+  }
+);
+  final CountDownLatch mergeLatch=new CountDownLatch(1);
+  h3.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleState.MERGED) {
+        mergeLatch.countDown();
+      }
+    }
+  }
+);
+  closeConnectionBetween(h1,h3);
+  closeConnectionBetween(h2,h3);
+  assertTrue(splitLatch.await(10,TimeUnit.SECONDS));
+  assertEquals(2,h1.getCluster().getMembers().size());
+  assertEquals(2,h2.getCluster().getMembers().size());
+  assertEquals(1,h3.getCluster().getMembers().size());
+  assertTrue(mergeLatch.await(30,TimeUnit.SECONDS));
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+}

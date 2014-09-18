@@ -1,0 +1,19 @@
+{
+  offeredResponse=resolveInternalResponse(offeredResponse);
+  ExecutionCallbackNode<E> callbackChain;
+synchronized (this) {
+    if (response != null && !(response instanceof BasicInvocation.InternalResponse)) {
+      basicInvocation.logger.info("The InvocationFuture.set method of " + basicInvocation + " can only be called once");
+      return;
+    }
+    response=offeredResponse;
+    if (offeredResponse == BasicInvocation.WAIT_RESPONSE) {
+      return;
+    }
+    callbackChain=callbackHead;
+    callbackHead=null;
+    notifyAll();
+  }
+  operationService.deregisterInvocation(basicInvocation);
+  notifyCallbacks(callbackChain);
+}

@@ -1,0 +1,13 @@
+{
+  if (entries.isEmpty()) {
+    return;
+  }
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  OperationService operationService=nodeEngine.getOperationService();
+  for (  ScheduledEntry<String,Void> entry : entries) {
+    String name=entry.getKey();
+    int partitionId=partitionService.getPartitionId(nodeEngine.toData(name));
+    CheckAndEvictOperation op=new CheckAndEvictOperation(entry.getKey());
+    operationService.invokeOnPartition(QueueService.SERVICE_NAME,op,partitionId).getSafely();
+  }
+}

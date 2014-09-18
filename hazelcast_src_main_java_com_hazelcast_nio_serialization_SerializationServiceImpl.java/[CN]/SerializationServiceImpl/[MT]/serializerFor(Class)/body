@@ -6,33 +6,11 @@
     return portableSerializerAdapter;
   }
  else {
-    final SerializerAdapter serializer;
-    if ((serializer=constantTypesMap.get(type)) != null) {
+    final SerializerAdapter serializer=constantTypesMap.get(type);
+    if (serializer != null) {
       return serializer;
     }
   }
-  SerializerAdapter serializer=typeMap.get(type);
-  if (serializer == null) {
-    Class typeSuperclass=type.getSuperclass();
-    final Set<Class> interfaces=new LinkedHashSet<Class>(5);
-    getInterfaces(type,interfaces);
-    while (typeSuperclass != null) {
-      if ((serializer=registerFromSuperType(type,typeSuperclass)) != null) {
-        break;
-      }
-      getInterfaces(typeSuperclass,interfaces);
-      typeSuperclass=typeSuperclass.getSuperclass();
-    }
-    if (serializer == null) {
-      for (      Class typeInterface : interfaces) {
-        if ((serializer=registerFromSuperType(type,typeInterface)) != null) {
-          break;
-        }
-      }
-    }
-    if (serializer == null && (serializer=global.get()) != null) {
-      safeRegister(type,serializer);
-    }
-  }
+  SerializerAdapter serializer=lookupSerializer(type);
   return serializer;
 }

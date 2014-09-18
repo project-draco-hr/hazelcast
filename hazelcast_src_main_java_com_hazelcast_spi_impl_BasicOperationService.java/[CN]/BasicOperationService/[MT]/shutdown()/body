@@ -1,16 +1,14 @@
 {
   logger.finest("Stopping operation threads...");
-  responseExecutor.shutdown();
   final Object response=new HazelcastInstanceNotActiveException();
-  for (  RemoteCall call : remoteCalls.values()) {
+  for (  BasicInvocation invocation : invocations.values()) {
     try {
-      call.offerResponse(response);
+      invocation.notify(response);
     }
  catch (    Throwable e) {
-      logger.warning(call + " could not be notified with shutdown message -> " + e.getMessage());
+      logger.warning(invocation + " could not be notified with shutdown message -> " + e.getMessage());
     }
   }
-  remoteCalls.clear();
-  backupCalls.clear();
-  executor.shutdown();
+  invocations.clear();
+  scheduler.shutdown();
 }
