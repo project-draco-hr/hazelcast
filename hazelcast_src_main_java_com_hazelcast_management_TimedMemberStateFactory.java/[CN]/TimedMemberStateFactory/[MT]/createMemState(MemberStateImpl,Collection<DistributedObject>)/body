@@ -19,6 +19,28 @@
  else     if (distributedObject instanceof IExecutorService) {
       count=handleExecutorService(memberState,count,config,(IExecutorService)distributedObject);
     }
+ else     if (distributedObject instanceof AbstractDistributedObject) {
+      ((AbstractDistributedObject<CacheService>)distributedObject).getService();
+      Set<ObjectName> sdf=ManagementFactory.getPlatformMBeanServer().queryNames(null,new QueryExp(){
+        @Override public boolean apply(        ObjectName name) throws BadStringOperationException, BadBinaryOpValueExpException, BadAttributeValueExpException, InvalidApplicationException {
+          return name.getCanonicalName().startsWith("javax.cache");
+        }
+        @Override public void setMBeanServer(        MBeanServer s){
+        }
+      }
+);
+      for (      ObjectName objectName : sdf) {
+        try {
+          ObjectInstance objectinstance=ManagementFactory.getPlatformMBeanServer().getObjectInstance(objectName);
+          System.out.println();
+        }
+ catch (        InstanceNotFoundException e) {
+          e.printStackTrace();
+        }
+      }
+      System.out.println();
+      count=handleCache(memberState,count,config,distributedObject);
+    }
  else {
       LOGGER.finest("Distributed object ignored for monitoring: " + distributedObject.getName());
     }
