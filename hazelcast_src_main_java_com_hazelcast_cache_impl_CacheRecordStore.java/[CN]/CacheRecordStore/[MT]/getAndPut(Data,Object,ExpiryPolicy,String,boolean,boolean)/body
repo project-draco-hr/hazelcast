@@ -5,10 +5,7 @@
   boolean isPutSucceed;
   Object oldValue=null;
   CacheRecord record=records.get(key);
-  boolean isExpired=record != null && record.isExpiredAt(now);
-  if (isExpired) {
-    processExpiredEntry(key,record);
-  }
+  boolean isExpired=processExpiredEntry(key,record,now);
   if (record == null || isExpired) {
     isPutSucceed=createRecordWithExpiry(key,value,localExpiryPolicy,now,disableWriteThrough);
   }
@@ -16,26 +13,6 @@
     oldValue=record.getValue();
     isPutSucceed=updateRecordWithExpiry(key,value,record,localExpiryPolicy,now,disableWriteThrough);
   }
-  if (isStatisticsEnabled()) {
-    if (!getValue) {
-      if (isPutSucceed) {
-        statistics.increaseCachePuts(1);
-        statistics.addPutTimeNano(System.nanoTime() - start);
-      }
-    }
- else {
-      if (isPutSucceed) {
-        statistics.increaseCachePuts(1);
-        statistics.addPutTimeNano(System.nanoTime() - start);
-      }
-      if (oldValue == null) {
-        statistics.increaseCacheMisses(1);
-      }
- else {
-        statistics.increaseCacheHits(1);
-      }
-      statistics.addGetTimeNano(System.nanoTime() - start);
-    }
-  }
+  updateGetAndPutStat(isPutSucceed,getValue,oldValue == null,start);
   return oldValue;
 }

@@ -3,16 +3,18 @@
     executor.execute(new Runnable(){
       @Override public void run(){
         try {
-          Object resp=resolveResponse();
+          Object resp;
+          try {
+            resp=resolveResponse();
+          }
+ catch (          Throwable t) {
+            callback.onFailure(t);
+            return;
+          }
           if (deserialized) {
             resp=serializationService.toObject(resp);
           }
-          if (resp == null || !(resp instanceof Throwable)) {
-            callback.onResponse(resp);
-          }
- else {
-            callback.onFailure((Throwable)resp);
-          }
+          callback.onResponse(resp);
         }
  catch (        Throwable t) {
           LOGGER.severe("Failed to execute callback: " + callback + "! Request: "+ request+ ", response: "+ response,t);
