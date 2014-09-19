@@ -7,14 +7,21 @@
   }
   final ClientInvocationService invocationService=clientContext.getInvocationService();
   final Collection<MemberImpl> members=clientContext.getClusterService().getMemberList();
+  final Collection<Future> futures=new ArrayList<Future>();
   for (  MemberImpl member : members) {
     try {
       CacheManagementConfigRequest request=new CacheManagementConfigRequest(getCacheNameWithPrefix(cacheName),false,enabled,member.getAddress());
       final Future future=invocationService.invokeOnTarget(request,member.getAddress());
-      future.get();
+      futures.add(future);
     }
  catch (    Exception e) {
       ExceptionUtil.sneakyThrow(e);
     }
+  }
+  try {
+    FutureUtil.waitWithDeadline(futures,CacheProxyUtil.AWAIT_COMPLETION_TIMEOUT_SECONDS,TimeUnit.SECONDS);
+  }
+ catch (  TimeoutException e) {
+    logger.warning(e);
   }
 }
