@@ -1,0 +1,11 @@
+{
+  close();
+  if (!isDestroyed.compareAndSet(false,true)) {
+    return;
+  }
+  isClosed.set(true);
+  final Operation op=new CacheDestroyOperation(getDistributedObjectName());
+  int partitionId=getNodeEngine().getPartitionService().getPartitionId(getDistributedObjectName());
+  final InternalCompletableFuture f=getNodeEngine().getOperationService().invokeOnPartition(CacheService.SERVICE_NAME,op,partitionId);
+  f.getSafely();
+}
