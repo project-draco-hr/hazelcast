@@ -1,0 +1,57 @@
+{
+class TestCombinerFactory implements CombinerFactory {
+    @Override public Combiner newCombiner(    Object key){
+      return new Combiner(){
+        @Override public void combine(        Object value){
+        }
+        @Override public Object finalizeChunk(){
+          return null;
+        }
+      }
+;
+    }
+  }
+class CreationTask implements Runnable {
+    private final CountDownLatch latchStart;
+    private final CountDownLatch latchEnd;
+    private final AtomicReferenceArray<Combiner> array;
+    private final DefaultContext<Integer,Integer> defaultContext;
+    private final int index;
+    CreationTask(    CountDownLatch latchStart,    CountDownLatch latchEnd,    AtomicReferenceArray<Combiner> array,    DefaultContext<Integer,Integer> defaultContext,    int index){
+      this.latchStart=latchStart;
+      this.latchEnd=latchEnd;
+      this.array=array;
+      this.defaultContext=defaultContext;
+      this.index=index;
+    }
+    @Override public void run(){
+      try {
+        latchStart.await();
+        Combiner combiner=defaultContext.getOrCreateCombiner(1);
+        array.set(index,combiner);
+      }
+ catch (      Exception e) {
+        e.printStackTrace();
+      }
+ finally {
+        latchEnd.countDown();
+      }
+    }
+  }
+  int threadCount=20;
+  AtomicReferenceArray<Combiner> combiners=new AtomicReferenceArray<Combiner>(threadCount);
+  DefaultContext<Integer,Integer> context=new DefaultContext<Integer,Integer>(new TestCombinerFactory(),null);
+  CountDownLatch latchStart=new CountDownLatch(1);
+  CountDownLatch latchEnd=new CountDownLatch(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    Thread t=new Thread(new CreationTask(latchStart,latchEnd,combiners,context,i));
+    t.start();
+  }
+  latchStart.countDown();
+  latchEnd.await(1,TimeUnit.MINUTES);
+  for (int i=0; i < threadCount - 1; i++) {
+    Combiner c1=combiners.get(i);
+    Combiner c2=combiners.get(i + 1);
+    assertTrue("Returned combiners are not identical: " + c1 + " -> "+ c2,c1 == c2);
+  }
+}
