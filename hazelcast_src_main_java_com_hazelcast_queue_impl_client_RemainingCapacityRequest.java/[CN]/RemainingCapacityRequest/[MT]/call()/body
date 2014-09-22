@@ -1,5 +1,12 @@
 {
+  String partitionKey=StringPartitioningStrategy.getPartitionKey(name);
+  InternalPartitionService partitionService=clientEngine.getPartitionService();
+  int partitionId=partitionService.getPartitionId(partitionKey);
+  SizeOperation operation=new SizeOperation(name);
+  InvocationBuilder builder=operationService.createInvocationBuilder(getServiceName(),operation,partitionId);
+  InternalCompletableFuture<Integer> future=builder.invoke();
+  Integer size=future.get();
   QueueService service=getService();
-  QueueContainer container=service.getOrCreateContainer(name,false);
-  return container.getConfig().getMaxSize() - container.size();
+  QueueContainer container=service.getOrCreateContainer(name,true);
+  return container.getConfig().getMaxSize() - size;
 }
