@@ -1,0 +1,19 @@
+{
+  final String name=randomString();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance[] instances=factory.newInstances();
+  IList list1=instances[0].getList(name);
+  IList list2=instances[1].getList(name);
+  warmUpPartitions(instances);
+  for (int i=0; i < 50; i++) {
+    list1.add("item" + i);
+  }
+  instances[0].shutdown();
+  assertSizeEventually(50,list2);
+  for (int i=50; i < 100; i++) {
+    list2.add("item" + i);
+  }
+  for (int i=0; i < 100; i++) {
+    assertEquals("item" + i,list2.remove(0));
+  }
+}
