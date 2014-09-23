@@ -9,13 +9,20 @@
     throw new NullPointerException("configuration must not be null");
   }
   final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
+  final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
   final boolean created=createConfigOnPartition(newCacheConfig);
   if (created) {
     addCacheConfigIfAbsentToLocal(newCacheConfig);
-    final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
     caches.put(newCacheConfig.getNameWithPrefix(),cacheProxy);
     registerListeners(newCacheConfig,cacheProxy);
     return cacheProxy;
+  }
+ else {
+    final ICache<?,?> entries=caches.putIfAbsent(newCacheConfig.getNameWithPrefix(),cacheProxy);
+    if (entries == null) {
+      registerListeners(newCacheConfig,cacheProxy);
+      return cacheProxy;
+    }
   }
   throw new CacheException("A cache named " + cacheName + " already exists.");
 }

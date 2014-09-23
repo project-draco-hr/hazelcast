@@ -1,0 +1,16 @@
+{
+  close();
+  if (!isDestroyed.compareAndSet(false,true)) {
+    return;
+  }
+  isClosed.set(true);
+  try {
+    int partitionId=clientContext.getPartitionService().getPartitionId(nameWithPrefix);
+    CacheDestroyRequest request=new CacheDestroyRequest(nameWithPrefix,partitionId);
+    final Future future=clientContext.getInvocationService().invokeOnKeyOwner(request,nameWithPrefix);
+    future.get();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}
