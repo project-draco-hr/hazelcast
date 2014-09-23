@@ -1,16 +1,9 @@
 {
-  ensureOpen();
-  validateNotNull(key,value);
-  validateConfiguredTypes(true,key,value);
-  final Data keyData=toData(key);
-  final Data valueData=toData(value);
-  CacheRemoveRequest request=new CacheRemoveRequest(getDistributedObjectName(),keyData,valueData);
-  Boolean removed=toObject(invokeWithCompletion(request,keyData));
-  if (removed == null) {
-    return false;
+  final ICompletableFuture<Boolean> f=removeAsyncInternal(key,oldValue,true,false,true);
+  try {
+    return f.get();
   }
-  if (removed) {
-    invalidateNearCache(keyData);
+ catch (  Throwable e) {
+    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
   }
-  return removed;
 }

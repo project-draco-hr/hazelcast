@@ -2,13 +2,13 @@
   ensureOpen();
   validateNotNull(key);
   if (entryProcessor == null) {
-    throw new NullPointerException();
+    throw new NullPointerException("Entry Processor is null");
   }
   final Data keyData=toData(key);
   final CacheEntryProcessorRequest request=new CacheEntryProcessorRequest(getDistributedObjectName(),keyData,entryProcessor,arguments);
   try {
-    final Data resultData=(Data)invokeWithCompletion(request,keyData);
-    return toObject(resultData);
+    final ICompletableFuture<T> f=invoke(request,keyData,true);
+    return toObject(f.get());
   }
  catch (  CacheException ce) {
     throw ce;

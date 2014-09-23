@@ -1,31 +1,15 @@
 {
+  ensureOpen();
   if (cacheEntryListenerConfiguration == null) {
     throw new NullPointerException("CacheEntryListenerConfiguration can't be " + "null");
   }
-  final CacheEventListenerAdaptor adaptor=new CacheEventListenerAdaptor(this,cacheEntryListenerConfiguration,getContext().getSerializationService());
+  final CacheEventListenerAdaptor<K,V> adaptor=new CacheEventListenerAdaptor<K,V>(this,cacheEntryListenerConfiguration,getContext().getSerializationService());
   final EventHandler<Object> handler=createHandler(adaptor);
   final CacheAddEntryListenerRequest registrationRequest=new CacheAddEntryListenerRequest(getDistributedObjectName());
   final String regId=getContext().getListenerService().listen(registrationRequest,null,handler);
   if (regId != null) {
     cacheConfig.addCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
-    if (cacheEntryListenerConfiguration.isSynchronous()) {
-      syncListenerRegistrations.putIfAbsent(cacheEntryListenerConfiguration,regId);
-      registerCompletionListener();
-    }
- else {
-      asyncListenerRegistrations.putIfAbsent(cacheEntryListenerConfiguration,regId);
-    }
-    final ClientInvocationService invocationService=getContext().getInvocationService();
-    final Collection<MemberImpl> members=getContext().getClusterService().getMemberList();
-    for (    MemberImpl member : members) {
-      try {
-        final CacheListenerRegistrationRequest request=new CacheListenerRegistrationRequest(getDistributedObjectName(),cacheEntryListenerConfiguration,true,member.getAddress());
-        final Future future=invocationService.invokeOnTarget(request,member.getAddress());
-        future.get();
-      }
- catch (      Exception e) {
-        ExceptionUtil.sneakyThrow(e);
-      }
-    }
+    addListenerLocally(regId,cacheEntryListenerConfiguration);
+    registrationOtherNodes(cacheEntryListenerConfiguration,true);
   }
 }

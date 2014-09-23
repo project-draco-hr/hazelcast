@@ -1,0 +1,29 @@
+{
+  ensureOpen();
+  if (hasOldValue) {
+    validateNotNull(key,oldValue);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,oldValue);
+  }
+ else {
+    validateNotNull(key);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key);
+  }
+  final Data keyData=toData(key);
+  final Data oldValueData=oldValue != null ? toData(oldValue) : null;
+  ClientRequest request;
+  if (isGet) {
+    request=new CacheGetAndRemoveRequest(getDistributedObjectName(),keyData);
+  }
+ else {
+    request=new CacheRemoveRequest(getDistributedObjectName(),keyData,oldValueData);
+  }
+  ICompletableFuture future;
+  try {
+    future=invoke(request,keyData,withCompletionEvent);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return new DelegatingFuture<T>(future,getContext().getSerializationService());
+}
