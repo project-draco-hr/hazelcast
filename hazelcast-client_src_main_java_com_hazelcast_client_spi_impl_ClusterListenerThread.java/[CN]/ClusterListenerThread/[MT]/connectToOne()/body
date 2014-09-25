@@ -1,14 +1,18 @@
 {
   final ClientNetworkConfig networkConfig=client.getClientConfig().getNetworkConfig();
-  final int connectionAttemptLimit=networkConfig.getConnectionAttemptLimit();
+  final int connAttemptLimit=networkConfig.getConnectionAttemptLimit();
   final int connectionAttemptPeriod=networkConfig.getConnectionAttemptPeriod();
+  final int connectionAttemptLimit=connAttemptLimit == 0 ? Integer.MAX_VALUE : connAttemptLimit;
   int attempt=0;
   Throwable lastError=null;
+  Set<Address> triedAddresses=new HashSet<Address>();
   while (true) {
     final long nextTry=Clock.currentTimeMillis() + connectionAttemptPeriod;
     final Collection<InetSocketAddress> socketAddresses=getSocketAddresses();
     for (    InetSocketAddress isa : socketAddresses) {
       Address address=new Address(isa);
+      triedAddresses.add(address);
+      LOGGER.finest("Trying to connect to " + address);
       try {
         final ClientConnection connection=connectionManager.ownerConnection(address);
         clusterService.fireConnectionEvent(false);
@@ -16,7 +20,7 @@
       }
  catch (      IOException e) {
         lastError=e;
-        LOGGER.finest("IO error during initial connection...",e);
+        LOGGER.finest("IO error during initial connection to " + address,e);
       }
 catch (      AuthenticationException e) {
         lastError=e;
@@ -37,5 +41,5 @@ catch (      AuthenticationException e) {
       }
     }
   }
-  throw new IllegalStateException("Unable to connect to any address in the config!",lastError);
+  throw new IllegalStateException("Unable to connect to any address in the config! The following addresses were tried:" + triedAddresses,lastError);
 }

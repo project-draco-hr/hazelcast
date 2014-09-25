@@ -1,0 +1,15 @@
+{
+  final ClientInvocationService invocationService=clientContext.getInvocationService();
+  final Collection<MemberImpl> members=clientContext.getClusterService().getMemberList();
+  final Collection<Future> futures=new ArrayList<Future>();
+  for (  MemberImpl member : members) {
+    try {
+      final CacheListenerRegistrationRequest request=new CacheListenerRegistrationRequest(nameWithPrefix,cacheEntryListenerConfiguration,isRegister,member.getAddress());
+      final Future future=invocationService.invokeOnTarget(request,member.getAddress());
+      futures.add(future);
+    }
+ catch (    Exception e) {
+      ExceptionUtil.sneakyThrow(e);
+    }
+  }
+}
