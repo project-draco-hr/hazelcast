@@ -1,0 +1,42 @@
+{
+  Config config=getConfig(multicast);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final String name=generateKeyOwnedBy(h1);
+  IQueue<Object> queue=h1.getQueue(name);
+  TestMemberShipListener memberShipListener=new TestMemberShipListener(2);
+  h3.getCluster().addMembershipListener(memberShipListener);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  h3.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  for (int i=0; i < 100; i++) {
+    queue.add("item" + i);
+  }
+  assertEquals(100,queue.size());
+  waitAllForSafeState();
+  closeConnectionBetween(h1,h3);
+  closeConnectionBetween(h2,h3);
+  assertTrue(memberShipListener.splitLatch.await(10,TimeUnit.SECONDS));
+  assertEquals(2,h1.getCluster().getMembers().size());
+  assertEquals(2,h2.getCluster().getMembers().size());
+  assertEquals(1,h3.getCluster().getMembers().size());
+  for (int i=100; i < 200; i++) {
+    queue.add("item" + i);
+  }
+  assertEquals(200,queue.size());
+  IQueue<Object> queue3=h3.getQueue(name);
+  for (int i=0; i < 50; i++) {
+    queue3.add("lostQueueItem" + i);
+  }
+  assertTrue(lifeCycleListener.mergeLatch.await(60,TimeUnit.SECONDS));
+  assertEquals(3,h1.getCluster().getMembers().size());
+  assertEquals(3,h2.getCluster().getMembers().size());
+  assertEquals(3,h3.getCluster().getMembers().size());
+  IQueue<Object> testQueue=h1.getQueue(name);
+  assertFalse(testQueue.contains("lostQueueItem0"));
+  assertFalse(testQueue.contains("lostQueueItem49"));
+  assertTrue(testQueue.contains("item0"));
+  assertTrue(testQueue.contains("item199"));
+  assertTrue(testQueue.contains("item121"));
+  assertTrue(testQueue.contains("item45"));
+}
