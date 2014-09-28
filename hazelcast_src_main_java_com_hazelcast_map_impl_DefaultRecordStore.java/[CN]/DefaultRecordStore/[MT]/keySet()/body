@@ -1,12 +1,21 @@
 {
   checkIfLoaded();
-  Set<Data> keySet=new HashSet<Data>(records.size());
-  for (  Record record : records.values()) {
-    record=getOrNullIfExpired(record,false);
+  final long now=getNow();
+  final ConcurrentMap<Data,Record> records=this.records;
+  final Collection<Record> values=records.values();
+  Set<Data> keySet=null;
+  for (  Record record : values) {
+    record=getOrNullIfExpired(record,now,false);
     if (record == null) {
       continue;
     }
+    if (keySet == null) {
+      keySet=new HashSet<Data>();
+    }
     keySet.add(record.getKey());
+  }
+  if (keySet == null) {
+    return Collections.emptySet();
   }
   return keySet;
 }

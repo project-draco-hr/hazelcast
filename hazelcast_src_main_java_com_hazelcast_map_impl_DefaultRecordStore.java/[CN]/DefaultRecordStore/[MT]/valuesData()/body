@@ -1,12 +1,22 @@
 {
   checkIfLoaded();
-  Collection<Data> values=new ArrayList<Data>(records.size());
-  for (  Record record : records.values()) {
-    record=getOrNullIfExpired(record,false);
+  final long now=getNow();
+  final ConcurrentMap<Data,Record> records=this.records;
+  final Collection<Record> values=records.values();
+  List<Data> dataValueList=null;
+  for (  Record record : values) {
+    record=getOrNullIfExpired(record,now,false);
     if (record == null) {
       continue;
     }
-    values.add(toData(record.getValue()));
+    if (dataValueList == null) {
+      dataValueList=new ArrayList<Data>();
+    }
+    final Data dataValue=toData(record.getValue());
+    dataValueList.add(dataValue);
   }
-  return values;
+  if (dataValueList == null) {
+    return Collections.emptyList();
+  }
+  return dataValueList;
 }
