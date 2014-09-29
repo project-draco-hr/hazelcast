@@ -1,22 +1,28 @@
 {
-  if (attributeType == null) {
-    attributeType=e.getAttributeType(attribute);
-  }
-  Data key=e.getIndexKey();
-  Comparable oldValue=recordValues.remove(key);
-  Comparable newValue=e.getAttribute(attribute);
-  if (newValue == null) {
-    newValue=NULL;
-  }
- else   if (newValue.getClass().isEnum()) {
-    newValue=TypeConverters.ENUM_CONVERTER.convert(newValue);
-  }
-  recordValues.put(key,newValue);
-  if (oldValue == null) {
-    indexStore.newIndex(newValue,e);
-  }
+  beforeWrite();
+  try {
+    if (attributeType == null) {
+      attributeType=e.getAttributeType(attribute);
+    }
+    Data key=e.getIndexKey();
+    Comparable oldValue=recordValues.remove(key);
+    Comparable newValue=e.getAttribute(attribute);
+    if (newValue == null) {
+      newValue=NULL;
+    }
+ else     if (newValue.getClass().isEnum()) {
+      newValue=TypeConverters.ENUM_CONVERTER.convert(newValue);
+    }
+    recordValues.put(key,newValue);
+    if (oldValue == null) {
+      indexStore.newIndex(newValue,e);
+    }
  else {
-    indexStore.removeIndex(oldValue,key);
-    indexStore.newIndex(newValue,e);
+      indexStore.removeIndex(oldValue,key);
+      indexStore.newIndex(newValue,e);
+    }
+  }
+  finally {
+    afterWrite();
   }
 }

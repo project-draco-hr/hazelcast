@@ -1,21 +1,27 @@
 {
-  if (values.length == 1) {
-    if (attributeType != null) {
-      return indexStore.getRecords(convert(values[0]));
+  beforeRead();
+  try {
+    if (values.length == 1) {
+      if (attributeType != null) {
+        return indexStore.getRecords(convert(values[0]));
+      }
+ else {
+        return new SingleResultSet(null);
+      }
     }
  else {
-      return new SingleResultSet(null);
+      MultiResultSet results=new MultiResultSet();
+      if (attributeType != null) {
+        Set<Comparable> convertedValues=new HashSet<Comparable>(values.length);
+        for (        Comparable value : values) {
+          convertedValues.add(convert(value));
+        }
+        indexStore.getRecords(results,convertedValues);
+      }
+      return results;
     }
   }
- else {
-    MultiResultSet results=new MultiResultSet();
-    if (attributeType != null) {
-      Set<Comparable> convertedValues=new HashSet<Comparable>(values.length);
-      for (      Comparable value : values) {
-        convertedValues.add(convert(value));
-      }
-      indexStore.getRecords(results,convertedValues);
-    }
-    return results;
+  finally {
+    afterRead();
   }
 }
