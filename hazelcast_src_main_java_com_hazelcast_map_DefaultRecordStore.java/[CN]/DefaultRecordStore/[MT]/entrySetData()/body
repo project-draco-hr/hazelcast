@@ -1,14 +1,23 @@
 {
   checkIfLoaded();
-  Map<Data,Data> temp=new HashMap<Data,Data>(records.size());
-  for (  Record record : records.values()) {
-    record=getOrNullIfExpired(record,false);
+  final long now=getNow();
+  final ConcurrentMap<Data,Record> records=this.records;
+  final Collection<Record> values=records.values();
+  Map<Data,Data> tempMap=null;
+  for (  Record record : values) {
+    record=getOrNullIfExpired(record,now,false);
     if (record == null) {
       continue;
     }
+    if (tempMap == null) {
+      tempMap=new HashMap<Data,Data>();
+    }
     final Data key=record.getKey();
     final Data value=toData(record.getValue());
-    temp.put(key,value);
+    tempMap.put(key,value);
   }
-  return temp.entrySet();
+  if (tempMap == null) {
+    return Collections.emptySet();
+  }
+  return tempMap.entrySet();
 }
