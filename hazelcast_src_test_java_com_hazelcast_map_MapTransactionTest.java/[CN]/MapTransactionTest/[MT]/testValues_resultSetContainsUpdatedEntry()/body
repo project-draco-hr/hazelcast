@@ -1,0 +1,24 @@
+{
+  final int nodeCount=1;
+  final String mapName=randomMapName();
+  final Config config=new Config();
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance node=factory.newHazelcastInstance(config);
+  final IMap map=node.getMap(mapName);
+  final SampleObjects.Employee emp=new SampleObjects.Employee("name",77,true,10D);
+  map.put(1,emp);
+  node.executeTransaction(options,new TransactionalTask<Boolean>(){
+    public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
+      final TransactionalMap<Integer,SampleObjects.Employee> txMap=context.getMap(mapName);
+      emp.setAge(30);
+      txMap.put(1,emp);
+      Collection<SampleObjects.Employee> coll=txMap.values();
+      assertEquals(1,coll.size());
+      SampleObjects.Employee employee=coll.iterator().next();
+      assertEquals(30,employee.getAge());
+      return true;
+    }
+  }
+);
+  node.shutdown();
+}

@@ -31,11 +31,16 @@
           try {
             waitOnFutureInterruptible(f,callTimeout,TimeUnit.MILLISECONDS);
           }
- catch (          Exception e) {
+ catch (          HazelcastInstanceNotActiveException e) {
+            EmptyStatement.ignore(e);
+          }
+catch (          Exception e) {
             logger.severe("While merging...",e);
           }
         }
-        lifecycleService.fireLifecycleEvent(MERGED);
+        if (node.isActive() && node.joined()) {
+          lifecycleService.fireLifecycleEvent(MERGED);
+        }
       }
     }
 );
