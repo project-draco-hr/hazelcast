@@ -6,22 +6,13 @@
   for (  Future<V> future : futures) {
     try {
       long timeoutNanos=calculateFutureTimeout(perFutureTimeoutNanos,deadline);
-      V value=executeWithDeadline(future,timeoutNanos,exceptionHandler);
+      V value=executeWithDeadline(future,timeoutNanos);
       if (value != null) {
         results.add(value);
       }
     }
- catch (    TimeoutException e) {
-      cancelAllFutures(futures);
-      throw (TimeoutException)e;
-    }
-catch (    RuntimeException e) {
-      cancelAllFutures(futures);
-      throw (RuntimeException)e;
-    }
-catch (    Exception e) {
-      cancelAllFutures(futures);
-      throw new RuntimeException(e);
+ catch (    Exception e) {
+      exceptionHandler.handleException(e);
     }
   }
   return results;
