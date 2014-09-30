@@ -29,24 +29,24 @@
   if (buffer.length >= utfLengthLimit) {
     for (i=beginIndex; i < endIndex; i++) {
       c=str.charAt(i);
-      if (!((c <= 0x007F) && (c >= 0x0001))) {
+      if (!(c <= 0x007F && c >= 0x0001)) {
         break;
       }
       buffer[bufferPos++]=(byte)c;
     }
     for (; i < endIndex; i++) {
       c=str.charAt(i);
-      if (c <= 0) {
-        buffer[bufferPos++]=(byte)(0xC0 | ((c >> 6) & 0x1F));
-        buffer[bufferPos++]=(byte)(0x80 | ((c) & 0x3F));
+      if ((c >= 0x0001) && (c <= 0x007F)) {
+        buffer[bufferPos++]=(byte)c;
       }
- else       if (c > 0x007F) {
+ else       if (c > 0x07FF) {
         buffer[bufferPos++]=(byte)(0xE0 | ((c >> 12) & 0x0F));
         buffer[bufferPos++]=(byte)(0x80 | ((c >> 6) & 0x3F));
         buffer[bufferPos++]=(byte)(0x80 | ((c) & 0x3F));
       }
  else {
-        buffer[bufferPos++]=(byte)c;
+        buffer[bufferPos++]=(byte)(0xC0 | ((c >> 6) & 0x1F));
+        buffer[bufferPos++]=(byte)(0x80 | ((c) & 0x3F));
       }
     }
     out.write(buffer,0,bufferPos);
@@ -57,7 +57,7 @@
  else {
     for (i=beginIndex; i < endIndex; i++) {
       c=str.charAt(i);
-      if (!((c <= 0x007F) && (c >= 0x0001))) {
+      if (!(c <= 0x007F && c >= 0x0001)) {
         break;
       }
       bufferPos=buffering(buffer,bufferPos,(byte)c,out);
@@ -67,14 +67,13 @@
     }
     for (; i < endIndex; i++) {
       c=str.charAt(i);
-      if (c <= 0) {
-        bufferPos=buffering(buffer,bufferPos,(byte)(0xC0 | ((c >> 6) & 0x1F)),out);
-        bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c) & 0x3F)),out);
+      if (c <= 0x007F && c >= 0x0001) {
+        bufferPos=buffering(buffer,bufferPos,(byte)c,out);
         if (isBufferObjectDataOutput) {
-          utfLength+=2;
+          utfLength++;
         }
       }
- else       if (c > 0x007F) {
+ else       if (c > 0x07FF) {
         bufferPos=buffering(buffer,bufferPos,(byte)(0xE0 | ((c >> 12) & 0x0F)),out);
         bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c >> 6) & 0x3F)),out);
         bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c) & 0x3F)),out);
@@ -83,9 +82,10 @@
         }
       }
  else {
-        bufferPos=buffering(buffer,bufferPos,(byte)c,out);
+        bufferPos=buffering(buffer,bufferPos,(byte)(0xC0 | ((c >> 6) & 0x1F)),out);
+        bufferPos=buffering(buffer,bufferPos,(byte)(0x80 | ((c) & 0x3F)),out);
         if (isBufferObjectDataOutput) {
-          utfLength++;
+          utfLength+=2;
         }
       }
     }

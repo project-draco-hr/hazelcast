@@ -1,5 +1,5 @@
 {
-  final int utfLength=in.readShort();
+  final int utfLength=in.readShort() & 0xFFFF;
   final boolean allAscii=ASCII_AWARE ? in.readBoolean() : false;
   final int minUtfLenght=Math.min(utfLength,buffer.length - 1);
   final int bufferLimit=minUtfLenght + 1;
@@ -21,56 +21,50 @@
     }
   }
  else {
+    c1=buffer[bufferPos++] & 0xFF;
     while (bufferPos != bufferLimit) {
-      c1=buffer[bufferPos++] & 0xFF;
       if (c1 > 127) {
-        bufferPos--;
         break;
       }
       data[charArrCount++]=(char)c1;
+      c1=buffer[bufferPos++] & 0xFF;
     }
+    bufferPos--;
     readCount=bufferPos - 1;
-    if (bufferPos == bufferLimit) {
-      bufferPos=buffered(buffer,bufferPos,utfLength,readCount,in);
-      c1=buffer[0] & 0xFF;
-    }
     while (readCount < utfLength) {
+      bufferPos=buffered(buffer,bufferPos,utfLength,readCount++,in);
+      c1=buffer[0] & 0xFF;
       cTemp=c1 >> 4;
       if (cTemp >> 3 == 0) {
         data[charArrCount++]=(char)c1;
-        readCount++;
       }
  else       if (cTemp == 12 || cTemp == 13) {
         if (readCount + 1 > utfLength) {
           throw new UTFDataFormatException("malformed input: partial character at end");
         }
-        bufferPos=buffered(buffer,bufferPos,utfLength,readCount,in);
+        bufferPos=buffered(buffer,bufferPos,utfLength,readCount++,in);
         c2=buffer[0] & 0xFF;
         if ((c2 & 0xC0) != 0x80) {
           throw new UTFDataFormatException("malformed input around byte " + beginIndex + readCount+ 1);
         }
         data[charArrCount++]=(char)(((c1 & 0x1F) << 6) | (c2 & 0x3F));
-        readCount+=2;
       }
  else       if (cTemp == 14) {
         if (readCount + 2 > utfLength) {
           throw new UTFDataFormatException("malformed input: partial character at end");
         }
-        bufferPos=buffered(buffer,bufferPos,utfLength,readCount,in);
+        bufferPos=buffered(buffer,bufferPos,utfLength,readCount++,in);
         c2=buffer[0] & 0xFF;
-        bufferPos=buffered(buffer,bufferPos,utfLength,readCount,in);
+        bufferPos=buffered(buffer,bufferPos,utfLength,readCount++,in);
         c3=buffer[0] & 0xFF;
         if (((c2 & 0xC0) != 0x80) || ((c3 & 0xC0) != 0x80)) {
           throw new UTFDataFormatException("malformed input around byte " + (beginIndex + readCount + 1));
         }
         data[charArrCount++]=(char)(((c1 & 0x0F) << 12) | ((c2 & 0x3F) << 6) | ((c3 & 0x3F)));
-        readCount+=3;
       }
  else {
         throw new UTFDataFormatException("malformed input around byte " + (beginIndex + readCount));
       }
-      bufferPos=buffered(buffer,bufferPos,utfLength,readCount,in);
-      c1=buffer[0] & 0xFF;
     }
   }
 }
