@@ -1,10 +1,13 @@
 {
   LockStoreImpl lockStore=getLockStore();
-  long remainingLeaseTime=lockStore.getRemainingLeaseTime(key);
-  if (remainingLeaseTime <= 0) {
+  int lockVersion=lockStore.getVersion(key);
+  if (version == lockVersion) {
     forceUnlock();
   }
  else {
-    scheduler.schedule(remainingLeaseTime,key,null);
+    ILogger logger=getLogger();
+    if (logger.isFinestEnabled()) {
+      logger.finest("Won't unlock since lock version is not matching expiration version: " + lockVersion + " vs "+ version);
+    }
   }
 }
