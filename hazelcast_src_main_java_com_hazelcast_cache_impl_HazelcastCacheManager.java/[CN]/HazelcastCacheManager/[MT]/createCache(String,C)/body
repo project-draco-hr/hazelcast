@@ -8,32 +8,21 @@
   if (configuration == null) {
     throw new NullPointerException("configuration must not be null");
   }
-synchronized (caches) {
-    final String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
-    final CacheConfig<K,V> cacheConfig=getCacheConfigLocal(cacheNameWithPrefix);
-    if (cacheConfig == null) {
-      final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
-      final boolean created=createConfigOnPartition(newCacheConfig);
-      if (created) {
-        createConfigOnAllMembers(newCacheConfig);
-        addCacheConfigIfAbsentToLocal(newCacheConfig);
-        final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
-        caches.put(cacheNameWithPrefix,cacheProxy);
-        if (newCacheConfig.isStatisticsEnabled()) {
-          enableStatistics(cacheName,true);
-        }
-        if (newCacheConfig.isManagementEnabled()) {
-          enableManagement(cacheName,true);
-        }
-        registerListeners(newCacheConfig,cacheProxy);
-        return cacheProxy;
-      }
- else {
-        final CacheConfig<K,V> cacheConfigFromPartition=getCacheConfigFromPartition(cacheNameWithPrefix);
-        createConfigOnAllMembers(cacheConfigFromPartition);
-        addCacheConfigIfAbsentToLocal(cacheConfigFromPartition);
-      }
-    }
-    throw new CacheException("A cache named " + cacheName + " already exists.");
+  final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
+  final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
+  final boolean created=createConfigOnPartition(newCacheConfig);
+  if (created) {
+    addCacheConfigIfAbsentToLocal(newCacheConfig);
+    caches.put(newCacheConfig.getNameWithPrefix(),cacheProxy);
+    registerListeners(newCacheConfig,cacheProxy);
+    return cacheProxy;
   }
+ else {
+    final ICache<?,?> entries=caches.putIfAbsent(newCacheConfig.getNameWithPrefix(),cacheProxy);
+    if (entries == null) {
+      registerListeners(newCacheConfig,cacheProxy);
+      return cacheProxy;
+    }
+  }
+  throw new CacheException("A cache named " + cacheName + " already exists.");
 }

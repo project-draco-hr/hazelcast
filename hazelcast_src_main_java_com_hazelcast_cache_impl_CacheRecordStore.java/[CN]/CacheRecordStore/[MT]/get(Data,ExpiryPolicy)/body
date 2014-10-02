@@ -3,10 +3,7 @@
   long now=Clock.currentTimeMillis();
   Object value;
   CacheRecord record=records.get(key);
-  boolean isExpired=record != null && record.isExpiredAt(now);
-  if (isExpired) {
-    processExpiredEntry(key,record);
-  }
+  final boolean isExpired=processExpiredEntry(key,record,now);
   if (record == null || isExpired) {
     if (isStatisticsEnabled()) {
       statistics.increaseCacheMisses(1);
@@ -20,17 +17,7 @@
   }
  else {
     value=record.getValue();
-    final long expiryTime;
-    try {
-      Duration expiryDuration=localExpiryPolicy.getExpiryForAccess();
-      if (expiryDuration != null) {
-        expiryTime=expiryDuration.getAdjustedTime(now);
-        record.setExpirationTime(expiryTime);
-      }
-    }
- catch (    Throwable t) {
-      EmptyStatement.ignore(t);
-    }
+    updateAccessDuration(record,localExpiryPolicy,now);
     if (isStatisticsEnabled()) {
       statistics.increaseCacheHits(1);
     }

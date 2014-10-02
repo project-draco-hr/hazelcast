@@ -1,10 +1,9 @@
 {
-  if (!closeTriggered) {
-    releaseCacheManager(uri,classLoaderReference.get());
-    for (    ICache cache : caches.values()) {
-      cache.close();
-    }
-    caches.clear();
+  if (isDestroyed.get() || !isClosed.compareAndSet(false,true)) {
+    return;
   }
-  closeTriggered=true;
+  for (  ICache cache : caches.values()) {
+    cache.close();
+  }
+  postClose();
 }

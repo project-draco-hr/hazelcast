@@ -7,7 +7,7 @@
   MapConfig writeBehindBackupConfig=config.getMapConfig(name);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setWriteDelaySeconds(5);
-  final MapStoreWithStoreCount mapStore=new MapStoreWithStoreCount(expectedStoreCount,300,100);
+  final MapStoreWithStoreCount mapStore=new MapStoreWithStoreCount(expectedStoreCount,300,50);
   mapStoreConfig.setImplementation(mapStore);
   writeBehindBackupConfig.setMapStoreConfig(mapStoreConfig);
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
@@ -23,5 +23,11 @@
   map.put(keyOwnedByNode3,3);
   node2.getLifecycleService().shutdown();
   mapStore.awaitStores();
-  assertTrue(expectedStoreCount <= mapStore.count.intValue());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      int storeOperationCount=mapStore.count.intValue();
+      assertTrue("expected : " + expectedStoreCount + ", actual : "+ storeOperationCount,expectedStoreCount <= storeOperationCount);
+    }
+  }
+);
 }

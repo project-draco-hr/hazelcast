@@ -3,22 +3,15 @@
     throw new NullPointerException("CacheEntryListenerConfiguration can't be " + "null");
   }
   final CacheService service=getService();
-  final ConcurrentHashMap<CacheEntryListenerConfiguration,String> regs;
-  if (cacheEntryListenerConfiguration.isSynchronous()) {
-    regs=syncListenerRegistrations;
-  }
- else {
-    regs=asyncListenerRegistrations;
-  }
-  final String regId=regs.remove(cacheEntryListenerConfiguration);
+  final String regId=removeListenerLocally(cacheEntryListenerConfiguration);
   if (regId != null) {
     if (!service.deregisterListener(getDistributedObjectName(),regId)) {
-      regs.putIfAbsent(cacheEntryListenerConfiguration,regId);
+      addListenerLocally(regId,cacheEntryListenerConfiguration);
     }
  else {
       cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
       deregisterCompletionListener();
-      registrationOtherNodes(cacheEntryListenerConfiguration,false);
+      updateCacheListenerConfigOnOtherNodes(cacheEntryListenerConfiguration,false);
     }
   }
 }

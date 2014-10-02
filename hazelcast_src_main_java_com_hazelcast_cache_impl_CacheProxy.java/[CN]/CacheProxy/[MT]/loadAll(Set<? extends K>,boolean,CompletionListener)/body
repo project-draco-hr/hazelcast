@@ -1,41 +1,17 @@
 {
   ensureOpen();
-  if (keys == null || keys.contains(null)) {
-    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
-  }
+  validateNotNull(keys);
   for (  K key : keys) {
-    validateConfiguredTypes(false,key);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key);
   }
-  if (cacheLoader == null) {
-    if (completionListener != null) {
-      completionListener.onCompletion();
-    }
-    return;
-  }
+  validateCacheLoader(completionListener);
   HashSet<Data> keysData=new HashSet<Data>();
   for (  K key : keys) {
     keysData.add(serializationService.toData(key));
   }
   final OperationFactory operationFactory=new CacheLoadAllOperationFactory(getDistributedObjectName(),keysData,replaceExistingValues);
   try {
-    nodeEngine.getExecutionService().execute("loadAll runner",new Runnable(){
-      @Override public void run(){
-        try {
-          final OperationService operationService=nodeEngine.getOperationService();
-          final Map<Integer,Object> results=operationService.invokeOnAllPartitions(getServiceName(),operationFactory);
-          loadAllHelper(results);
-          if (completionListener != null) {
-            completionListener.onCompletion();
-          }
-        }
- catch (        Exception e) {
-          if (completionListener != null) {
-            completionListener.onException(e);
-          }
-        }
-      }
-    }
-);
+    submitLoadAllTask(operationFactory,completionListener);
   }
  catch (  Exception e) {
     if (completionListener != null) {

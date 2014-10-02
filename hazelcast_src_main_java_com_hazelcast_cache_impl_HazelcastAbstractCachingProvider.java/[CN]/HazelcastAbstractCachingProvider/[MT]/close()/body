@@ -1,10 +1,16 @@
 {
-  WeakHashMap<ClassLoader,HashMap<URI,CacheManager>> managersByClassLoader=this.cacheManagers;
-  this.cacheManagers=new WeakHashMap<ClassLoader,HashMap<URI,CacheManager>>();
-  for (  Map.Entry<ClassLoader,HashMap<URI,CacheManager>> entry : managersByClassLoader.entrySet()) {
-    for (    CacheManager cacheManager : entry.getValue().values()) {
-      cacheManager.close();
+synchronized (cacheManagers) {
+    for (    Map<URI,HazelcastCacheManager> cacheManagersByURI : cacheManagers.values()) {
+      for (      HazelcastCacheManager cacheManager : cacheManagersByURI.values()) {
+        if (cacheManager.isDefaultClassLoader) {
+          cacheManager.close();
+        }
+ else {
+          cacheManager.destroy();
+        }
+      }
     }
   }
+  this.cacheManagers.clear();
   shutdownHazelcastInstance();
 }

@@ -1,0 +1,22 @@
+{
+  ensureOpen();
+  if (hasOldValue) {
+    validateNotNull(key,oldValue,newValue);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,oldValue,newValue);
+  }
+ else {
+    validateNotNull(key,newValue);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,newValue);
+  }
+  final Data keyData=serializationService.toData(key);
+  final Data oldValueData=oldValue != null ? serializationService.toData(oldValue) : null;
+  final Data newValueData=serializationService.toData(newValue);
+  final Operation operation;
+  if (isGet) {
+    operation=new CacheGetAndReplaceOperation(getDistributedObjectName(),keyData,newValueData,expiryPolicy);
+  }
+ else {
+    operation=new CacheReplaceOperation(getDistributedObjectName(),keyData,oldValueData,newValueData,expiryPolicy);
+  }
+  return invoke(operation,keyData,withCompletionEvent);
+}

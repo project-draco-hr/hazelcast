@@ -1,0 +1,28 @@
+{
+  ensureOpen();
+  validateNotNull(keys);
+  if (keys.isEmpty()) {
+    return Collections.EMPTY_MAP;
+  }
+  final Set<Data> keySet=new HashSet(keys.size());
+  for (  K key : keys) {
+    final Data k=toData(key);
+    keySet.add(k);
+  }
+  Map<K,V> result=getAllFromNearCache(keySet);
+  if (keySet.isEmpty()) {
+    return result;
+  }
+  final CacheGetAllRequest request=new CacheGetAllRequest(nameWithPrefix,keySet,expiryPolicy);
+  final MapEntrySet mapEntrySet=toObject(invoke(request));
+  final Set<Map.Entry<Data,Data>> entrySet=mapEntrySet.getEntrySet();
+  for (  Map.Entry<Data,Data> dataEntry : entrySet) {
+    final Data keyData=dataEntry.getKey();
+    final Data valueData=dataEntry.getValue();
+    final K key=toObject(keyData);
+    final V value=toObject(valueData);
+    result.put(key,value);
+    storeInNearCache(keyData,valueData,value);
+  }
+  return result;
+}
