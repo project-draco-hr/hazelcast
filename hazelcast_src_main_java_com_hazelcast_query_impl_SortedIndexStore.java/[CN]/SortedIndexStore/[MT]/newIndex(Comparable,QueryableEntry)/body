@@ -1,15 +1,17 @@
 {
   takeWriteLock();
   try {
-    ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(newValue);
-    if (records == null) {
-      records=new ConcurrentHashMap<Data,QueryableEntry>(1,LOAD_FACTOR,1);
-      mapRecords.put(newValue,records);
-      if (!(newValue instanceof IndexImpl.NullObject)) {
-        sortedSet.add(newValue);
-      }
+    if (newValue instanceof IndexImpl.NullObject) {
+      recordsWithNullValue.put(record.getIndexKey(),record);
     }
-    records.put(record.getIndexKey(),record);
+ else {
+      ConcurrentMap<Data,QueryableEntry> records=recordMap.get(newValue);
+      if (records == null) {
+        records=new ConcurrentHashMap<Data,QueryableEntry>(1,0.75f,1);
+        recordMap.put(newValue,records);
+      }
+      records.put(record.getIndexKey(),record);
+    }
   }
   finally {
     releaseWriteLock();
