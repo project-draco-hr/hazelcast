@@ -5,5 +5,13 @@
   for (int i=0; i < 2; i++) {
     futures.add(executorService.submit(new TimeoutingTask(waitLock)));
   }
-  returnWithDeadline(futures,1,TimeUnit.SECONDS);
+  returnWithDeadline(futures,1,TimeUnit.SECONDS,new ExceptionHandler(){
+    @Override public void handleException(    Throwable throwable){
+      if (throwable instanceof TimeoutException) {
+        ExceptionUtil.sneakyThrow(throwable);
+      }
+      throw ExceptionUtil.rethrow(throwable);
+    }
+  }
+);
 }
