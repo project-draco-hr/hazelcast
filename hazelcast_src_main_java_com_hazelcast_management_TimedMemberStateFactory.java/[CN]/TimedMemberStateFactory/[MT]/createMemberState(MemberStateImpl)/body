@@ -1,17 +1,19 @@
 {
   final Node node=instance.node;
+  Address thisAddress=node.getThisAddress();
+  InternalPartitionService partitionService=node.getPartitionService();
+  InternalPartition[] partitions=partitionService.getPartitions();
   final HashSet<SerializableClientEndPoint> serializableClientEndPoints=new HashSet<SerializableClientEndPoint>();
   for (  Client client : instance.node.clientEngine.getClients()) {
     serializableClientEndPoints.add(new SerializableClientEndPoint(client));
   }
   memberState.setClients(serializableClientEndPoints);
-  memberState.setAddress(node.getThisAddress().getHost() + ":" + node.getThisAddress().getPort());
+  memberState.setAddress(thisAddress.getHost() + ":" + thisAddress.getPort());
   createJMXBeans(memberState);
-  PartitionService partitionService=instance.getPartitionService();
-  Set<Partition> partitions=partitionService.getPartitions();
   memberState.clearPartitions();
-  for (  Partition partition : partitions) {
-    if (partition.getOwner() != null && partition.getOwner().localMember()) {
+  for (  InternalPartition partition : partitions) {
+    Address owner=partition.getOwnerOrNull();
+    if (owner != null && thisAddress.equals(owner)) {
       memberState.addPartition(partition.getPartitionId());
     }
   }
