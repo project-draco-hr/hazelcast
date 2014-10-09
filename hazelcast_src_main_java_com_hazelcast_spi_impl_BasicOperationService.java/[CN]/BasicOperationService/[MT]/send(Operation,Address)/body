@@ -5,5 +5,13 @@
   if (nodeEngine.getThisAddress().equals(target)) {
     throw new IllegalArgumentException("Target is this node! -> " + target + ", op: "+ op);
   }
-  return send(op,node.getConnectionManager().getOrConnect(target));
+  Data data=nodeEngine.toData(op);
+  int partitionId=scheduler.getPartitionIdForExecution(op);
+  Packet packet=new Packet(data,partitionId,nodeEngine.getPortableContext());
+  packet.setHeader(Packet.HEADER_OP);
+  if (op instanceof UrgentSystemOperation) {
+    packet.setHeader(Packet.HEADER_URGENT);
+  }
+  Connection connection=node.getConnectionManager().getOrConnect(target);
+  return nodeEngine.send(packet,connection);
 }

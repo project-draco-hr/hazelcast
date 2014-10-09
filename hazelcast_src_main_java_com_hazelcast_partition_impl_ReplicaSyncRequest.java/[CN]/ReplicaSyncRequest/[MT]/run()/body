@@ -3,6 +3,14 @@
   InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)nodeEngine.getPartitionService();
   int partitionId=getPartitionId();
   int replicaIndex=getReplicaIndex();
+  if (!partitionService.isMigrationActive()) {
+    ILogger logger=getLogger();
+    if (logger.isFinestEnabled()) {
+      logger.finest("Migration is paused! Cannot run replica sync -> " + toString());
+    }
+    sendRetryResponse();
+    return;
+  }
   if (!preCheckReplicaSync(nodeEngine,partitionId,replicaIndex)) {
     return;
   }
@@ -13,11 +21,10 @@
       sendEmptyResponse();
     }
  else {
-      byte[] data=createReplicationData(tasks);
-      sendResponse(data);
+      sendResponse(tasks);
     }
   }
   finally {
-    partitionService.decrementReplicaSyncProcessCount();
+    partitionService.finishReplicaSyncProcess();
   }
 }
