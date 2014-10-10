@@ -1,0 +1,23 @@
+{
+  final int nodeCount=2;
+  final int maxIdleSeconds=1;
+  final String mapName=randomMapName();
+  final Config config=newConfigWithExpiration(mapName,maxIdleSeconds);
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance[] instances=factory.newInstances(config);
+  final IMap<Integer,Integer> map1=instances[0].getMap(mapName);
+  final IMap<Integer,Integer> map2=instances[1].getMap(mapName);
+  for (int i=0; i < numberOfItemsToBeAdded; i++) {
+    map1.put(i,i);
+  }
+  sleepSeconds(1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final long now=Clock.currentTimeMillis();
+      final int notExpiredEntryCountOnNode1=getNotExpiredEntryCount(map1,now,backup);
+      final int notExpiredEntryCountOnNode2=getNotExpiredEntryCount(map2,now,backup);
+      assertEquals(expectedEntryCountAfterExpiration,notExpiredEntryCountOnNode1 + notExpiredEntryCountOnNode2);
+    }
+  }
+);
+}
