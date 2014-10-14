@@ -1,46 +1,20 @@
 {
-  final Config config=new Config();
   final int nodeCount=10;
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
   final CountDownLatch eventLatch=new CountDownLatch(nodeCount - 1);
-  final CountDownLatch nodeLatch=new CountDownLatch(nodeCount);
-  config.addListenerConfig(new ListenerConfig().setImplementation(new MembershipListener(){
-    final AtomicBoolean flag=new AtomicBoolean(false);
-    public void memberAdded(    MembershipEvent membershipEvent){
-      if (flag.compareAndSet(false,true)) {
-        try {
-          Thread.sleep((long)(Math.random() * 500) + 50);
-          eventLatch.countDown();
-        }
- catch (        InterruptedException e) {
-          e.printStackTrace();
-        }
- finally {
-          flag.set(false);
-        }
-      }
-    }
-    public void memberRemoved(    MembershipEvent membershipEvent){
-    }
-    public void memberAttributeChanged(    MemberAttributeEvent memberAttributeEvent){
-    }
-  }
-));
-  final ExecutorService ex=Executors.newFixedThreadPool(nodeCount / 2);
-  for (int i=0; i < nodeCount; i++) {
+  final CountDownLatch nodeLatch=new CountDownLatch(nodeCount - 1);
+  Config config=new Config().addListenerConfig(new ListenerConfig().setImplementation(newAddMemberListener(eventLatch)));
+  ex=Executors.newFixedThreadPool(nodeCount / 2);
+  factory.newHazelcastInstance(config);
+  for (int i=1; i < nodeCount; i++) {
     ex.execute(new Runnable(){
       public void run(){
-        factory.newHazelcastInstance(config);
+        factory.newHazelcastInstance(new Config());
         nodeLatch.countDown();
       }
     }
 );
   }
-  try {
-    assertTrue(nodeLatch.await(30,TimeUnit.SECONDS));
-    assertTrue(eventLatch.await(30,TimeUnit.SECONDS));
-  }
-  finally {
-    ex.shutdownNow();
-  }
+  assertTrue("Remaining count: " + nodeLatch.getCount(),nodeLatch.await(30,SECONDS));
+  assertTrue("Remaining count: " + eventLatch.getCount(),eventLatch.await(30,SECONDS));
 }
