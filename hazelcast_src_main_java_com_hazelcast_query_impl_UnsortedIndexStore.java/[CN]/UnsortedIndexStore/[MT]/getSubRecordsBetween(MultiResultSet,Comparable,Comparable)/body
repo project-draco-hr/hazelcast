@@ -1,26 +1,32 @@
 {
-  Comparable paramFrom=from;
-  Comparable paramTo=to;
-  int trend=paramFrom.compareTo(paramTo);
-  if (trend == 0) {
-    ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(paramFrom);
-    if (records != null) {
-      results.addResultSet(records);
-    }
-    return;
-  }
-  if (trend < 0) {
-    Comparable oldFrom=paramFrom;
-    paramFrom=to;
-    paramTo=oldFrom;
-  }
-  Set<Comparable> values=mapRecords.keySet();
-  for (  Comparable value : values) {
-    if (value.compareTo(paramFrom) <= 0 && value.compareTo(paramTo) >= 0) {
-      ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(value);
+  takeReadLock();
+  try {
+    Comparable paramFrom=from;
+    Comparable paramTo=to;
+    int trend=paramFrom.compareTo(paramTo);
+    if (trend == 0) {
+      ConcurrentMap<Data,QueryableEntry> records=recordMap.get(paramFrom);
       if (records != null) {
         results.addResultSet(records);
       }
+      return;
     }
+    if (trend < 0) {
+      Comparable oldFrom=paramFrom;
+      paramFrom=to;
+      paramTo=oldFrom;
+    }
+    Set<Comparable> values=recordMap.keySet();
+    for (    Comparable value : values) {
+      if (value.compareTo(paramFrom) <= 0 && value.compareTo(paramTo) >= 0) {
+        ConcurrentMap<Data,QueryableEntry> records=recordMap.get(value);
+        if (records != null) {
+          results.addResultSet(records);
+        }
+      }
+    }
+  }
+  finally {
+    releaseReadLock();
   }
 }
