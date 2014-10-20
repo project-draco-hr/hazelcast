@@ -12,8 +12,9 @@
   final Map<K,V> result=new HashMap<K,V>();
   final Collection<Integer> partitions=getPartitionsForKeys(ks);
   try {
-    final CacheGetAllOperationFactory factory=new CacheGetAllOperationFactory(getDistributedObjectName(),ks,expiryPolicy);
-    final Map<Integer,Object> responses=getNodeEngine().getOperationService().invokeOnPartitions(getServiceName(),factory,partitions);
+    OperationFactory factory=operationProvider.createGetAllOperationFactory(ks,expiryPolicy);
+    OperationService operationService=getNodeEngine().getOperationService();
+    Map<Integer,Object> responses=operationService.invokeOnPartitions(getServiceName(),factory,partitions);
     for (    Object response : responses.values()) {
       final Object responseObject=serializationService.toObject(response);
       final Set<Map.Entry<Data,Data>> entries=((MapEntrySet)responseObject).getEntrySet();
