@@ -5,7 +5,7 @@
     throw new IllegalStateException("<import> element can appear only in the top level of the XML");
   }
   NodeList importTags=(NodeList)xpath.evaluate("/" + HAZELCAST.name + "/"+ IMPORT.name,document,XPathConstants.NODESET);
-  for (  Node node : new IterableNodeList(importTags)) {
+  for (  Node node : new AbstractXmlConfigHelper.IterableNodeList(importTags)) {
     NamedNodeMap attributes=node.getAttributes();
     Node resourceAtrribute=attributes.getNamedItem("resource");
     String resource=resourceAtrribute.getTextContent();
@@ -16,11 +16,11 @@
     if (!currentlyImportedFiles.add(url.getPath())) {
       throw new HazelcastException("Cyclic loading of resource " + url.getPath() + " is detected !");
     }
-    Document doc=parse(url.openStream());
+    Document doc=xmlConfigBuilder.parse(url.openStream());
     Element importedRoot=doc.getDocumentElement();
-    preprocess(importedRoot);
+    traverseChildsAndReplaceVariables(importedRoot);
     replaceImportStatementsWithActualFileContents(importedRoot);
-    for (    Node fromImportedDoc : new IterableNodeList(importedRoot.getChildNodes())) {
+    for (    Node fromImportedDoc : new AbstractXmlConfigHelper.IterableNodeList(importedRoot.getChildNodes())) {
       Node importedNode=root.getOwnerDocument().importNode(fromImportedDoc,true);
       root.insertBefore(importedNode,node);
     }
