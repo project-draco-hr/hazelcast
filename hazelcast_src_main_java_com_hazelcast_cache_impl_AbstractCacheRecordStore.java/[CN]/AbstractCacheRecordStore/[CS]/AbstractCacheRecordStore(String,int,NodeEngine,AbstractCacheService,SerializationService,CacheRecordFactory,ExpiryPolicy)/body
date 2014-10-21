@@ -3,9 +3,10 @@
   this.partitionId=partitionId;
   this.nodeEngine=nodeEngine;
   this.cacheService=cacheService;
+  this.serializationService=serializationService;
   this.cacheConfig=cacheService.getCacheConfig(name);
   if (this.cacheConfig == null) {
-    throw new IllegalStateException("Cache already destroyed");
+    throw new IllegalStateException("Cache is not exist !");
   }
   if (cacheConfig.getCacheLoaderFactory() != null) {
     final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
@@ -15,13 +16,12 @@
     final Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
     cacheWriter=cacheWriterFactory.create();
   }
-  evictionTaskFuture=nodeEngine.getExecutionService().scheduleWithFixedDelay("hz:cache",new EvictionTask(),INITIAL_DELAY,PERIOD,TimeUnit.SECONDS);
+  this.defaultExpiryPolicy=expiryPolicy != null ? expiryPolicy : (ExpiryPolicy)cacheConfig.getExpiryPolicyFactory().create();
   if (cacheRecordFactory != null) {
     this.cacheRecordFactory=cacheRecordFactory;
   }
  else {
     this.cacheRecordFactory=createCacheRecordFactory(cacheConfig.getInMemoryFormat(),nodeEngine.getSerializationService());
   }
-  final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
-  defaultExpiryPolicy=expiryPolicyFactory.create();
+  this.records=createRecordCacheMap();
 }
