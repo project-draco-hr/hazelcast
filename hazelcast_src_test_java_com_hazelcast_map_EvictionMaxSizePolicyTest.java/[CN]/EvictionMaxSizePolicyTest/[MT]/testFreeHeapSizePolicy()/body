@@ -1,10 +1,13 @@
 {
-  final int freeHeapMinSizeInMegaBytes=(int)(Runtime.getRuntime().maxMemory() / 1024 / 1024 - 1);
+  final int freeHeapMinSizeInMegaBytes=10;
   final int nodeCount=1;
   final String mapName=randomMapName();
   final Config config=createConfig(MaxSizeConfig.MaxSizePolicy.FREE_HEAP_SIZE,freeHeapMinSizeInMegaBytes,mapName);
   final Collection<IMap> maps=createMaps(mapName,config,nodeCount);
-  setTestSizeEstimator(maps,1);
-  testMaxSizePolicy(maps,100);
-  assertUsedHeapSizePolicyWorks(maps,freeHeapMinSizeInMegaBytes);
+  final int totalMemoryMB=15;
+  final int freeMemoryMB=0;
+  final int maxMemoryMB=20;
+  setMockRuntimeMemoryInfoAccessor(maps,totalMemoryMB,freeMemoryMB,maxMemoryMB);
+  populateMaps(maps,100);
+  assertUsedFreeHeapPolicyTriggersEviction(maps);
 }
