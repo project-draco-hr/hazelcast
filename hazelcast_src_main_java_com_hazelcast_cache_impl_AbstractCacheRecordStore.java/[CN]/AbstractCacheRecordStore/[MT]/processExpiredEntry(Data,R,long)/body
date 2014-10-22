@@ -1,0 +1,25 @@
+{
+  final boolean isExpired=record != null && record.isExpiredAt(now);
+  if (!isExpired) {
+    return false;
+  }
+  records.remove(key);
+  if (isEventsEnabled) {
+    final Data dataValue;
+switch (cacheConfig.getInMemoryFormat()) {
+case BINARY:
+      dataValue=(Data)record.getValue();
+    break;
+case OBJECT:
+  dataValue=recordToData(record);
+break;
+case OFFHEAP:
+dataValue=recordToData(record);
+break;
+default :
+throw new IllegalArgumentException("Invalid storage format: " + cacheConfig.getInMemoryFormat());
+}
+publishEvent(name,CacheEventType.EXPIRED,key,null,dataValue,false);
+}
+return true;
+}
