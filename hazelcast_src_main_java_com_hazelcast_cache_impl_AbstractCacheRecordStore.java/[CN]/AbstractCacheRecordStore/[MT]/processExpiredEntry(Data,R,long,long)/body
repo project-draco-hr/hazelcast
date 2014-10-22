@@ -1,7 +1,10 @@
 {
-  final boolean isExpired=record != null && record.isExpiredAt(now);
+  final boolean isExpired=isExpiredAt(expiryTime,now);
   if (!isExpired) {
     return false;
+  }
+  if (isStatisticsEnabled()) {
+    statistics.increaseCacheExpiries(1);
   }
   records.remove(key);
   if (isEventsEnabled) {
@@ -11,7 +14,10 @@ case BINARY:
       dataValue=(Data)record.getValue();
     break;
 case OBJECT:
-  dataValue=cacheService.toData(record.getValue());
+  dataValue=recordToData(record);
+break;
+case OFFHEAP:
+dataValue=recordToData(record);
 break;
 default :
 throw new IllegalArgumentException("Invalid storage format: " + cacheConfig.getInMemoryFormat());
