@@ -1,9 +1,12 @@
 {
-  if (removeTimeTakenNanos.get() <= Long.MAX_VALUE - duration) {
-    removeTimeTakenNanos.addAndGet(duration);
-  }
+  for (; ; ) {
+    long nanos=removeTimeTakenNanos;
+    if (nanos <= Long.MAX_VALUE - duration) {
+      REMOVALS_UPDATER.compareAndSet(this,nanos,nanos + duration);
+    }
  else {
-    clear();
-    removeTimeTakenNanos.set(duration);
+      clear();
+      REMOVALS_UPDATER.set(this,duration);
+    }
   }
 }
