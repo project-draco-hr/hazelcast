@@ -1,5 +1,11 @@
 {
   InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  Integer paritionId=partitionService.getPartitionId(key);
-  return getOwnedPartitions().contains(paritionId);
+  Integer partitionId=partitionService.getPartitionId(key);
+  try {
+    Address owner=partitionService.getPartitionOwnerOrWait(partitionId);
+    return nodeEngine.getThisAddress().equals(owner);
+  }
+ catch (  InterruptedException e) {
+    throw new HazelcastException(e);
+  }
 }
