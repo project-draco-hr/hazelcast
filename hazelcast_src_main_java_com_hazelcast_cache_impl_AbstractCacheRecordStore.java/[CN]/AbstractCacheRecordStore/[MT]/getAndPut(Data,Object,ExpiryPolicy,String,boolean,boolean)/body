@@ -2,17 +2,31 @@
   expiryPolicy=getExpiryPolicy(expiryPolicy);
   final long now=Clock.currentTimeMillis();
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
-  boolean isPutSucceed;
+  boolean isOnNewPut=false;
+  boolean isSaveSucceed=false;
   Object oldValue=null;
   R record=records.get(key);
   boolean isExpired=processExpiredEntry(key,record,now);
-  if (record == null || isExpired) {
-    isPutSucceed=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough);
-  }
+  try {
+    if (record == null || isExpired) {
+      isOnNewPut=true;
+      onBeforeGetAndPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut);
+      record=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough);
+      isSaveSucceed=record != null;
+    }
  else {
-    oldValue=record.getValue();
-    isPutSucceed=updateRecordWithExpiry(key,value,record,expiryPolicy,now,disableWriteThrough);
+      if (getValue) {
+        oldValue=record.getValue();
+      }
+      onBeforeGetAndPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut);
+      isSaveSucceed=updateRecordWithExpiry(key,value,record,expiryPolicy,now,disableWriteThrough);
+    }
+    updateGetAndPutStat(isSaveSucceed,getValue,oldValue == null,start);
+    onAfterGetAndPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut,isSaveSucceed);
+    return oldValue;
   }
-  updateGetAndPutStat(isPutSucceed,getValue,oldValue == null,start);
-  return oldValue;
+ catch (  Throwable error) {
+    onGetAndPutError(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isOnNewPut,error);
+    throw new RuntimeException(error);
+  }
 }

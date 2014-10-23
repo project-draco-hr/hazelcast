@@ -1,7 +1,7 @@
 {
   final long now=Clock.currentTimeMillis();
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
-  CacheRecord record=records.get(key);
+  R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   int hitCount=0;
   boolean result=true;
@@ -13,7 +13,7 @@
   }
  else {
     hitCount++;
-    if (compare(record.getValue(),value)) {
+    if (compare(toValue(record),toValue(value))) {
       deleteCacheEntry(key);
       deleteRecord(key);
     }
@@ -33,5 +33,6 @@
       statistics.increaseCacheMisses(1);
     }
   }
+  onRemove(key,value,record,result);
   return result;
 }
