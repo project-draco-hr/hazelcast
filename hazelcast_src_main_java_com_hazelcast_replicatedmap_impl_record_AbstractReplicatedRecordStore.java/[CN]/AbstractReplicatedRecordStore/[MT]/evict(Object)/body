@@ -1,0 +1,26 @@
+{
+  ValidationUtil.isNotNull(key,"key");
+  long time=Clock.currentTimeMillis();
+  storage.checkState();
+  V oldValue;
+  K marshalledKey=(K)marshallKey(key);
+synchronized (getMutex(marshalledKey)) {
+    final ReplicatedRecord current=storage.get(marshalledKey);
+    if (current == null) {
+      oldValue=null;
+    }
+ else {
+      oldValue=(V)current.getValue();
+      if (oldValue != null) {
+        current.setValue(null,localMemberHash,TOMBSTONE_REMOVAL_PERIOD_MS);
+        scheduleTtlEntry(TOMBSTONE_REMOVAL_PERIOD_MS,marshalledKey,null);
+        current.incrementVectorClock(localMember);
+      }
+    }
+  }
+  Object unmarshalledOldValue=unmarshallValue(oldValue);
+  fireEntryListenerEvent(key,unmarshalledOldValue,null,EntryEventType.EVICTED);
+  if (replicatedMapConfig.isStatisticsEnabled()) {
+    mapStats.incrementRemoves(Clock.currentTimeMillis() - time);
+  }
+}
