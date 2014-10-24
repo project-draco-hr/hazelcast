@@ -1,10 +1,20 @@
 {
-  ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(oldValue);
-  if (records != null) {
-    records.remove(indexKey);
-    if (records.size() == 0) {
-      mapRecords.remove(oldValue);
-      sortedSet.remove(oldValue);
+  takeWriteLock();
+  try {
+    if (oldValue instanceof IndexImpl.NullObject) {
+      recordsWithNullValue.remove(indexKey);
     }
+ else {
+      ConcurrentMap<Data,QueryableEntry> records=recordMap.get(oldValue);
+      if (records != null) {
+        records.remove(indexKey);
+        if (records.size() == 0) {
+          recordMap.remove(oldValue);
+        }
+      }
+    }
+  }
+  finally {
+    releaseWriteLock();
   }
 }
