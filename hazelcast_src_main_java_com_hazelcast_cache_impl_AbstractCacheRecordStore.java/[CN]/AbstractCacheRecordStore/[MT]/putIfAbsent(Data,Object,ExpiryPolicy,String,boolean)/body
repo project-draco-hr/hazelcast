@@ -5,15 +5,24 @@
   boolean result;
   R record=records.get(key);
   boolean isExpired=processExpiredEntry(key,record,now);
-  if (record == null || isExpired) {
-    result=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough) != null;
-  }
+  try {
+    if (record == null || isExpired) {
+      onBeforePutIfAbsent(key,value,expiryPolicy,caller,disableWriteThrough,record,isExpired);
+      result=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough) != null;
+    }
  else {
-    result=false;
+      result=false;
+    }
+    if (result && isStatisticsEnabled()) {
+      statistics.increaseCachePuts(1);
+      statistics.addPutTimeNano(System.nanoTime() - start);
+    }
+    onAfterPutIfAbsent(key,value,expiryPolicy,caller,disableWriteThrough,record,isExpired,result);
+    return result;
   }
-  if (result && isStatisticsEnabled()) {
-    statistics.increaseCachePuts(1);
-    statistics.addPutTimeNano(System.nanoTime() - start);
+ catch (  Throwable error) {
+    error.printStackTrace();
+    onPutIfAbsentError(key,value,expiryPolicy,caller,disableWriteThrough,record,error);
+    throw new RuntimeException(error);
   }
-  return result;
 }

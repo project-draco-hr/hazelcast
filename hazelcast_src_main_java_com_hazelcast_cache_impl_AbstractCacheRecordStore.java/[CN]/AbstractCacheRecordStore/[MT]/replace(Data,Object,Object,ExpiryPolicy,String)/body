@@ -1,0 +1,27 @@
+{
+  expiryPolicy=getExpiryPolicy(expiryPolicy);
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  boolean isHit=false;
+  boolean result;
+  R record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  onBeforeGetAndReplace(key,oldValue,newValue,expiryPolicy,caller,false,record,isExpired);
+  if (record == null || isExpired) {
+    result=false;
+  }
+ else {
+    isHit=true;
+    Object currentValue=toValue(record);
+    if (compare(currentValue,toValue(oldValue))) {
+      result=updateRecordWithExpiry(key,newValue,record,expiryPolicy,now,false);
+    }
+ else {
+      updateAccessDuration(record,expiryPolicy,now);
+      result=false;
+    }
+  }
+  updateReplaceStat(result,isHit,start);
+  onAfterGetAndReplace(key,oldValue,newValue,expiryPolicy,caller,false,record,isExpired,result);
+  return result;
+}

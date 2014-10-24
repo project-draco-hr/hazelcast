@@ -4,11 +4,9 @@
   Object v=value;
 switch (cacheConfig.getInMemoryFormat()) {
 case BINARY:
-    if (!(value instanceof Data)) {
-      v=valueToData(value);
-    }
+    v=toData(value);
   dataValue=(Data)v;
-dataOldValue=(Data)record.getValue();
+dataOldValue=toData(record);
 break;
 case OBJECT:
 if (value instanceof Data) {
@@ -18,22 +16,19 @@ dataValue=(Data)value;
  else {
 dataValue=valueToData(value);
 }
-dataOldValue=valueToData(record.getValue());
+dataOldValue=toData(record);
 break;
 case OFFHEAP:
-if (value instanceof Data) {
-v=dataToValue((Data)value);
-dataValue=(Data)value;
-}
- else {
-dataValue=valueToData(value);
-}
-dataOldValue=recordToValue(record);
+v=toData(value);
+dataValue=(Data)v;
+dataOldValue=toData(record);
 break;
 default :
 throw new IllegalArgumentException("Invalid storage format: " + cacheConfig.getInMemoryFormat());
 }
+onBeforeUpdateRecord(key,record,value,dataOldValue);
 record.setValue(v);
+onAfterUpdateRecord(key,record,value,dataOldValue);
 if (isEventsEnabled) {
 publishEvent(name,CacheEventType.UPDATED,key,dataOldValue,dataValue,true);
 }
