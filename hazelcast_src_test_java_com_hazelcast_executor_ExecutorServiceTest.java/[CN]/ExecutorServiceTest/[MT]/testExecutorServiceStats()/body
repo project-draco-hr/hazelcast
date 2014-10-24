@@ -1,23 +1,11 @@
 {
   final IExecutorService executorService=createSingleNodeExecutorService("testExecutorServiceStats");
   final int k=10;
-  final CountDownLatch latch=new CountDownLatch(k);
-  final int executionTime=200;
+  LatchRunnable.latch=new CountDownLatch(k);
   for (int i=0; i < k; i++) {
-    executorService.execute(new Runnable(){
-      public void run(){
-        try {
-          Thread.sleep(executionTime);
-        }
- catch (        InterruptedException e) {
-          e.printStackTrace();
-        }
-        latch.countDown();
-      }
-    }
-);
+    executorService.execute(new LatchRunnable());
   }
-  latch.await(2,TimeUnit.MINUTES);
+  LatchRunnable.latch.await(2,TimeUnit.MINUTES);
   final Future<Boolean> f=executorService.submit(new SleepingTask(10000));
   Thread.sleep(1000);
   f.cancel(true);

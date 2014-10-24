@@ -1,18 +1,19 @@
 {
-  if (updating.compareAndSet(false,true)) {
-    try {
-      final ClientClusterService clusterService=client.getClientClusterService();
-      final Address master=clusterService.getMasterAddress();
-      final PartitionsResponse response=getPartitionsFrom(master);
-      if (response != null) {
-        processPartitionResponse(response);
-      }
+  if (!updating.compareAndSet(false,true)) {
+    return;
+  }
+  try {
+    ClientClusterService clusterService=client.getClientClusterService();
+    Address master=clusterService.getMasterAddress();
+    PartitionsResponse response=getPartitionsFrom(master);
+    if (response != null) {
+      processPartitionResponse(response);
     }
- catch (    HazelcastInstanceNotActiveException ignored) {
-      EmptyStatement.ignore(ignored);
-    }
+  }
+ catch (  HazelcastInstanceNotActiveException ignored) {
+    EmptyStatement.ignore(ignored);
+  }
  finally {
-      updating.set(false);
-    }
+    updating.set(false);
   }
 }

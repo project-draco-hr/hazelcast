@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  Cluster cluster=hz1.getCluster();
+  final MembershipListener membershipListener=mock(MembershipListener.class);
+  String id1=cluster.addMembershipListener(membershipListener);
+  String id2=cluster.addMembershipListener(membershipListener);
+  assertNotEquals(id1,id2);
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      verify(membershipListener,times(2)).memberAdded(any(MembershipEvent.class));
+    }
+  }
+);
+}

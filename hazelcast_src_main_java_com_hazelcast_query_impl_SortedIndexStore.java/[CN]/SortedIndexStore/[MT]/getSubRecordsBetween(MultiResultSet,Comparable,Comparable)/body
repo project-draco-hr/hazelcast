@@ -1,13 +1,12 @@
 {
-  Set<Comparable> values=sortedSet.subSet(from,to);
-  for (  Comparable value : values) {
-    ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(value);
-    if (records != null) {
-      results.addResultSet(records);
+  takeReadLock();
+  try {
+    SortedMap<Comparable,ConcurrentMap<Data,QueryableEntry>> subMap=recordMap.subMap(from,true,to,true);
+    for (    ConcurrentMap<Data,QueryableEntry> value : subMap.values()) {
+      results.addResultSet(value);
     }
   }
-  ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(to);
-  if (records != null) {
-    results.addResultSet(records);
+  finally {
+    releaseReadLock();
   }
 }

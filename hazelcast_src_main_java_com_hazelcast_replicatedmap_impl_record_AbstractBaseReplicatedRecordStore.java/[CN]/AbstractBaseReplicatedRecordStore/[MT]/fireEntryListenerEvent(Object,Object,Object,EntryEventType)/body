@@ -1,0 +1,13 @@
+{
+  Collection<EventRegistration> registrations=eventService.getRegistrations(ReplicatedMapService.SERVICE_NAME,name);
+  if (registrations.size() > 0) {
+    EntryEvent event=new EntryEvent(name,nodeEngine.getLocalMember(),eventType.getType(),key,oldValue,value);
+    for (    EventRegistration registration : registrations) {
+      EventFilter filter=registration.getFilter();
+      boolean publish=filter == null || filter.eval(key);
+      if (publish) {
+        eventService.publishEvent(ReplicatedMapService.SERVICE_NAME,registration,event,name.hashCode());
+      }
+    }
+  }
+}
