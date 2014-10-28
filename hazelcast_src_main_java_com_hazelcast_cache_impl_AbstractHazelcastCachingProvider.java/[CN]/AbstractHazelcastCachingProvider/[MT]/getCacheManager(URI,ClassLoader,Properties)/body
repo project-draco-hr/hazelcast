@@ -1,0 +1,23 @@
+{
+  final URI managerURI=getManagerUri(uri);
+  final ClassLoader managerClassLoader=getManagerClassLoader(classLoader);
+  final Properties managerProperties=properties == null ? new Properties() : properties;
+synchronized (cacheManagers) {
+    Map<URI,AbstractHazelcastCacheManager> cacheManagersByURI=cacheManagers.get(managerClassLoader);
+    if (cacheManagersByURI == null) {
+      cacheManagersByURI=new HashMap<URI,AbstractHazelcastCacheManager>();
+      cacheManagers.put(managerClassLoader,cacheManagersByURI);
+    }
+    AbstractHazelcastCacheManager cacheManager=cacheManagersByURI.get(managerURI);
+    if (cacheManager == null || cacheManager.isClosed()) {
+      try {
+        cacheManager=createHazelcastCacheManager(uri,classLoader,managerProperties);
+        cacheManagersByURI.put(managerURI,cacheManager);
+      }
+ catch (      Exception e) {
+        throw new CacheException("Error opening URI" + managerURI.toString(),e);
+      }
+    }
+    return cacheManager;
+  }
+}
