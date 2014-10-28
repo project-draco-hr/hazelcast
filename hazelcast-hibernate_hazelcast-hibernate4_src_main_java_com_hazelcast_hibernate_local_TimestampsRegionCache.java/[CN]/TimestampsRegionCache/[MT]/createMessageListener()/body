@@ -4,11 +4,11 @@
       final Timestamp ts=(Timestamp)message.getMessageObject();
       final Object key=ts.getKey();
       for (; ; ) {
-        final Value value=cache.get(key);
+        final Expirable value=cache.get(key);
         final Long current=value != null ? (Long)value.getValue() : null;
         if (current != null) {
           if (ts.getTimestamp() > current) {
-            if (cache.replace(key,value,new Value(value.getVersion(),ts.getTimestamp(),Clock.currentTimeMillis()))) {
+            if (cache.replace(key,value,new Value(value.getVersion(),Clock.currentTimeMillis(),ts.getTimestamp()))) {
               return;
             }
           }
@@ -17,7 +17,7 @@
           }
         }
  else {
-          if (cache.putIfAbsent(key,new Value(null,ts.getTimestamp(),Clock.currentTimeMillis())) == null) {
+          if (cache.putIfAbsent(key,new Value(null,Clock.currentTimeMillis(),ts.getTimestamp())) == null) {
             return;
           }
         }

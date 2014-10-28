@@ -1,0 +1,22 @@
+{
+  long timeout=System.currentTimeMillis() + tryLockAndGetTimeout;
+  do {
+    Expirable previousEntry=map.get(key);
+    Value newValue=new Value(version,txTimestamp,value);
+    if (previousEntry == null) {
+      if (map.putIfAbsent(key,newValue) == null) {
+        return true;
+      }
+    }
+ else     if (previousEntry.isReplaceableBy(txTimestamp,version,versionComparator)) {
+      if (map.replace(key,previousEntry,newValue)) {
+        return true;
+      }
+    }
+ else {
+      return false;
+    }
+  }
+ while (System.currentTimeMillis() < timeout);
+  return false;
+}

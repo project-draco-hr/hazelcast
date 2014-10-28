@@ -1,24 +1,21 @@
 {
-  final Value value=cache.get(key);
-  if (value == null) {
-    if (cache.putIfAbsent(key,new Value(version,null,LOCK_SUCCESS,Clock.currentTimeMillis())) == null) {
-      return LOCK_SUCCESS;
-    }
- else {
-      return LOCK_FAILURE;
-    }
-  }
- else {
-    if (version == null || versionComparator.compare(version,value.getVersion()) >= 0) {
-      if (cache.replace(key,value,value.createLockedValue(LOCK_SUCCESS))) {
-        return LOCK_SUCCESS;
-      }
- else {
-        return LOCK_FAILURE;
+  ExpiryMarker marker;
+  String markerId=nextMarkerId();
+  while (true) {
+    final Expirable original=cache.get(key);
+    long timeout=nextTimestamp() + CacheEnvironment.getDefaultCacheTimeoutInMillis();
+    if (original == null) {
+      marker=new ExpiryMarker(version,timeout,markerId);
+      if (cache.putIfAbsent(key,marker) == null) {
+        break;
       }
     }
  else {
-      return LOCK_FAILURE;
+      marker=original.markForExpiration(timeout,markerId);
+      if (cache.replace(key,original,marker)) {
+        break;
+      }
     }
   }
+  return marker;
 }
