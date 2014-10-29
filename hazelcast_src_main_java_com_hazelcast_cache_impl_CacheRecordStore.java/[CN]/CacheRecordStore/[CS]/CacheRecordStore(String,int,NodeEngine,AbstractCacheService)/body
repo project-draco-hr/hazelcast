@@ -1,3 +1,15 @@
 {
-  this(name,partitionId,nodeEngine,cacheService,null);
+  super(name,partitionId,nodeEngine,cacheService);
+  this.serializationService=nodeEngine.getSerializationService();
+  if (cacheConfig.getCacheLoaderFactory() != null) {
+    final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
+    cacheLoader=cacheLoaderFactory.create();
+  }
+  if (cacheConfig.getCacheWriterFactory() != null) {
+    final Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
+    cacheWriter=cacheWriterFactory.create();
+  }
+  this.records=createRecordCacheMap();
+  this.cacheRecordFactory=createCacheRecordFactory();
+  this.evictionTaskFuture=nodeEngine.getExecutionService().scheduleWithFixedDelay("hz:cache",new EvictionTask(),DEFAULT_EVICTION_TASK_INITIAL_DELAY,DEFAULT_EVICTION_TASK_PERIOD,TimeUnit.SECONDS);
 }
