@@ -2,7 +2,8 @@
   if (!initialized) {
     return true;
   }
-  if (getMemberGroupsSize() < 2) {
+  int memberGroupsSize=getMemberGroupsSize();
+  if (memberGroupsSize < 2) {
     return true;
   }
   final Address thisAddress=node.getThisAddress();
@@ -20,11 +21,11 @@
     }
   }
 ;
-  int notOwnedCount=syncReplicaVersion(thisAddress,s,ok,callback);
-  s.release(notOwnedCount);
+  int ownedCount=submitSyncReplicaOperations(thisAddress,s,ok,callback);
   try {
     if (ok.get()) {
-      return s.tryAcquire(partitionCount,REPLICA_SYNC_CHECK_TIMEOUT_SECONDS,TimeUnit.SECONDS) && ok.get();
+      int permits=ownedCount * (memberGroupsSize - 1);
+      return s.tryAcquire(permits,REPLICA_SYNC_CHECK_TIMEOUT_SECONDS,TimeUnit.SECONDS) && ok.get();
     }
  else {
       return false;

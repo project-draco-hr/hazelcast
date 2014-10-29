@@ -1,11 +1,15 @@
 {
-  int partitionId=syncInfo.partitionId;
-  int replicaIndex=syncInfo.replicaIndex;
-  replicaSyncScheduler.cancel(syncInfo);
-  if (logger.isFinestEnabled()) {
-    logger.finest("Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
+  if (startReplicaSyncProcess()) {
+    int partitionId=syncInfo.partitionId;
+    int replicaIndex=syncInfo.replicaIndex;
+    replicaSyncScheduler.cancel(partitionId);
+    if (logger.isFinestEnabled()) {
+      logger.finest("Sending sync replica request to -> " + target + "; for partition: "+ partitionId+ ", replica: "+ replicaIndex);
+    }
+    replicaSyncScheduler.schedule(partitionMigrationTimeout,partitionId,syncInfo);
+    ReplicaSyncRequest syncRequest=new ReplicaSyncRequest(partitionId,replicaIndex);
+    nodeEngine.getOperationService().send(syncRequest,target);
+    return true;
   }
-  replicaSyncScheduler.schedule(backupSyncCheckInterval,syncInfo,DUMMY_VALUE);
-  ReplicaSyncRequest syncRequest=new ReplicaSyncRequest(partitionId,replicaIndex);
-  nodeEngine.getOperationService().send(syncRequest,target);
+  return false;
 }
