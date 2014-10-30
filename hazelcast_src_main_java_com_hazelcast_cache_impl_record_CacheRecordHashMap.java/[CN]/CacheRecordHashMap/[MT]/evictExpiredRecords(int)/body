@@ -1,0 +1,31 @@
+{
+  long now=Clock.currentTimeMillis();
+  int sizeLimitForEviction=(int)((double)(size() * percentage) / (double)ICacheRecordStore.ONE_HUNDRED_PERCENT);
+  if (sizeLimitForEviction < MIN_EVICTION_ELEMENT_COUNT) {
+    return 0;
+  }
+  List<Map.Entry<K,Expirable>> expiredEntries=new ArrayList<Map.Entry<K,Expirable>>(sizeLimitForEviction);
+  int expiredCount=0;
+  for (  Map.Entry<K,V> entry : entrySet()) {
+    K key=entry.getKey();
+    V value=entry.getValue();
+    final boolean isExpired=(value instanceof Expirable) && ((Expirable)value).isExpiredAt(now);
+    if (!isExpired) {
+      expiredEntries.add((Map.Entry<K,Expirable>)entry);
+    }
+    if (++expiredCount >= sizeLimitForEviction) {
+      break;
+    }
+  }
+  int actualExpiredCount=0;
+  for (  Map.Entry<K,Expirable> entry : expiredEntries) {
+    Expirable expirableValue=entry.getValue();
+    if (expirableValue instanceof Data) {
+      callbackEvictionListeners((Data)expirableValue);
+    }
+    if (remove(entry.getKey()) != null) {
+      actualExpiredCount++;
+    }
+  }
+  return actualExpiredCount;
+}

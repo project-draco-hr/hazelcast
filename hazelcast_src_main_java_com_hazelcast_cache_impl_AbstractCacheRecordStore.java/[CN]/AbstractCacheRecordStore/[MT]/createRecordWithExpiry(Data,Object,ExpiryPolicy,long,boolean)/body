@@ -1,0 +1,20 @@
+{
+  expiryPolicy=getExpiryPolicy(expiryPolicy);
+  Duration expiryDuration;
+  try {
+    expiryDuration=expiryPolicy.getExpiryForCreation();
+  }
+ catch (  Exception e) {
+    expiryDuration=Duration.ETERNAL;
+  }
+  long expiryTime=expiryDuration.getAdjustedTime(now);
+  if (!disableWriteThrough) {
+    writeThroughCache(key,value);
+  }
+  if (!isExpiredAt(expiryTime,now)) {
+    R record=createRecord(key,value,expiryTime);
+    records.put(key,record);
+    return record;
+  }
+  return null;
+}

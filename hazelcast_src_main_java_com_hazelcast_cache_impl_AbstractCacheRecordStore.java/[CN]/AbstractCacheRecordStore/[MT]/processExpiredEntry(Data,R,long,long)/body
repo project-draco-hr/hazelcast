@@ -1,0 +1,28 @@
+{
+  final boolean isExpired=isExpiredAt(expiryTime,now);
+  if (!isExpired) {
+    return record;
+  }
+  if (isStatisticsEnabled()) {
+    statistics.increaseCacheExpiries(1);
+  }
+  records.remove(key);
+  if (isEventsEnabled) {
+    final Data dataValue;
+switch (cacheConfig.getInMemoryFormat()) {
+case BINARY:
+      dataValue=toEventData(record);
+    break;
+case OBJECT:
+  dataValue=toEventData(record);
+break;
+case OFFHEAP:
+dataValue=toEventData(record);
+break;
+default :
+throw new IllegalArgumentException("Invalid storage format: " + cacheConfig.getInMemoryFormat());
+}
+publishEvent(name,CacheEventType.EXPIRED,key,null,dataValue,false);
+}
+return null;
+}
