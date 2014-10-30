@@ -2,7 +2,9 @@
   ensureOpen();
   validateNotNull(key);
   final Data k=serializationService.toData(key);
-  final Operation op=new CacheContainsKeyOperation(getDistributedObjectName(),k);
-  final InternalCompletableFuture<Boolean> f=getNodeEngine().getOperationService().invokeOnPartition(getServiceName(),op,getPartitionId(getNodeEngine(),k));
+  Operation operation=operationProvider.createContainsKeyOperation(k);
+  OperationService operationService=getNodeEngine().getOperationService();
+  int partitionId=getPartitionId(getNodeEngine(),k);
+  InternalCompletableFuture<Boolean> f=operationService.invokeOnPartition(getServiceName(),operation,partitionId);
   return f.getSafely();
 }

@@ -1,0 +1,31 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final Set<Data> localKeys=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
+  try {
+    deleteAllCacheEntry(localKeys);
+  }
+  finally {
+    final Set<Data> keysToClean=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
+    for (    Data key : keysToClean) {
+      isEventBatchingEnabled=true;
+      final R record=records.get(key);
+      if (localKeys.contains(key) && record != null) {
+        final boolean isExpired=processExpiredEntry(key,record,now);
+        if (!isExpired) {
+          deleteRecord(key);
+          if (isStatisticsEnabled()) {
+            statistics.increaseCacheRemovals(1);
+          }
+        }
+        keys.add(key);
+      }
+ else {
+        keys.remove(key);
+      }
+      isEventBatchingEnabled=false;
+      hasExpiringEntry=false;
+      int orderKey=keys.hashCode();
+      publishBatchedEvents(name,CacheEventType.REMOVED,orderKey);
+    }
+  }
+}
