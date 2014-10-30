@@ -1,0 +1,12 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  PartitionService partitionService=hz1.getPartitionService();
+  MigrationListener listener=mock(MigrationListener.class);
+  String id=partitionService.addMigrationListener(listener);
+  boolean removed=partitionService.removeMigrationListener(id);
+  assertTrue(removed);
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  warmUpPartitions(hz1,hz2);
+  verify(listener,never()).migrationStarted(any(MigrationEvent.class));
+}

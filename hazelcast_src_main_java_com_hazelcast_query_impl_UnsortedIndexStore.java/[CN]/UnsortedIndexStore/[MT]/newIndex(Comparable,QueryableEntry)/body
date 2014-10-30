@@ -1,12 +1,19 @@
 {
-  Data indexKey=record.getIndexKey();
-  ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(newValue);
-  if (records == null) {
-    records=new ConcurrentHashMap<Data,QueryableEntry>();
-    ConcurrentMap<Data,QueryableEntry> existing=mapRecords.putIfAbsent(newValue,records);
-    if (existing != null) {
-      records=existing;
+  takeWriteLock();
+  try {
+    if (newValue instanceof IndexImpl.NullObject) {
+      recordsWithNullValue.put(record.getIndexKey(),record);
+    }
+ else {
+      ConcurrentMap<Data,QueryableEntry> records=recordMap.get(newValue);
+      if (records == null) {
+        records=new ConcurrentHashMap<Data,QueryableEntry>(1,LOAD_FACTOR,1);
+        recordMap.put(newValue,records);
+      }
+      records.put(record.getIndexKey(),record);
     }
   }
-  records.put(indexKey,record);
+  finally {
+    releaseWriteLock();
+  }
 }

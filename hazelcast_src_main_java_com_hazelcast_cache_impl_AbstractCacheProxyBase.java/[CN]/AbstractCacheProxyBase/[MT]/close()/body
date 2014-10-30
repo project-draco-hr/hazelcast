@@ -2,15 +2,22 @@
   if (!isClosed.compareAndSet(false,true)) {
     return;
   }
+  Exception caughtException=null;
   for (  Future f : loadAllTasks) {
     try {
       f.get(TIMEOUT,TimeUnit.SECONDS);
     }
  catch (    Exception e) {
-      throw new CacheException(e);
+      if (caughtException == null) {
+        caughtException=e;
+      }
+      getNodeEngine().getLogger(getClass()).warning("Problem while waiting for loadAll tasks to complete",e);
     }
   }
   loadAllTasks.clear();
   closeCacheLoader();
   closeListeners();
+  if (caughtException != null) {
+    throw new CacheException("Problem while waiting for loadAll tasks to complete",caughtException);
+  }
 }

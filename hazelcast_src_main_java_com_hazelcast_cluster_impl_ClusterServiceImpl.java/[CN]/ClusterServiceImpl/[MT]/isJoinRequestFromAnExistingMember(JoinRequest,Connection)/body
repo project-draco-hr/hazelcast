@@ -10,7 +10,9 @@
         String message="Ignoring join request, member already exists.. => " + joinRequest;
         logger.finest(message);
       }
-      Operation op=new MemberInfoUpdateOperation(createMemberInfos(getMemberList(),true),getClusterTime(),false);
+      final Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
+      final PostJoinOperation postJoinOp=postJoinOps != null && postJoinOps.length > 0 ? new PostJoinOperation(postJoinOps) : null;
+      Operation op=new FinalizeJoinOperation(createMemberInfos(getMemberList()),postJoinOp,getClusterTime(),false);
       nodeEngine.getOperationService().send(op,target);
     }
  else {

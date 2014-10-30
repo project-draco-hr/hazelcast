@@ -3,19 +3,10 @@
   record.setLastAccessTime(now);
   record.setLastUpdateTime(now);
   record.setCreationTime(now);
-  final long configTTLSeconds=mapConfig.getTimeToLiveSeconds();
-  final long configTTLMillis=mapServiceContext.convertTime(configTTLSeconds,TimeUnit.SECONDS);
-  if (ttl < 0L && configTTLMillis > 0L) {
-    record.setTtl(configTTLMillis);
-  }
- else   if (ttl > 0L) {
-    record.setTtl(ttl);
-  }
-  final RecordStatistics statistics=record.getStatistics();
-  if (statistics != null) {
-    final long ttlOnRecord=record.getTtl();
-    final long expirationTime=mapServiceContext.getExpirationTime(ttlOnRecord,now);
-    statistics.setExpirationTime(expirationTime);
-  }
+  final long ttlMillisFromConfig=getTtlMillisFromConfig();
+  final long ttl=pickTTL(ttlMillis,ttlMillisFromConfig);
+  record.setTtl(ttl);
+  final long maxIdleMillis=getMaxIdleMillis();
+  setExpirationTime(record,maxIdleMillis);
   return record;
 }

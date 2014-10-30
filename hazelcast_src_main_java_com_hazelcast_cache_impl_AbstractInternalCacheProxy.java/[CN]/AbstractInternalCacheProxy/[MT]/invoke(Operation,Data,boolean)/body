@@ -1,0 +1,28 @@
+{
+  Integer completionId=null;
+  if (completionOperation) {
+    completionId=registerCompletionLatch(1);
+    if (op instanceof AbstractMutatingCacheOperation) {
+      ((AbstractMutatingCacheOperation)op).setCompletionId(completionId);
+    }
+  }
+  try {
+    final int partitionId=getPartitionId(getNodeEngine(),keyData);
+    final InternalCompletableFuture<T> f=getNodeEngine().getOperationService().invokeOnPartition(getServiceName(),op,partitionId);
+    if (completionOperation) {
+      waitCompletionLatch(completionId);
+    }
+    return f;
+  }
+ catch (  Throwable e) {
+    if (e instanceof IllegalStateException) {
+      close();
+    }
+    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
+  }
+ finally {
+    if (completionOperation) {
+      deregisterCompletionLatch(completionId);
+    }
+  }
+}
