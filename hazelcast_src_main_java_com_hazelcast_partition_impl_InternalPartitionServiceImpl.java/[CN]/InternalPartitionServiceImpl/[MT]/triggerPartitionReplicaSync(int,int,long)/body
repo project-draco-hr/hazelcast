@@ -2,30 +2,28 @@
   if (replicaIndex < 0 || replicaIndex > InternalPartition.MAX_REPLICA_COUNT) {
     throw new IllegalArgumentException("Invalid replica index: " + replicaIndex);
   }
-  final InternalPartitionImpl partitionImpl=getPartitionImpl(partitionId);
-  final Address target=partitionImpl.getOwnerOrNull();
-  if (target == null) {
-    logger.info("Sync replica target is null, no need to sync -> partition: " + partitionId + ", replica: "+ replicaIndex);
+  if (!checkSyncPartitionTarget(partitionId,replicaIndex)) {
     return;
   }
-  if (!checkSyncPartitionTarget(partitionId,replicaIndex,target)) {
-    return;
-  }
+  InternalPartitionImpl partition=getPartitionImpl(partitionId);
+  Address target=partition.getOwnerOrNull();
   ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,replicaIndex,target);
-  if (delayMillis <= 0) {
-    if (replicaSyncRequests.compareAndSet(partitionId,null,syncInfo)) {
-      if (startReplicaSyncProcess()) {
-        fireSyncReplicaRequest(syncInfo,target);
-      }
- else {
-        schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
-      }
-    }
- else {
-      schedulePartitionReplicaSync(syncInfo,target,DEFAULT_REPLICA_SYNC_DELAY);
-    }
-  }
- else {
+  if (delayMillis > 0) {
     schedulePartitionReplicaSync(syncInfo,target,delayMillis);
+    return;
   }
+  if (!isMigrationActive()) {
+    schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
+    return;
+  }
+  if (replicaSyncRequests.compareAndSet(partitionId,null,syncInfo)) {
+    if (fireSyncReplicaRequest(syncInfo,target)) {
+      return;
+    }
+    replicaSyncRequests.set(partitionId,null);
+    schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
+    return;
+  }
+  long scheduleDelay=getReplicaSyncScheduleDelay(partitionId);
+  schedulePartitionReplicaSync(syncInfo,target,scheduleDelay);
 }
