@@ -1,6 +1,24 @@
 {
-  if (hazelcastInstance == null) {
-    hazelcastInstance=initHazelcast();
+  final HazelcastInstance instance;
+  if (uri == null || uri.equals(getDefaultURI()) || !(HAZELCAST_CONFIG_URI_SCHEMA.equals(uri.getScheme()) || HAZELCAST_NAME_URI_SCHEMA.equals(uri.getScheme()))) {
+    if (hazelcastInstance == null) {
+      hazelcastInstance=initHazelcast();
+    }
+    instance=hazelcastInstance;
   }
-  return new HazelcastServerCacheManager(this,hazelcastInstance,uri,classLoader,managerProperties);
+ else   if (HAZELCAST_NAME_URI_SCHEMA.equals(uri.getScheme())) {
+    instance=Hazelcast.getHazelcastInstanceByName(uri.getRawSchemeSpecificPart());
+  }
+ else {
+    final String rawURLStr=uri.getRawSchemeSpecificPart();
+    try {
+      URL configURL=new URL(rawURLStr);
+      final Config config=new XmlConfigBuilder(configURL).build();
+      instance=Hazelcast.newHazelcastInstance(config);
+    }
+ catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+  return new HazelcastServerCacheManager(this,instance,uri,classLoader,properties);
 }
