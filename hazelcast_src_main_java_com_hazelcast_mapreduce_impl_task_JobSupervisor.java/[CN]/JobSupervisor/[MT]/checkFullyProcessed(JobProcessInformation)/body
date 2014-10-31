@@ -10,6 +10,11 @@
     String jobId=configuration.getJobId();
     NodeEngine nodeEngine=configuration.getNodeEngine();
     GetResultOperationFactory operationFactory=new GetResultOperationFactory(name,jobId);
+    TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
+    if (future == null) {
+      return;
+    }
+    Object finalResult=null;
     try {
       List<Map> results=MapReduceUtil.executeOperation(operationFactory,mapReduceService,nodeEngine,true);
       boolean reducedResult=configuration.getReducerFactory() != null;
@@ -20,19 +25,17 @@
             collectResults(reducedResult,mergedResults,entry);
           }
         }
-        TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
-        jobTracker.unregisterMapCombineTask(jobId);
-        jobTracker.unregisterReducerTask(jobId);
-        mapReduceService.destroyJobSupervisor(this);
-        future.setResult(mergedResults);
+        finalResult=mergedResults;
       }
     }
  catch (    Exception e) {
-      TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
+      finalResult=e;
+    }
+ finally {
       jobTracker.unregisterMapCombineTask(jobId);
       jobTracker.unregisterReducerTask(jobId);
       mapReduceService.destroyJobSupervisor(this);
-      future.setResult(e);
+      future.setResult(finalResult);
     }
   }
 }
