@@ -1,5 +1,22 @@
 {
   final CacheService service=getService();
   final CacheConfig cacheConfig=service.getCacheConfig(name);
+  if (cacheConfig == null) {
+    CacheSimpleConfig simpleConfig=service.findCacheConfig(simpleName);
+    if (simpleConfig != null) {
+      try {
+        CacheConfig cacheConfigFromSimpleConfig=new CacheConfig(simpleConfig);
+        cacheConfigFromSimpleConfig.setName(name);
+        cacheConfigFromSimpleConfig.setManagerPrefix(name.substring(0,name.lastIndexOf(simpleName)));
+        if (service.createCacheConfigIfAbsent(cacheConfigFromSimpleConfig,false)) {
+          response=cacheConfigFromSimpleConfig;
+          return;
+        }
+      }
+ catch (      Exception e) {
+        throw new CacheException(e);
+      }
+    }
+  }
   response=cacheConfig;
 }

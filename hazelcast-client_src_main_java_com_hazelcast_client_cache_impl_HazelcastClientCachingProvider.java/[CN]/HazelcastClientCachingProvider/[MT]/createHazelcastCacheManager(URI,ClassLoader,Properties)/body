@@ -1,19 +1,23 @@
 {
   final HazelcastInstance instance;
-  if (getDefaultURI().equals(uri) || uri == null) {
+  if (uri == null || uri.equals(getDefaultURI())) {
     if (hazelcastInstance == null) {
-      initHazelcast();
+      try {
+        hazelcastInstance=instanceFromProperties(classLoader,properties,true);
+      }
+ catch (      Exception e) {
+        throw ExceptionUtil.rethrow(e);
+      }
     }
     instance=hazelcastInstance;
   }
  else {
     try {
-      final ClientConfig clientConfig=new XmlClientConfigBuilder(uri.toURL()).build();
-      instance=HazelcastClient.newHazelcastClient(clientConfig);
+      instance=instanceFromProperties(classLoader,properties,false);
     }
  catch (    Exception e) {
       throw ExceptionUtil.rethrow(e);
     }
   }
-  return new HazelcastClientCacheManager(this,instance,uri,classLoader,managerProperties);
+  return new HazelcastClientCacheManager(this,instance,uri,classLoader,properties);
 }
