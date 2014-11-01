@@ -1,3 +1,27 @@
 {
-  this(name,partitionId,nodeEngine,cacheService,null,DEFAULT_EVICTION_PERCENTAGE,DEFAULT_EVICTION_THRESHOLD_PERCENTAGE,DEFAULT_IS_EVICTION_TASK_ENABLE);
+  this.name=name;
+  this.partitionId=partitionId;
+  this.nodeEngine=nodeEngine;
+  this.cacheService=cacheService;
+  this.cacheConfig=cacheService.getCacheConfig(name);
+  if (cacheConfig == null) {
+    throw new CacheNotExistsException("Cache already destroyed, node " + nodeEngine.getLocalMember());
+  }
+  if (cacheConfig.getCacheLoaderFactory() != null) {
+    final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
+    cacheLoader=cacheLoaderFactory.create();
+  }
+  if (cacheConfig.getCacheWriterFactory() != null) {
+    final Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
+    cacheWriter=cacheWriterFactory.create();
+  }
+  if (cacheConfig.isStatisticsEnabled()) {
+    this.statistics=cacheService.createCacheStatIfAbsent(name);
+  }
+  Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
+  this.defaultExpiryPolicy=expiryPolicyFactory.create();
+  this.evictionPolicy=cacheConfig.getEvictionPolicy() != null ? cacheConfig.getEvictionPolicy() : EvictionPolicy.NONE;
+  this.evictionEnabled=evictionPolicy != EvictionPolicy.NONE;
+  this.evictionPercentage=cacheConfig.getEvictionPercentage();
+  this.evictionThresholdPercentage=cacheConfig.getEvictionThresholdPercentage();
 }
