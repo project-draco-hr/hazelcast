@@ -1,0 +1,18 @@
+{
+  BeanDefinitionBuilder cacheConfigBuilder=createBeanBuilder(CacheSimpleConfig.class);
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  fillAttributeValues(node,cacheConfigBuilder);
+  for (  org.w3c.dom.Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    if ("cache-entry-listeners".equals(cleanNodeName(childNode))) {
+      ManagedList listeners=new ManagedList();
+      for (      Node listenerNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
+        final BeanDefinitionBuilder listenerConfBuilder=createBeanBuilder(CacheSimpleEntryListenerConfig.class);
+        fillAttributeValues(listenerNode,listenerConfBuilder);
+        listeners.add(listenerConfBuilder.getBeanDefinition());
+      }
+      cacheConfigBuilder.addPropertyValue("cacheEntryListeners",listeners);
+    }
+  }
+  cacheConfigManagedMap.put(name,cacheConfigBuilder.getBeanDefinition());
+}
