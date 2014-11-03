@@ -2,5 +2,11 @@
   if (InMemoryFormat.NATIVE.equals(inMemoryFormat)) {
     throw new IllegalArgumentException("Native memory is available only in Enterprise!");
   }
-  return new DefaultOperationProvider(nameWithPrefix);
+  CacheOperationProvider cacheOperationProvider=operationProviderCache.get(nameWithPrefix);
+  if (cacheOperationProvider != null) {
+    return cacheOperationProvider;
+  }
+  cacheOperationProvider=new DefaultOperationProvider(nameWithPrefix);
+  CacheOperationProvider current=operationProviderCache.putIfAbsent(nameWithPrefix,cacheOperationProvider);
+  return current == null ? cacheOperationProvider : current;
 }

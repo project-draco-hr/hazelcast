@@ -10,19 +10,17 @@
   }
   final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
   final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
-  final boolean created=createConfigOnPartition(newCacheConfig);
-  if (created) {
+  CacheConfig<K,V> current=createConfigOnPartition(newCacheConfig);
+  if (current == null) {
     addCacheConfigIfAbsentToLocal(newCacheConfig);
     caches.put(newCacheConfig.getNameWithPrefix(),cacheProxy);
     registerListeners(newCacheConfig,cacheProxy);
     return cacheProxy;
   }
- else {
-    ICache<?,?> cache=getCacheUnchecked(cacheName);
-    CacheConfig cacheConfig=cache.getConfiguration(CacheConfig.class);
-    if (cacheConfig.equals(configuration)) {
-      return (ICache<K,V>)cache;
-    }
+  ICache<?,?> cache=getOrPutIfAbsent(current.getNameWithPrefix(),cacheProxy);
+  CacheConfig config=cache.getConfiguration(CacheConfig.class);
+  if (config.equals(configuration)) {
+    return (ICache<K,V>)cache;
   }
   throw new CacheException("A cache named " + cacheName + " already exists.");
 }
