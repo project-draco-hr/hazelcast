@@ -1,14 +1,11 @@
 {
-  if (isClosed()) {
-    throw new IllegalStateException();
-  }
-  if (cacheName == null) {
-    throw new NullPointerException("cacheName must not be null");
-  }
-  if (configuration == null) {
-    throw new NullPointerException("configuration must not be null");
-  }
+  checkIfManagerNotClosed();
+  checkIfNotNull(cacheName,"cacheName must not be null");
+  checkIfNotNull(configuration,"configuration must not be null");
   final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
+  if (caches.containsKey(newCacheConfig.getNameWithPrefix())) {
+    throw new CacheException("A cache named " + cacheName + " already exists.");
+  }
   final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
   CacheConfig<K,V> current=createConfigOnPartition(newCacheConfig);
   if (current == null) {
@@ -19,7 +16,7 @@
   }
   ICache<?,?> cache=getOrPutIfAbsent(current.getNameWithPrefix(),cacheProxy);
   CacheConfig config=cache.getConfiguration(CacheConfig.class);
-  if (config.equals(configuration)) {
+  if (config.equals(newCacheConfig)) {
     return (ICache<K,V>)cache;
   }
   throw new CacheException("A cache named " + cacheName + " already exists.");
