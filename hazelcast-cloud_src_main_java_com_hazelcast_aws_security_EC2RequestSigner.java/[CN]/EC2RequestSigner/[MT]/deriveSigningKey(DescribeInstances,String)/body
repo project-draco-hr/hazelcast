@@ -1,0 +1,29 @@
+{
+  final String dateStamp=request.getAttributes().get("Datestamp");
+  try {
+    final String key="AWS4" + signKey;
+    final Mac mDate=Mac.getInstance("HmacSHA256");
+    final SecretKeySpec skDate=new SecretKeySpec(key.getBytes(),"HmacSHA256");
+    mDate.init(skDate);
+    final byte[] kDate=mDate.doFinal(dateStamp.getBytes());
+    final Mac mRegion=Mac.getInstance("HmacSHA256");
+    final SecretKeySpec skRegion=new SecretKeySpec(kDate,"HmacSHA256");
+    mRegion.init(skRegion);
+    final byte[] kRegion=mRegion.doFinal(request.getAttributes().get("Region").getBytes());
+    final Mac mService=Mac.getInstance("HmacSHA256");
+    final SecretKeySpec skService=new SecretKeySpec(kRegion,"HmacSHA256");
+    mService.init(skService);
+    final byte[] kService=mService.doFinal(request.getAttributes().get("Service").getBytes());
+    final Mac mSigning=Mac.getInstance("HmacSHA256");
+    final SecretKeySpec skSigning=new SecretKeySpec(kService,"HmacSHA256");
+    mSigning.init(skSigning);
+    final byte[] kSigning=mSigning.doFinal("aws4_request".getBytes());
+    return kSigning;
+  }
+ catch (  NoSuchAlgorithmException e) {
+    return null;
+  }
+catch (  InvalidKeyException e) {
+    return null;
+  }
+}
