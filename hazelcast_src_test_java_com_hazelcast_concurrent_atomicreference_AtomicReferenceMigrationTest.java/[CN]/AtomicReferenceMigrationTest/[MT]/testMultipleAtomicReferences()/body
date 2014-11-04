@@ -1,0 +1,21 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance instance1=factory.newHazelcastInstance();
+  SimpleObject object=new SimpleObject(1);
+  for (int i=0; i < 100; i++) {
+    IAtomicReference<SimpleObject> reference=instance1.getAtomicReference("test" + i);
+    reference.set(object);
+  }
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  warmUpPartitions(instance1,instance2);
+  for (int i=0; i < 100; i++) {
+    IAtomicReference<SimpleObject> reference=instance2.getAtomicReference("test" + i);
+    assertEquals(object,reference.get());
+  }
+  HazelcastInstance instance3=factory.newHazelcastInstance();
+  warmUpPartitions(instance1,instance2,instance3);
+  for (int i=0; i < 100; i++) {
+    IAtomicReference<SimpleObject> reference=instance3.getAtomicReference("test" + i);
+    assertEquals(object,reference.get());
+  }
+}
