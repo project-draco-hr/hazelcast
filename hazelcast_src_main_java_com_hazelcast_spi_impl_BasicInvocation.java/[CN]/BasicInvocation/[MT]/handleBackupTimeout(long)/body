@@ -1,0 +1,18 @@
+{
+  if (backupsExpected == backupsCompleted) {
+    return;
+  }
+  boolean expired=startTimeMillis + timeoutMillis < System.currentTimeMillis();
+  if (!expired) {
+    return;
+  }
+  boolean targetNotExist=nodeEngine.getClusterService().getMember(invTarget) == null;
+  if (targetNotExist) {
+    resetAndReInvoke();
+    return;
+  }
+  final Response pendingResponse=this.pendingResponse;
+  if (pendingResponse != null) {
+    invocationFuture.set(pendingResponse);
+  }
+}
