@@ -1,33 +1,12 @@
 {
   InetSocketAddress remoteSocketAddress=(InetSocketAddress)channel.socket().getRemoteSocketAddress();
   String remoteHost=remoteSocketAddress.getHostName();
-  Integer index;
-  if (selectorImbalancWorkaroundEnabled) {
-synchronized (selectorIndexPerHostMap) {
-      index=selectorIndexPerHostMap.get(remoteHost);
-      if (index == null) {
-        index=nextSelectorIndex();
-        selectorIndexPerHostMap.put(remoteHost,index);
-        logger.info(remoteHost + " no selector index found, retrieving a new one: " + index);
-      }
- else {
-        logger.info(remoteHost + " selector index found: " + index);
-      }
-    }
-  }
- else {
-    index=nextSelectorIndex();
-  }
+  int index=getSelectorIndex(remoteHost);
   final TcpIpConnection connection=new TcpIpConnection(this,inSelectors[index],outSelectors[index],connectionIdGen.incrementAndGet(),channel);
   connection.setEndPoint(endpoint);
   activeConnections.add(connection);
   acceptedSockets.remove(channel);
   connection.getReadHandler().register();
-  if (selectorImbalancWorkaroundEnabled) {
-    log(Level.INFO,"Established socket connection between " + channel.socket().getLocalSocketAddress() + " and "+ remoteSocketAddress+ " using selectorIndex: "+ index+ " connectionCount: "+ activeConnections.size());
-  }
- else {
-    log(Level.INFO,"Established socket connection between " + channel.socket().getLocalSocketAddress() + " and "+ remoteSocketAddress);
-  }
+  logConnectionEstablished(channel,remoteSocketAddress,index);
   return connection;
 }
