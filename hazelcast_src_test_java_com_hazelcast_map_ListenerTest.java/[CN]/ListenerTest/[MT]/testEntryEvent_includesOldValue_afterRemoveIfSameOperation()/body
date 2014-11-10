@@ -1,0 +1,22 @@
+{
+  final String mapName=randomMapName();
+  final HazelcastInstance node=createHazelcastInstance();
+  final IMap<String,String> map=node.getMap(mapName);
+  final CountDownLatch latch=new CountDownLatch(1);
+  final String key="key";
+  final String value="value";
+  final ConcurrentMap<String,String> resultHolder=new ConcurrentHashMap<String,String>(1);
+  map.addEntryListener(new EntryAdapter<String,String>(){
+    public void entryRemoved(    EntryEvent<String,String> event){
+      final String oldValue=event.getOldValue();
+      resultHolder.put(key,oldValue);
+      latch.countDown();
+    }
+  }
+,true);
+  map.put(key,value);
+  map.remove(key,value);
+  assertOpenEventually(latch);
+  final String oldValueFromEntryEvent=resultHolder.get(key);
+  assertEquals(value,oldValueFromEntryEvent);
+}
