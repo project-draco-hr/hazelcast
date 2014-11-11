@@ -1,26 +1,18 @@
 {
-  final int partitionCount=getNodeEngine().getPartitionService().getPartitionCount();
-  final Integer completionId=registerCompletionLatch(partitionCount);
   final OperationService operationService=getNodeEngine().getOperationService();
-  OperationFactory operationFactory=operationProvider.createClearOperationFactory(completionId);
+  OperationFactory operationFactory=operationProvider.createClearOperationFactory();
   try {
     final Map<Integer,Object> results=operationService.invokeOnAllPartitions(getServiceName(),operationFactory);
-    int completionCount=0;
     for (    Object result : results.values()) {
       if (result != null && result instanceof CacheClearResponse) {
         final Object response=((CacheClearResponse)result).getResponse();
-        if (response instanceof Boolean) {
-          completionCount++;
-        }
         if (response instanceof Throwable) {
           throw (Throwable)response;
         }
       }
     }
-    waitCompletionLatch(completionId,partitionCount - completionCount);
   }
  catch (  Throwable t) {
-    deregisterCompletionLatch(completionId);
     throw ExceptionUtil.rethrowAllowedTypeFirst(t,CacheException.class);
   }
 }
