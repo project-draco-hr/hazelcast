@@ -4,20 +4,26 @@
   deleteCacheEntry(key);
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
-  boolean result=true;
-  if (record == null || isExpired) {
-    result=false;
-  }
+  boolean removed=false;
+  try {
+    if (record == null || isExpired) {
+      removed=false;
+    }
  else {
-    deleteRecord(key);
+      removed=deleteRecord(key);
+    }
+    onRemove(key,null,caller,false,record,removed);
+    if (records.size() == 0) {
+      hasExpiringEntry=false;
+    }
+    if (removed && isStatisticsEnabled()) {
+      statistics.increaseCacheRemovals(1);
+      statistics.addRemoveTimeNanos(System.nanoTime() - start);
+    }
+    return removed;
   }
-  onRemove(key,null,caller,false,record,result);
-  if (records.size() == 0) {
-    hasExpiringEntry=false;
+ catch (  Throwable error) {
+    onRemoveError(key,null,caller,false,record,removed,error);
+    throw ExceptionUtil.rethrow(error);
   }
-  if (result && isStatisticsEnabled()) {
-    statistics.increaseCacheRemovals(1);
-    statistics.addRemoveTimeNanos(System.nanoTime() - start);
-  }
-  return result;
 }

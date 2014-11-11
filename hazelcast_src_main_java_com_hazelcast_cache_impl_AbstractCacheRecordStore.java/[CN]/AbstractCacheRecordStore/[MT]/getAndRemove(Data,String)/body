@@ -5,29 +5,35 @@
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   final Object obj;
-  boolean result;
-  if (record == null || isExpired) {
-    obj=null;
-    result=false;
-  }
- else {
-    obj=toValue(record);
-    result=deleteRecord(key);
-  }
-  onRemove(key,null,caller,false,record,result);
-  if (records.size() == 0) {
-    hasExpiringEntry=false;
-  }
-  if (isStatisticsEnabled()) {
-    statistics.addGetTimeNanos(System.nanoTime() - start);
-    if (obj != null) {
-      statistics.increaseCacheHits(1);
-      statistics.increaseCacheRemovals(1);
-      statistics.addRemoveTimeNanos(System.nanoTime() - start);
+  boolean removed=false;
+  try {
+    if (record == null || isExpired) {
+      obj=null;
+      removed=false;
     }
  else {
-      statistics.increaseCacheMisses(1);
+      obj=toValue(record);
+      removed=deleteRecord(key);
     }
+    onRemove(key,null,caller,false,record,removed);
+    if (records.size() == 0) {
+      hasExpiringEntry=false;
+    }
+    if (isStatisticsEnabled()) {
+      statistics.addGetTimeNanos(System.nanoTime() - start);
+      if (obj != null) {
+        statistics.increaseCacheHits(1);
+        statistics.increaseCacheRemovals(1);
+        statistics.addRemoveTimeNanos(System.nanoTime() - start);
+      }
+ else {
+        statistics.increaseCacheMisses(1);
+      }
+    }
+    return obj;
   }
-  return obj;
+ catch (  Throwable error) {
+    onRemoveError(key,null,caller,false,record,removed,error);
+    throw ExceptionUtil.rethrow(error);
+  }
 }

@@ -4,38 +4,44 @@
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   int hitCount=0;
-  boolean result=true;
-  if (record == null || isExpired) {
-    if (isStatisticsEnabled()) {
-      statistics.increaseCacheMisses(1);
-    }
-    result=false;
-  }
- else {
-    hitCount++;
-    if (compare(toValue(record),toValue(value))) {
-      deleteCacheEntry(key);
-      deleteRecord(key);
+  boolean removed=false;
+  try {
+    if (record == null || isExpired) {
+      if (isStatisticsEnabled()) {
+        statistics.increaseCacheMisses(1);
+      }
+      removed=false;
     }
  else {
-      long expiryTime=onRecordAccess(record,defaultExpiryPolicy,now);
-      processExpiredEntry(key,record,expiryTime,now);
-      result=false;
-    }
-  }
-  onRemove(key,value,caller,false,record,result);
-  if (records.size() == 0) {
-    hasExpiringEntry=false;
-  }
-  if (result && isStatisticsEnabled()) {
-    statistics.increaseCacheRemovals(1);
-    statistics.addRemoveTimeNanos(System.nanoTime() - start);
-    if (hitCount == 1) {
-      statistics.increaseCacheHits(hitCount);
-    }
+      hitCount++;
+      if (compare(toValue(record),toValue(value))) {
+        deleteCacheEntry(key);
+        removed=deleteRecord(key);
+      }
  else {
-      statistics.increaseCacheMisses(1);
+        long expiryTime=onRecordAccess(record,defaultExpiryPolicy,now);
+        processExpiredEntry(key,record,expiryTime,now);
+        removed=false;
+      }
     }
+    onRemove(key,value,caller,false,record,removed);
+    if (records.size() == 0) {
+      hasExpiringEntry=false;
+    }
+    if (removed && isStatisticsEnabled()) {
+      statistics.increaseCacheRemovals(1);
+      statistics.addRemoveTimeNanos(System.nanoTime() - start);
+      if (hitCount == 1) {
+        statistics.increaseCacheHits(hitCount);
+      }
+ else {
+        statistics.increaseCacheMisses(1);
+      }
+    }
+    return removed;
   }
-  return result;
+ catch (  Throwable error) {
+    onRemoveError(key,null,caller,false,record,removed,error);
+    throw ExceptionUtil.rethrow(error);
+  }
 }

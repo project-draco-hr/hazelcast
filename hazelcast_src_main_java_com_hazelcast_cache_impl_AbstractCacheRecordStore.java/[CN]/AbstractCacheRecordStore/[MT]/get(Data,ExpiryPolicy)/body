@@ -1,27 +1,32 @@
 {
   expiryPolicy=getExpiryPolicy(expiryPolicy);
   long now=Clock.currentTimeMillis();
-  Object value;
+  Object value=null;
   R record=records.get(key);
   final boolean isExpired=processExpiredEntry(key,record,now);
-  if (record == null || isExpired) {
-    if (isStatisticsEnabled()) {
-      statistics.increaseCacheMisses(1);
+  try {
+    if (record == null || isExpired) {
+      if (isStatisticsEnabled()) {
+        statistics.increaseCacheMisses(1);
+      }
+      value=readThroughCache(key);
+      if (value == null) {
+        return null;
+      }
+      record=createRecordWithExpiry(key,value,expiryPolicy,now,true);
     }
-    value=readThroughCache(key);
-    if (value == null) {
-      return null;
-    }
-    createRecordWithExpiry(key,value,expiryPolicy,now,true);
-    return value;
-  }
  else {
-    value=recordToValue(record);
-    onRecordAccess(record,expiryPolicy,now);
-    if (isStatisticsEnabled()) {
-      statistics.increaseCacheHits(1);
+      value=recordToValue(record);
+      onRecordAccess(record,expiryPolicy,now);
+      if (isStatisticsEnabled()) {
+        statistics.increaseCacheHits(1);
+      }
     }
     onGet(key,expiryPolicy,value,record);
     return value;
+  }
+ catch (  Throwable error) {
+    onGetError(key,expiryPolicy,value,record,error);
+    throw ExceptionUtil.rethrow(error);
   }
 }
