@@ -2,12 +2,16 @@
   if (backupsExpected == backupsCompleted) {
     return;
   }
-  boolean expired=startTimeMillis + timeoutMillis < System.currentTimeMillis();
+  long responseReceivedMillis=this.pendingResponseReceivedMillis;
+  if (responseReceivedMillis == -1) {
+    return;
+  }
+  boolean expired=responseReceivedMillis + timeoutMillis < System.currentTimeMillis();
   if (!expired) {
     return;
   }
-  boolean targetNotExist=nodeEngine.getClusterService().getMember(invTarget) == null;
-  if (targetNotExist) {
+  boolean targetDead=nodeEngine.getClusterService().getMember(invTarget) == null;
+  if (targetDead) {
     resetAndReInvoke();
     return;
   }
