@@ -10,10 +10,7 @@
     keysData=null;
   }
   final int partitionCount=clientContext.getPartitionService().getPartitionCount();
-  int completionId=-1;
-  if (isRemoveAll) {
-    completionId=registerCompletionLatch(partitionCount);
-  }
+  int completionId=registerCompletionLatch(partitionCount);
   CacheClearRequest request=new CacheClearRequest(nameWithPrefix,keysData,isRemoveAll,completionId);
   try {
     final Map<Integer,Object> results=invoke(request);
@@ -29,14 +26,10 @@
         }
       }
     }
-    if (isRemoveAll) {
-      waitCompletionLatch(completionId,partitionCount - completionCount);
-    }
+    waitCompletionLatch(completionId,partitionCount - completionCount);
   }
  catch (  Throwable t) {
-    if (isRemoveAll) {
-      deregisterCompletionLatch(completionId);
-    }
+    deregisterCompletionLatch(completionId);
     throw ExceptionUtil.rethrowAllowedTypeFirst(t,CacheException.class);
   }
 }

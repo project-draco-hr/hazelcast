@@ -1,6 +1,6 @@
 {
   final long now=Clock.currentTimeMillis();
-  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  final long start=System.nanoTime();
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   int hitCount=0;
@@ -30,15 +30,6 @@
   if (records.size() == 0) {
     hasExpiringEntry=false;
   }
-  if (result && isStatisticsEnabled()) {
-    statistics.increaseCacheRemovals(1);
-    statistics.addRemoveTimeNanos(System.nanoTime() - start);
-    if (hitCount == 1) {
-      statistics.increaseCacheHits(hitCount);
-    }
- else {
-      statistics.increaseCacheMisses(1);
-    }
-  }
+  updateRemoveStatistics(result,hitCount,start);
   return result;
 }
