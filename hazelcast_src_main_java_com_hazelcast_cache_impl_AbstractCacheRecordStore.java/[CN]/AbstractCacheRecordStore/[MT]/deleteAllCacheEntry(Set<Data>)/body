@@ -1,0 +1,27 @@
+{
+  if (isWriteThrough() && cacheWriter != null && keys != null && !keys.isEmpty()) {
+    Map<Object,Data> keysToDelete=new HashMap<Object,Data>();
+    for (    Data key : keys) {
+      final Object localKeyObj=dataToValue(key);
+      keysToDelete.put(localKeyObj,key);
+    }
+    final Set<Object> keysObject=keysToDelete.keySet();
+    try {
+      cacheWriter.deleteAll(keysObject);
+    }
+ catch (    Exception e) {
+      if (!(e instanceof CacheWriterException)) {
+        throw new CacheWriterException("Exception in CacheWriter during deleteAll",e);
+      }
+ else {
+        throw (CacheWriterException)e;
+      }
+    }
+ finally {
+      for (      Object undeletedKey : keysObject) {
+        final Data undeletedKeyData=keysToDelete.get(undeletedKey);
+        keys.remove(undeletedKeyData);
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  int sizeLimitForEviction=(int)((double)(size() * percentage) / (double)ICacheRecordStore.ONE_HUNDRED_PERCENT);
+  if (sizeLimitForEviction < MIN_EVICTION_ELEMENT_COUNT) {
+    return 0;
+  }
+  List<Map.Entry<K,V>> expiredEntries=new ArrayList<Map.Entry<K,V>>(sizeLimitForEviction);
+  int expiredCount=0;
+  for (  Map.Entry<K,V> entry : entrySet()) {
+    expiredEntries.add(entry);
+    if (++expiredCount >= sizeLimitForEviction) {
+      break;
+    }
+  }
+  int actualExpiredCount=0;
+  for (  Map.Entry<K,V> entry : expiredEntries) {
+    V value=entry.getValue();
+    if (value instanceof Data) {
+      callbackEvictionListeners((Data)value);
+    }
+    if (remove(entry.getKey()) != null) {
+      actualExpiredCount++;
+    }
+  }
+  return actualExpiredCount;
+}

@@ -1,0 +1,15 @@
+{
+  final Statement originalStatement=super.withAfterClasses(statement);
+  return new Statement(){
+    @Override public void evaluate() throws Throwable {
+      originalStatement.evaluate();
+      Set<HazelcastInstance> instances=Hazelcast.getAllHazelcastInstances();
+      if (!instances.isEmpty()) {
+        String message="Instances haven't been shut down: " + instances;
+        Hazelcast.shutdownAll();
+        throw new IllegalStateException(message);
+      }
+    }
+  }
+;
+}

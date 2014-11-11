@@ -1,0 +1,34 @@
+{
+  Map<Integer,List<EntryEventType>> eventsPerKey=new HashMap<Integer,List<EntryEventType>>();
+  List<EntryEvent> events=entryListener.getOrderedEvents();
+  for (  EntryEvent event : events) {
+    Integer key=(Integer)event.getKey();
+    List<EntryEventType> eventTypes=eventsPerKey.get(key);
+    if (eventTypes == null) {
+      eventTypes=new ArrayList<EntryEventType>();
+      eventsPerKey.put(key,eventTypes);
+    }
+    EntryEventType eventType=event.getEventType();
+    eventTypes.add(eventType);
+  }
+  Set<Map.Entry<Integer,List<EntryEventType>>> entries=eventsPerKey.entrySet();
+  for (  Map.Entry<Integer,List<EntryEventType>> entry : entries) {
+    List<EntryEventType> eventTypes=entry.getValue();
+    EntryEventType prev=null;
+    for (int i=0; i < eventTypes.size(); i++) {
+      final EntryEventType eventType=eventTypes.get(i);
+      if (i == 0) {
+        assertEquals(EntryEventType.ADDED,eventType);
+        prev=eventType;
+        continue;
+      }
+      if (prev.equals(EntryEventType.ADDED)) {
+        assertEquals(EntryEventType.EVICTED,eventType);
+      }
+ else       if (prev.equals(EntryEventType.EVICTED)) {
+        assertEquals(EntryEventType.ADDED,eventType);
+      }
+      prev=eventType;
+    }
+  }
+}

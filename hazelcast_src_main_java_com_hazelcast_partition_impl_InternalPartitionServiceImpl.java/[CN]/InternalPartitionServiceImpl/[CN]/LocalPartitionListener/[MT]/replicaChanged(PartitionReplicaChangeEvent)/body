@@ -1,14 +1,17 @@
 {
+  int partitionId=event.getPartitionId();
   int replicaIndex=event.getReplicaIndex();
   Address newAddress=event.getNewAddress();
   if (replicaIndex > 0) {
-    int partitionId=event.getPartitionId();
     if (thisAddress.equals(event.getOldAddress())) {
-      clearPartition(replicaIndex,partitionId);
+      clearPartition(partitionId,replicaIndex);
     }
  else     if (thisAddress.equals(newAddress)) {
-      synchronizePartition(replicaIndex,partitionId);
+      synchronizePartition(partitionId,replicaIndex);
     }
+  }
+ else {
+    partitionService.cancelReplicaSync(partitionId);
   }
   Node node=partitionService.node;
   if (replicaIndex == 0 && newAddress == null && node.isActive() && node.joined()) {

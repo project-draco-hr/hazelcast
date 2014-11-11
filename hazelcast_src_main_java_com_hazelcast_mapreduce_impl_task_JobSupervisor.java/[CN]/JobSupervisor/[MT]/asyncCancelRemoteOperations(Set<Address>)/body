@@ -1,0 +1,21 @@
+{
+  final NodeEngine nodeEngine=mapReduceService.getNodeEngine();
+  ScheduledExecutorService executor=nodeEngine.getExecutionService().getDefaultScheduledExecutor();
+  executor.submit(new Runnable(){
+    @Override public void run(){
+      String name=getConfiguration().getName();
+      String jobId=getConfiguration().getJobId();
+      for (      Address address : addresses) {
+        try {
+          CancelJobSupervisorOperation operation=new CancelJobSupervisorOperation(name,jobId);
+          mapReduceService.processRequest(address,operation);
+        }
+ catch (        Exception ignore) {
+          ILogger logger=nodeEngine.getLogger(JobSupervisor.class);
+          logger.finest("Remote node may already be down",ignore);
+        }
+      }
+    }
+  }
+);
+}
