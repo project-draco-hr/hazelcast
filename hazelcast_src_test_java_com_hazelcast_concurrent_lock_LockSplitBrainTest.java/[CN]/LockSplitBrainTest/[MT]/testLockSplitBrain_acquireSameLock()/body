@@ -2,7 +2,7 @@
   Config config=newConfig();
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
-  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
   final String key=generateKeyOwnedBy(h3);
   ILock lock=h3.getLock(key);
   lock.lock();
@@ -10,6 +10,12 @@
   h3.getCluster().addMembershipListener(memberShipListener);
   TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
   h3.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(h3.getPartitionService().isLocalMemberSafe());
+    }
+  }
+);
   closeConnectionBetween(h1,h3);
   closeConnectionBetween(h2,h3);
   assertOpenEventually(memberShipListener.latch);
