@@ -2,7 +2,9 @@
   this.nodeEngine=nodeEngine;
   this.node=nodeEngine.getNode();
   this.logger=node.getLogger(OperationService.class);
-  this.defaultCallTimeout=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+  this.invocationLogger=nodeEngine.getLogger(BasicInvocation.class);
+  this.defaultCallTimeoutMillis=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+  this.backupOperationTimeoutMillis=node.getGroupProperties().OPERATION_BACKUP_TIMEOUT_MILLIS.getLong();
   this.executionService=nodeEngine.getExecutionService();
   int coreSize=Runtime.getRuntime().availableProcessors();
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
@@ -14,5 +16,7 @@
   this.operationBackupHandler=new OperationBackupHandler();
   this.operationPacketHandler=new OperationPacketHandler();
   this.responsePacketHandler=new ResponsePacketHandler();
-  executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
+  this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
+  this.backupTimeoutHandlerThread=new BackupTimeoutHandlerThread();
+  this.backupTimeoutHandlerThread.start();
 }

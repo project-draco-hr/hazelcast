@@ -1,9 +1,22 @@
 {
   final CacheEntry currentEntry=(CacheEntry)value;
-  try {
-    return compareVersionUnderRowLock(key,value,currentEntry);
+  long timeout=System.currentTimeMillis() + tryLockAndGetTimeout;
+  do {
+    final CacheEntry previousEntry=(CacheEntry)map.get(key);
+    if (previousEntry == null) {
+      if (map.putIfAbsent(key,value) == null) {
+        return true;
+      }
+    }
+ else     if (versionComparator.compare(currentEntry.getVersion(),previousEntry.getVersion()) > 0) {
+      if (map.replace(key,previousEntry,value)) {
+        return true;
+      }
+    }
+ else {
+      return false;
+    }
   }
- catch (  InterruptedException e) {
-    return false;
-  }
+ while (System.currentTimeMillis() < timeout);
+  return false;
 }

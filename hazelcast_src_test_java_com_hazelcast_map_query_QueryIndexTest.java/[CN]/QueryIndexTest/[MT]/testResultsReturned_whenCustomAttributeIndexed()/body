@@ -1,0 +1,14 @@
+{
+  HazelcastInstance h1=createHazelcastInstance();
+  IMap<String,CustomObject> imap=h1.getMap("objects");
+  imap.addIndex("attribute",true);
+  for (int i=0; i < 10; i++) {
+    CustomAttribute attr=new CustomAttribute(i,200);
+    CustomObject object=new CustomObject("o" + i,randomUUID(),attr);
+    imap.put(object.getName(),object);
+  }
+  EntryObject entry=new PredicateBuilder().getEntryObject();
+  Predicate predicate=entry.get("attribute").greaterEqual(new CustomAttribute(5,200));
+  Collection<CustomObject> values=imap.values(predicate);
+  assertEquals(5,values.size());
+}
