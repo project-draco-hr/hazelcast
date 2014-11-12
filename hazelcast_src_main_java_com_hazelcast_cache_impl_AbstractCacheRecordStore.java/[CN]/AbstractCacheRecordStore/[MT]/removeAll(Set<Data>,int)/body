@@ -12,7 +12,7 @@
       if (localKeys.contains(key) && record != null) {
         final boolean isExpired=processExpiredEntry(key,record,now);
         if (!isExpired) {
-          deleteRecord(key,completionId);
+          deleteRecord(key,IGNORE_COMPLETION);
           if (isStatisticsEnabled()) {
             statistics.increaseCacheRemovals(1);
           }
@@ -24,8 +24,9 @@
       }
       isEventBatchingEnabled=false;
       hasExpiringEntry=false;
-      int orderKey=keys.hashCode();
-      publishBatchedEvents(name,CacheEventType.REMOVED,orderKey);
     }
+    int orderKey=keys.hashCode();
+    publishBatchedEvents(name,CacheEventType.REMOVED,orderKey);
+    publishEvent(CacheEventType.COMPLETED,new DefaultData(),null,null,false,completionId);
   }
 }
