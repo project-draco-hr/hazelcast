@@ -6,6 +6,7 @@
   this.defaultCallTimeoutMillis=node.getGroupProperties().OPERATION_CALL_TIMEOUT_MILLIS.getLong();
   this.backupOperationTimeoutMillis=node.getGroupProperties().OPERATION_BACKUP_TIMEOUT_MILLIS.getLong();
   this.executionService=nodeEngine.getExecutionService();
+  this.backpressureService=new BasicBackPressureService(node.getGroupProperties(),logger);
   int coreSize=Runtime.getRuntime().availableProcessors();
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
@@ -17,6 +18,5 @@
   this.operationPacketHandler=new OperationPacketHandler();
   this.responsePacketHandler=new ResponsePacketHandler();
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
-  this.operationTimeoutHandlerThread=new OperationTimeoutHandlerThread();
-  this.operationTimeoutHandlerThread.start();
+  this.operationTimeoutHandlerThread=newOperationTimeoutHandlerThread();
 }
