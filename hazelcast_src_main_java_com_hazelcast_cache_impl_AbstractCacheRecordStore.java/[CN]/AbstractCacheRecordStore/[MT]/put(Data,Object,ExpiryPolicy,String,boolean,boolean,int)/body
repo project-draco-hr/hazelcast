@@ -10,26 +10,21 @@
   try {
     if (record == null || isExpired) {
       isOnNewPut=true;
-      onBeforeGetAndPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut);
       record=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough,completionId);
-      record=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough);
       isSaveSucceed=record != null;
     }
  else {
       if (getValue) {
         oldValue=toValue(record);
       }
-      onBeforeGetAndPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut);
       isSaveSucceed=updateRecordWithExpiry(key,value,record,expiryPolicy,now,disableWriteThrough,completionId);
     }
-    onAfterGetAndPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut,isSaveSucceed);
     onPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut,isSaveSucceed);
     updateGetAndPutStat(isSaveSucceed,getValue,oldValue == null,start);
     updateHasExpiringEntry(record);
     return oldValue;
   }
  catch (  Throwable error) {
-    onGetAndPutError(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isOnNewPut,error);
     onPutError(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isOnNewPut,error);
     throw ExceptionUtil.rethrow(error);
   }
