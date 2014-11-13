@@ -1,5 +1,10 @@
 {
-  final String dateStamp=request.getAttributes().get("Datestamp");
+  final String signKey=config.getSecretKey();
+  final String dateStamp=timestamp.substring(0,8);
+  System.out.println(String.format("key         : %s",signKey));
+  System.out.println(String.format("dateStamp   : %s",dateStamp));
+  System.out.println(String.format("regionName  : %s",config.getRegion()));
+  System.out.println(String.format("serviceName : %s",this.service));
   try {
     final String key="AWS4" + signKey;
     final Mac mDate=Mac.getInstance("HmacSHA256");
@@ -9,11 +14,11 @@
     final Mac mRegion=Mac.getInstance("HmacSHA256");
     final SecretKeySpec skRegion=new SecretKeySpec(kDate,"HmacSHA256");
     mRegion.init(skRegion);
-    final byte[] kRegion=mRegion.doFinal(request.getAttributes().get("Region").getBytes());
+    final byte[] kRegion=mRegion.doFinal(config.getRegion().getBytes());
     final Mac mService=Mac.getInstance("HmacSHA256");
     final SecretKeySpec skService=new SecretKeySpec(kRegion,"HmacSHA256");
     mService.init(skService);
-    final byte[] kService=mService.doFinal(request.getAttributes().get("Service").getBytes());
+    final byte[] kService=mService.doFinal(this.service.getBytes());
     final Mac mSigning=Mac.getInstance("HmacSHA256");
     final SecretKeySpec skSigning=new SecretKeySpec(kService,"HmacSHA256");
     mSigning.init(skSigning);
