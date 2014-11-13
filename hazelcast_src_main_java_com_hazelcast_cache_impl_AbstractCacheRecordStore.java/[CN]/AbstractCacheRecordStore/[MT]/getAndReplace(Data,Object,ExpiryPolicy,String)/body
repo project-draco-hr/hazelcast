@@ -6,6 +6,7 @@
   boolean replaced=false;
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
+  onBeforeGetAndReplace(key,null,value,expiryPolicy,caller,true,record,isExpired);
   try {
     if (record != null) {
       obj=toValue(record);
@@ -17,7 +18,18 @@
  else {
       replaced=updateRecordWithExpiry(key,value,record,expiryPolicy,now,false);
     }
+    if (record != null) {
+      obj=toValue(record);
+    }
+    if (record == null || isExpired) {
+      obj=null;
+      result=false;
+    }
+ else {
+      result=updateRecordWithExpiry(key,value,record,expiryPolicy,now,false,completionId);
+    }
     onReplace(key,null,value,expiryPolicy,caller,false,record,isExpired,replaced);
+    onAfterGetAndReplace(key,null,value,expiryPolicy,caller,false,record,isExpired,result);
     updateHasExpiringEntry(record);
     if (isStatisticsEnabled()) {
       statistics.addGetTimeNanos(System.nanoTime() - start);

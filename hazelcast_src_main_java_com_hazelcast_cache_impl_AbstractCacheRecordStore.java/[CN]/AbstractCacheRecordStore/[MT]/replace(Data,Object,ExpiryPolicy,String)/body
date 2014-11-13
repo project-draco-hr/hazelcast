@@ -12,8 +12,16 @@
  else {
       replaced=updateRecordWithExpiry(key,value,record,expiryPolicy,now,false);
     }
+    onBeforeGetAndReplace(key,null,value,expiryPolicy,caller,false,record,isExpired);
+    if (record == null || isExpired) {
+      result=false;
+    }
+ else {
+      result=updateRecordWithExpiry(key,value,record,expiryPolicy,now,false,completionId);
+    }
     onReplace(key,null,value,expiryPolicy,caller,false,record,isExpired,replaced);
     updateHasExpiringEntry(record);
+    onAfterGetAndReplace(key,null,value,expiryPolicy,caller,false,record,isExpired,result);
     if (isStatisticsEnabled()) {
       statistics.addGetTimeNanos(System.nanoTime() - start);
       if (replaced) {
