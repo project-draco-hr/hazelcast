@@ -1,9 +1,17 @@
 {
-  int percentage=Math.max(MIN_FORCED_EVICT_PERCENTAGE,evictionPercentage);
   int evicted=0;
+  int percentage=Math.max(MIN_FORCED_EVICT_PERCENTAGE,evictionPercentage);
   if (hasExpiringEntry) {
-    evicted=records.evictExpiredRecords(ONE_HUNDRED_PERCENT);
+    int expiredCount=records.evictExpiredRecords(ONE_HUNDRED_PERCENT);
+    if (isStatisticsEnabled()) {
+      statistics.increaseCacheExpiries(expiredCount);
+    }
+    evicted+=expiredCount;
   }
-  evicted+=records.evictRecords(percentage,EvictionPolicy.RANDOM);
+  int evictedCount=records.evictRecords(percentage,EvictionPolicy.RANDOM);
+  if (isStatisticsEnabled()) {
+    statistics.increaseCacheEvictions(evictedCount);
+  }
+  evicted+=evictedCount;
   return evicted;
 }

@@ -1,31 +1,36 @@
 {
-  long now=Clock.currentTimeMillis();
-  int sizeLimitForEviction=(int)((double)(size() * percentage) / (double)ICacheRecordStore.ONE_HUNDRED_PERCENT);
-  if (sizeLimitForEviction < MIN_EVICTION_ELEMENT_COUNT) {
+  if (percentage <= 0) {
     return 0;
   }
-  List<Map.Entry<K,Expirable>> expiredEntries=new ArrayList<Map.Entry<K,Expirable>>(sizeLimitForEviction);
-  int expiredCount=0;
-  for (  Map.Entry<K,V> entry : entrySet()) {
-    K key=entry.getKey();
-    V value=entry.getValue();
-    final boolean isExpired=(value instanceof Expirable) && ((Expirable)value).isExpiredAt(now);
+  final int size=size();
+  if (percentage >= ICacheRecordStore.ONE_HUNDRED_PERCENT || size <= MIN_EVICTION_ELEMENT_COUNT) {
+    clear();
+    return size;
+  }
+  long now=Clock.currentTimeMillis();
+  int sizeLimitForEviction=(int)((double)(size * percentage) / (double)ICacheRecordStore.ONE_HUNDRED_PERCENT);
+  List<Map.Entry<Data,CacheRecord>> entriesWillBeEvicted=new ArrayList<Map.Entry<Data,CacheRecord>>(sizeLimitForEviction);
+  int i=0;
+  for (  Map.Entry<Data,CacheRecord> entry : entrySet()) {
+    CacheRecord record=entry.getValue();
+    final boolean isExpired=record.isExpiredAt(now);
     if (isExpired) {
-      expiredEntries.add((Map.Entry<K,Expirable>)entry);
-      if (++expiredCount >= sizeLimitForEviction) {
+      entriesWillBeEvicted.add(entry);
+      if (++i >= sizeLimitForEviction) {
         break;
       }
     }
   }
-  int actualExpiredCount=0;
-  for (  Map.Entry<K,Expirable> entry : expiredEntries) {
-    Expirable expirableValue=entry.getValue();
-    if (expirableValue instanceof Data) {
-      callbackEvictionListeners((Data)expirableValue);
+  int actualEvictedCount=0;
+  for (  Map.Entry<Data,CacheRecord> entry : entriesWillBeEvicted) {
+    CacheRecord record=entry.getValue();
+    Object value=record.getValue();
+    if (value instanceof Data) {
+      callbackEvictionListeners((Data)value);
     }
     if (remove(entry.getKey()) != null) {
-      actualExpiredCount++;
+      actualEvictedCount++;
     }
   }
-  return actualExpiredCount;
+  return actualEvictedCount;
 }
