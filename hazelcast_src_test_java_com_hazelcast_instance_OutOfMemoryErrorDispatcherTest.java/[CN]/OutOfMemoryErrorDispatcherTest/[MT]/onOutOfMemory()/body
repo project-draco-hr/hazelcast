@@ -1,0 +1,12 @@
+{
+  OutOfMemoryError oome=new OutOfMemoryError();
+  OutOfMemoryHandler handler=mock(OutOfMemoryHandler.class);
+  when(handler.shouldHandle(oome)).thenReturn(Boolean.TRUE);
+  HazelcastInstance hz1=mock(HazelcastInstance.class);
+  OutOfMemoryErrorDispatcher.registerServer(hz1);
+  OutOfMemoryErrorDispatcher.setServerHandler(handler);
+  HazelcastInstance[] registeredInstances=OutOfMemoryErrorDispatcher.current();
+  OutOfMemoryErrorDispatcher.onOutOfMemory(oome);
+  verify(handler).onOutOfMemory(oome,registeredInstances);
+  assertArrayEquals(new HazelcastInstance[]{},OutOfMemoryErrorDispatcher.current());
+}
