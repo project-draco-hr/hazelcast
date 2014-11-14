@@ -4,10 +4,9 @@
   final CountDownLatch eventLatch=new CountDownLatch(nodeCount - 1);
   final CountDownLatch nodeLatch=new CountDownLatch(nodeCount - 1);
   Config config=new Config().addListenerConfig(new ListenerConfig().setImplementation(newAddMemberListener(eventLatch)));
-  ex=Executors.newFixedThreadPool(nodeCount / 2);
   factory.newHazelcastInstance(config);
   for (int i=1; i < nodeCount; i++) {
-    ex.execute(new Runnable(){
+    executorService.execute(new Runnable(){
       public void run(){
         factory.newHazelcastInstance(new Config());
         nodeLatch.countDown();
@@ -15,6 +14,6 @@
     }
 );
   }
-  assertTrue("Remaining count: " + nodeLatch.getCount(),nodeLatch.await(30,SECONDS));
-  assertTrue("Remaining count: " + eventLatch.getCount(),eventLatch.await(30,SECONDS));
+  assertOpenEventually(nodeLatch);
+  assertOpenEventually(eventLatch);
 }
