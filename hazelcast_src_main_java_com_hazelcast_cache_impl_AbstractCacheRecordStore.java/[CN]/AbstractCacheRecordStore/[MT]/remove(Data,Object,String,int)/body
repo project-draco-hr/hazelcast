@@ -4,32 +4,38 @@
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   int hitCount=0;
-  boolean result=true;
-  if (record == null || isExpired) {
-    if (isStatisticsEnabled()) {
-      statistics.increaseCacheMisses(1);
-    }
-    result=false;
-  }
- else {
-    hitCount++;
-    if (compare(toValue(record),toValue(value))) {
-      deleteCacheEntry(key);
-      deleteRecord(key,completionId);
+  boolean removed=false;
+  try {
+    if (record == null || isExpired) {
+      if (isStatisticsEnabled()) {
+        statistics.increaseCacheMisses(1);
+      }
+      removed=false;
     }
  else {
-      long expiryTime=updateAccessDuration(record,defaultExpiryPolicy,now);
-      processExpiredEntry(key,record,expiryTime,now);
-      result=false;
+      hitCount++;
+      if (compare(toValue(record),toValue(value))) {
+        deleteCacheEntry(key);
+        removed=deleteRecord(key,completionId);
+      }
+ else {
+        long expiryTime=onRecordAccess(record,defaultExpiryPolicy,now);
+        processExpiredEntry(key,record,expiryTime,now);
+        removed=false;
+      }
     }
+    if (!removed) {
+      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId);
+    }
+    onRemove(key,value,caller,false,record,removed);
+    if (records.size() == 0) {
+      hasExpiringEntry=false;
+    }
+    updateRemoveStatistics(removed,hitCount,start);
+    return removed;
   }
-  if (!result) {
-    publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId);
+ catch (  Throwable error) {
+    onRemoveError(key,null,caller,false,record,removed,error);
+    throw ExceptionUtil.rethrow(error);
   }
-  onRemove(key,value,caller,false,record,result);
-  if (records.size() == 0) {
-    hasExpiringEntry=false;
-  }
-  updateRemoveStatistics(result,hitCount,start);
-  return result;
 }
