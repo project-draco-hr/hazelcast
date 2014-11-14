@@ -1,24 +1,13 @@
 {
-  final Map<Data,Object> initialKeys=this.initialKeys;
-  initialKeys.clear();
   Set keys=storeWrapper.loadAllKeys();
   if (keys == null || keys.isEmpty()) {
     return;
   }
-  final int maxSizePerNode=getMaxSizePerNode();
-  final MapContainer mapContainer=this.mapContainer;
-  final MapServiceContext mapServiceContext=mapContainer.getMapServiceContext();
-  final PartitioningStrategy partitioningStrategy=mapContainer.getPartitioningStrategy();
-  for (  Object key : keys) {
-    Data dataKey=mapServiceContext.toData(key,partitioningStrategy);
-    if (mapServiceContext.isOwnedKey(dataKey)) {
-      initialKeys.put(dataKey,key);
-      if (initialKeys.size() == maxSizePerNode) {
-        break;
-      }
-    }
-  }
-  mapServiceContext.getNodeEngine().getExecutionService().schedule(new Runnable(){
+  final MapServiceContext mapServiceContext=getMapServiceContext();
+  selectOwnedKeys(keys,mapServiceContext);
+  final NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
+  final ExecutionService executionService=nodeEngine.getExecutionService();
+  executionService.schedule(new Runnable(){
     @Override public void run(){
       initialKeys.clear();
     }
