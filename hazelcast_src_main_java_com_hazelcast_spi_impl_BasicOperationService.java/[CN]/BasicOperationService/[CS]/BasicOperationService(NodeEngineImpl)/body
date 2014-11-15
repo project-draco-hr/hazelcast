@@ -10,13 +10,11 @@
   int coreSize=Runtime.getRuntime().availableProcessors();
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
-  this.executingCalls=new ConcurrentHashMap<RemoteCallKey,RemoteCallKey>(INITIAL_CAPACITY,LOAD_FACTOR,concurrencyLevel);
   this.invocations=new ConcurrentHashMap<Long,BasicInvocation>(INITIAL_CAPACITY,LOAD_FACTOR,concurrencyLevel);
-  this.scheduler=new BasicOperationScheduler(node,executionService,new BasicDispatcherImpl());
   this.operationHandler=new OperationHandler();
+  this.responseHandler=new ResponseHandler();
   this.operationBackupHandler=new OperationBackupHandler();
-  this.operationPacketHandler=new OperationPacketHandler();
-  this.responsePacketHandler=new ResponsePacketHandler();
+  this.scheduler=new BasicOperationScheduler(node,executionService,operationHandler,responseHandler);
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
   startCleanupThread();
 }
