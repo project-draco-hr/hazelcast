@@ -1,14 +1,20 @@
 {
   if (instance instanceof HazelcastClientProxy) {
     final HazelcastClientProxy proxy=(HazelcastClientProxy)instance;
-    String instanceName=proxy.client.getName();
-    try {
-      proxy.client.shutdown();
-    }
- catch (    Exception ignored) {
-      EmptyStatement.ignore(ignored);
+    HazelcastClientInstanceImpl client=proxy.client;
+    if (client == null) {
+      return;
     }
     proxy.client=null;
-    CLIENTS.remove(instanceName);
+    CLIENTS.remove(client.getName());
+    try {
+      client.shutdown();
+    }
+ catch (    Throwable ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+ finally {
+      OutOfMemoryErrorDispatcher.deregisterClient(client);
+    }
   }
 }
