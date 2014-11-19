@@ -7,6 +7,16 @@
   if (cacheConfig == null) {
     throw new CacheNotExistsException("Cache already destroyed, node " + nodeEngine.getLocalMember());
   }
+  this.cacheInfo=CACHE_INFO_MAP.get(name);
+  if (this.cacheInfo == null) {
+synchronized (CACHE_INFO_MAP) {
+      this.cacheInfo=CACHE_INFO_MAP.get(name);
+      if (this.cacheInfo == null) {
+        this.cacheInfo=createCacheInfo(cacheConfig);
+        CACHE_INFO_MAP.put(name,this.cacheInfo);
+      }
+    }
+  }
   if (cacheConfig.getCacheLoaderFactory() != null) {
     final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
     cacheLoader=cacheLoaderFactory.create();
@@ -21,8 +31,9 @@
   Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
   this.defaultExpiryPolicy=expiryPolicyFactory.create();
   this.evictionPolicy=cacheConfig.getEvictionPolicy() != null ? cacheConfig.getEvictionPolicy() : EvictionPolicy.NONE;
+  this.maxSizeConfig=cacheConfig.getMaxSizeConfig();
   this.evictionEnabled=evictionPolicy != EvictionPolicy.NONE;
   this.evictionPercentage=cacheConfig.getEvictionPercentage();
-  this.evictionThresholdPercentage=cacheConfig.getEvictionThresholdPercentage();
   this.expirationTaskScheduler=scheduleExpirationTask();
+  this.maxSizeChecker=createMaxSizeChecker(maxSizeConfig);
 }
