@@ -1,7 +1,11 @@
 {
-  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-  final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)nodeEngine.getPartitionService();
+  final InternalPartitionServiceImpl partitionService=getService();
   final int partitionId=getPartitionId();
   final int replicaIndex=getReplicaIndex();
-  partitionService.schedulePartitionReplicaSync(partitionId,replicaIndex,InternalPartitionService.REPLICA_SYNC_RETRY_DELAY);
+  partitionService.clearReplicaSync(partitionId,replicaIndex);
+  InternalPartitionImpl partition=partitionService.getPartition(partitionId,false);
+  boolean isBackup=partition.isOwnerOrBackup(getNodeEngine().getThisAddress());
+  if (isBackup) {
+    partitionService.triggerPartitionReplicaSync(partitionId,replicaIndex,InternalPartitionService.REPLICA_SYNC_RETRY_DELAY);
+  }
 }

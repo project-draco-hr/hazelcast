@@ -1,0 +1,16 @@
+{
+  assertEquals(0,HazelcastClient.getAllHazelcastClients().size());
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getGroupConfig().setName("cluster1");
+  clientConfig.getGroupConfig().setPassword("cluster1pass");
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  String instanceName=client.getName();
+  URI uri1=new URI("MY-SCOPE");
+  Properties properties=new Properties();
+  properties.setProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME,instanceName);
+  CacheManager cacheManager=Caching.getCachingProvider().getCacheManager(uri1,null,properties);
+  assertNotNull(cacheManager);
+  assertEquals(1,HazelcastClient.getAllHazelcastClients().size());
+  client.shutdown();
+  Caching.getCachingProvider().close();
+}

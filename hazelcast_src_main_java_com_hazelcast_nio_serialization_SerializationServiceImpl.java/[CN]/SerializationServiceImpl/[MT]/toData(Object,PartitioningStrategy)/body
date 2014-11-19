@@ -5,6 +5,7 @@
   if (obj instanceof Data) {
     return (Data)obj;
   }
+  int partitionHash=calculatePartitionHash(obj,strategy);
   try {
     final SerializerAdapter serializer=serializerFor(obj.getClass());
     if (serializer == null) {
@@ -13,17 +14,9 @@
       }
       throw new HazelcastInstanceNotActiveException();
     }
-    final byte[] bytes=serializer.write(obj);
-    final Data data=new Data(serializer.getTypeId(),bytes);
-    if (obj instanceof Portable) {
-      final Portable portable=(Portable)obj;
-      data.classDefinition=lookupClassDefinition(portable);
-    }
-    applyPartitionStrategy(obj,strategy,data);
-    return data;
+    return serializer.toData(obj,partitionHash);
   }
  catch (  Throwable e) {
-    handleException(e);
+    throw handleException(e);
   }
-  return null;
 }

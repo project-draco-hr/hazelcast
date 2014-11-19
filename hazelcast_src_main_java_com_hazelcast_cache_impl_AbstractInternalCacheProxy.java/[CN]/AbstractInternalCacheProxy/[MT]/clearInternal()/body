@@ -1,0 +1,18 @@
+{
+  final OperationService operationService=getNodeEngine().getOperationService();
+  OperationFactory operationFactory=operationProvider.createClearOperationFactory();
+  try {
+    final Map<Integer,Object> results=operationService.invokeOnAllPartitions(getServiceName(),operationFactory);
+    for (    Object result : results.values()) {
+      if (result != null && result instanceof CacheClearResponse) {
+        final Object response=((CacheClearResponse)result).getResponse();
+        if (response instanceof Throwable) {
+          throw (Throwable)response;
+        }
+      }
+    }
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrowAllowedTypeFirst(t,CacheException.class);
+  }
+}

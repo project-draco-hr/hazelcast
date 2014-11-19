@@ -1,0 +1,27 @@
+{
+  CachingProvider cachingProvider=getCachingProvider();
+  CacheManager cacheManager=cachingProvider.getCacheManager();
+  final AtomicInteger counter=new AtomicInteger();
+  CompleteConfiguration<String,String> config=new MutableConfiguration<String,String>().setTypes(String.class,String.class).addCacheEntryListenerConfiguration(new MutableCacheEntryListenerConfiguration<String,String>(FactoryBuilder.factoryOf(new TestListener(counter)),null,true,true));
+  final Cache<String,String> cache=cacheManager.createCache("test",config);
+  final int threadCount=10;
+  final int putCount=1000;
+  final CountDownLatch latch=new CountDownLatch(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    new Thread(){
+      public void run(){
+        Random rand=new Random();
+        for (int i=0; i < putCount; i++) {
+          String key=String.valueOf(rand.nextInt(putCount));
+          String value=UUID.randomUUID().toString();
+          cache.put(key,value);
+        }
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  HazelcastTestSupport.assertOpenEventually(latch);
+  Assert.assertEquals(threadCount * putCount,counter.get());
+  cachingProvider.close();
+}

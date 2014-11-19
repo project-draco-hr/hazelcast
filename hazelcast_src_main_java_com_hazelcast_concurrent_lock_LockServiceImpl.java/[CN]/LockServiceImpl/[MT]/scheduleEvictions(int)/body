@@ -1,0 +1,14 @@
+{
+  long now=Clock.currentTimeMillis();
+  LockStoreContainer container=containers[partitionId];
+  for (  LockStoreImpl ls : container.getLockStores()) {
+    for (    LockResource lock : ls.getLocks()) {
+      long expirationTime=lock.getExpirationTime();
+      if (expirationTime == Long.MAX_VALUE || expirationTime < 0) {
+        continue;
+      }
+      long leaseTime=expirationTime - now;
+      scheduleEviction(ls.getNamespace(),lock.getKey(),0,leaseTime);
+    }
+  }
+}

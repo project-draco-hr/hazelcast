@@ -1,13 +1,19 @@
 {
+  if (!(out instanceof PortableDataOutput)) {
+    throw new IllegalArgumentException("ObjectDataOutput must be instance of PortableDataOutput!");
+  }
   if (p.getClassId() == 0) {
     throw new IllegalArgumentException("Portable class id cannot be zero!");
   }
-  if (!(out instanceof BufferObjectDataOutput)) {
-    throw new IllegalArgumentException("ObjectDataOutput must be instance of BufferObjectDataOutput!");
-  }
   ClassDefinition cd=context.lookupOrRegisterClassDefinition(p);
-  BufferObjectDataOutput bufferedOut=(BufferObjectDataOutput)out;
-  DefaultPortableWriter writer=new DefaultPortableWriter(this,bufferedOut,cd);
+  PortableDataOutput output=(PortableDataOutput)out;
+  DynamicByteBuffer headerBuffer=output.getHeaderBuffer();
+  int pos=headerBuffer.position();
+  out.writeInt(pos);
+  headerBuffer.putInt(cd.getFactoryId());
+  headerBuffer.putInt(cd.getClassId());
+  headerBuffer.putInt(cd.getVersion());
+  DefaultPortableWriter writer=new DefaultPortableWriter(this,output,cd);
   p.writePortable(writer);
   writer.end();
 }

@@ -7,19 +7,10 @@
       break;
     }
     checkedEntryCount++;
-    final Record record=expirationIterator.next();
-    final Data key=record.getKey();
-    if (isLocked(key)) {
-      continue;
-    }
-    if (isReachable(record,now)) {
-      continue;
-    }
-    final Object value=record.getValue();
-    evictInternal(key,backup);
-    evictedCount++;
-    if (!backup) {
-      doPostEvictionOperations(key,value,backup);
+    Record record=expirationIterator.next();
+    record=getOrNullIfExpired(record,now,backup);
+    if (record == null) {
+      evictedCount++;
     }
   }
   return evictedCount;

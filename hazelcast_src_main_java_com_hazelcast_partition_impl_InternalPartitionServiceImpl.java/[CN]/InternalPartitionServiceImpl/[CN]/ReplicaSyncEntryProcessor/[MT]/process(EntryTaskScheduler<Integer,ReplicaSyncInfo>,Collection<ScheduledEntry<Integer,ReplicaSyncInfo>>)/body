@@ -1,9 +1,10 @@
 {
   for (  ScheduledEntry<Integer,ReplicaSyncInfo> entry : entries) {
     ReplicaSyncInfo syncInfo=entry.getValue();
-    if (partitionService.replicaSyncRequests.compareAndSet(entry.getKey(),syncInfo,null)) {
-      logRendingSyncReplicaRequest(syncInfo);
-      partitionService.triggerPartitionReplicaSync(syncInfo.partitionId,syncInfo.replicaIndex);
+    int partitionId=syncInfo.partitionId;
+    if (partitionService.replicaSyncRequests.compareAndSet(partitionId,syncInfo,null)) {
+      partitionService.finishReplicaSyncProcess();
     }
+    partitionService.triggerPartitionReplicaSync(partitionId,syncInfo.replicaIndex,0L);
   }
 }

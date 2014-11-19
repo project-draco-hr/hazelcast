@@ -1,6 +1,6 @@
 {
   final String mapName=randomMapName();
-  final int size=1000;
+  final int size=100;
   final AtomicInteger entryEvictedEventCount=new AtomicInteger(0);
   final Config cfg=new Config();
   MapConfig mc=cfg.getMapConfig(mapName);
@@ -11,17 +11,17 @@
     }
   }
 ).setLocal(true));
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance[] instances=factory.newInstances(cfg);
-  final IMap map=instances[0].getMap(mapName);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=factory.newHazelcastInstance(cfg);
+  final IMap map=instance.getMap(mapName);
   for (int i=0; i < size; i++) {
     map.put(i,i);
   }
-  assertSizeEventually(0,map,600);
+  assertSizeEventually(0,map,300);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
       assertEquals(size,entryEvictedEventCount.get());
     }
   }
-,600);
+,300);
 }

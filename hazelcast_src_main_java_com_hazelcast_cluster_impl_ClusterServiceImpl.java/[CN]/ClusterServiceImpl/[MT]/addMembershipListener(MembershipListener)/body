@@ -1,0 +1,21 @@
+{
+  if (listener == null) {
+    throw new NullPointerException("listener can't be null");
+  }
+  EventService eventService=nodeEngine.getEventService();
+  EventRegistration registration;
+  if (listener instanceof InitialMembershipListener) {
+    lock.lock();
+    try {
+      ((InitialMembershipListener)listener).init(new InitialMembershipEvent(getClusterProxy(),getMembers()));
+      registration=eventService.registerLocalListener(SERVICE_NAME,SERVICE_NAME,listener);
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+ else {
+    registration=eventService.registerLocalListener(SERVICE_NAME,SERVICE_NAME,listener);
+  }
+  return registration.getId();
+}

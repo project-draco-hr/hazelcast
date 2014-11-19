@@ -1,7 +1,7 @@
 {
   final long now=getNow();
   markRecordStoreExpirable(ttl);
-  Record record=getRecordOrNull(key,true);
+  Record record=getRecordOrNull(key,now,true);
   if (record == null) {
     record=createRecord(key,value,ttl,now);
     records.put(key,record);
@@ -9,10 +9,9 @@
   }
  else {
     updateSizeEstimator(-calculateRecordHeapCost(record));
-    setRecordValue(record,value,now);
+    updateRecord(record,value,now);
     updateSizeEstimator(calculateRecordHeapCost(record));
   }
-  evictEntries(now,true);
   mapDataStore.addBackup(key,value,now);
   return record;
 }

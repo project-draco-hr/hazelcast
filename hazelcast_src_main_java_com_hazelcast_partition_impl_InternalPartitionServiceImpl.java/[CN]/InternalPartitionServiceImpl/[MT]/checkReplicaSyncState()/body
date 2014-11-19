@@ -20,11 +20,11 @@
     }
   }
 ;
-  int notOwnedCount=syncReplicaVersion(thisAddress,s,ok,callback);
-  s.release(notOwnedCount);
+  int ownedCount=submitSyncReplicaOperations(thisAddress,s,ok,callback);
   try {
     if (ok.get()) {
-      return s.tryAcquire(partitionCount,DEFAULT_SLEEP_MILLIS,TimeUnit.SECONDS) && ok.get();
+      int permits=ownedCount * getMaxBackupCount();
+      return s.tryAcquire(permits,REPLICA_SYNC_CHECK_TIMEOUT_SECONDS,TimeUnit.SECONDS) && ok.get();
     }
  else {
       return false;
