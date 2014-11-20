@@ -2,9 +2,10 @@
   NodeEngine nodeEngine=getNodeEngine();
   InternalPartitionService partitionService=nodeEngine.getPartitionService();
   Collection<Integer> initialPartitions=mapService.getMapServiceContext().getOwnedPartitions();
+  int partitionStateVersion=partitionService.getPartitionStateVersion();
   IndexService indexService=mapService.getMapServiceContext().getMapContainer(name).getIndexService();
   Set<QueryableEntry> entries=null;
-  if (!partitionService.hasOnGoingMigration()) {
+  if (!partitionService.hasOnGoingMigrationLocal()) {
     entries=indexService.query(predicate);
   }
   result=new QueryResult();
@@ -29,4 +30,5 @@
     final MapServiceContext mapServiceContext=((MapService)getService()).getMapServiceContext();
     mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name).incrementOtherOperations();
   }
+  checkPartitionStateChanges(partitionService,partitionStateVersion);
 }
