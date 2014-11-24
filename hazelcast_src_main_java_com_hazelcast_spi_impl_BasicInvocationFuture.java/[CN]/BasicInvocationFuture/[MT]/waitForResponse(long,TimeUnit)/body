@@ -16,6 +16,7 @@
       lastPollTime=Clock.currentTimeMillis() - startMs;
       timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
       if (response == BasicInvocation.WAIT_RESPONSE) {
+        RESPONSE_FIELD_UPDATER.compareAndSet(this,BasicInvocation.WAIT_RESPONSE,null);
         continue;
       }
  else       if (response != null) {
@@ -30,16 +31,14 @@
     }
     if (!interrupted && longPolling) {
       Address target=basicInvocation.getTarget();
-      if (basicInvocation.nodeEngine.getThisAddress().equals(target)) {
+      if (basicInvocation.remote && basicInvocation.nodeEngine.getThisAddress().equals(target)) {
         continue;
       }
       basicInvocation.logger.warning("No response for " + lastPollTime + " ms. "+ toString());
       boolean executing=isOperationExecuting(target);
       if (!executing) {
-        if (response != null) {
-          continue;
-        }
-        return newOperationTimeoutException(pollCount,pollTimeoutMs);
+        Object operationTimeoutException=newOperationTimeoutException(pollCount,pollTimeoutMs);
+        set(operationTimeoutException);
       }
     }
   }
