@@ -1,0 +1,16 @@
+{
+  final Cluster cluster=instance.getCluster();
+  final Set<Member> members=cluster.getMembers();
+  if (members.size() < 2) {
+    return randomString();
+  }
+  final Member localMember=cluster.getLocalMember();
+  final PartitionService partitionService=instance.getPartitionService();
+  for (; ; ) {
+    final String id=randomString();
+    final Partition partition=partitionService.getPartition(id);
+    if (comparePartitionOwnership(generateOwnedKey,localMember,partition)) {
+      return id;
+    }
+  }
+}
