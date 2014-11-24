@@ -1,12 +1,14 @@
 {
   this.name=name;
   this.partitionId=partitionId;
+  this.partitionCount=nodeEngine.getPartitionService().getPartitionCount();
   this.nodeEngine=nodeEngine;
   this.cacheService=cacheService;
   this.cacheConfig=cacheService.getCacheConfig(name);
   if (cacheConfig == null) {
     throw new CacheNotExistsException("Cache already destroyed, node " + nodeEngine.getLocalMember());
   }
+  this.records=createRecordCacheMap();
   if (cacheConfig.getCacheLoaderFactory() != null) {
     final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
     cacheLoader=cacheLoaderFactory.create();
@@ -18,11 +20,12 @@
   if (cacheConfig.isStatisticsEnabled()) {
     this.statistics=cacheService.createCacheStatIfAbsent(name);
   }
-  Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
+  final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
   this.defaultExpiryPolicy=expiryPolicyFactory.create();
   this.evictionPolicy=cacheConfig.getEvictionPolicy() != null ? cacheConfig.getEvictionPolicy() : EvictionPolicy.NONE;
+  this.maxSizeConfig=cacheConfig.getMaxSizeConfig();
   this.evictionEnabled=evictionPolicy != EvictionPolicy.NONE;
   this.evictionPercentage=cacheConfig.getEvictionPercentage();
-  this.evictionThresholdPercentage=cacheConfig.getEvictionThresholdPercentage();
   this.expirationTaskScheduler=scheduleExpirationTask();
+  this.maxSizeChecker=createCacheMaxSizeChecker(maxSizeConfig);
 }
