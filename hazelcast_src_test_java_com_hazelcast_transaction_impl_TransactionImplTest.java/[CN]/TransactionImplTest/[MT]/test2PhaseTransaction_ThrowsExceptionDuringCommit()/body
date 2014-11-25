@@ -1,0 +1,13 @@
+{
+  TransactionImpl transaction;
+  TransactionManagerServiceImpl transactionManagerService=mock(TransactionManagerServiceImpl.class);
+  NodeEngine nodeEngine=mock(NodeEngine.class);
+  when(nodeEngine.getLocalMember()).thenReturn(new MemberImpl());
+  when(nodeEngine.getLogger(TransactionImpl.class)).thenReturn(new DummyLogger());
+  TransactionOptions options=new TransactionOptions().setTransactionType(TransactionType.TWO_PHASE).setDurability(0);
+  transaction=new TransactionImpl(transactionManagerService,nodeEngine,options,"dummy-uuid");
+  transaction.begin();
+  transaction.addTransactionLog(new FailingTransactionLog(false,true,false));
+  transaction.prepare();
+  transaction.commit();
+}
