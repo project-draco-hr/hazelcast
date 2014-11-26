@@ -3,16 +3,18 @@
     return;
   }
   NodeEngine nodeEngine=getNodeEngine();
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  partitionService.updatePartitionReplicaVersions(getPartitionId(),replicaVersions,getReplicaIndex());
   if (backupOpData != null) {
     backupOp=nodeEngine.getSerializationService().toObject(backupOpData);
+    backupOp.setPartitionId(getPartitionId()).setReplicaIndex(getReplicaIndex());
     backupOp.setNodeEngine(nodeEngine);
-    backupOp.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
     backupOp.setCallerUuid(getCallerUuid());
     OperationAccessor.setCallerAddress(backupOp,getCallerAddress());
     OperationAccessor.setInvocationTime(backupOp,Clock.currentTimeMillis());
-    final OperationService operationService=nodeEngine.getOperationService();
-    operationService.runOperationOnCallingThread(backupOp);
+    backupOp.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+    backupOp.beforeRun();
+    backupOp.run();
+    backupOp.afterRun();
   }
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  partitionService.updatePartitionReplicaVersions(getPartitionId(),replicaVersions,getReplicaIndex());
 }
