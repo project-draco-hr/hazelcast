@@ -1,0 +1,36 @@
+{
+  if (sampleCount < 0) {
+    throw new IllegalArgumentException("Sample count cannot be a negative value.");
+  }
+  if (sampleCount == 0) {
+    return Collections.EMPTY_LIST;
+  }
+  final List<E> samples=new ArrayList<E>(sampleCount);
+  final int randomNumber=Math.abs(THREAD_LOCAL_RANDOM.get().nextInt());
+  final int firstSegmentIndex=randomNumber % segments.length;
+  int currentSegmentIndex=firstSegmentIndex;
+  do {
+    Segment<K,V> segment=segments[currentSegmentIndex];
+    if (segment != null) {
+      HashEntry<K,V>[] table=segment.table;
+      int firstBucketIndex=randomNumber % table.length;
+      int currentBucketIndex=firstBucketIndex;
+      do {
+        for (HashEntry<K,V> entry=table[currentBucketIndex]; entry != null; entry=entry.next) {
+          V value=entry.value();
+          if (value != null) {
+            samples.add((E)createSamplingEntry(entry.key(),value));
+            if (samples.size() == sampleCount) {
+              return samples;
+            }
+          }
+        }
+        currentBucketIndex=++currentBucketIndex < table.length ? currentBucketIndex : 0;
+      }
+ while (currentBucketIndex != firstBucketIndex);
+    }
+    currentSegmentIndex=++currentSegmentIndex < segments.length ? currentSegmentIndex : 0;
+  }
+ while (currentSegmentIndex != firstSegmentIndex);
+  return samples;
+}
