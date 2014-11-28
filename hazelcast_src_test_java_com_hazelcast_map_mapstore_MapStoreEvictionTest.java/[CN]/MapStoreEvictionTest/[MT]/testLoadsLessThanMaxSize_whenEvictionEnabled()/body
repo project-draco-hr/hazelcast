@@ -1,8 +1,10 @@
 {
   Config cfg=newConfig("map",true);
-  HazelcastInstance instances[]=nodeFactory.newInstances(cfg);
-  assertClusterSizeEventually(nodes,instances[0]);
-  IMap<Object,Object> map=instances[0].getMap("map");
-  assertEquals(maxSizePerCluster,loadedValueCount.get());
+  HazelcastInstance hz=nodeFactory.newInstances(cfg)[0];
+  assertClusterSizeEventually(nodes,hz);
+  IMap<Object,Object> map=hz.getMap("map");
+  waitAllForSafeState();
+  assertFalse(map.isEmpty());
   assertTrue(maxSizePerCluster >= map.size());
+  assertTrue(maxSizePerCluster >= loadedValueCount.get());
 }
