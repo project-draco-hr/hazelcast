@@ -1,0 +1,23 @@
+{
+  C evictionCandidate=null;
+  long now=Clock.currentTimeMillis();
+  for (  C candidate : evictionCandidates) {
+    if (evictionCandidate == null) {
+      evictionCandidate=candidate;
+    }
+ else {
+      Evictable evictable=candidate.getEvictable();
+      if (evictable instanceof Expirable) {
+        Expirable expirable=(Expirable)evictable;
+        if (expirable.isExpiredAt(now)) {
+          return Collections.singleton(candidate);
+        }
+      }
+      Evictable selected=selectEvictableAsPolicy(evictionCandidate.getEvictable(),evictable);
+      if (selected == evictable) {
+        evictionCandidate=candidate;
+      }
+    }
+  }
+  return evictionCandidate == null ? null : Collections.singleton(evictionCandidate);
+}
