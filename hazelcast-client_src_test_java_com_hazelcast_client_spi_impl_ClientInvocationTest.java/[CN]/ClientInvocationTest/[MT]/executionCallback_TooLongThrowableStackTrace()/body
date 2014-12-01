@@ -1,0 +1,32 @@
+{
+  Config config=new Config();
+  config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true);
+  HazelcastInstance server=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  IMap<Object,Object> map=client.getMap("test");
+  DummyEntryProcessor ep=new DummyEntryProcessor();
+  int count=100;
+  FailureExecutionCallback[] callbacks=new FailureExecutionCallback[count];
+  for (int i=0; i < count; i++) {
+    callbacks[i]=new FailureExecutionCallback();
+    map.submitToKey("key",ep,callbacks[i]);
+  }
+  TestUtil.getNode(server).getConnectionManager().shutdown();
+  server.getLifecycleService().terminate();
+  for (  FailureExecutionCallback callback : callbacks) {
+    assertTrue("Callback should be notified on time!",callback.latch.await(1,TimeUnit.MINUTES));
+    Throwable failure=callback.failure;
+    if (failure == null) {
+      continue;
+    }
+    int stackTraceLength=failure.getStackTrace().length;
+    assertTrue("Failure stack trace should not be too long! Current: " + stackTraceLength,stackTraceLength < 50);
+    Throwable cause=failure.getCause();
+    if (cause == null) {
+      continue;
+    }
+    stackTraceLength=cause.getStackTrace().length;
+    assertTrue("Cause stack trace should not be too long! Current: " + stackTraceLength,stackTraceLength < 50);
+  }
+}
