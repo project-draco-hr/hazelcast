@@ -1,0 +1,90 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_MERGE_FIRST_RUN_DELAY_SECONDS,"5");
+  config.setProperty(GroupProperties.PROP_MERGE_NEXT_RUN_DELAY_SECONDS,"5");
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.addAddress("127.0.0.1");
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final String mapName=randomMapName();
+  final IMap<Object,Boolean> map1=h1.getMap(mapName);
+  final IMap<Object,Boolean> map2=h2.getMap(mapName);
+  final IMap<Object,Boolean> mapC=client.getMap(mapName);
+  final CountDownLatch mergedLatch=new CountDownLatch(1);
+  final int ITERATION_COUNT=20;
+  final AtomicInteger[] atomicIntegers=new AtomicInteger[ITERATION_COUNT];
+  for (int i=0; i < ITERATION_COUNT; i++) {
+    atomicIntegers[i]=new AtomicInteger(0);
+  }
+  h1.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
+        mergedLatch.countDown();
+      }
+    }
+  }
+);
+  h2.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
+        mergedLatch.countDown();
+      }
+    }
+  }
+);
+  map1.addEntryListener(new EntryAdapter<Object,Boolean>(){
+    @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
+      final Boolean shouldCount=event.getValue();
+      if (shouldCount) {
+        atomicIntegers[(Integer)event.getKey()].incrementAndGet();
+      }
+    }
+  }
+,true);
+  map2.addEntryListener(new EntryAdapter<Object,Boolean>(){
+    @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
+      final Boolean shouldCount=event.getValue();
+      if (shouldCount) {
+        atomicIntegers[(Integer)event.getKey()].incrementAndGet();
+      }
+    }
+  }
+,true);
+  mapC.addEntryListener(new EntryAdapter<Object,Boolean>(){
+    @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
+      final Boolean shouldCount=event.getValue();
+      if (shouldCount) {
+        atomicIntegers[(Integer)event.getKey()].incrementAndGet();
+      }
+    }
+  }
+,true);
+  closeConnectionBetween(h2,h1);
+  final Random random=new Random();
+  final Thread clientThread=new Thread(){
+    @Override public void run(){
+      while (mergedLatch.getCount() != 0) {
+        mapC.put(random.nextInt() % 1000,false);
+      }
+      for (int i=0; i < ITERATION_COUNT; i++) {
+        mapC.put(i,true);
+      }
+    }
+  }
+;
+  clientThread.start();
+  assertTrue(mergedLatch.await(30,TimeUnit.SECONDS));
+  assertEquals(2,h1.getCluster().getMembers().size());
+  assertEquals(2,h2.getCluster().getMembers().size());
+  clientThread.join();
+  for (int i=0; i < ITERATION_COUNT; i++) {
+    final int id=i;
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals("id " + id,3,atomicIntegers[id].get());
+      }
+    }
+,10);
+  }
+}
