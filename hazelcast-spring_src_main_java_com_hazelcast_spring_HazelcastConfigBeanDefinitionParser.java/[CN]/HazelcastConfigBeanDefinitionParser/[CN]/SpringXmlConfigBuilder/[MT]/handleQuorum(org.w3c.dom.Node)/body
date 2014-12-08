@@ -1,0 +1,27 @@
+{
+  BeanDefinitionBuilder quorumConfigBuilder=createBeanBuilder(QuorumConfig.class);
+  final AbstractBeanDefinition beanDefinition=quorumConfigBuilder.getBeanDefinition();
+  final String name=getAttribute(node,"name");
+  quorumConfigBuilder.addPropertyValue("name",name);
+  Node attrEnabled=node.getAttributes().getNamedItem("enabled");
+  final boolean enabled=attrEnabled != null ? checkTrue(getTextContent(attrEnabled)) : false;
+  quorumConfigBuilder.addPropertyValue("enabled",enabled);
+  for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes())) {
+    final String value=getTextContent(n).trim();
+    final String nodeName=cleanNodeName(n.getNodeName());
+    if ("quorum-size".equals(nodeName)) {
+      quorumConfigBuilder.addPropertyValue("size",getIntegerValue("quorum-size",value,0));
+    }
+ else     if ("quorum-listeners".equals(nodeName)) {
+      ManagedList listeners=parseListeners(n,QuorumListenerConfig.class);
+      quorumConfigBuilder.addPropertyValue("listenerConfigs",listeners);
+    }
+ else     if ("quorum-type".equals(nodeName)) {
+      quorumConfigBuilder.addPropertyValue("type",QuorumType.valueOf(value));
+    }
+ else     if ("quorum-function-class-name".equals(nodeName)) {
+      quorumConfigBuilder.addPropertyValue(xmlToJavaName(nodeName),value);
+    }
+  }
+  quorumManagedMap.put(name,beanDefinition);
+}
