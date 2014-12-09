@@ -5,35 +5,28 @@
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
   final ClientConfig clientConfig=new ClientConfig();
-  clientConfig.addAddress("127.0.0.1");
   final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
   final String mapName=randomMapName();
-  final IMap<Object,Boolean> map1=h1.getMap(mapName);
-  final IMap<Object,Boolean> map2=h2.getMap(mapName);
-  final IMap<Object,Boolean> mapC=client.getMap(mapName);
-  final CountDownLatch mergedLatch=new CountDownLatch(1);
+  final IMap<Object,Boolean> mapNode1=h1.getMap(mapName);
+  final IMap<Object,Boolean> mapNode2=h2.getMap(mapName);
+  final IMap<Object,Boolean> mapClient=client.getMap(mapName);
   final int ITERATION_COUNT=20;
   final AtomicInteger[] atomicIntegers=new AtomicInteger[ITERATION_COUNT];
   for (int i=0; i < ITERATION_COUNT; i++) {
     atomicIntegers[i]=new AtomicInteger(0);
   }
-  h1.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+  final CountDownLatch mergedLatch=new CountDownLatch(1);
+  final LifecycleListener mergeListener=new LifecycleListener(){
     public void stateChanged(    LifecycleEvent event){
       if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
         mergedLatch.countDown();
       }
     }
   }
-);
-  h2.getLifecycleService().addLifecycleListener(new LifecycleListener(){
-    public void stateChanged(    LifecycleEvent event){
-      if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
-        mergedLatch.countDown();
-      }
-    }
-  }
-);
-  map1.addEntryListener(new EntryAdapter<Object,Boolean>(){
+;
+  h1.getLifecycleService().addLifecycleListener(mergeListener);
+  h2.getLifecycleService().addLifecycleListener(mergeListener);
+  final EntryAdapter<Object,Boolean> entryListener=new EntryAdapter<Object,Boolean>(){
     @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
       final Boolean shouldCount=event.getValue();
       if (shouldCount) {
@@ -41,34 +34,19 @@
       }
     }
   }
-,true);
-  map2.addEntryListener(new EntryAdapter<Object,Boolean>(){
-    @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
-      final Boolean shouldCount=event.getValue();
-      if (shouldCount) {
-        atomicIntegers[(Integer)event.getKey()].incrementAndGet();
-      }
-    }
-  }
-,true);
-  mapC.addEntryListener(new EntryAdapter<Object,Boolean>(){
-    @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
-      final Boolean shouldCount=event.getValue();
-      if (shouldCount) {
-        atomicIntegers[(Integer)event.getKey()].incrementAndGet();
-      }
-    }
-  }
-,true);
+;
+  mapNode1.addEntryListener(entryListener,true);
+  mapNode2.addEntryListener(entryListener,true);
+  mapClient.addEntryListener(entryListener,true);
   closeConnectionBetween(h2,h1);
   final Random random=new Random();
   final Thread clientThread=new Thread(){
     @Override public void run(){
       while (mergedLatch.getCount() != 0) {
-        mapC.put(random.nextInt() % 1000,false);
+        mapClient.put(random.nextInt() % 1000,false);
       }
       for (int i=0; i < ITERATION_COUNT; i++) {
-        mapC.put(i,true);
+        mapClient.put(i,true);
       }
     }
   }
