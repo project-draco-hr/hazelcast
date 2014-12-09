@@ -1,0 +1,20 @@
+{
+  Object key=getConnectionKey(op);
+  AtomicInteger[] syncDelayPerPartition;
+  syncDelayPerPartition=syncDelaysPerConnection.get(key);
+  if (syncDelayPerPartition == null) {
+    AtomicInteger[] newSyncDelayPerPartition=new AtomicInteger[partitionCount + 1];
+    for (int k=0; k < newSyncDelayPerPartition.length; k++) {
+      newSyncDelayPerPartition[k]=new AtomicInteger(syncWindow);
+    }
+    AtomicInteger[] found=syncDelaysPerConnection.putIfAbsent(key,newSyncDelayPerPartition);
+    syncDelayPerPartition=found != null ? found : newSyncDelayPerPartition;
+  }
+  int partitionId=op.getPartitionId();
+  if (partitionId < 0) {
+    return syncDelayPerPartition[partitionCount];
+  }
+ else {
+    return syncDelayPerPartition[partitionId];
+  }
+}
