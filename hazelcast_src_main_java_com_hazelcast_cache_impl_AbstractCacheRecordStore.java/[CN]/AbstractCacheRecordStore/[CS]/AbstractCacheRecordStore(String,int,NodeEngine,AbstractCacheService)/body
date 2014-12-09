@@ -8,6 +8,10 @@
   if (cacheConfig == null) {
     throw new CacheNotExistsException("Cache is already destroyed or not created yet, on " + nodeEngine.getLocalMember());
   }
+  this.evictionConfig=cacheConfig.getEvictionConfig();
+  if (evictionConfig == null) {
+    throw new IllegalStateException("Eviction config cannot be null");
+  }
   this.records=createRecordCacheMap();
   if (cacheConfig.getCacheLoaderFactory() != null) {
     final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
@@ -22,17 +26,8 @@
   }
   final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
   this.defaultExpiryPolicy=expiryPolicyFactory.create();
-  this.evictionPolicy=cacheConfig.getEvictionPolicy() != null ? cacheConfig.getEvictionPolicy() : EvictionPolicy.NONE;
-  this.maxSizeConfig=cacheConfig.getMaxSizeConfig();
-  this.evictionEnabled=evictionPolicy != EvictionPolicy.NONE;
-  this.maxSizeChecker=createCacheMaxSizeChecker(maxSizeConfig);
-  this.evictionPolicyEvaluator=creatEvictionPolicyEvaluator(evictionPolicy);
-  this.evictionChecker=createEvictionChecker();
-  this.evictionStrategy=creatEvictionStrategy();
-  if (maxSizeConfig == null) {
-    throw new IllegalStateException("Max-Size config must be configured");
-  }
-  if (evictionPolicy == null || evictionPolicy == EvictionPolicy.NONE) {
-    throw new IllegalStateException("Eviction policy cannot be null or NONE");
-  }
+  this.maxSizeChecker=createCacheMaxSizeChecker(evictionConfig.getSize(),evictionConfig.getMaxSizePolicy());
+  this.evictionPolicyEvaluator=creatEvictionPolicyEvaluator(evictionConfig);
+  this.evictionChecker=createEvictionChecker(evictionConfig);
+  this.evictionStrategy=creatEvictionStrategy(evictionConfig);
 }
