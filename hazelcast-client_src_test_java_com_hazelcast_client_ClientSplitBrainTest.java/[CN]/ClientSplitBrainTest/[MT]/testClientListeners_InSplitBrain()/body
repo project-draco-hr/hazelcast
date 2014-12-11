@@ -16,53 +16,18 @@
     atomicIntegers[i]=new AtomicInteger(0);
   }
   final CountDownLatch mergedLatch=new CountDownLatch(1);
-  final LifecycleListener mergeListener=new LifecycleListener(){
-    public void stateChanged(    LifecycleEvent event){
-      if (event.getState() == LifecycleEvent.LifecycleState.MERGED) {
-        mergedLatch.countDown();
-      }
-    }
-  }
-;
+  final LifecycleListener mergeListener=createMergeListener(mergedLatch);
   h1.getLifecycleService().addLifecycleListener(mergeListener);
   h2.getLifecycleService().addLifecycleListener(mergeListener);
-  final EntryAdapter<Object,Boolean> entryListener=new EntryAdapter<Object,Boolean>(){
-    @Override public void onEntryEvent(    EntryEvent<Object,Boolean> event){
-      final Boolean shouldCount=event.getValue();
-      if (shouldCount) {
-        atomicIntegers[(Integer)event.getKey()].incrementAndGet();
-      }
-    }
-  }
-;
+  final EntryAdapter<Object,Boolean> entryListener=createEntryListener(atomicIntegers);
   mapNode1.addEntryListener(entryListener,true);
   mapNode2.addEntryListener(entryListener,true);
   mapClient.addEntryListener(entryListener,true);
   closeConnectionBetween(h2,h1);
-  final Random random=new Random();
-  final Thread clientThread=new Thread(){
-    @Override public void run(){
-      while (mergedLatch.getCount() != 0) {
-        mapClient.put(random.nextInt() % 1000,false);
-      }
-      for (int i=0; i < ITERATION_COUNT; i++) {
-        mapClient.put(i,true);
-      }
-    }
-  }
-;
-  clientThread.start();
+  final Thread clientThread=startClientPutThread(mapClient,ITERATION_COUNT,mergedLatch);
   assertTrue(mergedLatch.await(30,TimeUnit.SECONDS));
   assertEquals(2,h1.getCluster().getMembers().size());
   assertEquals(2,h2.getCluster().getMembers().size());
   clientThread.join();
-  for (int i=0; i < ITERATION_COUNT; i++) {
-    final int id=i;
-    assertTrueEventually(new AssertTask(){
-      @Override public void run() throws Exception {
-        assertEquals("id " + id,3,atomicIntegers[id].get());
-      }
-    }
-,10);
-  }
+  checkEventsEventually(atomicIntegers);
 }
