@@ -1,0 +1,16 @@
+{
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final Data dataKey=serializationService.toData(key);
+      final PartitionService partitionService=node1.getPartitionService();
+      final Partition partition=partitionService.getPartition(key);
+      final int partitionId=partition.getPartitionId();
+      final ICacheRecordStore recordStore=getRecordStore(cacheService,cacheName,partitionId);
+      final CacheRecord record=recordStore.getRecord(dataKey);
+      assertNotNull("Backups are not done yet!!!",record);
+      final Object value=serializationService.toObject(record.getValue());
+      assertEquals(expectedValue,value);
+    }
+  }
+,ASSERTION_TIMEOUT_SECONDS);
+}
