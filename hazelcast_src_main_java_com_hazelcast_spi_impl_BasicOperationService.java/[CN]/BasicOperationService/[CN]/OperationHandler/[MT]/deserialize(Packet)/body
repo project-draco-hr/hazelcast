@@ -1,0 +1,28 @@
+{
+  Connection connection=packet.getConn();
+  Address caller=connection.getEndPoint();
+  Data data=packet.getData();
+  try {
+    Object object=nodeEngine.toObject(data);
+    Operation op=(Operation)object;
+    op.setNodeEngine(nodeEngine);
+    setCallerAddress(op,caller);
+    setConnection(op,connection);
+    setCallerUuidIfNotSet(caller,op);
+    setRemoteResponseHandler(nodeEngine,op);
+    if (!ensureValidMember(op)) {
+      return null;
+    }
+    return op;
+  }
+ catch (  Throwable throwable) {
+    long callId=IOUtil.extractOperationCallId(data,node.getSerializationService());
+    RemoteOperationExceptionHandler exceptionHandler=new RemoteOperationExceptionHandler(callId);
+    exceptionHandler.setNodeEngine(nodeEngine);
+    exceptionHandler.setCallerAddress(caller);
+    exceptionHandler.setConnection(connection);
+    ResponseHandlerFactory.setRemoteResponseHandler(nodeEngine,exceptionHandler);
+    operationHandler.handleOperationError(exceptionHandler,throwable);
+    throw ExceptionUtil.rethrow(throwable);
+  }
+}
