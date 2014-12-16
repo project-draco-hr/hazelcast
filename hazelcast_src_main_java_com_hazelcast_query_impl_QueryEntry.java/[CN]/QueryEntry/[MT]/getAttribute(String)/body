@@ -5,17 +5,11 @@
  else   if (THIS_ATTRIBUTE_NAME.equals(attributeName)) {
     return (Comparable)getValue();
   }
-  boolean key=attributeName.startsWith(KEY_ATTRIBUTE_NAME);
-  Data data;
-  if (key) {
-    attributeName=attributeName.substring(KEY_ATTRIBUTE_NAME.length() + 1);
-    data=getKeyData();
+  boolean isKey=isKey(attributeName);
+  attributeName=getAttributeName(isKey,attributeName);
+  Data targetData=getOptionalTargetData(isKey);
+  if (targetData != null && targetData.isPortable()) {
+    return extractViaPortable(attributeName,targetData);
   }
- else {
-    data=getValueData();
-  }
-  if (data != null && data.isPortable()) {
-    return extractViaPortable(attributeName,data);
-  }
-  return extractViaReflection(attributeName,key);
+  return extractViaReflection(attributeName,isKey);
 }
