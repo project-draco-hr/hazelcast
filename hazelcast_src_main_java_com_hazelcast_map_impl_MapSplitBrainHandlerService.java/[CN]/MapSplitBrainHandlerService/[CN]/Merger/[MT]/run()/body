@@ -1,0 +1,39 @@
+{
+  final Semaphore semaphore=new Semaphore(0);
+  int recordCount=0;
+  final ILogger logger=nodeEngine.getLogger(MapSplitBrainHandlerService.class);
+  ExecutionCallback mergeCallback=new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      semaphore.release(1);
+    }
+    @Override public void onFailure(    Throwable t){
+      logger.warning("Error while running merge operation: " + t.getMessage());
+      semaphore.release(1);
+    }
+  }
+;
+  for (  MapContainer mapContainer : recordMap.keySet()) {
+    Collection<Record> recordList=recordMap.get(mapContainer);
+    String mergePolicyName=mapContainer.getMapConfig().getMergePolicy();
+    final MapMergePolicy finalMergePolicy=mapServiceContext.getMergePolicyProvider().getMergePolicy(mergePolicyName);
+    for (    Record record : recordList) {
+      recordCount++;
+      EntryView entryView=EntryViews.createSimpleEntryView(record.getKey(),mapServiceContext.toData(record.getValue()),record);
+      MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,finalMergePolicy);
+      try {
+        int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
+        ICompletableFuture f=nodeEngine.getOperationService().invokeOnPartition(mapServiceContext.serviceName(),operation,partitionId);
+        f.andThen(mergeCallback);
+      }
+ catch (      Throwable t) {
+        throw ExceptionUtil.rethrow(t);
+      }
+    }
+  }
+  try {
+    semaphore.tryAcquire(recordCount,recordCount * TIMEOUT_FACTOR,TimeUnit.MILLISECONDS);
+  }
+ catch (  InterruptedException e) {
+    logger.finest("Interrupted while waiting merge operation...");
+  }
+}

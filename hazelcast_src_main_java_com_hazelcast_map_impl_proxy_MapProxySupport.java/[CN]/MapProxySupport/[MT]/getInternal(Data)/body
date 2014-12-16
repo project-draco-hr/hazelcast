@@ -1,0 +1,28 @@
+{
+  final MapConfig mapConfig=getMapConfig();
+  final boolean nearCacheEnabled=mapConfig.isNearCacheEnabled();
+  if (nearCacheEnabled) {
+    final Object fromNearCache=getFromNearCache(key);
+    if (fromNearCache != null) {
+      if (isCachedAsNullInNearCache(fromNearCache)) {
+        return null;
+      }
+      return fromNearCache;
+    }
+  }
+  if (mapConfig.isReadBackupData()) {
+    final Object fromBackup=readBackupDataOrNull(key);
+    if (fromBackup != null) {
+      return fromBackup;
+    }
+  }
+  final GetOperation operation=new GetOperation(name,key);
+  operation.setThreadId(ThreadUtil.getThreadId());
+  final Data value=(Data)invokeOperation(key,operation);
+  if (nearCacheEnabled) {
+    if (notOwnerPartitionForKey(key) || cacheKeyAnyway()) {
+      return putNearCache(key,value);
+    }
+  }
+  return value;
+}

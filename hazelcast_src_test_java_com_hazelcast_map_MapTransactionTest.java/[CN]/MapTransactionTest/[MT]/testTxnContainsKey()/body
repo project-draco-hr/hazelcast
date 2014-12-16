@@ -1,12 +1,12 @@
 {
+  Config config=new Config();
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance h1=factory.newHazelcastInstance();
-  final String mapName=randomMapName();
-  final IMap map=h1.getMap(mapName);
+  final HazelcastInstance h1=factory.newHazelcastInstance(config);
+  final IMap map=h1.getMap("default");
   map.put("1","1");
   boolean b=h1.executeTransaction(options,new TransactionalTask<Boolean>(){
     public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
-      final TransactionalMap<Object,Object> txMap=context.getMap(mapName);
+      final TransactionalMap<Object,Object> txMap=context.getMap("default");
       txMap.delete("1");
       assertEquals(false,txMap.containsKey("1"));
       assertEquals(true,map.containsKey("1"));

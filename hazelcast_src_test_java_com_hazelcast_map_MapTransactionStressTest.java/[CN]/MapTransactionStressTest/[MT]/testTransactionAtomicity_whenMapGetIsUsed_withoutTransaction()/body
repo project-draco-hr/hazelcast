@@ -1,0 +1,23 @@
+{
+  final HazelcastInstance hz=createHazelcastInstance(createConfigWithDummyTxService());
+  final String name=HazelcastTestSupport.generateRandomString(5);
+  Thread producerThread=startProducerThread(hz,name);
+  try {
+    IQueue<String> q=hz.getQueue(name);
+    for (int i=0; i < 1000; i++) {
+      String id=q.poll();
+      if (id != null) {
+        IMap<Object,Object> map=hz.getMap(name);
+        Object value=map.get(id);
+        Assert.assertNotNull(value);
+        map.delete(id);
+      }
+ else {
+        LockSupport.parkNanos(100);
+      }
+    }
+  }
+  finally {
+    stopProducerThread(producerThread);
+  }
+}

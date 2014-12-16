@@ -1,0 +1,31 @@
+{
+  expiryPolicy=getExpiryPolicy(expiryPolicy);
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  boolean isOnNewPut=false;
+  boolean isSaveSucceed;
+  Object oldValue=null;
+  R record=records.get(key);
+  boolean isExpired=processExpiredEntry(key,record,now);
+  try {
+    if (record == null || isExpired) {
+      isOnNewPut=true;
+      record=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough,completionId);
+      isSaveSucceed=record != null;
+    }
+ else {
+      if (getValue) {
+        oldValue=toValue(record);
+      }
+      isSaveSucceed=updateRecordWithExpiry(key,value,record,expiryPolicy,now,disableWriteThrough,completionId);
+    }
+    onPut(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isExpired,isOnNewPut,isSaveSucceed);
+    updateGetAndPutStat(isSaveSucceed,getValue,oldValue == null,start);
+    updateHasExpiringEntry(record);
+    return oldValue;
+  }
+ catch (  Throwable error) {
+    onPutError(key,value,expiryPolicy,caller,getValue,disableWriteThrough,record,oldValue,isOnNewPut,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+}

@@ -1,0 +1,26 @@
+{
+  if (!isValid()) {
+    return;
+  }
+  processMemberUpdate();
+  final ClusterServiceImpl clusterService=getService();
+  final NodeEngineImpl nodeEngine=clusterService.getNodeEngine();
+  final Operation[] postJoinOperations=nodeEngine.getPostJoinOperations();
+  final OperationService operationService=nodeEngine.getOperationService();
+  if (postJoinOperations != null && postJoinOperations.length > 0) {
+    final Collection<MemberImpl> members=clusterService.getMemberList();
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        PostJoinOperation operation=new PostJoinOperation(postJoinOperations);
+        operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,operation,member.getAddress()).setTryCount(100).invoke();
+      }
+    }
+  }
+  if (postJoinOp != null) {
+    postJoinOp.setNodeEngine(nodeEngine);
+    OperationAccessor.setCallerAddress(postJoinOp,getCallerAddress());
+    OperationAccessor.setConnection(postJoinOp,getConnection());
+    postJoinOp.setResponseHandler(ResponseHandlerFactory.createEmptyResponseHandler());
+    operationService.runOperationOnCallingThread(postJoinOp);
+  }
+}

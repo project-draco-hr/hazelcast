@@ -1,31 +1,23 @@
 {
   super.readInternal(in);
   int confSize=in.readInt();
-  if (confSize > 0) {
-    configs=new ArrayList<CacheConfig>();
-    for (int i=0; i < confSize; i++) {
-      final CacheConfig config=in.readObject();
-      configs.add(config);
-    }
+  for (int i=0; i < confSize; i++) {
+    final CacheConfig config=in.readObject();
+    configs.add(config);
   }
   int count=in.readInt();
-  if (count > 0) {
-    for (int i=0; i < count; i++) {
-      int subCount=in.readInt();
-      if (subCount > 0) {
-        String name=in.readUTF();
-        Map<Data,CacheRecord> m=new HashMap<Data,CacheRecord>(subCount);
-        data.put(name,m);
-        for (int j=0; j < subCount; j++) {
-          final Data key=new Data();
-          key.readData(in);
-          if (key.bufferSize() == 0) {
-            break;
-          }
-          final CacheRecord record=in.readObject();
-          m.put(key,record);
-        }
+  for (int i=0; i < count; i++) {
+    int subCount=in.readInt();
+    String name=in.readUTF();
+    Map<Data,CacheRecord> m=new HashMap<Data,CacheRecord>(subCount);
+    data.put(name,m);
+    for (int j=0; j < subCount + 1; j++) {
+      Data key=in.readData();
+      if (key.dataSize() == 0) {
+        break;
       }
+      CacheRecord record=in.readObject();
+      m.put(key,record);
     }
   }
 }

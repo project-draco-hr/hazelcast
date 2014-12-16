@@ -1,0 +1,22 @@
+{
+  long connectionTimeoutMillis=getConnTimeoutSeconds() * 1000L;
+  long start=Clock.currentTimeMillis();
+  while (!node.joined() && Clock.currentTimeMillis() - start < connectionTimeoutMillis) {
+    Address masterAddress=node.getMasterAddress();
+    if (isAllBlacklisted(possibleAddresses) && masterAddress == null) {
+      return;
+    }
+    if (masterAddress != null) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Sending join request to " + masterAddress);
+      }
+      node.clusterService.sendJoinRequest(masterAddress,true);
+    }
+ else {
+      sendMasterQuestion(possibleAddresses);
+    }
+    if (!node.joined()) {
+      Thread.sleep(JOIN_RETRY_WAIT_TIME);
+    }
+  }
+}

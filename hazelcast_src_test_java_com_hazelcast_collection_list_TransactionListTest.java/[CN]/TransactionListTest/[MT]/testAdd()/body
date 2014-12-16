@@ -1,0 +1,19 @@
+{
+  HazelcastInstance instance=createHazelcastInstance();
+  String name=randomString();
+  String item=randomString();
+  IList<Object> list=instance.getList(name);
+  TransactionContext context=instance.newTransactionContext();
+  try {
+    context.beginTransaction();
+    TransactionalList<Object> txnList=context.getList(name);
+    assertTrue(txnList.add(item));
+    context.commitTransaction();
+  }
+ catch (  Exception e) {
+    fail(e.getMessage());
+    context.rollbackTransaction();
+  }
+  assertEquals(1,list.size());
+  assertEquals(item,list.get(0));
+}

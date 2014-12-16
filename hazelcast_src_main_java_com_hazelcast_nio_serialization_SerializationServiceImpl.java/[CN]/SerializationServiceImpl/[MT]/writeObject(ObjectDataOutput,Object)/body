@@ -1,4 +1,7 @@
 {
+  if (obj instanceof Data) {
+    throw new HazelcastSerializationException("Cannot write a Data instance! " + "Use #writeData(ObjectDataOutput out, Data data) instead.");
+  }
   final boolean isNull=obj == null;
   try {
     out.writeBoolean(isNull);
@@ -13,14 +16,9 @@
       throw new HazelcastInstanceNotActiveException();
     }
     out.writeInt(serializer.getTypeId());
-    if (obj instanceof Portable) {
-      final Portable portable=(Portable)obj;
-      ClassDefinition classDefinition=serializationContext.lookupOrRegisterClassDefinition(portable);
-      classDefinition.writeData(out);
-    }
     serializer.write(out,obj);
   }
  catch (  Throwable e) {
-    handleException(e);
+    throw handleException(e);
   }
 }

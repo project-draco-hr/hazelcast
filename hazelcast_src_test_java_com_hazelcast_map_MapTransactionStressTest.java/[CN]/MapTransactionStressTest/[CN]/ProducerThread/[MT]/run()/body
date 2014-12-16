@@ -1,0 +1,23 @@
+{
+  while (!isInterrupted()) {
+    TransactionContext tx=hz.newTransactionContext();
+    try {
+      tx.beginTransaction();
+      String id=UUID.randomUUID().toString();
+      TransactionalQueue<String> q=tx.getQueue(name);
+      q.offer(id);
+      DummyTransactionalObject slowTxObject=tx.getTransactionalObject(dummyServiceName,name);
+      slowTxObject.doSomethingTxnal();
+      TransactionalMap<String,Object> map=tx.getMap(name);
+      map.put(id,value);
+      slowTxObject.doSomethingTxnal();
+      TransactionalMultiMap<Object,Object> multiMap=tx.getMultiMap(name);
+      multiMap.put(id,value);
+      tx.commitTransaction();
+    }
+ catch (    TransactionException e) {
+      tx.rollbackTransaction();
+      e.printStackTrace();
+    }
+  }
+}

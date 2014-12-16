@@ -1,0 +1,41 @@
+{
+  Config config=newConfig();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  final String key=generateKeyOwnedBy(h3);
+  ISemaphore semaphore=h3.getSemaphore(key);
+  semaphore.init(5);
+  semaphore.acquire(3);
+  assertEquals(2,semaphore.availablePermits());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(h3.getPartitionService().isLocalMemberSafe());
+    }
+  }
+);
+  TestMemberShipListener memberShipListener=new TestMemberShipListener(2);
+  h3.getCluster().addMembershipListener(memberShipListener);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  h3.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  closeConnectionBetween(h1,h3);
+  closeConnectionBetween(h2,h3);
+  assertOpenEventually(memberShipListener.latch);
+  assertClusterSizeEventually(2,h1);
+  assertClusterSizeEventually(2,h2);
+  assertClusterSizeEventually(1,h3);
+  final ISemaphore semaphore1=h1.getSemaphore(key);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(5,semaphore1.availablePermits());
+    }
+  }
+);
+  semaphore1.acquire(4);
+  assertOpenEventually(lifeCycleListener.latch);
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  ISemaphore testSemaphore=h3.getSemaphore(key);
+  assertEquals(1,testSemaphore.availablePermits());
+}

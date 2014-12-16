@@ -1,0 +1,36 @@
+{
+  expiryPolicy=getExpiryPolicy(expiryPolicy);
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  boolean isHit=false;
+  boolean replaced=false;
+  R record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  try {
+    if (record == null || isExpired) {
+      replaced=false;
+    }
+ else {
+      isHit=true;
+      Object currentValue=toValue(record);
+      if (compare(currentValue,toValue(oldValue))) {
+        replaced=updateRecordWithExpiry(key,newValue,record,expiryPolicy,now,false,completionId);
+      }
+ else {
+        onRecordAccess(record,expiryPolicy,now);
+        replaced=false;
+      }
+    }
+    if (!replaced) {
+      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId);
+    }
+    onReplace(key,oldValue,newValue,expiryPolicy,caller,false,record,isExpired,replaced);
+    updateReplaceStat(replaced,isHit,start);
+    updateHasExpiringEntry(record);
+    return replaced;
+  }
+ catch (  Throwable error) {
+    onReplaceError(key,oldValue,newValue,expiryPolicy,caller,false,record,isExpired,replaced,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+}

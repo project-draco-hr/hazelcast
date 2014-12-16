@@ -1,15 +1,17 @@
 {
-  Set<Comparable> values=mapRecords.keySet();
-  for (  Comparable value : values) {
-    boolean valid;
-    int result=value.compareTo(searchedValue);
+  takeReadLock();
+  try {
+    Set<Comparable> values=recordMap.keySet();
+    for (    Comparable value : values) {
+      boolean valid;
+      int result=value.compareTo(searchedValue);
 switch (comparisonType) {
 case LESSER:
-      valid=result < 0;
-    break;
+        valid=result < 0;
+      break;
 case LESSER_EQUAL:
-  valid=result <= 0;
-break;
+    valid=result <= 0;
+  break;
 case GREATER:
 valid=result > 0;
 break;
@@ -20,13 +22,17 @@ case NOT_EQUAL:
 valid=result != 0;
 break;
 default :
-throw new IllegalStateException("Unrecognized comparisonType:" + comparisonType);
+throw new IllegalStateException("Unrecognized comparisonType: " + comparisonType);
 }
 if (valid) {
-ConcurrentMap<Data,QueryableEntry> records=mapRecords.get(value);
+ConcurrentMap<Data,QueryableEntry> records=recordMap.get(value);
 if (records != null) {
 results.addResultSet(records);
 }
 }
+}
+}
+  finally {
+releaseReadLock();
 }
 }

@@ -1,0 +1,20 @@
+{
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  int count=500;
+  IMap imap=h1.getMap("employees");
+  for (int i=0; i < count; i++) {
+    imap.put(String.valueOf(i),new Employee("joe" + i,i % 60,((i & 1) == 1),(double)i));
+  }
+  nodeFactory.newInstances(new Config(),3);
+  final IMap employees=h1.getMap("employees");
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      Collection<Employee> values=employees.values(new SqlPredicate("active and name LIKE 'joe15%'"));
+      for (      Employee employee : values) {
+        assertTrue(employee.isActive());
+      }
+      assertEquals(6,values.size());
+    }
+  }
+,3);
+}

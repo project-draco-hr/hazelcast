@@ -1,15 +1,17 @@
 {
   NamedPortable p1=new NamedPortable("portable-v1",111);
   Data data=serializationService.toData(p1);
+  transferClassDefinition(data,serializationService,serializationService2);
   BufferObjectDataOutput out=serializationService.createObjectDataOutput(1024);
-  data.writeData(out);
+  out.writeData(data);
   byte[] bytes=out.toByteArray();
-  BufferObjectDataInput in=serializationService2.createObjectDataInput(bytes);
-  data=new Data();
-  data.readData(in);
+  byte[] header=((PortableDataOutput)out).getPortableHeader();
+  BufferObjectDataInput in=serializationService2.createObjectDataInput(new DefaultData(0,bytes,0,header));
+  data=in.readData();
   Object object1=serializationService2.toObject(data);
   NamedPortableV2 p2=new NamedPortableV2("portable-v2",123);
   Data data2=serializationService2.toData(p2);
+  transferClassDefinition(data2,serializationService2,serializationService);
   Object object2=serializationService.toObject(data2);
   assertTrue(object1 instanceof NamedPortableV2);
   assertTrue(object2 instanceof NamedPortable);

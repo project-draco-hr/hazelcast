@@ -1,0 +1,24 @@
+{
+  final MapService mapService=getService();
+  final boolean nearCacheEnabled=mapService.getMapServiceContext().getMapContainer(name).isNearCacheEnabled();
+  if (nearCacheEnabled) {
+    Object cached=mapService.getMapServiceContext().getNearCacheProvider().getFromNearCache(name,key);
+    if (cached != null) {
+      if (cached.equals(NearCache.NULL_OBJECT)) {
+        cached=null;
+      }
+      return cached;
+    }
+  }
+  GetOperation operation=new GetOperation(name,key);
+  operation.setThreadId(ThreadUtil.getThreadId());
+  final NodeEngine nodeEngine=getNodeEngine();
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  try {
+    Future f=nodeEngine.getOperationService().invokeOnPartition(MapService.SERVICE_NAME,operation,partitionId);
+    return f.get();
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}

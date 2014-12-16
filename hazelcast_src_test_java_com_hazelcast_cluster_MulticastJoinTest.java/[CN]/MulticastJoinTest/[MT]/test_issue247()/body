@@ -1,0 +1,46 @@
+{
+  Config c1=new Config();
+  c1.setProperty(GroupProperties.PROP_WAIT_SECONDS_BEFORE_JOIN,"0");
+  c1.getNetworkConfig().setPort(5701).setPortAutoIncrement(false);
+  c1.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  c1.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true).clear().addMember("127.0.0.1:5701");
+  Config c2=new Config();
+  c2.setProperty(GroupProperties.PROP_WAIT_SECONDS_BEFORE_JOIN,"0");
+  c2.getNetworkConfig().setPort(5702).setPortAutoIncrement(false);
+  c2.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  c2.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true).clear().addMember("127.0.0.1:5702");
+  Config c3=new Config();
+  c3.setProperty(GroupProperties.PROP_WAIT_SECONDS_BEFORE_JOIN,"0");
+  c3.getNetworkConfig().setPort(5703).setPortAutoIncrement(false);
+  c3.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  c3.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true).clear().addMember("127.0.0.1:5701").addMember("127.0.0.1:5702");
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
+  assertEquals(1,h1.getCluster().getMembers().size());
+  assertEquals(1,h2.getCluster().getMembers().size());
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(c3);
+  int numNodesWithTwoMembers=0;
+  if (h1.getCluster().getMembers().size() == 2) {
+    numNodesWithTwoMembers++;
+  }
+  if (h2.getCluster().getMembers().size() == 2) {
+    numNodesWithTwoMembers++;
+  }
+  if (h3.getCluster().getMembers().size() == 2) {
+    numNodesWithTwoMembers++;
+  }
+  Member h3Member=h3.getCluster().getLocalMember();
+  int numNodesThatKnowAboutH3=0;
+  if (h1.getCluster().getMembers().contains(h3Member)) {
+    numNodesThatKnowAboutH3++;
+  }
+  if (h2.getCluster().getMembers().contains(h3Member)) {
+    numNodesThatKnowAboutH3++;
+  }
+  if (h3.getCluster().getMembers().contains(h3Member)) {
+    numNodesThatKnowAboutH3++;
+  }
+  assertClusterSize(2,h3);
+  assertEquals(2,numNodesWithTwoMembers);
+  assertEquals(2,numNodesThatKnowAboutH3);
+}

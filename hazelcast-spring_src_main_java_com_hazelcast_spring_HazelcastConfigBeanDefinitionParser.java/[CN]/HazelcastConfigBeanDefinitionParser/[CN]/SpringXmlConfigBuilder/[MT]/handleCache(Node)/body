@@ -1,0 +1,34 @@
+{
+  BeanDefinitionBuilder cacheConfigBuilder=createBeanBuilder(CacheSimpleConfig.class);
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  fillAttributeValues(node,cacheConfigBuilder);
+  for (  org.w3c.dom.Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    if ("eviction".equals(cleanNodeName(childNode))) {
+      final CacheEvictionConfig evictionConfig=new CacheEvictionConfig();
+      final Node size=childNode.getAttributes().getNamedItem("size");
+      final Node maxSizePolicy=childNode.getAttributes().getNamedItem("max-size-policy");
+      final Node evictionPolicy=childNode.getAttributes().getNamedItem("eviction-policy");
+      if (size != null) {
+        evictionConfig.setSize(Integer.parseInt(getTextContent(size)));
+      }
+      if (maxSizePolicy != null) {
+        evictionConfig.setMaxSizePolicy(CacheEvictionConfig.CacheMaxSizePolicy.valueOf(upperCaseInternal(getTextContent(maxSizePolicy))));
+      }
+      if (evictionPolicy != null) {
+        evictionConfig.setEvictionPolicy(EvictionPolicy.valueOf(upperCaseInternal(getTextContent(evictionPolicy))));
+      }
+      cacheConfigBuilder.addPropertyValue("evictionConfig",evictionConfig);
+    }
+    if ("cache-entry-listeners".equals(cleanNodeName(childNode))) {
+      ManagedList listeners=new ManagedList();
+      for (      Node listenerNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
+        final BeanDefinitionBuilder listenerConfBuilder=createBeanBuilder(CacheSimpleEntryListenerConfig.class);
+        fillAttributeValues(listenerNode,listenerConfBuilder);
+        listeners.add(listenerConfBuilder.getBeanDefinition());
+      }
+      cacheConfigBuilder.addPropertyValue("cacheEntryListeners",listeners);
+    }
+  }
+  cacheConfigManagedMap.put(name,cacheConfigBuilder.getBeanDefinition());
+}
