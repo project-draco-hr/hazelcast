@@ -1,0 +1,16 @@
+{
+  if (dirtyOutputBuffer()) {
+    registerOp(SelectionKey.OP_WRITE);
+    return;
+  }
+  SelectionKey selectionKey=getSelectionKey();
+  selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
+  scheduled.set(false);
+  if (writeQueue.isEmpty() && urgentWriteQueue.isEmpty()) {
+    return;
+  }
+  if (!scheduled.compareAndSet(false,true)) {
+    return;
+  }
+  ioSelector.addTask(this);
+}
