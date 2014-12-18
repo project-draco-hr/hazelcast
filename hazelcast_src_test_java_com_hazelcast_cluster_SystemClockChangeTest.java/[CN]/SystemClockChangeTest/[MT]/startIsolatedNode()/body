@@ -1,0 +1,20 @@
+{
+  Thread thread=Thread.currentThread();
+  ClassLoader tccl=thread.getContextClassLoader();
+  try {
+    FilteringClassLoader cl=new FilteringClassLoader(Collections.<String>emptyList(),"com.hazelcast");
+    thread.setContextClassLoader(cl);
+    Class<?> configClazz=cl.loadClass("com.hazelcast.config.Config");
+    Object config=configClazz.newInstance();
+    Method setClassLoader=configClazz.getDeclaredMethod("setClassLoader",ClassLoader.class);
+    setClassLoader.invoke(config,cl);
+    Method setProperty=configClazz.getDeclaredMethod("setProperty",String.class,String.class);
+    setProperty.invoke(config,GroupProperties.PROP_MEMBER_LIST_PUBLISH_INTERVAL_SECONDS,"10");
+    Class<?> hazelcastClazz=cl.loadClass("com.hazelcast.core.Hazelcast");
+    Method newHazelcastInstance=hazelcastClazz.getDeclaredMethod("newHazelcastInstance",configClazz);
+    return newHazelcastInstance.invoke(hazelcastClazz,config);
+  }
+  finally {
+    thread.setContextClassLoader(tccl);
+  }
+}
