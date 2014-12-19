@@ -1,6 +1,8 @@
 {
   checkIfNotNull(cachingProvider,"CachingProvider missing");
   this.cachingProvider=cachingProvider;
+  checkIfNotNull(hazelcastInstance,"hazelcastInstance cannot be null");
+  this.hazelcastInstance=hazelcastInstance;
   isDefaultURI=uri == null || cachingProvider.getDefaultURI().equals(uri);
   this.uri=isDefaultURI ? cachingProvider.getDefaultURI() : uri;
   isDefaultClassLoader=classLoader == null || cachingProvider.getDefaultClassLoader().equals(classLoader);
@@ -8,4 +10,12 @@
   this.classLoaderReference=new WeakReference<ClassLoader>(localClassLoader);
   this.properties=properties == null ? new Properties() : new Properties(properties);
   this.cacheNamePrefix=cacheNamePrefix();
+  hazelcastInstance.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleEvent.LifecycleState.SHUTTING_DOWN) {
+        close();
+      }
+    }
+  }
+);
 }
