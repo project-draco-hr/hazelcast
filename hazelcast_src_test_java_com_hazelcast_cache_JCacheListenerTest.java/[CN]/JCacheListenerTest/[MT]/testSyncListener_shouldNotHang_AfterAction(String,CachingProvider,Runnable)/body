@@ -1,0 +1,27 @@
+{
+  CacheManager cacheManager=provider.getCacheManager();
+  CompleteConfiguration<String,String> config=new MutableConfiguration<String,String>().addCacheEntryListenerConfiguration(new MutableCacheEntryListenerConfiguration<String,String>(FactoryBuilder.factoryOf(new TestListener(new AtomicInteger())),null,true,true));
+  final Cache<String,String> cache=cacheManager.createCache(cacheName,config);
+  int threads=4;
+  final CountDownLatch latch=new CountDownLatch(threads);
+  for (int i=0; i < threads; i++) {
+    new Thread(){
+      public void run(){
+        Random rand=new Random();
+        while (true) {
+          try {
+            cache.put(String.valueOf(rand.nextInt(100)),"value");
+          }
+ catch (          Throwable e) {
+            break;
+          }
+        }
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  sleepSeconds(3);
+  action.run();
+  assertOpenEventually("Cache operations should not hang when sync listener is present!",latch);
+}
