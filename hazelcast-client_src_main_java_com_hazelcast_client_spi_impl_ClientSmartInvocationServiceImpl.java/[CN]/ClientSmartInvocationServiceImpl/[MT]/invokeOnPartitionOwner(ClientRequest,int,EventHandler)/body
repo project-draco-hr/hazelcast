@@ -1,0 +1,29 @@
+{
+  Exception lastError=null;
+  int count=0;
+  long retryCount=retryTimeoutInSeconds / RETRY_WAIT_TIME_IN_SECONDS;
+  while (count++ < retryCount) {
+    try {
+      final Address owner=partitionService.getPartitionOwner(partitionId);
+      if (owner != null) {
+        request.setPartitionId(partitionId);
+        ClientConnection connection=(ClientConnection)connectionManager.getOrConnect(owner,authenticator);
+        return send(request,connection,handler);
+      }
+    }
+ catch (    IOException e) {
+      lastError=e;
+    }
+catch (    HazelcastInstanceNotActiveException e) {
+      lastError=e;
+    }
+    if (!client.getLifecycleService().isRunning()) {
+      throw new HazelcastInstanceNotActiveException();
+    }
+    Thread.sleep(TimeUnit.SECONDS.toMillis(RETRY_WAIT_TIME_IN_SECONDS));
+  }
+  if (lastError == null) {
+    throw new OperationTimeoutException("Could not invoke request on partition(" + partitionId + ") owner in "+ retryTimeoutInSeconds+ " seconds");
+  }
+  throw lastError;
+}

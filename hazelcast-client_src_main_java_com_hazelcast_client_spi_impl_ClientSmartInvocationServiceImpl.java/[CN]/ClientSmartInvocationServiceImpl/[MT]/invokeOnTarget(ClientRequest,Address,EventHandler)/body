@@ -1,0 +1,30 @@
+{
+  if (target == null) {
+    throw new NullPointerException("Target can not be null");
+  }
+  int count=0;
+  Exception lastError=null;
+  long retryCount=retryTimeoutInSeconds / RETRY_WAIT_TIME_IN_SECONDS;
+  while (count++ < retryCount) {
+    try {
+      if (isMember(target)) {
+        final Connection connection=connectionManager.getOrConnect(target,authenticator);
+        return invokeOnConnection(request,(ClientConnection)connection,handler);
+      }
+    }
+ catch (    IOException e) {
+      lastError=e;
+    }
+catch (    HazelcastInstanceNotActiveException e) {
+      lastError=e;
+    }
+    if (!client.getLifecycleService().isRunning()) {
+      throw new HazelcastInstanceNotActiveException();
+    }
+    Thread.sleep(TimeUnit.SECONDS.toMillis(RETRY_WAIT_TIME_IN_SECONDS));
+  }
+  if (lastError == null) {
+    throw new OperationTimeoutException("Could not invoke request on the target(" + target + ") in "+ retryTimeoutInSeconds+ " seconds");
+  }
+  throw lastError;
+}

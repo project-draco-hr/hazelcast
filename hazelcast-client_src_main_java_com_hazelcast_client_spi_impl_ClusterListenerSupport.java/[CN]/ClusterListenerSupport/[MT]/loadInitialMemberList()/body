@@ -1,0 +1,24 @@
+{
+  final SerializationService serializationService=clusterService.getSerializationService();
+  final GetMemberListRequest request=new GetMemberListRequest();
+  final Connection connection=connectionManager.getConnection(ownerConnectionAddress);
+  if (connection == null) {
+    throw new IllegalStateException("Can not load initial members list because owner connection is null. " + "Address " + ownerConnectionAddress);
+  }
+  final Future future=clientInvocationService.invokeOnConnection(request,(ClientConnection)connection);
+  final SerializableCollection coll=serializationService.toObject(future.get());
+  Map<String,MemberImpl> prevMembers=Collections.emptyMap();
+  if (!members.isEmpty()) {
+    prevMembers=new HashMap<String,MemberImpl>(members.size());
+    for (    MemberImpl member : members) {
+      prevMembers.put(member.getUuid(),member);
+    }
+    members.clear();
+  }
+  for (  Data data : coll) {
+    members.add((MemberImpl)serializationService.toObject(data));
+  }
+  updateMembersRef();
+  LOGGER.info(clusterService.membersString());
+  fireMembershipEvent(prevMembers);
+}

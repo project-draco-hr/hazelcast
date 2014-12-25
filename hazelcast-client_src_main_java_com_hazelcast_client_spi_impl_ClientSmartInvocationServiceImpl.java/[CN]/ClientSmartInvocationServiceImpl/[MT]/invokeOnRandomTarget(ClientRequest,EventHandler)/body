@@ -1,0 +1,28 @@
+{
+  Exception lastError=null;
+  int count=0;
+  long retryCount=retryTimeoutInSeconds / RETRY_WAIT_TIME_IN_SECONDS;
+  while (count++ < retryCount) {
+    try {
+      final Address randomAddress=getRandomAddress();
+      if (randomAddress != null) {
+        final Connection connection=connectionManager.getOrConnect(randomAddress,authenticator);
+        return send(request,(ClientConnection)connection,handler);
+      }
+    }
+ catch (    IOException e) {
+      lastError=e;
+    }
+catch (    HazelcastInstanceNotActiveException e) {
+      lastError=e;
+    }
+    if (!client.getLifecycleService().isRunning()) {
+      throw new HazelcastInstanceNotActiveException();
+    }
+    Thread.sleep(TimeUnit.SECONDS.toMillis(RETRY_WAIT_TIME_IN_SECONDS));
+  }
+  if (lastError == null) {
+    throw new OperationTimeoutException("Could not invoke request on any target in " + retryTimeoutInSeconds + " seconds");
+  }
+  throw lastError;
+}

@@ -1,9 +1,18 @@
 {
-  try {
-    return client.getConnectionManager().tryToConnect(null);
+  Exception lastError=null;
+  int count=0;
+  while (count < RETRY_COUNT) {
+    try {
+      final Address randomAddress=getRandomAddress();
+      return (ClientConnection)client.getConnectionManager().getOrConnect(randomAddress,authenticator);
+    }
+ catch (    IOException e) {
+      lastError=e;
+    }
+catch (    HazelcastInstanceNotActiveException e) {
+      lastError=e;
+    }
+    count++;
   }
- catch (  Exception ignored) {
-    EmptyStatement.ignore(ignored);
-  }
-  return null;
+  throw lastError;
 }

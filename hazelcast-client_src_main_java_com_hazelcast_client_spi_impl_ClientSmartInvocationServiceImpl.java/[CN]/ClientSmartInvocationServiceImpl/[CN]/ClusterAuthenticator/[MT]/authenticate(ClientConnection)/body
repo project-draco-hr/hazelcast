@@ -1,0 +1,19 @@
+{
+  final ClientClusterServiceImpl clusterService=(ClientClusterServiceImpl)client.getClientClusterService();
+  final ClientPrincipal principal=clusterService.getClusterListenerSupport().getPrincipal();
+  final SerializationService ss=client.getSerializationService();
+  AuthenticationRequest auth=new AuthenticationRequest(credentials,principal);
+  connection.init();
+  SerializableCollection collectionWrapper;
+  final Future future=client.getInvocationService().invokeOnConnection(auth,connection);
+  try {
+    collectionWrapper=ss.toObject(future.get());
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e,IOException.class);
+  }
+  final Iterator<Data> iter=collectionWrapper.iterator();
+  final Data addressData=iter.next();
+  final Address address=ss.toObject(addressData);
+  connection.setRemoteEndpoint(address);
+}
