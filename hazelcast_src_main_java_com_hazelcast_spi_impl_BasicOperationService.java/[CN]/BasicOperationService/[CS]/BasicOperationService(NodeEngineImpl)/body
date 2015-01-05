@@ -10,10 +10,10 @@
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
   this.invocations=new ConcurrentHashMap<Long,BasicInvocation>(INITIAL_CAPACITY,LOAD_FACTOR,concurrencyLevel);
-  this.responsePacketHandler=new BasicResponsePacketHandler();
   this.operationBackupHandler=new OperationBackupHandler();
-  this.operationExecutor=new ClassicOperationExecutor(node.getGroupProperties(),node.loggingService,node.getThisAddress(),new BasicOperationRunnerFactory(),responsePacketHandler,node.getHazelcastThreadGroup(),node.getNodeExtension());
+  this.operationExecutor=new ClassicOperationExecutor(node.getGroupProperties(),node.loggingService,node.getThisAddress(),new BasicOperationRunnerFactory(),new BasicResponsePacketHandler(),node.getHazelcastThreadGroup(),node.getNodeExtension());
   ExecutionService executionService=nodeEngine.getExecutionService();
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
+  this.slowOperationDetector=new SlowOperationDetector(operationExecutor.getGenericOperationRunners(),operationExecutor.getPartitionOperationRunners(),node.groupProperties,node.getHazelcastThreadGroup());
   startCleanupThread();
 }

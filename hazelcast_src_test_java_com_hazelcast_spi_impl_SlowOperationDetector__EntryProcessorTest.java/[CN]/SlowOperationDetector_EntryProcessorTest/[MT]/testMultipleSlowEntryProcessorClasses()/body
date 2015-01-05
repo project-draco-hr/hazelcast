@@ -1,0 +1,16 @@
+{
+  HazelcastInstance instance=getSingleNodeCluster(2000);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  for (int i=0; i < 3; i++) {
+    map.executeOnEntries(new SlowEntryProcessor(3));
+  }
+  map.executeOnEntries(new SlowEntryProcessorChild(3));
+  map.executeOnEntries(new SlowEntryProcessor(5));
+  waitForAllOperationsToComplete(instance);
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,2);
+  Iterator<SlowOperationLog> iterator=logs.iterator();
+  int firstSize=iterator.next().getInvocations().size();
+  int secondSize=iterator.next().getInvocations().size();
+  assertTrue(format("Expected to find 1 and 4 invocations in logs, but was %d and %d",firstSize,secondSize),(firstSize == 1 ^ secondSize == 1) && (firstSize == 4 ^ secondSize == 4));
+}

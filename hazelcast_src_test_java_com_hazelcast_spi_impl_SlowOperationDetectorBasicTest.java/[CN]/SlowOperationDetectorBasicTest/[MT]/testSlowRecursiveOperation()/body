@@ -1,0 +1,22 @@
+{
+  int partitionThreads=32;
+  int numberOfOperations=50;
+  int recursionDepth=20;
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_THRESHOLD_MILLIS,"1000");
+  config.setProperty(GroupProperties.PROP_PARTITION_OPERATION_THREAD_COUNT,String.valueOf(partitionThreads));
+  final HazelcastInstance instance=getSingleNodeCluster(config);
+  int partitionCount=TestUtil.getNode(instance).nodeEngine.getPartitionService().getPartitionCount();
+  int partitionIndex=1;
+  for (int i=0; i < numberOfOperations; i++) {
+    int partitionId=partitionIndex % partitionCount;
+    executeOperation(instance,new SlowRecursiveOperation(partitionId,recursionDepth,10));
+    partitionIndex+=partitionCount / partitionThreads + 1;
+  }
+  waitForAllOperationsToComplete(instance);
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,1);
+  SlowOperationLog firstLog=logs.iterator().next();
+  assertTotalInvocations(firstLog,numberOfOperations);
+  assertStackTraceContainsClassName(firstLog,"SlowRecursiveOperation");
+}

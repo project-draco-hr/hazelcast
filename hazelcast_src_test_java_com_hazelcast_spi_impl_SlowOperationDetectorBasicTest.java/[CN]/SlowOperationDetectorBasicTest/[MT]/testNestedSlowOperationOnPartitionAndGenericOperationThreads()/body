@@ -1,0 +1,11 @@
+{
+  HazelcastInstance instance=getSingleNodeCluster(1000);
+  executeOperation(instance,new NestedSlowOperationOnPartitionAndGenericOperationThreads(instance,3));
+  waitForAllOperationsToComplete(instance);
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,1);
+  SlowOperationLog firstLog=logs.iterator().next();
+  assertTotalInvocations(firstLog,1);
+  assertStackTraceNotContainsClassName(firstLog,"NestedSlowOperation");
+  assertStackTraceContainsClassName(firstLog,"SlowOperation");
+}

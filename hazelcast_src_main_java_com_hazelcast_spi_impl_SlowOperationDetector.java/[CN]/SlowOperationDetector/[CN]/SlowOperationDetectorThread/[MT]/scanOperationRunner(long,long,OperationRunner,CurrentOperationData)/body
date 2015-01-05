@@ -1,0 +1,22 @@
+{
+  int operationHashCode=System.identityHashCode(operationRunner.currentTask());
+  if (operationData.operationHashCode != operationHashCode) {
+    operationData.operationHashCode=operationHashCode;
+    operationData.startNanos=nowNanos;
+    operationData.invocation=null;
+    return;
+  }
+  long durationNanos=nowNanos - operationData.startNanos;
+  if (durationNanos < slowOperationThresholdNanos) {
+    return;
+  }
+  SlowOperationLog.Invocation invocation=operationData.invocation;
+  if (invocation != null) {
+    invocation.durationNanos=TimeUnit.NANOSECONDS.toMillis(durationNanos);
+    invocation.lastAccessNanos=nowNanos;
+    return;
+  }
+  SlowOperationLog log=getOrCreateSlowOperationLog(operationRunner);
+  operationData.invocation=log.getOrCreateInvocation(operationHashCode,durationNanos,nowNanos,nowMillis);
+  logSlowOperation(operationRunner,log);
+}
