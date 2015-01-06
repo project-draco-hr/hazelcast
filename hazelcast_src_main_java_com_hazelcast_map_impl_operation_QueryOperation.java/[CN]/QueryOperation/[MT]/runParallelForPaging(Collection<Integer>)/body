@@ -2,19 +2,19 @@
   NodeEngine nodeEngine=getNodeEngine();
   ExecutorService executor=nodeEngine.getExecutionService().getExecutor(ExecutionService.QUERY_EXECUTOR);
   List<Future<Collection<QueryableEntry>>> lsFutures=new ArrayList<Future<Collection<QueryableEntry>>>(initialPartitions.size());
-  Comparator<Map.Entry> wrapperComparator=SortingUtil.newComparator(pagingPredicate);
+  Comparator<Map.Entry> wrapperComparator=newComparator(pagingPredicate);
   for (  Integer partitionId : initialPartitions) {
-    Future<Collection<QueryableEntry>> f=executor.submit(new PartitionCallable(partitionId));
-    lsFutures.add(f);
+    Future<Collection<QueryableEntry>> future=executor.submit(new PartitionCallable(partitionId));
+    lsFutures.add(future);
   }
   List<QueryableEntry> toMerge=new LinkedList<QueryableEntry>();
   Collection<Collection<QueryableEntry>> returnedResults=getResult(lsFutures);
   for (  Collection<QueryableEntry> returnedResult : returnedResults) {
     toMerge.addAll(returnedResult);
   }
-  Collections.sort(toMerge,wrapperComparator);
+  sort(toMerge,wrapperComparator);
   if (toMerge.size() > pagingPredicate.getPageSize()) {
     toMerge=toMerge.subList(0,pagingPredicate.getPageSize());
   }
-  addQueryEntriesToResult(toMerge);
+  result.addAll(toMerge);
 }
