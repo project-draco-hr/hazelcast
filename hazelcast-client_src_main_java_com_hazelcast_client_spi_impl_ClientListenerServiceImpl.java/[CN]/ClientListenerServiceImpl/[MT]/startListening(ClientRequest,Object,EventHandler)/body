@@ -3,10 +3,11 @@
   try {
     handler.beforeListenerRegister();
     if (key == null) {
-      future=invocationService.invokeOnRandomTarget(request,handler);
+      future=new ClientInvocation(client,request,handler).invoke();
     }
  else {
-      future=invocationService.invokeOnKeyOwner(request,key,handler);
+      final int partitionId=client.getClientPartitionService().getPartitionId(key);
+      future=new ClientInvocation(client,request,handler,partitionId).invoke();
     }
     String registrationId=serializationService.toObject(future.get());
     registerListener(registrationId,request.getCallId());

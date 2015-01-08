@@ -7,10 +7,11 @@
     return createCompletedFuture(cached);
   }
   CacheGetRequest request=new CacheGetRequest(nameWithPrefix,keyData,expiryPolicy,cacheConfig.getInMemoryFormat());
-  ClientCallFuture future;
-  final ClientContext context=clientContext;
+  ClientInvocationFuture future;
   try {
-    future=(ClientCallFuture)context.getInvocationService().invokeOnKeyOwner(request,keyData);
+    final int partitionId=clientContext.getPartitionService().getPartitionId(key);
+    final ClientInvocation clientInvocation=new ClientInvocation(clientContext,request,null,partitionId);
+    future=clientInvocation.invoke();
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
