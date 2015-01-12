@@ -1,0 +1,25 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  String name=randomString();
+  Config config=new Config();
+  MapConfig mapConfig=config.getMapConfig(name);
+  mapConfig.setReadBackupData(true);
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true).setClassName(IncrementerPostProcessingMapStore.class.getName());
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  IMap<Integer,SampleObject> map1=instance1.getMap(name);
+  IMap<Integer,SampleObject> map2=instance2.getMap(name);
+  for (int i=0; i < 100; i++) {
+    map1.put(i,new SampleObject(i));
+  }
+  for (int i=0; i < 100; i++) {
+    SampleObject o=map1.get(i);
+    assertEquals(i + 1,o.version);
+  }
+  for (int i=0; i < 100; i++) {
+    SampleObject o=map2.get(i);
+    assertEquals(i + 1,o.version);
+  }
+}
