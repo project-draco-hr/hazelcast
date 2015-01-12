@@ -1,0 +1,26 @@
+{
+  final String name=randomString();
+  HazelcastInstance[] instances=getInstances(name);
+  IMap<Integer,SampleObject> map1=instances[0].getMap(name);
+  IMap<Integer,SampleObject> map2=instances[1].getMap(name);
+  int size=1000;
+  for (int i=0; i < size; i++) {
+    final int key=i;
+    instances[0].executeTransaction(new TransactionalTask<Object>(){
+      @Override public Object execute(      TransactionalTaskContext context) throws TransactionException {
+        TransactionalMap<Integer,SampleObject> map=context.getMap(name);
+        map.put(key,new SampleObject(key));
+        return null;
+      }
+    }
+);
+  }
+  for (int i=0; i < size; i++) {
+    SampleObject o=map1.get(i);
+    assertEquals(i + 1,o.version);
+  }
+  for (int i=0; i < size; i++) {
+    SampleObject o=map2.get(i);
+    assertEquals(i + 1,o.version);
+  }
+}
