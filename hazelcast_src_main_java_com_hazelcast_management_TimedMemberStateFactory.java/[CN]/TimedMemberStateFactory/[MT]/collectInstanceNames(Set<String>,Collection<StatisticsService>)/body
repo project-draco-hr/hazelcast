@@ -1,0 +1,33 @@
+{
+  int count=0;
+  final Config config=instance.getConfig();
+  for (  StatisticsService service : services) {
+    if (count < maxVisibleInstanceCount) {
+      if (service instanceof MapService) {
+        count=collectMapName(setLongInstanceNames,count,config,service.getStats().keySet());
+      }
+ else       if (service instanceof MultiMapService) {
+        count=collectMultiMapName(setLongInstanceNames,count,config,service.getStats().keySet());
+      }
+ else       if (service instanceof QueueService) {
+        count=collectQueueName(setLongInstanceNames,count,config,service.getStats().keySet());
+      }
+ else       if (service instanceof TopicService) {
+        count=collectTopicName(setLongInstanceNames,count,config,service.getStats().keySet());
+      }
+ else       if (service instanceof DistributedExecutorService) {
+        count=collectExecutorServiceName(setLongInstanceNames,count,config,service.getStats().keySet());
+      }
+ else {
+        logger.finest("Statistics service ignored for monitoring: " + service.getClass().getName());
+      }
+    }
+  }
+  if (cacheServiceEnabled) {
+    for (    CacheConfig cacheConfig : getCacheService().getCacheConfigs()) {
+      if (cacheConfig.isStatisticsEnabled()) {
+        count=collectCacheName(setLongInstanceNames,count,cacheConfig);
+      }
+    }
+  }
+}
