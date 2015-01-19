@@ -4,23 +4,20 @@
   instanceName="hz.client_" + id + (groupConfig != null ? "_" + groupConfig.getName() : "");
   clientExtension=createClientInitializer(config.getClassLoader());
   clientExtension.beforeStart(this);
+  credentials=initCredentials(config);
   threadGroup=new ThreadGroup(instanceName);
   lifecycleService=new LifecycleServiceImpl(this);
   clientProperties=new ClientProperties(config);
   serializationService=clientExtension.createSerializationService();
   proxyManager=new ProxyManager(this);
   executionService=initExecutorService();
-  transactionManager=new ClientTransactionManager(this);
-  LoadBalancer lb=config.getLoadBalancer();
-  if (lb == null) {
-    lb=new RoundRobinLB();
-  }
-  loadBalancer=lb;
-  connectionManager=createClientConnectionManager();
+  loadBalancer=initLoadBalancer(config);
+  transactionManager=new ClientTransactionManager(this,loadBalancer);
+  partitionService=new ClientPartitionServiceImpl(this);
+  connectionManager=initClientConnectionManager();
   clusterService=new ClientClusterServiceImpl(this);
-  invocationService=new ClientInvocationServiceImpl(this);
+  invocationService=initInvocationService();
   listenerService=initListenerService();
   userContext=new ConcurrentHashMap<String,Object>();
   proxyManager.init(config);
-  partitionService=new ClientPartitionServiceImpl(this);
 }

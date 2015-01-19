@@ -1,0 +1,21 @@
+{
+  if (isBindToSingleConnection()) {
+    return false;
+  }
+  if (handler == null && reSendCount.incrementAndGet() > retryCountLimit) {
+    return false;
+  }
+  if (handler != null) {
+    handler.beforeListenerRegister();
+  }
+  if (request instanceof RefreshableRequest) {
+    ((RefreshableRequest)request).refresh();
+  }
+  try {
+    executionService.schedule(this,RETRY_WAIT_TIME_IN_SECONDS,TimeUnit.SECONDS);
+  }
+ catch (  RejectedExecutionException e) {
+    return false;
+  }
+  return true;
+}

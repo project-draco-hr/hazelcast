@@ -1,0 +1,19 @@
+{
+  final Future future;
+  try {
+    handler.beforeListenerRegister();
+    if (key == null) {
+      future=new ClientInvocation(client,handler,request).invoke();
+    }
+ else {
+      final int partitionId=client.getClientPartitionService().getPartitionId(key);
+      future=new ClientInvocation(client,handler,request,partitionId).invoke();
+    }
+    String registrationId=serializationService.toObject(future.get());
+    registerListener(registrationId,request.getCallId());
+    return registrationId;
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}
