@@ -1,13 +1,15 @@
 {
   checkIfManagerNotClosed();
   checkNotNull(cacheName,"cacheName cannot be null");
-  final ClientInvocationService invocationService=clientContext.getInvocationService();
   final Collection<MemberImpl> members=clientContext.getClusterService().getMemberList();
   final Collection<Future> futures=new ArrayList<Future>();
+  final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
   for (  MemberImpl member : members) {
     try {
-      CacheManagementConfigRequest request=new CacheManagementConfigRequest(getCacheNameWithPrefix(cacheName),statOrMan,enabled,member.getAddress());
-      final Future future=invocationService.invokeOnTarget(request,member.getAddress());
+      final Address address=member.getAddress();
+      CacheManagementConfigRequest request=new CacheManagementConfigRequest(getCacheNameWithPrefix(cacheName),statOrMan,enabled,address);
+      final ClientInvocation clientInvocation=new ClientInvocation(client,request,address);
+      final Future<SerializableCollection> future=clientInvocation.invoke();
       futures.add(future);
     }
  catch (    Exception e) {
