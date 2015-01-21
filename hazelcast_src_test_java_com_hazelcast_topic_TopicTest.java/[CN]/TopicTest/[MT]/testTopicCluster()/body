@@ -1,13 +1,13 @@
 {
-  final Config cfg=new Config();
+  String topicName="TestMessages" + generateRandomString(5);
+  Config cfg=new Config();
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   HazelcastInstance[] instances=factory.newInstances(cfg);
-  HazelcastInstance h1=instances[0];
-  HazelcastInstance h2=instances[1];
-  String topicName="TestMessages";
-  ITopic<String> topic1=h1.getTopic(topicName);
+  HazelcastInstance instance1=instances[0];
+  HazelcastInstance instance2=instances[1];
+  ITopic<String> topic1=instance1.getTopic(topicName);
   final CountDownLatch latch1=new CountDownLatch(1);
-  final String message="Test1";
+  final String message="Test" + randomString();
   topic1.addMessageListener(new MessageListener<String>(){
     public void onMessage(    Message msg){
       assertEquals(message,msg.getMessageObject());
@@ -15,7 +15,7 @@
     }
   }
 );
-  ITopic<String> topic2=h2.getTopic(topicName);
+  ITopic<String> topic2=instance2.getTopic(topicName);
   final CountDownLatch latch2=new CountDownLatch(2);
   topic2.addMessageListener(new MessageListener<String>(){
     public void onMessage(    Message msg){
@@ -26,7 +26,7 @@
 );
   topic1.publish(message);
   assertTrue(latch1.await(5,TimeUnit.SECONDS));
-  h1.shutdown();
+  instance1.shutdown();
   topic2.publish(message);
   assertTrue(latch2.await(5,TimeUnit.SECONDS));
 }
