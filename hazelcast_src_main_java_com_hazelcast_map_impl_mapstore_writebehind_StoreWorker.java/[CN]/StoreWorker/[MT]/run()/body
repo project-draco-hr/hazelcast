@@ -18,13 +18,13 @@
       continue;
     }
     final WriteBehindQueue<DelayedEntry> queue=getWriteBehindQueue(recordStore);
-    final List<DelayedEntry> delayedEntries=filterItemsLessThanOrEqualToTime(queue,now);
+    final List<DelayedEntry> delayedEntries=filterEntries(queue,recordStore,now);
     if (delayedEntries.isEmpty()) {
       continue;
     }
     if (!owner.equals(thisAddress)) {
       if (now > lastRunTime + backupRunIntervalTime) {
-        doInBackup(queue,delayedEntries,partitionId);
+        doInBackup(delayedEntries,partitionId);
       }
       continue;
     }
@@ -37,7 +37,7 @@
     entries.addAll(delayedEntries);
   }
   if (!entries.isEmpty()) {
-    final Map<Integer,List<DelayedEntry>> failsPerPartition=writeBehindProcessor.process(entries);
+    Map<Integer,List<DelayedEntry>> failsPerPartition=writeBehindProcessor.process(entries);
     removeProcessed(mapName,getEntryPerPartitionMap(entries));
     addFailsToQueue(mapName,failsPerPartition);
     lastRunTime=now;
