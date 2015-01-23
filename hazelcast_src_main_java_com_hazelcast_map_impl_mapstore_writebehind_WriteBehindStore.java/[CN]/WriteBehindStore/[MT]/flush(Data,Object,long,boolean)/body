@@ -1,8 +1,11 @@
 {
-  if (writeCoalescing) {
-    return defaultFlush(key,backup);
+  if (writeBehindQueue.size() == 0) {
+    return null;
   }
- else {
-    return flushWhenNotWriteCoalescing(key,value,now);
-  }
+  long storeTime=now + writeDelayTime;
+  DelayedEntry<Void,Object> delayedEntry=createWithNullKey(value,storeTime);
+  stagingArea.put(key,delayedEntry);
+  removeFromWaitingDeletions(key);
+  flushCounter.incrementAndGet();
+  return value;
 }
