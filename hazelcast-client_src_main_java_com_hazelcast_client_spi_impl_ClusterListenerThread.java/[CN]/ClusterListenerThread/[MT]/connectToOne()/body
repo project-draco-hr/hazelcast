@@ -5,28 +5,15 @@
   final int connectionAttemptLimit=connAttemptLimit == 0 ? Integer.MAX_VALUE : connAttemptLimit;
   int attempt=0;
   Throwable lastError=null;
-  Set<Address> triedAddresses=new HashSet<Address>();
-  while (true) {
+  Set<InetSocketAddress> triedAddresses=new HashSet<InetSocketAddress>();
+  while (attempt < connectionAttemptLimit) {
+    attempt++;
     final long nextTry=Clock.currentTimeMillis() + connectionAttemptPeriod;
-    final Collection<InetSocketAddress> socketAddresses=getSocketAddresses();
-    for (    InetSocketAddress isa : socketAddresses) {
-      Address address=new Address(isa);
-      triedAddresses.add(address);
-      LOGGER.finest("Trying to connect to " + address);
-      try {
-        final ClientConnection connection=connectionManager.ownerConnection(address);
-        clusterService.fireConnectionEvent(false);
-        return connection;
-      }
- catch (      Exception e) {
-        lastError=e;
-        Level level=e instanceof AuthenticationException ? Level.WARNING : Level.FINEST;
-        LOGGER.log(level,"Exception during initial connection to " + address,e);
-      }
+    final Throwable throwable=connect(triedAddresses);
+    if (throwable == null) {
+      return;
     }
-    if (attempt++ >= connectionAttemptLimit) {
-      break;
-    }
+    lastError=throwable;
     final long remainingTime=nextTry - Clock.currentTimeMillis();
     LOGGER.warning(String.format("Unable to get alive cluster connection," + " try in %d ms later, attempt %d of %d.",Math.max(0,remainingTime),attempt,connectionAttemptLimit));
     if (remainingTime > 0) {
@@ -38,5 +25,5 @@
       }
     }
   }
-  throw new IllegalStateException("Unable to connect to any address in the config! The following addresses were tried:" + triedAddresses,lastError);
+  throw new IllegalStateException("Unable to connect to any address in the config! " + "The following addresses were tried:" + triedAddresses,lastError);
 }
