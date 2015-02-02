@@ -1,0 +1,22 @@
+{
+  int maxCapacity=this.maxCapacity;
+  AtomicInteger writeBehindQueueItemCounter=this.writeBehindQueueItemCounter;
+  int currentCapacity=writeBehindQueueItemCounter.get();
+  int newCapacity=currentCapacity + capacity;
+  if (newCapacity < 0) {
+    return;
+  }
+  if (maxCapacity < newCapacity) {
+    throwException(currentCapacity,maxCapacity,capacity);
+  }
+  while (!writeBehindQueueItemCounter.compareAndSet(currentCapacity,newCapacity)) {
+    currentCapacity=writeBehindQueueItemCounter.get();
+    newCapacity=currentCapacity + capacity;
+    if (newCapacity < 0) {
+      return;
+    }
+    if (maxCapacity < newCapacity) {
+      throwException(currentCapacity,maxCapacity,capacity);
+    }
+  }
+}
