@@ -6,7 +6,9 @@
  else   if (type == ExecutorType.CONCRETE) {
     Node node=nodeEngine.getNode();
     String internalName=name.startsWith("hz:") ? name.substring(BEGIN_INDEX) : name;
-    NamedThreadPoolExecutor pool=new NamedThreadPoolExecutor(name,poolSize,poolSize,KEEP_ALIVE_TIME,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(queueCapacity),new PoolExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix(internalName),node.getConfigClassLoader()));
+    HazelcastThreadGroup hazelcastThreadGroup=node.getHazelcastThreadGroup();
+    PoolExecutorThreadFactory threadFactory=new PoolExecutorThreadFactory(hazelcastThreadGroup,hazelcastThreadGroup.getThreadPoolNamePrefix(internalName));
+    NamedThreadPoolExecutor pool=new NamedThreadPoolExecutor(name,poolSize,poolSize,KEEP_ALIVE_TIME,TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(queueCapacity),threadFactory);
     pool.allowCoreThreadTimeOut(true);
     executor=pool;
   }

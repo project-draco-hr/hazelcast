@@ -2,8 +2,8 @@
   this.nodeEngine=nodeEngine;
   final Node node=nodeEngine.getNode();
   logger=node.getLogger(ExecutionService.class.getName());
-  final ClassLoader classLoader=node.getConfigClassLoader();
-  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(node.threadGroup,node.getThreadPoolNamePrefix("cached"),classLoader);
+  HazelcastThreadGroup threadGroup=node.getHazelcastThreadGroup();
+  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(threadGroup,"cached");
   cachedExecutorService=new ThreadPoolExecutor(CORE_POOL_SIZE,Integer.MAX_VALUE,KEEP_ALIVE_TIME,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory,new RejectedExecutionHandler(){
     public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
       if (logger.isFinestEnabled()) {
@@ -12,8 +12,7 @@
     }
   }
 );
-  final String scheduledThreadName=node.getThreadNamePrefix("scheduled");
-  scheduledExecutorService=new ScheduledThreadPoolExecutor(1,new SingleExecutorThreadFactory(node.threadGroup,classLoader,scheduledThreadName));
+  scheduledExecutorService=new ScheduledThreadPoolExecutor(1,new SingleExecutorThreadFactory(threadGroup,"scheduled"));
   enableRemoveOnCancelIfAvailable();
   final int coreSize=Runtime.getRuntime().availableProcessors();
   register(SYSTEM_EXECUTOR,coreSize,Integer.MAX_VALUE,ExecutorType.CACHED);
