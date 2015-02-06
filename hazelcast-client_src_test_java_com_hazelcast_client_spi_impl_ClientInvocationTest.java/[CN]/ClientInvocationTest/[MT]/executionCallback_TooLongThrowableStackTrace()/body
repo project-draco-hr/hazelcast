@@ -4,18 +4,21 @@
   config.getNetworkConfig().getJoin().getTcpIpConfig().setEnabled(true);
   HazelcastInstance server=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance client=HazelcastClient.newHazelcastClient();
-  IMap<Object,Object> map=client.getMap("test");
+  IMap<Object,Object> map=client.getMap(randomMapName());
   DummyEntryProcessor ep=new DummyEntryProcessor();
   int count=100;
   FailureExecutionCallback[] callbacks=new FailureExecutionCallback[count];
+  String key=randomString();
   for (int i=0; i < count; i++) {
     callbacks[i]=new FailureExecutionCallback();
-    map.submitToKey("key",ep,callbacks[i]);
+    map.submitToKey(key,ep,callbacks[i]);
   }
   TestUtil.getNode(server).getConnectionManager().shutdown();
   server.getLifecycleService().terminate();
+  int callBackCount=0;
   for (  FailureExecutionCallback callback : callbacks) {
-    assertTrue("Callback should be notified on time!",callback.latch.await(1,TimeUnit.MINUTES));
+    callBackCount++;
+    assertOpenEventually("Callback should be notified on time! callbackCount:" + callBackCount,callback.latch);
     Throwable failure=callback.failure;
     if (failure == null) {
       continue;
