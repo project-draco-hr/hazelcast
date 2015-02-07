@@ -1,0 +1,16 @@
+{
+  HazelcastInstance[] cluster=createHazelcastInstanceFactory(2).newInstances();
+  warmUpPartitions(cluster);
+  Node node=getNode(cluster[0]);
+  InternalPartitionService partitionService=node.getPartitionService();
+  Address thisAddress=node.getThisAddress();
+  for (int k=0; k < partitionService.getPartitionCount(); k++) {
+    InternalPartition internalPartition=partitionService.getPartition(k);
+    if (thisAddress.equals(internalPartition.getOwnerOrNull())) {
+      assertTrue("expecting local partition, but found a non local one",internalPartition.isLocal());
+    }
+ else {
+      assertFalse("expecting non local partition, but found a local one",internalPartition.isLocal());
+    }
+  }
+}
