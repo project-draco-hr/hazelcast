@@ -1,15 +1,16 @@
 {
   fireTtlCleanup();
-  CacheRecord record=cache.get(key);
+  NearCacheRecord record=cache.get(key);
   if (record != null) {
-    if (record.expired()) {
+    if (record.isExpired(maxIdleMillis,timeToLiveMillis)) {
       cache.remove(key);
       updateSizeEstimator(-calculateCost(record));
       nearCacheStats.incrementMisses();
       return null;
     }
+    nearCacheStats.incrementHits();
     record.access();
-    return record.value;
+    return record.getValue();
   }
  else {
     nearCacheStats.incrementMisses();
