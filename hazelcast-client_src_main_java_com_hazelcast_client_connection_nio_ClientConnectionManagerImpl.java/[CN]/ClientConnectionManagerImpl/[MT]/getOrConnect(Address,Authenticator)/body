@@ -10,17 +10,9 @@ synchronized (lock) {
       connection=connections.get(target);
       if (connection == null) {
         connection=createSocketConnection(address);
-        authenticator.authenticate(connection);
-        ClientConnection current=connections.putIfAbsent(connection.getRemoteEndpoint(),connection);
-        if (current != null) {
-          connection.close();
-          connection=current;
-        }
- else {
-          for (          ConnectionListener connectionListener : connectionListeners) {
-            connectionListener.connectionAdded(connection);
-          }
-        }
+        authenticate(authenticator,connection);
+        connections.put(connection.getRemoteEndpoint(),connection);
+        fireConnectionAddedEvent(connection);
       }
     }
   }
