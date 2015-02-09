@@ -2,15 +2,16 @@
   this.mapName=mapName;
   this.context=context;
   maxSize=nearCacheConfig.getMaxSize();
-  maxIdleMillis=nearCacheConfig.getMaxIdleSeconds() * SEC_TO_MILLISEC;
+  maxIdleMillis=TimeUnit.SECONDS.toMillis(nearCacheConfig.getMaxIdleSeconds());
   inMemoryFormat=nearCacheConfig.getInMemoryFormat();
   if (inMemoryFormat != InMemoryFormat.BINARY && inMemoryFormat != InMemoryFormat.OBJECT) {
     throw new IllegalArgumentException("Illegal in-memory-format: " + inMemoryFormat);
   }
-  timeToLiveMillis=nearCacheConfig.getTimeToLiveSeconds() * SEC_TO_MILLISEC;
+  timeToLiveMillis=TimeUnit.SECONDS.toMillis(nearCacheConfig.getTimeToLiveSeconds());
   invalidateOnChange=nearCacheConfig.isInvalidateOnChange();
   evictionPolicy=EvictionPolicy.valueOf(nearCacheConfig.getEvictionPolicy());
-  cache=new ConcurrentHashMap<K,CacheRecord<K>>();
+  selectedComparator=NearCacheRecord.getComparator(evictionPolicy);
+  cache=new ConcurrentHashMap<K,NearCacheRecord>();
   canCleanUp=new AtomicBoolean(true);
   canEvict=new AtomicBoolean(true);
   lastCleanup=Clock.currentTimeMillis();
