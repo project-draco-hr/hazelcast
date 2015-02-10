@@ -1,7 +1,8 @@
 {
   if (canEvict.compareAndSet(true,false)) {
     try {
-      nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
+      final ExecutionService executionService=nodeEngine.getExecutionService();
+      executionService.execute(NEAR_CACHE_EXECUTOR_NAME,new Runnable(){
         public void run(){
           try {
             TreeSet<CacheRecord> records=new TreeSet<CacheRecord>(selectedComparator);
@@ -18,6 +19,9 @@
           }
   finally {
             canEvict.set(true);
+          }
+          if (cache.size() >= maxSize && canEvict.compareAndSet(true,false)) {
+            executionService.execute(NEAR_CACHE_EXECUTOR_NAME,this);
           }
         }
       }
