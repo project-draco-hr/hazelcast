@@ -1,0 +1,13 @@
+{
+  initScheduler();
+  final DummyPartitionOperation partitionOperation=new DummyPartitionOperation(0);
+  int wrongPartition=partitionOperation.getPartitionId() + 1;
+  PartitionSpecificCallable task=new PartitionSpecificCallable(wrongPartition){
+    @Override public Object call(){
+      return scheduler.isAllowedToRunInCurrentThread(partitionOperation);
+    }
+  }
+;
+  scheduler.execute(task);
+  assertEqualsEventually(task,Boolean.FALSE);
+}

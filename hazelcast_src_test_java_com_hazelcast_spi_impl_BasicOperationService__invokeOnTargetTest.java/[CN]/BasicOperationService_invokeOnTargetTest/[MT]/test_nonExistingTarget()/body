@@ -1,0 +1,19 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,"10000");
+  HazelcastInstance[] nodes=createHazelcastInstanceFactory(2).newInstances(config);
+  HazelcastInstance localNode=nodes[0];
+  HazelcastInstance remoteNode=nodes[1];
+  Address remoteAddress=new Address("127.0.0.1",1);
+  remoteNode.shutdown();
+  OperationService operationService=getOperationService(localNode);
+  String expected="foobar";
+  DummyOperation operation=new DummyOperation(expected);
+  InternalCompletableFuture<String> invocation=operationService.invokeOnTarget(null,operation,remoteAddress);
+  try {
+    invocation.getSafely();
+    fail();
+  }
+ catch (  TargetNotMemberException e) {
+  }
+}

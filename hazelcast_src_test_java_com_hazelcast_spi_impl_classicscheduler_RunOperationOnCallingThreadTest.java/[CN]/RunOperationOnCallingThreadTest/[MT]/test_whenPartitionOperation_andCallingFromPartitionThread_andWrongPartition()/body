@@ -1,0 +1,19 @@
+{
+  initScheduler();
+  final DummyPartitionOperation partitionOperation=new DummyPartitionOperation();
+  int wrongPartitionId=partitionOperation.getPartitionId() + 1;
+  PartitionSpecificCallable task=new PartitionSpecificCallable(wrongPartitionId){
+    @Override public Object call(){
+      try {
+        scheduler.runOperationOnCallingThread(partitionOperation);
+        return Boolean.FALSE;
+      }
+ catch (      IllegalThreadStateException e) {
+        return Boolean.TRUE;
+      }
+    }
+  }
+;
+  scheduler.execute(task);
+  assertEqualsEventually(task,Boolean.TRUE);
+}

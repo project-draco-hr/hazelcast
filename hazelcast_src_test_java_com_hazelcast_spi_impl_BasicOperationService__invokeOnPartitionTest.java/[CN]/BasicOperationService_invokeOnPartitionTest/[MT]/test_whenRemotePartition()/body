@@ -1,0 +1,11 @@
+{
+  HazelcastInstance[] nodes=createHazelcastInstanceFactory(2).newInstances();
+  warmUpPartitions(nodes);
+  HazelcastInstance localNode=nodes[0];
+  HazelcastInstance remoteNode=nodes[1];
+  OperationService operationService=getOperationService(localNode);
+  String expected="foobar";
+  DummyOperation operation=new DummyOperation(expected);
+  InternalCompletableFuture<String> invocation=operationService.invokeOnPartition(null,operation,getPartitionId(remoteNode));
+  assertEquals(expected,invocation.getSafely());
+}

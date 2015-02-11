@@ -1,0 +1,23 @@
+{
+  initScheduler();
+  final DummyOperation operation=new DummyOperation(-1);
+  Data data=serializationService.toData(operation);
+  final Packet packet=new Packet(data,operation.getPartitionId(),serializationService.getPortableContext());
+  packet.setHeader(Packet.HEADER_OP);
+  scheduler.execute(packet);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      OperationHandler[] genericHandlers=scheduler.getGenericOperationHandlers();
+      boolean found=false;
+      for (      OperationHandler h : genericHandlers) {
+        DummyOperationHandler dummyOperationHandler=(DummyOperationHandler)h;
+        if (dummyOperationHandler.packets.contains(packet)) {
+          found=true;
+          break;
+        }
+      }
+      assertTrue("Packet is not found on any of the generic handlers",found);
+    }
+  }
+);
+}

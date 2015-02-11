@@ -1,0 +1,19 @@
+{
+  initScheduler();
+  final DummyPartitionOperation partitionOperation=new DummyPartitionOperation();
+  FutureTask<Boolean> futureTask=new FutureTask<Boolean>(new Callable<Boolean>(){
+    @Override public Boolean call() throws Exception {
+      try {
+        scheduler.runOperationOnCallingThread(partitionOperation);
+        return Boolean.FALSE;
+      }
+ catch (      IllegalThreadStateException e) {
+        return Boolean.TRUE;
+      }
+    }
+  }
+);
+  DummyNioThread nioThread=new DummyNioThread(futureTask);
+  nioThread.start();
+  assertEqualsEventually(futureTask,Boolean.TRUE);
+}
