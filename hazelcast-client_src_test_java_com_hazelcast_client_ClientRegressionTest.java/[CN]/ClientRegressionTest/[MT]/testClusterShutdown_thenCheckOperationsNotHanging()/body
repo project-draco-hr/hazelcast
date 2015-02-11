@@ -1,0 +1,34 @@
+{
+  final HazelcastInstance hazelcastInstance=Hazelcast.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setRedoOperation(true);
+  clientConfig.setProperty(ClientProperties.PROP_REQUEST_RETRY_COUNT,String.valueOf(Integer.MAX_VALUE));
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final IMap<Object,Object> map=client.getMap(randomMapName());
+  final int mapSize=1000;
+  final CountDownLatch clientStartedDoingRequests=new CountDownLatch(1);
+  final CountDownLatch testFinishedLatch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < mapSize; i++) {
+        if (i == mapSize / 4) {
+          clientStartedDoingRequests.countDown();
+        }
+        try {
+          map.put(i,i);
+        }
+ catch (        Exception ignored) {
+        }
+      }
+      testFinishedLatch.countDown();
+    }
+  }
+).start();
+  try {
+    clientStartedDoingRequests.await();
+  }
+ catch (  InterruptedException ignored) {
+  }
+  hazelcastInstance.shutdown();
+  assertOpenEventually("Put operations should not hang",testFinishedLatch);
+}
