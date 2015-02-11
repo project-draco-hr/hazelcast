@@ -1,16 +1,15 @@
 {
-  Config config=new Config();
   final String mapName="testValuesWithPredicate_notContains_oldValues";
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance h1=factory.newHazelcastInstance(config);
-  final HazelcastInstance h2=factory.newHazelcastInstance(config);
-  final IMap map=h1.getMap(mapName);
-  final SampleObjects.Employee employeeAtAge22=new SampleObjects.Employee("emin",22,true,10D);
-  final SampleObjects.Employee employeeAtAge23=new SampleObjects.Employee("emin",23,true,10D);
+  final HazelcastInstance h1=factory.newHazelcastInstance();
+  final HazelcastInstance h2=factory.newHazelcastInstance();
+  final IMap<Integer,Employee> map=h1.getMap(mapName);
+  final Employee employeeAtAge22=new Employee("emin",22,true,10D);
+  final Employee employeeAtAge23=new Employee("emin",23,true,10D);
   map.put(1,employeeAtAge22);
-  boolean b=h1.executeTransaction(options,new TransactionalTask<Boolean>(){
+  h1.executeTransaction(options,new TransactionalTask<Boolean>(){
     public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
-      final TransactionalMap<Object,Object> txMap=context.getMap(mapName);
+      TransactionalMap<Object,Object> txMap=context.getMap(mapName);
       assertEquals(1,txMap.values(new SqlPredicate("age > 21")).size());
       txMap.put(1,employeeAtAge23);
       Collection coll=txMap.values(new SqlPredicate("age > 21"));
