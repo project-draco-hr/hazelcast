@@ -7,28 +7,30 @@
   final IMap<Object,Object> map=client.getMap(randomMapName());
   final int mapSize=1000;
   final CountDownLatch clientStartedDoingRequests=new CountDownLatch(1);
-  final CountDownLatch testFinishedLatch=new CountDownLatch(1);
-  new Thread(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < mapSize; i++) {
-        if (i == mapSize / 4) {
-          clientStartedDoingRequests.countDown();
-        }
+  int threadCount=100;
+  final CountDownLatch testFinishedLatch=new CountDownLatch(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    Thread thread=new Thread(new Runnable(){
+      @Override public void run(){
         try {
-          map.put(i,i);
+          for (int i=0; i < mapSize; i++) {
+            if (i == mapSize / 4) {
+              clientStartedDoingRequests.countDown();
+            }
+            map.put(i,i);
+          }
         }
- catch (        Exception ignored) {
+ catch (        Throwable ignored) {
+        }
+ finally {
+          testFinishedLatch.countDown();
         }
       }
-      testFinishedLatch.countDown();
     }
+);
+    thread.start();
   }
-).start();
-  try {
-    clientStartedDoingRequests.await();
-  }
- catch (  InterruptedException ignored) {
-  }
+  assertTrue(clientStartedDoingRequests.await(30,TimeUnit.SECONDS));
   hazelcastInstance.shutdown();
-  assertOpenEventually("Put operations should not hang",testFinishedLatch);
+  assertOpenEventually("Put operations should not hang.",testFinishedLatch);
 }
