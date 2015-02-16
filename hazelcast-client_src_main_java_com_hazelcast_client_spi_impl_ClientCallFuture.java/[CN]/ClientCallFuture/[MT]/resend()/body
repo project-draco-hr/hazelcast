@@ -11,6 +11,16 @@
   if (request instanceof RefreshableRequest) {
     ((RefreshableRequest)request).refresh();
   }
-  executionService.schedule(new ReSendTask(),retryWaitTime,TimeUnit.MILLISECONDS);
+  try {
+    sleep();
+    executionService.execute(new ReSendTask());
+  }
+ catch (  RejectedExecutionException e) {
+    response=e;
+    if (LOGGER.isFinestEnabled()) {
+      LOGGER.finest("Retry could not be scheduled ",e);
+    }
+    return false;
+  }
   return true;
 }
