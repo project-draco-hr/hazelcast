@@ -12,10 +12,14 @@
     ((RefreshableRequest)request).refresh();
   }
   try {
-    executionService.schedule(this,RETRY_WAIT_TIME_IN_SECONDS,TimeUnit.SECONDS);
+    sleep();
+    executionService.execute(this);
   }
  catch (  RejectedExecutionException e) {
-    return false;
+    if (LOGGER.isFinestEnabled()) {
+      LOGGER.finest("Retry could not be scheduled ",e);
+    }
+    clientInvocationFuture.setResponse(e);
   }
   return true;
 }
