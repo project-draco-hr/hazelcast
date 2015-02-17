@@ -1,14 +1,15 @@
 {
   checkTransactionState();
-  TxnValueWrapper wrapper=txMap.get(key);
   MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  Data keyData=mapServiceContext.toData(key,partitionStrategy);
+  TxnValueWrapper wrapper=txMap.get(keyData);
   if (wrapper != null && !mapServiceContext.compare(name,wrapper.value,value)) {
     return false;
   }
-  boolean removed=removeIfSameInternal(mapServiceContext.toData(key,partitionStrategy),value);
+  boolean removed=removeIfSameInternal(keyData,value);
   if (removed) {
-    txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.REMOVED));
+    txMap.put(keyData,new TxnValueWrapper(value,TxnValueWrapper.Type.REMOVED));
   }
   return removed;
 }
