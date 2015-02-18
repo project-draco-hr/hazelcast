@@ -1,0 +1,26 @@
+{
+  if (partitionId < 0) {
+    OperationHandler[] genericOperationHandlers=scheduler.getGenericOperationHandlers();
+    for (    OperationHandler genericOperationHandler : genericOperationHandlers) {
+      Object task=genericOperationHandler.currentTask();
+      if (!(task instanceof Operation)) {
+        continue;
+      }
+      Operation op=(Operation)task;
+      if (matches(op,callerAddress,operationCallId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+ else {
+    OperationHandler[] partitionOperationHandlers=scheduler.getPartitionOperationHandlers();
+    OperationHandler operationHandler=partitionOperationHandlers[partitionId];
+    Object task=operationHandler.currentTask();
+    if (!(task instanceof Operation)) {
+      return false;
+    }
+    Operation op=(Operation)task;
+    return matches(op,callerAddress,operationCallId);
+  }
+}

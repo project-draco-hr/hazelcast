@@ -1,0 +1,17 @@
+{
+  int threadCount=properties.PARTITION_OPERATION_THREAD_COUNT.getInteger();
+  if (threadCount <= 0) {
+    int coreSize=Runtime.getRuntime().availableProcessors();
+    threadCount=Math.max(2,coreSize);
+  }
+  PartitionOperationThread[] threads=new PartitionOperationThread[threadCount];
+  for (int threadId=0; threadId < threads.length; threadId++) {
+    String threadName=threadGroup.getThreadPoolNamePrefix("partition-operation") + threadId;
+    LinkedBlockingQueue workQueue=new LinkedBlockingQueue();
+    ConcurrentLinkedQueue priorityWorkQueue=new ConcurrentLinkedQueue();
+    PartitionOperationThread operationThread=new PartitionOperationThread(threadName,threadId,workQueue,priorityWorkQueue,logger,threadGroup,nodeExtension,partitionOperationHandlers);
+    threads[threadId]=operationThread;
+    operationThread.start();
+  }
+  return threads;
+}
