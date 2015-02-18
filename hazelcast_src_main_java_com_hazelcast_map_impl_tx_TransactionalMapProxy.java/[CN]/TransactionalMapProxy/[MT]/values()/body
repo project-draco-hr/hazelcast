@@ -4,17 +4,16 @@
   final MapService service=getService();
   final MapServiceContext mapServiceContext=service.getMapServiceContext();
   final Collection<Object> values=new ArrayList<Object>(entries.size());
-  final Set<Object> keyWontBeIncluded=new HashSet<Object>();
-  for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
+  final Set<Data> keyWontBeIncluded=new HashSet<Data>();
+  for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
     final boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
     final boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
-    Object objectKey=entry.getKey();
     if (isRemoved) {
-      keyWontBeIncluded.add(objectKey);
+      keyWontBeIncluded.add(entry.getKey());
     }
  else {
       if (isUpdated) {
-        keyWontBeIncluded.add(objectKey);
+        keyWontBeIncluded.add(entry.getKey());
       }
       Object entryValue=entry.getValue().value;
       values.add(entryValue);
@@ -22,9 +21,8 @@
   }
   Iterator<Map.Entry<Data,Data>> iterator=entries.iterator();
   while (iterator.hasNext()) {
-    final Map.Entry entry=iterator.next();
-    Object key=mapServiceContext.toObject(entry.getKey());
-    if (keyWontBeIncluded.contains(key)) {
+    Map.Entry entry=iterator.next();
+    if (keyWontBeIncluded.contains(entry.getKey())) {
       continue;
     }
     Object value=mapServiceContext.toObject(entry.getValue());
