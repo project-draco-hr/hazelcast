@@ -1,0 +1,17 @@
+{
+  RingbufferConfig config=new RingbufferConfig("foobar").setCapacity(5).setAsyncBackupCount(2).setBackupCount(2).setInMemoryFormat(inMemoryFormat).setTimeToLiveSeconds(ttlSeconds);
+  RingbufferContainer ringbuffer=new RingbufferContainer(config,serializationService);
+  testSerialization(ringbuffer);
+  for (int k=0; k < config.getCapacity() * 2; k++) {
+    ringbuffer.add(toData("old"));
+    testSerialization(ringbuffer);
+  }
+  for (int k=0; k < config.getCapacity() / 2; k++) {
+    ringbuffer.ringItems[k]=null;
+    if (ttlSeconds != 0) {
+      ringbuffer.ringExpirationMs[k]=0;
+    }
+    ringbuffer.headSequence++;
+    testSerialization(ringbuffer);
+  }
+}

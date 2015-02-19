@@ -1,0 +1,17 @@
+{
+  Map<String,RingbufferContainer> migrationData=new HashMap<String,RingbufferContainer>();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  for (  Map.Entry<String,RingbufferContainer> entry : containers.entrySet()) {
+    String name=entry.getKey();
+    int partitionId=partitionService.getPartitionId(getPartitionKey(name));
+    RingbufferContainer container=entry.getValue();
+    int backupCount=container.getConfig().getTotalBackupCount();
+    if (partitionId == event.getPartitionId() && backupCount >= event.getReplicaIndex()) {
+      migrationData.put(name,container);
+    }
+  }
+  if (migrationData.isEmpty()) {
+    return null;
+  }
+  return new ReplicationOperation(migrationData,event.getPartitionId(),event.getReplicaIndex());
+}

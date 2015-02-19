@@ -1,0 +1,15 @@
+{
+  if (resultSet == null) {
+    resultSet=new ReadResultSetImpl(minSize,maxSize,getNodeEngine().getHazelcastInstance(),filter);
+    sequence=startSequence;
+  }
+  if (resultSet.isMinSizeReached()) {
+    return false;
+  }
+  RingbufferContainer ringbuffer=getRingBufferContainer();
+  if (ringbuffer.shouldWait(sequence)) {
+    return true;
+  }
+  sequence=ringbuffer.readMany(sequence,resultSet);
+  return !resultSet.isMinSizeReached();
+}

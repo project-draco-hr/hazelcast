@@ -1,0 +1,17 @@
+{
+  RingbufferConfig c=config.getRingbufferConfig(ringbuffer.getName());
+  long lastSequence=ringbuffer.tailSequence();
+  long expectedTailSeq=0;
+  for (long k=0; k < 2 * c.getCapacity(); k++) {
+    long sequence=ringbuffer.add("item-" + k);
+    lastSequence=ringbuffer.tailSequence();
+    assertEquals(expectedTailSeq,sequence);
+    assertEquals(expectedTailSeq,lastSequence);
+    assertEquals(expectedTailSeq,ringbuffer.tailSequence());
+    expectedTailSeq++;
+  }
+  assertEquals(lastSequence - c.getCapacity() + 1,ringbuffer.headSequence());
+  for (long sequence=ringbuffer.headSequence(); sequence <= ringbuffer.tailSequence(); sequence++) {
+    assertEquals("bad content at sequence:" + sequence,"item-" + sequence,ringbuffer.readOne(sequence));
+  }
+}

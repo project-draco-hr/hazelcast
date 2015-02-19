@@ -1,0 +1,26 @@
+{
+  Config config=new Config();
+  config.addRingBufferConfig(ringbufferConfig);
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(2).newInstances(config);
+  ringbuffer=instances[0].getRingbuffer(ringbufferConfig.getName());
+  System.out.println("Starting test");
+  ConsumeThread consumer1=new ConsumeThread(1);
+  consumer1.start();
+  ConsumeThread consumer2=new ConsumeThread(2);
+  consumer2.start();
+  ProduceThread producer=new ProduceThread();
+  producer.start();
+  long startMs=System.currentTimeMillis();
+  SECONDS.sleep(5 * 60);
+  stop=true;
+  System.out.println("Waiting for completion");
+  producer.assertSucceedsEventually();
+  consumer1.assertSucceedsEventually();
+  consumer2.assertSucceedsEventually();
+  System.out.println("producer.produced:" + producer.produced);
+  assertEquals(producer.produced,consumer1.seq);
+  assertEquals(producer.produced,consumer2.seq);
+  long durationMs=System.currentTimeMillis() - startMs;
+  double performance=(1000d * producer.produced) / durationMs;
+  System.out.println("Performance: " + performance + " messages per second");
+}

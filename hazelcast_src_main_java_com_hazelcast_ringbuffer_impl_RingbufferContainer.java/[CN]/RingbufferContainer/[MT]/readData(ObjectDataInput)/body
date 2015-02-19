@@ -1,0 +1,26 @@
+{
+  tailSequence=in.readLong();
+  headSequence=in.readLong();
+  capacity=in.readInt();
+  ttlMs=in.readLong();
+  inMemoryFormat=values()[in.readInt()];
+  ringItems=new Object[capacity];
+  boolean ttlEnabled=isTTLEnabled();
+  if (ttlEnabled) {
+    ringExpirationMs=new long[capacity];
+  }
+  long now=System.currentTimeMillis();
+  for (long seq=headSequence; seq <= tailSequence; seq++) {
+    int index=toIndex(seq);
+    if (inMemoryFormat == BINARY) {
+      ringItems[index]=in.readData();
+    }
+ else {
+      ringItems[index]=in.readObject();
+    }
+    if (ttlEnabled) {
+      long delta=in.readLong();
+      ringExpirationMs[index]=delta + now;
+    }
+  }
+}
