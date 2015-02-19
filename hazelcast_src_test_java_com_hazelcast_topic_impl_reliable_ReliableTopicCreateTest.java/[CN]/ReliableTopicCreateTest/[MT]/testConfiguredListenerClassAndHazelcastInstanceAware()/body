@@ -1,0 +1,11 @@
+{
+  Config config=new Config();
+  config.addReliableTopicConfig(new ReliableTopicConfig("foo*").addMessageListenerConfig(new ListenerConfig(InstanceAwareReliableMessageListenerMock.class.getName())));
+  HazelcastInstance hz=createHazelcastInstance(config);
+  ITopic topic=hz.getReliableTopic("foo");
+  ReliableTopicProxy proxy=assertInstanceOf(ReliableTopicProxy.class,topic);
+  assertEquals(1,proxy.runnersMap.size());
+  ReliableMessageListenerRunner runner=(ReliableMessageListenerRunner)proxy.runnersMap.values().iterator().next();
+  InstanceAwareReliableMessageListenerMock mock=assertInstanceOf(InstanceAwareReliableMessageListenerMock.class,runner.listener);
+  assertNotNull(mock.hz);
+}

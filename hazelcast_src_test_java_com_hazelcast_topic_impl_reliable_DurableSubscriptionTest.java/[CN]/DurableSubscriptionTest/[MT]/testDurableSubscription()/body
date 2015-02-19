@@ -1,0 +1,24 @@
+{
+  HazelcastInstance local=createHazelcastInstance();
+  ITopic<String> topic=local.getReliableTopic("topic");
+  final DurableMessageListener<String> listener=new DurableMessageListener<String>();
+  String id=topic.addMessageListener(listener);
+  topic.publish("item1");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(listener.objects.contains("item1"));
+    }
+  }
+);
+  topic.removeMessageListener(id);
+  topic.publish("item2");
+  topic.publish("item3");
+  topic.addMessageListener(listener);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(asList("item1","item2","item3"),listener.objects);
+      assertEquals(asList(0l,1l,2l),listener.sequences);
+    }
+  }
+);
+}

@@ -1,0 +1,24 @@
+{
+  for (int k=0; k < ringbuffer.capacity(); k++) {
+    topic.publish("old");
+  }
+  final long tail=ringbuffer.tailSequence();
+  final long head=ringbuffer.headSequence();
+  final Future f=spawn(new Runnable(){
+    @Override public void run(){
+      topic.publish("new");
+    }
+  }
+);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse(f.isDone());
+      assertEquals(tail,ringbuffer.tailSequence());
+      assertEquals(head,ringbuffer.headSequence());
+    }
+  }
+,3);
+  assertCompletesEventually(f);
+  assertEquals(tail + 1,ringbuffer.tailSequence());
+  assertEquals(tail + 1,ringbuffer.headSequence());
+}
