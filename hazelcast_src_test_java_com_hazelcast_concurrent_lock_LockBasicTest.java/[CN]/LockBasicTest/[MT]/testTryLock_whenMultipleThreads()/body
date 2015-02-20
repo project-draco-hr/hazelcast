@@ -1,0 +1,23 @@
+{
+  final AtomicInteger atomicInteger=new AtomicInteger(0);
+  lock.lock();
+  Runnable tryLockRunnable=new Runnable(){
+    public void run(){
+      if (lock.tryLock()) {
+        atomicInteger.incrementAndGet();
+      }
+    }
+  }
+;
+  Thread thread1=new Thread(tryLockRunnable);
+  thread1.start();
+  thread1.join();
+  assertEquals(0,atomicInteger.get());
+  lock.unlock();
+  Thread thread2=new Thread(tryLockRunnable);
+  thread2.start();
+  thread2.join();
+  assertEquals(1,atomicInteger.get());
+  assertTrue(lock.isLocked());
+  assertFalse(lock.isLockedByCurrentThread());
+}
