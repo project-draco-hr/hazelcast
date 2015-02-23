@@ -1,0 +1,19 @@
+{
+  handlerFactory=mock(OperationRunnerFactory.class);
+  OperationRunner handler=mock(OperationRunner.class);
+  when(handlerFactory.createGenericRunner()).thenReturn(handler);
+  initExecutor();
+  DummyOperation operation=new DummyOperation(-1);
+  Data data=serializationService.toData(operation);
+  Packet packet=new Packet(data,operation.getPartitionId(),serializationService.getPortableContext());
+  packet.setHeader(Packet.HEADER_OP);
+  doThrow(new OutOfMemoryError()).when(handler).run(packet);
+  final int oldCount=OutOfMemoryErrorDispatcher.getOutOfMemoryErrorCount();
+  executor.execute(packet);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(oldCount + 1,OutOfMemoryErrorDispatcher.getOutOfMemoryErrorCount());
+    }
+  }
+);
+}
