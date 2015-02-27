@@ -1,6 +1,5 @@
 {
   final Collection<InetSocketAddress> socketAddresses=getSocketAddresses();
-  Throwable lastError=null;
   for (  InetSocketAddress inetSocketAddress : socketAddresses) {
     try {
       triedAddresses.add(inetSocketAddress);
@@ -11,13 +10,12 @@
       final Connection connection=connectionManager.getOrConnect(address,managerAuthenticator);
       clusterService.fireConnectionEvent(LifecycleEvent.LifecycleState.CLIENT_CONNECTED);
       ownerConnectionAddress=connection.getEndPoint();
-      return null;
+      return true;
     }
  catch (    Exception e) {
-      lastError=e;
       Level level=e instanceof AuthenticationException ? Level.WARNING : Level.FINEST;
       LOGGER.log(level,"Exception during initial connection to " + inetSocketAddress,e);
     }
   }
-  return lastError;
+  return false;
 }

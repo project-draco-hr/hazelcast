@@ -4,18 +4,22 @@
   final int connectionAttemptPeriod=networkConfig.getConnectionAttemptPeriod();
   final int connectionAttemptLimit=connAttemptLimit == 0 ? Integer.MAX_VALUE : connAttemptLimit;
   int attempt=0;
-  Throwable lastError=null;
   Set<InetSocketAddress> triedAddresses=new HashSet<InetSocketAddress>();
   while (attempt < connectionAttemptLimit) {
+    if (!client.getLifecycleService().isRunning()) {
+      if (LOGGER.isFinestEnabled()) {
+        LOGGER.finest("Giving up on retrying to connect to cluster since client is shutdown");
+      }
+      break;
+    }
     attempt++;
     final long nextTry=Clock.currentTimeMillis() + connectionAttemptPeriod;
-    final Throwable throwable=connect(triedAddresses);
-    if (throwable == null) {
+    boolean isConnected=connect(triedAddresses);
+    if (isConnected) {
       return;
     }
-    lastError=throwable;
     final long remainingTime=nextTry - Clock.currentTimeMillis();
-    LOGGER.warning(String.format("Unable to get alive cluster connection," + " try in %d ms later, attempt %d of %d.",Math.max(0,remainingTime),attempt,connectionAttemptLimit));
+    LOGGER.warning(String.format("Unable to get alive cluster connection, try in %d ms later, attempt %d of %d.",Math.max(0,remainingTime),attempt,connectionAttemptLimit));
     if (remainingTime > 0) {
       try {
         Thread.sleep(remainingTime);
@@ -25,5 +29,5 @@
       }
     }
   }
-  throw new IllegalStateException("Unable to connect to any address in the config! " + "The following addresses were tried:" + triedAddresses,lastError);
+  throw new IllegalStateException("Unable to connect to any address in the config! " + "The following addresses were tried:" + triedAddresses);
 }
