@@ -1,0 +1,15 @@
+{
+  final ILock lock=callerInstance.getLock(newName());
+  String name=newName();
+  final ICondition condition0=lock.newCondition(name);
+  final ICondition condition1=lock.newCondition(name);
+  final CountDownLatch latch=new CountDownLatch(2);
+  final CountDownLatch syncLatch=new CountDownLatch(2);
+  createThreadWaitsForCondition(latch,lock,condition0,syncLatch).start();
+  createThreadWaitsForCondition(latch,lock,condition1,syncLatch).start();
+  syncLatch.await();
+  lock.lock();
+  condition0.signalAll();
+  lock.unlock();
+  assertOpenEventually(latch);
+}

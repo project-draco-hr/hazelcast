@@ -1,0 +1,23 @@
+{
+  final ILock lock=callerInstance.getLock(newName());
+  final ICondition condition=lock.newCondition(newName());
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    @Override public void run(){
+      lock.lock();
+      try {
+        if (condition.await(10,TimeUnit.SECONDS)) {
+          latch.countDown();
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+).start();
+  sleepSeconds(1);
+  lock.lock();
+  condition.signal();
+  lock.unlock();
+}
