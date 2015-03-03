@@ -9,14 +9,14 @@
     String threadName=threadGroup.getThreadPoolNamePrefix("partition-operation") + threadId;
     ScheduleQueue scheduleQueue=new DefaultScheduleQueue();
     PartitionOperationThread operationThread=new PartitionOperationThread(threadName,threadId,scheduleQueue,logger,threadGroup,nodeExtension,partitionOperationRunners);
-    for (int partitionId=0; partitionId < partitionOperationRunners.length; partitionId++) {
-      if (partitionId % threadCount == threadId) {
-        OperationRunner operationRunner=partitionOperationRunners[partitionId];
-        operationRunner.setCurrentThread(operationThread);
-      }
-    }
     threads[threadId]=operationThread;
     operationThread.start();
+  }
+  for (int partitionId=0; partitionId < partitionOperationRunners.length; partitionId++) {
+    int threadId=partitionId % threadCount;
+    Thread thread=threads[threadId];
+    OperationRunner runner=partitionOperationRunners[partitionId];
+    runner.setCurrentThread(thread);
   }
   return threads;
 }

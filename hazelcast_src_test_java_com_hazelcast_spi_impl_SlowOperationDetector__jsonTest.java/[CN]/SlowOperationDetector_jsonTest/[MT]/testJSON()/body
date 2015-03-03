@@ -1,0 +1,13 @@
+{
+  HazelcastInstance instance=getSingleNodeCluster(1000);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  for (int i=0; i < 2; i++) {
+    map.executeOnEntries(new SlowEntryProcessor(2));
+  }
+  map.executeOnEntries(new SlowEntryProcessor(3));
+  map.executeOnEntries(new SlowEntryProcessor(2));
+  waitForAllOperationsToComplete(instance);
+  JsonObject firstLogJsonObject=getSlowOperationLogsJsonArray(instance).get(0).asObject();
+  assertJSONContainsClassName(firstLogJsonObject,"SlowEntryProcessor");
+  assertEqualsStringFormat("Expected %d invocations, but was %d",4,firstLogJsonObject.get("invocations").asArray().size());
+}

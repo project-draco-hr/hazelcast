@@ -1,27 +1,23 @@
 {
   URL url=newCollectorUrl();
+  OutputStream outputStream=null;
+  OutputStreamWriter writer=null;
   try {
     HttpURLConnection connection=openConnection(url);
-    OutputStream outputStream=connection.getOutputStream();
-    final OutputStreamWriter writer=new OutputStreamWriter(outputStream,"UTF-8");
-    try {
-      JsonObject root=new JsonObject();
-      root.add("identifier",identifier.toJson());
-      TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
-      root.add("timedMemberState",timedMemberState.toJson());
-      root.writeTo(writer);
-      writer.flush();
-      outputStream.flush();
-      post(connection);
-      if (manCenterConnectionLost) {
-        logger.info("Connection to management center restored.");
-      }
-      manCenterConnectionLost=false;
+    outputStream=connection.getOutputStream();
+    writer=new OutputStreamWriter(outputStream,"UTF-8");
+    JsonObject root=new JsonObject();
+    root.add("identifier",identifier.toJson());
+    TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
+    root.add("timedMemberState",timedMemberState.toJson());
+    root.writeTo(writer);
+    writer.flush();
+    outputStream.flush();
+    post(connection);
+    if (manCenterConnectionLost) {
+      logger.info("Connection to management center restored.");
     }
-  finally {
-      closeResource(writer);
-      closeResource(outputStream);
-    }
+    manCenterConnectionLost=false;
   }
  catch (  ConnectException e) {
     if (!manCenterConnectionLost) {
@@ -31,5 +27,9 @@
   }
 catch (  Exception e) {
     logger.warning(e);
+  }
+ finally {
+    closeResource(writer);
+    closeResource(outputStream);
   }
 }

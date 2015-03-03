@@ -1,0 +1,13 @@
+{
+  HazelcastInstance instance=getSingleNodeCluster(1000);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  map.executeOnEntries(new NestedSlowEntryProcessor(map,2));
+  waitForAllOperationsToComplete(instance);
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,1);
+  SlowOperationLog firstLog=logs.iterator().next();
+  assertTotalInvocations(firstLog,1);
+  assertEntryProcessorOperation(firstLog);
+  assertStackTraceContainsClassName(firstLog,"NestedSlowEntryProcessor");
+  assertStackTraceContainsClassName(firstLog,"SlowEntryProcessor");
+}

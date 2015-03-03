@@ -1,0 +1,18 @@
+{
+  HazelcastInstance instance=getSingleNodeCluster(1000);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  for (int i=0; i < 2; i++) {
+    map.executeOnEntries(new SlowEntryProcessor(2));
+  }
+  map.executeOnEntries(new SlowEntryProcessorChild(2));
+  map.executeOnEntries(new SlowEntryProcessor(4));
+  waitForAllOperationsToComplete(instance);
+  JsonArray slowOperationLogsJsonArray=getSlowOperationLogsJsonArray(instance);
+  JsonObject firstLogJsonObject=slowOperationLogsJsonArray.get(0).asObject();
+  JsonObject secondLogJsonObject=slowOperationLogsJsonArray.get(1).asObject();
+  assertJSONContainsClassNameJustOnce(firstLogJsonObject,secondLogJsonObject,"SlowEntryProcessor");
+  assertJSONContainsClassNameJustOnce(firstLogJsonObject,secondLogJsonObject,"SlowEntryProcessorChild");
+  int firstSize=firstLogJsonObject.get("invocations").asArray().size();
+  int secondSize=secondLogJsonObject.get("invocations").asArray().size();
+  assertTrue(format("Expected to find 1 and 3 invocations in logs, but was %d and %d",firstSize,secondSize),(firstSize == 1 ^ secondSize == 1) && (firstSize == 3 ^ secondSize == 3));
+}
