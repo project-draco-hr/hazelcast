@@ -1,6 +1,7 @@
 {
   final HazelcastInstance instance=Hazelcast.newHazelcastInstance();
   final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setConnectionAttemptLimit(Integer.MAX_VALUE);
   final String mapName=randomMapName();
   NearCacheConfig nearCacheConfig=new NearCacheConfig();
   nearCacheConfig.setName(mapName);
@@ -12,5 +13,10 @@
   map.get("a");
   instance.shutdown();
   Hazelcast.newHazelcastInstance();
-  assertEquals(null,map.get("a"));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(null,map.get("a"));
+    }
+  }
+);
 }
