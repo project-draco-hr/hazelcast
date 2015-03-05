@@ -1,0 +1,13 @@
+{
+  final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
+  try {
+    int partitionId=clientContext.getPartitionService().getPartitionId(cacheConfig.getNameWithPrefix());
+    CacheCreateConfigRequest request=new CacheCreateConfigRequest(cacheConfig,true,partitionId);
+    final ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionId);
+    final Future<SerializableCollection> future=clientInvocation.invoke();
+    return (CacheConfig<K,V>)clientContext.getSerializationService().toObject(future.get());
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

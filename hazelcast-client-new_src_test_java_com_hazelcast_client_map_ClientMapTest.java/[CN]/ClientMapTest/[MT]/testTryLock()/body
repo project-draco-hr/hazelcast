@@ -1,0 +1,40 @@
+{
+  final IMap map=createMap();
+  final IMap tempMap=map;
+  assertTrue(tempMap.tryLock("key1",2,TimeUnit.SECONDS));
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      try {
+        if (!tempMap.tryLock("key1",2,TimeUnit.SECONDS)) {
+          latch.countDown();
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  assertTrue(latch.await(100,TimeUnit.SECONDS));
+  assertTrue(tempMap.isLocked("key1"));
+  final CountDownLatch latch2=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      try {
+        if (tempMap.tryLock("key1",20,TimeUnit.SECONDS)) {
+          latch2.countDown();
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  Thread.sleep(1000);
+  tempMap.unlock("key1");
+  assertTrue(latch2.await(100,TimeUnit.SECONDS));
+  assertTrue(tempMap.isLocked("key1"));
+  tempMap.forceUnlock("key1");
+}

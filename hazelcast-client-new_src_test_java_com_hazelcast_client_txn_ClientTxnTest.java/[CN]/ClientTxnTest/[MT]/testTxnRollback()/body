@@ -1,0 +1,30 @@
+{
+  final String queueName=randomString();
+  final TransactionContext context=hz.newTransactionContext();
+  CountDownLatch txnRollbackLatch=new CountDownLatch(1);
+  final CountDownLatch memberRemovedLatch=new CountDownLatch(1);
+  hz.getCluster().addMembershipListener(new MembershipAdapter(){
+    @Override public void memberRemoved(    MembershipEvent membershipEvent){
+      memberRemovedLatch.countDown();
+    }
+  }
+);
+  try {
+    context.beginTransaction();
+    assertNotNull(context.getTxnId());
+    final TransactionalQueue queue=context.getQueue(queueName);
+    queue.offer(randomString());
+    server.shutdown();
+    context.commitTransaction();
+    fail("commit should throw exception!!!");
+  }
+ catch (  Exception e) {
+    context.rollbackTransaction();
+    txnRollbackLatch.countDown();
+  }
+  assertOpenEventually(txnRollbackLatch);
+  assertOpenEventually(memberRemovedLatch);
+  final IQueue<Object> q=hz.getQueue(queueName);
+  assertNull(q.poll());
+  assertEquals(0,q.size());
+}

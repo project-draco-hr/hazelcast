@@ -1,0 +1,18 @@
+{
+  this.lifecycleService=client.getLifecycleService();
+  this.invocationService=client.getInvocationService();
+  this.executionService=client.getClientExecutionService();
+  this.listenerService=(ClientListenerServiceImpl)client.getListenerService();
+  this.handler=handler;
+  this.request=request;
+  this.partitionId=partitionId;
+  this.address=address;
+  this.connection=connection;
+  final ClientProperties clientProperties=client.getClientProperties();
+  int waitTime=clientProperties.getInvocationTimeoutSeconds().getInteger();
+  long retryTimeoutInSeconds=waitTime > 0 ? waitTime : Integer.parseInt(ClientProperties.PROP_INVOCATION_TIMEOUT_SECONDS_DEFAULT);
+  clientInvocationFuture=new ClientInvocationFuture(this,client,request,handler);
+  this.retryCountLimit=retryTimeoutInSeconds / RETRY_WAIT_TIME_IN_SECONDS;
+  int interval=clientProperties.getHeartbeatInterval().getInteger();
+  this.heartBeatInterval=interval > 0 ? interval : Integer.parseInt(PROP_HEARTBEAT_INTERVAL_DEFAULT);
+}

@@ -1,0 +1,43 @@
+{
+  Config config=buildConfig();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(null);
+  IMap<Integer,Integer> m1=client.getMap(MAP_NAME);
+  for (int i=0; i < 100; i++) {
+    m1.put(i,i);
+  }
+  final Map<String,Integer> listenerResults=new HashMap<String,Integer>();
+  final Semaphore semaphore=new Semaphore(1);
+  semaphore.acquire();
+  JobTracker tracker=client.getJobTracker("default");
+  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+  ICompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).combiner(new TestCombinerFactory()).reducer(new TestReducerFactory()).submit();
+  future.andThen(new ExecutionCallback<Map<String,Integer>>(){
+    @Override public void onResponse(    Map<String,Integer> response){
+      try {
+        listenerResults.putAll(response);
+      }
+  finally {
+        semaphore.release();
+      }
+    }
+    @Override public void onFailure(    Throwable t){
+      semaphore.release();
+    }
+  }
+);
+  int[] expectedResults=new int[4];
+  for (int i=0; i < 100; i++) {
+    int index=i % 4;
+    expectedResults[index]+=i;
+  }
+  semaphore.acquire();
+  for (int i=0; i < 4; i++) {
+    assertEquals(expectedResults[i],(int)listenerResults.get(String.valueOf(i)));
+  }
+}

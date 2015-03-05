@@ -1,0 +1,16 @@
+{
+  final ClientAwsConfig awsConfig=client.getClientConfig().getNetworkConfig().getAwsConfig();
+  final Collection<AddressProvider> addressProvider=new LinkedList<AddressProvider>();
+  addressProvider.add(new DefaultAddressProvider(getClientConfig().getNetworkConfig()));
+  if (awsConfig != null && awsConfig.isEnabled()) {
+    try {
+      addressProvider.add(new AwsAddressProvider(awsConfig));
+    }
+ catch (    NoClassDefFoundError e) {
+      LOGGER.log(Level.WARNING,"hazelcast-cloud.jar might be missing!");
+      throw e;
+    }
+  }
+  final boolean shuffleMemberList=client.getClientProperties().getShuffleMemberList().getBoolean();
+  return new ClusterListenerSupport(addressProvider,shuffleMemberList);
+}

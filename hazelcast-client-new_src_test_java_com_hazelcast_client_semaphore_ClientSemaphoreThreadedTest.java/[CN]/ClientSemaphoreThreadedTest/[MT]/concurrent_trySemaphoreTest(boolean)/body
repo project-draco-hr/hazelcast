@@ -1,0 +1,23 @@
+{
+  final ISemaphore semaphore=client.getSemaphore(randomString());
+  semaphore.init(1);
+  final AtomicInteger upTotal=new AtomicInteger(0);
+  final AtomicInteger downTotal=new AtomicInteger(0);
+  final SemaphoreTestThread threads[]=new SemaphoreTestThread[8];
+  for (int i=0; i < threads.length; i++) {
+    SemaphoreTestThread t;
+    if (tryWithTimeOut) {
+      t=new TrySemaphoreTimeOutThread(semaphore,upTotal,downTotal);
+    }
+ else {
+      t=new TrySemaphoreThread(semaphore,upTotal,downTotal);
+    }
+    t.start();
+    threads[i]=t;
+  }
+  HazelcastTestSupport.assertJoinable(threads);
+  for (  SemaphoreTestThread t : threads) {
+    assertNull("thread " + t + " has error "+ t.error,t.error);
+  }
+  assertEquals("concurrent access to locked code caused wrong total",0,upTotal.get() + downTotal.get());
+}

@@ -1,0 +1,40 @@
+{
+  final String mapName=randomString();
+  final String key="key";
+  final int initialValue=111;
+  final int value=888;
+  final CountDownLatch getKeyForUpdateLatch=new CountDownLatch(1);
+  final CountDownLatch afterTryPutResult=new CountDownLatch(1);
+  final IMap<String,Integer> map=client.getMap(mapName);
+  map.put(key,initialValue);
+  final AtomicBoolean tryPutResult=new AtomicBoolean(true);
+  Runnable incrementor=new Runnable(){
+    public void run(){
+      try {
+        getKeyForUpdateLatch.await(30,TimeUnit.SECONDS);
+        boolean result=map.tryPut(key,value,0,TimeUnit.SECONDS);
+        tryPutResult.set(result);
+        afterTryPutResult.countDown();
+      }
+ catch (      Exception e) {
+      }
+    }
+  }
+;
+  new Thread(incrementor).start();
+  client.executeTransaction(new TransactionalTask<Boolean>(){
+    public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
+      try {
+        final TransactionalMap<String,Integer> txMap=context.getMap(mapName);
+        txMap.getForUpdate(key);
+        getKeyForUpdateLatch.countDown();
+        afterTryPutResult.await(30,TimeUnit.SECONDS);
+      }
+ catch (      Exception e) {
+      }
+      return true;
+    }
+  }
+);
+  assertFalse(tryPutResult.get());
+}

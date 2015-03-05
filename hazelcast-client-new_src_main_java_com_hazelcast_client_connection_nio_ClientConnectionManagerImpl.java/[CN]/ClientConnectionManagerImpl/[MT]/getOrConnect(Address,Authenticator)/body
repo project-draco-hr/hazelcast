@@ -1,0 +1,20 @@
+{
+  Address address=addressTranslator.translate(target);
+  if (address == null) {
+    throw new IOException("Address is required!");
+  }
+  ClientConnection connection=connections.get(target);
+  if (connection == null) {
+    final Object lock=getLock(target);
+synchronized (lock) {
+      connection=connections.get(target);
+      if (connection == null) {
+        connection=createSocketConnection(address);
+        authenticate(authenticator,connection);
+        connections.put(connection.getRemoteEndpoint(),connection);
+        fireConnectionAddedEvent(connection);
+      }
+    }
+  }
+  return connection;
+}

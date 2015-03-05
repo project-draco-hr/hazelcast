@@ -1,0 +1,19 @@
+{
+  Config config=buildConfig();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h3=Hazelcast.newHazelcastInstance(config);
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(null);
+  IMap<Integer,Integer> m1=client.getMap(MAP_NAME);
+  for (int i=0; i < 10000; i++) {
+    m1.put(i,i);
+  }
+  JobTracker tracker=client.getJobTracker("default");
+  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+  ICompletableFuture<Integer> future=job.onKeys(50).mapper(new TestMapper()).submit(new GroupingTestCollator());
+  int result=future.get();
+  assertEquals(50,result);
+}

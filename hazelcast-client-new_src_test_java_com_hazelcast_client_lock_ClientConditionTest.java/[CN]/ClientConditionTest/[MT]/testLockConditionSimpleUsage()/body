@@ -1,0 +1,35 @@
+{
+  final String name="testLockConditionSimpleUsage";
+  final ILock lock=client.getLock(name);
+  final ICondition condition=lock.newCondition(name + "c");
+  final AtomicInteger count=new AtomicInteger(0);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      lock.lock();
+      try {
+        if (lock.isLockedByCurrentThread()) {
+          count.incrementAndGet();
+        }
+        condition.await();
+        if (lock.isLockedByCurrentThread()) {
+          count.incrementAndGet();
+        }
+      }
+ catch (      InterruptedException ignored) {
+      }
+ finally {
+        lock.unlock();
+      }
+    }
+  }
+);
+  t.start();
+  Thread.sleep(1000);
+  assertEquals(false,lock.isLocked());
+  lock.lock();
+  assertEquals(true,lock.isLocked());
+  condition.signal();
+  lock.unlock();
+  t.join();
+  assertEquals(2,count.get());
+}

@@ -1,0 +1,20 @@
+{
+  checkIfManagerNotClosed();
+  checkNotNull(cacheName,"cacheName cannot be null");
+  final Collection<MemberImpl> members=clientContext.getClusterService().getMemberList();
+  final Collection<Future> futures=new ArrayList<Future>();
+  final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
+  for (  MemberImpl member : members) {
+    try {
+      final Address address=member.getAddress();
+      CacheManagementConfigRequest request=new CacheManagementConfigRequest(getCacheNameWithPrefix(cacheName),statOrMan,enabled,address);
+      final ClientInvocation clientInvocation=new ClientInvocation(client,request,address);
+      final Future<SerializableCollection> future=clientInvocation.invoke();
+      futures.add(future);
+    }
+ catch (    Exception e) {
+      ExceptionUtil.sneakyThrow(e);
+    }
+  }
+  FutureUtil.waitWithDeadline(futures,CacheProxyUtil.AWAIT_COMPLETION_TIMEOUT_SECONDS,TimeUnit.SECONDS);
+}

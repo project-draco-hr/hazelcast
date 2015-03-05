@@ -1,0 +1,20 @@
+{
+  final HazelcastInstance hz1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setRedoOperation(true);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final ILock lock=client.getLock("lock");
+  for (int k=0; k < 10; k++) {
+    lock.lock();
+    try {
+      Thread.sleep(100);
+    }
+  finally {
+      lock.unlock();
+    }
+  }
+  lock.lock();
+  hz1.shutdown();
+  lock.unlock();
+}
