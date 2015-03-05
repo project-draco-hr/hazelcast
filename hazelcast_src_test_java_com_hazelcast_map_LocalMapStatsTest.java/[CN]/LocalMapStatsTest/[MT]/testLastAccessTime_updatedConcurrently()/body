@@ -1,0 +1,23 @@
+{
+  final TimeUnit timeUnit=TimeUnit.NANOSECONDS;
+  final long startTime=timeUnit.toMillis(System.nanoTime());
+  final HazelcastInstance h1=createHazelcastInstance();
+  final IMap<String,String> map1=h1.getMap(name);
+  final String key="key";
+  map1.put(key,"value");
+  final LocalMapStats localMapStats=map1.getLocalMapStats();
+  final long lastUpdateTime=localMapStats.getLastUpdateTime();
+  assertTrue(lastUpdateTime >= startTime);
+  final Thread updatingThread=new Thread(new Runnable(){
+    @Override public void run(){
+      map1.put(key,"value2");
+      map1.getLocalMapStats();
+    }
+  }
+);
+  updatingThread.start();
+  updatingThread.join();
+  Thread.sleep(5);
+  long lastUpdateTime2=localMapStats.getLastUpdateTime();
+  assertTrue(lastUpdateTime2 > lastUpdateTime);
+}
