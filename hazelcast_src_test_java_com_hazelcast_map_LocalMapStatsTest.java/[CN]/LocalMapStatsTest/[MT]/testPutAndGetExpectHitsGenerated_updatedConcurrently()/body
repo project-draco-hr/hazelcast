@@ -1,0 +1,25 @@
+{
+  HazelcastInstance h1=createHazelcastInstance();
+  final IMap<Integer,Integer> map=h1.getMap("hits");
+  final int actionCount=100;
+  for (int i=0; i < actionCount; i++) {
+    map.put(i,i);
+    map.get(i);
+  }
+  LocalMapStats localMapStats=map.getLocalMapStats();
+  assertEquals(actionCount,localMapStats.getHits());
+  assertEquals(actionCount,localMapStats.getPutOperationCount());
+  assertEquals(actionCount,localMapStats.getGetOperationCount());
+  final Thread updatingThread=new Thread(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < actionCount; i++) {
+        map.get(i);
+      }
+      map.getLocalMapStats();
+    }
+  }
+);
+  updatingThread.start();
+  updatingThread.join();
+  assertEquals(actionCount * 2,localMapStats.getHits());
+}
