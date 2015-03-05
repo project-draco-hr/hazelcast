@@ -1,0 +1,16 @@
+{
+  Cluster cluster=hz.getCluster();
+  Member localMember=cluster.getLocalMember();
+  PartitionService partitionService=hz.getPartitionService();
+  List<Partition> partitions=new LinkedList<Partition>();
+  for (  Partition partition : partitionService.getPartitions()) {
+    if (partition.getOwner().localMember()) {
+      partitions.add(partition);
+    }
+  }
+  if (partitions.isEmpty()) {
+    throw new IllegalStateException("No partitions found for hzinstance:" + hz.getName());
+  }
+  Collections.shuffle(partitions);
+  return partitions.get(0);
+}
