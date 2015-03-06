@@ -1,0 +1,18 @@
+{
+  int threadCount=4;
+  final CountDownLatch latch=new CountDownLatch(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    final int finalI=i;
+    new Thread(){
+      public void run(){
+        HazelcastInstance hazelcastInstance=Hazelcast.newHazelcastInstance(hzConfig);
+        HazelcastServerCachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(hazelcastInstance);
+        Cache<Object,Object> cache=cachingProvider.getCacheManager().getCache("xmlCache");
+        cache.get(1);
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  HazelcastTestSupport.assertOpenEventually(latch);
+}
