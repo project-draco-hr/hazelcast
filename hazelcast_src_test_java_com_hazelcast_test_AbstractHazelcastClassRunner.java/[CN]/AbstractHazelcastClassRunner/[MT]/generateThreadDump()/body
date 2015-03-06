@@ -1,0 +1,30 @@
+{
+  final StringBuilder dump=new StringBuilder();
+  final ThreadMXBean threadMXBean=ManagementFactory.getThreadMXBean();
+  final ThreadInfo[] threadInfos=threadMXBean.dumpAllThreads(true,true);
+  final long currentThreadId=Thread.currentThread().getId();
+  for (  ThreadInfo threadInfo : threadInfos) {
+    if (threadInfo.getThreadId() == currentThreadId) {
+      continue;
+    }
+    dump.append('"');
+    dump.append(threadInfo.getThreadName());
+    dump.append("\" ");
+    final Thread.State state=threadInfo.getThreadState();
+    dump.append("\n\tjava.lang.Thread.State: ");
+    dump.append(state);
+    if (threadInfo.getLockName() != null) {
+      dump.append(" on lock=" + threadInfo.getLockName());
+    }
+    if (threadInfo.getLockOwnerName() != null) {
+      dump.append(" owned by " + threadInfo.getLockOwnerName() + " id="+ threadInfo.getLockOwnerId());
+    }
+    final StackTraceElement[] stackTraceElements=threadInfo.getStackTrace();
+    for (    StackTraceElement stackTraceElement : stackTraceElements) {
+      dump.append("\n\t\tat ");
+      dump.append(stackTraceElement);
+    }
+    dump.append("\n\n");
+  }
+  return dump.toString();
+}
