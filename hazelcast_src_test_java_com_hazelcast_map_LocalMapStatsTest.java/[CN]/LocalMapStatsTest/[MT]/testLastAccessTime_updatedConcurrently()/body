@@ -1,0 +1,21 @@
+{
+  final long startTime=Clock.currentTimeMillis();
+  final HazelcastInstance h1=createHazelcastInstance();
+  final IMap<String,String> map1=h1.getMap(randomMapName());
+  final String key="key";
+  map1.put(key,"value");
+  final LocalMapStats localMapStats=map1.getLocalMapStats();
+  final long lastUpdateTime=localMapStats.getLastUpdateTime();
+  final Thread updatingThread=new Thread(new Runnable(){
+    @Override public void run(){
+      map1.put(key,"value2");
+      map1.getLocalMapStats();
+    }
+  }
+);
+  updatingThread.start();
+  updatingThread.join();
+  long lastUpdateTime2=localMapStats.getLastUpdateTime();
+  assertTrue(lastUpdateTime >= startTime);
+  assertTrue(lastUpdateTime2 > lastUpdateTime);
+}
