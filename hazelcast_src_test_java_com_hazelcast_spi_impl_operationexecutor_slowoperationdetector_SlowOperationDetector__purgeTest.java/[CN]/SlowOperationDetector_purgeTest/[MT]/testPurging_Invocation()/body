@@ -1,0 +1,25 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_THRESHOLD_MILLIS,"1000");
+  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_LOG_RETENTION_SECONDS,"3");
+  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_LOG_PURGE_INTERVAL_SECONDS,"1");
+  HazelcastInstance instance=getSingleNodeCluster(config);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  for (int i=0; i < 2; i++) {
+    map.executeOnEntries(new SlowEntryProcessor(2));
+  }
+  map.executeOnEntries(new SlowEntryProcessor(3));
+  map.executeOnEntries(new SlowEntryProcessor(2));
+  getInternalOperationService(instance).shutdown();
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,1);
+  SlowOperationLog firstLog=logs.iterator().next();
+  assertTotalInvocations(firstLog,4);
+  assertEntryProcessorOperation(firstLog);
+  assertStackTraceContainsClassName(firstLog,"SlowEntryProcessor");
+  Collection<SlowOperationLog.Invocation> invocations=getInvocations(firstLog);
+  assertEqualsStringFormat("Expected %d invocations, but was %d",2,invocations.size());
+  for (  SlowOperationLog.Invocation invocation : invocations) {
+    assertInvocationDurationBetween(invocation,1000,3500);
+  }
+}
