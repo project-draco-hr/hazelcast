@@ -4,18 +4,17 @@
   }
   operation.logError(e);
   com.hazelcast.spi.ResponseHandler responseHandler=operation.getResponseHandler();
-  if (responseHandler == null) {
-    return;
-  }
-  try {
-    if (node.isActive()) {
-      responseHandler.sendResponse(e);
+  if (operation.returnsResponse() && responseHandler != null) {
+    try {
+      if (node.isActive()) {
+        responseHandler.sendResponse(e);
+      }
+ else       if (responseHandler.isLocal()) {
+        responseHandler.sendResponse(new HazelcastInstanceNotActiveException());
+      }
     }
- else     if (responseHandler.isLocal()) {
-      responseHandler.sendResponse(new HazelcastInstanceNotActiveException());
+ catch (    Throwable t) {
+      logger.warning("While sending op error... op: " + operation + ", error: "+ e,t);
     }
-  }
- catch (  Throwable t) {
-    logger.warning("While sending op error... op: " + operation + ", error: "+ e,t);
   }
 }
