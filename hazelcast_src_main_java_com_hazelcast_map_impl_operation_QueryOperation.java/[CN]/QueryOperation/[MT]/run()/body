@@ -1,5 +1,7 @@
 {
   NodeEngine nodeEngine=getNodeEngine();
+  MapService service=getService();
+  final MapServiceContext mapServiceContext=service.getMapServiceContext();
   InternalPartitionService partitionService=nodeEngine.getPartitionService();
   Collection<Integer> initialPartitions=mapService.getMapServiceContext().getOwnedPartitions();
   int partitionStateVersion=partitionService.getPartitionStateVersion();
@@ -11,7 +13,8 @@
   result=new QueryResult();
   if (entries != null) {
     for (    QueryableEntry entry : entries) {
-      result.add(new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData()));
+      QueryResultEntryImpl resultEntry=new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData());
+      result.add(resultEntry);
     }
   }
  else {
@@ -22,13 +25,13 @@
       runParallel(initialPartitions);
     }
   }
-  Collection<Integer> finalPartitions=mapService.getMapServiceContext().getOwnedPartitions();
+  Collection<Integer> finalPartitions=mapServiceContext.getOwnedPartitions();
   if (initialPartitions.equals(finalPartitions)) {
     result.setPartitionIds(finalPartitions);
   }
   if (mapContainer.getMapConfig().isStatisticsEnabled()) {
-    final MapServiceContext mapServiceContext=((MapService)getService()).getMapServiceContext();
-    mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name).incrementOtherOperations();
+    LocalMapStatsImpl localMapStatsImpl=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
+    localMapStatsImpl.incrementOtherOperations();
   }
   checkPartitionStateChanges(partitionService,partitionStateVersion);
 }
