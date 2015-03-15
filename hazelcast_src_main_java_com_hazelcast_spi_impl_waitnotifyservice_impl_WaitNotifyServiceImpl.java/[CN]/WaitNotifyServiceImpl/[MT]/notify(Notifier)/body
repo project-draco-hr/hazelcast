@@ -1,0 +1,31 @@
+{
+  WaitNotifyKey key=notifier.getNotifiedKey();
+  Queue<WaitingOperation> q=mapWaitingOps.get(key);
+  if (q == null) {
+    return;
+  }
+  WaitingOperation waitingOp=q.peek();
+  while (waitingOp != null) {
+    final Operation op=waitingOp.getOperation();
+    if (notifier == op) {
+      throw new IllegalStateException("Found cyclic wait-notify! -> " + notifier);
+    }
+    if (waitingOp.isValid()) {
+      if (waitingOp.isExpired()) {
+        waitingOp.onExpire();
+      }
+ else {
+        if (waitingOp.shouldWait()) {
+          return;
+        }
+        nodeEngine.getOperationService().runOperationOnCallingThread(op);
+      }
+      waitingOp.setValid(false);
+    }
+    q.poll();
+    waitingOp=q.peek();
+    if (waitingOp == null) {
+      mapWaitingOps.remove(key);
+    }
+  }
+}

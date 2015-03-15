@@ -1,0 +1,28 @@
+{
+  long waitTime=FIRST_WAIT_TIME;
+  while (waitTime > 0) {
+    long begin=System.currentTimeMillis();
+    WaitingOperation waitingOp=(WaitingOperation)delayQueue.poll(waitTime,TimeUnit.MILLISECONDS);
+    if (waitingOp != null) {
+      if (waitingOp.isValid()) {
+        invalidate(waitingOp);
+      }
+    }
+    long end=System.currentTimeMillis();
+    waitTime-=(end - begin);
+    if (waitTime > FIRST_WAIT_TIME) {
+      waitTime=FIRST_WAIT_TIME;
+    }
+  }
+  for (  Queue<WaitingOperation> q : mapWaitingOps.values()) {
+    for (    WaitingOperation waitingOp : q) {
+      if (Thread.interrupted()) {
+        return true;
+      }
+      if (waitingOp.isValid() && waitingOp.needsInvalidation()) {
+        invalidate(waitingOp);
+      }
+    }
+  }
+  return false;
+}
