@@ -6,16 +6,19 @@
   map1.put(key,"value");
   final LocalMapStats localMapStats=map1.getLocalMapStats();
   final long lastUpdateTime=localMapStats.getLastUpdateTime();
-  final Thread updatingThread=new Thread(new Runnable(){
+  new Thread(new Runnable(){
     @Override public void run(){
+      sleepAtLeastMillis(1);
       map1.put(key,"value2");
       map1.getLocalMapStats();
     }
   }
-);
-  updatingThread.start();
-  updatingThread.join();
-  long lastUpdateTime2=localMapStats.getLastUpdateTime();
+).start();
   assertTrue(lastUpdateTime >= startTime);
-  assertTrue(lastUpdateTime2 > lastUpdateTime);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(localMapStats.getLastUpdateTime() > lastUpdateTime);
+    }
+  }
+);
 }
