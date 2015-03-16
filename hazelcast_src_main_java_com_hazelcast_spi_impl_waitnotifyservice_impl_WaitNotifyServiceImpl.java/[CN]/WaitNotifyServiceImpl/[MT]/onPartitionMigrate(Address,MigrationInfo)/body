@@ -1,0 +1,24 @@
+{
+  if (!thisAddress.equals(migrationInfo.getSource())) {
+    return;
+  }
+  int partitionId=migrationInfo.getPartitionId();
+  for (  Queue<WaitingOperation> q : mapWaitingOps.values()) {
+    Iterator<WaitingOperation> it=q.iterator();
+    while (it.hasNext()) {
+      if (Thread.interrupted()) {
+        return;
+      }
+      WaitingOperation waitingOp=it.next();
+      if (waitingOp.isValid()) {
+        Operation op=waitingOp.getOperation();
+        if (partitionId == op.getPartitionId()) {
+          waitingOp.setValid(false);
+          PartitionMigratingException pme=new PartitionMigratingException(thisAddress,partitionId,op.getClass().getName(),op.getServiceName());
+          op.getResponseHandler().sendResponse(pme);
+          it.remove();
+        }
+      }
+    }
+  }
+}
