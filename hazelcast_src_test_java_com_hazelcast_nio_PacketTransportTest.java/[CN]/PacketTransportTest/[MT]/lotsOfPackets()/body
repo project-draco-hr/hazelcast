@@ -2,14 +2,15 @@
   List<Packet> originalPackets=new LinkedList<Packet>();
   Random random=new Random();
   for (int k=0; k < 1000; k++) {
-    byte[] bytes=generateRandomString(random.nextInt(1000) + 5).getBytes();
-    DefaultData originalData=new DefaultData(bytes);
-    Packet originalPacket=new Packet(originalData);
+    byte[] bytes=generateRandomString(random.nextInt(1000)).getBytes();
+    DefaultData originalData=new DefaultData(1,bytes);
+    Packet originalPacket=new Packet(originalData,mock(PortableContext.class));
     originalPackets.add(originalPacket);
   }
   ByteBuffer bb=ByteBuffer.allocate(20);
+  int k=0;
   for (  Packet originalPacket : originalPackets) {
-    Packet clonedPacket=new Packet();
+    Packet clonedPacket=new Packet(mock(PortableContext.class));
     boolean writeCompleted;
     boolean readCompleted;
     do {
@@ -20,7 +21,8 @@
     }
  while (!writeCompleted);
     assertTrue(readCompleted);
-    assertEquals(originalPacket.getHeader(),clonedPacket.getHeader());
-    assertEquals(originalPacket.getData(),clonedPacket.getData());
+    assertEquals("failed at:" + k,originalPacket.getHeader(),clonedPacket.getHeader());
+    assertEquals("failed at:" + k,originalPacket.getData(),clonedPacket.getData());
+    k++;
   }
 }

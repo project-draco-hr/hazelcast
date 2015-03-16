@@ -3,10 +3,9 @@
     return (T)object;
   }
   Data data=(Data)object;
-  if (isNullData(data)) {
+  if (data.dataSize() == 0 && data.getType() == SerializationConstants.CONSTANT_TYPE_NULL) {
     return null;
   }
-  BufferObjectDataInput in=createObjectDataInput(data);
   try {
     final int typeId=data.getType();
     final SerializerAdapter serializer=serializerFor(typeId);
@@ -16,7 +15,7 @@
       }
       throw new HazelcastInstanceNotActiveException();
     }
-    Object obj=serializer.read(in);
+    Object obj=serializer.toObject(data);
     if (managedContext != null) {
       obj=managedContext.initialize(obj);
     }
@@ -24,8 +23,5 @@
   }
  catch (  Throwable e) {
     throw handleException(e);
-  }
- finally {
-    IOUtil.closeResource(in);
   }
 }
