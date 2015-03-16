@@ -6,9 +6,9 @@
     map.put(i,i);
     map.get(i);
   }
-  LocalMapStats localMapStats=map.getLocalMapStats();
+  final LocalMapStats localMapStats=map.getLocalMapStats();
   final long initialHits=localMapStats.getHits();
-  final Thread updatingThread=new Thread(new Runnable(){
+  new Thread(new Runnable(){
     @Override public void run(){
       for (int i=0; i < actionCount; i++) {
         map.get(i);
@@ -16,9 +16,12 @@
       map.getLocalMapStats();
     }
   }
-);
-  updatingThread.start();
-  updatingThread.join();
+).start();
   assertEquals(actionCount,initialHits);
-  assertEquals(actionCount * 2,localMapStats.getHits());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(actionCount * 2,localMapStats.getHits());
+    }
+  }
+);
 }
