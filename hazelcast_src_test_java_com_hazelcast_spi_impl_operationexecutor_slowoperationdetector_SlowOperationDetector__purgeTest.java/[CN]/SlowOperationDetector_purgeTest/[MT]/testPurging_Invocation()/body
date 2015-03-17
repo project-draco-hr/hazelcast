@@ -1,17 +1,11 @@
 {
-  Config config=new Config();
-  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_THRESHOLD_MILLIS,"1000");
-  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_LOG_RETENTION_SECONDS,"3");
-  config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_LOG_PURGE_INTERVAL_SECONDS,"1");
-  HazelcastInstance instance=getSingleNodeCluster(config);
-  IMap<String,String> map=getMapWithSingleElement(instance);
+  setup("3");
   for (int i=0; i < 2; i++) {
     map.executeOnEntries(new SlowEntryProcessor(2));
   }
   map.executeOnEntries(new SlowEntryProcessor(3));
   map.executeOnEntries(new SlowEntryProcessor(2));
-  OperationServiceImpl operationService=(OperationServiceImpl)getInternalOperationService(instance);
-  operationService.shutdown();
+  shutdownOperationService(instance);
   Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
   assertNumberOfSlowOperationLogs(logs,1);
   SlowOperationLog firstLog=logs.iterator().next();
