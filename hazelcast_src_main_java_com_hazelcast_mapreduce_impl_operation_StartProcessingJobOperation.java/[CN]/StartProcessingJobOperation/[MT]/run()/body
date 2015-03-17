@@ -1,15 +1,16 @@
 {
   MapReduceService mapReduceService=getService();
+  if (mapReduceService.unregisterJobSupervisorCancellation(name,jobId)) {
+    AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.getJobTracker(name);
+    TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
+    if (future != null) {
+      Exception exception=new CancellationException("Operation was cancelled by the user");
+      future.setResult(exception);
+    }
+    return;
+  }
   JobSupervisor supervisor=mapReduceService.getJobSupervisor(name,jobId);
   if (supervisor == null) {
-    if (mapReduceService.unregisterJobSupervisorCancellation(name,jobId)) {
-      AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.getJobTracker(name);
-      TrackableJobFuture future=jobTracker.unregisterTrackableJob(jobId);
-      if (future != null) {
-        Exception exception=new CancellationException("Operation was cancelled by the user");
-        future.setResult(exception);
-      }
-    }
     return;
   }
   MappingPhase mappingPhase=new KeyValueSourceMappingPhase(keys,predicate);
