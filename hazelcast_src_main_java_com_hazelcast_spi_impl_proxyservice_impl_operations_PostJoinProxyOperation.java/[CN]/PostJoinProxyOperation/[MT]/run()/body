@@ -1,0 +1,23 @@
+{
+  if (proxies == null || proxies.size() <= 0) {
+    return;
+  }
+  NodeEngine nodeEngine=getNodeEngine();
+  ProxyServiceImpl proxyService=getService();
+  ExecutionService executionService=nodeEngine.getExecutionService();
+  for (  ProxyInfo proxy : proxies) {
+    ProxyRegistry registry=proxyService.getOrCreateRegistry(proxy.getServiceName());
+    try {
+      DistributedObjectFuture future=registry.createProxy(proxy.getObjectName(),false,false);
+      if (future != null) {
+        final DistributedObject object=future.get();
+        if (object instanceof InitializingObject) {
+          executionService.execute(ExecutionService.SYSTEM_EXECUTOR,new InitializeRunnable(object));
+        }
+      }
+    }
+ catch (    Throwable t) {
+      getLogger().warning("Cannot create proxy [" + proxy.getServiceName() + ":"+ proxy.getObjectName()+ "]!",t);
+    }
+  }
+}
