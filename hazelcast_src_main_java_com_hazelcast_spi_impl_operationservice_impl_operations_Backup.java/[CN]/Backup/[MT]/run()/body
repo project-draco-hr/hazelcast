@@ -1,0 +1,20 @@
+{
+  if (!valid) {
+    return;
+  }
+  NodeEngine nodeEngine=getNodeEngine();
+  if (backupOpData != null) {
+    backupOp=nodeEngine.getSerializationService().toObject(backupOpData);
+    backupOp.setPartitionId(getPartitionId()).setReplicaIndex(getReplicaIndex());
+    backupOp.setNodeEngine(nodeEngine);
+    backupOp.setCallerUuid(getCallerUuid());
+    OperationAccessor.setCallerAddress(backupOp,getCallerAddress());
+    OperationAccessor.setInvocationTime(backupOp,Clock.currentTimeMillis());
+    backupOp.setResponseHandler(createEmptyResponseHandler());
+    backupOp.beforeRun();
+    backupOp.run();
+    backupOp.afterRun();
+  }
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  partitionService.updatePartitionReplicaVersions(getPartitionId(),replicaVersions,getReplicaIndex());
+}
