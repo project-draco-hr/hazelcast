@@ -1,0 +1,40 @@
+{
+  assertTrue(memberCount > 0);
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,"3000");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(memberCount);
+  HazelcastInstance[] instances=factory.newInstances(config);
+  warmUpPartitions(instances);
+  final HazelcastInstance hz=instances[memberCount - 1];
+  Node node=TestUtil.getNode(hz);
+  NodeEngine nodeEngine=node.nodeEngine;
+  OperationService operationService=nodeEngine.getOperationService();
+  int partitionId=(int)(Math.random() * node.getPartitionService().getPartitionCount());
+  InternalCompletableFuture<Object> future=operationService.invokeOnPartition(null,new TimedOutBackupAwareOperation(),partitionId);
+  final CountDownLatch latch=new CountDownLatch(1);
+  if (async) {
+    future.andThen(new ExecutionCallback<Object>(){
+      @Override public void onResponse(      Object response){
+      }
+      @Override public void onFailure(      Throwable t){
+        if (t instanceof OperationTimeoutException) {
+          latch.countDown();
+        }
+      }
+    }
+);
+  }
+ else {
+    try {
+      future.getSafely();
+      fail("Should throw OperationTimeoutException!");
+    }
+ catch (    OperationTimeoutException ignored) {
+      latch.countDown();
+    }
+  }
+  assertOpenEventually("Should throw OperationTimeoutException",latch);
+  for (  HazelcastInstance instance : instances) {
+    OperationServiceImplTest.assertNoLitterInOpService(instance);
+  }
+}

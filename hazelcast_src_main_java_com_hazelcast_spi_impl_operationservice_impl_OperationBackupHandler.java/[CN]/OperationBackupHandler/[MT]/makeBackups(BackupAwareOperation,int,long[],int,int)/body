@@ -1,0 +1,28 @@
+{
+  Boolean backPressureNeeded=null;
+  int sentSyncBackupCount=0;
+  InternalPartitionService partitionService=operationService.node.getPartitionService();
+  InternalPartition partition=partitionService.getPartition(partitionId);
+  for (int replicaIndex=1; replicaIndex <= totalBackupCount; replicaIndex++) {
+    Address target=partition.getReplicaAddress(replicaIndex);
+    if (target == null) {
+      continue;
+    }
+    assertNoBackupOnPrimaryMember(partition,target);
+    boolean isSyncBackup=true;
+    if (replicaIndex > syncBackupCount) {
+      if (backPressureNeeded == null) {
+        backPressureNeeded=operationService.backPressureService.isBackPressureNeeded((Operation)backupAwareOp);
+      }
+      if (!backPressureNeeded) {
+        isSyncBackup=false;
+      }
+    }
+    Backup backup=newBackup(backupAwareOp,replicaVersions,replicaIndex,isSyncBackup);
+    operationService.send(backup,target);
+    if (isSyncBackup) {
+      sentSyncBackupCount++;
+    }
+  }
+  return sentSyncBackupCount;
+}
