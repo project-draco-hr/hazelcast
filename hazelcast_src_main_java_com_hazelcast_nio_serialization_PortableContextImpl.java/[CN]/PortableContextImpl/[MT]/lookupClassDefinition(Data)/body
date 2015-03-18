@@ -2,6 +2,13 @@
   if (!data.isPortable()) {
     throw new IllegalArgumentException("Data is not Portable!");
   }
-  ByteOrder byteOrder=serializationService.getByteOrder();
-  return readClassDefinition(data,0,byteOrder);
+  BufferObjectDataInput in=serializationService.createObjectDataInput(data);
+  int factoryId=in.readInt();
+  int classId=in.readInt();
+  int version=in.readInt();
+  ClassDefinition classDefinition=lookupClassDefinition(factoryId,classId,version);
+  if (classDefinition == null) {
+    classDefinition=readClassDefinition(in,factoryId,classId,version);
+  }
+  return classDefinition;
 }
