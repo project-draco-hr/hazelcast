@@ -1,0 +1,21 @@
+{
+  logger.finest("Shutting down OperationService");
+  cleanupThread.shutdown();
+  for (  Invocation invocation : invocations.values()) {
+    try {
+      invocation.notify(new HazelcastInstanceNotActiveException());
+    }
+ catch (    Throwable e) {
+      logger.warning(invocation + " could not be notified with shutdown message -> " + e.getMessage());
+    }
+  }
+  invocations.clear();
+  operationExecutor.shutdown();
+  slowOperationDetector.shutdown();
+  try {
+    cleanupThread.join(CLEANUP_THREAD_MAX_WAIT_TIME_TO_FINISH);
+  }
+ catch (  InterruptedException e) {
+    EmptyStatement.ignore(e);
+  }
+}
