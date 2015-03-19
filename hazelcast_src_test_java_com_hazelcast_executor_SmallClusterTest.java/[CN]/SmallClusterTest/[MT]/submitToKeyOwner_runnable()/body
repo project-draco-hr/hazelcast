@@ -1,0 +1,17 @@
+{
+  for (  final HazelcastInstance instance : instances) {
+    final IExecutorService service=instance.getExecutorService("testSubmitToKeyOwnerRunnable");
+    final String script="if(!hazelcast.getCluster().getLocalMember().getUuid().equals(memberUUID)) " + "hazelcast.getAtomicLong('testSubmitToKeyOwnerRunnable').incrementAndGet();";
+    final HashMap<String,String> map=new HashMap<String,String>();
+    final Member localMember=instance.getCluster().getLocalMember();
+    map.put("memberUUID",localMember.getUuid());
+    int key=0;
+    while (!localMember.equals(instance.getPartitionService().getPartition(++key).getOwner())) {
+      Thread.sleep(1);
+    }
+    service.submitToKeyOwner(new ScriptRunnable(script,map),key,callback);
+  }
+  assertOpenEventually(latch);
+  assertEquals(0,instances[0].getAtomicLong("testSubmitToKeyOwnerRunnable").get());
+  assertEquals(instances.length,count.get());
+}
