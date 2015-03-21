@@ -1,19 +1,22 @@
 {
-  Object response=resolveResponse(obj);
-  if (response == RETRY_RESPONSE) {
-    handleRetryResponse();
-    return;
-  }
-  if (response == WAIT_RESPONSE) {
-    handleWaitResponse();
-    return;
+  if (response == null) {
+    response=NULL_RESPONSE;
   }
   if (response instanceof CallTimeoutResponse) {
-    handleTimeoutResponse();
+    notifyCallTimeoutResponse();
+    return;
+  }
+  if (response instanceof ErrorResponse) {
+    notifyErrorResponse(((ErrorResponse)response).getCause());
+    return;
+  }
+  if (response instanceof Throwable) {
+    notifyErrorResponse((Throwable)response);
     return;
   }
   if (response instanceof NormalResponse) {
-    handleNormalResponse((NormalResponse)response);
+    NormalResponse normalResponse=(NormalResponse)response;
+    notifyNormalResponse(normalResponse.getValue(),normalResponse.getBackupCount());
     return;
   }
   invocationFuture.set(response);
