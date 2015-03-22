@@ -1,0 +1,19 @@
+{
+  final long expectedResult=operation.result;
+  InternalCompletableFuture f=localOperationService.invokeOnPartition(null,operation,partitionId);
+  f.andThen(new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      completedCall.incrementAndGet();
+      if (!new Long(expectedResult).equals(response)) {
+        System.out.println("Wrong result received, expecting: " + expectedResult + " but found:"+ response);
+        failedOperationCount.incrementAndGet();
+      }
+    }
+    @Override public void onFailure(    Throwable t){
+      completedCall.incrementAndGet();
+      failedOperationCount.incrementAndGet();
+      t.printStackTrace();
+    }
+  }
+);
+}
