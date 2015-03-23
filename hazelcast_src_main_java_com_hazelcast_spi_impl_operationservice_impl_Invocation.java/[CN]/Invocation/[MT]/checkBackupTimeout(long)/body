@@ -1,0 +1,23 @@
+{
+  if (backupsExpected == backupsCompleted) {
+    return;
+  }
+  long responseReceivedMillis=this.pendingResponseReceivedMillis;
+  if (responseReceivedMillis == -1) {
+    return;
+  }
+  long expirationTime=responseReceivedMillis + timeoutMillis;
+  boolean expired=expirationTime > 0 && expirationTime < Clock.currentTimeMillis();
+  if (!expired) {
+    return;
+  }
+  boolean targetDead=nodeEngine.getClusterService().getMember(invTarget) == null;
+  if (targetDead) {
+    resetAndReInvoke();
+    return;
+  }
+  final Object pendingResponse=this.pendingResponse;
+  if (pendingResponse != null) {
+    invocationFuture.set(pendingResponse);
+  }
+}

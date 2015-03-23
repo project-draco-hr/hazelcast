@@ -1,5 +1,5 @@
 {
-  if (response != null && response != Invocation.WAIT_RESPONSE) {
+  if (response != null && response != WAIT_RESPONSE) {
     return response;
   }
   WAITER_COUNT_FIELD_UPDATER.incrementAndGet(this);
@@ -17,12 +17,12 @@
         pollResponse(pollTimeoutMs);
         lastPollTime=Clock.currentTimeMillis() - startMs;
         timeoutMs=decrementTimeout(timeoutMs,lastPollTime);
-        if (response == Invocation.WAIT_RESPONSE) {
-          RESPONSE_FIELD_UPDATER.compareAndSet(this,Invocation.WAIT_RESPONSE,null);
+        if (response == WAIT_RESPONSE) {
+          RESPONSE_FIELD_UPDATER.compareAndSet(this,WAIT_RESPONSE,null);
           continue;
         }
  else         if (response != null) {
-          if (response != Invocation.INTERRUPTED_RESPONSE && interrupted) {
+          if (response != INTERRUPTED_RESPONSE && interrupted) {
             Thread.currentThread().interrupt();
           }
           return response;
@@ -39,12 +39,12 @@
         invocation.logger.warning("No response for " + lastPollTime + " ms. "+ toString());
         boolean executing=operationService.getIsStillRunningService().isOperationExecuting(invocation);
         if (!executing) {
-          Object operationTimeoutException=newOperationTimeoutException(pollCount * pollTimeoutMs);
+          Object operationTimeoutException=invocation.newOperationTimeoutException(pollCount * pollTimeoutMs);
           set(operationTimeoutException);
         }
       }
     }
-    return Invocation.TIMEOUT_RESPONSE;
+    return TIMEOUT_RESPONSE;
   }
   finally {
     WAITER_COUNT_FIELD_UPDATER.decrementAndGet(this);
