@@ -1,31 +1,31 @@
 {
-  expiryPolicy=getExpiryPolicy(expiryPolicy);
   final long now=Clock.currentTimeMillis();
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
-  Object obj=null;
-  boolean replaced=false;
+  deleteCacheEntry(key);
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
+  final Object obj;
+  boolean removed=false;
   try {
-    if (record != null) {
-      obj=toValue(record);
-    }
     if (record == null || isExpired) {
       obj=null;
-      replaced=false;
+      removed=false;
       publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId);
     }
  else {
-      replaced=updateRecordWithExpiry(key,value,record,expiryPolicy,now,false,completionId);
+      obj=toValue(record);
+      removed=deleteRecord(key,completionId,origin);
     }
-    onReplace(key,null,value,expiryPolicy,caller,false,record,isExpired,replaced);
-    updateHasExpiringEntry(record);
+    onRemove(key,null,caller,false,record,removed);
+    if (records.size() == 0) {
+      hasExpiringEntry=false;
+    }
     if (isStatisticsEnabled()) {
       statistics.addGetTimeNanos(System.nanoTime() - start);
       if (obj != null) {
         statistics.increaseCacheHits(1);
-        statistics.increaseCachePuts(1);
-        statistics.addPutTimeNanos(System.nanoTime() - start);
+        statistics.increaseCacheRemovals(1);
+        statistics.addRemoveTimeNanos(System.nanoTime() - start);
       }
  else {
         statistics.increaseCacheMisses(1);
@@ -34,7 +34,7 @@
     return obj;
   }
  catch (  Throwable error) {
-    onReplaceError(key,null,value,expiryPolicy,caller,false,record,isExpired,replaced,error);
+    onRemoveError(key,null,caller,false,record,removed,error);
     throw ExceptionUtil.rethrow(error);
   }
 }
