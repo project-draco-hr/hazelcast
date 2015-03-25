@@ -1,39 +1,12 @@
 {
   for (  Node node : new IterableNodeList(docElement.getChildNodes())) {
     final String nodeName=cleanNodeName(node.getNodeName());
-    if ("security".equals(nodeName)) {
-      handleSecurity(node);
+    if (occurrenceSet.contains(nodeName)) {
+      throw new InvalidConfigurationException("Duplicate '" + nodeName + "' definition found in XML configuration. ");
     }
- else     if ("proxy-factories".equals(nodeName)) {
-      handleProxyFactories(node);
-    }
- else     if ("properties".equals(nodeName)) {
-      fillProperties(node,clientConfig.getProperties());
-    }
- else     if ("serialization".equals(nodeName)) {
-      handleSerialization(node);
-    }
- else     if ("native-memory".equals(nodeName)) {
-      fillNativeMemoryConfig(node,clientConfig.getNativeMemoryConfig());
-    }
- else     if ("group".equals(nodeName)) {
-      handleGroup(node);
-    }
- else     if ("listeners".equals(nodeName)) {
-      handleListeners(node);
-    }
- else     if ("network".equals(nodeName)) {
-      handleNetwork(node);
-    }
- else     if ("load-balancer".equals(nodeName)) {
-      handleLoadBalancer(node);
-    }
- else     if ("near-cache".equals(nodeName)) {
-      handleNearCache(node);
-    }
- else     if ("executor-pool-size".equals(nodeName)) {
-      final int poolSize=Integer.parseInt(getTextContent(node));
-      clientConfig.setExecutorPoolSize(poolSize);
+    handleXmlNode(node,nodeName);
+    if (!canOccurMultipleTimes(nodeName)) {
+      occurrenceSet.add(nodeName);
     }
   }
 }
