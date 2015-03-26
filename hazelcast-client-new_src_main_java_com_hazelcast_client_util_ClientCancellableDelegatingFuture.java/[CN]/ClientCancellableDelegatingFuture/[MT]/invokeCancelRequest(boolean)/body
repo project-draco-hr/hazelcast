@@ -1,17 +1,15 @@
 {
-  CancellationRequest request;
-  Address address=getTargetAddress();
-  if (address != null) {
-    request=new CancellationRequest(uuid,address,mayInterruptIfRunning);
+  ClientInvocation clientInvocation;
+  final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)context.getHazelcastInstance();
+  if (target != null) {
+    CancellationRequest request=new CancellationRequest(uuid,target,mayInterruptIfRunning);
+    clientInvocation=new ClientInvocation(client,request,target);
   }
  else {
-    final ClientPartitionService partitionService=context.getPartitionService();
-    address=partitionService.getPartitionOwner(partitionId);
-    request=new CancellationRequest(uuid,partitionId,mayInterruptIfRunning);
+    ClientRequest request=new CancellationRequest(uuid,partitionId,mayInterruptIfRunning);
+    clientInvocation=new ClientInvocation(client,request,partitionId);
   }
-  final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)context.getHazelcastInstance();
   try {
-    final ClientInvocation clientInvocation=new ClientInvocation(client,request,address);
     return clientInvocation.invoke();
   }
  catch (  Exception e) {
