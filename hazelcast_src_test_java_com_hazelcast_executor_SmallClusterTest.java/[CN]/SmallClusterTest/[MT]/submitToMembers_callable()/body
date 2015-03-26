@@ -1,0 +1,20 @@
+{
+  int sum=0;
+  final Set<Member> membersSet=instances[0].getCluster().getMembers();
+  final Member[] members=membersSet.toArray(new Member[membersSet.size()]);
+  final Random random=new Random();
+  final String name="testSubmitToMembersCallable";
+  for (  HazelcastInstance instance : instances) {
+    final IExecutorService service=instance.getExecutorService(name);
+    final String script="hazelcast.getAtomicLong('" + name + "').incrementAndGet();";
+    final int n=random.nextInt(instances.length) + 1;
+    sum+=n;
+    Member[] m=new Member[n];
+    System.arraycopy(members,0,m,0,n);
+    service.submitToMembers(new ScriptCallable(script,null),Arrays.asList(m),multiCallback);
+  }
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  final IAtomicLong result=instances[0].getAtomicLong(name);
+  assertEquals(sum,result.get());
+  assertEquals(sum,count.get());
+}

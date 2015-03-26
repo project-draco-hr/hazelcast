@@ -1,0 +1,12 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  Config config=new Config();
+  int timeoutSeconds=3;
+  config.setProperty(PROP_OPERATION_CALL_TIMEOUT_MILLIS,String.valueOf(SECONDS.toMillis(timeoutSeconds)));
+  HazelcastInstance hz1=factory.newHazelcastInstance(config);
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  IExecutorService executor=hz1.getExecutorService(randomString());
+  Future<Boolean> f=executor.submitToMember(new SleepingTask(3 * timeoutSeconds),hz2.getCluster().getLocalMember());
+  Boolean result=f.get(1,MINUTES);
+  assertTrue(result);
+}
