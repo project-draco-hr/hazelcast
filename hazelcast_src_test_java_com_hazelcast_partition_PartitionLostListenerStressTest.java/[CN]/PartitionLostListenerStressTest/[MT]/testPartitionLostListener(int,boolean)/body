@@ -1,0 +1,20 @@
+{
+  final List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp();
+  List<HazelcastInstance> survivingInstances=new ArrayList<HazelcastInstance>(instances);
+  final List<HazelcastInstance> terminatingInstances=survivingInstances.subList(0,numberOfNodesToCrash);
+  survivingInstances=survivingInstances.subList(numberOfNodesToCrash,instances.size());
+  if (withData) {
+    populateMaps(survivingInstances.get(0));
+  }
+  final String log="Surviving: " + survivingInstances + " Terminating: "+ terminatingInstances;
+  final EventCollectingPartitionLostListener listener=registerPartitionLostListener(survivingInstances.get(0));
+  final Map<Integer,Integer> survivingPartitions=getMinReplicaIndicesByPartitionId(survivingInstances);
+  terminateInstances(terminatingInstances);
+  waitAllForSafeState(survivingInstances);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertLostPartitions(log,listener,survivingPartitions);
+    }
+  }
+);
+}

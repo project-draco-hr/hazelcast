@@ -1,0 +1,19 @@
+{
+  final List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp(1);
+  final HazelcastInstance instance=instances.get(0);
+  final EventCollectingPartitionLostListener listener=new EventCollectingPartitionLostListener();
+  instance.getPartitionService().addPartitionLostListener(listener);
+  final InternalPartitionLostEvent internalEvent=new InternalPartitionLostEvent(1,0,null);
+  final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getNode(instance).getNodeEngine().getPartitionService();
+  partitionService.onPartitionLost(internalEvent);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final List<PartitionLostEvent> events=listener.getEvents();
+      assertEquals(1,events.size());
+      final PartitionLostEvent event=events.get(0);
+      assertEquals(internalEvent.getPartitionId(),event.getPartitionId());
+      assertEquals(internalEvent.getLostReplicaIndex(),event.getLostBackupCount());
+    }
+  }
+);
+}

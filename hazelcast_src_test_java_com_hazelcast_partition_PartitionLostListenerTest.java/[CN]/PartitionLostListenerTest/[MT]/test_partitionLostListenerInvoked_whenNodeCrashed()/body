@@ -1,0 +1,29 @@
+{
+  final List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp();
+  final HazelcastInstance survivingInstance=instances.get(0);
+  final HazelcastInstance terminatingInstance=instances.get(1);
+  final EventCollectingPartitionLostListener listener=new EventCollectingPartitionLostListener();
+  survivingInstance.getPartitionService().addPartitionLostListener(listener);
+  final Set<Integer> survivingPartitionIds=new HashSet<Integer>();
+  final Node survivingNode=getNode(survivingInstance);
+  final Address survivingAddress=survivingNode.getThisAddress();
+  for (  InternalPartition partition : survivingNode.getPartitionService().getPartitions()) {
+    if (survivingAddress.equals(partition.getReplicaAddress(0))) {
+      survivingPartitionIds.add(partition.getPartitionId());
+    }
+  }
+  terminatingInstance.getLifecycleService().terminate();
+  waitAllForSafeState(survivingInstance);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final List<PartitionLostEvent> events=listener.getEvents();
+      assertFalse(events.isEmpty());
+      for (      PartitionLostEvent event : events) {
+        assertEquals(survivingAddress,event.getEventSource());
+        assertFalse(survivingPartitionIds.contains(event.getPartitionId()));
+        assertEquals(0,event.getLostBackupCount());
+      }
+    }
+  }
+);
+}
