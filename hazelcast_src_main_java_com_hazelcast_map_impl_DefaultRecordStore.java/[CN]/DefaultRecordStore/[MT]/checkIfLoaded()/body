@@ -1,14 +1,14 @@
 {
-  Throwable throwable=null;
-  final RecordStoreLoader recordStoreLoader=this.recordStoreLoader;
-  final Throwable exception=recordStoreLoader.getExceptionOrNull();
-  if (exception == null && !recordStoreLoader.isLoaded()) {
-    throwable=new RetryableHazelcastException("Map " + getName() + " is still loading data from external store");
+  if (isLoaded()) {
+    try {
+      FutureUtil.checkAllDone(loadingFutures);
+      loadingFutures.clear();
+    }
+ catch (    Exception e) {
+      ExceptionUtil.rethrow(e);
+    }
   }
- else   if (exception != null) {
-    throwable=exception;
-  }
-  if (throwable != null) {
-    throw ExceptionUtil.rethrow(throwable);
+ else {
+    throw new RetryableHazelcastException("Map " + getName() + " is still loading data from external store");
   }
 }

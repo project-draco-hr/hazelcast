@@ -1,0 +1,46 @@
+{
+  final String mapName="testOneMemberWriteBehindWithEvictions";
+  final TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  testMapStore.loadAllLatch=new CountDownLatch(1);
+  final Config config=newConfig(testMapStore,2,InitialLoadMode.EAGER);
+  final HazelcastInstance node1=createHazelcastInstance(config);
+  final IMap map=node1.getMap(mapName);
+  assertTrue("map store loadAllKeys must be called",testMapStore.loadAllLatch.await(10,TimeUnit.SECONDS));
+  final int populationCount=100;
+  testMapStore.storeLatch=new CountDownLatch(populationCount);
+  for (int i=0; i < populationCount; i++) {
+    map.put(i,"value" + i);
+  }
+  assertOpenEventually(testMapStore.storeLatch);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,writeBehindQueueSize(node1,mapName));
+    }
+  }
+);
+  testMapStore.storeLatch=new CountDownLatch(populationCount);
+  for (int i=0; i < populationCount; i++) {
+    map.evict(i);
+  }
+  assertEquals(populationCount,testMapStore.storeLatch.getCount());
+  assertEquals(populationCount,testMapStore.getStore().size());
+  assertEquals(0,map.size());
+  for (int i=0; i < populationCount; i++) {
+    map.put(i,"value" + i);
+  }
+  for (int i=0; i < populationCount; i++) {
+    map.evict(i);
+  }
+  testMapStore.storeLatch.await(10,TimeUnit.SECONDS);
+  assertEquals(populationCount,testMapStore.getStore().size());
+  assertEquals(0,map.size());
+  for (int i=0; i < populationCount; i++) {
+    map.put(i,"value" + i);
+  }
+  testMapStore.deleteLatch=new CountDownLatch(populationCount);
+  for (int i=0; i < populationCount; i++) {
+    map.remove(i);
+  }
+  testMapStore.deleteLatch.await(10,TimeUnit.SECONDS);
+  assertEquals(0,map.size());
+}

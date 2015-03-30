@@ -1,0 +1,19 @@
+{
+  int items=1000;
+  TestMapStore testMapStore=new TestMapStore(items,0,0);
+  Config config=newConfig(testMapStore,0);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance(config);
+  IMap map1=h1.getMap("default");
+  IMap map2=h2.getMap("default");
+  for (int i=0; i < items; i++) {
+    map1.put(i,"value" + i);
+  }
+  assertTrue("store operations could not be done wisely ",testMapStore.latchStore.await(30,TimeUnit.SECONDS));
+  assertEquals(items,testMapStore.getStore().size());
+  assertEquals(items,map1.size());
+  assertEquals(items,map2.size());
+  testMapStore.assertAwait(10);
+  assertEquals(items * 2 + 1,testMapStore.callCount.get());
+}

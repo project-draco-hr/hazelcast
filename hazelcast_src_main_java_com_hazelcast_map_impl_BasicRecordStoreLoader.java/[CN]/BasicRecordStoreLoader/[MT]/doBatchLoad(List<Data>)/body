@@ -2,6 +2,7 @@
   final Queue<List<Data>> batchChunks=createBatchChunks(keys);
   final int size=batchChunks.size();
   final AtomicInteger finishedBatchCounter=new AtomicInteger(size);
+  List<Future> futures=new ArrayList<Future>();
   while (!batchChunks.isEmpty()) {
     final List<Data> chunk=batchChunks.poll();
     final List<Data> keyValueSequence=loadAndGet(chunk);
@@ -11,6 +12,7 @@
       }
       continue;
     }
-    sendOperation(keyValueSequence,finishedBatchCounter);
+    futures.add(sendOperation(keyValueSequence,finishedBatchCounter));
   }
+  return futures;
 }

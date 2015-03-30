@@ -1,0 +1,17 @@
+{
+  Iterator<Object> keys=allKeys.iterator();
+  Iterator<Data> dataKeys=map(keys,toData);
+  if (maxSize > 0) {
+    dataKeys=limit(dataKeys,maxSize);
+  }
+  Iterator<Entry<Integer,Data>> partitionsAndKeys=map(dataKeys,toPartition());
+  Iterator<Map<Integer,List<Data>>> batches=toBatches(partitionsAndKeys,maxBatch);
+  while (batches.hasNext()) {
+    Map<Integer,List<Data>> batch=batches.next();
+    sendBatch(batch,replaceExistingValues);
+  }
+  sendLoadCompleted(partitionService.getPartitionCount(),replaceExistingValues);
+  if (keys instanceof Closeable) {
+    closeResource((Closeable)keys);
+  }
+}

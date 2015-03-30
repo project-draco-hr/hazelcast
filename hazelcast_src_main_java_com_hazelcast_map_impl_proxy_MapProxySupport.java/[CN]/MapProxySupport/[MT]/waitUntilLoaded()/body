@@ -1,31 +1,14 @@
 {
   final NodeEngine nodeEngine=getNodeEngine();
   try {
-    Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new PartitionCheckIfLoadedOperationFactory(name));
-    Iterator<Entry<Integer,Object>> iterator=results.entrySet().iterator();
-    boolean isFinished=false;
-    final Set<Integer> retrySet=new HashSet<Integer>();
-    while (!isFinished) {
-      while (iterator.hasNext()) {
-        final Entry<Integer,Object> entry=iterator.next();
-        if (Boolean.TRUE.equals(entry.getValue())) {
-          iterator.remove();
-        }
- else {
-          retrySet.add(entry.getKey());
-        }
-      }
-      if (retrySet.size() > 0) {
-        results=retryPartitions(retrySet);
-        iterator=results.entrySet().iterator();
-        final int oneSecond=1000;
-        Thread.sleep(oneSecond);
-        retrySet.clear();
-      }
- else {
-        isFinished=true;
-      }
-    }
+    OperationService operationService=nodeEngine.getOperationService();
+    OperationFactory opFactory=new PartitionCheckIfLoadedOperationFactory(name);
+    Map<Integer,Object> results;
+    Collection<Integer> mapNamePartition=getPartitionsForKeys(singleton(toData(name)));
+    results=operationService.invokeOnPartitions(SERVICE_NAME,opFactory,mapNamePartition);
+    waitAllTrue(results);
+    results=operationService.invokeOnAllPartitions(SERVICE_NAME,opFactory);
+    waitAllTrue(results);
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
