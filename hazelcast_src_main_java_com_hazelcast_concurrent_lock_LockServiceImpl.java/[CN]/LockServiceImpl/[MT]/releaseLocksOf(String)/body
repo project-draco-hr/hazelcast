@@ -1,7 +1,16 @@
 {
-  for (  LockStoreContainer container : containers) {
-    for (    LockStoreImpl lockStore : container.getLockStores()) {
-      releaseLock(uuid,container,lockStore);
+  final InternalOperationService operationService=(InternalOperationService)nodeEngine.getOperationService();
+  for (  final LockStoreContainer container : containers) {
+    operationService.execute(new PartitionSpecificRunnable(){
+      @Override public void run(){
+        for (        LockStoreImpl lockStore : container.getLockStores()) {
+          releaseLock(operationService,uuid,container.getPartitionId(),lockStore);
+        }
+      }
+      @Override public int getPartitionId(){
+        return container.getPartitionId();
+      }
     }
+);
   }
 }
