@@ -1,0 +1,19 @@
+{
+  final String CACHE_NAME="myCache";
+  Config config=new Config();
+  CacheSimpleConfig cacheConfig=new CacheSimpleConfig().setName(CACHE_NAME);
+  config.addCacheConfig(cacheConfig);
+  HazelcastInstance server1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance server2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  HazelcastClientCachingProvider cachingProvider=HazelcastClientCachingProvider.createCachingProvider(client);
+  CacheManager cacheManager=cachingProvider.getCacheManager();
+  Cache<String,String> cache=cacheManager.getCache(CACHE_NAME);
+  assertNotNull(cache);
+  for (int i=0; i < 10; i++) {
+    cache.put(String.valueOf(i),String.valueOf(i));
+  }
+  client.shutdown();
+  server1.shutdown();
+  server2.shutdown();
+}
