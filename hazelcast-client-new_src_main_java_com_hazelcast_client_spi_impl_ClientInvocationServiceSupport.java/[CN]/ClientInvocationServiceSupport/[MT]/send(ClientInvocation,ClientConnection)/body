@@ -3,11 +3,8 @@
     throw new HazelcastClientNotActiveException("Client is shut down");
   }
   registerInvocation(invocation);
-  final SerializationService ss=client.getSerializationService();
-  final Data data=ss.toData(invocation.getClientMessage());
-  Packet packet=new Packet(data,invocation.getPartitionId());
-  if (!isAllowedToSendRequest(connection,invocation.getClientMessage()) || !connection.write(packet)) {
-    final int callId=invocation.getClientMessage().correlationId();
+  if (!isAllowedToSendRequest(connection,invocation.getClientMessage()) || !connection.write(invocation.getClientMessage())) {
+    final int callId=invocation.getClientMessage().getCorrelationId();
     deRegisterCallId(callId);
     deRegisterEventHandler(callId);
     throw new IOException("Packet not send to " + connection.getRemoteEndpoint());
