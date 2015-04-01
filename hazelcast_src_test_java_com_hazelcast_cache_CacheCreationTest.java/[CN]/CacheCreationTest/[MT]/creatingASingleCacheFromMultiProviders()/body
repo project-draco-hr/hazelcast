@@ -1,8 +1,8 @@
 {
-  ExecutorService execSer=Executors.newFixedThreadPool(THREAD_COUNT);
+  ExecutorService executorService=Executors.newFixedThreadPool(THREAD_COUNT);
   final CountDownLatch latch=new CountDownLatch(THREAD_COUNT);
   for (int i=0; i < THREAD_COUNT; i++) {
-    execSer.execute(new Runnable(){
+    executorService.execute(new Runnable(){
       @Override public void run(){
         HazelcastServerCachingProvider cachingProvider=createCachingProvider(hzConfig);
         Cache<Object,Object> cache=cachingProvider.getCacheManager().getCache("xmlCache");
@@ -13,7 +13,5 @@
 );
   }
   HazelcastTestSupport.assertOpenEventually(latch);
-  if (!execSer.awaitTermination(3,TimeUnit.SECONDS)) {
-    execSer.shutdown();
-  }
+  executorService.shutdown();
 }
