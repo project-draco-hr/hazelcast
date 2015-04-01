@@ -1,0 +1,38 @@
+{
+  message.accumulate(buffer);
+  if (!message.isComplete()) {
+    return;
+  }
+  final byte flags=(byte)message.getFlags();
+  if ((flags & BEGIN_AND_END_FLAGS) == BEGIN_AND_END_FLAGS) {
+    ClientMessage cm=new ClientMessage();
+    cm.wrapForDecode(cm.buffer().byteBuffer(),0);
+    handleMessage(cm);
+    message=new ClientMessageAccumulator();
+  }
+ else {
+    if ((flags & BEGIN_FLAG) == BEGIN_FLAG) {
+      final BufferBuilder builder=builderBySessionIdMap.getOrDefault(message.getCorrelationId(),new Int2ObjectHashMap.Supplier<BufferBuilder>(){
+        @Override public BufferBuilder get(){
+          return new BufferBuilder();
+        }
+      }
+);
+      builder.reset().append(message.buffer(),0,message.getFrameLength());
+    }
+ else {
+      final BufferBuilder builder=builderBySessionIdMap.get(message.getCorrelationId());
+      if (null != builder && builder.limit() != 0) {
+        builder.append(message.buffer(),message.getDataOffset(),message.getFrameLength() - message.getDataOffset());
+        if ((flags & END_FLAG) == END_FLAG) {
+          final int msgLength=builder.limit();
+          ClientMessage cm=new ClientMessage();
+          cm.wrapForDecode(ByteBuffer.wrap(builder.buffer().byteArray()),0);
+          cm.setFrameLength(msgLength);
+          handleMessage(cm);
+          builder.reset().compact();
+        }
+      }
+    }
+  }
+}
