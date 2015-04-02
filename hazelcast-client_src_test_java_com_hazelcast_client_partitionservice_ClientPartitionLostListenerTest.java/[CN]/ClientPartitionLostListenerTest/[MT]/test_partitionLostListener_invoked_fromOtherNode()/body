@@ -1,0 +1,13 @@
+{
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance(null);
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance(null);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final EventCollectingPartitionLostListener listener=new EventCollectingPartitionLostListener();
+  client.getPartitionService().addPartitionLostListener(listener);
+  assertRegistrationsSizeEventually(instance1,1);
+  assertRegistrationsSizeEventually(instance2,1);
+  final InternalPartitionServiceImpl partitionService=getNode(instance2).getNodeEngine().getService(SERVICE_NAME);
+  final int partitionId=5;
+  partitionService.onPartitionLost(new InternalPartitionLostEvent(partitionId,0,null));
+  assertPartitionLostEventEventually(listener,partitionId);
+}
