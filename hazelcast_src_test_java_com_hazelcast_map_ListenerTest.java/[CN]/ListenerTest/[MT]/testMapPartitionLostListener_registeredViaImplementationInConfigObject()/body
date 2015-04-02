@@ -1,0 +1,19 @@
+{
+  final String mapName="map";
+  final Config config=new Config();
+  final MapConfig mapConfig=config.getMapConfig(mapName);
+  final int backupCount=0;
+  final MapPartitionLostListener listener=mock(MapPartitionLostListener.class);
+  mapConfig.addMapPartitionLostListenerConfig(new MapPartitionLostListenerConfig(listener));
+  mapConfig.setBackupCount(backupCount);
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  instance.getMap(mapName);
+  final EventService eventService=getNode(instance).getNodeEngine().getEventService();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final Collection<EventRegistration> registrations=eventService.getRegistrations(MapService.SERVICE_NAME,mapName);
+      assertFalse(registrations.isEmpty());
+    }
+  }
+);
+}
