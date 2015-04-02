@@ -1,0 +1,31 @@
+{
+  final ByteBuffer initData=ByteBuffer.wrap("CB2JVM".getBytes());
+  channel.write(initData);
+  String username=GroupConfig.DEFAULT_GROUP_NAME;
+  String pass=GroupConfig.DEFAULT_GROUP_PASSWORD;
+  final ClientMessage parameters=AuthenticationParameters.encode(username,pass,"","",true);
+  parameters.setCorrelationId(1).setFlags(ClientMessage.BEGIN_AND_END_FLAGS);
+  final ByteBuffer byteBuffer=parameters.buffer().byteBuffer();
+  channel.write(byteBuffer);
+  final ByteBuffer socketBuffer=ByteBuffer.allocate(4096);
+  ClientMessageAccumulator cma=new ClientMessageAccumulator();
+  do {
+    channel.read(socketBuffer);
+    socketBuffer.flip();
+    cma.accumulate(socketBuffer);
+    if (socketBuffer.hasRemaining()) {
+      socketBuffer.compact();
+    }
+ else {
+      socketBuffer.clear();
+    }
+  }
+ while (!cma.isComplete());
+  assertTrue(cma.isComplete());
+  ClientMessage cmResult=ClientMessage.createForDecode(cma.accumulatedByteBuffer(),0);
+  final AuthenticationResultParameters resultParameters=AuthenticationResultParameters.decode(cmResult);
+  assertEquals(resultParameters.ownerUuid,server.getCluster().getLocalMember().getUuid());
+  assertNotNull(UUID.fromString(resultParameters.uuid));
+  assertEquals(resultParameters.host,"127.0.0.1");
+  assertEquals(resultParameters.port,5701);
+}

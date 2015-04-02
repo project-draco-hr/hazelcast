@@ -1,4 +1,12 @@
 {
-  Object result=call();
-  endpoint.sendResponse(result,parameters.getCorrelationId());
+  try {
+    final ClientMessage result=call();
+    endpoint.sendClientMessage(result);
+  }
+ catch (  Exception e) {
+    clientEngine.getLogger(getClass()).warning(e);
+    final ClientMessage exceptionMessage=createExceptionMessage(e);
+    exceptionMessage.setCorrelationId(clientMessage.getCorrelationId());
+    endpoint.sendClientMessage(exceptionMessage);
+  }
 }
