@@ -14,16 +14,23 @@
       }
     }
   }
-  final BeanDefinitionBuilder builder;
-  if ("DISTRIBUTED".equals(mode)) {
-    builder=BeanDefinitionBuilder.rootBeanDefinition(HazelcastCacheRegionFactory.class);
-  }
- else   if ("LOCAL".equals(mode)) {
-    builder=BeanDefinitionBuilder.rootBeanDefinition(HazelcastLocalCacheRegionFactory.class);
-  }
+  Class clz=null;
+  ClassLoader classLoader=Thread.currentThread().getContextClassLoader();
+  try {
+    if ("DISTRIBUTED".equals(mode)) {
+      clz=ClassLoaderUtil.loadClass(classLoader,CACHE_REGION_FACTORY);
+    }
+ else     if ("LOCAL".equals(mode)) {
+      clz=ClassLoaderUtil.loadClass(classLoader,LOCAL_CACHE_REGION_FACTORY);
+    }
  else {
-    throw new IllegalArgumentException("Unknown Hibernate L2 cache mode: " + mode);
+      throw new IllegalArgumentException("Unknown Hibernate L2 cache mode: " + mode);
+    }
   }
+ catch (  ClassNotFoundException e) {
+    ExceptionUtil.sneakyThrow(e);
+  }
+  BeanDefinitionBuilder builder=BeanDefinitionBuilder.rootBeanDefinition(clz);
   builder.addConstructorArgReference(instanceRefName);
   return builder.getBeanDefinition();
 }
