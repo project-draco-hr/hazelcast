@@ -8,11 +8,11 @@
   final ByteBuffer byteBuffer=parameters.buffer().byteBuffer();
   channel.write(byteBuffer);
   final ByteBuffer socketBuffer=ByteBuffer.allocate(4096);
-  ClientMessageAccumulator cma=new ClientMessageAccumulator();
+  ClientMessage clientMessage=ClientMessage.create();
   do {
     channel.read(socketBuffer);
     socketBuffer.flip();
-    cma.accumulate(socketBuffer);
+    clientMessage.readFrom(socketBuffer);
     if (socketBuffer.hasRemaining()) {
       socketBuffer.compact();
     }
@@ -20,10 +20,11 @@
       socketBuffer.clear();
     }
   }
- while (!cma.isComplete());
-  assertTrue(cma.isComplete());
-  ClientMessage cmResult=ClientMessage.createForDecode(cma.accumulatedByteBuffer(),0);
+ while (!clientMessage.isComplete());
+  assertTrue(clientMessage.isComplete());
+  ClientMessage cmResult=ClientMessage.createForDecode(clientMessage.buffer().byteBuffer(),0);
   final AuthenticationResultParameters resultParameters=AuthenticationResultParameters.decode(cmResult);
+  assertEquals(cmResult.getCorrelationId(),1);
   assertEquals(resultParameters.ownerUuid,server.getCluster().getLocalMember().getUuid());
   assertNotNull(UUID.fromString(resultParameters.uuid));
   assertEquals(resultParameters.host,"127.0.0.1");
