@@ -7,13 +7,13 @@
   Address caller=connection.getEndPoint();
   Data data=packet.getData();
   try {
-    Object object=operationService.nodeEngine.toObject(data);
+    Object object=nodeEngine.toObject(data);
     Operation op=(Operation)object;
-    op.setNodeEngine(operationService.nodeEngine);
+    op.setNodeEngine(nodeEngine);
     setCallerAddress(op,caller);
     setConnection(op,connection);
     setCallerUuidIfNotSet(caller,op);
-    setRemoteResponseHandler(operationService.nodeEngine,op);
+    setRemoteResponseHandler(nodeEngine,op);
     if (!ensureValidMember(op)) {
       return;
     }
@@ -23,7 +23,7 @@
     run(op);
   }
  catch (  Throwable throwable) {
-    long callId=IOUtil.extractOperationCallId(data,operationService.node.getSerializationService());
+    long callId=IOUtil.extractOperationCallId(data,node.getSerializationService());
     operationService.send(new ErrorResponse(throwable,callId,packet.isUrgent()),caller);
     logOperationDeserializationException(throwable,callId);
     throw ExceptionUtil.rethrow(throwable);

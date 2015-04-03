@@ -1,14 +1,12 @@
 {
-  message.accumulate(buffer);
-  if (!message.isComplete()) {
+  final boolean complete=message.readFrom(buffer);
+  if (!complete) {
     return;
   }
   final byte flags=(byte)message.getFlags();
   if ((flags & BEGIN_AND_END_FLAGS) == BEGIN_AND_END_FLAGS) {
-    ClientMessage cm=new ClientMessage();
-    cm.wrapForDecode(cm.buffer().byteBuffer(),0);
-    handleMessage(cm);
-    message=new ClientMessageAccumulator();
+    handleMessage(message);
+    message=ClientMessage.create();
   }
  else {
     if ((flags & BEGIN_FLAG) == BEGIN_FLAG) {
@@ -26,8 +24,7 @@
         builder.append(message.buffer(),message.getDataOffset(),message.getFrameLength() - message.getDataOffset());
         if ((flags & END_FLAG) == END_FLAG) {
           final int msgLength=builder.limit();
-          ClientMessage cm=new ClientMessage();
-          cm.wrapForDecode(ByteBuffer.wrap(builder.buffer().byteArray()),0);
+          ClientMessage cm=ClientMessage.createForDecode(ByteBuffer.wrap(builder.buffer().byteArray()),0);
           cm.setFrameLength(msgLength);
           handleMessage(cm);
           builder.reset().compact();

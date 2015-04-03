@@ -1,0 +1,31 @@
+{
+  long remainingTimeoutMs=backoffTimeoutMs;
+  boolean restoreInterrupt=false;
+  try {
+    long delayMs=1;
+    for (; ; ) {
+      long startMs=System.currentTimeMillis();
+      try {
+        Thread.sleep(delayMs);
+      }
+ catch (      InterruptedException e) {
+        restoreInterrupt=true;
+      }
+      long durationMs=System.currentTimeMillis() - startMs;
+      remainingTimeoutMs-=durationMs;
+      if (hasSpace()) {
+        return;
+      }
+      if (remainingTimeoutMs <= 0) {
+        throw new HazelcastOverloadException("Failed to get a callId for invocation: " + invocation);
+      }
+      delayMs=nextDelay(remainingTimeoutMs,delayMs);
+      remainingTimeoutMs-=delayMs;
+    }
+  }
+  finally {
+    if (restoreInterrupt) {
+      Thread.currentThread().interrupt();
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  final AtomicLong counter=new AtomicLong();
+  Operation op=new AbstractOperation(){
+    @Override public void run() throws Exception {
+      counter.incrementAndGet();
+    }
+  }
+;
+  setCallId(op,10);
+  setCallTimeout(op,clusterService.getClusterClock().getClusterTime() - 1);
+  op.setPartitionId(operationRunner.getPartitionId());
+  op.setResponseHandler(responseHandler);
+  operationRunner.run(op);
+  assertEquals(0,counter.get());
+  verify(responseHandler).sendResponse(any(CallTimeoutResponse.class));
+}

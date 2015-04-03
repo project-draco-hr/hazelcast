@@ -1,0 +1,21 @@
+{
+  final CallIdSequenceWithBackpressure sequence=new CallIdSequenceWithBackpressure(1,60000);
+  long oldLastCallId=sequence.getLastCallId();
+  final CountDownLatch nextCalledLatch=new CountDownLatch(1);
+  spawn(new Runnable(){
+    @Override public void run(){
+      Invocation invocation=newInvocation(new DummyBackupAwareOperation());
+      long callId=sequence.next(invocation);
+      setCallId(invocation.op,callId);
+      nextCalledLatch.countDown();
+      sleepSeconds(3);
+      sequence.complete(invocation);
+    }
+  }
+);
+  nextCalledLatch.await();
+  Invocation invocation=newInvocation(new DummyBackupAwareOperation());
+  long result=sequence.next(invocation);
+  assertEquals(oldLastCallId + 2,result);
+  assertEquals(oldLastCallId + 2,sequence.getLastCallId());
+}

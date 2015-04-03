@@ -1,0 +1,29 @@
+{
+  if (disabled) {
+    return false;
+  }
+  if (backupAwareOp.getAsyncBackupCount() == 0) {
+    return false;
+  }
+  Operation op=(Operation)backupAwareOp;
+  if (op.isUrgent()) {
+    return false;
+  }
+  AtomicInteger syncDelayCounter=syncDelayCounter(op);
+  for (; ; ) {
+    int prev=syncDelayCounter.get();
+    int next;
+    boolean syncForced;
+    if (prev > 0) {
+      next=prev - 1;
+      syncForced=false;
+    }
+ else {
+      next=randomSyncDelay();
+      syncForced=true;
+    }
+    if (syncDelayCounter.compareAndSet(prev,next)) {
+      return syncForced;
+    }
+  }
+}
