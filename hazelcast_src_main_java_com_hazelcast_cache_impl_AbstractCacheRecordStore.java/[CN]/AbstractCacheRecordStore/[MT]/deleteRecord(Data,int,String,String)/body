@@ -1,0 +1,29 @@
+{
+  final R record=doRemoveRecord(key,source);
+  Data dataValue=null;
+  try {
+switch (cacheConfig.getInMemoryFormat()) {
+case BINARY:
+case OBJECT:
+case NATIVE:
+      dataValue=toData(record);
+    break;
+default :
+  throw new IllegalArgumentException("Invalid storage format: " + cacheConfig.getInMemoryFormat());
+}
+Data eventDataKey=toEventData(key);
+Data eventDataValue=toEventData(dataValue);
+onDeleteRecord(key,record,dataValue,record != null);
+if (records.size() == 0) {
+hasExpiringEntry=false;
+}
+if (isEventsEnabled) {
+publishEvent(CacheEventType.REMOVED,eventDataKey,null,eventDataValue,false,completionId,CacheRecord.EXPIRATION_TIME_NOT_AVAILABLE,origin);
+}
+return record != null;
+}
+ catch (Throwable error) {
+onDeleteRecordError(key,record,dataValue,record != null,error);
+throw ExceptionUtil.rethrow(error);
+}
+}

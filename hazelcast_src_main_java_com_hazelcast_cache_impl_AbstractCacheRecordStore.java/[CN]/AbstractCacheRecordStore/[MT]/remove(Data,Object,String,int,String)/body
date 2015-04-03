@@ -16,18 +16,18 @@
       hitCount++;
       if (compare(toValue(record),toValue(value))) {
         deleteCacheEntry(key);
-        removed=deleteRecord(key,completionId,origin);
+        removed=deleteRecord(key,completionId,source,origin);
       }
  else {
         long expiryTime=onRecordAccess(key,record,defaultExpiryPolicy,now);
-        processExpiredEntry(key,record,expiryTime,now);
+        processExpiredEntry(key,record,expiryTime,now,source,origin);
         removed=false;
       }
     }
     if (!removed) {
-      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId);
+      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId,CacheRecord.EXPIRATION_TIME_NOT_AVAILABLE,origin);
     }
-    onRemove(key,value,caller,false,record,removed);
+    onRemove(key,value,source,false,record,removed);
     if (records.size() == 0) {
       hasExpiringEntry=false;
     }
@@ -35,7 +35,7 @@
     return removed;
   }
  catch (  Throwable error) {
-    onRemoveError(key,null,caller,false,record,removed,error);
+    onRemoveError(key,null,source,false,record,removed,error);
     throw ExceptionUtil.rethrow(error);
   }
 }
