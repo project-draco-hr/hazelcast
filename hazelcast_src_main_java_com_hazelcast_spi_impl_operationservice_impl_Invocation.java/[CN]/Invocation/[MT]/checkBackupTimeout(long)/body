@@ -1,23 +1,17 @@
 {
-  if (backupsExpected == backupsCompleted) {
-    return;
-  }
-  long responseReceivedMillis=this.pendingResponseReceivedMillis;
-  if (responseReceivedMillis == -1) {
-    return;
-  }
+  boolean allBackupsComplete=backupsExpected == backupsCompleted;
+  long responseReceivedMillis=pendingResponseReceivedMillis;
   long expirationTime=responseReceivedMillis + timeoutMillis;
-  boolean expired=expirationTime > 0 && expirationTime < Clock.currentTimeMillis();
-  if (!expired) {
-    return;
+  boolean timeout=expirationTime > 0 && expirationTime < Clock.currentTimeMillis();
+  boolean responseReceived=pendingResponse != null;
+  if (allBackupsComplete || !responseReceived || !timeout) {
+    return false;
   }
   boolean targetDead=nodeEngine.getClusterService().getMember(invTarget) == null;
   if (targetDead) {
     resetAndReInvoke();
-    return;
+    return false;
   }
-  Object pendingResponse=this.pendingResponse;
-  if (pendingResponse != null) {
-    invocationFuture.set(pendingResponse);
-  }
+  invocationFuture.set(pendingResponse);
+  return true;
 }
