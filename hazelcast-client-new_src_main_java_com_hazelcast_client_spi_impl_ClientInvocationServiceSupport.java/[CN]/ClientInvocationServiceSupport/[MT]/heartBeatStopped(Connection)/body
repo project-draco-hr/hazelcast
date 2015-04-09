@@ -1,6 +1,8 @@
 {
   final RemoveAllListeners request=new RemoveAllListeners();
-  new ClientInvocation(client,request,connection).invoke();
+  ClientInvocation removeListenerInvocation=new ClientInvocation(client,request,connection);
+  removeListenerInvocation.setBypassHeartbeat(true);
+  removeListenerInvocation.invoke();
   final Address remoteEndpoint=connection.getEndPoint();
   final Iterator<ClientInvocation> iterator=eventHandlerMap.values().iterator();
   final TargetDisconnectedException response=new TargetDisconnectedException(remoteEndpoint);
@@ -8,7 +10,7 @@
     final ClientInvocation clientInvocation=iterator.next();
     if (clientInvocation.getSendConnection().equals(connection)) {
       iterator.remove();
-      clientInvocation.notify(response);
+      clientInvocation.notifyException(response);
     }
   }
 }

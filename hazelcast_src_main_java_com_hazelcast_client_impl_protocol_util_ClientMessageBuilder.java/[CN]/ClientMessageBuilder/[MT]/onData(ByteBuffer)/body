@@ -3,13 +3,12 @@
   if (!complete) {
     return;
   }
-  final byte flags=(byte)message.getFlags();
-  if ((flags & BEGIN_AND_END_FLAGS) == BEGIN_AND_END_FLAGS) {
+  if (message.isFlagSet(BEGIN_AND_END_FLAGS)) {
     handleMessage(message);
     message=ClientMessage.create();
   }
  else {
-    if ((flags & BEGIN_FLAG) == BEGIN_FLAG) {
+    if (message.isFlagSet(BEGIN_FLAG)) {
       final BufferBuilder builder=builderBySessionIdMap.getOrDefault(message.getCorrelationId(),new Int2ObjectHashMap.Supplier<BufferBuilder>(){
         @Override public BufferBuilder get(){
           return new BufferBuilder();
@@ -22,7 +21,7 @@
       final BufferBuilder builder=builderBySessionIdMap.get(message.getCorrelationId());
       if (null != builder && builder.limit() != 0) {
         builder.append(message.buffer(),message.getDataOffset(),message.getFrameLength() - message.getDataOffset());
-        if ((flags & END_FLAG) == END_FLAG) {
+        if (message.isFlagSet(END_FLAG)) {
           final int msgLength=builder.limit();
           ClientMessage cm=ClientMessage.createForDecode(ByteBuffer.wrap(builder.buffer().byteArray()),0);
           cm.setFrameLength(msgLength);
