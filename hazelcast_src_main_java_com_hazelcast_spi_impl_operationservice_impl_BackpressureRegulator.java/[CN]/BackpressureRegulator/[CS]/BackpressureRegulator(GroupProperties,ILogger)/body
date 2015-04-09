@@ -6,9 +6,9 @@
   this.syncWindow=getSyncWindow(properties);
   this.maxConcurrentInvocations=getMaxConcurrentInvocations(properties);
   this.backoffTimeoutMs=getBackoffTimeoutMs(properties);
-  this.syncDelays=new AtomicInteger[partitionCount + 1];
-  for (int k=0; k < syncDelays.length; k++) {
-    syncDelays[k]=new AtomicInteger(randomSyncDelay());
+  this.syncDelays=new int[INTS_PER_CACHE_LINE * partitionCount];
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    syncDelays[partitionId * INTS_PER_CACHE_LINE]=randomSyncDelay();
   }
   if (enabled) {
     logger.info("Backpressure is enabled" + ", maxConcurrentInvocations:" + maxConcurrentInvocations + ", syncWindow: "+ syncWindow);
