@@ -1,3 +1,13 @@
 {
-  nodeEngine.getEventService().deregisterAllListeners(AbstractCacheService.SERVICE_NAME,name);
+  final EventService eventService=getNodeEngine().getEventService();
+  final Collection<EventRegistration> registrations=eventService.getRegistrations(SERVICE_NAME,name);
+  if (registrations != null) {
+    for (    EventRegistration registration : registrations) {
+      Closeable listener=closeableListeners.remove(registration.getId());
+      if (listener != null) {
+        IOUtil.closeResource(listener);
+      }
+    }
+  }
+  eventService.deregisterAllListeners(AbstractCacheService.SERVICE_NAME,name);
 }
