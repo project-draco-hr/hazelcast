@@ -1,0 +1,15 @@
+{
+  CachingProvider provider=HazelcastServerCachingProvider.createCachingProvider(factory.newHazelcastInstance());
+  CacheManager cacheManager=provider.getCacheManager();
+  CloseableCacheWriter writer=new CloseableCacheWriter();
+  Factory<CloseableCacheWriter> writerFactory=FactoryBuilder.factoryOf(writer);
+  CompleteConfiguration<Object,Object> configuration=new CacheConfig().setCacheWriterFactory(writerFactory).setWriteThrough(true);
+  Cache<Object,Object> cache=cacheManager.createCache("test",configuration);
+  cache.get("key");
+  factory.newHazelcastInstance();
+  for (int i=0; i < 1000; i++) {
+    cache.put(i,i);
+    LockSupport.parkNanos(1000);
+  }
+  assertFalse("CacheWriter should not be closed!",writer.closed);
+}
