@@ -1,0 +1,21 @@
+{
+  if (isOwnerConnection()) {
+    final String uuid=getUuid();
+    final String localMemberUUID=clientEngine.getLocalMember().getUuid();
+    principal=new ClientPrincipal(uuid,localMemberUUID);
+    reAuthLocal();
+    Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
+    for (    MemberImpl member : members) {
+      if (!member.localMember()) {
+        ClientReAuthOperation op=new ClientReAuthOperation(uuid);
+        op.setCallerUuid(localMemberUUID);
+        nodeEngine.getOperationService().send(op,member.getAddress());
+      }
+    }
+  }
+  endpoint.authenticated(principal,credentials,isOwnerConnection());
+  endpointManager.registerEndpoint(endpoint);
+  clientEngine.bind(endpoint);
+  final Address thisAddress=clientEngine.getThisAddress();
+  return AuthenticationResultParameters.encode(thisAddress,principal.getUuid(),principal.getOwnerUuid());
+}

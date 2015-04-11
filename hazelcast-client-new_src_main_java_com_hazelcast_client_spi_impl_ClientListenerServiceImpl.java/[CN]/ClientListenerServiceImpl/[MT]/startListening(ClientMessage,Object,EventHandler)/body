@@ -1,0 +1,21 @@
+{
+  final ClientInvocationFuture future;
+  try {
+    handler.beforeListenerRegister();
+    if (key == null) {
+      future=new ClientInvocation(client,handler,clientMessage).invoke();
+    }
+ else {
+      final int partitionId=client.getClientPartitionService().getPartitionId(key);
+      future=new ClientInvocation(client,handler,clientMessage,partitionId).invoke();
+    }
+    ClientMessage responseMessage=(ClientMessage)future.get();
+    AddListenerResultParameters eventResultParameters=AddListenerResultParameters.decode(responseMessage);
+    String registrationId=eventResultParameters.registrationId;
+    registerListener(registrationId,clientMessage.getCorrelationId());
+    return registrationId;
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

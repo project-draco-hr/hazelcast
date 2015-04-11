@@ -1,0 +1,28 @@
+{
+  Hazelcast.newHazelcastInstance();
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  IMap<Object,Object> map=client.getMap(randomMapName());
+  final CountDownLatch latch=new CountDownLatch(2);
+  final String key=randomString();
+  final String value=randomString();
+  final String newValue=randomString();
+  map.addEntryListener(new EntryAddedListener(){
+    @Override public void entryAdded(    EntryEvent event){
+      if (key.equals(event.getKey()) && value.equals(event.getValue())) {
+        latch.countDown();
+      }
+    }
+  }
+,true);
+  map.addEntryListener(new EntryUpdatedListener(){
+    @Override public void entryUpdated(    EntryEvent event){
+      if (key.equals(event.getKey()) && newValue.equals(event.getValue())) {
+        latch.countDown();
+      }
+    }
+  }
+,true);
+  map.put(key,value);
+  map.put(key,newValue);
+  assertOpenEventually(latch);
+}

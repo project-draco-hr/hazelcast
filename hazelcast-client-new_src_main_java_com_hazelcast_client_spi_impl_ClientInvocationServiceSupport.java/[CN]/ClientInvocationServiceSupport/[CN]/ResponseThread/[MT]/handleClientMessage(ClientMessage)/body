@@ -1,0 +1,17 @@
+{
+  int correlationId=clientMessage.getCorrelationId();
+  final ClientInvocation future=deRegisterCallId(correlationId);
+  if (future == null) {
+    logger.warning("No call for callId: " + correlationId + ", response: "+ clientMessage);
+    return;
+  }
+  if (ClientMessageType.EXCEPTION.ordinal() == clientMessage.getMessageType()) {
+    ExceptionResultParameters exceptionResultParameters=ExceptionResultParameters.decode(clientMessage);
+    Class<?> clazz=Class.forName(exceptionResultParameters.className);
+    Throwable exception=(Throwable)clazz.newInstance();
+    future.notifyException(exception);
+  }
+ else {
+    future.notify(clientMessage);
+  }
+}

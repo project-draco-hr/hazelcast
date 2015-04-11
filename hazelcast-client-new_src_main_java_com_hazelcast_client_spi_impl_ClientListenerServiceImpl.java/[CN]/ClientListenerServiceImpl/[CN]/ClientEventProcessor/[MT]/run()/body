@@ -1,7 +1,9 @@
 {
-  final ClientConnection conn=(ClientConnection)packet.getConn();
-  final ClientResponse clientResponse=serializationService.toObject(packet.getData());
-  final int callId=clientResponse.getCallId();
-  final Data response=clientResponse.getResponse();
-  handleEvent(response,callId,conn);
+  int correlationId=clientMessage.getCorrelationId();
+  final EventHandler eventHandler=invocationService.getEventHandler(correlationId);
+  if (eventHandler == null) {
+    logger.warning("No eventHandler for callId: " + correlationId + ", event: "+ clientMessage);
+    return;
+  }
+  eventHandler.handle(clientMessage);
 }
