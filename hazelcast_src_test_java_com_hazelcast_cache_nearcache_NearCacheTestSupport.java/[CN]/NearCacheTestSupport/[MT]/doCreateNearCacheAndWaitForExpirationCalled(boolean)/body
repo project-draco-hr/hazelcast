@@ -1,0 +1,18 @@
+{
+  final ManagedNearCacheRecordStore managedNearCacheRecordStore=createManagedNearCacheRecordStore();
+  NearCacheConfig nearCacheConfig=createNearCacheConfig(DEFAULT_NEAR_CACHE_NAME,NearCacheConfig.DEFAULT_MEMORY_FORMAT);
+  if (useTTL) {
+    nearCacheConfig.setTimeToLiveSeconds(NearCache.DEFAULT_EXPIRATION_TASK_INITIAL_DELAY_IN_SECONDS - 1);
+  }
+ else {
+    nearCacheConfig.setMaxIdleSeconds(NearCache.DEFAULT_EXPIRATION_TASK_INITIAL_DELAY_IN_SECONDS - 1);
+  }
+  createNearCache(DEFAULT_NEAR_CACHE_NAME,nearCacheConfig,managedNearCacheRecordStore);
+  sleepSeconds(NearCache.DEFAULT_EXPIRATION_TASK_INITIAL_DELAY_IN_SECONDS + 1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(managedNearCacheRecordStore.doExpirationCalled);
+    }
+  }
+);
+}
