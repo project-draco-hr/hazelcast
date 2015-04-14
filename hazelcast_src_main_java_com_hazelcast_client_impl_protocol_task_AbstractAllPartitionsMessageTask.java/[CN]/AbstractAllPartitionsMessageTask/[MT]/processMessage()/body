@@ -1,0 +1,14 @@
+{
+  ClientEndpoint endpoint=getEndpoint();
+  OperationFactory operationFactory=new OperationFactoryWrapper(createOperationFactory(),endpoint.getUuid());
+  final InternalOperationService operationService=nodeEngine.getOperationService();
+  try {
+    Map<Integer,Object> map=operationService.invokeOnAllPartitions(getServiceName(),operationFactory);
+    ClientMessage result=reduce(map);
+    sendClientMessage(result);
+  }
+ catch (  Exception e) {
+    clientEngine.getLogger(getClass()).warning(e);
+    sendClientMessage(e);
+  }
+}
