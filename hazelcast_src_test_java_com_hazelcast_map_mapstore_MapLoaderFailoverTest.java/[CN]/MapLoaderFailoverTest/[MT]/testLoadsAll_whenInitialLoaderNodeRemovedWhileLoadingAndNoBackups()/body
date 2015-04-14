@@ -1,0 +1,19 @@
+{
+  PausingMapLoader<Integer,Integer> pausingLoader=new PausingMapLoader<Integer,Integer>(mapLoader,5000);
+  Config cfg=newConfig("default",LAZY,0,pausingLoader);
+  HazelcastInstance[] nodes=nodeFactory.newInstances(cfg,3);
+  HazelcastInstance hz3=nodes[2];
+  String mapName=generateKeyOwnedBy(hz3);
+  System.err.println(mapName);
+  IMap<Object,Object> map=nodes[0].getMap(mapName);
+  map.putAsync(1,2);
+  pausingLoader.awaitPause();
+  System.err.println("terminate");
+  hz3.getLifecycleService().terminate();
+  waitAllForSafeState(nodeFactory.getAllHazelcastInstances());
+  pausingLoader.resume();
+  int size=map.size();
+  assertEquals(MAP_STORE_ENTRY_COUNT,size);
+  assertTrue(mapLoader.getLoadedValueCount() >= MAP_STORE_ENTRY_COUNT);
+  assertEquals(2,mapLoader.getLoadAllKeysInvocations());
+}
