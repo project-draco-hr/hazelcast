@@ -1,0 +1,22 @@
+{
+  return new ItemListener(){
+    @Override public void itemAdded(    ItemEvent item){
+      send(item);
+    }
+    @Override public void itemRemoved(    ItemEvent item){
+      send(item);
+    }
+    private void send(    ItemEvent event){
+      if (endpoint.isAlive()) {
+        if (!(event instanceof DataAwareItemEvent)) {
+          throw new IllegalArgumentException("Expecting: DataAwareItemEvent, Found: " + event.getClass().getSimpleName());
+        }
+        DataAwareItemEvent dataAwareItemEvent=(DataAwareItemEvent)event;
+        Data item=dataAwareItemEvent.getItemData();
+        PortableItemEvent portableItemEvent=new PortableItemEvent(item,event.getEventType(),event.getMember().getUuid());
+        endpoint.sendEvent(partitionKey,portableItemEvent,clientMessage.getCorrelationId());
+      }
+    }
+  }
+;
+}
