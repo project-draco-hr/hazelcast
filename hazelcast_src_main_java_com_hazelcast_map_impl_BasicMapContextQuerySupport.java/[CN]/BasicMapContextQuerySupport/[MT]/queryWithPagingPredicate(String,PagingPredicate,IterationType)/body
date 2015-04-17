@@ -1,11 +1,10 @@
 {
   pagingPredicate.setIterationType(iterationType);
   setPreviousPagesAnchors(mapName,pagingPredicate,iterationType);
-  NodeEngine nodeEngine=this.nodeEngine;
   Set result=new SortedQueryResultSet(pagingPredicate.getComparator(),iterationType,pagingPredicate.getPageSize());
-  Set<Integer> partitionIds=getAllPartitionIds(nodeEngine);
+  Set<Integer> partitionIds=getAllPartitionIds();
   try {
-    List<Future> futures=queryOnMembers(mapName,pagingPredicate,nodeEngine);
+    List<Future<QueryResult>> futures=queryOnMembers(mapName,pagingPredicate);
     addResultsOfPagingPredicate(futures,result,partitionIds);
     if (partitionIds.isEmpty()) {
       PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,((SortedQueryResultSet)result).last());
@@ -13,10 +12,10 @@
     }
   }
  catch (  Throwable t) {
-    nodeEngine.getLogger(getClass()).warning("Could not get results",t);
+    getLogger().warning("Could not get results",t);
   }
   try {
-    List<Future> futures=queryOnPartitions(mapName,pagingPredicate,nodeEngine,partitionIds);
+    List<Future<QueryResult>> futures=queryOnPartitions(mapName,pagingPredicate,partitionIds);
     addResultsOfPagingPredicate(futures,result,partitionIds);
   }
  catch (  Throwable t) {
