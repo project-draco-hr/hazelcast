@@ -1,0 +1,35 @@
+{
+  MapReduceService mapReduceService=getService(MapReduceService.SERVICE_NAME);
+  JobTrackerConfig config=((AbstractJobTracker)jobTracker).getJobTrackerConfig();
+  boolean communicateStats=config.isCommunicateStats();
+  int chunkSize=getChunkSize();
+  if (chunkSize == -1) {
+    chunkSize=config.getChunkSize();
+  }
+  String topologyChangedStrategyStr=getTopologyChangedStrategy();
+  TopologyChangedStrategy topologyChangedStrategy=null;
+  if (topologyChangedStrategyStr.equals("null")) {
+    topologyChangedStrategy=config.getTopologyChangedStrategy();
+  }
+ else {
+    topologyChangedStrategy=TopologyChangedStrategy.valueOf(topologyChangedStrategyStr.toUpperCase(Locale.ENGLISH));
+  }
+  ClusterService cs=nodeEngine.getClusterService();
+  Collection<MemberImpl> members=cs.getMemberList();
+  String name=getDistributedObjectName();
+  String jobId=getJobId();
+  KeyValueSource keyValueSource=getKeyValueSource();
+  Mapper mapper=getMapper();
+  CombinerFactory combinerFactory=getCombinerFactory();
+  ReducerFactory reducerFactory=getReducerFactory();
+  Collection keys=getKeys();
+  KeyPredicate predicate=getPredicate();
+  for (  MemberImpl member : members) {
+    Operation operation=new KeyValueJobOperation(name,jobId,chunkSize,keyValueSource,mapper,combinerFactory,reducerFactory,communicateStats,topologyChangedStrategy);
+    executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
+  }
+  for (  MemberImpl member : members) {
+    Operation operation=new StartProcessingJobOperation(name,jobId,keys,predicate);
+    executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
+  }
+}

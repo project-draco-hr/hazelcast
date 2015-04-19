@@ -1,0 +1,11 @@
+{
+  MapReduceService mapReduceService=getService(MapReduceService.SERVICE_NAME);
+  Address jobOwner=mapReduceService.getLocalAddress();
+  mapReduceService.registerJobSupervisorCancellation(parameters.name,parameters.jobId,jobOwner);
+  JobSupervisor supervisor=mapReduceService.getJobSupervisor(parameters.name,parameters.jobId);
+  if (supervisor != null && supervisor.isOwnerNode()) {
+    Exception exception=new CancellationException("Operation was cancelled by the user");
+    supervisor.cancelAndNotify(exception);
+  }
+  return BooleanResultParameters.encode(true);
+}
