@@ -5,7 +5,25 @@
   asyncListenerRegistrations=new ConcurrentHashMap<CacheEntryListenerConfiguration,String>();
   syncListenerRegistrations=new ConcurrentHashMap<CacheEntryListenerConfiguration,String>();
   syncLocks=new ConcurrentHashMap<Integer,CountDownLatch>();
-  NearCacheConfig nearCacheConfig=cacheConfig.getNearCacheConfig();
+  NearCacheConfig clientNearCacheConfig=clientContext.getClientConfig().getNearCacheConfig(name);
+  NearCacheConfig cacheNearCacheConfig=cacheConfig.getNearCacheConfig();
+  NearCacheConfig nearCacheConfig;
+  if (clientNearCacheConfig == null) {
+    nearCacheConfig=cacheNearCacheConfig;
+  }
+ else {
+    if (cacheNearCacheConfig != null) {
+      if ("default".equals(clientNearCacheConfig.getName())) {
+        nearCacheConfig=cacheNearCacheConfig;
+      }
+ else {
+        nearCacheConfig=clientNearCacheConfig;
+      }
+    }
+ else {
+      nearCacheConfig=clientNearCacheConfig;
+    }
+  }
   if (nearCacheConfig != null) {
     cacheOnUpdate=nearCacheConfig.getLocalUpdatePolicy() == NearCacheConfig.LocalUpdatePolicy.CACHE;
     NearCacheContext nearCacheContext=new NearCacheContext(clientContext.getSerializationService(),createNearCacheExecutor(clientContext.getExecutionService()));
