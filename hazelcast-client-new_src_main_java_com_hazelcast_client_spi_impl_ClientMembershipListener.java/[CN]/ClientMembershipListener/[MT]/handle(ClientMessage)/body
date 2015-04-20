@@ -1,19 +1,17 @@
 {
-  RegisterMembershipListenerEventParameters event=RegisterMembershipListenerEventParameters.decode(clientMessage);
-  final MemberImpl member=(MemberImpl)event.member;
-  if (event.eventType == RegisterMembershipListenerEventParameters.INITIAL_MEMBERS) {
-    initialMembers(event);
+  if (clientMessage.getMessageType() == ClientMessageType.MEMBER_LIST_RESULT.id()) {
+    final MemberListResultParameters memberListResultParameters=MemberListResultParameters.decode(clientMessage);
+    initialMembers(memberListResultParameters.memberList);
     initialListFetchedLatch.countDown();
   }
- else   if (event.eventType == RegisterMembershipListenerEventParameters.MEMBER_ADDED) {
-    memberAdded(member);
-    partitionService.refreshPartitions();
+ else   if (clientMessage.getMessageType() == ClientMessageType.MEMBER_RESULT.id()) {
+    handleMember(clientMessage);
   }
- else   if (event.eventType == RegisterMembershipListenerEventParameters.MEMBER_REMOVED) {
-    memberRemoved(member);
-    partitionService.refreshPartitions();
+ else   if (clientMessage.getMessageType() == ClientMessageType.MEMBER_ATTRIBUTE_RESULT.id()) {
+    final MemberAttributeChangeResultParameters parameters=MemberAttributeChangeResultParameters.decode(clientMessage);
+    memberAttributeChanged(parameters.memberAttributeChange);
   }
- else   if (event.eventType == RegisterMembershipListenerEventParameters.MEMBER_ATTRIBUTE_CHANGED) {
-    memberAttributeChanged(event);
+ else {
+    LOGGER.warning("Unknown message type :" + clientMessage.getMessageType());
   }
 }
