@@ -1,21 +1,17 @@
 {
-  NodeEngine nodeEngine=getNodeEngine();
   MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  Collection<Integer> initialPartitions=mapService.getMapServiceContext().getOwnedPartitions();
+  InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
   int partitionStateVersion=partitionService.getPartitionStateVersion();
-  IndexService indexService=mapService.getMapServiceContext().getMapContainer(name).getIndexService();
+  Collection<Integer> initialPartitions=mapServiceContext.getOwnedPartitions();
+  IndexService indexService=mapServiceContext.getMapContainer(name).getIndexService();
   Set<QueryableEntry> entries=null;
   if (!partitionService.hasOnGoingMigrationLocal()) {
     entries=indexService.query(predicate);
   }
   result=new QueryResult();
   if (entries != null) {
-    for (    QueryableEntry entry : entries) {
-      QueryResultEntryImpl resultEntry=new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData());
-      result.add(resultEntry);
-    }
+    addQueryEntriesToResult(entries);
   }
  else {
     if (pagingPredicate != null) {
