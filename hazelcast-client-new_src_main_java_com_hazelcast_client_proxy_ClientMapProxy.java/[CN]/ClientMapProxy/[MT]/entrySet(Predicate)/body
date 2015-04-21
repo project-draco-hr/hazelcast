@@ -9,19 +9,21 @@
       pagingPredicate.nextPage();
     }
   }
-  MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.ENTRY);
-  QueryResultSet result=invoke(request);
+  ClientMessage request=MapEntriesWithPredicateParameters.encode(name,toData(predicate));
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
   Set entrySet;
   if (pagingPredicate == null) {
-    entrySet=new HashSet<Entry<K,V>>(result.size());
+    entrySet=new HashSet<Entry<K,V>>(resultParameters.keys.size());
   }
  else {
     entrySet=new SortedQueryResultSet(pagingPredicate.getComparator(),IterationType.ENTRY,pagingPredicate.getPageSize());
   }
-  for (  Object data : result) {
-    AbstractMap.SimpleImmutableEntry<Data,Data> dataEntry=(AbstractMap.SimpleImmutableEntry<Data,Data>)data;
-    K key=toObject(dataEntry.getKey());
-    V value=toObject(dataEntry.getValue());
+  for (int i=0; i < resultParameters.keys.size(); i++) {
+    Data keyData=resultParameters.keys.get(i);
+    Data valueData=resultParameters.values.get(i);
+    K key=toObject(keyData);
+    V value=toObject(valueData);
     entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));
   }
   if (pagingPredicate != null) {

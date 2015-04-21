@@ -2,10 +2,12 @@
   if (predicate instanceof PagingPredicate) {
     return valuesForPagingPredicate((PagingPredicate)predicate);
   }
-  MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.VALUE);
-  QueryResultSet result=invoke(request);
+  ClientMessage request=MapValuesWithPredicateParameters.encode(name,toData(predicate));
+  ClientMessage response=invoke(request);
+  DataCollectionResultParameters resultParameters=DataCollectionResultParameters.decode(response);
+  Collection<Data> result=resultParameters.result;
   List<V> values=new ArrayList<V>(result.size());
-  for (  Object data : result) {
+  for (  Data data : result) {
     V value=toObject(data);
     values.add(value);
   }

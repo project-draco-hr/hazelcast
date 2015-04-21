@@ -1,23 +1,24 @@
 {
   try {
-    ClientRequest request=new MapAddNearCacheEntryListenerRequest(name,false);
-    EventHandler handler=new EventHandler<PortableEntryEvent>(){
-      @Override public void handle(      PortableEntryEvent event){
-switch (event.getEventType()) {
+    ClientMessage request=MapAddNearCacheEntryListenerParameters.encode(name,false);
+    EventHandler handler=new EventHandler<ClientMessage>(){
+      @Override public void handle(      ClientMessage eventMessage){
+        AddEntryListenerEventParameters event=AddEntryListenerEventParameters.decode(eventMessage);
+        EntryEventType entryEventType=EntryEventType.getByType(event.eventType);
+switch (entryEventType) {
 case ADDED:
 case REMOVED:
 case UPDATED:
 case MERGED:
 case EVICTED:
-          final Data key=event.getKey();
-        nearCache.remove(key);
-      break;
+          nearCache.remove(event.key);
+        break;
 case CLEAR_ALL:
 case EVICT_ALL:
-    nearCache.clear();
-  break;
+      nearCache.clear();
+    break;
 default :
-throw new IllegalArgumentException("Not a known event type " + event.getEventType());
+  throw new IllegalArgumentException("Not a known event type " + entryEventType);
 }
 }
 @Override public void beforeListenerRegister(){
