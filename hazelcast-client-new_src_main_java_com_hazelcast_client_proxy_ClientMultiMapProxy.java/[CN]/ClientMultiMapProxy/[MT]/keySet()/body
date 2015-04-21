@@ -1,5 +1,12 @@
 {
-  KeySetRequest request=new KeySetRequest(name);
-  PortableCollection result=invoke(request);
-  return (Set)toObjectCollection(result);
+  ClientMessage request=MultiMapKeySetParameters.encode(name);
+  ClientMessage response=invoke(request);
+  DataCollectionResultParameters resultParameters=DataCollectionResultParameters.decode(response);
+  Collection<Data> result=resultParameters.result;
+  Set<K> keySet=new HashSet<K>(result.size());
+  for (  Data data : result) {
+    final K key=toObject(data);
+    keySet.add(key);
+  }
+  return keySet;
 }

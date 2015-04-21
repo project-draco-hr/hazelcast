@@ -1,7 +1,14 @@
 {
   checkNotNull(key,NULL_KEY_IS_NOT_ALLOWED);
   Data keyData=toData(key);
-  RemoveAllRequest request=new RemoveAllRequest(name,keyData,ThreadUtil.getThreadId());
-  PortableCollection result=invoke(request,keyData);
-  return toObjectCollection(result);
+  ClientMessage request=MultiMapRemoveParameters.encode(name,keyData,ThreadUtil.getThreadId());
+  ClientMessage response=invoke(request,keyData);
+  DataCollectionResultParameters resultParameters=DataCollectionResultParameters.decode(response);
+  Collection<Data> result=resultParameters.result;
+  Collection<V> resultCollection=new ArrayList<V>(result.size());
+  for (  Data data : result) {
+    final V value=toObject(data);
+    resultCollection.add(value);
+  }
+  return resultCollection;
 }
