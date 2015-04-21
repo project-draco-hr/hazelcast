@@ -1,10 +1,12 @@
 {
-  for (  Element element : env.getElementsAnnotatedWith(GenerateMessageTaskFactory.class)) {
+  final Set<? extends Element> elementsAnnotatedWith=env.getElementsAnnotatedWith(GenerateMessageTaskFactory.class);
+  if (elementsAnnotatedWith == null || elementsAnnotatedWith.size() == 0) {
+    return false;
+  }
+  for (  Element element : elementsAnnotatedWith) {
     map.put(element.toString(),addAllFromPackage((PackageElement)element));
   }
-  if (env.processingOver()) {
-    final String content=generateFromTemplate(messageFactoryTemplate,map);
-    saveClass("com.hazelcast.client.impl.protocol","MessageTaskFactoryImpl",content);
-  }
+  final String content=generateFromTemplate(messageFactoryTemplate,map);
+  saveClass("com.hazelcast.client.impl.protocol","MessageTaskFactoryImpl",content);
   return true;
 }
