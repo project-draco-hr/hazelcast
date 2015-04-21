@@ -3,12 +3,14 @@
   for (  K key : keys) {
     dataKeys.add(toData(key));
   }
-  MapExecuteOnKeysRequest request=new MapExecuteOnKeysRequest(name,entryProcessor,dataKeys);
-  MapEntrySet entrySet=invoke(request);
+  ClientMessage request=MapExecuteOnKeysParameters.encode(name,toData(entryProcessor),dataKeys);
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
+  int size=resultParameters.keys.size();
   Map<K,Object> result=new HashMap<K,Object>();
-  for (  Entry<Data,Data> dataEntry : entrySet.getEntrySet()) {
-    final Data keyData=dataEntry.getKey();
-    final Data valueData=dataEntry.getValue();
+  for (int i=0; i < size; i++) {
+    Data keyData=resultParameters.keys.get(i);
+    Data valueData=resultParameters.values.get(i);
     K key=toObject(keyData);
     result.put(key,toObject(valueData));
   }

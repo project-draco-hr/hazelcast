@@ -1,13 +1,24 @@
 {
   checkNotNull(key,NULL_KEY_IS_NOT_ALLOWED);
   final Data keyData=toData(key);
-  MapGetEntryViewRequest request=new MapGetEntryViewRequest(name,keyData,ThreadUtil.getThreadId());
-  SimpleEntryView entryView=invoke(request,keyData);
-  if (entryView == null) {
+  ClientMessage request=MapGetEntryViewParameters.encode(name,keyData,ThreadUtil.getThreadId());
+  ClientMessage response=invoke(request,keyData);
+  EntryViewParameters parameters=EntryViewParameters.decode(response);
+  if (parameters == null) {
     return null;
   }
-  final Data value=(Data)entryView.getValue();
+  SimpleEntryView<K,V> entryView=new SimpleEntryView<K,V>();
   entryView.setKey(key);
-  entryView.setValue(toObject(value));
+  entryView.setValue((V)toObject(parameters.value));
+  entryView.setCost(parameters.cost);
+  entryView.setCreationTime(parameters.creationTime);
+  entryView.setExpirationTime(parameters.expirationTime);
+  entryView.setHits(parameters.hits);
+  entryView.setLastAccessTime(parameters.lastAccessTime);
+  entryView.setLastStoredTime(parameters.lastStoredTime);
+  entryView.setLastUpdateTime(parameters.lastUpdateTime);
+  entryView.setVersion(parameters.version);
+  entryView.setEvictionCriteriaNumber(parameters.evictionCriteriaNumber);
+  entryView.setTtl(parameters.ttl);
   return entryView;
 }

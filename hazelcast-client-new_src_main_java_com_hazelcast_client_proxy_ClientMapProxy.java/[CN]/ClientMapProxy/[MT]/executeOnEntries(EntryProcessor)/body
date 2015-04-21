@@ -1,10 +1,11 @@
 {
-  MapExecuteOnAllKeysRequest request=new MapExecuteOnAllKeysRequest(name,entryProcessor);
-  MapEntrySet entrySet=invoke(request);
+  ClientMessage request=MapExecuteOnAllKeysParameters.encode(name,toData(entryProcessor));
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(request);
+  int size=resultParameters.keys.size();
   Map<K,Object> result=new HashMap<K,Object>();
-  for (  Entry<Data,Data> dataEntry : entrySet.getEntrySet()) {
-    final Data keyData=dataEntry.getKey();
-    final Data valueData=dataEntry.getValue();
+  for (int i=0; i < size; i++) {
+    Data keyData=resultParameters.keys.get(i);
+    Data valueData=resultParameters.values.get(i);
     K key=toObject(keyData);
     result.put(key,toObject(valueData));
   }

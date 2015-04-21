@@ -19,15 +19,17 @@
   if (keySet.isEmpty()) {
     return result;
   }
-  MapGetAllRequest request=new MapGetAllRequest(name,keySet);
-  MapEntrySet mapEntrySet=invoke(request);
-  Set<Entry<Data,Data>> entrySet=mapEntrySet.getEntrySet();
-  for (  Entry<Data,Data> dataEntry : entrySet) {
-    final V value=toObject(dataEntry.getValue());
-    final K key=toObject(dataEntry.getKey());
+  ClientMessage request=MapGetAllParameters.encode(name,keySet);
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
+  int size=resultParameters.keys.size();
+  for (int i=0; i < size; i++) {
+    Data dataKey=resultParameters.keys.get(i);
+    final V value=toObject(resultParameters.values.get(i));
+    final K key=toObject(dataKey);
     result.put(key,value);
     if (nearCache != null) {
-      nearCache.put(dataEntry.getKey(),value);
+      nearCache.put(dataKey,value);
     }
   }
   return result;
