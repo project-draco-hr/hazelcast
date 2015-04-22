@@ -15,6 +15,23 @@
  finally {
     IOUtil.closeResource(is);
   }
-  String urlStr="http://versioncheck.hazelcast.com/version.jsp?version=" + version + "&m="+ hazelcastNode.getLocalMember().getUuid()+ "&e="+ isEnterprise+ "&l="+ toMD5String(hazelcastNode.getConfig().getLicenseKey())+ "&p="+ downloadId+ "&c="+ toMD5String(hazelcastNode.getConfig().getGroupConfig().getName())+ "&crsz="+ convertToLetter(hazelcastNode.getClusterService().getMembers().size())+ "&cssz="+ convertToLetter(hazelcastNode.clientEngine.getClientEndpointCount());
+  NativeMemoryConfig memoryConfig=hazelcastNode.getConfig().getNativeMemoryConfig();
+  long totalNativeMemorySize=hazelcastNode.getClusterService().getSize() * memoryConfig.getSize().bytes();
+  String nativeMemoryParameter=(isEnterprise) ? Long.toString(MemoryUnit.BYTES.toGigaBytes(totalNativeMemorySize)) : "0";
+  Map<ClientType,Integer> clusterClientStats=hazelcastNode.getClusterService().getConnectedClientStats();
+  UrlActionParameterCreator parameterCreator=new UrlActionParameterCreator();
+  parameterCreator.addParam("version",version);
+  parameterCreator.addParam("m",hazelcastNode.getLocalMember().getUuid());
+  parameterCreator.addParam("e",Boolean.toString(isEnterprise));
+  parameterCreator.addParam("l",MD5Util.toMD5String(hazelcastNode.getConfig().getLicenseKey()));
+  parameterCreator.addParam("p",downloadId);
+  parameterCreator.addParam("c",MD5Util.toMD5String(hazelcastNode.getConfig().getGroupConfig().getName()));
+  parameterCreator.addParam("crsz",convertToLetter(hazelcastNode.getClusterService().getMembers().size()));
+  parameterCreator.addParam("cssz",convertToLetter(hazelcastNode.clientEngine.getClientEndpointCount()));
+  parameterCreator.addParam("hdgb",nativeMemoryParameter);
+  parameterCreator.addParam("ccpp",Integer.toString(clusterClientStats.get(ClientType.CPP)));
+  parameterCreator.addParam("cdn",Integer.toString(clusterClientStats.get(ClientType.CSHARP)));
+  parameterCreator.addParam("cjv",Integer.toString(clusterClientStats.get(ClientType.JAVA)));
+  String urlStr=BASE_VERSION_CHECK_URL + parameterCreator.build();
   fetchWebService(urlStr);
 }
