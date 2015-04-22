@@ -2,12 +2,6 @@
   if (!live) {
     return;
   }
-  try {
-    innerClose();
-  }
- catch (  Exception e) {
-    logger.warning(e);
-  }
   String message="Connection [" + socketChannelWrapper.socket().getRemoteSocketAddress() + "] lost. Reason: ";
   if (t != null) {
     message+=t.getClass().getName() + "[" + t.getMessage()+ "]";
@@ -15,7 +9,18 @@
  else {
     message+="Socket explicitly closed";
   }
-  logger.warning(message);
+  try {
+    innerClose();
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+  if (lifecycleService.isRunning()) {
+    logger.warning(message);
+  }
+ else {
+    logger.finest(message);
+  }
   if (!socketChannelWrapper.isBlocking()) {
     connectionManager.onConnectionClose(this);
   }

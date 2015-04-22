@@ -2,22 +2,22 @@
   checkIfManagerNotClosed();
   checkNotNull(cacheName,"cacheName must not be null");
   checkNotNull(configuration,"configuration must not be null");
-  final CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
+  CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
   if (caches.containsKey(newCacheConfig.getNameWithPrefix())) {
     throw new CacheException("A cache named " + cacheName + " already exists.");
   }
-  final ICache<K,V> cacheProxy=createCacheProxy(newCacheConfig);
-  CacheConfig<K,V> current=createConfigOnPartition(newCacheConfig);
-  if (current == null) {
-    addCacheConfigIfAbsentToLocal(newCacheConfig);
+  CacheConfig<K,V> currentCacheConfig=createConfig(cacheName,newCacheConfig,true,true);
+  ICacheInternal<K,V> cacheProxy=createCacheProxy(newCacheConfig);
+  if (currentCacheConfig == null) {
+    addCacheConfigIfAbsent(newCacheConfig);
     caches.put(newCacheConfig.getNameWithPrefix(),cacheProxy);
     registerListeners(newCacheConfig,cacheProxy);
     return cacheProxy;
   }
-  ICache<?,?> cache=getOrPutIfAbsent(current.getNameWithPrefix(),cacheProxy);
+  ICacheInternal<?,?> cache=getOrPutIfAbsent(currentCacheConfig.getNameWithPrefix(),cacheProxy);
   CacheConfig config=cache.getConfiguration(CacheConfig.class);
   if (config.equals(newCacheConfig)) {
-    return (ICache<K,V>)cache;
+    return (ICacheInternal<K,V>)cache;
   }
   throw new CacheException("A cache named " + cacheName + " already exists.");
 }

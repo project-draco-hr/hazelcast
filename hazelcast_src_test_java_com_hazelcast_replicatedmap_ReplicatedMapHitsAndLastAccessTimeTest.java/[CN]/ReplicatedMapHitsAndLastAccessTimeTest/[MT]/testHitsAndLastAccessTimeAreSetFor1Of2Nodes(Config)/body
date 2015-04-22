@@ -1,0 +1,28 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final String mapName=randomMapName();
+  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap(mapName);
+  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap(mapName);
+  final int operations=100;
+  execute(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < operations; i++) {
+        map1.put(i,i);
+        map1.containsKey(i);
+      }
+    }
+  }
+,ADDED,operations,1,map1,map2);
+  for (int i=0; i < operations; i++) {
+    final ReplicatedRecord<Integer,Integer> replicatedRecord=getReplicatedRecord(map1,i);
+    assertEquals(1,replicatedRecord.getHits());
+    assertTrue("Last access time should be set for " + i,replicatedRecord.getLastAccessTime() > 0);
+  }
+  for (int i=0; i < operations; i++) {
+    final ReplicatedRecord<Integer,Integer> replicatedRecord=getReplicatedRecord(map2,i);
+    assertEquals(0,replicatedRecord.getHits());
+    assertEquals(0,replicatedRecord.getLastAccessTime());
+  }
+}

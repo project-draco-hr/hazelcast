@@ -6,7 +6,7 @@
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=factory.newHazelcastInstance();
   HazelcastInstance instance2=factory.newHazelcastInstance();
-  CountingEntryListener<Object,Object> listener=new CountingEntryListener<Object,Object>();
+  final CountingEntryListener<Object,Object> listener=new CountingEntryListener<Object,Object>();
   MultiMap<Object,Object> map=instance1.getMultiMap(mapName);
   map.addEntryListener(listener,true);
   TransactionContext ctx1=instance2.newTransactionContext();
@@ -25,7 +25,11 @@
   ctx4.beginTransaction();
   ctx4.getMultiMap(mapName).remove(key,value2);
   ctx4.commitTransaction();
-  Thread.sleep(100);
-  assertEquals(2,listener.getAddedCount());
-  assertEquals(2,listener.getRemovedCount());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(2,listener.getAddedCount());
+      assertEquals(2,listener.getRemovedCount());
+    }
+  }
+);
 }
