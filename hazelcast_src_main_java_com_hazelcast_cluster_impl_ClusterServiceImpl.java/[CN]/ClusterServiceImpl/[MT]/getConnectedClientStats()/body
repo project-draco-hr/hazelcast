@@ -1,0 +1,46 @@
+{
+  int numberOfCppClients=0;
+  int numberOfDotNetClients=0;
+  int numberOfJavaClients=0;
+  Operation clientInfoOperation=new GetConnectedClientsOperation();
+  OperationService operationService1=node.nodeEngine.getOperationService();
+  String serviceName=ClientEngineImpl.SERVICE_NAME;
+  Map<ClientType,Integer> resultMap=new HashMap<ClientType,Integer>();
+  Map<String,ClientType> clientsMap=new HashMap<String,ClientType>();
+  for (  MemberImpl member : node.getClusterService().getMemberList()) {
+    Address target=member.getAddress();
+    InvocationBuilder invocationBuilder=operationService1.createInvocationBuilder(serviceName,clientInfoOperation,target);
+    Future<Object> future=invocationBuilder.setTryCount(1).invoke();
+    HashMap<String,ClientType> endpoints=new HashMap<String,ClientType>();
+    try {
+      endpoints=(HashMap<String,ClientType>)future.get();
+    }
+ catch (    InterruptedException e) {
+      logger.warning("Cannot get client information from : " + target.toString());
+    }
+catch (    ExecutionException e) {
+      logger.warning("Cannot get client information from : " + target.toString());
+    }
+    for (    Map.Entry<String,ClientType> entry : endpoints.entrySet()) {
+      String uuid=entry.getKey();
+      ClientType clientType=entry.getValue();
+      clientsMap.put(uuid,clientType);
+    }
+  }
+  for (  Map.Entry<String,ClientType> entry : clientsMap.entrySet()) {
+    ClientType clientType=entry.getValue();
+    if (clientType == ClientType.CPP) {
+      numberOfCppClients++;
+    }
+    if (clientType == ClientType.CSHARP) {
+      numberOfDotNetClients++;
+    }
+    if (clientType == ClientType.JAVA) {
+      numberOfJavaClients++;
+    }
+  }
+  resultMap.put(ClientType.CPP,numberOfCppClients);
+  resultMap.put(ClientType.CSHARP,numberOfDotNetClients);
+  resultMap.put(ClientType.JAVA,numberOfJavaClients);
+  return resultMap;
+}
