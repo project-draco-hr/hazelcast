@@ -1,0 +1,15 @@
+{
+  EntryView entryView=replicationUpdate.getEntryView();
+  MapMergePolicy mergePolicy=replicationUpdate.getMergePolicy();
+  String mapName=replicationUpdate.getMapName();
+  MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
+  MergeOperation operation=new MergeOperation(mapName,mapServiceContext.toData(entryView.getKey(),mapContainer.getPartitioningStrategy()),entryView,mergePolicy);
+  try {
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(entryView.getKey());
+    Future f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    f.get();
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}
