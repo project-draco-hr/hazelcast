@@ -5,22 +5,12 @@
   fillAttributeValues(node,cacheConfigBuilder);
   for (  Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
     if ("eviction".equals(cleanNodeName(childNode))) {
-      final CacheEvictionConfig evictionConfig=new CacheEvictionConfig();
-      final Node size=childNode.getAttributes().getNamedItem("size");
-      final Node maxSizePolicy=childNode.getAttributes().getNamedItem("max-size-policy");
-      final Node evictionPolicy=childNode.getAttributes().getNamedItem("eviction-policy");
-      if (size != null) {
-        evictionConfig.setSize(Integer.parseInt(getTextContent(size)));
-      }
-      if (maxSizePolicy != null) {
-        evictionConfig.setMaxSizePolicy(CacheEvictionConfig.CacheMaxSizePolicy.valueOf(upperCaseInternal(getTextContent(maxSizePolicy))));
-      }
-      if (evictionPolicy != null) {
-        evictionConfig.setEvictionPolicy(EvictionPolicy.valueOf(upperCaseInternal(getTextContent(evictionPolicy))));
-      }
-      cacheConfigBuilder.addPropertyValue("evictionConfig",evictionConfig);
+      cacheConfigBuilder.addPropertyValue("evictionConfig",getEvictionConfig(childNode));
     }
-    if ("cache-entry-listeners".equals(cleanNodeName(childNode))) {
+ else     if ("near-cache".equals(cleanNodeName(childNode))) {
+      handleNearCacheConfig(childNode,cacheConfigBuilder);
+    }
+ else     if ("cache-entry-listeners".equals(cleanNodeName(childNode))) {
       ManagedList listeners=new ManagedList();
       for (      Node listenerNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
         final BeanDefinitionBuilder listenerConfBuilder=createBeanBuilder(CacheSimpleEntryListenerConfig.class);
@@ -29,7 +19,7 @@
       }
       cacheConfigBuilder.addPropertyValue("cacheEntryListeners",listeners);
     }
-    if ("wan-replication-ref".equals(cleanNodeName(childNode))) {
+ else     if ("wan-replication-ref".equals(cleanNodeName(childNode))) {
       final BeanDefinitionBuilder wanReplicationRefBuilder=createBeanBuilder(WanReplicationRef.class);
       final AbstractBeanDefinition wanReplicationRefBeanDefinition=wanReplicationRefBuilder.getBeanDefinition();
       fillValues(childNode,wanReplicationRefBuilder);
