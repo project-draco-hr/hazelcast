@@ -3,8 +3,9 @@
   config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_ENABLED,"false");
   config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_THRESHOLD_MILLIS,"1000");
   instance=createHazelcastInstance(config);
-  getOperationService(instance).execute(new SlowRunnable(3,Operation.GENERIC_PARTITION_ID));
-  waitForAllOperationsToComplete(instance);
+  SlowRunnable runnable=new SlowRunnable(3,Operation.GENERIC_PARTITION_ID);
+  getOperationService(instance).execute(runnable);
+  runnable.await();
   Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
   assertNumberOfSlowOperationLogs(logs,0);
 }

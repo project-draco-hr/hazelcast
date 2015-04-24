@@ -1,8 +1,9 @@
 {
   HazelcastInstance instance=getSingleNodeCluster(1000);
   IMap<String,String> map=getMapWithSingleElement(instance);
-  map.executeOnEntries(new NestedSlowEntryProcessor(map,2));
-  waitForAllOperationsToComplete(instance);
+  NestedSlowEntryProcessor entryProcessor=new NestedSlowEntryProcessor(map,2);
+  map.executeOnEntries(entryProcessor);
+  entryProcessor.await();
   Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
   assertNumberOfSlowOperationLogs(logs,1);
   SlowOperationLog firstLog=logs.iterator().next();
