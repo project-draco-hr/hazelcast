@@ -8,11 +8,10 @@
   }
   final String log="Surviving: " + survivingInstances + " Terminating: "+ terminatingInstances;
   final EventCollectingPartitionLostListener listener=registerPartitionLostListener(survivingInstances.get(0));
-  final Map<Integer,Integer> survivingPartitions=new HashMap<Integer,Integer>();
-  final Map<Integer,List<Address>> partitionTables=new HashMap<Integer,List<Address>>();
-  collectMinReplicaIndicesAndPartitionTablesByPartitionId(survivingInstances,survivingPartitions,partitionTables);
+  final Map<Integer,Integer> survivingPartitions=getMinReplicaIndicesByPartitionId(survivingInstances);
+  final Map<Integer,List<Address>> partitionTables=TestPartitionUtils.getAllReplicaAddresses(survivingInstances);
   terminateInstances(terminatingInstances);
-  waitAllForSafeState(survivingInstances,300);
+  waitAllForSafeStateAndDumpPartitionServiceOnFailure(survivingInstances,300);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
       assertLostPartitions(log,listener,survivingPartitions,partitionTables);
