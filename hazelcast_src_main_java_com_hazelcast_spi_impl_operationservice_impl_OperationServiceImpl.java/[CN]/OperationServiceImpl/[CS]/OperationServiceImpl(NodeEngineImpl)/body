@@ -2,6 +2,7 @@
   this.nodeEngine=nodeEngine;
   this.node=nodeEngine.getNode();
   this.logger=node.getLogger(OperationService.class);
+  this.metricsRegistry=nodeEngine.getMetricsRegistry();
   this.invocationLogger=nodeEngine.getLogger(Invocation.class);
   GroupProperties groupProperties=node.getGroupProperties();
   this.defaultCallTimeoutMillis=groupProperties.OPERATION_CALL_TIMEOUT_MILLIS.getLong();
@@ -11,9 +12,10 @@
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
   this.invocationsRegistry=new InvocationRegistry(nodeEngine,logger,backpressureRegulator,concurrencyLevel);
   this.operationBackupHandler=new OperationBackupHandler(this);
-  this.operationExecutor=new ClassicOperationExecutor(groupProperties,node.loggingService,node.getThisAddress(),new OperationRunnerFactoryImpl(this),new ResponsePacketHandlerImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
+  this.operationExecutor=new ClassicOperationExecutor(groupProperties,node.loggingService,node.getThisAddress(),new OperationRunnerFactoryImpl(this),new ResponsePacketHandlerImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension(),metricsRegistry);
   this.isStillRunningService=new IsStillRunningService(operationExecutor,nodeEngine,logger);
   ExecutionService executionService=nodeEngine.getExecutionService();
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
   this.slowOperationDetector=initSlowOperationDetector();
+  nodeEngine.getMetricsRegistry().scanAndRegister(this,"operation");
 }

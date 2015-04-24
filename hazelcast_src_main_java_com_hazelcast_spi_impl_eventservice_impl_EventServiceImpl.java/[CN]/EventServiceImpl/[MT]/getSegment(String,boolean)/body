@@ -1,13 +1,15 @@
 {
   EventServiceSegment segment=segments.get(service);
   if (segment == null && forceCreate) {
-    ConstructorFunction<String,EventServiceSegment> func=new ConstructorFunction<String,EventServiceSegment>(){
-      @Override public EventServiceSegment createNew(      String key){
-        return new EventServiceSegment(key,nodeEngine.getService(key));
-      }
+    EventServiceSegment newSegment=new EventServiceSegment(service,nodeEngine.getService(service));
+    EventServiceSegment existingSegment=segments.putIfAbsent(service,newSegment);
+    if (existingSegment == null) {
+      segment=newSegment;
+      nodeEngine.getMetricsRegistry().scanAndRegister(newSegment,"event." + service);
     }
-;
-    return ConcurrencyUtil.getOrPutIfAbsent(segments,service,func);
+ else {
+      segment=existingSegment;
+    }
   }
   return segment;
 }

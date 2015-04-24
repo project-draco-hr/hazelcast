@@ -11,10 +11,14 @@
   }
 ;
   for (int i=0; i < inSelectors.length; i++) {
-    inSelectors[i]=new InSelectorImpl(ioService.getThreadGroup(),ioService.getThreadPrefix() + "in-" + i,ioService.getLogger(InSelectorImpl.class.getName()),oomeHandler);
-    outSelectors[i]=new OutSelectorImpl(ioService.getThreadGroup(),ioService.getThreadPrefix() + "out-" + i,ioService.getLogger(OutSelectorImpl.class.getName()),oomeHandler);
-    inSelectors[i].start();
-    outSelectors[i].start();
+    InSelectorImpl inSelector=new InSelectorImpl(ioService.getThreadGroup(),ioService.getThreadPrefix() + "in-" + i,ioService.getLogger(InSelectorImpl.class.getName()),oomeHandler);
+    inSelectors[i]=inSelector;
+    metricRegistry.scanAndRegister(inSelector,"tcp." + inSelector.getName());
+    inSelector.start();
+    OutSelectorImpl outSelector=new OutSelectorImpl(ioService.getThreadGroup(),ioService.getThreadPrefix() + "out-" + i,ioService.getLogger(OutSelectorImpl.class.getName()),oomeHandler);
+    outSelectors[i]=outSelector;
+    metricRegistry.scanAndRegister(outSelector,"tcp." + outSelector.getName());
+    outSelector.start();
   }
   startIOBalancer();
   if (socketAcceptorThread != null) {
