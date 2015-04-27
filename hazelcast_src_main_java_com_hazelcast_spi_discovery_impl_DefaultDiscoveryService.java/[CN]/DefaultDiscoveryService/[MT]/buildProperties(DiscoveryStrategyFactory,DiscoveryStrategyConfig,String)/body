@@ -1,0 +1,26 @@
+{
+  Collection<PropertyDefinition> propertyDefinitions=factory.getConfigurationProperties();
+  if (propertyDefinitions == null) {
+    return Collections.emptyMap();
+  }
+  Map<String,Comparable> properties=config.getProperties();
+  Map<String,Comparable> mappedProperties=new HashMap<String,Comparable>();
+  for (  PropertyDefinition propertyDefinition : propertyDefinitions) {
+    String propertyKey=propertyDefinition.key();
+    Comparable value=properties.get(propertyKey);
+    if (value == null) {
+      if (!propertyDefinition.optional()) {
+        throw new HazelcastException("Missing property '" + propertyKey + "' on discovery strategy '"+ className+ "' configuration");
+      }
+      continue;
+    }
+    TypeConverter typeConverter=propertyDefinition.typeConverter();
+    Comparable mappedValue=typeConverter.convert(value);
+    ValueValidator validator=propertyDefinition.validator();
+    if (validator != null) {
+      validator.validate(mappedValue);
+    }
+    mappedProperties.put(propertyKey,mappedValue);
+  }
+  return mappedProperties;
+}

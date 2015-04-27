@@ -1,0 +1,34 @@
+{
+  TestHazelcastFactory factory=new TestHazelcastFactory();
+  Config config=new Config();
+  config.getNetworkConfig().setPort(50001);
+  InterfacesConfig interfaces=config.getNetworkConfig().getInterfaces();
+  interfaces.clear();
+  interfaces.setEnabled(true);
+  interfaces.addInterface("127.0.0.1");
+  final HazelcastInstance hazelcastInstance1=factory.newHazelcastInstance(config);
+  final HazelcastInstance hazelcastInstance2=factory.newHazelcastInstance(config);
+  final HazelcastInstance hazelcastInstance3=factory.newHazelcastInstance(config);
+  try {
+    String xmlFileName="hazelcast-client-discovery-spi-test.xml";
+    InputStream xmlResource=ClientDiscoverySpiTest.class.getClassLoader().getResourceAsStream(xmlFileName);
+    ClientConfig clientConfig=new XmlClientConfigBuilder(xmlResource).build();
+    final HazelcastInstance client=factory.newHazelcastClient(clientConfig);
+    assertNotNull(hazelcastInstance1);
+    assertNotNull(hazelcastInstance2);
+    assertNotNull(hazelcastInstance3);
+    assertNotNull(client);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(3,hazelcastInstance1.getCluster().getMembers().size());
+        assertEquals(3,hazelcastInstance2.getCluster().getMembers().size());
+        assertEquals(3,hazelcastInstance3.getCluster().getMembers().size());
+        assertEquals(3,client.getCluster().getMembers().size());
+      }
+    }
+);
+  }
+  finally {
+    factory.shutdownAll();
+  }
+}

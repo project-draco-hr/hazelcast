@@ -1,0 +1,20 @@
+{
+  String xmlFileName="test-hazelcast-discovery-spi.xml";
+  InputStream xmlResource=DiscoverySpiTest.class.getClassLoader().getResourceAsStream(xmlFileName);
+  Config config=new XmlConfigBuilder(xmlResource).build();
+  JoinConfig joinConfig=config.getNetworkConfig().getJoin();
+  AwsConfig awsConfig=joinConfig.getAwsConfig();
+  assertFalse(awsConfig.isEnabled());
+  TcpIpConfig tcpIpConfig=joinConfig.getTcpIpConfig();
+  assertFalse(tcpIpConfig.isEnabled());
+  MulticastConfig multicastConfig=joinConfig.getMulticastConfig();
+  assertFalse(multicastConfig.isEnabled());
+  DiscoveryStrategiesConfig discoveryStrategiesConfig=joinConfig.getDiscoveryStrategiesConfig();
+  assertTrue(discoveryStrategiesConfig.isEnabled());
+  assertEquals(1,discoveryStrategiesConfig.getDiscoveryStrategyConfigs().size());
+  DiscoveryStrategyConfig providerConfig=discoveryStrategiesConfig.getDiscoveryStrategyConfigs().iterator().next();
+  assertEquals(3,providerConfig.getProperties().size());
+  assertEquals("foo",providerConfig.getProperties().get("key-string"));
+  assertEquals("123",providerConfig.getProperties().get("key-int"));
+  assertEquals("true",providerConfig.getProperties().get("key-boolean"));
+}
