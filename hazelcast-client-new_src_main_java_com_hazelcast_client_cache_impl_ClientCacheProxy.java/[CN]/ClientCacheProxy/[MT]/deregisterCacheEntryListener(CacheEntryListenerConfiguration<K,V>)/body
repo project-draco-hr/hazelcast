@@ -3,4 +3,15 @@
     throw new NullPointerException("CacheEntryListenerConfiguration can't be null");
   }
   final String regId=removeListenerLocally(cacheEntryListenerConfiguration);
+  if (regId != null) {
+    ClientMessage removeReq=CacheRemoveEntryListenerParameters.encode(nameWithPrefix,regId);
+    boolean isDeregistered=clientContext.getListenerService().stopListening(removeReq,regId);
+    if (isDeregistered) {
+      cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
+      updateCacheListenerConfigOnOtherNodes(cacheEntryListenerConfiguration,false);
+    }
+ else {
+      addListenerLocally(regId,cacheEntryListenerConfiguration);
+    }
+  }
 }

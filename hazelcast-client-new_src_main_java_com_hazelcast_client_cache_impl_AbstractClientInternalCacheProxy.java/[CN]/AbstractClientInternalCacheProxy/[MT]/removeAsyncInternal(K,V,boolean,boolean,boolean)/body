@@ -10,6 +10,20 @@
   }
   final Data keyData=toData(key);
   final Data oldValueData=oldValue != null ? toData(oldValue) : null;
-  ICompletableFuture future=null;
+  ClientMessage request;
+  if (isGet) {
+    request=CacheGetAndRemoveParameters.encode(nameWithPrefix,keyData);
+  }
+ else {
+    request=CacheRemoveParameters.encode(nameWithPrefix,keyData,oldValueData);
+  }
+  ICompletableFuture future;
+  try {
+    future=invoke(request,keyData,withCompletionEvent);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
   return new DelegatingFuture<T>(future,clientContext.getSerializationService());
 }

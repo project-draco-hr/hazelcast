@@ -4,5 +4,26 @@
   if (entryProcessor == null) {
     throw new NullPointerException("Entry Processor is null");
   }
-  return null;
+  final Data keyData=toData(key);
+  Data epData=toData(entryProcessor);
+  List<Data> argumentsData=null;
+  if (arguments != null) {
+    argumentsData=new ArrayList<Data>(arguments.length);
+    for (int i=0; i < arguments.length; i++) {
+      argumentsData.add(toData(arguments[i]));
+    }
+  }
+  final ClientMessage request=CacheEntryProcessorParameters.encode(nameWithPrefix,keyData,epData,argumentsData);
+  try {
+    final ICompletableFuture<ClientMessage> f=invoke(request,keyData,true);
+    final ClientMessage response=getSafely(f);
+    final Data data=GenericResultParameters.decode(response).result;
+    return toObject(data);
+  }
+ catch (  CacheException ce) {
+    throw ce;
+  }
+catch (  Exception e) {
+    throw new EntryProcessorException(e);
+  }
 }
