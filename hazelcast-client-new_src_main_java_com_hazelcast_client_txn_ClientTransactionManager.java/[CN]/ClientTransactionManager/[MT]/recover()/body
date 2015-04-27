@@ -1,5 +1,4 @@
 {
-  final SerializationService serializationService=client.getSerializationService();
   final Xid[] empty=new Xid[0];
   try {
     final ClientConnection connection;
@@ -10,12 +9,11 @@
       EmptyStatement.ignore(ignored);
       return empty;
     }
-    final RecoverAllTransactionsRequest request=new RecoverAllTransactionsRequest();
+    ClientMessage request=TransactionRecoverAllParameters.encode();
     final ClientInvocation clientInvocation=new ClientInvocation(client,request,connection);
-    final Future<SerializableCollection> future=clientInvocation.invoke();
-    final SerializableCollection collectionWrapper=serializationService.toObject(future.get());
-    for (    Data data : collectionWrapper) {
-      final SerializableXID xid=serializationService.toObject(data);
+    final Future<ClientMessage> future=clientInvocation.invoke();
+    TransactionRecoverAllResultParameters response=TransactionRecoverAllResultParameters.decode(future.get());
+    for (    SerializableXID xid : response.collection) {
       recoveredTransactions.put(xid,connection);
     }
     final Set<SerializableXID> xidSet=recoveredTransactions.keySet();

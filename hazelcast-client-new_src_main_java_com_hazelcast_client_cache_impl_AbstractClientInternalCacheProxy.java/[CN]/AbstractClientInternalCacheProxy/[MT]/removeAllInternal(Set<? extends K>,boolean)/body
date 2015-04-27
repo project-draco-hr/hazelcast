@@ -11,21 +11,8 @@
   }
   final int partitionCount=clientContext.getPartitionService().getPartitionCount();
   int completionId=registerCompletionLatch(partitionCount);
-  CacheClearRequest request=new CacheClearRequest(nameWithPrefix,keysData,isRemoveAll,completionId);
   try {
-    final Map<Integer,Object> results=invoke(request);
     int completionCount=0;
-    for (    Object result : results.values()) {
-      if (result != null && result instanceof CacheClearResponse) {
-        final Object response=((CacheClearResponse)result).getResponse();
-        if (response instanceof Boolean) {
-          completionCount++;
-        }
-        if (response instanceof Throwable) {
-          throw (Throwable)response;
-        }
-      }
-    }
     waitCompletionLatch(completionId,partitionCount - completionCount);
   }
  catch (  Throwable t) {

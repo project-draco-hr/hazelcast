@@ -1,12 +1,14 @@
 {
-  final CollectionAddListenerRequest request=new CollectionAddListenerRequest(getName(),includeValue);
-  request.setServiceName(getServiceName());
-  EventHandler<PortableItemEvent> eventHandler=new EventHandler<PortableItemEvent>(){
-    public void handle(    PortableItemEvent portableItemEvent){
-      E item=includeValue ? (E)getContext().getSerializationService().toObject(portableItemEvent.getItem()) : null;
-      Member member=getContext().getClusterService().getMember(portableItemEvent.getUuid());
-      ItemEvent<E> itemEvent=new ItemEvent<E>(getName(),portableItemEvent.getEventType(),item,member);
-      if (portableItemEvent.getEventType() == ItemEventType.ADDED) {
+  ClientMessage request=ListAddListenerParameters.encode(name,includeValue);
+  EventHandler<ClientMessage> eventHandler=new EventHandler<ClientMessage>(){
+    final SerializationService serializationService=getContext().getSerializationService();
+    final ClientClusterService clusterService=getContext().getClusterService();
+    public void handle(    ClientMessage message){
+      ItemEventParameters event=ItemEventParameters.decode(message);
+      E item=includeValue ? (E)serializationService.toObject(event.item) : null;
+      Member member=clusterService.getMember(event.uuid);
+      ItemEvent<E> itemEvent=new ItemEvent<E>(name,event.eventType,item,member);
+      if (event.eventType == ItemEventType.ADDED) {
         listener.itemAdded(itemEvent);
       }
  else {

@@ -2,18 +2,4 @@
   if (nearCacheInvalidationListeners.containsKey(member)) {
     return;
   }
-  try {
-    ClientRequest request=new CacheAddInvalidationListenerRequest(nameWithPrefix);
-    Client client=clientContext.getClusterService().getLocalClient();
-    EventHandler handler=new NearCacheInvalidationHandler(client);
-    HazelcastClientInstanceImpl clientInstance=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
-    ClientInvocation invocation=new ClientInvocation(clientInstance,handler,request,member.getAddress());
-    Future future=invocation.invoke();
-    String registrationId=clientContext.getSerializationService().toObject(future.get());
-    clientContext.getListenerService().registerListener(registrationId,request.getCallId());
-    nearCacheInvalidationListeners.put(member,registrationId);
-  }
- catch (  Exception e) {
-    throw ExceptionUtil.rethrow(e);
-  }
 }
