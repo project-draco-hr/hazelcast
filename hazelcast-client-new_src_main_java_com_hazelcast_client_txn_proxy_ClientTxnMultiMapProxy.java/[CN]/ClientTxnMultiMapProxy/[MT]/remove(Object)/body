@@ -1,14 +1,9 @@
 {
-  TxnMultiMapRemoveAllRequest request=new TxnMultiMapRemoveAllRequest(getName(),toData(key));
-  PortableCollection portableCollection=invoke(request);
-  final Collection<Data> collection=portableCollection.getCollection();
-  Collection<V> coll;
-  if (collection instanceof List) {
-    coll=new ArrayList<V>(collection.size());
-  }
- else {
-    coll=new HashSet<V>(collection.size());
-  }
+  ClientMessage request=TransactionalMultiMapRemoveParameters.encode(getName(),getTransactionId(),ThreadUtil.getThreadId(),toData(key));
+  ClientMessage response=invoke(request);
+  DataCollectionResultParameters resultParameters=DataCollectionResultParameters.decode(response);
+  Collection<Data> collection=resultParameters.result;
+  Collection<V> coll=new ArrayList<V>(collection.size());
   for (  Data data : collection) {
     coll.add((V)toObject(data));
   }

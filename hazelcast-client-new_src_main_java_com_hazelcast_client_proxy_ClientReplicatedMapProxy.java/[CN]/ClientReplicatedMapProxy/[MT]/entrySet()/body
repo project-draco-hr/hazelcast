@@ -1,3 +1,13 @@
 {
-  return ((ReplicatedMapEntrySet)invoke(new ClientReplicatedMapEntrySetRequest(getName()))).getEntrySet();
+  ClientMessage request=ReplicatedMapEntrySetParameters.encode(getName());
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters result=DataEntryListResultParameters.decode(response);
+  int size=result.keys.size();
+  Set<Entry<K,V>> resultCollection=new HashSet<Entry<K,V>>(size);
+  for (int i=0; i < size; i++) {
+    K key=toObject(result.keys.get(i));
+    V value=toObject(result.values.get(i));
+    resultCollection.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
+  }
+  return resultCollection;
 }

@@ -2,9 +2,9 @@
   if (predicate == null) {
     throw new NullPointerException("Predicate should not be null!");
   }
-  TxnMapRequest request=new TxnMapRequest(getName(),TxnMapRequest.TxnMapRequestType.KEYSET_BY_PREDICATE,predicate);
-  MapKeySet result=invoke(request);
-  Set<Data> dataKeySet=result.getKeySet();
+  ClientMessage request=TransactionalMapKeySetWithPredicateParameters.encode(getName(),getTransactionId(),ThreadUtil.getThreadId(),toData(predicate));
+  ClientMessage response=invoke(request);
+  Collection<Data> dataKeySet=DataCollectionResultParameters.decode(response).result;
   HashSet<K> keySet=new HashSet<K>(dataKeySet.size());
   for (  Data data : dataKeySet) {
     keySet.add((K)toObject(data));
