@@ -1,0 +1,33 @@
+{
+  Connection conn=packet.getConn();
+  ClientEndpointImpl endpoint=(ClientEndpointImpl)endpointManager.getEndpoint(conn);
+  ClientRequest request=null;
+  try {
+    request=loadRequest();
+    if (request == null) {
+      handlePacketWithNullRequest();
+    }
+ else     if (request instanceof AuthenticationRequest) {
+      if (conn.isAlive()) {
+        endpoint=new ClientEndpointImpl(ClientEngineImpl.this,conn);
+        processRequest(endpoint,request);
+      }
+ else {
+        handleEndpointNotCreatedConnectionNotAlive();
+      }
+    }
+ else     if (endpoint == null) {
+      handleMissingEndpoint(conn);
+    }
+ else     if (endpoint.isAuthenticated()) {
+      processRequest(endpoint,request);
+    }
+ else {
+      handleAuthenticationFailure(endpoint,request);
+    }
+  }
+ catch (  Throwable e) {
+    logProcessingFailure(request,e);
+    handleProcessingFailure(endpoint,request,packet.getData(),e);
+  }
+}
