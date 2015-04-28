@@ -1,7 +1,8 @@
 {
   checkNotNull(key,NULL_KEY_IS_NOT_ALLOWED);
   final Data keyData=toData(key);
-  MultiMapLockRequest request=new MultiMapLockRequest(keyData,ThreadUtil.getThreadId(),Long.MAX_VALUE,getTimeInMillis(time,timeunit),name);
-  Boolean result=invoke(request,keyData);
-  return result;
+  ClientMessage request=MultiMapTryLockParameters.encode(name,keyData,ThreadUtil.getThreadId(),timeunit.toMillis(time));
+  ClientMessage response=invoke(request,keyData);
+  BooleanResultParameters resultParameters=BooleanResultParameters.decode(response);
+  return resultParameters.result;
 }

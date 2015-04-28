@@ -1,0 +1,19 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_QUERY_RESULT_SIZE_LIMIT,String.valueOf(maxResultSizeLimit));
+  config.setProperty(GroupProperties.PROP_QUERY_MAX_LOCAL_PARTITION_LIMIT_FOR_PRE_CHECK,String.valueOf(maxLocalPartitionLimitForPreCheck));
+  config.setProperty(GroupProperties.PROP_PARTITION_COUNT,String.valueOf(partitionCount));
+  GroupProperties groupProperties=new GroupProperties(config);
+  InternalPartitionService partitionService=mock(InternalPartitionService.class);
+  when(partitionService.getPartitionCount()).thenReturn(partitionCount);
+  NodeEngine nodeEngine=mock(NodeEngine.class);
+  when(nodeEngine.getGroupProperties()).thenReturn(groupProperties);
+  when(nodeEngine.getPartitionService()).thenReturn(partitionService);
+  RecordStore recordStore=mock(RecordStore.class);
+  when(recordStore.size()).then(new RecordStoreAnswer(localPartitions.values()));
+  MapServiceContext mapServiceContext=mock(MapServiceContext.class);
+  when(mapServiceContext.getNodeEngine()).thenReturn(nodeEngine);
+  when(mapServiceContext.getRecordStore(anyInt(),anyString())).thenReturn(recordStore);
+  when(mapServiceContext.getOwnedPartitions()).thenReturn(localPartitions.keySet());
+  limiter=new QueryResultSizeLimiter(mapServiceContext,Logger.getLogger(QueryResultSizeLimiterTest.class));
+}

@@ -1,3 +1,28 @@
 {
-  throw new UnsupportedOperationException();
+  final ClientEndpoint endpoint=getEndpoint();
+  final QueueService service=getService(QueueService.SERVICE_NAME);
+  final Data partitionKey=serializationService.toData(parameters.name);
+  ItemListener listener=new ItemListener(){
+    @Override public void itemAdded(    ItemEvent item){
+      send(item);
+    }
+    @Override public void itemRemoved(    ItemEvent item){
+      send(item);
+    }
+    private void send(    ItemEvent event){
+      if (endpoint.isAlive()) {
+        if (!(event instanceof DataAwareItemEvent)) {
+          throw new IllegalArgumentException("Expecting: DataAwareItemEvent, Found: " + event.getClass().getSimpleName());
+        }
+        DataAwareItemEvent dataAwareItemEvent=(DataAwareItemEvent)event;
+        Data item=dataAwareItemEvent.getItemData();
+        ClientMessage clientMessage=ItemEventParameters.encode(item,event.getMember().getUuid(),event.getEventType());
+        sendClientMessage(partitionKey,clientMessage);
+      }
+    }
+  }
+;
+  String registrationId=service.addItemListener(parameters.name,listener,parameters.includeValue);
+  endpoint.setListenerRegistration(QueueService.SERVICE_NAME,parameters.name,registrationId);
+  return AddListenerResultParameters.encode(registrationId);
 }

@@ -1,18 +1,14 @@
 {
   checkTransactionState();
-  if (predicate == null) {
-    throw new NullPointerException("Predicate can not be null!");
-  }
-  if (predicate instanceof PagingPredicate) {
-    throw new IllegalArgumentException("Paging is not supported for Transactional queries");
-  }
-  final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
-  final Set<Object> valueSet=new HashSet<Object>();
-  final Set<Object> keyWontBeIncluded=new HashSet<Object>();
+  checkNotNull(predicate,"Predicate can not be null!");
+  checkNotInstanceOf(PagingPredicate.class,predicate,"Paging is not supported for Transactional queries");
   SerializationService serializationService=getNodeEngine().getSerializationService();
+  QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
+  Set<Object> valueSet=new HashSet<Object>();
+  Set<Object> keyWontBeIncluded=new HashSet<Object>();
   for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
-    final boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
-    final boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
+    boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
+    boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
     Object keyObject=serializationService.toObject(entry.getKey());
     if (isRemoved) {
       keyWontBeIncluded.add(keyObject);

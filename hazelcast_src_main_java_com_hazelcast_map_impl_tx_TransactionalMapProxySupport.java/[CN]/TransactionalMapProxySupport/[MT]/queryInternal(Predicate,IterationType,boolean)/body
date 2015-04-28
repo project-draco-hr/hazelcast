@@ -1,24 +1,26 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
+  NodeEngine nodeEngine=getNodeEngine();
   OperationService operationService=nodeEngine.getOperationService();
   Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
   int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
   Set<Integer> partitions=new HashSet<Integer>(partitionCount);
   QueryResultSet result=new QueryResultSet(nodeEngine.getSerializationService(),iterationType,dataResult);
-  List<Integer> missingList=new ArrayList<Integer>();
   try {
     List<Future> futures=new ArrayList<Future>();
-    invokeQueryOperaration(predicate,operationService,members,futures);
+    invokeQueryOperation(predicate,operationService,members,futures);
     collectResults(partitions,result,futures);
     if (partitions.size() == partitionCount) {
       return result;
     }
-    findMissingPartitions(partitionCount,partitions,missingList);
   }
- catch (  Throwable t) {
-    missingList.clear();
-    findMissingPartitions(partitionCount,partitions,missingList);
+ catch (  QueryResultSizeExceededException e) {
+    throw ExceptionUtil.rethrow(e);
   }
+catch (  Throwable t) {
+    EmptyStatement.ignore(t);
+  }
+  List<Integer> missingList=new ArrayList<Integer>();
+  findMissingPartitions(partitionCount,partitions,missingList);
   try {
     List<Future> missingFutures=new ArrayList<Future>(missingList.size());
     invokeOperationOnMissingPartitions(predicate,operationService,missingList,missingFutures);

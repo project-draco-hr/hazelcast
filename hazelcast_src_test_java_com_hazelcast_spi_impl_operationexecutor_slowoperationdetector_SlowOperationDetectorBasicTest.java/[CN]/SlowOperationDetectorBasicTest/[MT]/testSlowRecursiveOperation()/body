@@ -5,15 +5,20 @@
   Config config=new Config();
   config.setProperty(GroupProperties.PROP_SLOW_OPERATION_DETECTOR_THRESHOLD_MILLIS,"1000");
   config.setProperty(GroupProperties.PROP_PARTITION_OPERATION_THREAD_COUNT,String.valueOf(partitionThreads));
-  instance=getSingleNodeCluster(config);
-  int partitionCount=TestUtil.getNode(instance).nodeEngine.getPartitionService().getPartitionCount();
+  instance=createHazelcastInstance(config);
+  List<SlowRecursiveOperation> operations=new ArrayList<SlowRecursiveOperation>(numberOfOperations);
+  int partitionCount=getNode(instance).nodeEngine.getPartitionService().getPartitionCount();
   int partitionIndex=1;
   for (int i=0; i < numberOfOperations; i++) {
     int partitionId=partitionIndex % partitionCount;
-    executeOperation(instance,new SlowRecursiveOperation(partitionId,recursionDepth,10));
+    SlowRecursiveOperation operation=new SlowRecursiveOperation(partitionId,recursionDepth,3);
+    operations.add(operation);
+    executeOperation(instance,operation);
     partitionIndex+=partitionCount / partitionThreads + 1;
   }
-  waitForAllOperationsToComplete(instance);
+  for (  SlowRecursiveOperation operation : operations) {
+    operation.await();
+  }
   Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
   assertNumberOfSlowOperationLogs(logs,1);
   SlowOperationLog firstLog=logs.iterator().next();

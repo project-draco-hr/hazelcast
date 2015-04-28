@@ -1,21 +1,16 @@
 {
-  NodeEngine nodeEngine=getNodeEngine();
-  MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  Collection<Integer> initialPartitions=mapService.getMapServiceContext().getOwnedPartitions();
+  InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+  MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  MapContextQuerySupport mapQuerySupport=mapServiceContext.getMapContextQuerySupport();
   int partitionStateVersion=partitionService.getPartitionStateVersion();
-  IndexService indexService=mapService.getMapServiceContext().getMapContainer(name).getIndexService();
+  Collection<Integer> initialPartitions=mapServiceContext.getOwnedPartitions();
   Set<QueryableEntry> entries=null;
   if (!partitionService.hasOnGoingMigrationLocal()) {
-    entries=indexService.query(predicate);
+    entries=mapContainer.getIndexService().query(predicate);
   }
-  result=new QueryResult();
+  result=mapQuerySupport.newQueryResult(initialPartitions.size());
   if (entries != null) {
-    for (    QueryableEntry entry : entries) {
-      QueryResultEntryImpl resultEntry=new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData());
-      result.add(resultEntry);
-    }
+    result.addAll(entries);
   }
  else {
     if (pagingPredicate != null) {
@@ -30,8 +25,8 @@
     result.setPartitionIds(finalPartitions);
   }
   if (mapContainer.getMapConfig().isStatisticsEnabled()) {
-    LocalMapStatsImpl localMapStatsImpl=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
-    localMapStatsImpl.incrementOtherOperations();
+    LocalMapStatsImpl localStats=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
+    localStats.incrementOtherOperations();
   }
   checkPartitionStateChanges(partitionService,partitionStateVersion);
 }

@@ -1,22 +1,24 @@
 {
   checkIfNotPagingPredicate(predicate);
-  NodeEngine nodeEngine=this.nodeEngine;
   SerializationService serializationService=nodeEngine.getSerializationService();
   Set result=new QueryResultSet(serializationService,iterationType,dataResult);
-  List<Integer> partitionIds=getLocalPartitionIds(nodeEngine);
+  List<Integer> partitionIds=getLocalPartitionIds();
   try {
-    Future future=queryOnLocalMember(mapName,predicate,nodeEngine);
-    List<Future> futures=Collections.singletonList(future);
+    Future<QueryResult> future=queryOnLocalMember(mapName,predicate);
+    List<Future<QueryResult>> futures=Collections.singletonList(future);
     addResultsOfPredicate(futures,result,partitionIds);
     if (partitionIds.isEmpty()) {
       return result;
     }
   }
- catch (  Throwable t) {
-    nodeEngine.getLogger(getClass()).warning("Could not get results",t);
+ catch (  QueryResultSizeExceededException e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+catch (  Throwable t) {
+    logger.warning("Could not get results",t);
   }
   try {
-    List<Future> futures=queryOnPartitions(mapName,predicate,nodeEngine,partitionIds);
+    List<Future<QueryResult>> futures=queryOnPartitions(mapName,predicate,partitionIds);
     addResultsOfPredicate(futures,result,partitionIds);
   }
  catch (  Throwable t) {

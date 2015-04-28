@@ -1,11 +1,12 @@
 {
-  MapEntrySetRequest request=new MapEntrySetRequest(name);
-  MapEntrySet result=invoke(request);
+  ClientMessage request=MapEntrySetParameters.encode(name);
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
   Set<Entry<K,V>> entrySet=new HashSet<Entry<K,V>>();
-  Set<Entry<Data,Data>> entries=result.getEntrySet();
-  for (  Entry<Data,Data> dataEntry : entries) {
-    Data keyData=dataEntry.getKey();
-    Data valueData=dataEntry.getValue();
+  int size=resultParameters.keys.size();
+  for (int i=0; i < size; i++) {
+    Data keyData=resultParameters.keys.get(i);
+    Data valueData=resultParameters.values.get(i);
     K key=toObject(keyData);
     V value=toObject(valueData);
     entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));

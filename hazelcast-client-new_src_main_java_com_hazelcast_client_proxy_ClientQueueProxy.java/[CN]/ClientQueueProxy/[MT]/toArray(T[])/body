@@ -1,14 +1,15 @@
 {
-  IteratorRequest request=new IteratorRequest(name);
-  PortableCollection result=invoke(request);
-  Collection<Data> coll=result.getCollection();
-  int size=coll.size();
+  ClientMessage request=QueueIteratorParameters.encode(name);
+  ClientMessage response=invoke(request);
+  DataCollectionResultParameters resultParameters=DataCollectionResultParameters.decode(response);
+  Collection<Data> resultCollection=resultParameters.result;
+  int size=resultCollection.size();
   if (ts.length < size) {
     ts=(T[])java.lang.reflect.Array.newInstance(ts.getClass().getComponentType(),size);
   }
   int i=0;
-  for (  Data data : coll) {
-    ts[i++]=(T)getContext().getSerializationService().toObject(data);
+  for (  Data data : resultCollection) {
+    ts[i++]=(T)toObject(data);
   }
   return ts;
 }
