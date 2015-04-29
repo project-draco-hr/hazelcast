@@ -1,0 +1,40 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  String fourNodeQuorum=randomString();
+  QuorumConfig fourNodeQuorumConfig=new QuorumConfig(fourNodeQuorum,true);
+  fourNodeQuorumConfig.setQuorumFunctionImplementation(new QuorumFunction(){
+    @Override public boolean apply(    Collection<Member> members){
+      return members.size() == 4;
+    }
+  }
+);
+  String threeNodeQuorum=randomString();
+  QuorumConfig threeNodeQuorumConfig=new QuorumConfig(threeNodeQuorum,true);
+  threeNodeQuorumConfig.setQuorumFunctionImplementation(new QuorumFunction(){
+    @Override public boolean apply(    Collection<Member> members){
+      return members.size() == 3;
+    }
+  }
+);
+  MapConfig fourNodeMapConfig=new MapConfig("fourNode");
+  fourNodeMapConfig.setQuorumName(fourNodeQuorum);
+  MapConfig threeNodeMapConfig=new MapConfig("threeNode");
+  threeNodeMapConfig.setQuorumName(threeNodeQuorum);
+  Config config=new Config();
+  config.addQuorumConfig(threeNodeQuorumConfig);
+  config.addQuorumConfig(fourNodeQuorumConfig);
+  config.addMapConfig(fourNodeMapConfig);
+  config.addMapConfig(threeNodeMapConfig);
+  HazelcastInstance h1=factory.newHazelcastInstance(config);
+  HazelcastInstance h2=factory.newHazelcastInstance(config);
+  HazelcastInstance h3=factory.newHazelcastInstance(config);
+  IMap<Object,Object> fourNode=h1.getMap("fourNode");
+  IMap<Object,Object> threeNode=h1.getMap("threeNode");
+  threeNode.put(generateKeyOwnedBy(h1),"bar");
+  try {
+    fourNode.put(generateKeyOwnedBy(h1),"bar");
+    fail();
+  }
+ catch (  Exception e) {
+  }
+}
