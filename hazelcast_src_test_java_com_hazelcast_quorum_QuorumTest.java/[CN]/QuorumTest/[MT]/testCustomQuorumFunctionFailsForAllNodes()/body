@@ -1,0 +1,23 @@
+{
+  Config config=new Config();
+  QuorumConfig quorumConfig=new QuorumConfig();
+  String quorumName=randomString();
+  quorumConfig.setName(quorumName);
+  quorumConfig.setEnabled(true);
+  quorumConfig.setQuorumFunctionImplementation(new QuorumFunction(){
+    @Override public boolean apply(    Collection<Member> members){
+      return false;
+    }
+  }
+);
+  config.addQuorumConfig(quorumConfig);
+  String mapName=randomMapName();
+  MapConfig mapConfig=new MapConfig(mapName);
+  mapConfig.setQuorumName(quorumName);
+  config.addMapConfig(mapConfig);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance h1=factory.newHazelcastInstance(config);
+  HazelcastInstance h2=factory.newHazelcastInstance(config);
+  IMap<Object,Object> map2=h2.getMap(mapName);
+  map2.put("1","1");
+}

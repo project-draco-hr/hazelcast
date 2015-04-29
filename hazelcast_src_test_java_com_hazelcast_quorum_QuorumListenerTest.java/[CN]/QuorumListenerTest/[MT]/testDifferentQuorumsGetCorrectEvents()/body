@@ -1,0 +1,50 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  final CountDownLatch quorumFailureLatch=new CountDownLatch(2);
+  String fourNodeQuorumName="fourNode";
+  QuorumConfig fourNodeQuorumConfig=new QuorumConfig(fourNodeQuorumName,true,4);
+  fourNodeQuorumConfig.addListenerConfig(new QuorumListenerConfig(new QuorumListener(){
+    public void onChange(    QuorumEvent quorumEvent){
+      if (!quorumEvent.isPresent()) {
+        quorumFailureLatch.countDown();
+      }
+    }
+  }
+));
+  String threeNodeQuorumName="threeNode";
+  QuorumConfig threeNodeQuorumConfig=new QuorumConfig(threeNodeQuorumName,true,3);
+  threeNodeQuorumConfig.addListenerConfig(new QuorumListenerConfig(new QuorumListener(){
+    public void onChange(    QuorumEvent quorumEvent){
+      if (!quorumEvent.isPresent()) {
+        quorumFailureLatch.countDown();
+      }
+    }
+  }
+));
+  MapConfig fourNodeMapConfig=new MapConfig("fourNode");
+  fourNodeMapConfig.setQuorumName(fourNodeQuorumName);
+  MapConfig threeNodeMapConfig=new MapConfig("threeNode");
+  threeNodeMapConfig.setQuorumName(threeNodeQuorumName);
+  Config config=new Config();
+  config.addMapConfig(fourNodeMapConfig);
+  config.addQuorumConfig(fourNodeQuorumConfig);
+  config.addMapConfig(threeNodeMapConfig);
+  config.addQuorumConfig(threeNodeQuorumConfig);
+  HazelcastInstance h1=factory.newHazelcastInstance(config);
+  HazelcastInstance h2=factory.newHazelcastInstance(config);
+  IMap<Object,Object> fourNode=h1.getMap("fourNode");
+  IMap<Object,Object> threeNode=h1.getMap("threeNode");
+  try {
+    threeNode.put(generateKeyOwnedBy(h1),"bar");
+    fail();
+  }
+ catch (  Exception e) {
+  }
+  try {
+    fourNode.put(generateKeyOwnedBy(h1),"bar");
+    fail();
+  }
+ catch (  Exception e) {
+  }
+  assertOpenEventually(quorumFailureLatch);
+}
