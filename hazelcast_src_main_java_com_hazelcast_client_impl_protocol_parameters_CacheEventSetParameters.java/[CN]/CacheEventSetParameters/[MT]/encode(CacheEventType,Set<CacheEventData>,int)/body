@@ -1,0 +1,15 @@
+{
+  final int requiredDataSize=calculateDataSize(eventType,events,completionId);
+  ClientMessage clientMessage=ClientMessage.createForEncode(requiredDataSize);
+  clientMessage.setMessageType(TYPE.id());
+  clientMessage.ensureCapacity(requiredDataSize);
+  clientMessage.set(eventType.getType());
+  clientMessage.set(events.size());
+  for (  CacheEventData ced : events) {
+    CacheEventDataCodec.encode(ced,clientMessage);
+  }
+  clientMessage.set(completionId);
+  clientMessage.addFlag(ClientMessage.LISTENER_EVENT_FLAG);
+  clientMessage.updateFrameLength();
+  return clientMessage;
+}

@@ -3,9 +3,14 @@
   final CacheService service=getService(CacheService.SERVICE_NAME);
   CacheEventListener entryListener=new CacheEventListener(){
     @Override public void handleEvent(    Object eventObject){
-      if (endpoint.isAlive()) {
+      if (!endpoint.isAlive()) {
+        return;
+      }
+      if (eventObject instanceof CacheEventSet) {
+        CacheEventSet ces=(CacheEventSet)eventObject;
         Data partitionKey=getPartitionKey(eventObject);
-        endpoint.sendEvent(partitionKey,eventObject,clientMessage.getCorrelationId());
+        final ClientMessage clientMessage=CacheEventSetParameters.encode(ces.getEventType(),ces.getEvents(),ces.getCompletionId());
+        sendClientMessage(partitionKey,clientMessage);
       }
     }
   }

@@ -9,7 +9,8 @@
     CacheProxyUtil.validateConfiguredTypes(cacheConfig,key);
   }
   final Data keyData=toData(key);
-  final Data oldValueData=oldValue != null ? toData(oldValue) : null;
+  final Data oldValueData=oldValue != null ? toData(oldValue) : DefaultData.NULL_DATA;
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
   ClientMessage request;
   if (isGet) {
     request=CacheGetAndRemoveCodec.encodeRequest(nameWithPrefix,keyData);
@@ -19,7 +20,7 @@
   }
   ICompletableFuture future;
   try {
-    future=invoke(request,keyData,withCompletionEvent);
+    future=invoke(request,keyData,completionId);
     invalidateNearCache(keyData);
   }
  catch (  Exception e) {

@@ -9,9 +9,10 @@
     CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,newValue);
   }
   final Data keyData=toData(key);
-  final Data oldValueData=oldValue != null ? toData(oldValue) : null;
-  final Data newValueData=newValue != null ? toData(newValue) : null;
-  final Data expiryPolicyData=toData(expiryPolicy);
+  final Data oldValueData=oldValue != null ? toData(oldValue) : DefaultData.NULL_DATA;
+  final Data newValueData=newValue != null ? toData(newValue) : DefaultData.NULL_DATA;
+  final Data expiryPolicyData=expiryPolicy != null ? toData(expiryPolicy) : DefaultData.NULL_DATA;
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
   ClientMessage request;
   if (isGet) {
     request=CacheGetAndReplaceCodec.encodeRequest(nameWithPrefix,keyData,newValueData,expiryPolicyData);
@@ -21,7 +22,7 @@
   }
   ICompletableFuture future;
   try {
-    future=invoke(request,keyData,withCompletionEvent);
+    future=invoke(request,keyData,completionId);
     invalidateNearCache(keyData);
   }
  catch (  Exception e) {
