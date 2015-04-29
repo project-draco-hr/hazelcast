@@ -8,7 +8,14 @@
   if (ClientMessageType.EXCEPTION.id() == clientMessage.getMessageType()) {
     ExceptionResultParameters exceptionResultParameters=ExceptionResultParameters.decode(clientMessage);
     Class<?> clazz=Class.forName(exceptionResultParameters.className);
-    Throwable exception=(Throwable)clazz.newInstance();
+    Throwable exception;
+    try {
+      Constructor<?> constructor=clazz.getConstructor(new Class[]{String.class});
+      exception=(Throwable)constructor.newInstance(exceptionResultParameters.message);
+    }
+ catch (    Exception e) {
+      exception=(Throwable)clazz.newInstance();
+    }
     future.notifyException(exception);
   }
  else {
