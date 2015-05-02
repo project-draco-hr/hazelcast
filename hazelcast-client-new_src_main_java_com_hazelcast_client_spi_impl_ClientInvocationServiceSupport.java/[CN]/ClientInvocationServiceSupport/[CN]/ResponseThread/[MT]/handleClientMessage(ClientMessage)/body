@@ -7,14 +7,23 @@
   }
   if (ClientMessageType.EXCEPTION.id() == clientMessage.getMessageType()) {
     ExceptionResultParameters exceptionResultParameters=ExceptionResultParameters.decode(clientMessage);
-    Class<?> clazz=Class.forName(exceptionResultParameters.className);
     Throwable exception;
-    try {
-      Constructor<?> constructor=clazz.getConstructor(new Class[]{String.class});
-      exception=(Throwable)constructor.newInstance(exceptionResultParameters.message);
+    boolean hasCause=!exceptionResultParameters.causeClassName.equals("null");
+    if (hasCause) {
+      Class<?> causeClazz=Class.forName(exceptionResultParameters.causeClassName);
+      Constructor<?> causeConstructor=causeClazz.getDeclaredConstructor(new Class[]{String.class});
+      causeConstructor.setAccessible(true);
+      Throwable cause=(Throwable)causeConstructor.newInstance(exceptionResultParameters.message);
+      Class<?> clazz=Class.forName(exceptionResultParameters.className);
+      Constructor<?> constructor=clazz.getDeclaredConstructor(new Class[]{String.class,Throwable.class});
+      constructor.setAccessible(true);
+      exception=(Throwable)constructor.newInstance(exceptionResultParameters.message,cause);
     }
- catch (    Exception e) {
-      exception=(Throwable)clazz.newInstance();
+ else {
+      Class<?> clazz=Class.forName(exceptionResultParameters.className);
+      Constructor<?> constructor=clazz.getDeclaredConstructor(new Class[]{String.class});
+      constructor.setAccessible(true);
+      exception=(Throwable)constructor.newInstance(exceptionResultParameters.message);
     }
     future.notifyException(exception);
   }
