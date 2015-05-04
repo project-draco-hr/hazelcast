@@ -1,30 +1,8 @@
 {
   boolean returnsResponse=op.returnsResponse();
-  Object response=null;
-  if (op instanceof BackupAwareOperation) {
-    BackupAwareOperation backupAwareOp=(BackupAwareOperation)op;
-    int syncBackupCount=0;
-    if (backupAwareOp.shouldBackup()) {
-      syncBackupCount=operationService.operationBackupHandler.backup(backupAwareOp);
-    }
-    if (returnsResponse) {
-      response=new NormalResponse(op.getResponse(),op.getCallId(),syncBackupCount,op.isUrgent());
-    }
-  }
+  int syncBackupCount=sendBackup(op);
   if (!returnsResponse) {
     return;
   }
-  if (response == null) {
-    response=op.getResponse();
-  }
-  OperationResponseHandler responseHandler=op.getOperationResponseHandler();
-  if (responseHandler == null) {
-    throw new IllegalStateException("ResponseHandler should not be null! " + op);
-  }
-  try {
-    responseHandler.sendResponse(op,response);
-  }
- catch (  ResponseAlreadySentException e) {
-    logOperationError(op,e);
-  }
+  sendResponse(op,syncBackupCount);
 }
