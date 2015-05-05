@@ -20,21 +20,15 @@
     }
     return true;
   }
-  lock.lock();
-  try {
-    if (node.isMaster() || target.equals(node.getMasterAddress())) {
-      logger.warning("New join request has been received from an existing endpoint! => " + member + " Removing old member and processing join request...");
-      doRemoveAddress(target,false);
-      Connection existing=node.connectionManager.getConnection(target);
-      if (existing != connection) {
-        node.connectionManager.destroyConnection(existing);
-        node.connectionManager.registerConnection(target,connection);
-      }
-      return false;
+  if (node.isMaster() || target.equals(node.getMasterAddress())) {
+    logger.warning("New join request has been received from an existing endpoint! => " + member + " Removing old member and processing join request...");
+    doRemoveAddress(target,false);
+    Connection existing=node.connectionManager.getConnection(target);
+    if (existing != connection) {
+      node.connectionManager.destroyConnection(existing);
+      node.connectionManager.registerConnection(target,connection);
     }
-  }
-  finally {
-    lock.unlock();
+    return false;
   }
   return true;
 }
