@@ -1,0 +1,14 @@
+{
+  RingbufferConfig ringbufferConfig=config.getRingbufferConfig(ringbuffer.getName());
+  for (int k=0; k < ringbufferConfig.getCapacity() * 2; k++) {
+    ringbuffer.add("foo");
+  }
+  long headSeq=ringbuffer.headSequence();
+  try {
+    ringbuffer.readOne(headSeq - 1);
+    fail();
+  }
+ catch (  StaleSequenceException expected) {
+    assertEquals(headSeq,expected.getHeadSeq());
+  }
+}

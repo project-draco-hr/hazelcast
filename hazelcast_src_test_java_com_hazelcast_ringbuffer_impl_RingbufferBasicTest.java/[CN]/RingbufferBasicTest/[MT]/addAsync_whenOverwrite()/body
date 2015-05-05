@@ -1,0 +1,21 @@
+{
+  RingbufferConfig c=config.getRingbufferConfig(ringbuffer.getName());
+  for (int k=0; k < ringbuffer.capacity(); k++) {
+    ringbuffer.add("old");
+  }
+  for (int iteration=0; iteration < c.getCapacity() * 100; iteration++) {
+    long oldTail=ringbuffer.tailSequence();
+    String item="" + iteration;
+    long sequence=ringbuffer.addAsync(item,OVERWRITE).get();
+    long expectedSequence=oldTail + 1;
+    assertEquals(expectedSequence,sequence);
+    assertEquals(expectedSequence,ringbuffer.tailSequence());
+    if (ringbuffer.tailSequence() < c.getCapacity()) {
+      assertEquals(0,ringbuffer.headSequence());
+    }
+ else {
+      assertEquals(ringbuffer.tailSequence() - c.getCapacity() + 1,ringbuffer.headSequence());
+    }
+    assertEquals(item,ringbuffer.readOne(expectedSequence));
+  }
+}

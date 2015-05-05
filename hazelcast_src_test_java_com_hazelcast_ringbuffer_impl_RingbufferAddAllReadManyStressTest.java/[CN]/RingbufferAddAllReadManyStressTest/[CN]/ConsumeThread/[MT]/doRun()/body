@@ -1,0 +1,18 @@
+{
+  seq=ringbuffer.headSequence() + 1;
+  Random random=new Random();
+  for (; ; ) {
+    int max=max(1,random.nextInt(MAX_BATCH));
+    ReadResultSet<Long> result=ringbuffer.readManyAsync(seq,1,max,null).get();
+    for (    Long item : result) {
+      if (item.equals(Long.MIN_VALUE)) {
+        return;
+      }
+      assertEquals(new Long(seq),item);
+      seq++;
+      if (seq % 100000 == 0) {
+        System.out.println(getName() + " at " + seq);
+      }
+    }
+  }
+}
