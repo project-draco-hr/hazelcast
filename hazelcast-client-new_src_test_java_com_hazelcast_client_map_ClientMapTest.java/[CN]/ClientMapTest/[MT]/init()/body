@@ -2,6 +2,18 @@
   Config config=new Config();
   config.getMapConfig("flushMap").setMapStoreConfig(new MapStoreConfig().setWriteDelaySeconds(1000).setImplementation(flushMapStore));
   config.getMapConfig("putTransientMap").setMapStoreConfig(new MapStoreConfig().setWriteDelaySeconds(1000).setImplementation(transientMapStore));
+  PortableFactory portableFactory=new PortableFactory(){
+    @Override public Portable create(    int classId){
+      if (classId == TestSerializationConstants.NAMED_PORTABLE) {
+        return new NamedPortable();
+      }
+      return null;
+    }
+  }
+;
+  config.getSerializationConfig().addPortableFactory(TestSerializationConstants.PORTABLE_FACTORY_ID,portableFactory);
   server=Hazelcast.newHazelcastInstance(config);
-  client=HazelcastClient.newHazelcastClient(null);
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getSerializationConfig().addPortableFactory(TestSerializationConstants.PORTABLE_FACTORY_ID,portableFactory);
+  client=HazelcastClient.newHazelcastClient(clientConfig);
 }
