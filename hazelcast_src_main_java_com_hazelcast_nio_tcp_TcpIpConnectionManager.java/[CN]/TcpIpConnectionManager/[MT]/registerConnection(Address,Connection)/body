@@ -14,7 +14,11 @@
       tcpConnection.setMonitor(connectionMonitor);
     }
   }
-  connectionsMap.put(remoteEndPoint,connection);
+  ioBalancer.connectionAdded(connection);
+  Connection oldConnection=connectionsMap.put(remoteEndPoint,connection);
+  if (oldConnection != null) {
+    ioBalancer.connectionRemoved(oldConnection);
+  }
   connectionsInProgress.remove(remoteEndPoint);
   ioService.getEventService().executeEventCallback(new StripedRunnable(){
     @Override public void run(){
