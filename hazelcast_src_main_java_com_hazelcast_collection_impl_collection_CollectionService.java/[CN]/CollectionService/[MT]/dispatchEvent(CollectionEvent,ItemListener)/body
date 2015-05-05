@@ -1,0 +1,16 @@
+{
+  final MemberImpl member=nodeEngine.getClusterService().getMember(event.getCaller());
+  ItemEvent itemEvent=new DataAwareItemEvent(event.getName(),event.getEventType(),event.getData(),member,nodeEngine.getSerializationService());
+  if (member == null) {
+    if (logger.isLoggable(Level.INFO)) {
+      logger.info("Dropping event " + itemEvent + " from unknown address:"+ event.getCaller());
+    }
+    return;
+  }
+  if (event.getEventType().equals(ItemEventType.ADDED)) {
+    listener.itemAdded(itemEvent);
+  }
+ else {
+    listener.itemRemoved(itemEvent);
+  }
+}

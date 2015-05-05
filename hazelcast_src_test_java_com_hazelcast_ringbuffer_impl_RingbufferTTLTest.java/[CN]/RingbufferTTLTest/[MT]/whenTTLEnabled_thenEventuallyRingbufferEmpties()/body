@@ -1,0 +1,21 @@
+{
+  int ttl=10;
+  int maximumVisibleTTL=ttl + 2;
+  setup(new RingbufferConfig("foo").setTimeToLiveSeconds(ttl));
+  for (int k=0; k < ringbuffer.capacity(); k++) {
+    ringbuffer.add("item" + k);
+  }
+  final long tail=ringbuffer.tailSequence();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(tail,ringbuffer.tailSequence());
+      assertEquals(tail + 1,ringbuffer.headSequence());
+      assertEquals(0,ringbuffer.size());
+      assertEquals(ringbuffer.capacity(),ringbuffer.remainingCapacity());
+    }
+  }
+,maximumVisibleTTL);
+  for (int k=0; k < ringbuffer.capacity(); k++) {
+    assertNull(ringbufferContainer.ringItems[k]);
+  }
+}

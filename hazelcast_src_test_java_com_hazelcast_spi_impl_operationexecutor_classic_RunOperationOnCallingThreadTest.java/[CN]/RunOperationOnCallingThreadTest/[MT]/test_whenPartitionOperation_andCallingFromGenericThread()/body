@@ -1,0 +1,18 @@
+{
+  initExecutor();
+  final DummyPartitionOperation partitionOperation=new DummyPartitionOperation();
+  PartitionSpecificCallable task=new PartitionSpecificCallable(Operation.GENERIC_PARTITION_ID){
+    @Override public Object call(){
+      try {
+        executor.runOnCallingThread(partitionOperation);
+        return Boolean.FALSE;
+      }
+ catch (      IllegalThreadStateException e) {
+        return Boolean.TRUE;
+      }
+    }
+  }
+;
+  executor.execute(task);
+  assertEqualsEventually(task,Boolean.TRUE);
+}

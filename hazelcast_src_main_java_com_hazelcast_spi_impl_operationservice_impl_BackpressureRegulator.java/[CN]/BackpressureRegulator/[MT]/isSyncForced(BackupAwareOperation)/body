@@ -1,0 +1,24 @@
+{
+  if (disabled) {
+    return false;
+  }
+  if (backupAwareOp.getPartitionId() < 0) {
+    throw new IllegalArgumentException("A BackupAwareOperation can't have a negative partitionId, " + backupAwareOp);
+  }
+  if (backupAwareOp.getAsyncBackupCount() == 0) {
+    return false;
+  }
+  Operation op=(Operation)backupAwareOp;
+  if (op.isUrgent()) {
+    return false;
+  }
+  int index=op.getPartitionId() * INTS_PER_CACHE_LINE;
+  int oldSyncDelay=syncDelays[index];
+  if (oldSyncDelay == 1) {
+    int newSyncDelay=randomSyncDelay();
+    syncDelays[index]=newSyncDelay;
+    return true;
+  }
+  syncDelays[index]=oldSyncDelay - 1;
+  return false;
+}

@@ -1,0 +1,19 @@
+{
+  final List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp(1);
+  final HazelcastInstance instance=instances.get(0);
+  final EventCollectingMapPartitionLostListener listener=new EventCollectingMapPartitionLostListener(0);
+  instance.getMap(getIthMapName(0)).addPartitionLostListener(listener);
+  instance.getMap(getIthMapName(0)).addEntryListener(mock(EntryAddedListener.class),true);
+  final InternalPartitionLostEvent internalEvent=new InternalPartitionLostEvent(1,0,null);
+  final MapService mapService=getNode(instance).getNodeEngine().getService(MapService.SERVICE_NAME);
+  mapService.onPartitionLost(internalEvent);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final List<MapPartitionLostEvent> events=listener.getEvents();
+      assertEquals(1,events.size());
+      final MapPartitionLostEvent event=events.get(0);
+      assertEquals(internalEvent.getPartitionId(),event.getPartitionId());
+    }
+  }
+);
+}

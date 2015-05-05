@@ -1,21 +1,22 @@
 {
   checkTransactionState();
-  TxnValueWrapper wrapper=txMap.get(key);
-  boolean haveTxnPast=wrapper != null;
   MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  Data keyData=mapServiceContext.toData(key,partitionStrategy);
+  TxnValueWrapper wrapper=txMap.get(keyData);
+  boolean haveTxnPast=wrapper != null;
   if (haveTxnPast) {
     if (wrapper.type != TxnValueWrapper.Type.REMOVED) {
       return wrapper.value;
     }
-    putInternal(mapServiceContext.toData(key,partitionStrategy),mapServiceContext.toData(value));
-    txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
+    putInternal(keyData,mapServiceContext.toData(value));
+    txMap.put(keyData,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
     return null;
   }
  else {
-    Data oldValue=putIfAbsentInternal(mapServiceContext.toData(key,partitionStrategy),mapServiceContext.toData(value));
+    Data oldValue=putIfAbsentInternal(keyData,mapServiceContext.toData(value));
     if (oldValue == null) {
-      txMap.put(key,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
+      txMap.put(keyData,new TxnValueWrapper(value,TxnValueWrapper.Type.NEW));
     }
     return mapServiceContext.toObject(oldValue);
   }

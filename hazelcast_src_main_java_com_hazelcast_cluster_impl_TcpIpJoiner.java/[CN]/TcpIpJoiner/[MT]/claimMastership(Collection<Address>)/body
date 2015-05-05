@@ -1,8 +1,15 @@
 {
-  logger.finest("Claiming myself as master node!");
+  if (logger.isFinestEnabled()) {
+    Set<Address> votingEndpoints=new HashSet<Address>(possibleAddresses);
+    votingEndpoints.removeAll(blacklistedAddresses.keySet());
+    logger.finest("Claiming myself as master node! Asking to endpoints: " + votingEndpoints);
+  }
   claimingMaster=true;
   Collection<Future<Boolean>> responses=new LinkedList<Future<Boolean>>();
   for (  Address address : possibleAddresses) {
+    if (isBlacklisted(address)) {
+      continue;
+    }
     if (node.getConnectionManager().getConnection(address) != null) {
       Future future=node.nodeEngine.getOperationService().createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new MasterClaimOperation(),address).setTryCount(1).invoke();
       responses.add(future);

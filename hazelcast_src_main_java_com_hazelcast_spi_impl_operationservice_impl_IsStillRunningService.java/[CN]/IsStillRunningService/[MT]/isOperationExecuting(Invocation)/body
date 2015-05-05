@@ -1,0 +1,15 @@
+{
+  Boolean executing=Boolean.FALSE;
+  try {
+    Operation isStillExecuting=createCheckOperation(invocation);
+    Invocation inv=new TargetInvocation(invocation.nodeEngine,invocation.serviceName,isStillExecuting,invocation.getTarget(),0,0,IS_EXECUTING_CALL_TIMEOUT,null,true);
+    Future f=inv.invoke();
+    invocation.logger.warning("Asking if operation execution has been started: " + toString());
+    executing=(Boolean)invocation.nodeEngine.toObject(f.get(IS_EXECUTING_CALL_TIMEOUT,TimeUnit.MILLISECONDS));
+  }
+ catch (  Exception e) {
+    invocation.logger.warning("While asking 'is-executing': " + toString(),e);
+  }
+  invocation.logger.warning("'is-executing': " + executing + " -> "+ toString());
+  return executing;
+}

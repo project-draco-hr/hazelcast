@@ -1,0 +1,34 @@
+{
+  final HazelcastInstance hazelcastInstance=Hazelcast.newHazelcastInstance();
+  final CountDownLatch clientStartedDoingRequests=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    @Override public void run(){
+      try {
+        clientStartedDoingRequests.await();
+      }
+ catch (      InterruptedException ignored) {
+      }
+      hazelcastInstance.shutdown();
+      Hazelcast.newHazelcastInstance();
+    }
+  }
+).start();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setRedoOperation(true);
+  clientConfig.getNetworkConfig().setConnectionAttemptLimit(Integer.MAX_VALUE);
+  clientConfig.setProperty(ClientProperties.PROP_INVOCATION_TIMEOUT_SECONDS,String.valueOf(Integer.MAX_VALUE));
+  HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  IMap<Object,Object> map=client.getMap(randomMapName());
+  int mapSize=1000;
+  for (int i=0; i < mapSize; i++) {
+    if (i == mapSize / 4) {
+      clientStartedDoingRequests.countDown();
+    }
+    try {
+      map.put(i,i);
+    }
+ catch (    Exception e) {
+      assertTrue("Requests should not throw exception with this configuration. Last put key: " + i,false);
+    }
+  }
+}

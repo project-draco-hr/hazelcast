@@ -1,0 +1,15 @@
+{
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  int sourcePartitionId=partitionService.getPartitionId(sourceKey);
+  OperationServiceImpl operationService=(OperationServiceImpl)nodeEngine.getOperationService();
+  int threadCount=operationService.operationExecutor.getPartitionOperationThreadCount();
+  int sourceThreadId=sourcePartitionId % threadCount;
+  while (true) {
+    Data key=nodeEngine.toData(randomString());
+    int partitionId=partitionService.getPartitionId(key);
+    int threadId=partitionId % threadCount;
+    if (sourcePartitionId != partitionId && sourceThreadId == threadId) {
+      return key;
+    }
+  }
+}

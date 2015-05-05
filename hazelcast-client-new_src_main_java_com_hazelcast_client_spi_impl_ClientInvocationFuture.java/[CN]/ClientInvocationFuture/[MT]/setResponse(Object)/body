@@ -1,0 +1,25 @@
+{
+synchronized (this) {
+    if (this.response != null && handler == null) {
+      LOGGER.warning("The Future.set() method can only be called once. Request: " + clientMessage + ", current response: "+ this.response+ ", new response: "+ response);
+      return;
+    }
+    if (handler != null && !(response instanceof Throwable)) {
+      handler.onListenerRegister();
+    }
+    if (this.response != null && !(response instanceof Throwable)) {
+      AddListenerResultParameters resultParameters=AddListenerResultParameters.decode((ClientMessage)this.response);
+      String uuid=resultParameters.registrationId;
+      AddListenerResultParameters newResultParameters=AddListenerResultParameters.decode((ClientMessage)response);
+      String alias=serializationService.toObject(newResultParameters.registrationId);
+      clientListenerService.reRegisterListener(uuid,alias,clientMessage.getCorrelationId());
+      return;
+    }
+    this.response=response;
+    this.notifyAll();
+    for (    ExecutionCallbackNode node : callbackNodeList) {
+      runAsynchronous(node.callback,node.executor,node.deserialized);
+    }
+    callbackNodeList.clear();
+  }
+}

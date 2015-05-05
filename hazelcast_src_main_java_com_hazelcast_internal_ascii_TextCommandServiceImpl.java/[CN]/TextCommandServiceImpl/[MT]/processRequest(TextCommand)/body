@@ -1,0 +1,14 @@
+{
+  if (responseThreadRunnable == null) {
+synchronized (this) {
+      if (responseThreadRunnable == null) {
+        responseThreadRunnable=new ResponseThreadRunnable();
+        HazelcastThreadGroup hazelcastThreadGroup=node.getHazelcastThreadGroup();
+        String threadNamePrefix=hazelcastThreadGroup.getThreadNamePrefix("ascii.service.response");
+        Thread thread=new Thread(hazelcastThreadGroup.getInternalThreadGroup(),responseThreadRunnable,threadNamePrefix);
+        thread.start();
+      }
+    }
+  }
+  node.nodeEngine.getExecutionService().execute("hz:text",new CommandExecutor(command));
+}

@@ -1,0 +1,16 @@
+{
+  final HazelcastInstance hz=createHazelcastInstance();
+  NodeEngineImpl nodeEngine=getNode(hz).nodeEngine;
+  WaitNotifyServiceImpl waitNotifyService=(WaitNotifyServiceImpl)nodeEngine.getWaitNotifyService();
+  final int keyCount=1000;
+  int nThreads=4;
+  CountDownLatch latch=new CountDownLatch(nThreads);
+  for (int i=0; i < nThreads; i++) {
+    new Thread(new LockWaitAndUnlockTask(hz,keyCount,latch)).start();
+  }
+  while (latch.getCount() > 0) {
+    LockSupport.parkNanos(1);
+    int awaitQueueCount=waitNotifyService.getAwaitQueueCount();
+    Assert.assertTrue("Await queue count should be smaller than total number of threads: " + awaitQueueCount + " VS "+ nThreads,awaitQueueCount < nThreads);
+  }
+}

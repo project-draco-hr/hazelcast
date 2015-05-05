@@ -1,0 +1,16 @@
+{
+  final String mapName=randomMapName();
+  final Config config=new Config();
+  config.getMapConfig(mapName).setBackupCount(0);
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final EventCollectingMapPartitionLostListener listener=new EventCollectingMapPartitionLostListener(0);
+  client.getMap(mapName).addPartitionLostListener(listener);
+  assertRegistrationsSizeEventually(instance1,mapName,1);
+  assertRegistrationsSizeEventually(instance2,mapName,1);
+  final MapService mapService=getNode(instance2).getNodeEngine().getService(SERVICE_NAME);
+  final int partitionId=5;
+  mapService.onPartitionLost(new InternalPartitionLostEvent(partitionId,0,null));
+  assertMapPartitionLostEventEventually(listener,partitionId);
+}

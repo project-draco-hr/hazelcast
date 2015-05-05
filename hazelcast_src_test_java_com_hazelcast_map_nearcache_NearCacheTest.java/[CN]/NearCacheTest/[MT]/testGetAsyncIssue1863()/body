@@ -1,5 +1,7 @@
 {
-  final String mapName="testGetAsyncWithNearCacheIssue1863";
+  int mapSize=1000;
+  int expectedNearCacheHits=1000;
+  String mapName="testGetAsyncWithNearCacheIssue1863";
   Config config=new Config();
   final NearCacheConfig nearCacheConfig=new NearCacheConfig();
   nearCacheConfig.setCacheLocalEntries(true);
@@ -9,15 +11,14 @@
   HazelcastInstance instance2=hazelcastInstanceFactory.newHazelcastInstance(config);
   IMap<Integer,Integer> map=instance1.getMap(mapName);
   HashSet keys=new HashSet();
-  int size=1000;
-  for (int i=0; i < size; i++) {
+  for (int i=0; i < mapSize; i++) {
     map.get(i);
     keys.add(i);
   }
-  for (int i=0; i < size; i++) {
+  for (int i=0; i < mapSize; i++) {
     final Future<Integer> async=map.getAsync(i);
     assertNull(async.get());
   }
   NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
-  assertEquals(size,stats.getHits());
+  assertEquals(String.format("Near cache hits should be %d but were %d",expectedNearCacheHits,stats.getHits()),expectedNearCacheHits,stats.getHits());
 }

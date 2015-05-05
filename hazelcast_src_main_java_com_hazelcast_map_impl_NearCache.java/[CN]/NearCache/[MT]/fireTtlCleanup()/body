@@ -4,14 +4,14 @@
   }
   if (canCleanUp.compareAndSet(true,false)) {
     try {
-      nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
+      nodeEngine.getExecutionService().execute(NEAR_CACHE_EXECUTOR_NAME,new Runnable(){
         public void run(){
           try {
             lastCleanup=Clock.currentTimeMillis();
-            for (            Map.Entry<Data,CacheRecord> entry : cache.entrySet()) {
-              if (entry.getValue().expired()) {
+            for (            Map.Entry<Data,NearCacheRecord> entry : cache.entrySet()) {
+              if (entry.getValue().isExpired(maxIdleMillis,timeToLiveMillis)) {
                 final Data key=entry.getKey();
-                final CacheRecord record=cache.remove(key);
+                final NearCacheRecord record=cache.remove(key);
                 if (record != null) {
                   updateSizeEstimator(-calculateCost(record));
                 }

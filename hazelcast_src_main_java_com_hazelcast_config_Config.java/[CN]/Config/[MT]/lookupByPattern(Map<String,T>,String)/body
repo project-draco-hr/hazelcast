@@ -1,13 +1,14 @@
 {
-  T t=map.get(name);
-  if (t == null) {
-    for (    Map.Entry<String,T> entry : map.entrySet()) {
-      String pattern=entry.getKey();
-      T value=entry.getValue();
-      if (nameMatches(name,pattern)) {
-        return value;
-      }
-    }
+  T candidate=configPatterns.get(itemName);
+  if (candidate != null) {
+    return candidate;
   }
-  return t;
+  String configPatternKey=configPatternMatcher.matches(configPatterns.keySet(),itemName);
+  if (configPatternKey != null) {
+    return configPatterns.get(configPatternKey);
+  }
+  if (!"default".equals(itemName) && !itemName.startsWith("hz:")) {
+    LOGGER.finest("No configuration found for " + itemName + ", using default config!");
+  }
+  return null;
 }

@@ -1,0 +1,17 @@
+{
+  final IMap map=client.getMap(randomMapName(NEAR_CACHE_WITH_TTL));
+  final int size=100;
+  populateNearCache(map,size);
+  NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
+  assertEquals(size,stats.getOwnedEntryCount());
+  sleepSeconds(MAX_TTL_SECONDS + 1);
+  map.put(0,0);
+  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
+      long ownedEntryCount=stats.getOwnedEntryCount();
+      assertTrue(ownedEntryCount < size);
+    }
+  }
+);
+}

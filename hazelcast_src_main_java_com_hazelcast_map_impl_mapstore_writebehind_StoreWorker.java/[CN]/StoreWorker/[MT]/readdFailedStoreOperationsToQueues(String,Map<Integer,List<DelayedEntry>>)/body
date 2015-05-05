@@ -1,0 +1,18 @@
+{
+  if (failuresPerPartition.isEmpty()) {
+    return;
+  }
+  for (  Map.Entry<Integer,List<DelayedEntry>> entry : failuresPerPartition.entrySet()) {
+    final Integer partitionId=entry.getKey();
+    final List<DelayedEntry> failures=failuresPerPartition.get(partitionId);
+    if (isEmpty(failures)) {
+      continue;
+    }
+    final RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
+    if (recordStore == null) {
+      continue;
+    }
+    final WriteBehindQueue<DelayedEntry> queue=getWriteBehindQueue(recordStore);
+    queue.addFirst(failures);
+  }
+}

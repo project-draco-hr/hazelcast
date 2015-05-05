@@ -1,0 +1,20 @@
+{
+  final DistributedObjectFuture proxyFuture=proxies.remove(name);
+  if (proxyFuture == null) {
+    return;
+  }
+  DistributedObject proxy;
+  try {
+    proxy=proxyFuture.get();
+  }
+ catch (  Throwable t) {
+    proxyService.logger.warning("Cannot destroy proxy [" + serviceName + ":"+ name+ "], since its creation is failed with "+ t.getClass().getName()+ ": "+ t.getMessage());
+    return;
+  }
+  InternalEventService eventService=proxyService.nodeEngine.getEventService();
+  ProxyEventProcessor callback=new ProxyEventProcessor(proxyService.listeners.values(),DESTROYED,serviceName,proxy);
+  eventService.executeEventCallback(callback);
+  if (publishEvent) {
+    publish(new DistributedObjectEventPacket(DESTROYED,serviceName,name));
+  }
+}

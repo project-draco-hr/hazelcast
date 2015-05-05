@@ -1,0 +1,31 @@
+{
+  if (invocations.isEmpty()) {
+    return;
+  }
+  int backupTimeouts=0;
+  int invocationTimeouts=0;
+  for (  Invocation invocation : invocations.values()) {
+    if (shutdown) {
+      return;
+    }
+    try {
+      if (invocation.checkInvocationTimeout()) {
+        invocationTimeouts++;
+      }
+    }
+ catch (    Throwable t) {
+      inspectOutputMemoryError(t);
+      logger.severe("Failed to handle operation timeout of invocation:" + invocation,t);
+    }
+    try {
+      if (invocation.checkBackupTimeout(backupTimeoutMillis)) {
+        backupTimeouts++;
+      }
+    }
+ catch (    Throwable t) {
+      inspectOutputMemoryError(t);
+      logger.severe("Failed to handle backup timeout of invocation:" + invocation,t);
+    }
+  }
+  log(backupTimeouts,invocationTimeouts);
+}

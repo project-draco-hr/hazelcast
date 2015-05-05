@@ -1,0 +1,20 @@
+{
+  final String mapName=randomString();
+  IMap map=client.getMap(mapName);
+  final SampleObjects.Employee emp1=new SampleObjects.Employee("abc-123-xvz",34,true,10D);
+  final SampleObjects.Employee emp2=new SampleObjects.Employee("abc-123-xvz",20,true,10D);
+  map.put(emp1,emp1);
+  final TransactionContext context=client.newTransactionContext();
+  context.beginTransaction();
+  final TransactionalMap txMap=context.getMap(mapName);
+  assertNull(txMap.put(emp2,emp2));
+  assertEquals(2,txMap.size());
+  assertEquals(2,txMap.keySet().size());
+  assertEquals(0,txMap.keySet(new SqlPredicate("age = 10")).size());
+  assertEquals(0,txMap.values(new SqlPredicate("age = 10")).size());
+  assertEquals(2,txMap.keySet(new SqlPredicate("age >= 10")).size());
+  assertEquals(2,txMap.values(new SqlPredicate("age >= 10")).size());
+  context.commitTransaction();
+  assertEquals(2,map.size());
+  assertEquals(2,map.values().size());
+}

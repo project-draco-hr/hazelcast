@@ -1,0 +1,16 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  final InternalPartitionService partitionService=getService();
+  final PartitionLostListener listener=new PartitionLostListener(){
+    @Override public void partitionLost(    PartitionLostEvent event){
+      if (endpoint.isAlive()) {
+        final PortablePartitionLostEvent portableEvent=new PortablePartitionLostEvent(event.getPartitionId(),event.getLostBackupCount(),event.getEventSource());
+        endpoint.sendEvent(null,portableEvent,getCallId());
+      }
+    }
+  }
+;
+  final String registrationId=partitionService.addPartitionLostListener(listener);
+  endpoint.setListenerRegistration(SERVICE_NAME,PARTITION_LOST_EVENT_TOPIC,registrationId);
+  return registrationId;
+}

@@ -1,4 +1,5 @@
 {
+  eventCount++;
   lastHandle=Clock.currentTimeMillis();
   if (!connection.isAlive()) {
     return;
@@ -7,21 +8,14 @@
     logger.log(Level.WARNING,"SocketWriter is not set, creating SocketWriter with CLUSTER protocol!");
     createWriter(Protocols.CLUSTER);
   }
-  if (lastWritable == null) {
-    lastWritable=poll();
-    if (lastWritable == null && buffer.position() == 0) {
-      ready=true;
-      return;
-    }
-  }
   try {
-    writeBuffer();
+    fillOutputBuffer();
+    if (dirtyOutputBuffer()) {
+      writeOutputBufferToSocket();
+    }
   }
  catch (  Throwable t) {
     logger.severe("Fatal Error at WriteHandler for endPoint: " + connection.getEndPoint(),t);
   }
- finally {
-    ready=false;
-    registerWrite();
-  }
+  unschedule();
 }

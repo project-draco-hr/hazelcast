@@ -1,0 +1,20 @@
+{
+  long startSequence=ringbuffer.tailSequence() + 1;
+  IFunction<String,Boolean> filter=new IFunction<String,Boolean>(){
+    @Override public Boolean apply(    String input){
+      return input.startsWith("good");
+    }
+  }
+;
+  ReadManyOperation op=new ReadManyOperation(ringbuffer.getName(),startSequence,3,3,filter);
+  op.setNodeEngine(nodeEngine);
+  ringbuffer.add("bad1");
+  ringbuffer.add("good1");
+  ringbuffer.add("bad2");
+  ringbuffer.add("good2");
+  ringbuffer.add("bad3");
+  ringbuffer.add("good3");
+  assertFalse(op.shouldWait());
+  assertEquals(startSequence + 6,op.sequence);
+  assertEquals(asList("good1","good2","good3"),op.getResponse());
+}

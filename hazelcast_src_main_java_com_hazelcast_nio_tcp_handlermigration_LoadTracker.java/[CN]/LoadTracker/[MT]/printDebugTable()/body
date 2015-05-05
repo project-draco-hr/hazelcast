@@ -1,0 +1,29 @@
+{
+  if (!log.isFinestEnabled()) {
+    return;
+  }
+  IOSelector minSelector=imbalance.destinationSelector;
+  IOSelector maxSelector=imbalance.sourceSelector;
+  if (minSelector == null || maxSelector == null) {
+    return;
+  }
+  StringBuilder sb=new StringBuilder(getLineSeperator()).append("------------").append(getLineSeperator());
+  Long eventCountPerSelector=selectorEvents.get(minSelector);
+  sb.append("Min Selector ").append(minSelector).append(" received ").append(eventCountPerSelector).append(" events. ");
+  sb.append("It contains following handlers: ").append(getLineSeperator());
+  appendSelectorInfo(minSelector,selectorToHandlers,sb);
+  eventCountPerSelector=selectorEvents.get(maxSelector);
+  sb.append("Max Selector ").append(maxSelector).append(" received ").append(eventCountPerSelector).append(" events. ");
+  sb.append("It contains following handlers: ").append(getLineSeperator());
+  appendSelectorInfo(maxSelector,selectorToHandlers,sb);
+  sb.append("Other Selectors: ").append(getLineSeperator());
+  for (  AbstractIOSelector selector : selectors) {
+    if (!selector.equals(minSelector) && !selector.equals(maxSelector)) {
+      eventCountPerSelector=selectorEvents.get(selector);
+      sb.append("Selector ").append(selector).append(" contains ").append(eventCountPerSelector).append(" and has these handlers: ").append(getLineSeperator());
+      appendSelectorInfo(selector,selectorToHandlers,sb);
+    }
+  }
+  sb.append("------------").append(getLineSeperator());
+  log.finest(sb.toString());
+}

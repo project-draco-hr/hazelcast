@@ -1,6 +1,18 @@
 {
   try {
-    final Map<Integer,Object> results=getNodeEngine().getOperationService().invokeOnAllPartitions(getServiceName(),operationFactory);
+    OperationService operationService=getNodeEngine().getOperationService();
+    OperationFactory operationFactory;
+    InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+    Map<Address,List<Integer>> memberPartitionsMap=partitionService.getMemberPartitionsMap();
+    Map<Integer,Object> results=new HashMap<Integer,Object>();
+    for (    Entry<Address,List<Integer>> memberPartitions : memberPartitionsMap.entrySet()) {
+      Set<Integer> partitions=new HashSet<Integer>(memberPartitions.getValue());
+      Set<Data> ownerKeys=filterOwnerKeys(partitionService,partitions);
+      operationFactory=operationProvider.createLoadAllOperationFactory(ownerKeys,replaceExistingValues);
+      Map<Integer,Object> memberResults;
+      memberResults=operationService.invokeOnPartitions(getServiceName(),operationFactory,partitions);
+      results.putAll(memberResults);
+    }
     validateResults(results);
     if (completionListener != null) {
       completionListener.onCompletion();

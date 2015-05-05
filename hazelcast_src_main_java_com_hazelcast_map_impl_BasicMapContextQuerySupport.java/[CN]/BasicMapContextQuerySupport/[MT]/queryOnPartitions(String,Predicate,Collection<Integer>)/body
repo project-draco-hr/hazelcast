@@ -1,0 +1,19 @@
+{
+  if (partitionIds == null || partitionIds.isEmpty()) {
+    return Collections.emptyList();
+  }
+  OperationService operationService=nodeEngine.getOperationService();
+  List<Future<QueryResult>> futures=new ArrayList<Future<QueryResult>>(partitionIds.size());
+  for (  Integer partitionId : partitionIds) {
+    QueryPartitionOperation queryPartitionOperation=new QueryPartitionOperation(mapName,predicate);
+    queryPartitionOperation.setPartitionId(partitionId);
+    try {
+      Future<QueryResult> future=operationService.invokeOnPartition(MapService.SERVICE_NAME,queryPartitionOperation,partitionId);
+      futures.add(future);
+    }
+ catch (    Throwable t) {
+      throw ExceptionUtil.rethrow(t);
+    }
+  }
+  return futures;
+}

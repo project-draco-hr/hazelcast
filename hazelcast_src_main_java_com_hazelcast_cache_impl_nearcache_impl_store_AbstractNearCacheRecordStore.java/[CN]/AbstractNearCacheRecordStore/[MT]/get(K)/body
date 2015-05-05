@@ -1,0 +1,27 @@
+{
+  checkAvailable();
+  R record=null;
+  V value=null;
+  try {
+    record=getRecord(key);
+    if (record != null) {
+      if (isRecordExpired(record)) {
+        remove(key);
+        return null;
+      }
+      onRecordAccess(record);
+      nearCacheStats.incrementHits();
+      value=recordToValue(record);
+      onGet(key,value,record);
+      return value;
+    }
+ else {
+      nearCacheStats.incrementMisses();
+      return null;
+    }
+  }
+ catch (  Throwable error) {
+    onGetError(key,value,record,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+}

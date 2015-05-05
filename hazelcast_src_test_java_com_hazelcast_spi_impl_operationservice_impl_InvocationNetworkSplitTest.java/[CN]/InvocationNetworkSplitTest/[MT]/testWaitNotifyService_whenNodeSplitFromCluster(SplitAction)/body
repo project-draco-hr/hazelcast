@@ -1,0 +1,38 @@
+{
+  Config config=new Config();
+  config.getGroupConfig().setName(generateRandomString(10));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(5);
+  HazelcastInstance hz1=factory.newHazelcastInstance(config);
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  HazelcastInstance hz3=factory.newHazelcastInstance(config);
+  final Node node1=TestUtil.getNode(hz1);
+  Node node2=TestUtil.getNode(hz2);
+  Node node3=TestUtil.getNode(hz3);
+  warmUpPartitions(hz1,hz2,hz3);
+  int partitionId=getPartitionId(hz3);
+  NodeEngineImpl nodeEngine1=node1.getNodeEngine();
+  OperationService operationService1=nodeEngine1.getOperationService();
+  operationService1.invokeOnPartition("",new AlwaysBlockingOperation(),partitionId);
+  final WaitNotifyServiceImpl waitNotifyService3=(WaitNotifyServiceImpl)node3.getNodeEngine().getWaitNotifyService();
+  assertEqualsEventually(new Callable<Integer>(){
+    @Override public Integer call() throws Exception {
+      return waitNotifyService3.getTotalWaitingOperationCount();
+    }
+  }
+,1);
+  action.run(node1,node2,node3);
+  factory.newHazelcastInstance(config);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      Assert.assertEquals(0,node1.partitionService.getMigrationQueueSize());
+    }
+  }
+);
+  ClusterServiceImpl clusterService3=node3.getClusterService();
+  clusterService3.prepareToMerge(node1.address);
+  clusterService3.merge(node1.address);
+  assertEquals(4,node1.getClusterService().getSize());
+  assertEquals(4,node2.getClusterService().getSize());
+  assertEquals(4,node3.getClusterService().getSize());
+  assertEquals(0,waitNotifyService3.getTotalWaitingOperationCount());
+}

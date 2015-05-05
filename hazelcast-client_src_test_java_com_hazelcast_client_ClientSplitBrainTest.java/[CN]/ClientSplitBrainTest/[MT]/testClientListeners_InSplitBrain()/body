@@ -1,0 +1,42 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_MERGE_FIRST_RUN_DELAY_SECONDS,"5");
+  config.setProperty(GroupProperties.PROP_MERGE_NEXT_RUN_DELAY_SECONDS,"5");
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final ClientConfig clientConfig=new ClientConfig();
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final String mapName=randomMapName();
+  final IMap mapNode1=h1.getMap(mapName);
+  final IMap mapNode2=h2.getMap(mapName);
+  final IMap mapClient=client.getMap(mapName);
+  final AtomicBoolean[] listenerGotEventFlags=new AtomicBoolean[3];
+  for (int i=0; i < 3; i++) {
+    listenerGotEventFlags[i]=new AtomicBoolean();
+  }
+  final CountDownLatch mergedLatch=new CountDownLatch(1);
+  final LifecycleListener mergeListener=createMergeListener(mergedLatch);
+  h1.getLifecycleService().addLifecycleListener(mergeListener);
+  h2.getLifecycleService().addLifecycleListener(mergeListener);
+  final EntryAdapter entryListener1=createEntryListener(listenerGotEventFlags[0]);
+  mapNode1.addEntryListener(entryListener1,true);
+  final EntryAdapter entryListener2=createEntryListener(listenerGotEventFlags[1]);
+  mapNode2.addEntryListener(entryListener2,true);
+  final EntryAdapter entryListener3=createEntryListener(listenerGotEventFlags[2]);
+  mapClient.addEntryListener(entryListener3,true);
+  closeConnectionBetween(h2,h1);
+  assertTrue(mergedLatch.await(30,TimeUnit.SECONDS));
+  assertEquals(2,h1.getCluster().getMembers().size());
+  assertEquals(2,h2.getCluster().getMembers().size());
+  final Thread clientThread=startClientPutThread(mapClient);
+  try {
+    checkEventsEventually(listenerGotEventFlags);
+  }
+ catch (  Throwable t) {
+    throw t;
+  }
+ finally {
+    clientThread.interrupt();
+    clientThread.join();
+  }
+}

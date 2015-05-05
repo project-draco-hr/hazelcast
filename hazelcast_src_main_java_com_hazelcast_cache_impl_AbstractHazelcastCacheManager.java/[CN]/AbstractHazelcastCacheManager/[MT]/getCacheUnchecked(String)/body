@@ -1,14 +1,18 @@
 {
-  final String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
-  ICache<?,?> cache=caches.get(cacheNameWithPrefix);
+  String cacheNameWithPrefix=getCacheNameWithPrefix(cacheName);
+  ICacheInternal<?,?> cache=caches.get(cacheNameWithPrefix);
   if (cache == null) {
-    CacheConfig<K,V> cacheConfig=getCacheConfigFromPartition(cacheNameWithPrefix,cacheName);
+    CacheConfig<K,V> cacheConfig=findConfig(cacheNameWithPrefix,cacheName,true,true);
     if (cacheConfig == null) {
       return null;
     }
-    final ICache<K,V> cacheProxy=createCacheProxy(cacheConfig);
-    final ICache<?,?> iCache=caches.putIfAbsent(cacheNameWithPrefix,cacheProxy);
-    cache=iCache != null ? iCache : cacheProxy;
+    ICacheInternal<K,V> cacheProxy=createCacheProxy(cacheConfig);
+    addCacheConfigIfAbsent(cacheConfig);
+    cache=caches.putIfAbsent(cacheNameWithPrefix,cacheProxy);
+    if (cache == null) {
+      registerListeners(cacheConfig,cacheProxy);
+      cache=cacheProxy;
+    }
   }
   return cache;
 }

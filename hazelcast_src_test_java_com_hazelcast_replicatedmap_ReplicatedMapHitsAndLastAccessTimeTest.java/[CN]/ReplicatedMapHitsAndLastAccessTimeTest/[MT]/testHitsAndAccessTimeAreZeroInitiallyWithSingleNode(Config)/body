@@ -1,0 +1,19 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final ReplicatedMap<Integer,Integer> map=instance1.getReplicatedMap(randomMapName());
+  final int operations=100;
+  execute(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < operations; i++) {
+        map.put(i,i);
+      }
+    }
+  }
+,ADDED,operations,1,map);
+  for (int i=0; i < operations; i++) {
+    final ReplicatedRecord<Integer,Integer> replicatedRecord=getReplicatedRecord(map,i);
+    assertEquals(0,replicatedRecord.getHits());
+    assertEquals(0,replicatedRecord.getLastAccessTime());
+  }
+}

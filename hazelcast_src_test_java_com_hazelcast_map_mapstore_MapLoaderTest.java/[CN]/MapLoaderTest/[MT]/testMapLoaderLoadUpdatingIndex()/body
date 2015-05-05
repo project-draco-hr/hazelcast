@@ -1,0 +1,20 @@
+{
+  final int nodeCount=3;
+  String mapName=randomString();
+  SampleIndexableObjectMapLoader loader=new SampleIndexableObjectMapLoader();
+  Config config=createMapConfig(mapName,loader);
+  NodeBuilder nodeBuilder=new NodeBuilder(nodeCount,config).build();
+  HazelcastInstance node=nodeBuilder.getRandomNode();
+  IMap<Integer,SampleIndexableObject> map=node.getMap(mapName);
+  for (int i=0; i < 10; i++) {
+    map.put(i,new SampleIndexableObject("My-" + i,i));
+  }
+  final SqlPredicate predicate=new SqlPredicate("name='My-5'");
+  assertPredicateResultCorrect(map,predicate);
+  map.destroy();
+  loader.preloadValues=true;
+  node=nodeBuilder.getRandomNode();
+  map=node.getMap(mapName);
+  assertLoadAllKeysCount(loader,nodeCount);
+  assertPredicateResultCorrect(map,predicate);
+}

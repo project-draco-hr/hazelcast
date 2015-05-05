@@ -1,0 +1,44 @@
+{
+  Config c=new Config();
+  JoinConfig join=c.getNetworkConfig().getJoin();
+  join.getTcpIpConfig().addMember("127.0.0.1").setEnabled(true);
+  join.getMulticastConfig().setEnabled(false);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(c);
+  Member m1=h1.getCluster().getLocalMember();
+  m1.setIntAttribute("Test",123);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(c);
+  assertEquals(2,h2.getCluster().getMembers().size());
+  Member member=null;
+  for (  Member m : h2.getCluster().getMembers()) {
+    if (m == h2.getCluster().getLocalMember()) {
+      continue;
+    }
+    member=m;
+  }
+  assertNotNull(member);
+  assertEquals(m1,member);
+  assertNotNull(member.getIntAttribute("Test"));
+  assertEquals(123,(int)member.getIntAttribute("Test"));
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final CountDownLatch latch=new CountDownLatch(3);
+  final MembershipListener listener=new LatchMemberAttributeListener(latch);
+  h2.getCluster().addMembershipListener(listener);
+  h1.getCluster().addMembershipListener(listener);
+  client.getCluster().addMembershipListener(listener);
+  m1.setIntAttribute("Test",321);
+  assertOpenEventually(latch);
+  assertNotNull(member.getIntAttribute("Test"));
+  assertEquals(321,(int)member.getIntAttribute("Test"));
+  boolean found=false;
+  Collection<Member> members=client.getCluster().getMembers();
+  for (  Member m : members) {
+    if (m.equals(m1)) {
+      assertEquals(321,(int)m.getIntAttribute("Test"));
+      found=true;
+    }
+  }
+  assertTrue(found);
+  client.getLifecycleService().shutdown();
+  h1.shutdown();
+  h2.shutdown();
+}

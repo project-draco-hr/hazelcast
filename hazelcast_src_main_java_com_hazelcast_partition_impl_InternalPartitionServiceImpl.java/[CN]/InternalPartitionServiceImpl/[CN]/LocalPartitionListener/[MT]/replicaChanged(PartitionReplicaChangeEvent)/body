@@ -1,23 +1,29 @@
 {
-  int partitionId=event.getPartitionId();
-  int replicaIndex=event.getReplicaIndex();
-  Address newAddress=event.getNewAddress();
+  final int partitionId=event.getPartitionId();
+  final int replicaIndex=event.getReplicaIndex();
+  final Address newAddress=event.getNewAddress();
+  final Address oldAddress=event.getOldAddress();
+  final PartitionReplicaChangeReason reason=event.getReason();
+  final boolean initialAssignment=event.getOldAddress() == null;
   if (replicaIndex > 0) {
-    if (thisAddress.equals(event.getOldAddress())) {
+    if (thisAddress.equals(oldAddress)) {
       clearPartition(partitionId,replicaIndex);
     }
  else     if (thisAddress.equals(newAddress)) {
-      synchronizePartition(partitionId,replicaIndex);
+      synchronizePartition(partitionId,replicaIndex,reason,initialAssignment);
     }
   }
  else {
+    if (!initialAssignment && thisAddress.equals(newAddress)) {
+      promoteFromBackups(partitionId,reason,oldAddress);
+    }
     partitionService.cancelReplicaSync(partitionId);
   }
   Node node=partitionService.node;
   if (replicaIndex == 0 && newAddress == null && node.isActive() && node.joined()) {
     logOwnerOfPartitionIsRemoved(event);
   }
-  if (partitionService.node.isMaster()) {
+  if (node.isMaster()) {
     partitionService.stateVersion.incrementAndGet();
   }
 }

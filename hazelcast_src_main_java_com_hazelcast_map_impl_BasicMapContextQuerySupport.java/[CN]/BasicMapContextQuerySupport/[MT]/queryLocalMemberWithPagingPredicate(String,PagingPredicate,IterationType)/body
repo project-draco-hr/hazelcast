@@ -1,23 +1,25 @@
 {
-  final NodeEngine nodeEngine=this.nodeEngine;
-  final List<Integer> partitionIds=getLocalPartitionIds(nodeEngine);
   pagingPredicate.setIterationType(iterationType);
   setPreviousPagesAnchorsOnLocalMember(mapName,pagingPredicate,iterationType);
-  final Set result=new SortedQueryResultSet(pagingPredicate.getComparator(),iterationType,pagingPredicate.getPageSize());
+  Set result=new SortedQueryResultSet(pagingPredicate.getComparator(),iterationType,pagingPredicate.getPageSize());
+  List<Integer> partitionIds=getLocalPartitionIds();
   try {
-    final Future future=queryOnLocalMember(mapName,pagingPredicate,nodeEngine);
-    final List<Future> futures=Collections.singletonList(future);
+    Future<QueryResult> future=queryOnLocalMember(mapName,pagingPredicate);
+    List<Future<QueryResult>> futures=Collections.singletonList(future);
     addResultsOfPagingPredicate(futures,result,partitionIds);
     if (partitionIds.isEmpty()) {
       PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,((SortedQueryResultSet)result).last());
       return result;
     }
   }
- catch (  Throwable t) {
-    nodeEngine.getLogger(getClass()).warning("Could not get results",t);
+ catch (  QueryResultSizeExceededException e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+catch (  Throwable t) {
+    logger.warning("Could not get results",t);
   }
   try {
-    final List<Future> futures=queryOnPartitions(mapName,pagingPredicate,partitionIds,nodeEngine);
+    List<Future<QueryResult>> futures=queryOnPartitions(mapName,pagingPredicate,partitionIds);
     addResultsOfPagingPredicate(futures,result,partitionIds);
   }
  catch (  Throwable t) {

@@ -1,0 +1,33 @@
+{
+  PagingPredicate pagingPredicate=null;
+  if (predicate instanceof PagingPredicate) {
+    pagingPredicate=(PagingPredicate)predicate;
+    pagingPredicate.setIterationType(IterationType.ENTRY);
+    if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
+      pagingPredicate.previousPage();
+      entrySet(pagingPredicate);
+      pagingPredicate.nextPage();
+    }
+  }
+  ClientMessage request=MapEntriesWithPredicateParameters.encode(name,toData(predicate));
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
+  Set entrySet;
+  if (pagingPredicate == null) {
+    entrySet=new HashSet<Entry<K,V>>(resultParameters.keys.size());
+  }
+ else {
+    entrySet=new SortedQueryResultSet(pagingPredicate.getComparator(),IterationType.ENTRY,pagingPredicate.getPageSize());
+  }
+  for (int i=0; i < resultParameters.keys.size(); i++) {
+    Data keyData=resultParameters.keys.get(i);
+    Data valueData=resultParameters.values.get(i);
+    K key=toObject(keyData);
+    V value=toObject(valueData);
+    entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));
+  }
+  if (pagingPredicate != null) {
+    PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,((SortedQueryResultSet)entrySet).last());
+  }
+  return entrySet;
+}

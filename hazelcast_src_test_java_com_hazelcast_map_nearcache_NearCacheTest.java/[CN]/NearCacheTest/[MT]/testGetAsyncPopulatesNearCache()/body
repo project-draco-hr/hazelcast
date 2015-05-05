@@ -1,22 +1,23 @@
 {
-  final String mapName="testGetAsyncPopulatesNearCache";
+  int mapSize=1000;
+  int expectedNearCacheOwnedEntryCount=400;
+  String mapName="testGetAsyncPopulatesNearCache";
   Config config=new Config();
   config.getMapConfig(mapName).setNearCacheConfig(new NearCacheConfig().setInvalidateOnChange(false));
   final TestHazelcastInstanceFactory hazelcastInstanceFactory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=hazelcastInstanceFactory.newHazelcastInstance(config);
   HazelcastInstance instance2=hazelcastInstanceFactory.newHazelcastInstance(config);
   final IMap<Object,Object> map=instance1.getMap(mapName);
-  int size=1000;
-  for (int i=0; i < size; i++) {
+  for (int i=0; i < mapSize; i++) {
     map.put(i,i);
   }
-  for (int i=0; i < size; i++) {
+  for (int i=0; i < mapSize; i++) {
     Future async=map.getAsync(i);
     async.get();
   }
-  for (int i=0; i < size; i++) {
+  for (int i=0; i < mapSize; i++) {
     map.get(i);
   }
   NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
-  assertTrue("size below 400",400 < stats.getOwnedEntryCount());
+  assertTrue(String.format("Near cache owned entry count should be > %d but was %d",expectedNearCacheOwnedEntryCount,stats.getOwnedEntryCount()),stats.getOwnedEntryCount() > expectedNearCacheOwnedEntryCount);
 }

@@ -1,21 +1,3 @@
 {
-  expiryPolicy=getExpiryPolicy(expiryPolicy);
-  Duration expiryDuration;
-  try {
-    expiryDuration=expiryPolicy.getExpiryForCreation();
-  }
- catch (  Exception e) {
-    expiryDuration=Duration.ETERNAL;
-  }
-  long expiryTime=expiryDuration.getAdjustedTime(now);
-  if (!disableWriteThrough) {
-    writeThroughCache(key,value);
-  }
-  if (!isExpiredAt(expiryTime,now)) {
-    R record=createRecord(key,value,expiryTime,completionId);
-    records.put(key,record);
-    return record;
-  }
-  publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId);
-  return null;
+  return createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough,completionId,null);
 }

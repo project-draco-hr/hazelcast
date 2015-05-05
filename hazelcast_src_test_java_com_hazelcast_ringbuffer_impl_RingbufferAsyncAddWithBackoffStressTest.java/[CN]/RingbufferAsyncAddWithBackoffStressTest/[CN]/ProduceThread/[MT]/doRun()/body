@@ -1,0 +1,24 @@
+{
+  long lastMs=System.currentTimeMillis();
+  while (!stop) {
+    long sleepMs=100;
+    for (; ; ) {
+      long result=ringbuffer.addAsync(produced,FAIL).get();
+      if (result != -1) {
+        break;
+      }
+      TimeUnit.MILLISECONDS.sleep(sleepMs);
+      sleepMs=sleepMs * 2;
+      if (sleepMs > 1000) {
+        sleepMs=1000;
+      }
+    }
+    produced++;
+    long now=System.currentTimeMillis();
+    if (now > lastMs + 2000) {
+      lastMs=now;
+      System.out.println(getName() + " at " + produced);
+    }
+  }
+  ringbuffer.add(Long.MIN_VALUE);
+}

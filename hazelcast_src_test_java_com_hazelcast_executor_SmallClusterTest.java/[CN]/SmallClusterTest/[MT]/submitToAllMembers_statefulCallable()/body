@@ -1,0 +1,19 @@
+{
+  IExecutorService executorService=instances[0].getExecutorService(randomString());
+  MyTask myTask=new MyTask();
+  final CountDownLatch completedLatch=new CountDownLatch(1);
+  final AtomicBoolean failed=new AtomicBoolean();
+  executorService.submitToAllMembers(myTask,new MultiExecutionCallback(){
+    @Override public void onResponse(    Member member,    Object value){
+      if ((Integer)value != 1) {
+        failed.set(true);
+      }
+    }
+    @Override public void onComplete(    Map<Member,Object> values){
+      completedLatch.countDown();
+    }
+  }
+);
+  completedLatch.await(1,TimeUnit.MINUTES);
+  assertFalse(failed.get());
+}

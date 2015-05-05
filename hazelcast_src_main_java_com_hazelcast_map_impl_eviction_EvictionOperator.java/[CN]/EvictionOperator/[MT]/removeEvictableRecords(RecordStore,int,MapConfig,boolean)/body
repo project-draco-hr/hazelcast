@@ -1,4 +1,5 @@
 {
+  final MapServiceContext mapServiceContext=this.mapServiceContext;
   final EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
   final long[] criterias=createAndPopulateEvictionCriteriaArray(recordStore,evictionPolicy);
   if (criterias == null) {
@@ -8,6 +9,7 @@
   final int evictableBaseIndex=getEvictionStartIndex(criterias,evictableSize);
   final long criteriaValue=criterias[evictableBaseIndex];
   int evictedRecordCounter=0;
+  String mapName=recordStore.getName();
   final Iterator<Record> iterator=recordStore.iterator();
   while (iterator.hasNext()) {
     final Record record=iterator.next();
@@ -17,9 +19,8 @@
       final Object tmpValue=record.getValue();
       if (evictIfNotLocked(tmpKey,recordStore,backup)) {
         evictedRecordCounter++;
-        final String mapName=mapConfig.getName();
         if (!backup) {
-          interceptAndInvalidate(mapServiceContext,value,tmpKey,mapName);
+          mapServiceContext.interceptAfterRemove(mapName,value);
           fireEvent(tmpKey,tmpValue,mapName,mapServiceContext);
         }
       }

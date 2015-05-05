@@ -1,0 +1,20 @@
+{
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final CountDownLatch createdLatch=new CountDownLatch(1);
+  final CountDownLatch destroyedLatch=new CountDownLatch(1);
+  client.addDistributedObjectListener(new DistributedObjectListener(){
+    @Override public void distributedObjectCreated(    DistributedObjectEvent event){
+      createdLatch.countDown();
+    }
+    @Override public void distributedObjectDestroyed(    DistributedObjectEvent event){
+      destroyedLatch.countDown();
+    }
+  }
+);
+  final String name=randomString();
+  final ITopic<Object> topic=instance.getTopic(name);
+  assertOpenEventually(createdLatch,10);
+  topic.destroy();
+  assertOpenEventually(destroyedLatch,10);
+}

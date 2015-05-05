@@ -1,0 +1,17 @@
+{
+  final int ENTRY_COUNT=10;
+  CachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(node1);
+  CacheManager cacheManager=cachingProvider.getCacheManager();
+  CompleteConfiguration<Integer,String> cacheConfig=new MutableConfiguration<Integer,String>().setTypes(Integer.class,String.class);
+  ICache<Integer,String> cache=cacheManager.createCache("MyCache",cacheConfig).unwrap(ICache.class);
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    cache.put(i * 1000,"Value-" + (i * 1000));
+  }
+  assertEquals(ENTRY_COUNT,cache.size());
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    if (i % 2 == 0) {
+      cache.invoke(i * 1000,new RemoveRecordEntryProcessor());
+    }
+  }
+  assertEquals(ENTRY_COUNT / 2,cache.size());
+}

@@ -1,17 +1,18 @@
 {
-  HazelcastInstance hazelcastInstance=createHazelcastInstance();
   int count=10000;
-  final ITopic topic=hazelcastInstance.getTopic("perf");
+  String randomTopicName=randomString();
+  HazelcastInstance instance=createHazelcastInstance();
   ExecutorService ex=Executors.newFixedThreadPool(10);
-  final CountDownLatch l=new CountDownLatch(count);
+  final ITopic<String> topic=instance.getTopic(randomTopicName);
+  final CountDownLatch latch=new CountDownLatch(count);
   for (int i=0; i < count; i++) {
     ex.submit(new Runnable(){
       public void run(){
         topic.publish("my object");
-        l.countDown();
+        latch.countDown();
       }
     }
 );
   }
-  assertTrue(l.await(20,TimeUnit.SECONDS));
+  assertTrue(latch.await(20,TimeUnit.SECONDS));
 }

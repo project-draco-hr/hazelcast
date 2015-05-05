@@ -1,0 +1,19 @@
+{
+  final int calculatedSize=MapPutParameters.calculateDataSize(NAME,DATA,DATA,THE_LONG,THE_LONG);
+  ClientMessage cmEncode=MapPutParameters.encode(NAME,DATA,DATA,THE_LONG,THE_LONG);
+  cmEncode.setVersion((short)3).addFlag(ClientMessage.BEGIN_AND_END_FLAGS).setCorrelationId(66).setPartitionId(77);
+  byteBuffer=cmEncode.buffer();
+  assertEquals(calculatedSize,cmEncode.getFrameLength());
+  ClientMessage cmDecode=ClientMessage.createForDecode(byteBuffer,0);
+  MapPutParameters decodeParams=MapPutParameters.decode(cmDecode);
+  assertEquals(MapMessageType.MAP_PUT.id(),cmDecode.getMessageType());
+  assertEquals(3,cmDecode.getVersion());
+  assertEquals(ClientMessage.BEGIN_AND_END_FLAGS,cmDecode.getFlags());
+  assertEquals(66,cmDecode.getCorrelationId());
+  assertEquals(77,cmDecode.getPartitionId());
+  assertEquals(NAME,decodeParams.name);
+  assertEquals(DATA,decodeParams.key);
+  assertEquals(DATA,decodeParams.value);
+  assertEquals(THE_LONG,decodeParams.threadId);
+  assertEquals(THE_LONG,decodeParams.ttl);
+}

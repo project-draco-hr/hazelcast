@@ -1,0 +1,14 @@
+{
+  if (isShutdown) {
+    throw new HazelcastClientNotActiveException("Client is shut down");
+  }
+  registerInvocation(invocation);
+  ClientMessage clientMessage=invocation.getClientMessage();
+  if (!isAllowedToSendRequest(connection,invocation) || !writeToConnection(connection,clientMessage)) {
+    final int callId=clientMessage.getCorrelationId();
+    deRegisterCallId(callId);
+    deRegisterEventHandler(callId);
+    throw new IOException("Packet not send to " + connection.getRemoteEndpoint());
+  }
+  invocation.setSendConnection(connection);
+}

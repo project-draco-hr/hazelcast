@@ -1,0 +1,17 @@
+{
+  ConnectionManager connectionManager=node.getConnectionManager();
+  Connection connection=connectionManager.getConnection(target);
+  if (connection != null) {
+    return transmit(packet,connection);
+  }
+  if (sendTask == null) {
+    sendTask=new SendTask(packet,target);
+  }
+  final int retries=sendTask.retries;
+  if (retries < RETRY_NUMBER && node.isActive()) {
+    connectionManager.getOrConnect(target,true);
+    executionService.schedule(sendTask,(retries + 1) * DELAY_FACTOR,TimeUnit.MILLISECONDS);
+    return true;
+  }
+  return false;
+}

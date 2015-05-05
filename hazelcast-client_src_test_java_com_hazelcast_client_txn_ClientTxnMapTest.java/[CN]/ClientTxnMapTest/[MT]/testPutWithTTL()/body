@@ -1,0 +1,17 @@
+{
+  final String mapName=randomString();
+  final int ttlSeconds=1;
+  final String key="key";
+  final String value="Value";
+  final IMap map=client.getMap(mapName);
+  final TransactionContext context=client.newTransactionContext();
+  context.beginTransaction();
+  final TransactionalMap<Object,Object> txnMap=context.getMap(mapName);
+  txnMap.put(key,value,ttlSeconds,TimeUnit.SECONDS);
+  Object resultFromClientWhileTxnInProgress=map.get(key);
+  context.commitTransaction();
+  assertNull(resultFromClientWhileTxnInProgress);
+  assertEquals(value,map.get(key));
+  sleepSeconds(ttlSeconds + 1);
+  assertNull(map.get(key));
+}

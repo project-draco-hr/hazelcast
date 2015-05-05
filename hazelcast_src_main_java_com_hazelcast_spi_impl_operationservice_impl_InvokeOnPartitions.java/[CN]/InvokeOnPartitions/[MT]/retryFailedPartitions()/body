@@ -1,0 +1,19 @@
+{
+  List<Integer> failedPartitions=new LinkedList<Integer>();
+  for (  Map.Entry<Integer,Object> partitionResult : partitionResults.entrySet()) {
+    int partitionId=partitionResult.getKey();
+    Object result=partitionResult.getValue();
+    if (result instanceof Throwable) {
+      failedPartitions.add(partitionId);
+    }
+  }
+  for (  Integer failedPartition : failedPartitions) {
+    Future f=operationService.createInvocationBuilder(serviceName,operationFactory.createOperation(),failedPartition).invoke();
+    partitionResults.put(failedPartition,f);
+  }
+  for (  Integer failedPartition : failedPartitions) {
+    Future f=(Future)partitionResults.get(failedPartition);
+    Object result=f.get();
+    partitionResults.put(failedPartition,result);
+  }
+}

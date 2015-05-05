@@ -1,0 +1,22 @@
+{
+  out.writeLong(tailSequence);
+  out.writeLong(headSequence);
+  out.writeInt(capacity);
+  out.writeLong(ttlMs);
+  out.writeInt(inMemoryFormat.ordinal());
+  boolean ttlEnabled=isTTLEnabled();
+  long now=System.currentTimeMillis();
+  for (long seq=headSequence; seq <= tailSequence; seq++) {
+    int index=toIndex(seq);
+    if (inMemoryFormat == BINARY) {
+      out.writeData((Data)ringItems[index]);
+    }
+ else {
+      out.writeObject(ringItems[index]);
+    }
+    if (ttlEnabled) {
+      long deltaMs=ringExpirationMs[index] - now;
+      out.writeLong(deltaMs);
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  final String serviceName=eventPacket.getServiceName();
+  if (eventPacket.getEventType() == CREATED) {
+    try {
+      final ProxyRegistry registry=getOrCreateRegistry(serviceName);
+      if (!registry.contains(eventPacket.getName())) {
+        registry.createProxy(eventPacket.getName(),false,true);
+      }
+    }
+ catch (    HazelcastInstanceNotActiveException ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+  }
+ else {
+    final ProxyRegistry registry=registries.get(serviceName);
+    if (registry != null) {
+      registry.destroyProxy(eventPacket.getName(),false);
+    }
+  }
+}

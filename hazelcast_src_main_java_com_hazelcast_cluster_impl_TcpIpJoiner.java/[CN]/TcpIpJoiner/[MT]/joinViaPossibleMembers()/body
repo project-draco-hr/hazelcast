@@ -3,7 +3,6 @@
     blacklistedAddresses.clear();
     Collection<Address> possibleAddresses=getPossibleAddresses();
     boolean foundConnection=tryInitialConnection(possibleAddresses);
-    removeBlacklistedAddresses(possibleAddresses);
     if (!foundConnection) {
       logger.finest("This node will assume master role since no possible member where connected to.");
       node.setAsMaster();
@@ -16,8 +15,7 @@
       if (node.joined()) {
         return;
       }
-      removeBlacklistedAddresses(possibleAddresses);
-      if (possibleAddresses.size() == 0) {
+      if (isAllBlacklisted(possibleAddresses)) {
         logger.finest("This node will assume master role since none of the possible members accepted join request.");
         node.setAsMaster();
         return;
@@ -27,11 +25,18 @@
         boolean consensus=claimMastership(possibleAddresses);
         if (consensus) {
           if (logger.isFinestEnabled()) {
-            logger.finest("Setting myself as master after consensus! " + "Voting endpoints: " + possibleAddresses);
+            Set<Address> votingEndpoints=new HashSet<Address>(possibleAddresses);
+            votingEndpoints.removeAll(blacklistedAddresses.keySet());
+            logger.finest("Setting myself as master after consensus! " + "Voting endpoints: " + votingEndpoints);
           }
           node.setAsMaster();
           claimingMaster=false;
           return;
+        }
+      }
+ else {
+        if (logger.isFinestEnabled()) {
+          logger.finest("Cannot claim myself as master! Will try to connect a possible master...");
         }
       }
       claimingMaster=false;

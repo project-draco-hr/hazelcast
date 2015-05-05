@@ -1,0 +1,21 @@
+{
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      lock.lock();
+      latch.countDown();
+      sleepMillis(500);
+      lock.unlock();
+    }
+  }
+.start();
+  latch.await();
+  lock.lock(4000,TimeUnit.MILLISECONDS);
+  assertTrue(lock.isLocked());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse(lock.isLocked());
+    }
+  }
+);
+}

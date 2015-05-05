@@ -1,0 +1,23 @@
+{
+  this.nodeEngine=nodeEngine;
+  final Node node=nodeEngine.getNode();
+  logger=node.getLogger(ExecutionService.class.getName());
+  HazelcastThreadGroup threadGroup=node.getHazelcastThreadGroup();
+  final ThreadFactory threadFactory=new PoolExecutorThreadFactory(threadGroup,"cached");
+  cachedExecutorService=new ThreadPoolExecutor(CORE_POOL_SIZE,Integer.MAX_VALUE,KEEP_ALIVE_TIME,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),threadFactory,new RejectedExecutionHandler(){
+    public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
+      if (logger.isFinestEnabled()) {
+        logger.finest("Node is shutting down; discarding the task: " + r);
+      }
+    }
+  }
+);
+  scheduledExecutorService=new ScheduledThreadPoolExecutor(1,new SingleExecutorThreadFactory(threadGroup,"scheduled"));
+  enableRemoveOnCancelIfAvailable();
+  final int coreSize=Runtime.getRuntime().availableProcessors();
+  register(SYSTEM_EXECUTOR,coreSize,Integer.MAX_VALUE,ExecutorType.CACHED);
+  register(SCHEDULED_EXECUTOR,coreSize * POOL_MULTIPLIER,coreSize * QUEUE_MULTIPLIER,ExecutorType.CACHED);
+  defaultScheduledExecutorServiceDelegate=getScheduledExecutor(SCHEDULED_EXECUTOR);
+  completableFutureTask=new CompletableFutureTask();
+  scheduleWithFixedDelay(completableFutureTask,INITIAL_DELAY,PERIOD,TimeUnit.MILLISECONDS);
+}

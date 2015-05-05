@@ -1,0 +1,14 @@
+{
+  final String mapName=randomMapName();
+  final Config config=createNewConfig(mapName);
+  final HazelcastInstance server=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final IMap<Object,Object> map=client.getMap(mapName);
+  populateMap(map,1000);
+  map.evictAll();
+  final Set keysToLoad=selectKeysToLoad(10,910);
+  map.loadAll(keysToLoad,true);
+  assertEquals(900,map.size());
+  assertRangeLoaded(map,10,910);
+  closeResources(client,server);
+}

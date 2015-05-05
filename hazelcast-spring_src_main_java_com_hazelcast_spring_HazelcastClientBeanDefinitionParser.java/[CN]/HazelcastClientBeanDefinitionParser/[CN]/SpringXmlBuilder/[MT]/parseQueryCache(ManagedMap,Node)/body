@@ -1,0 +1,19 @@
+{
+  final BeanDefinitionBuilder builder=createBeanBuilder(QueryCacheConfig.class);
+  NamedNodeMap attributes=queryCacheNode.getAttributes();
+  String mapName=getTextContent(attributes.getNamedItem("map-name"));
+  String cacheName=getTextContent(attributes.getNamedItem("name"));
+  for (  Node node : new IterableNodeList(queryCacheNode.getChildNodes(),Node.ELEMENT_NODE)) {
+    String nodeName=cleanNodeName(node.getNodeName());
+    String textContent=getTextContent(node);
+    parseQueryCacheInternal(builder,node,nodeName,textContent);
+  }
+  builder.addPropertyValue("name",cacheName);
+  ManagedMap configMap=(ManagedMap)queryCaches.get(mapName);
+  if (configMap == null) {
+    configMap=new ManagedMap<String,QueryCacheConfig>();
+    queryCaches.put(mapName,configMap);
+  }
+  configMap.put(cacheName,builder.getBeanDefinition());
+  return builder;
+}

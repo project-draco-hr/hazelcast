@@ -1,0 +1,20 @@
+{
+  final int partitionId=getPartitionId();
+  try {
+    final InternalPartitionService partitionService=getService();
+    final long[] versions=partitionService.getPartitionReplicaVersions(partitionId);
+    if (reason == MEMBER_REMOVED) {
+      final int lostReplicaIndex=getLostReplicaIndex(versions);
+      if (lostReplicaIndex > 0) {
+        overwriteLostReplicaVersionsWithFirstAvailableVersion(partitionId,versions,lostReplicaIndex);
+      }
+      sendPartitionLostEvent(partitionId,lostReplicaIndex);
+    }
+ else {
+      resetSyncWaitingVersions(partitionId,versions);
+    }
+  }
+ catch (  Throwable e) {
+    logger.warning("Partition lost detection failed. partitionId=" + partitionId,e);
+  }
+}

@@ -3,8 +3,12 @@
     ReplicaSyncInfo syncInfo=entry.getValue();
     int partitionId=syncInfo.partitionId;
     if (partitionService.replicaSyncRequests.compareAndSet(partitionId,syncInfo,null)) {
-      partitionService.finishReplicaSyncProcess();
+      partitionService.releaseReplicaSyncPermit();
     }
-    partitionService.triggerPartitionReplicaSync(partitionId,syncInfo.replicaIndex,0L);
+    InternalPartitionImpl partition=partitionService.getPartitionImpl(partitionId);
+    int currentReplicaIndex=partition.getReplicaIndex(partitionService.node.getThisAddress());
+    if (currentReplicaIndex > 0) {
+      partitionService.triggerPartitionReplicaSync(partitionId,currentReplicaIndex,0L);
+    }
   }
 }

@@ -1,0 +1,19 @@
+{
+  int requestedSyncBackups=requestedSyncBackups(backupAwareOp);
+  int requestedAsyncBackups=requestedAsyncBackups(backupAwareOp);
+  int requestedTotalBackups=requestedTotalBackups(backupAwareOp);
+  if (requestedTotalBackups == 0) {
+    return 0;
+  }
+  Operation op=(Operation)backupAwareOp;
+  InternalPartitionService partitionService=node.getPartitionService();
+  long[] replicaVersions=partitionService.incrementPartitionReplicaVersions(op.getPartitionId(),requestedTotalBackups);
+  boolean syncForced=backpressureRegulator.isSyncForced(backupAwareOp);
+  int syncBackups=syncBackups(requestedSyncBackups,requestedAsyncBackups,syncForced);
+  int asyncBackups=asyncBackups(requestedSyncBackups,requestedAsyncBackups,syncForced);
+  if (!op.returnsResponse()) {
+    asyncBackups+=syncBackups;
+    syncBackups=0;
+  }
+  return makeBackups(backupAwareOp,op.getPartitionId(),replicaVersions,syncBackups,asyncBackups);
+}

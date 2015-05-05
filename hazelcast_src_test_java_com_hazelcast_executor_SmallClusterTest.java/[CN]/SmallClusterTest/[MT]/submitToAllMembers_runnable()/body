@@ -1,0 +1,11 @@
+{
+  for (  HazelcastInstance instance : instances) {
+    final IExecutorService service=instance.getExecutorService("testSubmitToAllMembersRunnable");
+    final String script="hazelcast.getAtomicLong('testSubmitToAllMembersRunnable').incrementAndGet();";
+    service.submitToAllMembers(new ScriptRunnable(script,null),multiCallback);
+  }
+  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  final IAtomicLong result=instances[0].getAtomicLong("testSubmitToAllMembersRunnable");
+  assertEquals(instances.length * instances.length,result.get());
+  assertEquals(instances.length * instances.length,count.get());
+}

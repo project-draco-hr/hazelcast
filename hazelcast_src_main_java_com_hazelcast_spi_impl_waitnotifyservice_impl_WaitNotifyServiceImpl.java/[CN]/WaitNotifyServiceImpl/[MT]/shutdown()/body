@@ -1,0 +1,24 @@
+{
+  logger.finest("Stopping tasks...");
+  expirationTask.cancel(true);
+  expirationService.shutdown();
+  final Object response=new HazelcastInstanceNotActiveException();
+  final Address thisAddress=nodeEngine.getThisAddress();
+  for (  Queue<WaitingOperation> q : mapWaitingOps.values()) {
+    for (    WaitingOperation waitingOp : q) {
+      if (waitingOp.isValid()) {
+        final Operation op=waitingOp.getOperation();
+        if (thisAddress.equals(op.getCallerAddress())) {
+          try {
+            op.getResponseHandler().sendResponse(response);
+          }
+ catch (          Exception e) {
+            logger.finest("While sending HazelcastInstanceNotActiveException response...",e);
+          }
+        }
+      }
+    }
+    q.clear();
+  }
+  mapWaitingOps.clear();
+}

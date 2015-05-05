@@ -1,20 +1,20 @@
 {
   try {
-    long remainingTimeoutMs=TimeUnit.SECONDS.toMillis(timeoutSeconds);
-    for (    Thread t : threads) {
-      long startMs=System.currentTimeMillis();
-      t.join(remainingTimeoutMs);
-      if (t.isAlive()) {
-        fail("Timeout waiting for thread " + t.getName() + " to terminate");
+    long remainingTimeout=TimeUnit.SECONDS.toNanos(timeoutSeconds);
+    for (    Thread thread : threads) {
+      long start=System.nanoTime();
+      thread.join(remainingTimeout);
+      if (thread.isAlive()) {
+        fail("Timeout waiting for thread " + thread.getName() + " to terminate");
       }
-      long durationMs=System.currentTimeMillis() - startMs;
-      remainingTimeoutMs-=durationMs;
-      if (remainingTimeoutMs <= 0) {
-        fail("Timeout waiting for thread " + t.getName() + " to terminate");
+      long duration=System.nanoTime() - start;
+      remainingTimeout-=duration;
+      if (remainingTimeout <= 0) {
+        fail("Timeout waiting for thread " + thread.getName() + " to terminate");
       }
     }
   }
  catch (  InterruptedException e) {
-    e.printStackTrace();
+    throw new RuntimeException(e);
   }
 }

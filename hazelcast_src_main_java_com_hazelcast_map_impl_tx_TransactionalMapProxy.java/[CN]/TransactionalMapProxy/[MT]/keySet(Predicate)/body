@@ -1,26 +1,23 @@
 {
   checkTransactionState();
-  if (predicate == null) {
-    throw new NullPointerException("Predicate should not be null!");
-  }
-  if (predicate instanceof PagingPredicate) {
-    throw new NullPointerException("Paging is not supported for Transactional queries!");
-  }
-  final MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
-  final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.KEY,false);
-  final Set<Object> keySet=new HashSet<Object>(queryResultSet);
-  for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
+  checkNotNull(predicate,"Predicate should not be null!");
+  checkNotInstanceOf(PagingPredicate.class,predicate,"Paging is not supported for Transactional queries!");
+  MapService service=getService();
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  SerializationService ss=getNodeEngine().getSerializationService();
+  QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.KEY,false);
+  Set<Object> keySet=new HashSet<Object>(queryResultSet);
+  for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
+    Object key=ss.toObject(entry.getKey());
     if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
-      final Object value=entry.getValue().value instanceof Data ? mapServiceContext.toObject(entry.getValue().value) : entry.getValue().value;
-      final SerializationService ss=getNodeEngine().getSerializationService();
-      final QueryEntry queryEntry=new QueryEntry(ss,mapServiceContext.toData(entry.getKey()),entry.getKey(),value);
+      Object value=entry.getValue().value instanceof Data ? mapServiceContext.toObject(entry.getValue().value) : entry.getValue().value;
+      QueryEntry queryEntry=new QueryEntry(ss,entry.getKey(),key,value);
       if (predicate.apply(queryEntry)) {
-        keySet.add(entry.getKey());
+        keySet.add(key);
       }
     }
  else {
-      keySet.remove(entry.getKey());
+      keySet.remove(key);
     }
   }
   return keySet;

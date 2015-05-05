@@ -1,0 +1,22 @@
+{
+  ensureOpen();
+  validateNotNull(keys);
+  if (entryProcessor == null) {
+    throw new NullPointerException("Entry Processor is null");
+  }
+  Map<K,EntryProcessorResult<T>> allResult=new HashMap<K,EntryProcessorResult<T>>();
+  for (  K key : keys) {
+    CacheEntryProcessorResult<T> ceResult;
+    try {
+      final T result=this.invoke(key,entryProcessor,arguments);
+      ceResult=result != null ? new CacheEntryProcessorResult<T>(result) : null;
+    }
+ catch (    Exception e) {
+      ceResult=new CacheEntryProcessorResult<T>(e);
+    }
+    if (ceResult != null) {
+      allResult.put(key,ceResult);
+    }
+  }
+  return allResult;
+}

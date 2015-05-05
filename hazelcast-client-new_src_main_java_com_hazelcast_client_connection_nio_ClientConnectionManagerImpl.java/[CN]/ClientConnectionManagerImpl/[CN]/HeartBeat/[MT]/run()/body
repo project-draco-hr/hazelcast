@@ -1,0 +1,26 @@
+{
+  if (!alive) {
+    return;
+  }
+  final long now=Clock.currentTimeMillis();
+  for (  ClientConnection connection : connections.values()) {
+    if (now - connection.lastReadTime() > heartBeatTimeout) {
+      if (connection.isHeartBeating()) {
+        connection.heartBeatingFailed();
+        fireHeartBeatStopped(connection);
+      }
+    }
+    if (now - connection.lastReadTime() > heartBeatInterval) {
+      ClientMessage request=PingParameters.encode();
+      ClientInvocation clientInvocation=new ClientInvocation(client,request,connection);
+      clientInvocation.setBypassHeartbeatCheck(true);
+      clientInvocation.invoke();
+    }
+ else {
+      if (!connection.isHeartBeating()) {
+        connection.heartBeatingSucceed();
+        fireHeartBeatStarted(connection);
+      }
+    }
+  }
+}

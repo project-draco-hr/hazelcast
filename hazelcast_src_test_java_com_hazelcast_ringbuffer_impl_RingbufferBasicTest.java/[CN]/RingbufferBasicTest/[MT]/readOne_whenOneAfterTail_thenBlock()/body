@@ -1,0 +1,20 @@
+{
+  ringbuffer.add("1");
+  ringbuffer.add("2");
+  final long tail=ringbuffer.tailSequence();
+  final Future f=spawn(new Callable<String>(){
+    @Override public String call() throws Exception {
+      return ringbuffer.readOne(tail + 1);
+    }
+  }
+);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse(f.isDone());
+    }
+  }
+,2);
+  ringbuffer.add("3");
+  assertCompletesEventually(f);
+  assertEquals("3",f.get());
+}

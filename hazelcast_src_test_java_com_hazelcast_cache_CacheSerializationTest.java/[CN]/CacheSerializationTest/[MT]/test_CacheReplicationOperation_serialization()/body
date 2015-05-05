@@ -1,0 +1,38 @@
+{
+  TestHazelcastInstanceFactory factory=new TestHazelcastInstanceFactory(1);
+  HazelcastInstance hazelcastInstance=factory.newHazelcastInstance();
+  try {
+    CachingProvider provider=HazelcastServerCachingProvider.createCachingProvider(hazelcastInstance);
+    CacheManager manager=provider.getCacheManager();
+    CompleteConfiguration configuration=new MutableConfiguration();
+    Cache cache1=manager.createCache("cache1",configuration);
+    Cache cache2=manager.createCache("cache2",configuration);
+    Cache cache3=manager.createCache("cache3",configuration);
+    for (int i=0; i < 1000; i++) {
+      cache1.put("key" + i,i);
+      cache2.put("key" + i,i);
+      cache3.put("key" + i,i);
+    }
+    HazelcastInstanceProxy proxy=(HazelcastInstanceProxy)hazelcastInstance;
+    Field original=HazelcastInstanceProxy.class.getDeclaredField("original");
+    original.setAccessible(true);
+    HazelcastInstanceImpl impl=(HazelcastInstanceImpl)original.get(proxy);
+    NodeEngineImpl nodeEngine=impl.node.nodeEngine;
+    CacheService cacheService=nodeEngine.getService(CacheService.SERVICE_NAME);
+    int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
+    for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+      CachePartitionSegment segment=cacheService.getSegment(partitionId);
+      CacheReplicationOperation operation=new CacheReplicationOperation(segment,1);
+      Data serialized=service.toData(operation);
+      try {
+        service.toObject(serialized);
+      }
+ catch (      Exception e) {
+        throw new Exception("Partition: " + partitionId,e);
+      }
+    }
+  }
+  finally {
+    factory.shutdownAll();
+  }
+}

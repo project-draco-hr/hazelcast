@@ -1,5 +1,10 @@
 {
   final Record record=recordStore.getRecord(dataKey);
   final RecordInfo replicationInfo=buildRecordInfo(record);
-  return new PutBackupOperation(name,dataKey,dataValue,replicationInfo);
+  MapDataStore<Data,Object> mapDataStore=recordStore.getMapDataStore();
+  Data dataValueForBackup=dataValue;
+  if (mapDataStore.isPostProcessingMapStore()) {
+    dataValueForBackup=mapService.getMapServiceContext().toData(record.getValue());
+  }
+  return new PutBackupOperation(name,dataKey,dataValueForBackup,replicationInfo,putTransient);
 }

@@ -1,0 +1,28 @@
+{
+  Object operation=operationRunner.currentTask();
+  if (operation == null) {
+    return;
+  }
+  int operationHashCode=System.identityHashCode(operation);
+  if (operationData.operationHashCode != operationHashCode) {
+    operationData.operationHashCode=operationHashCode;
+    operationData.startNanos=nowNanos;
+    operationData.invocation=null;
+    return;
+  }
+  long durationNanos=nowNanos - operationData.startNanos;
+  if (durationNanos < slowOperationThresholdNanos) {
+    return;
+  }
+  if (operationData.invocation != null) {
+    operationData.invocation.update(nowNanos,(int)TimeUnit.NANOSECONDS.toMillis(durationNanos));
+    return;
+  }
+  String stackTrace=getStackTraceOrNull(operationRunner,operation);
+  if (stackTrace != null) {
+    SlowOperationLog log=getOrCreate(stackTrace,operation);
+    int totalInvocations=log.totalInvocations.incrementAndGet();
+    operationData.invocation=log.getOrCreate(operationHashCode,operation,durationNanos,nowNanos,nowMillis);
+    logSlowOperation(log,totalInvocations);
+  }
+}

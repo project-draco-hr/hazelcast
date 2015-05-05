@@ -1,0 +1,27 @@
+{
+  final Config config=new Config();
+  final String name="testStatsIssue2039";
+  config.addExecutorConfig(new ExecutorConfig(name).setQueueCapacity(1).setPoolSize(1));
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  final IExecutorService executorService=instance.getExecutorService(name);
+  final SleepLatchRunnable r=new SleepLatchRunnable();
+  executorService.execute(r);
+  assertTrue(SleepLatchRunnable.startLatch.await(30,SECONDS));
+  Future waitingInQueue=executorService.submit(new EmptyRunnable());
+  Future rejected=executorService.submit(new EmptyRunnable());
+  try {
+    rejected.get(1,MINUTES);
+  }
+ catch (  Exception e) {
+    if (!(e.getCause() instanceof RejectedExecutionException)) {
+      fail(e.toString());
+    }
+  }
+ finally {
+    SleepLatchRunnable.sleepLatch.countDown();
+  }
+  waitingInQueue.get(1,MINUTES);
+  final LocalExecutorStats stats=executorService.getLocalExecutorStats();
+  assertEquals(2,stats.getStartedTaskCount());
+  assertEquals(0,stats.getPendingTaskCount());
+}

@@ -1,0 +1,23 @@
+{
+  ensureOpen();
+  validateNotNull(key,value);
+  CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  final Data expiryPolicyData=toData(expiryPolicy);
+  ClientMessage request=CachePutParameters.encode(nameWithPrefix,keyData,valueData,expiryPolicyData,isGet);
+  ICompletableFuture future;
+  try {
+    future=invoke(request,keyData,withCompletionEvent);
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return future;
+}

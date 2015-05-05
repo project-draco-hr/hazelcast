@@ -1,0 +1,28 @@
+{
+  HazelcastInstance instance=getSingleNodeCluster(1000);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  for (int i=0; i < 3; i++) {
+    map.executeOnEntries(getSlowEntryProcessor(3));
+  }
+  SlowEntryProcessorChild entryProcessorChild=new SlowEntryProcessorChild(3);
+  map.executeOnEntries(entryProcessorChild);
+  map.executeOnEntries(getSlowEntryProcessor(5));
+  awaitSlowEntryProcessors();
+  entryProcessorChild.await();
+  final Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,2);
+  Iterator<SlowOperationLog> iterator=logs.iterator();
+  SlowOperationLog firstLog=iterator.next();
+  SlowOperationLog secondLog=iterator.next();
+  Collection<SlowOperationLog.Invocation> firstInvocations=getInvocations(firstLog);
+  Collection<SlowOperationLog.Invocation> secondInvocations=getInvocations(secondLog);
+  int firstSize=firstInvocations.size();
+  int secondSize=secondInvocations.size();
+  assertTrue(format("Expected to find 1 and 4 invocations in logs, but was %d and %d. First log: %s%nSecond log: %s",firstSize,secondSize,firstLog.createDTO().toJson(),secondLog.createDTO().toJson()),(firstSize == 1 ^ secondSize == 1) && (firstSize == 4 ^ secondSize == 4));
+  for (  SlowOperationLog.Invocation invocation : firstInvocations) {
+    assertInvocationDurationBetween(invocation,1000,5500);
+  }
+  for (  SlowOperationLog.Invocation invocation : secondInvocations) {
+    assertInvocationDurationBetween(invocation,1000,5500);
+  }
+}

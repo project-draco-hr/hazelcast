@@ -1,0 +1,36 @@
+{
+  boolean publishCurrentTask=publishCurrentTask();
+  if (publishCurrentTask) {
+    currentTask=packet;
+  }
+  Connection connection=packet.getConn();
+  Address caller=connection.getEndPoint();
+  Data data=packet.getData();
+  try {
+    Object object=nodeEngine.toObject(data);
+    Operation op=(Operation)object;
+    op.setNodeEngine(nodeEngine);
+    setCallerAddress(op,caller);
+    setConnection(op,connection);
+    setCallerUuidIfNotSet(caller,op);
+    setRemoteResponseHandler(nodeEngine,op);
+    if (!ensureValidMember(op)) {
+      return;
+    }
+    if (publishCurrentTask) {
+      currentTask=null;
+    }
+    run(op);
+  }
+ catch (  Throwable throwable) {
+    long callId=IOUtil.extractOperationCallId(data,node.getSerializationService());
+    operationService.send(new ErrorResponse(throwable,callId,packet.isUrgent()),caller);
+    logOperationDeserializationException(throwable,callId);
+    throw ExceptionUtil.rethrow(throwable);
+  }
+ finally {
+    if (publishCurrentTask) {
+      currentTask=null;
+    }
+  }
+}

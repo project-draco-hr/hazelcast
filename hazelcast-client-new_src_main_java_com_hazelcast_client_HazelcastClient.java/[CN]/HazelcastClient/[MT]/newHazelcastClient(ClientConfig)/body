@@ -1,0 +1,19 @@
+{
+  if (config == null) {
+    config=new XmlClientConfigBuilder().build();
+  }
+  final ClassLoader tccl=Thread.currentThread().getContextClassLoader();
+  HazelcastClientProxy proxy;
+  try {
+    Thread.currentThread().setContextClassLoader(HazelcastClient.class.getClassLoader());
+    final HazelcastClientInstanceImpl client=new HazelcastClientInstanceImpl(config);
+    client.start();
+    OutOfMemoryErrorDispatcher.registerClient(client);
+    proxy=new HazelcastClientProxy(client);
+    CLIENTS.put(client.getName(),proxy);
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(tccl);
+  }
+  return proxy;
+}

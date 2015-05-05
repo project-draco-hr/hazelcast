@@ -3,28 +3,21 @@
   InternalPartitionServiceImpl partitionService=getService();
   int partitionId=getPartitionId();
   int replicaIndex=getReplicaIndex();
-  InternalPartitionImpl partition=partitionService.getPartition(partitionId,false);
-  boolean isBackup=partition.isOwnerOrBackup(nodeEngine.getThisAddress());
+  InternalPartitionImpl partition=partitionService.getPartitionImpl(partitionId);
+  Address thisAddress=nodeEngine.getThisAddress();
+  int currentReplicaIndex=partition.getReplicaIndex(thisAddress);
   try {
-    if (isBackup) {
+    if (replicaIndex == currentReplicaIndex) {
       executeTasks();
     }
  else {
-      ILogger logger=getLogger();
-      if (logger.isFinestEnabled()) {
-        logger.finest("This node is not backup replica of partition: " + partitionId + ", replica: "+ replicaIndex+ " anymore.");
-      }
+      logNodeNotOwnsBackup(partitionId,replicaIndex,currentReplicaIndex);
     }
     if (tasks != null) {
       tasks.clear();
     }
   }
   finally {
-    if (isBackup) {
-      partitionService.finalizeReplicaSync(partitionId,replicaIndex,replicaVersions);
-    }
- else {
-      partitionService.clearReplicaSync(partitionId,replicaIndex);
-    }
+    postProcessReplicaSync(partitionService,currentReplicaIndex);
   }
 }

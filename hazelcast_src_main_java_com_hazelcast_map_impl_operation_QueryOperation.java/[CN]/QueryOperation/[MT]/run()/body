@@ -1,32 +1,28 @@
 {
+  InternalPartitionService partitionService=getNodeEngine().getPartitionService();
   NodeEngine nodeEngine=getNodeEngine();
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  Collection<Integer> initialPartitions=mapService.getMapServiceContext().getOwnedPartitions();
-  IndexService indexService=mapService.getMapServiceContext().getMapContainer(name).getIndexService();
+  MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  MapContextQuerySupport mapQuerySupport=mapServiceContext.getMapContextQuerySupport();
+  int partitionStateVersion=partitionService.getPartitionStateVersion();
+  Collection<Integer> initialPartitions=mapServiceContext.getOwnedPartitions();
   Set<QueryableEntry> entries=null;
-  if (!partitionService.hasOnGoingMigration()) {
-    entries=indexService.query(predicate);
+  if (!partitionService.hasOnGoingMigrationLocal()) {
+    entries=mapContainer.getIndexService().query(predicate);
   }
-  result=new QueryResult();
+  result=mapQuerySupport.newQueryResult(initialPartitions.size());
   if (entries != null) {
-    for (    QueryableEntry entry : entries) {
-      result.add(new QueryResultEntryImpl(entry.getKeyData(),entry.getKeyData(),entry.getValueData()));
-    }
+    result.addAll(entries);
   }
  else {
-    if (pagingPredicate != null) {
-      runParallelForPaging(initialPartitions);
-    }
- else {
-      runParallel(initialPartitions);
-    }
+    fullTableScan(initialPartitions,nodeEngine.getGroupProperties());
   }
-  Collection<Integer> finalPartitions=mapService.getMapServiceContext().getOwnedPartitions();
+  Collection<Integer> finalPartitions=mapServiceContext.getOwnedPartitions();
   if (initialPartitions.equals(finalPartitions)) {
     result.setPartitionIds(finalPartitions);
   }
   if (mapContainer.getMapConfig().isStatisticsEnabled()) {
-    final MapServiceContext mapServiceContext=((MapService)getService()).getMapServiceContext();
-    mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name).incrementOtherOperations();
+    LocalMapStatsImpl localStats=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
+    localStats.incrementOtherOperations();
   }
+  checkPartitionStateChanges(partitionService,partitionStateVersion);
 }

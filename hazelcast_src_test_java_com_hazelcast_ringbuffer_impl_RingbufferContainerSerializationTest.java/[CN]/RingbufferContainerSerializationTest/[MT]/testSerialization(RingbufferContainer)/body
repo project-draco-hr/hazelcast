@@ -1,0 +1,22 @@
+{
+  RingbufferContainer clone=clone(original);
+  assertEquals(original.headSequence,clone.headSequence);
+  assertEquals(original.tailSequence,clone.tailSequence);
+  assertEquals(original.capacity,clone.capacity);
+  assertEquals(original.ttlMs,clone.ttlMs);
+  assertArrayEquals(original.ringItems,clone.ringItems);
+  if (original.getConfig().getTimeToLiveSeconds() == 0) {
+    assertNull(clone.ringExpirationMs);
+    return;
+  }
+  assertNotNull(clone.ringExpirationMs);
+  assertEquals(original.ringExpirationMs.length,clone.ringExpirationMs.length);
+  for (long seq=original.headSequence; seq <= original.tailSequence; seq++) {
+    int index=original.toIndex(seq);
+    long originalExpiration=original.ringExpirationMs[index];
+    long actualExpiration=clone.ringExpirationMs[index];
+    double difference=actualExpiration - originalExpiration;
+    assertTrue(difference > 0.75 * CLOCK_DIFFERENCE_MS);
+    assertTrue(difference < 1.25 * CLOCK_DIFFERENCE_MS);
+  }
+}

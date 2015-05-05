@@ -1,0 +1,36 @@
+{
+  initNearCache();
+  Set<Data> keySet=new HashSet<Data>(keys.size());
+  Map<K,V> result=new HashMap<K,V>();
+  for (  Object key : keys) {
+    keySet.add(toData(key));
+  }
+  if (nearCache != null) {
+    final Iterator<Data> iterator=keySet.iterator();
+    while (iterator.hasNext()) {
+      Data key=iterator.next();
+      Object cached=nearCache.get(key);
+      if (cached != null && !ClientHeapNearCache.NULL_OBJECT.equals(cached)) {
+        result.put((K)toObject(key),(V)cached);
+        iterator.remove();
+      }
+    }
+  }
+  if (keySet.isEmpty()) {
+    return result;
+  }
+  ClientMessage request=MapGetAllParameters.encode(name,keySet);
+  ClientMessage response=invoke(request);
+  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
+  int size=resultParameters.keys.size();
+  for (int i=0; i < size; i++) {
+    Data dataKey=resultParameters.keys.get(i);
+    final V value=toObject(resultParameters.values.get(i));
+    final K key=toObject(dataKey);
+    result.put(key,value);
+    if (nearCache != null) {
+      nearCache.put(dataKey,value);
+    }
+  }
+  return result;
+}

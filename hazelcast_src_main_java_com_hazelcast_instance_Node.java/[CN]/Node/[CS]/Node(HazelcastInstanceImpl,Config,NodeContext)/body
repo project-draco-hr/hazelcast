@@ -1,10 +1,9 @@
 {
   this.hazelcastInstance=hazelcastInstance;
-  this.threadGroup=hazelcastInstance.threadGroup;
   this.config=config;
-  configClassLoader=config.getClassLoader();
+  this.configClassLoader=config.getClassLoader();
   this.groupProperties=new GroupProperties(config);
-  buildInfo=BuildInfoProvider.getBuildInfo();
+  this.buildInfo=BuildInfoProvider.getBuildInfo();
   String loggingType=groupProperties.LOGGING_TYPE.getString();
   loggingService=new LoggingServiceImpl(config.getGroupConfig().getName(),loggingType,buildInfo);
   final AddressPicker addressPicker=nodeContext.createAddressPicker(this);
@@ -21,6 +20,7 @@
     localMember=new MemberImpl(address,true,UuidUtil.createMemberUuid(address),hazelcastInstance,memberAttributes);
     loggingService.setThisMember(localMember);
     logger=loggingService.getLogger(Node.class.getName());
+    hazelcastThreadGroup=new HazelcastThreadGroup(hazelcastInstance.getName(),logger,configClassLoader);
     nodeExtension=NodeExtensionFactory.create(configClassLoader);
     nodeExtension.beforeStart(this);
     serializationService=nodeExtension.createSerializationService();
@@ -32,7 +32,6 @@
     clusterService=new ClusterServiceImpl(this);
     textCommandService=new TextCommandServiceImpl(this);
     nodeExtension.printNodeInfo(this);
-    versionCheck.check(this,getBuildInfo().getVersion(),buildInfo.isEnterprise());
     this.multicastService=createMulticastService(addressPicker);
     initializeListeners(config);
     joiner=nodeContext.createJoiner(this);

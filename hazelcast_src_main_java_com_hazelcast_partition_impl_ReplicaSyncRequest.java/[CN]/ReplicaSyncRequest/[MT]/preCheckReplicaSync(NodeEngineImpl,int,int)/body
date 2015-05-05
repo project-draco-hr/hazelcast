@@ -13,10 +13,13 @@
     return false;
   }
   if (currentVersion == 0) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Current replicaVersion=0, sending empty response for partitionId=" + getPartitionId() + ", replicaIndex="+ getReplicaIndex()+ ", replicaVersions="+ Arrays.toString(replicaVersions));
+    }
     sendEmptyResponse();
     return false;
   }
-  if (!partitionService.startReplicaSyncProcess()) {
+  if (!partitionService.tryToAcquireReplicaSyncPermit()) {
     if (logger.isFinestEnabled()) {
       logger.finest("Max parallel replication process limit exceeded! Could not run replica sync -> " + toString());
     }

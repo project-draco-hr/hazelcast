@@ -1,0 +1,15 @@
+{
+  instance=getSingleNodeCluster(1000);
+  IMap<String,String> map=getMapWithSingleElement(instance);
+  int partitionId=getDefaultPartitionId(instance);
+  NestedSlowOperationOnSamePartition operation=new NestedSlowOperationOnSamePartition(map,partitionId,3);
+  executeOperation(instance,operation);
+  operation.await();
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,1);
+  SlowOperationLog firstLog=logs.iterator().next();
+  assertTotalInvocations(firstLog,1);
+  assertOperationContainsClassName(firstLog,"NestedSlowOperationOnSamePartition");
+  assertStackTraceContainsClassName(firstLog,"NestedSlowOperationOnSamePartition");
+  assertStackTraceContainsClassName(firstLog,"SlowEntryProcessor");
+}

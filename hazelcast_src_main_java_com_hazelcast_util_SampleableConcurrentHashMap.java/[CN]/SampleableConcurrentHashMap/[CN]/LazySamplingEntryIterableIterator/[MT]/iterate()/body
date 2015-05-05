@@ -1,0 +1,43 @@
+{
+  if (returnedEntryCount >= maxEntryCount || reachedToEnd) {
+    currentSample=null;
+    return;
+  }
+  do {
+    Segment<K,V> segment=segments[currentSegmentIndex];
+    if (segment != null) {
+      HashEntry<K,V>[] table=segment.table;
+      int firstBucketIndex=randomNumber % table.length;
+      if (currentBucketIndex == -1) {
+        currentBucketIndex=firstBucketIndex;
+      }
+      do {
+        if (currentEntry == null) {
+          currentEntry=table[currentBucketIndex];
+        }
+        while (currentEntry != null) {
+          V value=currentEntry.value();
+          K key=currentEntry.key();
+          currentEntry=currentEntry.next;
+          if (value != null) {
+            currentSample=createSamplingEntry(key,value);
+            if (currentEntry == null) {
+              currentBucketIndex=++currentBucketIndex < table.length ? currentBucketIndex : 0;
+            }
+            returnedEntryCount++;
+            return;
+          }
+        }
+        currentBucketIndex=++currentBucketIndex < table.length ? currentBucketIndex : 0;
+        currentEntry=null;
+      }
+ while (currentBucketIndex != firstBucketIndex);
+    }
+    currentSegmentIndex=++currentSegmentIndex < segments.length ? currentSegmentIndex : 0;
+    currentBucketIndex=-1;
+    currentEntry=null;
+  }
+ while (currentSegmentIndex != firstSegmentIndex);
+  reachedToEnd=true;
+  currentSample=null;
+}

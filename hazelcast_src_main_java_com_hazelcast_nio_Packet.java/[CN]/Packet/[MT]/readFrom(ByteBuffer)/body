@@ -1,27 +1,19 @@
 {
-  if (!isStatusSet(ST_VERSION)) {
-    if (!source.hasRemaining()) {
-      return false;
-    }
-    byte version=source.get();
-    setStatus(ST_VERSION);
-    if (VERSION != version) {
-      throw new IllegalArgumentException("Packet versions are not matching! This -> " + VERSION + ", Incoming -> "+ version);
-    }
+  if (!readVersion(source)) {
+    return false;
   }
-  if (!isStatusSet(ST_HEADER)) {
-    if (source.remaining() < 2) {
-      return false;
-    }
-    header=source.getShort();
-    setStatus(ST_HEADER);
+  if (!readHeader(source)) {
+    return false;
   }
-  if (!isStatusSet(ST_PARTITION)) {
-    if (source.remaining() < 4) {
-      return false;
-    }
-    partitionId=source.getInt();
-    setStatus(ST_PARTITION);
+  if (!readPartition(source)) {
+    return false;
   }
-  return super.readFrom(source);
+  if (!readSize(source)) {
+    return false;
+  }
+  if (!readValue(source)) {
+    return false;
+  }
+  setPersistStatus(PERSIST_COMPLETED);
+  return true;
 }

@@ -1,0 +1,16 @@
+{
+  if (!op.returnsResponse() || op.getCallId() == 0) {
+    return false;
+  }
+  long callTimeout=op.getCallTimeout();
+  long invocationTime=op.getInvocationTime();
+  long expireTime=invocationTime + callTimeout;
+  if (expireTime <= 0 || expireTime >= Long.MAX_VALUE) {
+    return false;
+  }
+  long now=nodeEngine.getClusterService().getClusterClock().getClusterTime();
+  if (expireTime < now) {
+    return true;
+  }
+  return false;
+}

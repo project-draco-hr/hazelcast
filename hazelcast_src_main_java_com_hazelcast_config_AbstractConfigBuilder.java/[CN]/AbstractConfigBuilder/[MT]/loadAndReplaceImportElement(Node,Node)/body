@@ -1,0 +1,21 @@
+{
+  NamedNodeMap attributes=node.getAttributes();
+  Node resourceAtrribute=attributes.getNamedItem("resource");
+  String resource=resourceAtrribute.getTextContent();
+  URL url=ConfigLoader.locateConfig(resource);
+  if (url == null) {
+    throw new InvalidConfigurationException("Failed to load resource : " + resource);
+  }
+  if (!currentlyImportedFiles.add(url.getPath())) {
+    throw new InvalidConfigurationException("Cyclic loading of resource " + url.getPath() + " is detected !");
+  }
+  Document doc=parse(url.openStream());
+  Element importedRoot=doc.getDocumentElement();
+  traverseChildsAndReplaceVariables(importedRoot);
+  replaceImportElementsWithActualFileContents(importedRoot);
+  for (  Node fromImportedDoc : new AbstractXmlConfigHelper.IterableNodeList(importedRoot.getChildNodes())) {
+    Node importedNode=root.getOwnerDocument().importNode(fromImportedDoc,true);
+    root.insertBefore(importedNode,node);
+  }
+  root.removeChild(node);
+}

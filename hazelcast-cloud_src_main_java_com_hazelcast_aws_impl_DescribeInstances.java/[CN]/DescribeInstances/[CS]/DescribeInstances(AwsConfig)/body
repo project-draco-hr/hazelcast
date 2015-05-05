@@ -5,12 +5,13 @@
   if (awsConfig.getAccessKey() == null) {
     throw new IllegalArgumentException("AWS access key is required!");
   }
-  rs=new EC2RequestSigner(awsConfig.getSecretKey());
+  this.awsConfig=awsConfig;
+  rs=new EC2RequestSigner(awsConfig,timeStamp);
   attributes.put("Action",this.getClass().getSimpleName());
   attributes.put("Version",DOC_VERSION);
-  attributes.put("SignatureVersion",SIGNATURE_VERSION);
-  attributes.put("SignatureMethod",SIGNATURE_METHOD);
-  attributes.put("AWSAccessKeyId",awsConfig.getAccessKey());
-  attributes.put("Timestamp",getFormattedTimestamp());
-  this.awsConfig=awsConfig;
+  attributes.put("X-Amz-Algorithm",SIGNATURE_METHOD_V4);
+  attributes.put("X-Amz-Credential",rs.createFormattedCredential());
+  attributes.put("X-Amz-Date",timeStamp);
+  attributes.put("X-Amz-SignedHeaders","host");
+  attributes.put("X-Amz-Expires","30");
 }

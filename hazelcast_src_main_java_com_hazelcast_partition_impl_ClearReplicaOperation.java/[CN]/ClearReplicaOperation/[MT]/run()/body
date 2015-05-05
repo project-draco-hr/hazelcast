@@ -1,15 +1,17 @@
 {
   int partitionId=getPartitionId();
-  NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-  final Collection<MigrationAwareService> services=nodeEngine.getServices(MigrationAwareService.class);
-  for (  MigrationAwareService service : services) {
-    try {
-      service.clearPartitionReplica(partitionId);
+  InternalPartitionServiceImpl partitionService=getService();
+  InternalPartitionImpl partition=partitionService.getPartitionImpl(partitionId);
+  Address thisAddress=getNodeEngine().getThisAddress();
+  int currentReplicaIndex=partition.getReplicaIndex(thisAddress);
+  if (currentReplicaIndex == -1 || currentReplicaIndex > oldReplicaIndex) {
+    if (currentReplicaIndex == -1) {
+      partitionService.cancelReplicaSync(partitionId);
     }
- catch (    Throwable e) {
-      logMigrationError(e);
+    ILogger logger=getLogger();
+    if (logger.isFinestEnabled()) {
+      logger.finest("Clearing partition replica... partitionId=" + partitionId + ", old-replicaIndex="+ oldReplicaIndex+ ", current-replicaIndex="+ currentReplicaIndex);
     }
+    clearPartition(partitionId,partitionService);
   }
-  InternalPartitionService partitionService=getService();
-  partitionService.clearPartitionReplicaVersions(partitionId);
 }

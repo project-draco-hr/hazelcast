@@ -1,34 +1,26 @@
 {
   checkTransactionState();
-  if (predicate == null) {
-    throw new NullPointerException("Predicate can not be null!");
-  }
-  if (predicate instanceof PagingPredicate) {
-    throw new IllegalArgumentException("Paging is not supported for Transactional queries");
-  }
-  final MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
-  final QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
-  final Set<Object> valueSet=new HashSet<Object>();
-  final Set<Object> keyWontBeIncluded=new HashSet<Object>();
-  for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
-    final boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
-    final boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
-    Object objectKey=entry.getKey();
+  checkNotNull(predicate,"Predicate can not be null!");
+  checkNotInstanceOf(PagingPredicate.class,predicate,"Paging is not supported for Transactional queries");
+  SerializationService serializationService=getNodeEngine().getSerializationService();
+  QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
+  Set<Object> valueSet=new HashSet<Object>();
+  Set<Object> keyWontBeIncluded=new HashSet<Object>();
+  for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
+    boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
+    boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
+    Object keyObject=serializationService.toObject(entry.getKey());
     if (isRemoved) {
-      keyWontBeIncluded.add(objectKey);
+      keyWontBeIncluded.add(keyObject);
     }
  else {
       if (isUpdated) {
-        keyWontBeIncluded.add(objectKey);
+        keyWontBeIncluded.add(keyObject);
       }
       Object entryValue=entry.getValue().value;
-      final Object objectValue=entryValue instanceof Data ? mapServiceContext.toObject(entryValue) : entryValue;
-      Data dataKey=mapServiceContext.toData(objectKey);
-      final SerializationService serializationService=getNodeEngine().getSerializationService();
-      final QueryEntry queryEntry=new QueryEntry(serializationService,dataKey,objectKey,objectValue);
+      QueryEntry queryEntry=new QueryEntry(serializationService,entry.getKey(),keyObject,entryValue);
       if (predicate.apply(queryEntry)) {
-        valueSet.add(entryValue);
+        valueSet.add(queryEntry.getValue());
       }
     }
   }

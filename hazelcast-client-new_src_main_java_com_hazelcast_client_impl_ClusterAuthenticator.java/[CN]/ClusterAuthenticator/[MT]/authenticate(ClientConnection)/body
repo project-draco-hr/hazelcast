@@ -1,0 +1,28 @@
+{
+  final SerializationService ss=client.getSerializationService();
+  final ClientClusterServiceImpl clusterService=(ClientClusterServiceImpl)client.getClientClusterService();
+  final ClientPrincipal principal=clusterService.getPrincipal();
+  String uuid=principal.getUuid();
+  String ownerUuid=principal.getOwnerUuid();
+  ClientMessage clientMessage;
+  if (credentials instanceof UsernamePasswordCredentials) {
+    UsernamePasswordCredentials cr=(UsernamePasswordCredentials)credentials;
+    clientMessage=AuthenticationParameters.encode(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,false);
+  }
+ else {
+    Data data=ss.toData(credentials);
+    clientMessage=AuthenticationCustomCredentialsParameters.encode(data.toByteArray(),uuid,ownerUuid,false);
+  }
+  connection.init();
+  ClientMessage response;
+  final ClientInvocation clientInvocation=new ClientInvocation(client,clientMessage,connection);
+  final Future<ClientMessage> future=clientInvocation.invoke();
+  try {
+    response=ss.toObject(future.get());
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e,IOException.class);
+  }
+  AuthenticationResultParameters resultParameters=AuthenticationResultParameters.decode(response);
+  connection.setRemoteEndpoint(resultParameters.address);
+}

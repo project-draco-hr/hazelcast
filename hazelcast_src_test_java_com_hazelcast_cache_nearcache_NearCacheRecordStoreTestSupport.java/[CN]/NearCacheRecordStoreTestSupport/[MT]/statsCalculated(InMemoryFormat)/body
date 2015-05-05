@@ -1,0 +1,56 @@
+{
+  long creationStartTime=System.currentTimeMillis();
+  NearCacheRecordStore<Integer,String> nearCacheRecordStore=createNearCacheRecordStore(createNearCacheConfig(DEFAULT_NEAR_CACHE_NAME,inMemoryFormat),createNearCacheContext(),inMemoryFormat);
+  long creationEndTime=System.currentTimeMillis();
+  int expectedEntryCount=0;
+  int expectedHits=0;
+  int expectedMisses=0;
+  for (int i=0; i < DEFAULT_RECORD_COUNT; i++) {
+    nearCacheRecordStore.put(i,"Record-" + i);
+    expectedEntryCount++;
+  }
+  for (int i=0; i < DEFAULT_RECORD_COUNT; i++) {
+    if (nearCacheRecordStore.get(i * 3) != null) {
+      expectedHits++;
+    }
+ else {
+      expectedMisses++;
+    }
+  }
+  NearCacheStats nearCacheStats=nearCacheRecordStore.getNearCacheStats();
+  long memoryCostWhenFull=nearCacheStats.getOwnedEntryMemoryCost();
+  assertTrue(nearCacheStats.getCreationTime() >= creationStartTime);
+  assertTrue(nearCacheStats.getCreationTime() <= creationEndTime);
+  assertEquals(expectedHits,nearCacheStats.getHits());
+  assertEquals(expectedMisses,nearCacheStats.getMisses());
+  assertEquals(expectedEntryCount,nearCacheStats.getOwnedEntryCount());
+switch (inMemoryFormat) {
+case BINARY:
+    assertTrue(memoryCostWhenFull > 0);
+  break;
+case OBJECT:
+assertEquals(0,memoryCostWhenFull);
+}
+for (int i=0; i < DEFAULT_RECORD_COUNT; i++) {
+if (nearCacheRecordStore.remove(i * 3)) {
+expectedEntryCount--;
+}
+}
+assertEquals(expectedEntryCount,nearCacheStats.getOwnedEntryCount());
+switch (inMemoryFormat) {
+case BINARY:
+assertTrue(nearCacheStats.getOwnedEntryMemoryCost() > 0);
+assertTrue(nearCacheStats.getOwnedEntryMemoryCost() < memoryCostWhenFull);
+break;
+case OBJECT:
+assertEquals(0,nearCacheStats.getOwnedEntryMemoryCost());
+break;
+}
+nearCacheRecordStore.clear();
+switch (inMemoryFormat) {
+case BINARY:
+case OBJECT:
+assertEquals(0,nearCacheStats.getOwnedEntryMemoryCost());
+break;
+}
+}

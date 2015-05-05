@@ -9,9 +9,9 @@
   final ClusterService clusterService=nodeEngine.getClusterService();
   final InternalPartitionService partitionService=nodeEngine.getPartitionService();
   final Address thisAddress=clusterService.getThisAddress();
-  localMapStats.init();
-  localMapStats.setBackupCount(backupCount);
-  addNearCacheStats(localMapStats,mapContainer);
+  LocalMapOnDemandCalculatedStats localMapOnDemandCalculatedStats=new LocalMapOnDemandCalculatedStats();
+  localMapOnDemandCalculatedStats.setBackupCount(backupCount);
+  addNearCacheStats(localMapStats,localMapOnDemandCalculatedStats,mapContainer);
   for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
     InternalPartition partition=partitionService.getPartition(partitionId);
     Address owner=partition.getOwnerOrNull();
@@ -19,11 +19,12 @@
       continue;
     }
     if (owner.equals(thisAddress)) {
-      addOwnerPartitionStats(localMapStats,mapName,partitionId);
+      addOwnerPartitionStats(localMapStats,localMapOnDemandCalculatedStats,mapName,partitionId);
     }
  else {
-      addReplicaPartitionStats(localMapStats,mapName,partitionId,partition,partitionService,backupCount,thisAddress);
+      addReplicaPartitionStats(localMapOnDemandCalculatedStats,mapName,partitionId,partition,partitionService,backupCount,thisAddress);
     }
   }
+  localMapOnDemandCalculatedStats.copyValuesTo(localMapStats);
   return localMapStats;
 }

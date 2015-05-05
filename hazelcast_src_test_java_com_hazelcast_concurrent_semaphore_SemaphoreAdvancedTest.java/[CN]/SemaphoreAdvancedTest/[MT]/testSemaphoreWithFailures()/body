@@ -1,0 +1,25 @@
+{
+  final String semaphoreName=randomString();
+  final int k=4;
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k + 1);
+  final HazelcastInstance[] instances=factory.newInstances();
+  final ISemaphore semaphore=instances[k].getSemaphore(semaphoreName);
+  int initialPermits=20;
+  semaphore.init(initialPermits);
+  for (int i=0; i < k; i++) {
+    int rand=(int)(Math.random() * 5) + 1;
+    semaphore.acquire(rand);
+    initialPermits-=rand;
+    assertEquals(initialPermits,semaphore.availablePermits());
+    semaphore.release(rand);
+    initialPermits+=rand;
+    assertEquals(initialPermits,semaphore.availablePermits());
+    instances[i].shutdown();
+    semaphore.acquire(rand);
+    initialPermits-=rand;
+    assertEquals(initialPermits,semaphore.availablePermits());
+    semaphore.release(rand);
+    initialPermits+=rand;
+    assertEquals(initialPermits,semaphore.availablePermits());
+  }
+}

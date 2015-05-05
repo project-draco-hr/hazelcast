@@ -1,0 +1,26 @@
+{
+  final Xid[] empty=new Xid[0];
+  try {
+    final ClientConnection connection;
+    try {
+      connection=connect();
+    }
+ catch (    Exception ignored) {
+      EmptyStatement.ignore(ignored);
+      return empty;
+    }
+    ClientMessage request=TransactionRecoverAllParameters.encode();
+    final ClientInvocation clientInvocation=new ClientInvocation(client,request,connection);
+    final Future<ClientMessage> future=clientInvocation.invoke();
+    TransactionRecoverAllResultParameters response=TransactionRecoverAllResultParameters.decode(future.get());
+    for (    Xid xid : response.collection) {
+      recoveredTransactions.put(xid,connection);
+    }
+    final Set<Xid> xidSet=recoveredTransactions.keySet();
+    return xidSet.toArray(new Xid[xidSet.size()]);
+  }
+ catch (  Exception e) {
+    ExceptionUtil.rethrow(e);
+  }
+  return empty;
+}

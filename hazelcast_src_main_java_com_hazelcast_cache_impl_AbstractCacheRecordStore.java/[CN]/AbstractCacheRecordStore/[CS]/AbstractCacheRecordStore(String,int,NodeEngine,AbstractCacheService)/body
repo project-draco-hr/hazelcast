@@ -1,12 +1,18 @@
 {
   this.name=name;
   this.partitionId=partitionId;
+  this.partitionCount=nodeEngine.getPartitionService().getPartitionCount();
   this.nodeEngine=nodeEngine;
   this.cacheService=cacheService;
   this.cacheConfig=cacheService.getCacheConfig(name);
   if (cacheConfig == null) {
-    throw new CacheNotExistsException("Cache already destroyed, node " + nodeEngine.getLocalMember());
+    throw new CacheNotExistsException("Cache is already destroyed or not created yet, on " + nodeEngine.getLocalMember());
   }
+  this.evictionConfig=cacheConfig.getEvictionConfig();
+  if (evictionConfig == null) {
+    throw new IllegalStateException("Eviction config cannot be null");
+  }
+  this.records=createRecordCacheMap();
   if (cacheConfig.getCacheLoaderFactory() != null) {
     final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
     cacheLoader=cacheLoaderFactory.create();
@@ -18,11 +24,19 @@
   if (cacheConfig.isStatisticsEnabled()) {
     this.statistics=cacheService.createCacheStatIfAbsent(name);
   }
-  Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
+  final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
   this.defaultExpiryPolicy=expiryPolicyFactory.create();
-  this.evictionPolicy=cacheConfig.getEvictionPolicy() != null ? cacheConfig.getEvictionPolicy() : EvictionPolicy.NONE;
-  this.evictionEnabled=evictionPolicy != EvictionPolicy.NONE;
-  this.evictionPercentage=cacheConfig.getEvictionPercentage();
-  this.evictionThresholdPercentage=cacheConfig.getEvictionThresholdPercentage();
-  this.expirationTaskScheduler=scheduleExpirationTask();
+  this.maxSizeChecker=createCacheMaxSizeChecker(evictionConfig.getSize(),evictionConfig.getMaximumSizePolicy());
+  this.evictionPolicyEvaluator=createEvictionPolicyEvaluator(evictionConfig);
+  this.evictionChecker=createEvictionChecker(evictionConfig);
+  this.evictionStrategy=createEvictionStrategy(evictionConfig);
+  if (cacheWriter instanceof Closeable) {
+    cacheService.addCacheResource(name,(Closeable)cacheWriter);
+  }
+  if (cacheLoader instanceof Closeable) {
+    cacheService.addCacheResource(name,(Closeable)cacheLoader);
+  }
+  if (defaultExpiryPolicy instanceof Closeable) {
+    cacheService.addCacheResource(name,(Closeable)defaultExpiryPolicy);
+  }
 }

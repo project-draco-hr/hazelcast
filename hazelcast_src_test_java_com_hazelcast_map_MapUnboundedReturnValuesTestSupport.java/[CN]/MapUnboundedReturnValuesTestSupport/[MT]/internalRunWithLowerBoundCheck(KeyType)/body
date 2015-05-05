@@ -1,0 +1,26 @@
+{
+  try {
+    map.keySet();
+  }
+ catch (  QueryResultSizeExceededException e) {
+    fail(format("lowerLimit is too high, already got QueryResultSizeExceededException below %d",lowerLimit));
+  }
+  int index=lowerLimit;
+  try {
+    int keySetSize=0;
+    while (++index < upperLimit) {
+      mapPut(keyType,index);
+      if (index % checkLimitInterval == 0) {
+        Set<Object> keySet=map.keySet();
+        keySetSize=keySet.size();
+      }
+    }
+    fail(format("Limit should have exceeded, but ran into upperLimit of %d with IMap.keySet() size of %d",upperLimit,keySetSize));
+  }
+ catch (  QueryResultSizeExceededException e) {
+    EmptyStatement.ignore(e);
+  }
+  logger.info(format("Limit of %d exceeded at %d (%.2f)",configLimit,index,(index * 100f / configLimit)));
+  assertTrue(format("QueryResultSizeExceededException should not trigger below limit of %d, but was %d (%.2f%%)",configLimit,index,(index * 100f / configLimit)),index > configLimit);
+  internalRunQuick();
+}

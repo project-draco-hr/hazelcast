@@ -1,0 +1,19 @@
+{
+  this.enabled=properties.BACKPRESSURE_ENABLED.getBoolean();
+  this.disabled=!enabled;
+  this.logger=logger;
+  this.partitionCount=properties.PARTITION_COUNT.getInteger();
+  this.syncWindow=getSyncWindow(properties);
+  this.maxConcurrentInvocations=getMaxConcurrentInvocations(properties);
+  this.backoffTimeoutMs=getBackoffTimeoutMs(properties);
+  this.syncDelays=new int[INTS_PER_CACHE_LINE * partitionCount];
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    syncDelays[partitionId * INTS_PER_CACHE_LINE]=randomSyncDelay();
+  }
+  if (enabled) {
+    logger.info("Backpressure is enabled" + ", maxConcurrentInvocations:" + maxConcurrentInvocations + ", syncWindow: "+ syncWindow);
+  }
+ else {
+    logger.info("Backpressure is disabled");
+  }
+}

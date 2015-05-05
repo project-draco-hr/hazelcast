@@ -1,7 +1,7 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
   final MapService mapService=getService();
-  EntryListener<Object,Object> listener=new EntryAdapter<Object,Object>(){
+  EntryAdapter<Object,Object> listener=new EntryAdapter<Object,Object>(){
     @Override public void onEntryEvent(    EntryEvent<Object,Object> event){
       if (endpoint.isAlive()) {
         if (!(event instanceof DataAwareEntryEvent)) {
@@ -11,7 +11,8 @@
         Data key=dataAwareEntryEvent.getKeyData();
         Data value=dataAwareEntryEvent.getNewValueData();
         Data oldValue=dataAwareEntryEvent.getOldValueData();
-        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,event.getEventType(),event.getMember().getUuid());
+        Data mergingValue=dataAwareEntryEvent.getMeringValueData();
+        PortableEntryEvent portableEntryEvent=new PortableEntryEvent(key,value,oldValue,mergingValue,event.getEventType(),event.getMember().getUuid());
         endpoint.sendEvent(key,portableEntryEvent,getCallId());
       }
     }
@@ -25,14 +26,8 @@
     }
   }
 ;
-  EventFilter eventFilter;
-  if (getPredicate() == null) {
-    eventFilter=new EntryEventFilter(includeValue,key);
-  }
- else {
-    eventFilter=new QueryEventFilter(includeValue,key,getPredicate());
-  }
-  String registrationId=mapService.getMapServiceContext().addEventListener(listener,eventFilter,name);
+  final EventFilter eventFilter=getEventFilter();
+  final String registrationId=mapService.getMapServiceContext().addEventListener(listener,eventFilter,name);
   endpoint.setListenerRegistration(MapService.SERVICE_NAME,name,registrationId);
   return registrationId;
 }

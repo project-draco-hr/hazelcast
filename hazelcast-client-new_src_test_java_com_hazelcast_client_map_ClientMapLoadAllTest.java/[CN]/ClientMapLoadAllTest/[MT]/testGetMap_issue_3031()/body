@@ -1,0 +1,23 @@
+{
+  final int itemCount=1000;
+  final String mapName=randomMapName();
+  final AtomicBoolean breakMe=new AtomicBoolean(false);
+  final Config config=createNewConfig(mapName,new BrokenLoadSimpleStore(breakMe));
+  final HazelcastInstance server=Hazelcast.newHazelcastInstance(config);
+  try {
+    final IMap<Object,Object> map=server.getMap(mapName);
+    populateMap(map,itemCount);
+    map.clear();
+  }
+ catch (  Exception e) {
+    fail();
+  }
+  breakMe.set(true);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  try {
+    client.getMap(mapName);
+  }
+  finally {
+    closeResources(client,server);
+  }
+}

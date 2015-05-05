@@ -1,0 +1,37 @@
+{
+  final int RECORD_COUNT=100;
+  final int EXPECTED_EVICTED_RECORD_VALUE=RECORD_COUNT / 2;
+  EvictionConfiguration evictionConfig=new EvictionConfiguration(){
+    @Override public EvictionStrategyType getEvictionStrategyType(){
+      return null;
+    }
+    @Override public EvictionPolicyType getEvictionPolicyType(){
+      return EvictionPolicyType.LRU;
+    }
+  }
+;
+  EvictionPolicyEvaluator evictionPolicyEvaluator=EvictionPolicyEvaluatorProvider.getEvictionPolicyEvaluator(evictionConfig);
+  List<EvictionCandidate<Integer,CacheObjectRecord>> records=new ArrayList<EvictionCandidate<Integer,CacheObjectRecord>>();
+  long baseTime=System.currentTimeMillis();
+  for (int i=0; i < RECORD_COUNT; i++) {
+    long creationTime=baseTime + (i * 100);
+    CacheObjectRecord record=new CacheObjectRecord(i,creationTime,Long.MAX_VALUE);
+    if (i == EXPECTED_EVICTED_RECORD_VALUE) {
+      record.setAccessTime(baseTime - 1000);
+    }
+ else {
+      record.setAccessTime(creationTime + 1000);
+    }
+    records.add(new SimpleEvictionCandidate<Integer,CacheObjectRecord>(i,record));
+  }
+  Iterable<EvictionCandidate<Integer,CacheObjectRecord>> evictedRecords=evictionPolicyEvaluator.evaluate(records);
+  assertNotNull(evictedRecords);
+  Iterator<EvictionCandidate<Integer,CacheObjectRecord>> evictedRecordsIterator=evictedRecords.iterator();
+  assertTrue(evictedRecordsIterator.hasNext());
+  EvictionCandidate<Integer,CacheObjectRecord> candidateEvictedRecord=evictedRecordsIterator.next();
+  assertNotNull(candidateEvictedRecord);
+  assertFalse(evictedRecordsIterator.hasNext());
+  CacheObjectRecord evictedRecord=candidateEvictedRecord.getEvictable();
+  assertNotNull(evictedRecord);
+  assertEquals(EXPECTED_EVICTED_RECORD_VALUE,evictedRecord.getValue());
+}

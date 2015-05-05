@@ -1,12 +1,13 @@
 {
   checkTransactionState();
   MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
-  final Object valueBeforeTxn=mapServiceContext.toObject(putInternal(mapServiceContext.toData(key,partitionStrategy),mapServiceContext.toData(value)));
-  TxnValueWrapper currentValue=txMap.get(key);
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  Data keyData=mapServiceContext.toData(key,partitionStrategy);
+  Object valueBeforeTxn=mapServiceContext.toObject(putInternal(keyData,mapServiceContext.toData(value)));
+  TxnValueWrapper currentValue=txMap.get(keyData);
   if (value != null) {
     TxnValueWrapper wrapper=valueBeforeTxn == null ? new TxnValueWrapper(value,TxnValueWrapper.Type.NEW) : new TxnValueWrapper(value,TxnValueWrapper.Type.UPDATED);
-    txMap.put(key,wrapper);
+    txMap.put(keyData,wrapper);
   }
   return currentValue == null ? valueBeforeTxn : checkIfRemoved(currentValue);
 }

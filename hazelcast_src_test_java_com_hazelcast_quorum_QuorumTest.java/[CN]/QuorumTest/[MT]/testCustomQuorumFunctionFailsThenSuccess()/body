@@ -1,0 +1,38 @@
+{
+  Config config=new Config();
+  QuorumConfig quorumConfig=new QuorumConfig();
+  String quorumName=randomString();
+  quorumConfig.setName(quorumName);
+  quorumConfig.setEnabled(true);
+  final AtomicInteger count=new AtomicInteger(1);
+  quorumConfig.setQuorumFunctionImplementation(new QuorumFunction(){
+    @Override public boolean apply(    Collection<Member> members){
+      if (count.get() == 1) {
+        count.incrementAndGet();
+        return false;
+      }
+ else {
+        return true;
+      }
+    }
+  }
+);
+  config.addQuorumConfig(quorumConfig);
+  String mapName=randomMapName();
+  MapConfig mapConfig=new MapConfig(mapName);
+  mapConfig.setQuorumName(quorumName);
+  config.addMapConfig(mapConfig);
+  TestHazelcastInstanceFactory f=new TestHazelcastInstanceFactory(2);
+  HazelcastInstance hazelcastInstance=f.newHazelcastInstance(config);
+  IMap<Object,Object> map=hazelcastInstance.getMap(mapName);
+  try {
+    map.put("1","1");
+    fail();
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  HazelcastInstance hazelcastInstance2=f.newHazelcastInstance(config);
+  map.put("1","1");
+  f.shutdownAll();
+}

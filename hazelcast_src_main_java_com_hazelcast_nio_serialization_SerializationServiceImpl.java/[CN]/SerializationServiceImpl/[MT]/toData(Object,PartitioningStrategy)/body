@@ -5,18 +5,23 @@
   if (obj instanceof Data) {
     return (Data)obj;
   }
-  int partitionHash=calculatePartitionHash(obj,strategy);
+  BufferObjectDataOutput out=pop();
   try {
-    final SerializerAdapter serializer=serializerFor(obj.getClass());
-    if (serializer == null) {
-      if (active) {
-        throw new HazelcastSerializationException("There is no suitable serializer for " + obj.getClass());
-      }
-      throw new HazelcastInstanceNotActiveException();
+    SerializerAdapter serializer=serializerFor(obj.getClass());
+    out.writeInt(serializer.getTypeId(),ByteOrder.BIG_ENDIAN);
+    int partitionHash=calculatePartitionHash(obj,strategy);
+    boolean hasPartitionHash=partitionHash != 0;
+    out.writeBoolean(hasPartitionHash);
+    serializer.write(out,obj);
+    if (hasPartitionHash) {
+      out.writeInt(partitionHash,ByteOrder.BIG_ENDIAN);
     }
-    return serializer.toData(obj,partitionHash);
+    return new DefaultData(out.toByteArray());
   }
  catch (  Throwable e) {
     throw handleException(e);
+  }
+ finally {
+    push(out);
   }
 }

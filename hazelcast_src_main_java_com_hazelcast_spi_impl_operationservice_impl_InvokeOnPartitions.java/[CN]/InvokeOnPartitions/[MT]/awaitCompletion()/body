@@ -1,0 +1,22 @@
+{
+  NodeEngineImpl nodeEngine=operationService.nodeEngine;
+  for (  Map.Entry<Address,Future> response : futures.entrySet()) {
+    try {
+      Future future=response.getValue();
+      PartitionIteratingOperation.PartitionResponse result=(PartitionIteratingOperation.PartitionResponse)nodeEngine.toObject(future.get());
+      partitionResults.putAll(result.asMap());
+    }
+ catch (    Throwable t) {
+      if (operationService.logger.isFinestEnabled()) {
+        operationService.logger.finest(t);
+      }
+ else {
+        operationService.logger.warning(t.getMessage());
+      }
+      List<Integer> partitions=memberPartitions.get(response.getKey());
+      for (      Integer partition : partitions) {
+        partitionResults.put(partition,t);
+      }
+    }
+  }
+}

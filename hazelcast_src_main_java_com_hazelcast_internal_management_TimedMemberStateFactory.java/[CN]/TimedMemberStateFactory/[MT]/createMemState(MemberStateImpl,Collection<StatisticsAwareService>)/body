@@ -1,0 +1,32 @@
+{
+  int count=0;
+  Config config=instance.getConfig();
+  for (  StatisticsAwareService service : services) {
+    if (count < maxVisibleInstanceCount) {
+      if (service instanceof MapService) {
+        count=handleMap(memberState,count,config,((MapService)service).getStats());
+      }
+ else       if (service instanceof MultiMapService) {
+        count=handleMultimap(memberState,count,config,((MultiMapService)service).getStats());
+      }
+ else       if (service instanceof QueueService) {
+        count=handleQueue(memberState,count,config,((QueueService)service).getStats());
+      }
+ else       if (service instanceof TopicService) {
+        count=handleTopic(memberState,count,config,((TopicService)service).getStats());
+      }
+ else       if (service instanceof DistributedExecutorService) {
+        count=handleExecutorService(memberState,count,config,((DistributedExecutorService)service).getStats());
+      }
+    }
+  }
+  if (cacheServiceEnabled) {
+    ICacheService cacheService=getCacheService();
+    for (    CacheConfig cacheConfig : cacheService.getCacheConfigs()) {
+      if (cacheConfig.isStatisticsEnabled()) {
+        CacheStatistics statistics=cacheService.getStatistics(cacheConfig.getNameWithPrefix());
+        count=handleCache(memberState,count,cacheConfig,statistics);
+      }
+    }
+  }
+}

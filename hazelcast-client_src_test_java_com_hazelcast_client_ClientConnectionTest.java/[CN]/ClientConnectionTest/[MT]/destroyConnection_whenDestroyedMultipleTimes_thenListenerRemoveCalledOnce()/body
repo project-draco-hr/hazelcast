@@ -1,0 +1,13 @@
+{
+  HazelcastInstance server=Hazelcast.newHazelcastInstance();
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  HazelcastClientInstanceImpl clientImpl=ClientTestUtil.getHazelcastClientInstanceImpl(client);
+  ClientConnectionManager connectionManager=clientImpl.getConnectionManager();
+  final CountingConnectionRemoveListener listener=new CountingConnectionRemoveListener();
+  connectionManager.addConnectionListener(listener);
+  final Address serverAddress=new Address(server.getCluster().getLocalMember().getSocketAddress());
+  final Connection connectionToServer=connectionManager.getConnection(serverAddress);
+  connectionManager.destroyConnection(connectionToServer);
+  connectionManager.destroyConnection(connectionToServer);
+  assertEquals("connection removed should be called only once",1,listener.count.get());
+}

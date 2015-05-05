@@ -1,0 +1,16 @@
+{
+  int mapSize=2000;
+  final int maxSize=1000;
+  final IMap map=getMapConfiguredWithMaxSizeAndPolicy("LFU",maxSize);
+  populateMap(map,mapSize);
+  pullEntriesToNearCache(map,mapSize);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
+      long ownedEntryCount=stats.getOwnedEntryCount();
+      triggerNearCacheEviction(map);
+      assertTrue("owned entry count " + ownedEntryCount,maxSize > ownedEntryCount);
+    }
+  }
+);
+}

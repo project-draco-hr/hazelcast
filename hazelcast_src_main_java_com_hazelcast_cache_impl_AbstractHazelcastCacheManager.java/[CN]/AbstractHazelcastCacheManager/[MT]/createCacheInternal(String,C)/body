@@ -1,0 +1,23 @@
+{
+  checkIfManagerNotClosed();
+  checkNotNull(cacheName,"cacheName must not be null");
+  checkNotNull(configuration,"configuration must not be null");
+  CacheConfig<K,V> newCacheConfig=createCacheConfig(cacheName,configuration);
+  if (caches.containsKey(newCacheConfig.getNameWithPrefix())) {
+    throw new CacheException("A cache named " + cacheName + " already exists.");
+  }
+  CacheConfig<K,V> currentCacheConfig=createConfig(cacheName,newCacheConfig,true,true);
+  ICacheInternal<K,V> cacheProxy=createCacheProxy(newCacheConfig);
+  if (currentCacheConfig == null) {
+    addCacheConfigIfAbsent(newCacheConfig);
+    caches.put(newCacheConfig.getNameWithPrefix(),cacheProxy);
+    registerListeners(newCacheConfig,cacheProxy);
+    return cacheProxy;
+  }
+  ICacheInternal<?,?> cache=getOrPutIfAbsent(currentCacheConfig.getNameWithPrefix(),cacheProxy);
+  CacheConfig config=cache.getConfiguration(CacheConfig.class);
+  if (config.equals(newCacheConfig)) {
+    return (ICacheInternal<K,V>)cache;
+  }
+  throw new CacheException("A cache named " + cacheName + " already exists.");
+}

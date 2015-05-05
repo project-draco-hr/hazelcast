@@ -1,0 +1,75 @@
+{
+  final int numberOfMessages=1000;
+  final AtomicInteger count=new AtomicInteger();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=factory.newHazelcastInstance();
+  final HazelcastInstance instance2=factory.newHazelcastInstance();
+  final String inQueueName="in";
+  final String outQueueName="out";
+class MoveMessage implements Runnable {
+    private final HazelcastInstance hazelcastInstance;
+    MoveMessage(    HazelcastInstance hazelcastInstance){
+      this.hazelcastInstance=hazelcastInstance;
+    }
+    @Override public void run(){
+      while (!Thread.currentThread().isInterrupted()) {
+        try {
+          TransactionContext transactionContext=hazelcastInstance.newTransactionContext();
+          transactionContext.beginTransaction();
+          try {
+            final Object item=transactionContext.getQueue(inQueueName).poll();
+            if (item != null && !transactionContext.getQueue(outQueueName).offer(item)) {
+              throw new RuntimeException("Out Queue wouldn't accept item");
+            }
+            transactionContext.commitTransaction();
+            if (item != null) {
+              count.incrementAndGet();
+            }
+          }
+ catch (          HazelcastInstanceNotActiveException e) {
+            throw e;
+          }
+catch (          Exception e) {
+            try {
+              transactionContext.rollbackTransaction();
+            }
+ catch (            HazelcastInstanceNotActiveException ignored) {
+            }
+          }
+        }
+ catch (        HazelcastInstanceNotActiveException e) {
+          break;
+        }
+      }
+    }
+  }
+  final IQueue<Object> inQueue=instance1.getQueue(inQueueName);
+  for (int i=0; i < numberOfMessages; i++) {
+    if (!inQueue.offer(i)) {
+      throw new RuntimeException("initial put did not work");
+    }
+  }
+  final Thread moveMessage1=new Thread(new MoveMessage(instance1)), moveMessage2=new Thread(new MoveMessage(instance2));
+  try {
+    moveMessage1.start();
+    moveMessage2.start();
+    while (count.get() < numberOfMessages / 2) {
+      LockSupport.parkNanos(1000);
+    }
+    instance2.getLifecycleService().shutdown();
+    moveMessage2.interrupt();
+    moveMessage1.join(10000);
+    moveMessage2.join(10000);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run(){
+        assertEquals(numberOfMessages,instance1.getQueue(outQueueName).size());
+        assertTrue(instance1.getQueue(inQueueName).isEmpty());
+      }
+    }
+);
+  }
+  finally {
+    moveMessage1.interrupt();
+    moveMessage2.interrupt();
+  }
+}

@@ -1,0 +1,30 @@
+{
+  BeanDefinitionBuilder serviceConfigBuilder=createBeanBuilder(ServiceConfig.class);
+  final AbstractBeanDefinition beanDefinition=serviceConfigBuilder.getBeanDefinition();
+  fillAttributeValues(node,serviceConfigBuilder);
+  for (  Node child : new IterableNodeList(node,Node.ELEMENT_NODE)) {
+    final String nodeName=cleanNodeName(child);
+    if ("name".equals(nodeName)) {
+      serviceConfigBuilder.addPropertyValue(xmlToJavaName(nodeName),getTextContent(child));
+    }
+ else     if ("class-name".equals(nodeName)) {
+      serviceConfigBuilder.addPropertyValue(xmlToJavaName(nodeName),getTextContent(child));
+    }
+ else     if ("properties".equals(nodeName)) {
+      handleProperties(child,serviceConfigBuilder);
+    }
+ else     if ("configuration".equals(nodeName)) {
+      final Node parser=child.getAttributes().getNamedItem("parser");
+      final String name=getTextContent(parser);
+      try {
+        ServiceConfigurationParser serviceConfigurationParser=ClassLoaderUtil.newInstance(getClass().getClassLoader(),name);
+        Object obj=serviceConfigurationParser.parse((Element)child);
+        serviceConfigBuilder.addPropertyValue(xmlToJavaName("config-object"),obj);
+      }
+ catch (      Exception e) {
+        ExceptionUtil.sneakyThrow(e);
+      }
+    }
+  }
+  return beanDefinition;
+}

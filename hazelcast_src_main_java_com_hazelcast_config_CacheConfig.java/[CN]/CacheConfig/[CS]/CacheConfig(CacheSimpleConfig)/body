@@ -1,5 +1,4 @@
 {
-  super();
   this.name=simpleConfig.getName();
   if (simpleConfig.getKeyType() != null) {
     this.keyType=(Class<K>)ClassLoaderUtil.loadClass(null,simpleConfig.getKeyType());
@@ -15,29 +14,32 @@
     this.cacheLoaderFactory=ClassLoaderUtil.newInstance(null,simpleConfig.getCacheLoaderFactory());
   }
   if (simpleConfig.getCacheWriterFactory() != null) {
-    this.cacheLoaderFactory=ClassLoaderUtil.newInstance(null,simpleConfig.getCacheWriterFactory());
+    this.cacheWriterFactory=ClassLoaderUtil.newInstance(null,simpleConfig.getCacheWriterFactory());
   }
   if (simpleConfig.getExpiryPolicyFactory() != null) {
-    this.cacheLoaderFactory=ClassLoaderUtil.newInstance(null,simpleConfig.getExpiryPolicyFactory());
+    this.expiryPolicyFactory=ClassLoaderUtil.newInstance(null,simpleConfig.getExpiryPolicyFactory());
   }
   this.asyncBackupCount=simpleConfig.getAsyncBackupCount();
   this.backupCount=simpleConfig.getBackupCount();
   this.inMemoryFormat=simpleConfig.getInMemoryFormat();
-  this.evictionPolicy=simpleConfig.getEvictionPolicy();
-  this.evictionPercentage=simpleConfig.getEvictionPercentage();
-  this.evictionThresholdPercentage=simpleConfig.getEvictionThresholdPercentage();
+  if (simpleConfig.getEvictionConfig() != null) {
+    this.evictionConfig=new CacheEvictionConfig(simpleConfig.getEvictionConfig());
+  }
+  if (simpleConfig.getWanReplicationRef() != null) {
+    this.wanReplicationRef=new WanReplicationRef(simpleConfig.getWanReplicationRef());
+  }
   for (  CacheSimpleEntryListenerConfig simpleListener : simpleConfig.getCacheEntryListeners()) {
     Factory<? extends CacheEntryListener<? super K,? super V>> listenerFactory=null;
     Factory<? extends CacheEntryEventFilter<? super K,? super V>> filterFactory=null;
     if (simpleListener.getCacheEntryListenerFactory() != null) {
-      listenerFactory=FactoryBuilder.factoryOf(simpleListener.getCacheEntryListenerFactory());
+      listenerFactory=ClassLoaderUtil.newInstance(null,simpleListener.getCacheEntryListenerFactory());
     }
     if (simpleListener.getCacheEntryEventFilterFactory() != null) {
-      filterFactory=FactoryBuilder.factoryOf(simpleListener.getCacheEntryEventFilterFactory());
+      filterFactory=ClassLoaderUtil.newInstance(null,simpleListener.getCacheEntryEventFilterFactory());
     }
     boolean isOldValueRequired=simpleListener.isOldValueRequired();
     boolean synchronous=simpleListener.isSynchronous();
     MutableCacheEntryListenerConfiguration<K,V> listenerConfiguration=new MutableCacheEntryListenerConfiguration<K,V>(listenerFactory,filterFactory,isOldValueRequired,synchronous);
-    this.addCacheEntryListenerConfiguration(listenerConfiguration);
+    addCacheEntryListenerConfiguration(listenerConfiguration);
   }
 }

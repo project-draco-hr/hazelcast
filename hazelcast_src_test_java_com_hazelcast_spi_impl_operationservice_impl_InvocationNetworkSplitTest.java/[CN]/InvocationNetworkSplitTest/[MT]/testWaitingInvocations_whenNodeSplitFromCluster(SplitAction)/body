@@ -1,0 +1,35 @@
+{
+  Config config=new Config();
+  config.getGroupConfig().setName(generateRandomString(10));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance hz1=factory.newHazelcastInstance(config);
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  HazelcastInstance hz3=factory.newHazelcastInstance(config);
+  Node node1=TestUtil.getNode(hz1);
+  Node node2=TestUtil.getNode(hz2);
+  Node node3=TestUtil.getNode(hz3);
+  warmUpPartitions(hz1,hz2,hz3);
+  int partitionId=getPartitionId(hz2);
+  NodeEngineImpl nodeEngine3=node3.getNodeEngine();
+  OperationService operationService3=nodeEngine3.getOperationService();
+  Operation op=new AlwaysBlockingOperation();
+  Future<Object> future=operationService3.invokeOnPartition("",op,partitionId);
+  sleepSeconds(1);
+  splitAction.run(node1,node2,node3);
+  ClusterServiceImpl clusterService3=node3.getClusterService();
+  clusterService3.prepareToMerge(node1.address);
+  clusterService3.merge(node1.address);
+  assertEquals(3,node1.getClusterService().getSize());
+  assertEquals(3,node2.getClusterService().getSize());
+  assertEquals(3,node3.getClusterService().getSize());
+  try {
+    future.get(1,TimeUnit.MINUTES);
+    fail("Future.get() should fail with a MemberLeftException!");
+  }
+ catch (  MemberLeftException e) {
+    EmptyStatement.ignore(e);
+  }
+catch (  Exception e) {
+    fail(e.getClass().getName() + ": " + e.getMessage());
+  }
+}

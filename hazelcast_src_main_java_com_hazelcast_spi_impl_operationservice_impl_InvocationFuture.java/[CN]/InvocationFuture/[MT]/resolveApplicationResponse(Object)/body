@@ -1,0 +1,26 @@
+{
+  if (unresolvedResponse == NULL_RESPONSE) {
+    return null;
+  }
+  if (unresolvedResponse == TIMEOUT_RESPONSE) {
+    return new TimeoutException("Call " + invocation + " encountered a timeout");
+  }
+  if (unresolvedResponse == INTERRUPTED_RESPONSE) {
+    return new InterruptedException("Call " + invocation + " was interrupted");
+  }
+  Object response=unresolvedResponse;
+  if (invocation.resultDeserialized && response instanceof Data) {
+    response=invocation.nodeEngine.toObject(response);
+    if (response == null) {
+      return null;
+    }
+  }
+  if (response instanceof Throwable) {
+    Throwable throwable=((Throwable)response);
+    if (invocation.remote) {
+      fixRemoteStackTrace((Throwable)response,Thread.currentThread().getStackTrace());
+    }
+    return throwable;
+  }
+  return response;
+}

@@ -1,0 +1,22 @@
+{
+  if (filter instanceof MapPartitionLostEventFilter) {
+    return Result.NONE;
+  }
+  if (filter instanceof SyntheticEventFilter) {
+    if (syntheticEvent) {
+      return Result.NONE;
+    }
+    final SyntheticEventFilter syntheticEventFilter=(SyntheticEventFilter)filter;
+    filter=syntheticEventFilter.getFilter();
+  }
+  if (filter instanceof EmptyFilter) {
+    return Result.VALUE_INCLUDED;
+  }
+  if (filter instanceof QueryEventFilter) {
+    return processQueryEventFilter(filter,eventType,dataKey,dataOldValue,dataValue);
+  }
+  if (filter instanceof EntryEventFilter) {
+    return processEntryEventFilter(filter,dataKey);
+  }
+  throw new IllegalArgumentException("Unknown EventFilter type = [" + filter.getClass().getCanonicalName() + "]");
+}

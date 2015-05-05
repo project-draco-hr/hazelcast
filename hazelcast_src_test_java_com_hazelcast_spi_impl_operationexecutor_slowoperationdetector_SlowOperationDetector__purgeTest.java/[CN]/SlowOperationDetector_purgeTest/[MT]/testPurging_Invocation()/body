@@ -1,0 +1,21 @@
+{
+  setup("3");
+  for (int i=0; i < 2; i++) {
+    map.executeOnEntries(getSlowEntryProcessor(2));
+  }
+  map.executeOnEntries(getSlowEntryProcessor(3));
+  map.executeOnEntries(getSlowEntryProcessor(2));
+  awaitSlowEntryProcessors();
+  shutdownOperationService(instance);
+  Collection<SlowOperationLog> logs=getSlowOperationLogs(instance);
+  assertNumberOfSlowOperationLogs(logs,1);
+  SlowOperationLog firstLog=logs.iterator().next();
+  assertTotalInvocations(firstLog,4);
+  assertEntryProcessorOperation(firstLog);
+  assertStackTraceContainsClassName(firstLog,"SlowEntryProcessor");
+  Collection<SlowOperationLog.Invocation> invocations=getInvocations(firstLog);
+  assertEqualsStringFormat("Expected %d invocations, but was %d",2,invocations.size());
+  for (  SlowOperationLog.Invocation invocation : invocations) {
+    assertInvocationDurationBetween(invocation,1000,3500);
+  }
+}

@@ -6,11 +6,11 @@
   nodeEngine.start();
   connectionManager.start();
   if (config.getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
-    final Thread multicastServiceThread=new Thread(hazelcastInstance.threadGroup,multicastService,getThreadNamePrefix("MulticastThread"));
+    final Thread multicastServiceThread=new Thread(hazelcastThreadGroup.getInternalThreadGroup(),multicastService,hazelcastThreadGroup.getThreadNamePrefix("MulticastThread"));
     multicastServiceThread.start();
   }
   setActive(true);
-  if (!completelyShutdown) {
+  if (!completelyShutdown && groupProperties.SHUTDOWNHOOK_ENABLED.getBoolean()) {
     logger.finest("Adding ShutdownHook");
     Runtime.getRuntime().addShutdownHook(shutdownHookThread);
   }
@@ -32,4 +32,5 @@
     logger.warning("ManagementCenterService could not be constructed!",e);
   }
   nodeExtension.afterStart(this);
+  versionCheck.check(this,getBuildInfo().getVersion(),buildInfo.isEnterprise());
 }

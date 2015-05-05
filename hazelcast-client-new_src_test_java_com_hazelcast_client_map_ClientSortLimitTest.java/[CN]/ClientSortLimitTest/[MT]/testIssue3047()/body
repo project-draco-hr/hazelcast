@@ -1,0 +1,21 @@
+{
+  final IMap<Integer,Employee> map=client.getMap("employeeMap");
+  final int PAGE_SIZE=5;
+  final int START_ID_FOR_QUERY=0;
+  final int FINISH_ID_FOR_QUERY=50;
+  final int queriedElementCount=FINISH_ID_FOR_QUERY - START_ID_FOR_QUERY + 1;
+  final int expectedPageCount=(queriedElementCount / PAGE_SIZE) + (queriedElementCount % PAGE_SIZE == 0 ? 0 : 1);
+  for (int i=0; i < 1000; i++) {
+    map.put(i,new Employee(i));
+  }
+  map.addIndex("id",true);
+  Predicate pred=Predicates.between("id",START_ID_FOR_QUERY,FINISH_ID_FOR_QUERY);
+  PagingPredicate predicate=new PagingPredicate(pred,PAGE_SIZE);
+  Collection<Employee> values;
+  int passedPageCount=0;
+  for (values=map.values(predicate); !values.isEmpty() && passedPageCount <= expectedPageCount; values=map.values(predicate)) {
+    predicate.nextPage();
+    passedPageCount++;
+  }
+  assertEquals(expectedPageCount,passedPageCount);
+}

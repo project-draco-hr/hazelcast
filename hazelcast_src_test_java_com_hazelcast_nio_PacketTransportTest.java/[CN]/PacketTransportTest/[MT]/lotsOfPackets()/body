@@ -1,0 +1,26 @@
+{
+  List<Packet> originalPackets=new LinkedList<Packet>();
+  Random random=new Random();
+  for (int k=0; k < 1000; k++) {
+    byte[] bytes=generateRandomString(random.nextInt(1000) + 5).getBytes();
+    DefaultData originalData=new DefaultData(bytes);
+    Packet originalPacket=new Packet(originalData);
+    originalPackets.add(originalPacket);
+  }
+  ByteBuffer bb=ByteBuffer.allocate(20);
+  for (  Packet originalPacket : originalPackets) {
+    Packet clonedPacket=new Packet();
+    boolean writeCompleted;
+    boolean readCompleted;
+    do {
+      writeCompleted=originalPacket.writeTo(bb);
+      bb.flip();
+      readCompleted=clonedPacket.readFrom(bb);
+      bb.clear();
+    }
+ while (!writeCompleted);
+    assertTrue(readCompleted);
+    assertEquals(originalPacket.getHeader(),clonedPacket.getHeader());
+    assertEquals(originalPacket.getData(),clonedPacket.getData());
+  }
+}

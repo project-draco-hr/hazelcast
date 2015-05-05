@@ -1,0 +1,18 @@
+{
+  IExecutorService service=client.getExecutorService(randomString());
+  Callable getUuidCallable=new GetMemberUuidTask();
+  Member member=server.getCluster().getLocalMember();
+  final CountDownLatch responseLatch=new CountDownLatch(1);
+  final AtomicReference<Object> result=new AtomicReference<Object>();
+  service.submitToMember(getUuidCallable,member,new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      result.set(response);
+      responseLatch.countDown();
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+);
+  assertOpenEventually("responseLatch",responseLatch);
+  assertEquals(member.getUuid(),result.get());
+}

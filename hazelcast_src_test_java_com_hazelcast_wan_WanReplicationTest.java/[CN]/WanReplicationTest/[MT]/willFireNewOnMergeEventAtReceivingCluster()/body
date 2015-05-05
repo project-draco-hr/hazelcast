@@ -1,0 +1,18 @@
+{
+  setupReplicateFrom(configA,configB,clusterB.length,"atob",PassThroughMergePolicy.class.getName());
+  initClusterA();
+  initClusterB();
+  IMap<String,String> map=clusterB[0].getMap("map");
+  int entryCount=1000;
+  final CountDownLatch mergeEventFiredCounter=new CountDownLatch(entryCount);
+  map.addEntryListener(new EntryMergedListener<String,String>(){
+    @Override public void entryMerged(    EntryEvent<String,String> event){
+      mergeEventFiredCounter.countDown();
+    }
+  }
+,true);
+  createDataIn(clusterA,"map",0,entryCount);
+  assertKeysIn(clusterB,"map",0,entryCount);
+  assertDataSizeEventually(clusterB,"map",entryCount);
+  assertOpenEventually(mergeEventFiredCounter);
+}

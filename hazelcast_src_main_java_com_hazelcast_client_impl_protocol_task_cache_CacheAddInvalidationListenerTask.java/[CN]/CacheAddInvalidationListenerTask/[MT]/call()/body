@@ -1,0 +1,18 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  CacheService cacheService=getService(CacheService.SERVICE_NAME);
+  String registrationId=cacheService.addInvalidationListener(parameters.name,new CacheEventListener(){
+    @Override public void handleEvent(    Object eventObject){
+      if (eventObject instanceof CacheInvalidationMessage) {
+        CacheInvalidationMessage message=(CacheInvalidationMessage)eventObject;
+        if (endpoint.isAlive()) {
+          ClientMessage eventMessage=CacheInvalidationMessageParameters.encode(message.getName(),message.getKey(),message.getSourceUuid());
+          sendClientMessage(eventMessage);
+        }
+      }
+    }
+  }
+);
+  endpoint.setListenerRegistration(CacheService.SERVICE_NAME,parameters.name,registrationId);
+  return AddListenerResultParameters.encode(registrationId);
+}

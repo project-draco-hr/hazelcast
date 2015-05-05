@@ -1,21 +1,21 @@
 {
-  int n=2;
-  String mapName="test";
+  int instanceCount=2;
+  int mapSize=100;
+  String mapName="testCacheLocalEntries";
   Config config=new Config();
   final NearCacheConfig nearCacheConfig=new NearCacheConfig();
   nearCacheConfig.setCacheLocalEntries(true);
   nearCacheConfig.setInvalidateOnChange(false);
   final MapConfig mapConfig=config.getMapConfig(mapName);
   mapConfig.setNearCacheConfig(nearCacheConfig);
-  HazelcastInstance instance=createHazelcastInstanceFactory(n).newInstances(config)[0];
-  IMap<String,String> map=instance.getMap(mapName);
-  int noOfEntries=100;
-  for (int i=0; i < noOfEntries; i++) {
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(instanceCount).newInstances(config);
+  IMap<String,String> map=instances[0].getMap(mapName);
+  for (int i=0; i < mapSize; i++) {
     map.put("key" + i,"value" + i);
   }
-  for (int i=0; i < noOfEntries; i++) {
+  for (int i=0; i < mapSize; i++) {
     map.get("key" + i);
   }
-  NearCache nearCache=getNearCache(mapName,instance);
-  assertEquals(noOfEntries,nearCache.size());
+  NearCache nearCache=getNearCache(mapName,instances[0]);
+  assertEquals(String.format("Near cache size should be %d but was %d",mapSize,nearCache.size()),mapSize,nearCache.size());
 }

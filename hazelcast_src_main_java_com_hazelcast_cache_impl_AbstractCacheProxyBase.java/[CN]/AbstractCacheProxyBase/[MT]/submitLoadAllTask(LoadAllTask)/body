@@ -1,0 +1,15 @@
+{
+  final ExecutionService executionService=nodeEngine.getExecutionService();
+  final CompletableFutureTask<?> future=(CompletableFutureTask<?>)executionService.submit("loadAll-" + nameWithPrefix,loadAllTask);
+  loadAllTasks.add(future);
+  future.andThen(new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      loadAllTasks.remove(future);
+    }
+    @Override public void onFailure(    Throwable t){
+      loadAllTasks.remove(future);
+      getNodeEngine().getLogger(getClass()).warning("Problem in loadAll task",t);
+    }
+  }
+);
+}

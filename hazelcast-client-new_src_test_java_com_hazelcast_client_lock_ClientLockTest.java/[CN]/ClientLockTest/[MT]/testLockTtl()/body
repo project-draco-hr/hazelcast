@@ -1,0 +1,22 @@
+{
+  l.lock(3,TimeUnit.SECONDS);
+  final CountDownLatch latch=new CountDownLatch(2);
+  new Thread(){
+    public void run(){
+      if (!l.tryLock()) {
+        latch.countDown();
+      }
+      try {
+        if (l.tryLock(5,TimeUnit.SECONDS)) {
+          latch.countDown();
+        }
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+.start();
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+  l.forceUnlock();
+}

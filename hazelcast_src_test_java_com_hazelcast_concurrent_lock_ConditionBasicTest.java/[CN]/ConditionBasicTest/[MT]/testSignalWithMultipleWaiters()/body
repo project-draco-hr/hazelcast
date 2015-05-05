@@ -1,0 +1,20 @@
+{
+  ILock lock=callerInstance.getLock(newName());
+  final ICondition condition=lock.newCondition(newName());
+  final CountDownLatch latch=new CountDownLatch(10);
+  final CountDownLatch syncLatch=new CountDownLatch(3);
+  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
+  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
+  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
+  syncLatch.await();
+  lock.lock();
+  condition.signal();
+  lock.unlock();
+  assertTrueDelayed5sec(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(9,latch.getCount());
+    }
+  }
+);
+  assertEquals(false,lock.isLocked());
+}

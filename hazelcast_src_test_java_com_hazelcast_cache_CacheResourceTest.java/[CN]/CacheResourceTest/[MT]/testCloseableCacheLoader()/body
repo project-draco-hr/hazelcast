@@ -1,0 +1,15 @@
+{
+  CachingProvider provider=HazelcastServerCachingProvider.createCachingProvider(factory.newHazelcastInstance());
+  CacheManager cacheManager=provider.getCacheManager();
+  CloseableCacheLoader loader=new CloseableCacheLoader();
+  Factory<CloseableCacheLoader> loaderFactory=FactoryBuilder.factoryOf(loader);
+  CompleteConfiguration<Object,Object> configuration=new CacheConfig().setCacheLoaderFactory(loaderFactory).setReadThrough(true);
+  Cache<Object,Object> cache=cacheManager.createCache("test",configuration);
+  cache.get("key");
+  factory.newHazelcastInstance();
+  for (int i=0; i < 1000; i++) {
+    cache.get(i);
+    LockSupport.parkNanos(1000);
+  }
+  assertFalse("CacheLoader should not be closed!",loader.closed);
+}

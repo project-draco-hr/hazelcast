@@ -1,0 +1,19 @@
+{
+  Config config=new Config();
+  final CountDownLatch latch=new CountDownLatch(2);
+  ListenerConfig listenerConfig=new ListenerConfig(new ClientListener(){
+    @Override public void clientConnected(    Client client){
+      latch.countDown();
+    }
+    @Override public void clientDisconnected(    Client client){
+      latch.countDown();
+    }
+  }
+);
+  config.addListenerConfig(listenerConfig);
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  client.shutdown();
+  assertOpenEventually(latch);
+  instance.shutdown();
+}

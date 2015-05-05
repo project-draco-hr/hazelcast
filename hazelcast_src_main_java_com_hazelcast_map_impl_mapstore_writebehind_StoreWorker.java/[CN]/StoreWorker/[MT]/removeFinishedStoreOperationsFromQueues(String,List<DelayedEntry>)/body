@@ -1,0 +1,16 @@
+{
+  for (  DelayedEntry entry : entries) {
+    final int partitionId=entry.getPartitionId();
+    final RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
+    if (recordStore == null) {
+      continue;
+    }
+    final WriteBehindQueue<DelayedEntry> queue=getWriteBehindQueue(recordStore);
+    queue.removeFirstOccurrence(entry);
+    final AtomicInteger flushCounter=getFlushCounter(recordStore);
+    final int flushCount=flushCounter.get();
+    if (flushCount > 0) {
+      flushCounter.addAndGet(-1);
+    }
+  }
+}

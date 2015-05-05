@@ -1,23 +1,22 @@
 {
-  Collection<MemberImpl> members=getClientEngine().getClusterService().getMemberList();
-  int partitionCount=getClientEngine().getPartitionService().getPartitionCount();
-  Set<Integer> plist=new HashSet<Integer>(partitionCount);
-  final ClientEndpoint endpoint=getEndpoint();
   QueryResultSet result=new QueryResultSet(null,iterationType,true);
   try {
+    Predicate predicate=getPredicate();
+    Collection<MemberImpl> members=getClientEngine().getClusterService().getMemberList();
     List<Future> futures=new ArrayList<Future>();
-    final Predicate predicate=getPredicate();
     createInvocations(members,futures,predicate);
-    collectResults(plist,result,futures);
-    if (hasMissingPartitions(partitionCount,plist)) {
-      List<Integer> missingList=findMissingPartitions(partitionCount,plist);
+    int partitionCount=getClientEngine().getPartitionService().getPartitionCount();
+    Set<Integer> finishedPartitions=new HashSet<Integer>(partitionCount);
+    collectResults(result,futures,finishedPartitions);
+    if (hasMissingPartitions(finishedPartitions,partitionCount)) {
+      List<Integer> missingList=findMissingPartitions(finishedPartitions,partitionCount);
       List<Future> missingFutures=new ArrayList<Future>(missingList.size());
-      createInvocationsForMissingPartitions(predicate,missingList,missingFutures);
+      createInvocationsForMissingPartitions(missingList,missingFutures,predicate);
       collectResultsFromMissingPartitions(result,missingFutures);
     }
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
   }
-  endpoint.sendResponse(result,getCallId());
+  getEndpoint().sendResponse(result,getCallId());
 }

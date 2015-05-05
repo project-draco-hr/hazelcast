@@ -1,0 +1,24 @@
+{
+  final int instanceCount=6;
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(instanceCount);
+  final Config config=new Config();
+  config.setProperty(GroupProperties.PROP_WAIT_SECONDS_BEFORE_JOIN,"0");
+  final String mapName=randomMapName();
+  config.getMapConfig(mapName).addMapIndexConfig(new MapIndexConfig("name",false));
+  final CountDownLatch latch=new CountDownLatch(instanceCount);
+  for (int i=0; i < instanceCount; i++) {
+    executorService.execute(new Runnable(){
+      public void run(){
+        HazelcastInstance hz=factory.newHazelcastInstance(config);
+        hz.getMap(mapName);
+        latch.countDown();
+      }
+    }
+);
+  }
+  assertOpenEventually(latch);
+  Collection<HazelcastInstance> instances=factory.getAllHazelcastInstances();
+  for (  HazelcastInstance instance : instances) {
+    assertClusterSize(instanceCount,instance);
+  }
+}

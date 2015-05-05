@@ -1,0 +1,15 @@
+{
+  if (dirtyOutputBuffer() || currentPacket != null) {
+    registerOp(SelectionKey.OP_WRITE);
+    return;
+  }
+  unregisterOp(SelectionKey.OP_WRITE);
+  scheduled.set(false);
+  if (writeQueue.isEmpty() && urgentWriteQueue.isEmpty()) {
+    return;
+  }
+  if (!scheduled.compareAndSet(false,true)) {
+    return;
+  }
+  ioSelector.addTask(this);
+}

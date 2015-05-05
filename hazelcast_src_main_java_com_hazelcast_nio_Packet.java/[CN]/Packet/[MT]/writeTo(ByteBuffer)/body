@@ -1,24 +1,19 @@
 {
-  if (!isStatusSet(ST_VERSION)) {
-    if (!destination.hasRemaining()) {
-      return false;
-    }
-    destination.put(VERSION);
-    setStatus(ST_VERSION);
+  if (!writeVersion(destination)) {
+    return false;
   }
-  if (!isStatusSet(ST_HEADER)) {
-    if (destination.remaining() < Bits.SHORT_SIZE_IN_BYTES) {
-      return false;
-    }
-    destination.putShort(header);
-    setStatus(ST_HEADER);
+  if (!writeHeader(destination)) {
+    return false;
   }
-  if (!isStatusSet(ST_PARTITION)) {
-    if (destination.remaining() < Bits.INT_SIZE_IN_BYTES) {
-      return false;
-    }
-    destination.putInt(partitionId);
-    setStatus(ST_PARTITION);
+  if (!writePartition(destination)) {
+    return false;
   }
-  return super.writeTo(destination);
+  if (!writeSize(destination)) {
+    return false;
+  }
+  if (!writeValue(destination)) {
+    return false;
+  }
+  setPersistStatus(PERSIST_COMPLETED);
+  return true;
 }

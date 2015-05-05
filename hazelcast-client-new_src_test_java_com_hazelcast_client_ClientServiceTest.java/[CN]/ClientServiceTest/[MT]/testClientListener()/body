@@ -1,0 +1,35 @@
+{
+  final HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  final ClientService clientService=instance.getClientService();
+  final CountDownLatch latchAdd=new CountDownLatch(2);
+  final CountDownLatch latchRemove=new CountDownLatch(2);
+  final AtomicInteger totalAdd=new AtomicInteger(0);
+  final ClientListener clientListener=new ClientListener(){
+    @Override public void clientConnected(    Client client){
+      totalAdd.incrementAndGet();
+      latchAdd.countDown();
+    }
+    @Override public void clientDisconnected(    Client client){
+      latchRemove.countDown();
+    }
+  }
+;
+  final String id=clientService.addClientListener(clientListener);
+  final HazelcastInstance client1=HazelcastClient.newHazelcastClient();
+  final HazelcastInstance client2=HazelcastClient.newHazelcastClient();
+  client1.getLifecycleService().shutdown();
+  client2.getLifecycleService().shutdown();
+  assertTrue(latchAdd.await(6,TimeUnit.SECONDS));
+  assertTrue(latchRemove.await(6,TimeUnit.SECONDS));
+  assertTrue(clientService.removeClientListener(id));
+  assertFalse(clientService.removeClientListener("foo"));
+  assertEquals(0,clientService.getConnectedClients().size());
+  final HazelcastInstance client3=HazelcastClient.newHazelcastClient();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,clientService.getConnectedClients().size());
+    }
+  }
+,4);
+  assertEquals(2,totalAdd.get());
+}

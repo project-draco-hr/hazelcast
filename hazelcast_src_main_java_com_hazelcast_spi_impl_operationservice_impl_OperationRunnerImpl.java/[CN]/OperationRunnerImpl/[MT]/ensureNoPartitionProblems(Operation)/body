@@ -1,0 +1,19 @@
+{
+  int partitionId=op.getPartitionId();
+  if (partitionId < 0) {
+    return;
+  }
+  if (partitionId != getPartitionId()) {
+    throw new IllegalStateException("wrong partition, expected: " + getPartitionId() + " but found:"+ partitionId);
+  }
+  if (internalPartition == null) {
+    internalPartition=nodeEngine.getPartitionService().getPartition(partitionId);
+  }
+  if (retryDuringMigration(op) && internalPartition.isMigrating()) {
+    throw new PartitionMigratingException(node.getThisAddress(),partitionId,op.getClass().getName(),op.getServiceName());
+  }
+  Address owner=internalPartition.getReplicaAddress(op.getReplicaIndex());
+  if (op.validatesTarget() && !node.getThisAddress().equals(owner)) {
+    throw new WrongTargetException(node.getThisAddress(),owner,partitionId,op.getReplicaIndex(),op.getClass().getName(),op.getServiceName());
+  }
+}

@@ -1,0 +1,13 @@
+{
+  ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,replicaIndex,null);
+  ReplicaSyncInfo currentSyncInfo=replicaSyncRequests.get(partitionId);
+  replicaSyncScheduler.cancelIfExists(partitionId,syncInfo);
+  if (syncInfo.equals(currentSyncInfo) && replicaSyncRequests.compareAndSet(partitionId,currentSyncInfo,null)) {
+    releaseReplicaSyncPermit();
+  }
+ else   if (currentSyncInfo != null) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Not able to cancel sync! " + syncInfo + " VS Current "+ currentSyncInfo);
+    }
+  }
+}

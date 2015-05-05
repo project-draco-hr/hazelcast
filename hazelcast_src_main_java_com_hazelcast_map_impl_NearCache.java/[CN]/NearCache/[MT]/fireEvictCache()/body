@@ -1,14 +1,16 @@
 {
   if (canEvict.compareAndSet(true,false)) {
     try {
-      nodeEngine.getExecutionService().execute("hz:near-cache",new Runnable(){
+      final ExecutionService executionService=nodeEngine.getExecutionService();
+      executionService.execute(NEAR_CACHE_EXECUTOR_NAME,new Runnable(){
         public void run(){
           try {
-            TreeSet<CacheRecord> records=new TreeSet<CacheRecord>(cache.values());
-            int evictSize=cache.size() * EVICTION_PERCENTAGE / HUNDRED_PERCENT;
+            TreeSet<NearCacheRecord> records=new TreeSet<NearCacheRecord>(selectedComparator);
+            records.addAll(cache.values());
+            int evictSize=(int)(cache.size() * EVICTION_FACTOR);
             int i=0;
-            for (            CacheRecord record : records) {
-              cache.remove(record.key);
+            for (            NearCacheRecord record : records) {
+              cache.remove(record.getKey());
               updateSizeEstimator(-calculateCost(record));
               if (++i > evictSize) {
                 break;
@@ -17,6 +19,14 @@
           }
   finally {
             canEvict.set(true);
+          }
+          if (cache.size() >= maxSize && canEvict.compareAndSet(true,false)) {
+            try {
+              executionService.execute(NEAR_CACHE_EXECUTOR_NAME,this);
+            }
+ catch (            RejectedExecutionException e) {
+              canEvict.set(true);
+            }
           }
         }
       }

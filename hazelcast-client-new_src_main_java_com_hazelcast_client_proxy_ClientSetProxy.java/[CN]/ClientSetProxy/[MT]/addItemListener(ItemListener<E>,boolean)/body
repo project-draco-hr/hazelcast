@@ -1,0 +1,25 @@
+{
+  ClientMessage request=SetAddListenerParameters.encode(name,includeValue);
+  EventHandler<ClientMessage> eventHandler=new EventHandler<ClientMessage>(){
+    final SerializationService serializationService=getContext().getSerializationService();
+    final ClientClusterService clusterService=getContext().getClusterService();
+    public void handle(    ClientMessage message){
+      ItemEventParameters event=ItemEventParameters.decode(message);
+      E item=includeValue ? (E)serializationService.toObject(event.item) : null;
+      Member member=clusterService.getMember(event.uuid);
+      ItemEvent<E> itemEvent=new ItemEvent<E>(name,event.eventType,item,member);
+      if (event.eventType == ItemEventType.ADDED) {
+        listener.itemAdded(itemEvent);
+      }
+ else {
+        listener.itemRemoved(itemEvent);
+      }
+    }
+    @Override public void beforeListenerRegister(){
+    }
+    @Override public void onListenerRegister(){
+    }
+  }
+;
+  return listen(request,getPartitionKey(),eventHandler);
+}

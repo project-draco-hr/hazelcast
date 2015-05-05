@@ -1,0 +1,31 @@
+{
+  final ByteBuffer initData=ByteBuffer.wrap("CB2JVM".getBytes());
+  channel.write(initData);
+  String username=GroupConfig.DEFAULT_GROUP_NAME;
+  String pass=GroupConfig.DEFAULT_GROUP_PASSWORD;
+  final ClientMessage parameters=AuthenticationParameters.encode(username,pass,"","",true);
+  parameters.setCorrelationId(1).addFlag(ClientMessage.BEGIN_AND_END_FLAGS);
+  final MutableDirectBuffer byteBuffer=parameters.buffer();
+  channel.write(ByteBuffer.wrap(byteBuffer.byteArray()));
+  final ByteBuffer socketBuffer=ByteBuffer.allocate(4096);
+  ClientMessage clientMessage=ClientMessage.create();
+  do {
+    channel.read(socketBuffer);
+    socketBuffer.flip();
+    clientMessage.readFrom(socketBuffer);
+    if (socketBuffer.hasRemaining()) {
+      socketBuffer.compact();
+    }
+ else {
+      socketBuffer.clear();
+    }
+  }
+ while (!clientMessage.isComplete());
+  assertTrue(clientMessage.isComplete());
+  ClientMessage cmResult=ClientMessage.createForDecode(clientMessage.buffer(),0);
+  final AuthenticationResultParameters resultParameters=AuthenticationResultParameters.decode(cmResult);
+  assertEquals(cmResult.getCorrelationId(),1);
+  assertEquals(resultParameters.ownerUuid,server.getCluster().getLocalMember().getUuid());
+  assertNotNull(UUID.fromString(resultParameters.uuid));
+  assertEquals(new Address("127.0.0.1",5701),resultParameters.address);
+}

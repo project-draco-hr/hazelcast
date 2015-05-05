@@ -1,0 +1,17 @@
+{
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  final CountDownLatch connectedLatch=new CountDownLatch(2);
+  client.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      connectedLatch.countDown();
+    }
+  }
+);
+  IMap<String,String> m=client.getMap("default");
+  h1.shutdown();
+  Hazelcast.newHazelcastInstance();
+  assertOpenEventually(connectedLatch,10);
+  assertNull(m.put("test","test"));
+  assertEquals("test",m.get("test"));
+}

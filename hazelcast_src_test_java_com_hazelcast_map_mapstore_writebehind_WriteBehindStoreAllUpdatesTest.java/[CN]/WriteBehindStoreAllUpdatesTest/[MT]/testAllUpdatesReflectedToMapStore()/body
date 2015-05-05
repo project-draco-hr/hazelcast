@@ -1,0 +1,21 @@
+{
+  int nodeCount=3;
+  final MapStoreWithCounter mapStore=new MapStoreWithCounter<Integer,String>();
+  TestMapUsingMapStoreBuilder builder=TestMapUsingMapStoreBuilder.create().withMapStore(mapStore).withNodeCount(nodeCount).withNodeFactory(createHazelcastInstanceFactory(nodeCount)).withBackupCount(0).withWriteCoalescing(false).withWriteDelaySeconds(3);
+  IMap<Object,Object> map=builder.build();
+  for (int i=0; i < 500; i++) {
+    map.put(i,randomString());
+  }
+  for (int i=0; i < 500; i++) {
+    map.remove(i);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final int storeCount=mapStore.countStore.get();
+      final int deleteCount=mapStore.countDelete.get();
+      assertEquals(1000,storeCount + deleteCount);
+      assertTrue(mapStore.store.isEmpty());
+    }
+  }
+);
+}

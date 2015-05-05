@@ -17,17 +17,20 @@
         replaced=updateRecordWithExpiry(key,newValue,record,expiryPolicy,now,false,completionId);
       }
  else {
-        onRecordAccess(record,expiryPolicy,now);
+        onRecordAccess(key,record,expiryPolicy,now);
         replaced=false;
       }
     }
-    onReplace(key,oldValue,newValue,expiryPolicy,caller,false,record,isExpired,replaced);
+    if (!replaced) {
+      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId,CacheRecord.EXPIRATION_TIME_NOT_AVAILABLE);
+    }
+    onReplace(key,oldValue,newValue,expiryPolicy,source,false,record,isExpired,replaced);
     updateReplaceStat(replaced,isHit,start);
     updateHasExpiringEntry(record);
     return replaced;
   }
  catch (  Throwable error) {
-    onReplaceError(key,oldValue,newValue,expiryPolicy,caller,false,record,isExpired,replaced,error);
+    onReplaceError(key,oldValue,newValue,expiryPolicy,source,false,record,isExpired,replaced,error);
     throw ExceptionUtil.rethrow(error);
   }
 }

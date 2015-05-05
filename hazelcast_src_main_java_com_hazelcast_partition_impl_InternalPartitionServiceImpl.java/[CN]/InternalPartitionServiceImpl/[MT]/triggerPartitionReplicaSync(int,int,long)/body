@@ -1,6 +1,6 @@
 {
   if (replicaIndex < 0 || replicaIndex > InternalPartition.MAX_REPLICA_COUNT) {
-    throw new IllegalArgumentException("Invalid replica index: " + replicaIndex);
+    throw new IllegalArgumentException("Invalid replica index! replicaIndex=" + replicaIndex + " for partitionId="+ partitionId);
   }
   if (!checkSyncPartitionTarget(partitionId,replicaIndex)) {
     return;
@@ -12,7 +12,7 @@
     schedulePartitionReplicaSync(syncInfo,target,delayMillis);
     return;
   }
-  if (!isMigrationActive()) {
+  if (!isMigrationActive() || partition.isMigrating()) {
     schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
     return;
   }
@@ -20,7 +20,7 @@
     if (fireSyncReplicaRequest(syncInfo,target)) {
       return;
     }
-    replicaSyncRequests.set(partitionId,null);
+    replicaSyncRequests.compareAndSet(partitionId,syncInfo,null);
     schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
     return;
   }

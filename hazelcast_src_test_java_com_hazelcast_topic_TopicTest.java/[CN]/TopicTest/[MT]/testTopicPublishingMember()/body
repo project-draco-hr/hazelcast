@@ -1,25 +1,23 @@
 {
-  final Config config=new Config();
-  config.getTopicConfig("default").setGlobalOrderingEnabled(true);
-  final int k=3;
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
-  final HazelcastInstance[] instances=factory.newInstances(config);
-  final CountDownLatch mainLatch=new CountDownLatch(k);
-  final AtomicInteger count=new AtomicInteger(0);
+  final int nodeCount=3;
+  final String randomName="testTopicPublishingMember" + generateRandomString(5);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  HazelcastInstance[] instances=factory.newInstances();
+  final CountDownLatch mainLatch=new CountDownLatch(nodeCount);
   final AtomicInteger count1=new AtomicInteger(0);
   final AtomicInteger count2=new AtomicInteger(0);
-  final String name="testTopicPublishingMember";
-  for (int i=0; i < k; i++) {
+  final AtomicInteger count3=new AtomicInteger(0);
+  for (int i=0; i < nodeCount; i++) {
     final HazelcastInstance instance=instances[i];
     new Thread(new Runnable(){
       public void run(){
-        ITopic<Long> topic=instance.getTopic(name);
+        ITopic<Long> topic=instance.getTopic(randomName);
         topic.addMessageListener(new MessageListener<Long>(){
           public void onMessage(          Message<Long> message){
             Member publishingMember=message.getPublishingMember();
-            if (publishingMember.equals(instance.getCluster().getLocalMember()))             count.incrementAndGet();
-            if (publishingMember.equals(message.getMessageObject()))             count1.incrementAndGet();
-            if (publishingMember.localMember())             count2.incrementAndGet();
+            if (publishingMember.equals(instance.getCluster().getLocalMember()))             count1.incrementAndGet();
+            if (publishingMember.equals(message.getMessageObject()))             count2.incrementAndGet();
+            if (publishingMember.localMember())             count3.incrementAndGet();
           }
         }
 );
@@ -34,15 +32,15 @@
  catch (  InterruptedException e) {
     fail();
   }
-  for (int i=0; i < k; i++) {
+  for (int i=0; i < nodeCount; i++) {
     HazelcastInstance instance=instances[i];
-    instance.getTopic(name).publish(instance.getCluster().getLocalMember());
+    instance.getTopic(randomName).publish(instance.getCluster().getLocalMember());
   }
   assertTrueEventually(new AssertTask(){
     @Override public void run(){
-      assertEquals(k,count.get());
-      assertEquals(k * k,count1.get());
-      assertEquals(k,count2.get());
+      assertEquals(nodeCount,count1.get());
+      assertEquals(nodeCount * nodeCount,count2.get());
+      assertEquals(nodeCount,count3.get());
     }
   }
 );

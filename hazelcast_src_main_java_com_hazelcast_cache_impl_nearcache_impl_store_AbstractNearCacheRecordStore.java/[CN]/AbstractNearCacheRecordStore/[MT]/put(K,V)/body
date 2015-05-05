@@ -1,0 +1,26 @@
+{
+  checkAvailable();
+  R record=null;
+  boolean newPut=false;
+  try {
+    record=getRecord(key);
+    if (record == null) {
+      newPut=true;
+      record=valueToRecord(value);
+      onRecordCreate(record);
+      putRecord(key,record);
+      nearCacheStats.incrementOwnedEntryCount();
+    }
+ else {
+      long oldRecordMemoryCost=getRecordStorageMemoryCost(record);
+      putToRecord(record,value);
+      long newRecordMemoryCost=getRecordStorageMemoryCost(record);
+      nearCacheStats.incrementOwnedEntryMemoryCost(newRecordMemoryCost - oldRecordMemoryCost);
+    }
+    onPut(key,value,record,newPut);
+  }
+ catch (  Throwable error) {
+    onPutError(key,value,record,newPut,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+}

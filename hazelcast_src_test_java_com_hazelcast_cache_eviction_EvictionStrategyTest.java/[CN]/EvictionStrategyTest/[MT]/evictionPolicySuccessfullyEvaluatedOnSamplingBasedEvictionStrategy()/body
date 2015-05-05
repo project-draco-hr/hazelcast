@@ -1,0 +1,46 @@
+{
+  final int RECORD_COUNT=100;
+  final int EXPECTED_EVICTED_COUNT=1;
+  final int EXPECTED_EVICTED_RECORD_VALUE=RECORD_COUNT / 2;
+  Node node=TestUtil.getNode(instance);
+  SerializationService serializationService=node.getSerializationService();
+  EvictionConfiguration evictionConfig=new EvictionConfiguration(){
+    @Override public EvictionStrategyType getEvictionStrategyType(){
+      return EvictionStrategyType.SAMPLING_BASED_EVICTION;
+    }
+    @Override public EvictionPolicyType getEvictionPolicyType(){
+      return null;
+    }
+  }
+;
+  EvictionStrategy evictionStrategy=EvictionStrategyProvider.getEvictionStrategy(evictionConfig);
+  CacheRecordHashMap cacheRecordMap=new CacheRecordHashMap(1000);
+  CacheObjectRecord expectedEvictedRecord=null;
+  Data expectedData=null;
+  for (int i=0; i < RECORD_COUNT; i++) {
+    CacheObjectRecord record=new CacheObjectRecord(i,System.currentTimeMillis(),Long.MAX_VALUE);
+    Data data=serializationService.toData(i);
+    cacheRecordMap.put(data,record);
+    if (i == EXPECTED_EVICTED_RECORD_VALUE) {
+      expectedEvictedRecord=record;
+      expectedData=data;
+    }
+  }
+  assertNotNull(expectedEvictedRecord);
+  assertNotNull(expectedData);
+  final SimpleEvictionCandidate evictionCandidate=new SimpleEvictionCandidate(expectedData,expectedEvictedRecord);
+  EvictionPolicyEvaluator evictionPolicyEvaluator=new EvictionPolicyEvaluator(){
+    @Override public Iterable<SimpleEvictionCandidate> evaluate(    Iterable evictionCandidates){
+      return Collections.singleton(evictionCandidate);
+    }
+  }
+;
+  assertEquals(RECORD_COUNT,cacheRecordMap.size());
+  assertTrue(cacheRecordMap.containsKey(expectedData));
+  assertTrue(cacheRecordMap.containsValue(expectedEvictedRecord));
+  int evictedCount=evictionStrategy.evict(cacheRecordMap,evictionPolicyEvaluator,EvictionChecker.EVICT_ALWAYS,EvictionListener.NO_LISTENER);
+  assertEquals(EXPECTED_EVICTED_COUNT,evictedCount);
+  assertEquals(RECORD_COUNT - EXPECTED_EVICTED_COUNT,cacheRecordMap.size());
+  assertFalse(cacheRecordMap.containsKey(expectedData));
+  assertFalse(cacheRecordMap.containsValue(expectedEvictedRecord));
+}

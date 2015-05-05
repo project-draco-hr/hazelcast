@@ -1,0 +1,20 @@
+{
+  initExecutor();
+  final GetCurrentThreadOperationHandlerOperation op=new GetCurrentThreadOperationHandlerOperation();
+  op.setPartitionId(Operation.GENERIC_PARTITION_ID);
+  executor.execute(op);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      boolean found=false;
+      OperationRunner foundHandler=op.getResponse();
+      for (      OperationRunner h : executor.getGenericOperationRunners()) {
+        if (foundHandler == h) {
+          found=true;
+          break;
+        }
+      }
+      assertTrue("handler is not found is one of the generic handlers",found);
+    }
+  }
+);
+}

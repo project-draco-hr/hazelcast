@@ -1,0 +1,11 @@
+{
+  File file=createConfigFile("foo","bar");
+  FileOutputStream os=new FileOutputStream(file);
+  String networkConfig="<hazelcast>" + "    <network>\n" + "        <join>\n"+ "            <multicast enabled=\"false\"/>\n"+ "            <tcp-ip enabled=\"true\"/>\n"+ "        </join>\n"+ "    </network>\n"+ "</hazelcast>";
+  writeStringToStreamAndClose(os,networkConfig);
+  String xml="<hazelcast>\n" + "    <import resource=\"file:///" + file.getAbsolutePath() + "\"/>\n"+ "</hazelcast>";
+  Config config=buildConfig(xml,null);
+  JoinConfig join=config.getNetworkConfig().getJoin();
+  assertFalse(join.getMulticastConfig().isEnabled());
+  assertTrue(join.getTcpIpConfig().isEnabled());
+}

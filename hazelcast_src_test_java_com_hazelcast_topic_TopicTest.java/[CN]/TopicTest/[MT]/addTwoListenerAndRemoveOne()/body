@@ -1,0 +1,33 @@
+{
+  String topicName="addTwoListenerAndRemoveOne" + generateRandomString(5);
+  HazelcastInstance instance=createHazelcastInstance();
+  ITopic<String> topic=instance.getTopic(topicName);
+  final CountDownLatch latch=new CountDownLatch(3);
+  final CountDownLatch cp=new CountDownLatch(2);
+  final AtomicInteger atomicInteger=new AtomicInteger();
+  final String message="Hazelcast Rocks!";
+  MessageListener<String> messageListener1=new MessageListener<String>(){
+    public void onMessage(    Message<String> msg){
+      atomicInteger.incrementAndGet();
+      latch.countDown();
+      cp.countDown();
+    }
+  }
+;
+  MessageListener<String> messageListener2=new MessageListener<String>(){
+    public void onMessage(    Message<String> msg){
+      atomicInteger.incrementAndGet();
+      latch.countDown();
+      cp.countDown();
+    }
+  }
+;
+  String messageListenerId=topic.addMessageListener(messageListener1);
+  topic.addMessageListener(messageListener2);
+  topic.publish(message);
+  assertOpenEventually(cp);
+  topic.removeMessageListener(messageListenerId);
+  topic.publish(message);
+  assertOpenEventually(latch);
+  assertEquals(3,atomicInteger.get());
+}

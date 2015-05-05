@@ -1,0 +1,40 @@
+{
+  Config config=new Config();
+  final int insCount=4;
+  final String name0="defQueue0";
+  final String name1="defQueue1";
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(insCount);
+  final HazelcastInstance[] instances=factory.newInstances(config);
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(new Runnable(){
+    public void run(){
+      try {
+        latch.await(5,TimeUnit.SECONDS);
+        sleepMillis(3000);
+        getQueue(instances,name0).offer("item0");
+      }
+ catch (      InterruptedException ignored) {
+      }
+catch (      HazelcastInstanceNotActiveException ignored) {
+      }
+    }
+  }
+).start();
+  final TransactionContext context=instances[0].newTransactionContext();
+  context.beginTransaction();
+  TransactionalQueue<String> q0=context.getQueue(name0);
+  TransactionalQueue<String> q1=context.getQueue(name1);
+  String s=null;
+  latch.countDown();
+  try {
+    s=q0.poll(10,TimeUnit.SECONDS);
+  }
+ catch (  InterruptedException e) {
+    fail(e.getMessage());
+  }
+  assertEquals("item0",s);
+  q1.offer(s);
+  context.commitTransaction();
+  assertEquals(0,getQueue(instances,name0).size());
+  assertEquals("item0",getQueue(instances,name1).poll());
+}

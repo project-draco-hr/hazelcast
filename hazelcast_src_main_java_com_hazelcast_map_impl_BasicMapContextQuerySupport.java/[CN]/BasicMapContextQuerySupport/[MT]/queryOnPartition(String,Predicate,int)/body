@@ -1,13 +1,11 @@
 {
-  final long now=getNow();
-  final PartitionContainer container=mapServiceContext.getPartitionContainer(partitionId);
-  final RecordStore recordStore=container.getRecordStore(mapName);
-  final SerializationService serializationService=nodeEngine.getSerializationService();
-  final PagingPredicate pagingPredicate=predicate instanceof PagingPredicate ? (PagingPredicate)predicate : null;
-  final List<QueryEntry> list=new LinkedList<QueryEntry>();
-  final Iterator<Record> iterator=recordStore.loadAwareIterator(now,false);
+  SerializationService serializationService=nodeEngine.getSerializationService();
+  PagingPredicate pagingPredicate=predicate instanceof PagingPredicate ? (PagingPredicate)predicate : null;
+  List<QueryEntry> queryEntries=new LinkedList<QueryEntry>();
+  PartitionContainer container=mapServiceContext.getPartitionContainer(partitionId);
+  Iterator<Record> iterator=container.getRecordStore(mapName).loadAwareIterator(getNow(),false);
   while (iterator.hasNext()) {
-    final Record record=iterator.next();
+    Record record=iterator.next();
     Data key=record.getKey();
     Object value=getValueOrCachedValue(record);
     if (value == null) {
@@ -21,8 +19,8 @@
           continue;
         }
       }
-      list.add(queryEntry);
+      queryEntries.add(queryEntry);
     }
   }
-  return getPage(list,pagingPredicate);
+  return getPage(queryEntries,pagingPredicate);
 }

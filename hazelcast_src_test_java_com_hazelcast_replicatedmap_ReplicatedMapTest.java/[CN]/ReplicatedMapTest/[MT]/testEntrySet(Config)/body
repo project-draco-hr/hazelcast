@@ -5,19 +5,18 @@
   final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
   final AbstractMap.SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
-  final List<AbstractMap.SimpleEntry<Integer,Integer>> entrySetTestValues=Arrays.asList(testValues);
   WatchedOperationExecutor executor=new WatchedOperationExecutor();
   executor.execute(new Runnable(){
     @Override public void run(){
       int half=testValues.length / 2;
       for (int i=0; i < testValues.length; i++) {
-        final ReplicatedMap map=i < half ? map1 : map2;
+        final ReplicatedMap<Integer,Integer> map=i < half ? map1 : map2;
         final AbstractMap.SimpleEntry<Integer,Integer> entry=testValues[i];
         map.put(entry.getKey(),entry.getValue());
       }
     }
   }
-,2,EntryEventType.ADDED,100,0.75,map1,map2);
+,60,EntryEventType.ADDED,100,0.75,map1,map2);
   List<Entry<Integer,Integer>> entrySet1=new ArrayList<Entry<Integer,Integer>>(map1.entrySet());
   List<Entry<Integer,Integer>> entrySet2=new ArrayList<Entry<Integer,Integer>>(map2.entrySet());
   int map2Contains=0;

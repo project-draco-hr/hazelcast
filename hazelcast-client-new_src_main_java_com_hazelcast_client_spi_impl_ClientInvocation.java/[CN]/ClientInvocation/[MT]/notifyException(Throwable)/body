@@ -1,0 +1,19 @@
+{
+  if (!lifecycleService.isRunning()) {
+    clientInvocationFuture.setResponse(new HazelcastClientNotActiveException(exception.getMessage()));
+    return;
+  }
+  if (exception instanceof IOException || exception instanceof HazelcastInstanceNotActiveException) {
+    if (handleRetry()) {
+      return;
+    }
+  }
+  if (exception instanceof RetryableHazelcastException) {
+    if (clientMessage instanceof RetryableRequest || invocationService.isRedoOperation()) {
+      if (handleRetry()) {
+        return;
+      }
+    }
+  }
+  clientInvocationFuture.setResponse(exception);
+}

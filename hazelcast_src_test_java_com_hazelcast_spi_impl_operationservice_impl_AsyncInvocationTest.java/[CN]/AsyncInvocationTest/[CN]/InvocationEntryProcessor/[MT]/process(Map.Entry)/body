@@ -1,0 +1,19 @@
+{
+  Node node=getNode(instance);
+  NodeEngineImpl nodeEngine=node.nodeEngine;
+  OperationServiceImpl operationService=(OperationServiceImpl)nodeEngine.getOperationService();
+  Data sourceKey=nodeEngine.toData(entry.getKey());
+  Data key=generateKey_FallsToSamePartitionThread_ButDifferentPartition(nodeEngine,sourceKey);
+  Data val=nodeEngine.toData(randomString());
+  PutOperation op=new PutOperation((String)entry.getValue(),key,val,-1);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  operationService.asyncInvokeOnPartition(MapService.SERVICE_NAME,op,partitionId,new ExecutionCallback<Object>(){
+    @Override public void onResponse(    Object response){
+      latch.countDown();
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+);
+  return null;
+}

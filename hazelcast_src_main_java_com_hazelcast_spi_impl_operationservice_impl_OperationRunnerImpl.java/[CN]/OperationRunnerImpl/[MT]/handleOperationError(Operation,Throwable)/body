@@ -1,0 +1,20 @@
+{
+  if (e instanceof OutOfMemoryError) {
+    OutOfMemoryErrorDispatcher.onOutOfMemory((OutOfMemoryError)e);
+  }
+  operation.logError(e);
+  ResponseHandler responseHandler=operation.getResponseHandler();
+  if (operation.returnsResponse() && responseHandler != null) {
+    try {
+      if (node.isActive()) {
+        responseHandler.sendResponse(e);
+      }
+ else       if (responseHandler.isLocal()) {
+        responseHandler.sendResponse(new HazelcastInstanceNotActiveException());
+      }
+    }
+ catch (    Throwable t) {
+      logger.warning("While sending op error... op: " + operation + ", error: "+ e,t);
+    }
+  }
+}

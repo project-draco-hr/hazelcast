@@ -1,0 +1,40 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  deleteCacheEntry(key);
+  R record=records.get(key);
+  boolean isExpired=record != null && record.isExpiredAt(now);
+  final Object obj;
+  boolean removed=false;
+  try {
+    if (record == null || isExpired) {
+      obj=null;
+      removed=false;
+      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId,CacheRecord.EXPIRATION_TIME_NOT_AVAILABLE,origin);
+    }
+ else {
+      obj=toValue(record);
+      removed=deleteRecord(key,completionId,source,origin);
+    }
+    onRemove(key,null,source,false,record,removed);
+    if (records.size() == 0) {
+      hasExpiringEntry=false;
+    }
+    if (isStatisticsEnabled()) {
+      statistics.addGetTimeNanos(System.nanoTime() - start);
+      if (obj != null) {
+        statistics.increaseCacheHits(1);
+        statistics.increaseCacheRemovals(1);
+        statistics.addRemoveTimeNanos(System.nanoTime() - start);
+      }
+ else {
+        statistics.increaseCacheMisses(1);
+      }
+    }
+    return obj;
+  }
+ catch (  Throwable error) {
+    onRemoveError(key,null,source,false,record,removed,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+}

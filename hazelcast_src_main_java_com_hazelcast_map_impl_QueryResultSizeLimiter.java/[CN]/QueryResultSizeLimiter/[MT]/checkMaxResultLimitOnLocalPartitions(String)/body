@@ -1,0 +1,18 @@
+{
+  if (!isPreCheckEnabled) {
+    return;
+  }
+  Collection<Integer> localPartitions=mapServiceContext.getOwnedPartitions();
+  int partitionsToCheck=min(localPartitions.size(),maxLocalPartitionsLimitForPreCheck);
+  if (partitionsToCheck == 0) {
+    return;
+  }
+  int localPartitionSize=getLocalPartitionSize(mapName,localPartitions,partitionsToCheck);
+  if (localPartitionSize == 0) {
+    return;
+  }
+  long localResultLimit=getNodeResultLimit(partitionsToCheck);
+  if (localPartitionSize > localResultLimit) {
+    throw new QueryResultSizeExceededException(maxResultLimit," Result size exceeded in local pre-check.");
+  }
+}

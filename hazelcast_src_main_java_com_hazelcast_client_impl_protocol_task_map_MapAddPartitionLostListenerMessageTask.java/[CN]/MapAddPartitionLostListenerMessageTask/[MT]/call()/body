@@ -1,0 +1,16 @@
+{
+  final ClientEndpoint endpoint=getEndpoint();
+  final MapService mapService=getService(MapService.SERVICE_NAME);
+  final MapPartitionLostListener listener=new MapPartitionLostListener(){
+    @Override public void partitionLost(    MapPartitionLostEvent event){
+      if (endpoint.isAlive()) {
+        ClientMessage eventMessage=MapPartitionLostEventParameters.encode(event.getPartitionId(),event.getMember().getUuid());
+        sendClientMessage(null,eventMessage);
+      }
+    }
+  }
+;
+  String registrationId=mapService.getMapServiceContext().addPartitionLostListener(listener,parameters.name);
+  endpoint.setListenerRegistration(MapService.SERVICE_NAME,parameters.name,registrationId);
+  return AddListenerResultParameters.encode(registrationId);
+}

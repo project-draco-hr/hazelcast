@@ -1,0 +1,19 @@
+{
+  IExecutorService service=client.getExecutorService(randomString());
+  final CountDownLatch responseLatch=new CountDownLatch(1);
+  String msg=randomString();
+  Callable runnable=new AppendCallable(msg);
+  MemberSelector selector=new SelectAllMembers();
+  final AtomicReference<Object> result=new AtomicReference<Object>();
+  service.submit(runnable,selector,new ExecutionCallback(){
+    public void onResponse(    Object response){
+      result.set(response);
+      responseLatch.countDown();
+    }
+    public void onFailure(    Throwable t){
+    }
+  }
+);
+  assertOpenEventually("responseLatch",responseLatch);
+  assertEquals(msg + AppendCallable.APPENDAGE,result.get());
+}

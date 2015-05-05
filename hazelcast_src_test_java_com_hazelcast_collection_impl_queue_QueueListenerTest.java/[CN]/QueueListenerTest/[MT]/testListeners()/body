@@ -1,0 +1,19 @@
+{
+  final String name=randomString();
+  HazelcastInstance instance=createHazelcastInstance();
+  final CountDownLatch latch=new CountDownLatch(20);
+  IQueue<String> queue=instance.getQueue(name);
+  TestItemListener listener=new TestItemListener(latch);
+  final String id=queue.addItemListener(listener,true);
+  for (int i=0; i < 10; i++) {
+    queue.offer("item" + i);
+  }
+  for (int i=0; i < 10; i++) {
+    queue.poll();
+  }
+  assertTrue(latch.await(5,TimeUnit.SECONDS));
+  queue.removeItemListener(id);
+  queue.offer("item-a");
+  queue.poll();
+  assertTrue(listener.notCalled.get());
+}

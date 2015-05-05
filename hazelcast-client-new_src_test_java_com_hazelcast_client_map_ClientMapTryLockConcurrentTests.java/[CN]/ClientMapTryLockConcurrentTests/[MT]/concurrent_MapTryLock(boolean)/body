@@ -1,0 +1,24 @@
+{
+  final int maxThreads=8;
+  final IMap<String,Integer> map=client.getMap(randomString());
+  final String upKey="upKey";
+  final String downKey="downKey";
+  map.put(upKey,0);
+  map.put(downKey,0);
+  Thread threads[]=new Thread[maxThreads];
+  for (int i=0; i < threads.length; i++) {
+    Thread t;
+    if (withTimeOut) {
+      t=new MapTryLockTimeOutThread(map,upKey,downKey);
+    }
+ else {
+      t=new MapTryLockThread(map,upKey,downKey);
+    }
+    t.start();
+    threads[i]=t;
+  }
+  assertJoinable(threads);
+  int upTotal=map.get(upKey);
+  int downTotal=map.get(downKey);
+  assertTrue("concurrent access to locked code caused wrong total",upTotal + downTotal == 0);
+}

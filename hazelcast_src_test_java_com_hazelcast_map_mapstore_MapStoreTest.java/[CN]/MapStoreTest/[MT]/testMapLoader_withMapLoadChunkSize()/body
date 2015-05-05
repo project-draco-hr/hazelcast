@@ -1,0 +1,23 @@
+{
+  final int chunkSize=5;
+  final int numberOfEntriesToLoad=100;
+  final String mapName=randomString();
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  ChunkedLoader chunkedLoader=new ChunkedLoader(numberOfEntriesToLoad,false);
+  Config cfg=createChunkedMapLoaderConfig(mapName,chunkSize,chunkedLoader);
+  HazelcastInstance node=nodeFactory.newHazelcastInstance(cfg);
+  IMap map=node.getMap(mapName);
+  final CountDownLatch latch=new CountDownLatch(numberOfEntriesToLoad);
+  map.addEntryListener(new EntryAdapter(){
+    @Override public void entryAdded(    EntryEvent event){
+      latch.countDown();
+    }
+  }
+,true);
+  map.size();
+  assertOpenEventually(latch,240);
+  final int expectedChunkCount=numberOfEntriesToLoad / chunkSize;
+  final int actualChunkCount=chunkedLoader.numberOfChunks.get();
+  assertEquals(expectedChunkCount,actualChunkCount);
+  assertEquals(numberOfEntriesToLoad,map.size());
+}

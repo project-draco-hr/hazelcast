@@ -1,0 +1,16 @@
+{
+  ClientEndpoint endpoint=getEndpoint();
+  OperationFactory operationFactory=createOperationFactory();
+  Collection<Address> targets=getTargets();
+  if (returnResponseIfNoTargetLeft(targets,EMPTY_MAP)) {
+    return;
+  }
+  final InternalOperationService operationService=nodeEngine.getOperationService();
+  MultiTargetCallback callback=new MultiTargetCallback(targets);
+  for (  Address target : targets) {
+    Operation op=operationFactory.createOperation();
+    op.setCallerUuid(endpoint.getUuid());
+    InvocationBuilder builder=operationService.createInvocationBuilder(getServiceName(),op,target).setTryCount(TRY_COUNT).setResultDeserialized(false).setCallback(new SingleTargetCallback(target,callback));
+    builder.invoke();
+  }
+}

@@ -1,0 +1,19 @@
+{
+  byte[] byteBuffer=new byte[1024];
+  TestClientMessage cmEncode=new TestClientMessage();
+  cmEncode.wrapForEncode(byteBuffer,0,byteBuffer.length);
+  cmEncode.setMessageType(7).setVersion((short)3).addFlag(ClientMessage.BEGIN_AND_END_FLAGS).setCorrelationId(66).setPartitionId(77);
+  final int calculatedFrameSize=ClientMessage.HEADER_SIZE + BYTE_DATA.length;
+  cmEncode.putPayloadData(BYTE_DATA);
+  FutureClientMessage cmDecode=new FutureClientMessage();
+  cmDecode.wrapForDecode(byteBuffer,0,byteBuffer.length);
+  final byte[] cmDecodeVarData1=new byte[BYTE_DATA.length];
+  cmDecode.getPayloadData(cmDecodeVarData1);
+  assertEquals(7,cmDecode.getMessageType());
+  assertEquals(3,cmDecode.getVersion());
+  assertEquals(ClientMessage.BEGIN_AND_END_FLAGS,cmDecode.getFlags());
+  assertEquals(66,cmDecode.getCorrelationId());
+  assertEquals(77,cmDecode.getPartitionId());
+  assertEquals(calculatedFrameSize,cmDecode.getFrameLength());
+  assertArrayEquals(cmDecodeVarData1,BYTE_DATA);
+}

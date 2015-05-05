@@ -1,0 +1,22 @@
+{
+  if (isBindToSingleConnection()) {
+    return false;
+  }
+  if (handler == null && reSendCount.incrementAndGet() > retryCountLimit) {
+    return false;
+  }
+  if (handler != null) {
+    handler.beforeListenerRegister();
+  }
+  try {
+    sleep();
+    executionService.execute(this);
+  }
+ catch (  RejectedExecutionException e) {
+    if (LOGGER.isFinestEnabled()) {
+      LOGGER.finest("Retry could not be scheduled ",e);
+    }
+    clientInvocationFuture.setResponse(e);
+  }
+  return true;
+}

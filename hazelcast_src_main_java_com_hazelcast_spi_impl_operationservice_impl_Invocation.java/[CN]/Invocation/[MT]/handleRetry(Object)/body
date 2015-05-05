@@ -1,0 +1,20 @@
+{
+  if (invokeCount > LOG_MAX_INVOCATION_COUNT && invokeCount % LOG_INVOCATION_COUNT_MOD == 0) {
+    if (logger.isLoggable(WARNING)) {
+      logger.warning("Retrying invocation: " + toString() + ", Reason: "+ cause);
+    }
+  }
+  operationService.invocationsRegistry.deregister(this);
+  if (invocationFuture.interrupted) {
+    invocationFuture.set(INTERRUPTED_RESPONSE);
+    return;
+  }
+  invocationFuture.set(WAIT_RESPONSE);
+  ExecutionService ex=nodeEngine.getExecutionService();
+  if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
+    operationService.asyncExecutor.execute(this);
+  }
+ else {
+    ex.schedule(ASYNC_EXECUTOR,this,tryPauseMillis,TimeUnit.MILLISECONDS);
+  }
+}

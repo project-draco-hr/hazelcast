@@ -1,11 +1,10 @@
 {
   try {
     final String jobId=UuidUtil.buildRandomUuidString();
-    ClientContext context=getContext();
-    ClientInvocationService cis=context.getInvocationService();
     ClientMapReduceRequest request=new ClientMapReduceRequest(name,jobId,keys,predicate,mapper,combinerFactory,reducerFactory,keyValueSource,chunkSize,topologyChangedStrategy);
     final ClientCompletableFuture completableFuture=new ClientCompletableFuture(jobId);
-    ClientCallFuture future=(ClientCallFuture)cis.invokeOnRandomTarget(request,null);
+    final ClientInvocation clientInvocation=new ClientInvocation(getClient(),request);
+    final ClientInvocationFuture future=clientInvocation.invoke();
     future.andThen(new ExecutionCallback(){
       @Override public void onResponse(      Object res){
         Object response=res;
@@ -33,7 +32,7 @@
       }
     }
 );
-    Address runningMember=future.getConnection().getRemoteEndpoint();
+    Address runningMember=clientInvocation.getSendConnection().getRemoteEndpoint();
     trackableJobs.putIfAbsent(jobId,new ClientTrackableJob<T>(jobId,runningMember,completableFuture));
     return completableFuture;
   }

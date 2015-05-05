@@ -1,0 +1,25 @@
+{
+  final List<? extends Callable<Boolean>> singleTask=Collections.singletonList(new SleepingTask(0));
+  List<Future<Boolean>> futures=executor.invokeAll(singleTask,5,TimeUnit.SECONDS);
+  assertEquals(futures.size(),1);
+  assertEquals(futures.get(0).get(),Boolean.TRUE);
+  final List<Callable<Boolean>> tasks=new ArrayList<Callable<Boolean>>();
+  for (int i=0; i < 1000; i++) {
+    tasks.add(new SleepingTask(i < 2 ? 0 : 20));
+  }
+  futures=executor.invokeAll(tasks,5,TimeUnit.SECONDS);
+  assertEquals(futures.size(),1000);
+  for (int i=0; i < 1000; i++) {
+    if (i < 2) {
+      assertEquals(futures.get(i).get(),Boolean.TRUE);
+    }
+ else {
+      try {
+        futures.get(i).get();
+        fail();
+      }
+ catch (      CancellationException expected) {
+      }
+    }
+  }
+}

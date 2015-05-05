@@ -1,0 +1,15 @@
+{
+  final int count=10;
+  final HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  final ClientConfig config=new ClientConfig();
+  final ListenerConfig listenerConfig=new ListenerConfig();
+  final CountDownLatch countDownLatch=new CountDownLatch(count);
+  listenerConfig.setImplementation(new LatchMemberAttributeListener(countDownLatch));
+  config.addListenerConfig(listenerConfig);
+  HazelcastClient.newHazelcastClient(config);
+  final Member localMember=instance.getCluster().getLocalMember();
+  for (int i=0; i < count; i++) {
+    localMember.setStringAttribute("key" + i,HazelcastTestSupport.randomString());
+  }
+  assertOpenEventually(countDownLatch);
+}

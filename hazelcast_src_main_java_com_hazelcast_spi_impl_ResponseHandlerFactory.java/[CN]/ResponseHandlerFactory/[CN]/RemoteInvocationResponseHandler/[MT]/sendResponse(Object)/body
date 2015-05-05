@@ -1,18 +1,21 @@
 {
-  long callId=remotePropagatable.getCallId();
-  Connection conn=remotePropagatable.getConnection();
-  if (!sent.compareAndSet(false,true) && !(obj instanceof Throwable)) {
+  long callId=operation.getCallId();
+  Connection conn=operation.getConnection();
+  if (!SENT.compareAndSet(this,0,1) && !(obj instanceof Throwable)) {
     throw new ResponseAlreadySentException("NormalResponse already sent for call: " + callId + " to "+ conn.getEndPoint()+ ", current-response: "+ obj);
   }
   Response response;
-  if (!(obj instanceof Response)) {
-    response=new NormalResponse(obj,remotePropagatable.getCallId(),0,remotePropagatable.isUrgent());
+  if (obj instanceof Throwable) {
+    response=new ErrorResponse((Throwable)obj,operation.getCallId(),operation.isUrgent());
+  }
+ else   if (!(obj instanceof Response)) {
+    response=new NormalResponse(obj,operation.getCallId(),0,operation.isUrgent());
   }
  else {
     response=(Response)obj;
   }
-  OperationService operationService=nodeEngine.getOperationService();
-  if (!operationService.send(response,remotePropagatable.getCallerAddress())) {
+  InternalOperationService operationService=(InternalOperationService)nodeEngine.getOperationService();
+  if (!operationService.send(response,operation.getCallerAddress())) {
     throw new HazelcastException("Cannot send response: " + obj + " to "+ conn.getEndPoint());
   }
 }

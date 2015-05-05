@@ -3,8 +3,11 @@
   final Node attName=node.getAttributes().getNamedItem("name");
   final String name=getTextContent(attName);
   fillAttributeValues(node,cacheConfigBuilder);
-  for (  org.w3c.dom.Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
-    if ("cache-entry-listeners".equals(cleanNodeName(childNode))) {
+  for (  Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
+    if ("eviction".equals(cleanNodeName(childNode))) {
+      cacheConfigBuilder.addPropertyValue("evictionConfig",getEvictionConfig(childNode));
+    }
+ else     if ("cache-entry-listeners".equals(cleanNodeName(childNode))) {
       ManagedList listeners=new ManagedList();
       for (      Node listenerNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
         final BeanDefinitionBuilder listenerConfBuilder=createBeanBuilder(CacheSimpleEntryListenerConfig.class);
@@ -12,6 +15,12 @@
         listeners.add(listenerConfBuilder.getBeanDefinition());
       }
       cacheConfigBuilder.addPropertyValue("cacheEntryListeners",listeners);
+    }
+ else     if ("wan-replication-ref".equals(cleanNodeName(childNode))) {
+      final BeanDefinitionBuilder wanReplicationRefBuilder=createBeanBuilder(WanReplicationRef.class);
+      final AbstractBeanDefinition wanReplicationRefBeanDefinition=wanReplicationRefBuilder.getBeanDefinition();
+      fillValues(childNode,wanReplicationRefBuilder);
+      cacheConfigBuilder.addPropertyValue("wanReplicationRef",wanReplicationRefBeanDefinition);
     }
   }
   cacheConfigManagedMap.put(name,cacheConfigBuilder.getBeanDefinition());

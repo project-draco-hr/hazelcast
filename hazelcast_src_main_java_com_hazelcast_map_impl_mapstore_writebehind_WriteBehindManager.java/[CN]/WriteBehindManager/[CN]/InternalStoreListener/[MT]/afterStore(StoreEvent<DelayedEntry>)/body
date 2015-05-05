@@ -1,0 +1,14 @@
+{
+  final DelayedEntry delayedEntry=storeEvent.getSource();
+  int partitionId=delayedEntry.getPartitionId();
+  WriteBehindStore writeBehindStore=getWriteBehindStoreOrNull(partitionId);
+  if (writeBehindStore == null) {
+    return;
+  }
+  Data key=(Data)delayedEntry.getKey();
+  Object value=delayedEntry.getValue();
+  writeBehindStore.removeFromStagingArea(key,value);
+  if (value == null) {
+    writeBehindStore.removeFromWaitingDeletions(key);
+  }
+}

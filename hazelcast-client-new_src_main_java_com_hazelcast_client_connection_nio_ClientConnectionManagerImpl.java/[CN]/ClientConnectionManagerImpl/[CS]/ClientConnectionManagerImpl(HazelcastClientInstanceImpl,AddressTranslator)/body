@@ -1,0 +1,20 @@
+{
+  this.client=client;
+  this.addressTranslator=addressTranslator;
+  final ClientConfig config=client.getClientConfig();
+  final ClientNetworkConfig networkConfig=config.getNetworkConfig();
+  final int connTimeout=networkConfig.getConnectionTimeout();
+  connectionTimeout=connTimeout == 0 ? Integer.MAX_VALUE : connTimeout;
+  final ClientProperties clientProperties=client.getClientProperties();
+  int timeout=clientProperties.getHeartbeatTimeout().getInteger();
+  this.heartBeatTimeout=timeout > 0 ? timeout : Integer.parseInt(PROP_HEARTBEAT_TIMEOUT_DEFAULT);
+  int interval=clientProperties.getHeartbeatInterval().getInteger();
+  heartBeatInterval=interval > 0 ? interval : Integer.parseInt(PROP_HEARTBEAT_INTERVAL_DEFAULT);
+  executionService=(ClientExecutionServiceImpl)client.getClientExecutionService();
+  inSelector=new InSelectorImpl(client.getThreadGroup(),"ClientInSelector",Logger.getLogger(InSelectorImpl.class),OUT_OF_MEMORY_HANDLER);
+  outSelector=new ClientOutSelectorImpl(client.getThreadGroup(),"ClientOutSelector",Logger.getLogger(ClientOutSelectorImpl.class),OUT_OF_MEMORY_HANDLER);
+  socketOptions=networkConfig.getSocketOptions();
+  ClientExtension clientExtension=client.getClientExtension();
+  socketChannelWrapperFactory=clientExtension.createSocketChannelWrapperFactory();
+  socketInterceptor=initSocketInterceptor(networkConfig.getSocketInterceptorConfig());
+}

@@ -1,0 +1,13 @@
+{
+  final String mapName=randomMapName();
+  final Config config=createNearCachedMapConfig(mapName);
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  final IMap<Integer,Integer> map=instance.getMap(mapName);
+  final int mapSize=3;
+  final CountDownLatch latch=new CountDownLatch(mapSize);
+  addListener(map,latch);
+  populateMapWithExpirableEntries(map,mapSize,3,TimeUnit.SECONDS);
+  pullEntriesToNearCache(map,mapSize);
+  waitUntilEvictionEventsReceived(latch);
+  assertNearCacheSize(mapSize,mapName,map);
+}

@@ -1,19 +1,19 @@
 {
   checkTransactionState();
-  final Set<Data> keySet=keySetInternal();
-  final Set<Object> keys=new HashSet<Object>(keySet.size());
-  final MapService service=getService();
-  final MapServiceContext mapServiceContext=service.getMapServiceContext();
-  for (  final Data data : keySet) {
-    keys.add(mapServiceContext.toObject(data));
-  }
-  for (  final Map.Entry<Object,TxnValueWrapper> entry : txMap.entrySet()) {
+  Set<Data> keySet=keySetInternal();
+  MapService service=getService();
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
     if (TxnValueWrapper.Type.NEW.equals(entry.getValue().type)) {
-      keys.add(entry.getKey());
+      keySet.add(entry.getKey());
     }
  else     if (TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
-      keys.remove(entry.getKey());
+      keySet.remove(entry.getKey());
     }
+  }
+  HashSet<Object> keys=new HashSet<Object>();
+  for (  Data keyData : keySet) {
+    keys.add(mapServiceContext.toObject(keyData));
   }
   return keys;
 }

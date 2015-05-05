@@ -1,0 +1,15 @@
+{
+  final AtomicBoolean initialized=new AtomicBoolean();
+  final Config config=new Config().addExecutorConfig(new ExecutorConfig("test",1)).setManagedContext(new ManagedContext(){
+    @Override public Object initialize(    Object obj){
+      if (obj instanceof RunnableWithManagedContext) {
+        initialized.set(true);
+      }
+      return obj;
+    }
+  }
+);
+  IExecutorService executor=createHazelcastInstance(config).getExecutorService("test");
+  executor.submit(new RunnableWithManagedContext()).get();
+  assertTrue("The task should have been initialized by the ManagedContext",initialized.get());
+}

@@ -1,0 +1,19 @@
+{
+  final PutItemsThread[] putThreads=new PutItemsThread[NUMBER_OF_CLIENTS * THREADS_PER_CLIENT];
+  int idx=0;
+  for (int i=0; i < NUMBER_OF_CLIENTS; i++) {
+    HazelcastInstance client=HazelcastClient.newHazelcastClient();
+    for (int j=0; j < THREADS_PER_CLIENT; j++) {
+      PutItemsThread t=new PutItemsThread(client);
+      putThreads[idx++]=t;
+    }
+  }
+  for (int i=0; i < putThreads.length; i++) {
+    putThreads[i].start();
+  }
+  MultiMap multiMap=server.getMultiMap(MAP_NAME);
+  assertJoinable(MAX_SECONDS,putThreads);
+  final int expectedSize=PutItemsThread.MAX_ITEMS * putThreads.length;
+  assertEquals(expectedSize,multiMap.size());
+  assertReceivedEventsSize(expectedSize,putThreads);
+}

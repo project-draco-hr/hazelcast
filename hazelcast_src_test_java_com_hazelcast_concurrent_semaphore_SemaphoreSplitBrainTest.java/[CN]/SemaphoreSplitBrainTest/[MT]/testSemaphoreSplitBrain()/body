@@ -24,8 +24,13 @@
   assertClusterSizeEventually(2,h1);
   assertClusterSizeEventually(2,h2);
   assertClusterSizeEventually(1,h3);
-  ISemaphore semaphore1=h1.getSemaphore(key);
-  assertEquals(5,semaphore1.availablePermits());
+  final ISemaphore semaphore1=h1.getSemaphore(key);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(5,semaphore1.availablePermits());
+    }
+  }
+);
   semaphore1.acquire(4);
   assertOpenEventually(lifeCycleListener.latch);
   assertClusterSizeEventually(3,h1);
