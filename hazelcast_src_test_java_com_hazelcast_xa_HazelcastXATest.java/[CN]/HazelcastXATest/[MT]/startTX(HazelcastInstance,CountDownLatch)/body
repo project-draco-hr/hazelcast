@@ -1,0 +1,21 @@
+{
+  new Thread(new Runnable(){
+    @Override public void run(){
+      try {
+        HazelcastXAResource xaResource=instance.getXAResource();
+        Xid xid=new SerializableXID(42,"globalTransactionId".getBytes(),"branchQualifier".getBytes());
+        xaResource.start(xid,XAResource.TMNOFLAGS);
+        TransactionContext context=xaResource.getTransactionContext();
+        final TransactionalMap<Object,Object> map=context.getMap("map");
+        map.put("key","value");
+        xaResource.prepare(xid);
+        instance.shutdown();
+        nodeShutdownLatch.countDown();
+      }
+ catch (      XAException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+).start();
+}

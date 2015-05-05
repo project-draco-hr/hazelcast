@@ -1,0 +1,21 @@
+{
+  HazelcastInstance instance=createHazelcastInstance();
+  HazelcastXAResource xaResource=instance.getXAResource();
+  tm.begin();
+  Transaction transaction=tm.getTransaction();
+  transaction.enlistResource(xaResource);
+  TransactionContext context=xaResource.getTransactionContext();
+  boolean error=false;
+  try {
+    final TransactionalMap m=context.getMap("m");
+    m.put("key","value");
+    throw new RuntimeException("Exception for rolling back");
+  }
+ catch (  Exception e) {
+    error=true;
+  }
+ finally {
+    close(error,xaResource);
+  }
+  assertNull(instance.getMap("m").get("key"));
+}

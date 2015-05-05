@@ -1,0 +1,19 @@
+{
+  try {
+    if (state != ACTIVE) {
+      throw new TransactionNotActiveException("Transaction is not active");
+    }
+    checkThread();
+    checkTimeout();
+    ClientMessage request=TransactionCommitParameters.encode(txnId,threadId,true);
+    invoke(request);
+    state=COMMITTED;
+  }
+ catch (  Exception e) {
+    state=ROLLING_BACK;
+    throw ExceptionUtil.rethrow(e);
+  }
+ finally {
+    THREAD_FLAG.set(null);
+  }
+}

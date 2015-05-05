@@ -1,0 +1,19 @@
+{
+  HazelcastXAResource xaResource=instance.getXAResource();
+  tm.begin();
+  Transaction transaction=tm.getTransaction();
+  transaction.enlistResource(xaResource);
+  boolean error=false;
+  try {
+    TransactionContext context=xaResource.getTransactionContext();
+    TransactionalMap m=context.getMap("m");
+    m.put(random.nextInt(10),"value");
+  }
+ catch (  Exception e) {
+    logger.severe("Exception during transaction",e);
+    error=true;
+  }
+ finally {
+    close(error,xaResource);
+  }
+}

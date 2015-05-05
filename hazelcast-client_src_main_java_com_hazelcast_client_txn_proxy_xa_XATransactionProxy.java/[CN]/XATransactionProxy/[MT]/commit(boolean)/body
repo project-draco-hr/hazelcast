@@ -1,0 +1,17 @@
+{
+  try {
+    if (onePhase && state != ACTIVE) {
+      throw new TransactionNotActiveException("Transaction is not active");
+    }
+    if (!onePhase && state != PREPARED) {
+      throw new TransactionNotActiveException("Transaction is not prepared");
+    }
+    checkTimeout();
+    invoke(new CommitXATransactionRequest(txnId,onePhase));
+    state=COMMITTED;
+  }
+ catch (  Exception e) {
+    state=ROLLING_BACK;
+    throw ExceptionUtil.rethrow(e);
+  }
+}
