@@ -8,9 +8,6 @@
   if (!ensureValidConfiguration(joinRequest)) {
     return;
   }
-  if (isJoinRequestFromAnExistingMember(joinRequest,connection)) {
-    return;
-  }
   if (!node.isMaster()) {
     sendMasterAnswer(joinRequest.getAddress());
     return;
@@ -23,6 +20,9 @@
   }
   lock.lock();
   try {
+    if (isJoinRequestFromAnExistingMember(joinRequest,connection)) {
+      return;
+    }
     long now=Clock.currentTimeMillis();
     if (logger.isFinestEnabled()) {
       String msg="Handling join from " + joinRequest.getAddress() + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
