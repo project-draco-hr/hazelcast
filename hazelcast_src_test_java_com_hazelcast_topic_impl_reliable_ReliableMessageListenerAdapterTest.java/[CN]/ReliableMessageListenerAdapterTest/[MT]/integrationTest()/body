@@ -1,0 +1,13 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  ReliableTopicProxy topic=(ReliableTopicProxy)hz.getReliableTopic("topic");
+  final MessageListenerMock listener=new MessageListenerMock();
+  topic.addMessageListener(listener);
+  topic.publish("item");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(Arrays.asList("item"),listener.messages);
+    }
+  }
+);
+}

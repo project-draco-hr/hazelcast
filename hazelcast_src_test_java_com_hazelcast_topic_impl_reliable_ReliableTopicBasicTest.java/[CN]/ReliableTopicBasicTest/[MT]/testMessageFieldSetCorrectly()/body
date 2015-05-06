@@ -1,0 +1,20 @@
+{
+  final ReliableMessageListenerMock listener=new ReliableMessageListenerMock();
+  topic.addMessageListener(listener);
+  final long beforePublishTime=Clock.currentTimeMillis();
+  topic.publish("foo");
+  final long afterPublishTime=Clock.currentTimeMillis();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,listener.messages.size());
+      Message<String> message=listener.messages.get(0);
+      assertEquals("foo",message.getMessageObject());
+      Member localMember=local.getCluster().getLocalMember();
+      assertEquals(localMember,message.getPublishingMember());
+      long actualPublishTime=message.getPublishTime();
+      assertTrue(actualPublishTime >= beforePublishTime);
+      assertTrue(actualPublishTime <= afterPublishTime);
+    }
+  }
+);
+}

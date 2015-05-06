@@ -1,0 +1,17 @@
+{
+  Config config=new Config();
+  config.addRingBufferConfig(new RingbufferConfig("foo*").setCapacity(10));
+  config.addReliableTopicConfig(new ReliableTopicConfig("foo*").setTopicOverloadPolicy(DISCARD_NEWEST));
+  HazelcastInstance hz=createHazelcastInstance(config);
+  RingbufferService ringbufferService=getNodeEngineImpl(hz).getService(RingbufferService.SERVICE_NAME);
+  ReliableTopicProxy topic=(ReliableTopicProxy)hz.getReliableTopic("foo");
+  Ringbuffer ringbuffer=topic.ringbuffer;
+  topic.publish("foo");
+  ReliableTopicProxy proxy=assertInstanceOf(ReliableTopicProxy.class,topic);
+  assertEquals(proxy.overloadPolicy,TopicOverloadPolicy.DISCARD_NEWEST);
+  assertEquals(1,ringbufferService.getContainers().size());
+  assertTrue(ringbufferService.getContainers().containsKey(ringbuffer.getName()));
+  assertEquals(0,ringbuffer.headSequence());
+  assertEquals(0,ringbuffer.tailSequence());
+  assertEquals(10,ringbuffer.capacity());
+}

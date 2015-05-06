@@ -1,0 +1,14 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  RingbufferService ringbufferService=getNodeEngineImpl(hz).getService(RingbufferService.SERVICE_NAME);
+  ReliableTopicProxy topic=(ReliableTopicProxy)hz.getReliableTopic("foo");
+  Ringbuffer ringbuffer=hz.getRingbuffer(RingbufferService.TOPIC_RB_PREFIX + "foo");
+  assertSame(ringbuffer,topic.ringbuffer);
+  topic.publish("item1");
+  topic.publish("item2");
+  assertEquals(0,ringbuffer.headSequence());
+  assertEquals(1,ringbuffer.tailSequence());
+  ConcurrentMap<String,RingbufferContainer> containers=ringbufferService.getContainers();
+  assertEquals(1,containers.size());
+  assertTrue(containers.containsKey(ringbuffer.getName()));
+}

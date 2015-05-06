@@ -1,0 +1,16 @@
+{
+  final ReliableMessageListenerMock listener=new ReliableMessageListenerMock();
+  topic.addMessageListener(listener);
+  final int messageCount=10;
+  final LocalTopicStats localTopicStats=topic.getLocalTopicStats();
+  for (int k=0; k < messageCount; k++) {
+    topic.publish("foo");
+  }
+  assertEquals(messageCount,localTopicStats.getPublishOperationCount());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(messageCount,localTopicStats.getReceiveOperationCount());
+    }
+  }
+);
+}
