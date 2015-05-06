@@ -1,0 +1,15 @@
+{
+  if (loadFinished.isDone()) {
+    loadFinished=new LoadFinishedFuture();
+    Future<Boolean> sent=execService.submit(MAP_LOAD_ALL_KEYS_EXECUTOR,new Callable<Boolean>(){
+      @Override public Boolean call() throws Exception {
+        Iterable<Object> allKeys=mapStoreContext.loadAllKeys();
+        sendKeysInBatches(allKeys,replaceExistingValues);
+        return false;
+      }
+    }
+);
+    execService.asCompletableFuture(sent).andThen(loadFinished);
+  }
+  return loadFinished;
+}
