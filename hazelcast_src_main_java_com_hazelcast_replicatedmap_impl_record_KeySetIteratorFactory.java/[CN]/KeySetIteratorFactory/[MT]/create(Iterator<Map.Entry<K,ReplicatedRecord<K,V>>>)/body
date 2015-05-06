@@ -1,0 +1,22 @@
+{
+  return new Iterator<K>(){
+    private Map.Entry<K,ReplicatedRecord<K,V>> entry;
+    @Override public boolean hasNext(){
+      while (iterator.hasNext()) {
+        entry=iterator.next();
+        if (!entry.getValue().isTombstone()) {
+          return true;
+        }
+      }
+      return false;
+    }
+    @Override public K next(){
+      Object key=recordStore.unmarshallKey(entry.getKey());
+      return (K)key;
+    }
+    @Override public void remove(){
+      throw new UnsupportedOperationException("Lazy structures are not modifiable");
+    }
+  }
+;
+}
