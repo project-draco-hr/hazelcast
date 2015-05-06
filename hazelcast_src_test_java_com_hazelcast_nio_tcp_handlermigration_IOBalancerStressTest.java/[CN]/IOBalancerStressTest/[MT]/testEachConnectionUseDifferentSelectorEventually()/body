@@ -1,0 +1,24 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_IO_BALANCER_INTERVAL_SECONDS,"1");
+  config.setProperty(GroupProperties.PROP_IO_THREAD_COUNT,"2");
+  HazelcastInstance instance1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance instance2=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance instance3=Hazelcast.newHazelcastInstance(config);
+  instance2.shutdown();
+  instance2=Hazelcast.newHazelcastInstance(config);
+  IMap<Integer,Integer> map=instance1.getMap(randomMapName());
+  long deadLine=System.currentTimeMillis() + TEST_DURATION_SECONDS * 1000;
+  for (int i=0; System.currentTimeMillis() < deadLine; i++) {
+    map.put(i % 1000,i);
+  }
+  TcpIpConnectionManager manager1=(TcpIpConnectionManager)getConnectionManager(instance1);
+  Address address1=getAddress(instance1);
+  TcpIpConnectionManager manager2=(TcpIpConnectionManager)getConnectionManager(instance2);
+  Address address2=getAddress(instance2);
+  TcpIpConnectionManager manager3=(TcpIpConnectionManager)getConnectionManager(instance3);
+  Address address3=getAddress(instance3);
+  assertUseDifferentSelectors(manager1,address2,address3);
+  assertUseDifferentSelectors(manager2,address1,address3);
+  assertUseDifferentSelectors(manager3,address1,address2);
+}
