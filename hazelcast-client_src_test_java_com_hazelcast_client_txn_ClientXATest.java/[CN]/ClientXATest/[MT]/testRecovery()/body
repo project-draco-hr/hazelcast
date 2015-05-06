@@ -1,0 +1,20 @@
+{
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  Hazelcast.newHazelcastInstance();
+  Hazelcast.newHazelcastInstance();
+  HazelcastXAResource xaResource=instance.getXAResource();
+  Xid myXid=new SerializableXID(42,"globalTransactionId".getBytes(),"branchQualifier".getBytes());
+  xaResource.start(myXid,0);
+  TransactionContext context1=xaResource.getTransactionContext();
+  TransactionalMap<Object,Object> map=context1.getMap("map");
+  map.put("key","value");
+  xaResource.prepare(myXid);
+  instance.shutdown();
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  HazelcastXAResource clientXaResource=client.getXAResource();
+  Xid[] recovered=clientXaResource.recover(0);
+  for (  Xid xid : recovered) {
+    clientXaResource.commit(xid,false);
+  }
+  assertEquals("value",client.getMap("map").get("key"));
+}

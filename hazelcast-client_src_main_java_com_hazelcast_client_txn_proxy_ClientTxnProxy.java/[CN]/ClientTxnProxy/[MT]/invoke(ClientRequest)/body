@@ -1,11 +1,12 @@
 {
   if (request instanceof BaseTransactionRequest) {
-    ((BaseTransactionRequest)request).setTxnId(proxy.getTxnId());
+    ((BaseTransactionRequest)request).setTxnId(transactionContext.getTxnId());
     ((BaseTransactionRequest)request).setClientThreadId(Thread.currentThread().getId());
   }
-  final SerializationService ss=proxy.getClient().getSerializationService();
+  HazelcastClientInstanceImpl client=transactionContext.getClient();
+  SerializationService ss=client.getSerializationService();
   try {
-    ClientInvocation invocation=new ClientInvocation(proxy.getClient(),request,proxy.getConnection());
+    ClientInvocation invocation=new ClientInvocation(client,request,transactionContext.getConnection());
     Future<SerializableCollection> future=invocation.invoke();
     return ss.toObject(future.get());
   }

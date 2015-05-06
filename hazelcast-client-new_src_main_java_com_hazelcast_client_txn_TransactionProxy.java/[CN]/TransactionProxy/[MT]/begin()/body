@@ -4,19 +4,19 @@
       throw new IllegalStateException("Transaction is already active");
     }
     checkThread();
-    if (THREAD_FLAG.get() != null) {
+    if (TRANSACTION_EXISTS.get() != null) {
       throw new IllegalStateException("Nested transactions are not allowed!");
     }
-    THREAD_FLAG.set(Boolean.TRUE);
+    TRANSACTION_EXISTS.set(Boolean.TRUE);
     startTime=Clock.currentTimeMillis();
-    ClientMessage request=TransactionCreateParameters.encode(xid,options.getTimeoutMillis(),options.getDurability(),options.getTransactionType().id(),threadId);
+    ClientMessage request=TransactionCreateParameters.encode(options.getTimeoutMillis(),options.getDurability(),options.getTransactionType().id(),threadId);
     ClientMessage response=invoke(request);
     TransactionCreateResultParameters result=TransactionCreateResultParameters.decode(response);
     txnId=result.transactionId;
     state=ACTIVE;
   }
  catch (  Exception e) {
-    closeConnection();
+    TRANSACTION_EXISTS.set(null);
     throw ExceptionUtil.rethrow(e);
   }
 }

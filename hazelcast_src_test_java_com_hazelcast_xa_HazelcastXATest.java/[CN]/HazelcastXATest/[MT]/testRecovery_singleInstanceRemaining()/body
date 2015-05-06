@@ -1,0 +1,12 @@
+{
+  final CountDownLatch nodeShutdownLatch=new CountDownLatch(1);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=factory.newHazelcastInstance();
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  startTX(instance1,nodeShutdownLatch);
+  waitNodeToShutDown(nodeShutdownLatch);
+  recoverTX(instance2);
+  IMap<String,String> map=instance2.getMap("map");
+  String actualValue=map.get("key");
+  assertEquals("value",actualValue);
+}
