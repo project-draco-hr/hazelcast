@@ -7,11 +7,11 @@
     int partitionId=clientContext.getPartitionService().getPartitionId(keyData);
     HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
     final ClientInvocation clientInvocation=new ClientInvocation(client,req,partitionId);
-    final ICompletableFuture<T> f=clientInvocation.invoke();
+    ClientInvocationFuture f=clientInvocation.invoke();
     if (completionOperation) {
       waitCompletionLatch(completionId);
     }
-    return f;
+    return new ClientDelegatingFuture<T>(f,clientContext.getSerializationService());
   }
  catch (  Throwable e) {
     if (e instanceof IllegalStateException) {
