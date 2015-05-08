@@ -17,8 +17,10 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
+  SerializationService serializationService=clientContext.getSerializationService();
+  ClientDelegatingFuture<V> delegatingFuture=new ClientDelegatingFuture<V>(future,serializationService);
   if (nearCache != null) {
-    future.andThenInternal(new ExecutionCallback<Data>(){
+    delegatingFuture.andThenInternal(new ExecutionCallback<Data>(){
       public void onResponse(      Data valueData){
         storeInNearCache(keyData,valueData,null);
       }
@@ -27,5 +29,5 @@
     }
 );
   }
-  return new DelegatingFuture<V>(future,clientContext.getSerializationService());
+  return delegatingFuture;
 }

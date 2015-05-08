@@ -1,7 +1,9 @@
 {
   checkNotNull(task,"task should not be null");
-  final String uuid=getUUID();
+  String uuid=getUUID();
   ClientMessage request=ExecutorServiceSubmitToAddressParameters.encode(name,uuid,toData(task),address.getHost(),address.getPort());
-  ICompletableFuture<T> f=invokeOnTarget(request,address);
-  f.andThen(callback);
+  ClientInvocationFuture f=invokeOnTarget(request,address);
+  SerializationService serializationService=getContext().getSerializationService();
+  ClientDelegatingFuture<T> delegatingFuture=new ClientDelegatingFuture<T>(f,serializationService);
+  delegatingFuture.andThen(callback);
 }
