@@ -1,0 +1,25 @@
+{
+  String name=randomString();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance instance1=factory.newHazelcastInstance();
+  MultiMap<Object,Object> mm1=instance1.getMultiMap(name);
+  for (int i=0; i < 10; i++) {
+    mm1.put("ping-address","instance1-" + i);
+  }
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  MultiMap<Object,Object> mm2=instance2.getMultiMap(name);
+  for (int i=0; i < 10; i++) {
+    mm2.put("ping-address","instance2-" + i);
+  }
+  HazelcastInstance instance3=factory.newHazelcastInstance();
+  MultiMap<Object,Object> mm3=instance3.getMultiMap(name);
+  for (int i=0; i < 10; i++) {
+    mm2.remove("ping-address","instance2-" + i);
+  }
+  instance2.getLifecycleService().terminate();
+  for (int i=0; i < 10; i++) {
+    mm1.remove("ping-address","instance1-" + i);
+  }
+  instance1.shutdown();
+  assertEquals(0,mm3.size());
+}
