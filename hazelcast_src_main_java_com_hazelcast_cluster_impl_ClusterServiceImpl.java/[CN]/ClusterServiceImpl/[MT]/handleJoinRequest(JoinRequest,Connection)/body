@@ -8,13 +8,15 @@
   if (!ensureValidConfiguration(joinRequest)) {
     return;
   }
-  if (!node.isMaster()) {
-    sendMasterAnswer(joinRequest.getAddress());
+  Address target=joinRequest.getAddress();
+  boolean isRequestFromCurrentMaster=target.equals(node.getMasterAddress());
+  if (!node.isMaster() && !isRequestFromCurrentMaster) {
+    sendMasterAnswer(target);
     return;
   }
   if (joinInProgress) {
     if (logger.isFinestEnabled()) {
-      logger.finest("Join is in-progress. Cannot handle join request from " + joinRequest.getAddress() + " at the moment.");
+      logger.finest("Join is in-progress. Cannot handle join request from " + target + " at the moment.");
     }
     return;
   }
@@ -25,17 +27,17 @@
     }
     long now=Clock.currentTimeMillis();
     if (logger.isFinestEnabled()) {
-      String msg="Handling join from " + joinRequest.getAddress() + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
+      String msg="Handling join from " + target + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
       logger.finest(msg);
     }
-    MemberInfo memberInfo=new MemberInfo(joinRequest.getAddress(),joinRequest.getUuid(),joinRequest.getAttributes());
+    MemberInfo memberInfo=new MemberInfo(target,joinRequest.getUuid(),joinRequest.getAttributes());
     if (!setJoins.contains(memberInfo)) {
       try {
         checkSecureLogin(joinRequest,memberInfo);
       }
  catch (      Exception e) {
         ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
-        sendAuthenticationFailure(joinRequest.getAddress());
+        sendAuthenticationFailure(target);
         securityLogger.severe(e);
         return;
       }
@@ -46,7 +48,7 @@
       }
  catch (      Exception e) {
         logger.warning(e.getMessage());
-        sendBeforeJoinCheckFailure(joinRequest.getAddress(),e.getMessage());
+        sendBeforeJoinCheckFailure(target,e.getMessage());
         return;
       }
     }
@@ -54,7 +56,7 @@
       firstJoinRequest=now;
     }
     if (setJoins.add(memberInfo)) {
-      sendMasterAnswer(joinRequest.getAddress());
+      sendMasterAnswer(target);
       if (now - firstJoinRequest < maxWaitMillisBeforeJoin) {
         timeToStartJoin=now + waitMillisBeforeJoin;
       }
