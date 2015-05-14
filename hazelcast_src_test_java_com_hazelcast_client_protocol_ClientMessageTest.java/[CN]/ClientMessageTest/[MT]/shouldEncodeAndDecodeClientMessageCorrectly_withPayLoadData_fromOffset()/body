@@ -1,0 +1,15 @@
+{
+  SafeBuffer byteBuffer=new SafeBuffer(new byte[150]);
+  int offset=100;
+  ClientMessage cmEncode=TestClientMessage.createForEncode(byteBuffer,offset);
+  cmEncode.setMessageType(7).setVersion((short)3).addFlag(ClientMessage.BEGIN_AND_END_FLAGS).setCorrelationId(66).setPartitionId(77);
+  byte[] bytes=VAR_DATA_STR_1.getBytes();
+  final int calculatedFrameSize=ClientMessage.HEADER_SIZE + Bits.INT_SIZE_IN_BYTES + ParameterUtil.calculateByteArrayDataSize(bytes);
+  cmEncode.set(1);
+  cmEncode.set(bytes);
+  cmEncode.updateFrameLength();
+  ClientMessage cmDecode=ClientMessage.createForDecode(byteBuffer,offset);
+  assertEquals(1,cmDecode.getInt());
+  assertArrayEquals(bytes,cmDecode.getByteArray());
+  assertEquals(calculatedFrameSize,cmDecode.getFrameLength());
+}
