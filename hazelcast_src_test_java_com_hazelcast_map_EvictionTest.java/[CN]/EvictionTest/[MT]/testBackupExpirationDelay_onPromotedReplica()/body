@@ -1,0 +1,21 @@
+{
+  final int numberOfItemsToBeAdded=1000;
+  final int nodeCount=2;
+  final int ttlSeconds=3;
+  final String mapName=randomMapName();
+  final Config config=newConfigWithTTL(mapName,ttlSeconds);
+  config.setProperty(GroupProperties.PROP_MAP_EXPIRY_DELAY_SECONDS,String.valueOf(TimeUnit.HOURS.toSeconds(1)));
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance[] instances=factory.newInstances(config);
+  final IMap<Integer,Integer> map1=instances[0].getMap(mapName);
+  final IMap<Integer,Integer> map2=instances[1].getMap(mapName);
+  for (int i=0; i < numberOfItemsToBeAdded; i++) {
+    map1.put(i,i);
+  }
+  instances[0].shutdown();
+  sleepSeconds(3);
+  for (int i=0; i < numberOfItemsToBeAdded; i++) {
+    map2.get(i);
+  }
+  assertSizeEventually(0,map2);
+}
