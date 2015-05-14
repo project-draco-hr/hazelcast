@@ -11,13 +11,17 @@
   for (int i=0; i < numberOfItemsToBeAdded; i++) {
     map1.put(i,i);
   }
-  sleepSeconds(1);
+  sleepSeconds(2);
+  for (int i=0; i < numberOfItemsToBeAdded; i++) {
+    map1.get(i);
+  }
   final long now=Clock.currentTimeMillis();
+  waitClusterForSafeState(instances[0]);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      final int notExpiredEntryCountOnNode1=getNotExpiredEntryCount(map1,now,backup);
-      final int notExpiredEntryCountOnNode2=getNotExpiredEntryCount(map2,now,backup);
-      assertEquals(expectedEntryCountAfterExpiration,notExpiredEntryCountOnNode1 + notExpiredEntryCountOnNode2);
+      final int nodeEntryCount1=getNodeEntryCount(map1,now);
+      final int nodeEntryCount2=getNodeEntryCount(map2,now);
+      assertEquals(expectedEntryCountAfterExpiration,nodeEntryCount1 + nodeEntryCount2);
     }
   }
 );
