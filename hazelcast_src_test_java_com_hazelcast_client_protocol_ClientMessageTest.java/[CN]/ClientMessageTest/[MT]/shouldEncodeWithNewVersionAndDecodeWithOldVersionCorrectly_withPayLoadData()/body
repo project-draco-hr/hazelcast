@@ -1,13 +1,13 @@
 {
-  byte[] byteBuffer=new byte[1024];
+  SafeBuffer byteBuffer=new SafeBuffer(new byte[1024]);
   FutureClientMessage cmEncode=new FutureClientMessage();
-  cmEncode.wrapForEncode(byteBuffer,0,byteBuffer.length);
+  cmEncode.wrapForEncode(byteBuffer,0);
   cmEncode.theNewField(999).setMessageType(7).setVersion((short)3).addFlag(ClientMessage.BEGIN_AND_END_FLAGS).setCorrelationId(66).setPartitionId(77);
-  final int calculatedFrameSize=FutureClientMessage.THE_NEW_HEADER_SIZE + BYTE_DATA.length;
-  cmEncode.putPayloadData(BYTE_DATA);
-  ClientMessage cmDecode=ClientMessage.createForDecode(byteBuffer,0,byteBuffer.length);
-  final byte[] cmDecodeVarData1=new byte[BYTE_DATA.length];
-  cmDecode.getPayloadData(cmDecodeVarData1);
+  final int calculatedFrameSize=FutureClientMessage.THE_NEW_HEADER_SIZE + ParameterUtil.calculateByteArrayDataSize(BYTE_DATA);
+  cmEncode.set(BYTE_DATA);
+  cmEncode.updateFrameLength();
+  ClientMessage cmDecode=ClientMessage.createForDecode(byteBuffer,0);
+  final byte[] cmDecodeVarData1=cmDecode.getByteArray();
   assertEquals(7,cmDecode.getMessageType());
   assertEquals(3,cmDecode.getVersion());
   assertEquals(ClientMessage.BEGIN_AND_END_FLAGS,cmDecode.getFlags());
