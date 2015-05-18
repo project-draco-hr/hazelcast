@@ -1,15 +1,15 @@
 {
   isNotNull(callback,"callback");
   isNotNull(executor,"executor");
-  if (isDoneInternal()) {
-    runAsynchronous(callback,executor);
-    return;
-  }
-synchronized (completionLock) {
-    if (isDoneInternal()) {
-      runAsynchronous(callback,executor);
+  for (; ; ) {
+    Object currentState=this.state;
+    if (isDone(currentState)) {
+      runAsynchronous(callback,executor,currentState);
       return;
     }
-    this.callbackHead=new ExecutionCallbackNode<V>(callback,executor,callbackHead);
+    ExecutionCallbackNode newState=new ExecutionCallbackNode<V>(callback,executor,(ExecutionCallbackNode)currentState);
+    if (STATE.compareAndSet(this,currentState,newState)) {
+      return;
+    }
   }
 }
