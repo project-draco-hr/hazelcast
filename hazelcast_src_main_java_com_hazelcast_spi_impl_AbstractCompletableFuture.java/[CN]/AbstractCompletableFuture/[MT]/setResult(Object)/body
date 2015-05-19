@@ -1,12 +1,12 @@
 {
-  ExecutionCallbackNode<V> callbackChain;
-synchronized (completionLock) {
-    if (isDoneInternal()) {
+  for (; ; ) {
+    Object currentState=this.state;
+    if (isDone(currentState)) {
       return;
     }
-    this.result=result;
-    callbackChain=callbackHead;
-    callbackHead=null;
+    if (STATE.compareAndSet(this,currentState,result)) {
+      runAsynchronous((ExecutionCallbackNode)currentState,result);
+      break;
+    }
   }
-  fireCallbacks(callbackChain);
 }
