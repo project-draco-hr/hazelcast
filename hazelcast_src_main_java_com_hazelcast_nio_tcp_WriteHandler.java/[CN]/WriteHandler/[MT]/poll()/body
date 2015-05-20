@@ -1,7 +1,13 @@
 {
-  SocketWritable packet=urgentWriteQueue.poll();
-  if (packet == null) {
-    packet=writeQueue.poll();
+  for (; ; ) {
+    SocketWritable packet=urgentWriteQueue.poll();
+    if (packet == null) {
+      packet=writeQueue.poll();
+    }
+    if (packet instanceof TaskPacket) {
+      ((TaskPacket)packet).run();
+      continue;
+    }
+    return packet;
   }
-  return packet;
 }
