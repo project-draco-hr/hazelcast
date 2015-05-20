@@ -14,10 +14,7 @@ catch (    TimeoutException e) {
       done=false;
       for (int l=i; l < size; l++) {
         Future<T> f=futures.get(i);
-        if (!f.isDone()) {
-          result.add(f);
-        }
- else {
+        if (f.isDone()) {
           Object v;
           try {
             v=f.get();
@@ -25,12 +22,12 @@ catch (    TimeoutException e) {
  catch (          ExecutionException ex) {
             v=ex;
           }
-          result.add(new CompletedFuture<T>(getNodeEngine().getSerializationService(),v,getAsyncExecutor()));
+          futures.set(l,new CompletedFuture<T>(getNodeEngine().getSerializationService(),v,getAsyncExecutor()));
         }
       }
       break;
     }
-    result.add(new CompletedFuture<T>(getNodeEngine().getSerializationService(),value,getAsyncExecutor()));
+    futures.set(i,new CompletedFuture<T>(getNodeEngine().getSerializationService(),value,getAsyncExecutor()));
     timeoutNanos-=System.nanoTime() - start;
   }
   return done;
