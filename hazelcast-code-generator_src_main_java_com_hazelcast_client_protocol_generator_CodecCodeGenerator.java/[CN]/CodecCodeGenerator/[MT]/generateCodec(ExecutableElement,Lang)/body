@@ -1,0 +1,36 @@
+{
+  final TypeElement parent=(TypeElement)methodElement.getEnclosingElement();
+  final Request methodElementAnnotation=methodElement.getAnnotation(Request.class);
+  final short response=methodElementAnnotation.response();
+  final short[] events=methodElementAnnotation.event();
+  final boolean retryable=methodElementAnnotation.retryable();
+  ExecutableElement responseElement=responseMap.get(response);
+  if (responseElement == null) {
+    System.err.println("Missing RESPONSE:" + response + " @ request :"+ methodElement.getSimpleName());
+  }
+  List<ExecutableElement> eventElementList=new ArrayList<ExecutableElement>();
+  if (events != null) {
+    for (    Short event : events) {
+      final ExecutableElement eventResponse=eventResponseMap.get(event);
+      if (eventResponse != null) {
+        eventElementList.add(eventResponse);
+      }
+    }
+  }
+  CodecModel codecModel=new CodecModel(parent,methodElement,responseElement,eventElementList,retryable,lang);
+  final String content;
+switch (lang) {
+case JAVA:
+    content=generateFromTemplate(codecTemplate,codecModel);
+  saveClass(codecModel.getPackageName(),codecModel.getClassName(),content);
+break;
+case CSHARP:
+content=generateFromTemplate(codecTemplateCSharp,codecModel);
+saveFile(codecModel.getClassName() + ".cs",codecModel.getPackageName(),content);
+break;
+case CPP:
+break;
+default :
+throw new UnsupportedOperationException("Unsupported language: " + lang);
+}
+}

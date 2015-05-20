@@ -1,0 +1,38 @@
+{
+  try {
+    name=classElement.getAnnotation(GenerateCodec.class).name();
+    className=CodeGenerationUtils.capitalizeFirstLetter(name) + "MessageType";
+    packageName="com.hazelcast.client.impl.protocol.codec";
+    if (lang != Lang.JAVA) {
+      packageName=classElement.getAnnotation(GenerateCodec.class).ns();
+    }
+    short masterId=classElement.getAnnotation(GenerateCodec.class).id();
+    for (    Element enclosedElement : classElement.getEnclosedElements()) {
+      if (!enclosedElement.getKind().equals(ElementKind.METHOD)) {
+        continue;
+      }
+      ExecutableElement methodElement=(ExecutableElement)enclosedElement;
+      final Request annotation1=methodElement.getAnnotation(Request.class);
+      final Response annotation2=methodElement.getAnnotation(Response.class);
+      final EventResponse annotation3=methodElement.getAnnotation(EventResponse.class);
+      Short id=null;
+      if (annotation1 != null) {
+        id=annotation1.id();
+      }
+ else       if (annotation2 != null) {
+        id=annotation2.value();
+      }
+ else       if (annotation3 != null) {
+        id=annotation3.value();
+      }
+      ParameterModel pm=new ParameterModel();
+      pm.name=methodElement.getSimpleName().toString();
+      final String s=Integer.toHexString((masterId << BYTE_BIT_COUNT) + id);
+      pm.id=s.length() == 3 ? "0x0" + s : "0x" + s;
+      params.add(pm);
+    }
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+}
