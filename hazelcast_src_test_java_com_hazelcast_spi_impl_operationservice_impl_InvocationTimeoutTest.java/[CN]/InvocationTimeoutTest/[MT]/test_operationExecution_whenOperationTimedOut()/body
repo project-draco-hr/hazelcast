@@ -1,0 +1,23 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  factory.newHazelcastInstance();
+  warmUpPartitions(factory.getAllHazelcastInstances());
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
+  String key=randomString();
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  long callTimeout=3000L;
+  LongRunningOperation longRunningOperation=new LongRunningOperation(3 * callTimeout);
+  InternalOperationService operationService=nodeEngine.getOperationService();
+  operationService.invokeOnPartition(null,longRunningOperation,partitionId);
+  InternalCompletableFuture<Object> future=operationService.createInvocationBuilder(null,new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),1,-1,-1),partitionId).setCallTimeout(callTimeout).invoke();
+  try {
+    future.getSafely();
+    fail("Invocation should failed with timeout!");
+  }
+ catch (  OperationTimeoutException ignored) {
+  }
+  IsLockedOperation isLockedOperation=new IsLockedOperation(new InternalLockNamespace(key),nodeEngine.toData(key),1);
+  Boolean isLocked=(Boolean)operationService.invokeOnPartition(null,isLockedOperation,partitionId).getSafely();
+  assertFalse(isLocked);
+}

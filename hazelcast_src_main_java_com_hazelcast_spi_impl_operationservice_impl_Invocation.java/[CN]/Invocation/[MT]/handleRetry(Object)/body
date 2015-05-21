@@ -11,7 +11,10 @@
     invocationFuture.set(INTERRUPTED_RESPONSE);
     return;
   }
-  invocationFuture.set(WAIT_RESPONSE);
+  if (!invocationFuture.set(WAIT_RESPONSE)) {
+    logger.finest("Cannot retry " + toString() + ", because a different response is already set: "+ invocationFuture.response);
+    return;
+  }
   ExecutionService ex=nodeEngine.getExecutionService();
   if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
     operationService.asyncExecutor.execute(this);
