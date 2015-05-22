@@ -1,0 +1,17 @@
+{
+  HazelcastInstance[] cluster=createHazelcastInstanceFactory(2).newInstances();
+  HazelcastInstance local=cluster[0];
+  HazelcastInstance remote=cluster[1];
+  OperationService operationService=getOperationService(local);
+  int outerPartitionId=getPartitionId(remote);
+  int innerPartitionId=getPartitionId(local);
+  InnerOperation innerOperation=new InnerOperation(response,innerPartitionId);
+  OuterOperation outerOperation=new OuterOperation(innerOperation,outerPartitionId);
+  InternalCompletableFuture f=operationService.invokeOnPartition(null,outerOperation,outerOperation.getPartitionId());
+  try {
+    f.getSafely();
+    fail();
+  }
+ catch (  IllegalThreadStateException e) {
+  }
+}
