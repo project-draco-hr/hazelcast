@@ -1,0 +1,21 @@
+{
+  Map.Entry<K,ReplicatedRecord<K,V>> entry=this.entry;
+  Object key=entry != null ? entry.getKey() : null;
+  Object value=entry != null && entry.getValue() != null ? entry.getValue().getValue() : null;
+  while (entry == null) {
+    entry=findNextEntry();
+    key=entry.getKey();
+    ReplicatedRecord<K,V> record=entry.getValue();
+    value=record != null ? record.getValue() : null;
+    if (key != null && value != null) {
+      break;
+    }
+  }
+  this.entry=null;
+  if (key == null || value == null) {
+    throw new NoSuchElementException();
+  }
+  key=recordStore.unmarshallKey(key);
+  value=recordStore.unmarshallValue(value);
+  return new AbstractMap.SimpleEntry<K,V>((K)key,(V)value);
+}
