@@ -1,0 +1,16 @@
+{
+  String mapName=randomMapName();
+  Config config=new Config();
+  MapConfig mapConfig=config.getMapConfig(mapName);
+  MapIndexConfig indexConfig=new MapIndexConfig("name",false);
+  mapConfig.addMapIndexConfig(indexConfig);
+  HazelcastInstance hazelcastInstance=createHazelcastInstance(config);
+  IMap<Object,Object> map=hazelcastInstance.getMap(mapName);
+  int key=1;
+  map.put(key,new SampleObjects.Employee("tom",24,true,10));
+  DefaultRecordStore defaultRecordStore=getRecordStore(map,key);
+  defaultRecordStore.reset(false);
+  assertNull(map.get(key));
+  Collection<Object> values=map.values(Predicates.equal("name","tom"));
+  assertFalse(values.isEmpty());
+}
