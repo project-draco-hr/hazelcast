@@ -1,0 +1,34 @@
+{
+  String getterString;
+  if (type.equals(DATA_FULL_NAME)) {
+    getterString=name + " = clientMessage.getData();";
+  }
+ else   if (type.equals("java.lang.String")) {
+    getterString=name + " = clientMessage.getStringUtf8();";
+  }
+ else   if (type.equals("com.hazelcast.nio.Address")) {
+    getterString=name + " = " + PARAMETERS_PACKAGE+ "AddressCodec.decode(clientMessage);";
+  }
+ else   if (type.equals("com.hazelcast.core.Member") || type.equals("com.hazelcast.client.impl.MemberImpl")) {
+    getterString=name + " = " + PARAMETERS_PACKAGE+ "MemberCodec.decode(clientMessage);";
+  }
+ else   if (type.equals("com.hazelcast.cluster.client.MemberAttributeChange")) {
+    getterString=name + " = " + PARAMETERS_PACKAGE+ "MemberAttributeChangeCodec.decode(clientMessage);";
+  }
+ else   if (type.equals("com.hazelcast.map.impl.SimpleEntryView<" + DATA_FULL_NAME + ","+ DATA_FULL_NAME+ ">")) {
+    getterString=name + " = " + PARAMETERS_PACKAGE+ "EntryViewCodec.decode(clientMessage);";
+  }
+ else   if (type.startsWith("java.util.Map<")) {
+    getterString=getMapGetterString(type,name);
+  }
+ else   if (type.startsWith("java.util.List<") || type.startsWith("java.util.Set<") || type.startsWith("java.util.Collection<")) {
+    getterString=getCollectionGetterString(type,name);
+  }
+ else   if (type.endsWith("[]")) {
+    getterString=getArrayGetterString(type,name);
+  }
+ else {
+    getterString=name + " = clientMessage.get" + CodeGenerationUtils.capitalizeFirstLetter(type)+ "();";
+  }
+  return getterString;
+}
