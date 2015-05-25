@@ -1,0 +1,31 @@
+{
+  StringBuilder setterString=new StringBuilder();
+  if (isNullable) {
+    setterString.append("            boolean isNull;\n").append("            if (" + name + " == null) {\n").append("                isNull = true;\n").append("                clientMessage.set(isNull);\n").append("                return clientMessage;\n").append("            }\n").append("            isNull = false;\n").append("            clientMessage.set(isNull);\n");
+  }
+  if (type.equals("com.hazelcast.nio.Address")) {
+    setterString.append("" + PARAMETERS_PACKAGE + "AddressCodec.encode("+ name+ ",clientMessage);");
+  }
+ else   if (type.equals("com.hazelcast.core.Member") || type.equals("com.hazelcast.client.impl.MemberImpl")) {
+    setterString.append("" + PARAMETERS_PACKAGE + "MemberCodec.encode("+ name+ ", clientMessage);");
+  }
+ else   if (type.equals("com.hazelcast.cluster.client.MemberAttributeChange")) {
+    setterString.append("" + PARAMETERS_PACKAGE + "MemberAttributeChangeCodec.encode("+ name+ ", clientMessage);");
+  }
+ else   if (type.equals("com.hazelcast.map.impl.SimpleEntryView<" + DATA_FULL_NAME + ","+ DATA_FULL_NAME+ ">")) {
+    setterString.append("" + PARAMETERS_PACKAGE + "EntryViewCodec.encode("+ name+ ", clientMessage);");
+  }
+ else   if (type.startsWith("java.util.Map<")) {
+    setterString.append(getMapSetterString(type,name));
+  }
+ else   if (type.startsWith("java.util.List<") || type.startsWith("java.util.Set<") || type.startsWith("java.util.Collection<")) {
+    setterString.append(getCollectionSetterString(type,name));
+  }
+ else   if (type.endsWith("[]")) {
+    setterString.append(getArraySetterString(type,name));
+  }
+ else {
+    setterString.append("clientMessage.set(" + name + ");");
+  }
+  return setterString.toString();
+}
