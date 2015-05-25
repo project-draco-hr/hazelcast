@@ -1,0 +1,20 @@
+{
+  pagingPredicate.setIterationType(IterationType.KEY);
+  if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
+    pagingPredicate.previousPage();
+    keySet(pagingPredicate);
+    pagingPredicate.nextPage();
+  }
+  ClientMessage request=MapKeySetWithPagingPredicateCodec.encodeRequest(name,toData(pagingPredicate));
+  ClientMessage response=invoke(request);
+  MapKeySetWithPagingPredicateCodec.ResponseParameters resultParameters=MapKeySetWithPagingPredicateCodec.decodeResponse(response);
+  final Comparator<Entry> comparator=SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.KEY);
+  final SortedQueryResultSet sortedResult=new SortedQueryResultSet(comparator,IterationType.KEY,pagingPredicate.getPageSize());
+  for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
+    final K key=toObject(entry.getKey());
+    final V value=toObject(entry.getValue());
+    sortedResult.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
+  }
+  PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,sortedResult.last());
+  return (Set<K>)sortedResult;
+}

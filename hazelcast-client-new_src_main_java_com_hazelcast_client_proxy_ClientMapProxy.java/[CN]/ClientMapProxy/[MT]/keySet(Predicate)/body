@@ -1,37 +1,14 @@
 {
-  PagingPredicate pagingPredicate=null;
   if (predicate instanceof PagingPredicate) {
-    pagingPredicate=(PagingPredicate)predicate;
-    pagingPredicate.setIterationType(IterationType.KEY);
-    if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
-      pagingPredicate.previousPage();
-      keySet(pagingPredicate);
-      pagingPredicate.nextPage();
-    }
+    return keySetWithPagingPredicate((PagingPredicate)predicate);
   }
-  ClientMessage request=MapKeySetWithPredicateParameters.encode(name,toData(predicate));
-  if (pagingPredicate == null) {
-    ClientMessage response=invoke(request);
-    DataCollectionResultParameters resultParameters=DataCollectionResultParameters.decode(response);
-    final HashSet<K> keySet=new HashSet<K>();
-    for (    Data o : resultParameters.result) {
-      final K key=toObject(o);
-      keySet.add(key);
-    }
-    return keySet;
-  }
+  ClientMessage request=MapKeySetWithPredicateCodec.encodeRequest(name,toData(predicate));
   ClientMessage response=invoke(request);
-  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
-  final Comparator<Entry> comparator=SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.KEY);
-  final SortedQueryResultSet sortedResult=new SortedQueryResultSet(comparator,IterationType.KEY,pagingPredicate.getPageSize());
-  int size=resultParameters.keys.size();
-  for (int i=0; i < size; i++) {
-    Data keyData=resultParameters.keys.get(i);
-    Data valueData=resultParameters.values.get(i);
-    final K key=toObject(keyData);
-    final V value=toObject(valueData);
-    sortedResult.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
+  MapKeySetWithPredicateCodec.ResponseParameters resultParameters=MapKeySetWithPredicateCodec.decodeResponse(response);
+  final HashSet<K> keySet=new HashSet<K>();
+  for (  Data o : resultParameters.list) {
+    final K key=toObject(o);
+    keySet.add(key);
   }
-  PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,sortedResult.last());
-  return (Set<K>)sortedResult;
+  return keySet;
 }

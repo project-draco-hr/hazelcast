@@ -19,17 +19,15 @@
   if (keySet.isEmpty()) {
     return result;
   }
-  ClientMessage request=MapGetAllParameters.encode(name,keySet);
+  ClientMessage request=MapGetAllCodec.encodeRequest(name,keySet);
   ClientMessage response=invoke(request);
-  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
-  int size=resultParameters.keys.size();
-  for (int i=0; i < size; i++) {
-    Data dataKey=resultParameters.keys.get(i);
-    final V value=toObject(resultParameters.values.get(i));
-    final K key=toObject(dataKey);
+  MapGetAllCodec.ResponseParameters resultParameters=MapGetAllCodec.decodeResponse(response);
+  for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
+    final V value=toObject(entry.getValue());
+    final K key=toObject(entry.getKey());
     result.put(key,value);
     if (nearCache != null) {
-      nearCache.put(dataKey,value);
+      nearCache.put(entry.getKey(),value);
     }
   }
   return result;
