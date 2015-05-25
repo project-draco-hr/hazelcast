@@ -7,13 +7,12 @@
   while (iterator.hasNext()) {
     final Object key=iterator.next();
     final Data dataKey=toData(key);
-    if (hasWaitingWriteBehindDeleteOperation(dataKey)) {
-      iterator.remove();
-      continue;
-    }
-    final Object valueFromStagingArea=getFromStagingArea(dataKey);
-    if (valueFromStagingArea != null) {
-      map.put(dataKey,valueFromStagingArea);
+    DelayedEntry delayedEntry=getFromStagingArea(dataKey);
+    if (delayedEntry != null) {
+      Object value=delayedEntry.getValue();
+      if (value != null) {
+        map.put(dataKey,toObject(value));
+      }
       iterator.remove();
     }
   }
