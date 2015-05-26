@@ -1,8 +1,10 @@
 {
   Iterator<Object> keys=allKeys.iterator();
   Iterator<Data> dataKeys=map(keys,toData);
-  if (maxSize > 0) {
-    dataKeys=limit(dataKeys,maxSize);
+  int clusterSize=partitionService.getMemberPartitionsMap().size();
+  int mapMaxSize=clusterSize * maxSizePerNode;
+  if (mapMaxSize > 0) {
+    dataKeys=limit(dataKeys,mapMaxSize);
   }
   Iterator<Entry<Integer,Data>> partitionsAndKeys=map(dataKeys,toPartition(partitionService));
   Iterator<Map<Integer,List<Data>>> batches=toBatches(partitionsAndKeys,maxBatch);
@@ -10,7 +12,7 @@
     Map<Integer,List<Data>> batch=batches.next();
     sendBatch(batch,replaceExistingValues);
   }
-  sendLoadCompleted(partitionService.getPartitionCount(),replaceExistingValues);
+  sendLoadCompleted(clusterSize,partitionService.getPartitionCount(),replaceExistingValues);
   if (keys instanceof Closeable) {
     closeResource((Closeable)keys);
   }
