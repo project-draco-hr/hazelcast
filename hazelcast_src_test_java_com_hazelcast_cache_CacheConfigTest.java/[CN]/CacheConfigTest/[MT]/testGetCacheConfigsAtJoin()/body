@@ -1,0 +1,21 @@
+{
+  final String cacheName=randomString();
+  final String managerPrefix="hz:";
+  final String fullCacheName=managerPrefix + cacheName;
+  final Config config=new Config();
+  final CacheConfig cacheConfig=new CacheConfig().setName(cacheName).setManagerPrefix(managerPrefix);
+  final TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance1=instanceFactory.newHazelcastInstance(config);
+  final ICacheService cacheService1=getCacheService(instance1);
+  assertNull(cacheService1.getCacheConfig(fullCacheName));
+  cacheService1.createCacheConfigIfAbsent(cacheConfig);
+  assertNotNull(cacheService1.getCacheConfig(fullCacheName));
+  final HazelcastInstance instance2=instanceFactory.newHazelcastInstance(config);
+  final ICacheService cacheService2=getCacheService(instance2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNotNull(cacheService2.getCacheConfig(fullCacheName));
+    }
+  }
+);
+}
