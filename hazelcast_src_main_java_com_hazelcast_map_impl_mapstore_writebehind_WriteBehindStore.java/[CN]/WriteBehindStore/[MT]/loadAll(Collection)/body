@@ -2,18 +2,17 @@
   if (keys == null || keys.isEmpty()) {
     return Collections.emptyMap();
   }
-  final Map<Object,Object> map=new HashMap<Object,Object>();
-  final Iterator iterator=keys.iterator();
+  Map<Object,Object> map=new HashMap<Object,Object>();
+  Iterator iterator=keys.iterator();
   while (iterator.hasNext()) {
-    final Object key=iterator.next();
-    final Data dataKey=toData(key);
-    if (hasWaitingWriteBehindDeleteOperation(dataKey)) {
-      iterator.remove();
-      continue;
-    }
-    final Object valueFromStagingArea=getFromStagingArea(dataKey);
-    if (valueFromStagingArea != null) {
-      map.put(dataKey,valueFromStagingArea);
+    Object key=iterator.next();
+    Data dataKey=toData(key);
+    DelayedEntry delayedEntry=getFromStagingArea(dataKey);
+    if (delayedEntry != null) {
+      Object value=delayedEntry.getValue();
+      if (value != null) {
+        map.put(dataKey,toObject(value));
+      }
       iterator.remove();
     }
   }
