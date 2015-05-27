@@ -3,7 +3,7 @@
   channel.write(initData);
   String username=GroupConfig.DEFAULT_GROUP_NAME;
   String pass=GroupConfig.DEFAULT_GROUP_PASSWORD;
-  final ClientMessage parameters=AuthenticationParameters.encode(username,pass,"","",true);
+  final ClientMessage parameters=ClientAuthenticationCodec.encodeRequest(username,pass,null,null,true);
   parameters.setCorrelationId(1).addFlag(ClientMessage.BEGIN_AND_END_FLAGS);
   final ClientProtocolBuffer byteBuffer=parameters.buffer();
   channel.write(ByteBuffer.wrap(byteBuffer.byteArray()));
@@ -23,7 +23,7 @@
  while (!clientMessage.isComplete());
   assertTrue(clientMessage.isComplete());
   ClientMessage cmResult=ClientMessage.createForDecode(clientMessage.buffer(),0);
-  final AuthenticationResultParameters resultParameters=AuthenticationResultParameters.decode(cmResult);
+  ClientAuthenticationCodec.ResponseParameters resultParameters=ClientAuthenticationCodec.decodeResponse(cmResult);
   assertEquals(cmResult.getCorrelationId(),1);
   assertEquals(resultParameters.ownerUuid,server.getCluster().getLocalMember().getUuid());
   assertNotNull(UUID.fromString(resultParameters.uuid));
