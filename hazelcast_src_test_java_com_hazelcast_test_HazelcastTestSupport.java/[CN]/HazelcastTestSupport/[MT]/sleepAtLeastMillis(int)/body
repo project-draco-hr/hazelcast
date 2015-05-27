@@ -1,6 +1,23 @@
 {
-  final long targetTime=System.currentTimeMillis() + millis + 1;
-  while (System.currentTimeMillis() < targetTime) {
-    sleepMillis(1);
+  boolean interrupted=false;
+  try {
+    long remainingNanos=MILLISECONDS.toNanos(sleepFor);
+    final long sleepUntil=System.nanoTime() + remainingNanos;
+    while (remainingNanos > 0) {
+      try {
+        NANOSECONDS.sleep(remainingNanos);
+      }
+ catch (      InterruptedException e) {
+        interrupted=true;
+      }
+ finally {
+        remainingNanos=sleepUntil - System.nanoTime();
+      }
+    }
+  }
+  finally {
+    if (interrupted) {
+      Thread.currentThread().interrupt();
+    }
   }
 }
