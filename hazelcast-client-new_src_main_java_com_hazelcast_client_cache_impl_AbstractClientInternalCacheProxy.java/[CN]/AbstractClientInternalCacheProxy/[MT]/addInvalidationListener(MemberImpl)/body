@@ -8,8 +8,8 @@
     EventHandler handler=new NearCacheInvalidationHandler(client);
     HazelcastClientInstanceImpl clientInstance=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
     ClientInvocation invocation=new ClientInvocation(clientInstance,handler,request,member.getAddress());
-    Future future=invocation.invoke();
-    String registrationId=clientContext.getSerializationService().toObject(future.get());
+    Future<ClientMessage> future=invocation.invoke();
+    String registrationId=CacheAddInvalidationListenerCodec.decodeResponse(future.get()).response;
     clientContext.getListenerService().registerListener(registrationId,request.getCorrelationId());
     nearCacheInvalidationListeners.put(member,registrationId);
   }

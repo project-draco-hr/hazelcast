@@ -5,9 +5,9 @@
   final Data keyData=toData(key);
   final Data valueData=toData(value);
   final Data expiryPolicyData=toData(expiryPolicy);
-  ClientMessage request=CachePutIfAbsentCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData);
   final int completionId=withCompletionEvent ? nextCompletionId() : -1;
-  ICompletableFuture<Boolean> future;
+  ClientMessage request=CachePutIfAbsentCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,completionId);
+  ClientInvocationFuture future;
   try {
     future=invoke(request,keyData,completionId);
     if (cacheOnUpdate) {
@@ -20,5 +20,5 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  return future;
+  return new ClientDelegatingFuture<Boolean>(future,clientContext.getSerializationService());
 }

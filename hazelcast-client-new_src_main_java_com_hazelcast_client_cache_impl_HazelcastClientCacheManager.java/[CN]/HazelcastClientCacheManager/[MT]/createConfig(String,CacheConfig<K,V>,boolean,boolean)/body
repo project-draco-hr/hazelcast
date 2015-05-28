@@ -4,12 +4,12 @@
   try {
     int partitionId=clientContext.getPartitionService().getPartitionId(config.getNameWithPrefix());
     Data cacheConfigData=clientContext.getSerializationService().toData(config);
-    ClientMessage request=CacheCreateConfigParameters.encode(cacheConfigData,createAlsoOnOthers);
+    ClientMessage request=CacheCreateConfigCodec.encodeRequest(cacheConfigData,createAlsoOnOthers);
     ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionId);
     Future<ClientMessage> future=clientInvocation.invoke();
     if (syncCreate) {
       final ClientMessage response=future.get();
-      final Data data=GenericResultParameters.decode(response).result;
+      final Data data=CacheCreateConfigCodec.decodeResponse(response).response;
       return (CacheConfig<K,V>)clientContext.getSerializationService().toObject(data);
     }
  else {

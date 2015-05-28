@@ -9,18 +9,18 @@
     CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,newValue);
   }
   final Data keyData=toData(key);
-  final Data oldValueData=oldValue != null ? toData(oldValue) : DefaultData.NULL_DATA;
-  final Data newValueData=newValue != null ? toData(newValue) : DefaultData.NULL_DATA;
-  final Data expiryPolicyData=expiryPolicy != null ? toData(expiryPolicy) : DefaultData.NULL_DATA;
+  final Data oldValueData=toData(oldValue);
+  final Data newValueData=toData(newValue);
+  final Data expiryPolicyData=toData(expiryPolicy);
   final int completionId=withCompletionEvent ? nextCompletionId() : -1;
   ClientMessage request;
   if (isGet) {
-    request=CacheGetAndReplaceCodec.encodeRequest(nameWithPrefix,keyData,newValueData,expiryPolicyData);
+    request=CacheGetAndReplaceCodec.encodeRequest(nameWithPrefix,keyData,newValueData,expiryPolicyData,completionId);
   }
  else {
-    request=CacheReplaceCodec.encodeRequest(nameWithPrefix,keyData,oldValueData,newValueData,expiryPolicyData);
+    request=CacheReplaceCodec.encodeRequest(nameWithPrefix,keyData,oldValueData,newValueData,expiryPolicyData,completionId);
   }
-  ICompletableFuture future;
+  ClientInvocationFuture future;
   try {
     future=invoke(request,keyData,completionId);
     invalidateNearCache(keyData);
@@ -28,5 +28,5 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  return future;
+  return new ClientDelegatingFuture<T>(future,clientContext.getSerializationService());
 }
