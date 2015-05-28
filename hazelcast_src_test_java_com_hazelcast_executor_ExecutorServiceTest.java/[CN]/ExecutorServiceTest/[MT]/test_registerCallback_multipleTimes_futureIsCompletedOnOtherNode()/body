@@ -1,0 +1,18 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=factory.newHazelcastInstance();
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  assertTrue(instance1.getCountDownLatch("latch").trySetCount(1));
+  String name=randomString();
+  IExecutorService executorService=instance2.getExecutorService(name);
+  ICountDownLatchAwaitCallable task=new ICountDownLatchAwaitCallable("latch");
+  String key=generateKeyOwnedBy(instance1);
+  ICompletableFuture<Boolean> future=(ICompletableFuture<Boolean>)executorService.submitToKeyOwner(task,key);
+  final CountDownLatch latch=new CountDownLatch(2);
+  final CountingDownExecutionCallback<Boolean> callback=new CountingDownExecutionCallback<Boolean>(latch);
+  future.andThen(callback);
+  future.andThen(callback);
+  instance1.getCountDownLatch("latch").countDown();
+  assertTrue(future.get());
+  assertOpenEventually(latch,10);
+}

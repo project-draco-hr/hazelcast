@@ -3,17 +3,17 @@
   final Set<Member> membersSet=instances[0].getCluster().getMembers();
   final Member[] members=membersSet.toArray(new Member[membersSet.size()]);
   final Random random=new Random();
+  final ResponseCountingMultiExecutionCallback callback=new ResponseCountingMultiExecutionCallback(instances.length);
   for (  HazelcastInstance instance : instances) {
     final IExecutorService service=instance.getExecutorService("testSubmitToMembersRunnable");
-    final String script="hazelcast.getAtomicLong('testSubmitToMembersRunnable').incrementAndGet();";
     final int n=random.nextInt(instances.length) + 1;
     sum+=n;
     Member[] m=new Member[n];
     System.arraycopy(members,0,m,0,n);
-    service.submitToMembers(new ScriptRunnable(script,null),Arrays.asList(m),multiCallback);
+    service.submitToMembers(new IncrementAtomicLongRunnable("testSubmitToMembersRunnable"),Arrays.asList(m),callback);
   }
-  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  assertOpenEventually(callback.getLatch());
   final IAtomicLong result=instances[0].getAtomicLong("testSubmitToMembersRunnable");
   assertEquals(sum,result.get());
-  assertEquals(sum,count.get());
+  assertEquals(sum,callback.getCount());
 }

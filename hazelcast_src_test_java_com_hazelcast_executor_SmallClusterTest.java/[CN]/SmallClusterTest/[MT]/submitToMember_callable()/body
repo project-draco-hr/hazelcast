@@ -1,19 +1,13 @@
 {
-  latch=new CountDownLatch(instances.length / 2);
+  final List<Future> futures=new ArrayList<Future>();
   for (int i=0; i < instances.length; i++) {
     final HazelcastInstance instance=instances[i];
     final IExecutorService service=instance.getExecutorService("testSubmitToMemberCallable");
-    final String script="hazelcast.getCluster().getLocalMember().getUuid().equals(memberUUID); ";
-    final HashMap<String,String> map=new HashMap<String,String>();
-    map.put("memberUUID",instance.getCluster().getLocalMember().getUuid());
-    if (i % 2 == 0) {
-      final Future f=service.submitToMember(new ScriptCallable(script,map),instance.getCluster().getLocalMember());
-      assertTrue((Boolean)f.get());
-    }
- else {
-      service.submitToMember(new ScriptCallable(script,map),instance.getCluster().getLocalMember(),callback);
-    }
+    final Member localMember=instance.getCluster().getLocalMember();
+    final Future f=service.submitToMember(new MemberUUIDCheckCallable(localMember.getUuid()),localMember);
+    futures.add(f);
   }
-  assertOpenEventually(latch);
-  assertEquals(instances.length / 2,count.get());
+  for (  Future future : futures) {
+    assertTrue((Boolean)future.get());
+  }
 }

@@ -1,11 +1,11 @@
 {
+  final ResponseCountingMultiExecutionCallback callback=new ResponseCountingMultiExecutionCallback(instances.length);
   for (  HazelcastInstance instance : instances) {
     final IExecutorService service=instance.getExecutorService("testSubmitToAllMembersRunnable");
-    final String script="hazelcast.getAtomicLong('testSubmitToAllMembersRunnable').incrementAndGet();";
-    service.submitToAllMembers(new ScriptRunnable(script,null),multiCallback);
+    service.submitToAllMembers(new IncrementAtomicLongRunnable("testSubmitToAllMembersRunnable"),callback);
   }
-  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  assertOpenEventually(callback.getLatch());
   final IAtomicLong result=instances[0].getAtomicLong("testSubmitToAllMembersRunnable");
   assertEquals(instances.length * instances.length,result.get());
-  assertEquals(instances.length * instances.length,count.get());
+  assertEquals(instances.length * instances.length,callback.getCount());
 }

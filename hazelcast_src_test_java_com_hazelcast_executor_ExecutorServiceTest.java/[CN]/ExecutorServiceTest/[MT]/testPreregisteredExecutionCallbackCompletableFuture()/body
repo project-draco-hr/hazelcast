@@ -1,42 +1,15 @@
 {
-  HazelcastInstanceProxy proxy=(HazelcastInstanceProxy)createHazelcastInstance();
-  Field originalField=HazelcastInstanceProxy.class.getDeclaredField("original");
-  originalField.setAccessible(true);
-  HazelcastInstanceImpl hz=(HazelcastInstanceImpl)originalField.get(proxy);
-  NodeEngine nodeEngine=hz.node.nodeEngine;
-  ExecutionService es=nodeEngine.getExecutionService();
-  final CountDownLatch latch1=new CountDownLatch(1);
-  final CountDownLatch latch2=new CountDownLatch(1);
+  final ExecutionService es=getExecutionService(createHazelcastInstance());
+  final CountDownLatch callableLatch=new CountDownLatch(1);
   final ExecutorService executorService=Executors.newSingleThreadExecutor();
   try {
-    Future future=executorService.submit(new Callable<String>(){
-      @Override public String call(){
-        try {
-          latch1.await(30,TimeUnit.SECONDS);
-          return "success";
-        }
- catch (        Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-    }
-);
-    final AtomicReference reference=new AtomicReference();
-    final ICompletableFuture completableFuture=es.asCompletableFuture(future);
-    completableFuture.andThen(new ExecutionCallback(){
-      @Override public void onResponse(      Object response){
-        reference.set(response);
-        latch2.countDown();
-      }
-      @Override public void onFailure(      Throwable t){
-        reference.set(t);
-        latch2.countDown();
-      }
-    }
-);
-    latch1.countDown();
-    latch2.await(30,TimeUnit.SECONDS);
-    assertEquals("success",reference.get());
+    final Future<String> future=executorService.submit(new CountDownLatchAwaitingCallable(callableLatch));
+    final CountingDownExecutionCallback<String> callback=new CountingDownExecutionCallback<String>(1);
+    final ICompletableFuture<String> completableFuture=es.asCompletableFuture(future);
+    completableFuture.andThen(callback);
+    callableLatch.countDown();
+    assertOpenEventually(callback.getLatch());
+    assertEquals(CountDownLatchAwaitingCallable.RESULT,callback.getResult());
   }
   finally {
     executorService.shutdown();

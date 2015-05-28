@@ -1,15 +1,15 @@
 {
-  final int k=simpleTestNodeCount;
+  final int k=NODE_COUNT;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
   final HazelcastInstance[] instances=factory.newInstances(new Config());
-  final AtomicInteger count=new AtomicInteger(0);
-  final CountDownLatch latch=new CountDownLatch(k);
+  final AtomicInteger nullResponseCount=new AtomicInteger(0);
+  final CountDownLatch responseLatch=new CountDownLatch(k);
   final ExecutionCallback callback=new ExecutionCallback(){
     public void onResponse(    Object response){
       if (response == null) {
-        count.incrementAndGet();
+        nullResponseCount.incrementAndGet();
       }
-      latch.countDown();
+      responseLatch.countDown();
     }
     public void onFailure(    Throwable t){
     }
@@ -18,16 +18,11 @@
   for (int i=0; i < k; i++) {
     final HazelcastInstance instance=instances[i];
     final IExecutorService service=instance.getExecutorService("testSubmitToKeyOwnerRunnable");
-    final String script="if(!hazelcast.getCluster().getLocalMember().getUuid().equals(memberUUID)) " + "hazelcast.getAtomicLong('testSubmitToKeyOwnerRunnable').incrementAndGet();";
-    final HashMap map=new HashMap();
-    map.put("memberUUID",instance.getCluster().getLocalMember().getUuid());
-    int key=0;
-    while (!instance.getCluster().getLocalMember().equals(instance.getPartitionService().getPartition(++key).getOwner())) {
-      Thread.sleep(1);
-    }
-    service.submitToKeyOwner(new ScriptRunnable(script,map),key,callback);
+    final Member localMember=instance.getCluster().getLocalMember();
+    final int key=findNextKeyForMember(instance,localMember);
+    service.submitToKeyOwner(new IncrementAtomicLongIfMemberUUIDNotMatchRunnable(localMember.getUuid(),"testSubmitToKeyOwnerRunnable"),key,callback);
   }
-  assertOpenEventually(latch);
+  assertOpenEventually(responseLatch);
   assertEquals(0,instances[0].getAtomicLong("testSubmitToKeyOwnerRunnable").get());
-  assertEquals(k,count.get());
+  assertEquals(k,nullResponseCount.get());
 }
