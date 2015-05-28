@@ -1,0 +1,25 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,"1000");
+  config.getQueueConfig("default").setMaxSize(1);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  final IQueue<Object> queue=instance.getQueue(randomString());
+  final AtomicBoolean interrupted=new AtomicBoolean();
+  assertTrue(queue.offer("item"));
+  Thread t=new Thread(){
+    public void run(){
+      try {
+        queue.put("item");
+      }
+ catch (      InterruptedException e) {
+        interrupted.set(true);
+      }
+    }
+  }
+;
+  t.start();
+  sleepSeconds(1);
+  t.interrupt();
+  t.join(5000);
+  assertTrue(interrupted.get());
+}
