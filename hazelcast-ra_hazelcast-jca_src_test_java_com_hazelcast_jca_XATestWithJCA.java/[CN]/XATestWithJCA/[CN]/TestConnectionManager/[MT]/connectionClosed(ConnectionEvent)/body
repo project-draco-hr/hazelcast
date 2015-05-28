@@ -1,0 +1,13 @@
+{
+  ManagedConnection managedConnection=(ManagedConnection)event.getSource();
+  HazelcastConnection connection=(HazelcastConnection)event.getConnectionHandle();
+  Xid xid=transactionIdMap.remove(connection);
+  try {
+    XAResource xaResource=managedConnection.getXAResource();
+    xaResource.end(xid,XAResource.TMSUCCESS);
+    xaResource.commit(xid,true);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

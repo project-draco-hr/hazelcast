@@ -1,0 +1,15 @@
+{
+  ManagedConnection managedConnection=mcf.createManagedConnection(null,cxRequestInfo);
+  XAResource xaResource=managedConnection.getXAResource();
+  managedConnection.addConnectionEventListener(this);
+  Xid xid=createXid();
+  try {
+    xaResource.start(xid,XAResource.TMNOFLAGS);
+  }
+ catch (  XAException e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  HazelcastConnection connection=(HazelcastConnection)managedConnection.getConnection(null,cxRequestInfo);
+  transactionIdMap.put(connection,xid);
+  return connection;
+}
