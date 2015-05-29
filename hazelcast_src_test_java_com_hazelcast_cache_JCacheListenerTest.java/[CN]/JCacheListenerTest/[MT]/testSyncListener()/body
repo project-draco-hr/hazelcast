@@ -5,23 +5,31 @@
   CompleteConfiguration<String,String> config=new MutableConfiguration<String,String>().setTypes(String.class,String.class).addCacheEntryListenerConfiguration(new MutableCacheEntryListenerConfiguration<String,String>(FactoryBuilder.factoryOf(new TestListener(counter)),null,true,true));
   final Cache<String,String> cache=cacheManager.createCache("test",config);
   final int threadCount=10;
+  final int shutdownWaitTimeInSeconds=threadCount;
   final int putCount=1000;
+  final AtomicInteger actualPutCount=new AtomicInteger(0);
   final CountDownLatch latch=new CountDownLatch(threadCount);
+  final AtomicBoolean shutdown=new AtomicBoolean(false);
   for (int i=0; i < threadCount; i++) {
     new Thread(){
       public void run(){
         Random rand=new Random();
-        for (int i=0; i < putCount; i++) {
+        for (int i=0; i < putCount && !shutdown.get(); i++) {
           String key=String.valueOf(rand.nextInt(putCount));
           String value=UUID.randomUUID().toString();
           cache.put(key,value);
+          actualPutCount.incrementAndGet();
         }
         latch.countDown();
       }
     }
 .start();
   }
-  HazelcastTestSupport.assertOpenEventually(latch);
-  Assert.assertEquals(threadCount * putCount,counter.get());
-  cachingProvider.close();
+  if (!latch.await(ASSERT_TRUE_EVENTUALLY_TIMEOUT,TimeUnit.SECONDS)) {
+    shutdown.set(true);
+    if (!latch.await(shutdownWaitTimeInSeconds,TimeUnit.SECONDS)) {
+      fail("Cache operations have not finished in " + (ASSERT_TRUE_EVENTUALLY_TIMEOUT + shutdownWaitTimeInSeconds) + " seconds when sync listener is present!");
+    }
+  }
+  assertEquals(actualPutCount.get(),counter.get());
 }
