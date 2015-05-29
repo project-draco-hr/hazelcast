@@ -1,0 +1,28 @@
+{
+  int count=10;
+  final TestHazelcastInstanceFactory factory=new TestHazelcastInstanceFactory(count);
+  final HazelcastInstance[] instances=new HazelcastInstance[count];
+  final CountDownLatch latch=new CountDownLatch(count);
+  final Config config=new Config();
+  final SerializationConfig serializationConfig=new SerializationConfig();
+  final SerializerConfig serializerConfig=new SerializerConfig();
+  serializerConfig.setTypeClassName(MemberInfoUpdateOperation.class.getName());
+  serializerConfig.setImplementation(new MemberInfoUpdateOperationSerializer());
+  serializationConfig.addSerializerConfig(serializerConfig);
+  config.setSerializationConfig(serializationConfig);
+  System.setProperty("hazelcast.serialization.custom.override","true");
+  for (int i=0; i < count; i++) {
+    final int index=i;
+    new Thread(new Runnable(){
+      @Override public void run(){
+        instances[index]=factory.newHazelcastInstance(config);
+        latch.countDown();
+      }
+    }
+).start();
+  }
+  assertOpenEventually(latch);
+  for (int i=0; i < count; i++) {
+    assertClusterSize(count,instances[i]);
+  }
+}
