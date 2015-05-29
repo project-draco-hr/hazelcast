@@ -1,20 +1,5 @@
 {
-  ClientMessage request=TopicAddMessageListenerParameters.encode(name);
-  EventHandler<ClientMessage> handler=new EventHandler<ClientMessage>(){
-    final SerializationService serializationService=getContext().getSerializationService();
-    final ClientClusterService clusterService=getContext().getClusterService();
-    @Override public void handle(    ClientMessage msg){
-      TopicEventParameters event=TopicEventParameters.decode(msg);
-      E messageObject=serializationService.toObject(event.message);
-      Member member=clusterService.getMember(event.uuid);
-      Message<E> message=new Message<E>(name,messageObject,event.publishTime,member);
-      listener.onMessage(message);
-    }
-    @Override public void beforeListenerRegister(){
-    }
-    @Override public void onListenerRegister(){
-    }
-  }
-;
+  ClientMessage request=TopicAddMessageListenerCodec.encodeRequest(name);
+  EventHandler<ClientMessage> handler=new TopicItemHandler(listener);
   return listen(request,getKey(),handler);
 }

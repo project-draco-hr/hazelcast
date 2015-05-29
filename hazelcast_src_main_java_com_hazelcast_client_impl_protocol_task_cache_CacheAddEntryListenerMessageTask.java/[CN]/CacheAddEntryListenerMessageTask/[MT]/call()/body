@@ -3,13 +3,17 @@
   final CacheService service=getService(CacheService.SERVICE_NAME);
   CacheEventListener entryListener=new CacheEventListener(){
     @Override public void handleEvent(    Object eventObject){
-      if (endpoint.isAlive()) {
+      if (!endpoint.isAlive()) {
+        return;
+      }
+      if (eventObject instanceof CacheEventSet) {
+        CacheEventSet ces=(CacheEventSet)eventObject;
         Data partitionKey=getPartitionKey(eventObject);
-        endpoint.sendEvent(partitionKey,eventObject,clientMessage.getCorrelationId());
+        ClientMessage clientMessage=CacheAddEntryListenerCodec.encodeCacheEvent(ces.getEventType().getType(),ces.getEvents(),ces.getCompletionId());
+        sendClientMessage(partitionKey,clientMessage);
       }
     }
   }
 ;
-  final String registrationId=service.registerListener(parameters.name,entryListener);
-  return AddListenerResultParameters.encode(registrationId);
+  return service.registerListener(parameters.name,entryListener);
 }

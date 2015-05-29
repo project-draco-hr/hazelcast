@@ -7,11 +7,11 @@
   ClientMessage clientMessage;
   if (credentials instanceof UsernamePasswordCredentials) {
     UsernamePasswordCredentials cr=(UsernamePasswordCredentials)credentials;
-    clientMessage=AuthenticationParameters.encode(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,false);
+    clientMessage=ClientAuthenticationCodec.encodeRequest(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,false);
   }
  else {
     Data data=ss.toData(credentials);
-    clientMessage=AuthenticationCustomCredentialsParameters.encode(data.toByteArray(),uuid,ownerUuid,false);
+    clientMessage=ClientAuthenticationCustomCodec.encodeRequest(data,uuid,ownerUuid,false);
   }
   connection.init();
   ClientMessage response;
@@ -23,6 +23,6 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e,IOException.class);
   }
-  AuthenticationResultParameters resultParameters=AuthenticationResultParameters.decode(response);
-  connection.setRemoteEndpoint(resultParameters.address);
+  ClientAuthenticationCodec.ResponseParameters result=ClientAuthenticationCodec.decodeResponse(response);
+  connection.setRemoteEndpoint(result.address);
 }

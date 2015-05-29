@@ -5,16 +5,14 @@
     values(pagingPredicate);
     pagingPredicate.nextPage();
   }
-  ClientMessage request=MapValuesWithPredicateParameters.encode(name,toData(pagingPredicate));
+  ClientMessage request=MapValuesWithPagingPredicateCodec.encodeRequest(name,toData(pagingPredicate));
   ClientMessage response=invoke(request);
-  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
-  int size=resultParameters.keys.size();
+  MapValuesWithPagingPredicateCodec.ResponseParameters resultParameters=MapValuesWithPagingPredicateCodec.decodeResponse(response);
+  int size=resultParameters.map.size();
   List<Entry<K,V>> valueEntryList=new ArrayList<Entry<K,V>>(size);
-  for (int i=0; i < size; i++) {
-    Data keyData=resultParameters.keys.get(i);
-    Data valueData=resultParameters.values.get(i);
-    K key=toObject(keyData);
-    V value=toObject(valueData);
+  for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
+    K key=toObject(entry.getKey());
+    V value=toObject(entry.getValue());
     valueEntryList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
   }
   Collections.sort(valueEntryList,SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.VALUE));

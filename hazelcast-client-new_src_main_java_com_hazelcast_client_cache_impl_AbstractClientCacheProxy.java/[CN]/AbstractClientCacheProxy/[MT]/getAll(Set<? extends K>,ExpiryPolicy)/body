@@ -13,14 +13,16 @@
   if (keySet.isEmpty()) {
     return result;
   }
-  final CacheGetAllRequest request=new CacheGetAllRequest(nameWithPrefix,keySet,expiryPolicy);
-  final MapEntrySet mapEntrySet=toObject(invoke(request));
-  final Set<Map.Entry<Data,Data>> entrySet=mapEntrySet.getEntrySet();
+  Data expiryPolicyData=toData(expiryPolicy);
+  ClientMessage request=CacheGetAllCodec.encodeRequest(nameWithPrefix,keySet,expiryPolicyData);
+  ClientMessage responseMessage=invoke(request);
+  Map<Data,Data> mapEntrySet=CacheGetAllCodec.decodeResponse(responseMessage).map;
+  Set<Map.Entry<Data,Data>> entrySet=mapEntrySet.entrySet();
   for (  Map.Entry<Data,Data> dataEntry : entrySet) {
-    final Data keyData=dataEntry.getKey();
-    final Data valueData=dataEntry.getValue();
-    final K key=toObject(keyData);
-    final V value=toObject(valueData);
+    Data keyData=dataEntry.getKey();
+    Data valueData=dataEntry.getValue();
+    K key=toObject(keyData);
+    V value=toObject(valueData);
     result.put(key,value);
     storeInNearCache(keyData,valueData,value);
   }

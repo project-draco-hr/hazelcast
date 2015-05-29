@@ -3,11 +3,11 @@
   if (registrationId != null) {
     try {
       if (removeFromMemberAlso) {
-        ClientMessage request=CacheRemoveInvalidationListenerParameters.encode(nameWithPrefix,registrationId);
+        ClientMessage request=CacheRemoveInvalidationListenerCodec.encodeRequest(nameWithPrefix,registrationId);
         HazelcastClientInstanceImpl clientInstance=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
         ClientInvocation invocation=new ClientInvocation(clientInstance,request,member.getAddress());
-        Future future=invocation.invoke();
-        Boolean result=clientContext.getSerializationService().toObject(future.get());
+        Future<ClientMessage> future=invocation.invoke();
+        boolean result=CacheRemoveInvalidationListenerCodec.decodeResponse(future.get()).response;
         if (!result) {
           logger.warning("Invalidation listener couldn't be removed on member " + member.getAddress());
         }

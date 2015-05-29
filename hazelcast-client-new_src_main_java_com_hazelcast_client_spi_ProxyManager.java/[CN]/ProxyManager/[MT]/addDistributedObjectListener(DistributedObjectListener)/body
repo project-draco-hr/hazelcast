@@ -1,27 +1,5 @@
 {
-  ClientMessage request=AddDistributedObjectListenerParameters.encode();
-  final EventHandler<ClientMessage> eventHandler=new EventHandler<ClientMessage>(){
-    public void handle(    ClientMessage clientMessage){
-      DistributedObjectEventParameters e=DistributedObjectEventParameters.decode(clientMessage);
-      final ObjectNamespace ns=new DefaultObjectNamespace(e.serviceName,e.name);
-      ClientProxyFuture future=proxies.get(ns);
-      ClientProxy proxy=future == null ? null : future.get();
-      if (proxy == null) {
-        proxy=getOrCreateProxy(e.serviceName,e.name);
-      }
-      DistributedObjectEvent event=new DistributedObjectEvent(e.eventType,e.serviceName,proxy);
-      if (DistributedObjectEvent.EventType.CREATED.equals(e.eventType)) {
-        listener.distributedObjectCreated(event);
-      }
- else       if (DistributedObjectEvent.EventType.DESTROYED.equals(e.eventType)) {
-        listener.distributedObjectDestroyed(event);
-      }
-    }
-    @Override public void beforeListenerRegister(){
-    }
-    @Override public void onListenerRegister(){
-    }
-  }
-;
+  ClientMessage request=ClientAddDistributedObjectListenerCodec.encodeRequest();
+  final EventHandler<ClientMessage> eventHandler=new DistributedObjectEventHandler(listener);
   return client.getListenerService().startListening(request,null,eventHandler);
 }

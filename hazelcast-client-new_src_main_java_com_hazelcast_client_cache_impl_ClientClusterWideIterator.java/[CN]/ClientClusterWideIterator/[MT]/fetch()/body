@@ -1,10 +1,10 @@
 {
-  CacheIterateRequest request=new CacheIterateRequest(cacheProxy.getNameWithPrefix(),partitionIndex,lastTableIndex,fetchSize,cacheProxy.cacheConfig.getInMemoryFormat());
-  final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)context.getHazelcastInstance();
+  ClientMessage request=CacheIterateCodec.encodeRequest(cacheProxy.getNameWithPrefix(),partitionIndex,lastTableIndex,fetchSize);
+  HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)context.getHazelcastInstance();
   try {
-    final ClientInvocation clientInvocation=new ClientInvocation(client,request);
-    final Future f=clientInvocation.invoke();
-    return toObject(f.get());
+    ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionIndex);
+    ClientInvocationFuture f=clientInvocation.invoke();
+    return toObject(CacheIterateCodec.decodeResponse(f.get()).response);
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
