@@ -1,12 +1,14 @@
 {
   final MapServiceContext mapServiceContext=mapStoreContext.getMapServiceContext();
   final MapStoreWrapper store=mapStoreContext.getMapStoreWrapper();
-  final SerializationService serializationService=mapServiceContext.getNodeEngine().getSerializationService();
+  final NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
+  final SerializationService serializationService=nodeEngine.getSerializationService();
   final MapStoreConfig mapStoreConfig=mapStoreContext.getMapStoreConfig();
   final int writeDelaySeconds=mapStoreConfig.getWriteDelaySeconds();
   final long writeDelayMillis=TimeUnit.SECONDS.toMillis(writeDelaySeconds);
   final boolean writeCoalescing=mapStoreConfig.isWriteCoalescing();
-  final WriteBehindStore mapDataStore=new WriteBehindStore(store,serializationService,writeDelayMillis,partitionId);
+  final InMemoryFormat inMemoryFormat=getInMemoryFormat(mapStoreContext);
+  final WriteBehindStore mapDataStore=new WriteBehindStore(store,serializationService,writeDelayMillis,partitionId,inMemoryFormat);
   final WriteBehindQueue writeBehindQueue=newWriteBehindQueue(mapServiceContext,writeCoalescing);
   mapDataStore.setWriteBehindQueue(writeBehindQueue);
   mapDataStore.setWriteBehindProcessor(writeBehindProcessor);
