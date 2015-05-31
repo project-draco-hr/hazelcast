@@ -1,9 +1,9 @@
 {
   IExecutorService executorService=instances[0].getExecutorService(randomString());
-  MyTask myTask=new MyTask();
+  InternallyCountingCallable internallyCountingCallable=new InternallyCountingCallable();
   final CountDownLatch completedLatch=new CountDownLatch(1);
   final AtomicBoolean failed=new AtomicBoolean();
-  executorService.submitToAllMembers(myTask,new MultiExecutionCallback(){
+  executorService.submitToAllMembers(internallyCountingCallable,new MultiExecutionCallback(){
     @Override public void onResponse(    Member member,    Object value){
       if ((Integer)value != 1) {
         failed.set(true);
@@ -14,6 +14,6 @@
     }
   }
 );
-  completedLatch.await(1,TimeUnit.MINUTES);
+  assertOpenEventually(completedLatch);
   assertFalse(failed.get());
 }

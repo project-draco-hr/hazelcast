@@ -1,15 +1,15 @@
 {
-  final int k=simpleTestNodeCount;
+  final int k=NODE_COUNT;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
   final HazelcastInstance[] instances=factory.newInstances(new Config());
-  final AtomicInteger count=new AtomicInteger(0);
-  final CountDownLatch latch=new CountDownLatch(k);
+  final AtomicInteger nullResponseCount=new AtomicInteger(0);
+  final CountDownLatch responseLatch=new CountDownLatch(k);
   final ExecutionCallback callback=new ExecutionCallback(){
     public void onResponse(    Object response){
       if (response == null) {
-        count.incrementAndGet();
+        nullResponseCount.incrementAndGet();
       }
-      latch.countDown();
+      responseLatch.countDown();
     }
     public void onFailure(    Throwable t){
     }
@@ -18,12 +18,10 @@
   for (int i=0; i < k; i++) {
     final HazelcastInstance instance=instances[i];
     final IExecutorService service=instance.getExecutorService("testSubmitToMemberRunnable");
-    final String script="if(!hazelcast.getCluster().getLocalMember().getUuid().equals(memberUUID)) " + "hazelcast.getAtomicLong('testSubmitToMemberRunnable').incrementAndGet();";
-    final HashMap map=new HashMap();
-    map.put("memberUUID",instance.getCluster().getLocalMember().getUuid());
-    service.submitToMember(new ScriptRunnable(script,map),instance.getCluster().getLocalMember(),callback);
+    final Member localMember=instance.getCluster().getLocalMember();
+    service.submitToMember(new IncrementAtomicLongIfMemberUUIDNotMatchRunnable(localMember.getUuid(),"testSubmitToMemberRunnable"),localMember,callback);
   }
-  assertOpenEventually(latch);
+  assertOpenEventually(responseLatch);
   assertEquals(0,instances[0].getAtomicLong("testSubmitToMemberRunnable").get());
-  assertEquals(k,count.get());
+  assertEquals(k,nullResponseCount.get());
 }

@@ -1,55 +1,19 @@
 {
-  HazelcastInstanceProxy proxy=(HazelcastInstanceProxy)createHazelcastInstance();
-  Field originalField=HazelcastInstanceProxy.class.getDeclaredField("original");
-  originalField.setAccessible(true);
-  HazelcastInstanceImpl hz=(HazelcastInstanceImpl)originalField.get(proxy);
-  NodeEngine nodeEngine=hz.node.nodeEngine;
-  ExecutionService es=nodeEngine.getExecutionService();
-  final CountDownLatch latch1=new CountDownLatch(1);
-  final CountDownLatch latch2=new CountDownLatch(2);
+  final ExecutionService es=getExecutionService(createHazelcastInstance());
+  final CountDownLatch callableLatch=new CountDownLatch(1);
+  final CountDownLatch callbackLatch=new CountDownLatch(2);
   final ExecutorService executorService=Executors.newSingleThreadExecutor();
   try {
-    Future future=executorService.submit(new Callable<String>(){
-      @Override public String call(){
-        try {
-          latch1.await(30,TimeUnit.SECONDS);
-          return "success";
-        }
- catch (        Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-    }
-);
-    final AtomicReference reference1=new AtomicReference();
-    final AtomicReference reference2=new AtomicReference();
-    final ICompletableFuture completableFuture=es.asCompletableFuture(future);
-    completableFuture.andThen(new ExecutionCallback(){
-      @Override public void onResponse(      Object response){
-        reference1.set(response);
-        latch2.countDown();
-      }
-      @Override public void onFailure(      Throwable t){
-        reference1.set(t);
-        latch2.countDown();
-      }
-    }
-);
-    completableFuture.andThen(new ExecutionCallback(){
-      @Override public void onResponse(      Object response){
-        reference2.set(response);
-        latch2.countDown();
-      }
-      @Override public void onFailure(      Throwable t){
-        reference2.set(t);
-        latch2.countDown();
-      }
-    }
-);
-    latch1.countDown();
-    latch2.await(30,TimeUnit.SECONDS);
-    assertEquals("success",reference1.get());
-    assertEquals("success",reference2.get());
+    final Future<String> future=executorService.submit(new CountDownLatchAwaitingCallable(callableLatch));
+    final CountingDownExecutionCallback<String> callback1=new CountingDownExecutionCallback<String>(callbackLatch);
+    final CountingDownExecutionCallback<String> callback2=new CountingDownExecutionCallback<String>(callbackLatch);
+    final ICompletableFuture<String> completableFuture=es.asCompletableFuture(future);
+    completableFuture.andThen(callback1);
+    completableFuture.andThen(callback2);
+    callableLatch.countDown();
+    assertOpenEventually(callbackLatch);
+    assertEquals(CountDownLatchAwaitingCallable.RESULT,callback1.getResult());
+    assertEquals(CountDownLatchAwaitingCallable.RESULT,callback2.getResult());
   }
   finally {
     executorService.shutdown();
