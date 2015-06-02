@@ -1,0 +1,19 @@
+{
+  if (cacheBatchInvalidationMessageSenderInProgress.compareAndSet(false,true)) {
+    try {
+      for (      Map.Entry<String,Queue<CacheSingleInvalidationMessage>> entry : invalidationMessageMap.entrySet()) {
+        if (Thread.currentThread().isInterrupted()) {
+          break;
+        }
+        String cacheName=entry.getKey();
+        Queue<CacheSingleInvalidationMessage> invalidationMessageQueue=entry.getValue();
+        if (invalidationMessageQueue.size() > 0) {
+          flushInvalidationMessages(cacheName,invalidationMessageQueue);
+        }
+      }
+    }
+  finally {
+      cacheBatchInvalidationMessageSenderInProgress.set(false);
+    }
+  }
+}

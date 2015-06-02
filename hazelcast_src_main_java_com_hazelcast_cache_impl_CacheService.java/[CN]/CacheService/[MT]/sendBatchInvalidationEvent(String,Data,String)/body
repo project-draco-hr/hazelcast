@@ -1,0 +1,20 @@
+{
+  EventService eventService=nodeEngine.getEventService();
+  Collection<EventRegistration> registrations=eventService.getRegistrations(SERVICE_NAME,name);
+  if (registrations.isEmpty()) {
+    return;
+  }
+  Queue<CacheSingleInvalidationMessage> invalidationMessageQueue=invalidationMessageMap.get(name);
+  if (invalidationMessageQueue == null) {
+    Queue<CacheSingleInvalidationMessage> newInvalidationMessageQueue=new ConcurrentLinkedQueue<CacheSingleInvalidationMessage>();
+    invalidationMessageQueue=invalidationMessageMap.putIfAbsent(name,newInvalidationMessageQueue);
+    if (invalidationMessageQueue == null) {
+      invalidationMessageQueue=newInvalidationMessageQueue;
+    }
+  }
+  CacheSingleInvalidationMessage invalidationMessage=new CacheSingleInvalidationMessage(name,key,sourceUuid);
+  invalidationMessageQueue.offer(invalidationMessage);
+  if (invalidationMessageQueue.size() >= invalidationMessageBatchSize) {
+    flushInvalidationMessages(name,invalidationMessageQueue);
+  }
+}
