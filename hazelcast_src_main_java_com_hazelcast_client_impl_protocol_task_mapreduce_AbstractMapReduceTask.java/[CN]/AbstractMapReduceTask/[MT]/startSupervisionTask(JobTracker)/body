@@ -7,8 +7,8 @@
     chunkSize=config.getChunkSize();
   }
   String topologyChangedStrategyStr=getTopologyChangedStrategy();
-  TopologyChangedStrategy topologyChangedStrategy=null;
-  if (topologyChangedStrategyStr.equals("null")) {
+  TopologyChangedStrategy topologyChangedStrategy;
+  if (topologyChangedStrategyStr == null) {
     topologyChangedStrategy=config.getTopologyChangedStrategy();
   }
  else {
@@ -23,13 +23,20 @@
   CombinerFactory combinerFactory=getCombinerFactory();
   ReducerFactory reducerFactory=getReducerFactory();
   Collection keys=getKeys();
+  Collection<Object> keyObjects=null;
+  if (keys != null) {
+    keyObjects=new ArrayList<Object>(keys.size());
+    for (    Object key : keys) {
+      keyObjects.add(serializationService.toObject(key));
+    }
+  }
   KeyPredicate predicate=getPredicate();
   for (  MemberImpl member : members) {
     Operation operation=new KeyValueJobOperation(name,jobId,chunkSize,keyValueSource,mapper,combinerFactory,reducerFactory,communicateStats,topologyChangedStrategy);
     executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
   for (  MemberImpl member : members) {
-    Operation operation=new StartProcessingJobOperation(name,jobId,keys,predicate);
+    Operation operation=new StartProcessingJobOperation(name,jobId,keyObjects,predicate);
     executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
 }
