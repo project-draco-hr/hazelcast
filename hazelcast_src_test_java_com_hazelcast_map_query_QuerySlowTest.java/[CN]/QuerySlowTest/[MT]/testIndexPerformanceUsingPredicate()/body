@@ -1,40 +1,17 @@
 {
-  Config cfg=new Config();
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance h1=createHazelcastInstance(newConfig());
   IMap imap=h1.getMap("employees");
-  for (int i=0; i < 5000; i++) {
-    imap.put(String.valueOf(i),new SampleObjects.Employee("name" + i,i % 60,((i & 1) == 1),Double.valueOf(i)));
-  }
+  fillMap(imap);
   EntryObject e=new PredicateBuilder().getEntryObject();
   Predicate predicate=e.is("active").and(e.get("age").equal(23));
-  long start=Clock.currentTimeMillis();
-  Set<Map.Entry> entries=imap.entrySet(predicate);
-  long tookWithout=(Clock.currentTimeMillis() - start);
-  assertEquals(83,entries.size());
-  for (  Map.Entry entry : entries) {
-    SampleObjects.Employee c=(SampleObjects.Employee)entry.getValue();
-    assertEquals(c.getAge(),23);
-    assertTrue(c.isActive());
-  }
+  long tookWithout=runQuery(imap,predicate);
   imap.clear();
   imap=h1.getMap("employees2");
   imap.addIndex("name",false);
   imap.addIndex("active",false);
   imap.addIndex("age",true);
-  for (int i=0; i < 5000; i++) {
-    imap.put(String.valueOf(i),new SampleObjects.Employee("name" + i,i % 60,((i & 1) == 1),Double.valueOf(i)));
-  }
-  e=new PredicateBuilder().getEntryObject();
-  predicate=e.is("active").and(e.get("age").equal(23));
-  start=Clock.currentTimeMillis();
-  entries=imap.entrySet(predicate);
-  long tookWithIndex=(Clock.currentTimeMillis() - start);
-  assertEquals(83,entries.size());
-  for (  Map.Entry entry : entries) {
-    SampleObjects.Employee c=(SampleObjects.Employee)entry.getValue();
-    assertEquals(c.getAge(),23);
-    assertTrue(c.isActive());
-  }
-  assertTrue(tookWithIndex < (tookWithout / 2));
+  fillMap(imap);
+  waitAllForSafeState(h1);
+  long tookWithIndex=runQuery(imap,predicate);
+  assertTrue("withIndex: " + tookWithIndex + ", without: "+ tookWithout,tookWithIndex < (tookWithout / 2));
 }
