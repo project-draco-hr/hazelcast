@@ -1,0 +1,24 @@
+{
+  LocalCacheEntry cacheEntry=localCache.get(name);
+  if (cacheEntry == null || (cacheEntry.isReload() && !cacheEntry.isDirty())) {
+    Object value=null;
+    if (!transientAttribute) {
+      try {
+        value=webFilter.getClusteredSessionService().getAttribute(id,name);
+      }
+ catch (      Exception ignored) {
+        EmptyStatement.ignore(ignored);
+      }
+    }
+    if (value == null) {
+      cacheEntry=WebFilter.NULL_ENTRY;
+    }
+ else {
+      cacheEntry=new LocalCacheEntry(transientAttribute);
+      cacheEntry.setValue(value);
+      cacheEntry.setReload(false);
+    }
+    localCache.put(name,cacheEntry);
+  }
+  return cacheEntry != WebFilter.NULL_ENTRY ? cacheEntry.getValue() : null;
+}

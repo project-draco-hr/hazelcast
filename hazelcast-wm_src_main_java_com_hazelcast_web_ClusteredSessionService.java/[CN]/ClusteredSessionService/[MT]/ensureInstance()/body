@@ -1,0 +1,41 @@
+{
+  if (failedConnection && System.currentTimeMillis() > lastConnectionTry + RETRY_MILLIS) {
+synchronized (this) {
+      try {
+        if (failedConnection && System.currentTimeMillis() > lastConnectionTry + RETRY_MILLIS) {
+          LOGGER.info("Retrying the connection!!");
+          lastConnectionTry=System.currentTimeMillis();
+          hazelcastInstance=HazelcastInstanceLoader.createInstance(filterConfig,properties);
+          clusterMap=hazelcastInstance.getMap(clusterMapName);
+          sss=(SerializationServiceSupport)hazelcastInstance;
+          try {
+            if (sessionTTL != null) {
+              Config hzConfig=hazelcastInstance.getConfig();
+              MapConfig mapConfig=hzConfig.getMapConfig(clusterMapName);
+              mapConfig.setTimeToLiveSeconds(Integer.parseInt(sessionTTL));
+              hzConfig.addMapConfig(mapConfig);
+            }
+          }
+ catch (          UnsupportedOperationException ignored) {
+            LOGGER.info("client cannot access Config.");
+          }
+          failedConnection=false;
+          LOGGER.info("Successfully Connected!");
+          AbstractMap.SimpleEntry<String,Boolean> sessionIdEntry=orphanSessions.poll();
+          while (sessionIdEntry != null) {
+            if (!deleteSession(sessionIdEntry.getKey(),sessionIdEntry.getValue())) {
+              sessionIdEntry=null;
+            }
+ else {
+              sessionIdEntry=orphanSessions.poll();
+            }
+          }
+        }
+      }
+ catch (      Exception e) {
+        failedConnection=true;
+        throw e;
+      }
+    }
+  }
+}
