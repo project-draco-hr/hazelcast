@@ -1,0 +1,24 @@
+{
+  Set<Map.Entry<String,Object>> entrySet=null;
+  try {
+    entrySet=webFilter.getClusteredSessionService().getAttributes(id);
+  }
+ catch (  Exception e) {
+    return;
+  }
+  if (entrySet != null) {
+    for (    Map.Entry<String,Object> entry : entrySet) {
+      String attributeKey=entry.getKey();
+      LocalCacheEntry cacheEntry=localCache.get(attributeKey);
+      if (cacheEntry == null) {
+        cacheEntry=new LocalCacheEntry(transientAttributes.contains(attributeKey));
+        localCache.put(attributeKey,cacheEntry);
+      }
+      if (WebFilter.LOGGER.isFinestEnabled()) {
+        WebFilter.LOGGER.finest("Storing " + attributeKey + " on session "+ id);
+      }
+      cacheEntry.setValue(entry.getValue());
+      cacheEntry.setDirty(false);
+    }
+  }
+}

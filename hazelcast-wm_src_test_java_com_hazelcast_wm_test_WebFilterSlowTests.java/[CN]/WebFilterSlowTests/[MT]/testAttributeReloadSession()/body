@@ -2,16 +2,16 @@
   IMap<String,Object> map=hz.getMap(DEFAULT_MAP_NAME);
   CookieStore cookieStore=new BasicCookieStore();
   assertEquals("true",executeRequest("write",serverPort1,cookieStore));
-  assertEquals(2,map.size());
+  assertEquals(1,map.size());
   String oldSessionId=findHazelcastSessionId(map);
   assertNotNull(oldSessionId);
   assertEquals("value",executeRequest("read",serverPort2,cookieStore));
   assertEquals("true",executeRequest("reload",serverPort2,cookieStore));
   String newSessionId=findHazelcastSessionId(map);
-  assertNotEquals("The old and new session IDs should not match",oldSessionId,newSessionId);
-  assertEquals(3,map.size());
-  assertEquals(1,map.get(newSessionId));
-  assertEquals("first-value",map.get(newSessionId + HAZELCAST_SESSION_ATTRIBUTE_SEPARATOR + "first-key"));
-  assertEquals("second-value",map.get(newSessionId + HAZELCAST_SESSION_ATTRIBUTE_SEPARATOR + "second-key"));
-  assertNotEquals(oldSessionId,newSessionId);
+  assertEquals(1,map.size());
+  assertNotNull(map.get(newSessionId));
+  SessionState sessionState=(SessionState)map.get(newSessionId);
+  SerializationService ss=getNode(hz).getSerializationService();
+  assertEquals("first-value",ss.toObject(sessionState.getAttributes().get("first-key")));
+  assertEquals("second-value",ss.toObject(sessionState.getAttributes().get("second-key")));
 }

@@ -1,0 +1,23 @@
+{
+  boolean transientAttribute=transientAttributes.contains(name);
+  if (deferredWrite) {
+    return getAttributeWhenDeferredWrite(name,transientAttribute);
+  }
+  try {
+    Object value=null;
+    if (!transientAttribute) {
+      value=webFilter.getClusteredSessionService().getAttribute(id,name);
+    }
+    LocalCacheEntry cacheEntry=localCache.get(name);
+    if (cacheEntry == null) {
+      return value;
+    }
+    if (cacheEntry.isDirty()) {
+      return (cacheEntry.isRemoved()) ? null : cacheEntry.getValue();
+    }
+    return value;
+  }
+ catch (  Exception e) {
+    return getLocalAttribute(name);
+  }
+}
