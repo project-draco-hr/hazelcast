@@ -1,4 +1,11 @@
 {
+  SerializerAdapter serializer;
+  if (overrideCustomSerialization) {
+    serializer=lookupSerializer(type);
+    if (serializer != null) {
+      return serializer;
+    }
+  }
   if (DataSerializable.class.isAssignableFrom(type)) {
     return dataSerializerAdapter;
   }
@@ -6,11 +13,17 @@
     return portableSerializerAdapter;
   }
  else {
-    final SerializerAdapter serializer=constantTypesMap.get(type);
+    serializer=constantTypesMap.get(type);
     if (serializer != null) {
       return serializer;
     }
   }
-  SerializerAdapter serializer=lookupSerializer(type);
+  serializer=lookupSerializer(type);
+  if (serializer == null) {
+    if (active) {
+      throw new HazelcastSerializationException("There is no suitable serializer for " + type);
+    }
+    throw new HazelcastInstanceNotActiveException();
+  }
   return serializer;
 }

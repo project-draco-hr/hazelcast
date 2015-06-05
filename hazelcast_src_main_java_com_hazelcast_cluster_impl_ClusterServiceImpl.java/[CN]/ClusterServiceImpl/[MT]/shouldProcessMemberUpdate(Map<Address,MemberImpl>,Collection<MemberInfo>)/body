@@ -1,0 +1,30 @@
+{
+  int currentMembersSize=currentMembers.size();
+  int newMembersSize=newMemberInfos.size();
+  if (currentMembersSize > newMembersSize) {
+    logger.warning("Received an older member update, no need to process...");
+    nodeEngine.getOperationService().send(new TriggerMemberListPublishOperation(),getMasterAddress());
+    return false;
+  }
+  if (currentMembersSize == newMembersSize) {
+    Set<MemberInfo> currentMemberInfos=createMemberInfoSet(currentMembers.values());
+    if (currentMemberInfos.containsAll(newMemberInfos)) {
+      logger.finest("Received a periodic member update, no need to process...");
+    }
+ else {
+      logger.warning("Received an inconsistent member update " + "which contains new members and removes some of the current members! " + "Ignoring and requesting a new member update...");
+      nodeEngine.getOperationService().send(new TriggerMemberListPublishOperation(),getMasterAddress());
+    }
+    return false;
+  }
+  Set<MemberInfo> currentMemberInfos=createMemberInfoSet(currentMembers.values());
+  currentMemberInfos.removeAll(newMemberInfos);
+  if (currentMemberInfos.isEmpty()) {
+    return true;
+  }
+ else {
+    logger.warning("Received an inconsistent member update, it has more members but " + "but also removes some of the current members! " + "Ignoring and requesting a new member update...");
+    nodeEngine.getOperationService().send(new TriggerMemberListPublishOperation(),getMasterAddress());
+    return false;
+  }
+}
