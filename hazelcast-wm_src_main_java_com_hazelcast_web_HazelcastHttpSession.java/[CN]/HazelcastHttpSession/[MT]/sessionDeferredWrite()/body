@@ -4,36 +4,7 @@
       return;
     }
     Map<String,Object> updates=new HashMap<String,Object>(1);
-    for (    Map.Entry<String,LocalCacheEntry> entry : localCache.entrySet()) {
-      String name=entry.getKey();
-      LocalCacheEntry cacheEntry=entry.getValue();
-      if (!cacheEntry.isTransient() && entry.getValue().isDirty()) {
-        if (cacheEntry.isRemoved()) {
-          updates.put(name,null);
-        }
- else {
-          updates.put(name,cacheEntry.getValue());
-        }
-      }
-    }
-    try {
-      webFilter.getClusteredSessionService().updateAttributes(id,updates);
-      Iterator<Map.Entry<String,LocalCacheEntry>> iterator=localCache.entrySet().iterator();
-      while (iterator.hasNext()) {
-        Map.Entry<String,LocalCacheEntry> entry=iterator.next();
-        LocalCacheEntry cacheEntry=entry.getValue();
-        if (cacheEntry.isDirty()) {
-          if (cacheEntry.isRemoved()) {
-            iterator.remove();
-          }
- else {
-            cacheEntry.setDirty(false);
-          }
-        }
-      }
-    }
- catch (    Exception ignored) {
-      EmptyStatement.ignore(ignored);
-    }
+    updateLocalCache(updates);
+    updateRemoteCache(updates);
   }
 }
