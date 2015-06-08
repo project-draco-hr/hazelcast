@@ -3,22 +3,6 @@
     LOGGER.finest("Destroying local session: " + session.getId());
   }
   sessions.remove(session.getId());
-  originalSessions.remove(session.originalSession.getId());
-  session.destroy();
-  final IMap<String,Object> clusterMap=getClusterMap();
-  final boolean invalidated;
-  if (invalidate) {
-    if (LOGGER.isFinestEnabled()) {
-      LOGGER.finest("Destroying cluster session: " + session.getId() + " => Ignore-timeout: true");
-    }
-    clusterMap.delete(session.getId());
-    invalidated=true;
-  }
- else {
-    Boolean destroyed=(Boolean)clusterMap.executeOnKey(session.getId(),new DestroySessionEntryProcessor());
-    invalidated=(destroyed != null && destroyed);
-  }
-  if (invalidated) {
-    clusterMap.executeOnEntries(new InvalidateSessionAttributesEntryProcessor(session.getId()));
-  }
+  originalSessions.remove(session.getOriginalSession().getId());
+  session.destroy(invalidate);
 }

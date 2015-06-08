@@ -2,50 +2,16 @@
   filterConfig=config;
   servletContext=config.getServletContext();
   servletContext.setAttribute(WEB_FILTER_ATTRIBUTE_KEY,this);
-  initInstance();
+  loadProperties();
   initCookieParams();
   initParams();
   String mapName=getParam("map-name");
-  if (mapName != null) {
-    clusterMapName=mapName;
+  if (mapName == null) {
+    mapName="_web_" + servletContext.getServletContextName();
   }
- else {
-    clusterMapName="_web_" + servletContext.getServletContextName();
-  }
-  try {
-    String sessionTTL=getParam("session-ttl-seconds");
-    if (sessionTTL != null) {
-      Config hzConfig=hazelcastInstance.getConfig();
-      MapConfig mapConfig=hzConfig.getMapConfig(clusterMapName);
-      mapConfig.setTimeToLiveSeconds(Integer.parseInt(sessionTTL));
-      hzConfig.addMapConfig(mapConfig);
-    }
-  }
- catch (  UnsupportedOperationException ignored) {
-    LOGGER.info("client cannot access Config.");
-  }
-  if (!stickySession) {
-    getClusterMap().addEntryListener(new EntryListener<String,Object>(){
-      public void entryAdded(      EntryEvent<String,Object> entryEvent){
-      }
-      public void entryRemoved(      EntryEvent<String,Object> entryEvent){
-        if (entryEvent.getMember() == null || !entryEvent.getMember().localMember()) {
-          removeSessionLocally(entryEvent.getKey());
-        }
-      }
-      public void entryUpdated(      EntryEvent<String,Object> entryEvent){
-      }
-      public void entryEvicted(      EntryEvent<String,Object> entryEvent){
-        entryRemoved(entryEvent);
-      }
-      @Override public void mapEvicted(      MapEvent event){
-      }
-      @Override public void mapCleared(      MapEvent event){
-      }
-    }
-,false);
-  }
+  String sessionTTL=getParam("session-ttl-seconds");
+  clusteredSessionService=new ClusteredSessionService(filterConfig,properties,mapName,sessionTTL);
   if (LOGGER.isLoggable(Level.FINEST)) {
-    LOGGER.finest("sticky:" + stickySession + ", shutdown-on-destroy: "+ shutdownOnDestroy+ ", map-name: "+ clusterMapName);
+    LOGGER.finest("sticky:" + stickySession + ", shutdown-on-destroy: "+ shutdownOnDestroy+ ", map-name: "+ mapName);
   }
 }
