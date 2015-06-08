@@ -1,0 +1,14 @@
+{
+  Config config=new Config();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  assertSizeEventually(1,h1.getCluster().getMembers());
+  ClientConfig clientConfig=new ClientConfig();
+  HazelcastClient.newHazelcastClient(clientConfig);
+  HazelcastClient.newHazelcastClient(clientConfig);
+  Node node1=TestUtil.getNode(h1);
+  Operation clientInfoOperation=new GetConnectedClientsOperation();
+  OperationService operationService=node1.nodeEngine.getOperationService();
+  operationService.invokeOnTarget(ClientEngineImpl.SERVICE_NAME,clientInfoOperation,node1.address);
+  Map<String,ClientType> clients=(Map<String,ClientType>)clientInfoOperation.getResponse();
+  assertEquals(2,clients.size());
+}
