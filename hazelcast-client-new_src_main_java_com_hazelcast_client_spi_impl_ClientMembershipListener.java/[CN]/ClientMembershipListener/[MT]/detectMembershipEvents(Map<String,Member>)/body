@@ -1,0 +1,21 @@
+{
+  final List<MembershipEvent> events=new LinkedList<MembershipEvent>();
+  final Set<Member> eventMembers=Collections.unmodifiableSet(new LinkedHashSet<Member>(members));
+  for (  Member member : members) {
+    final Member former=prevMembers.remove(member.getUuid());
+    if (former == null) {
+      events.add(new MembershipEvent(client.getCluster(),member,MembershipEvent.MEMBER_ADDED,eventMembers));
+    }
+  }
+  for (  Member member : prevMembers.values()) {
+    events.add(new MembershipEvent(client.getCluster(),member,MembershipEvent.MEMBER_REMOVED,eventMembers));
+    Address address=((AbstractMember)member).getAddress();
+    if (clusterService.getMember(address) == null) {
+      final Connection connection=connectionManager.getConnection(address);
+      if (connection != null) {
+        connectionManager.destroyConnection(connection);
+      }
+    }
+  }
+  return events;
+}
