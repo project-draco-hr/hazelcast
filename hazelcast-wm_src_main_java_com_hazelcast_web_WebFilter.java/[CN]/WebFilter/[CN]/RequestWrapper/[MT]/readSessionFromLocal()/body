@@ -1,0 +1,30 @@
+{
+  if (hazelcastSession != null && !hazelcastSession.isValid()) {
+    LOGGER.finest("Session is invalid!");
+    destroySession(hazelcastSession,true);
+    hazelcastSession=null;
+  }
+ else   if (hazelcastSession != null) {
+    if (!hazelcastSession.isStickySession()) {
+      hazelcastSession.updateReloadFlag();
+    }
+    return hazelcastSession;
+  }
+  HttpSession originalSession=getOriginalSession(false);
+  if (originalSession != null) {
+    String hazelcastSessionId=originalSessions.get(originalSession.getId());
+    if (hazelcastSessionId != null) {
+      hazelcastSession=sessions.get(hazelcastSessionId);
+      if (!hazelcastSession.isStickySession()) {
+        hazelcastSession.updateReloadFlag();
+      }
+      return hazelcastSession;
+    }
+    originalSessions.remove(originalSession.getId());
+    originalSession.invalidate();
+  }
+  if (requestedSessionId != null) {
+    hazelcastSession=sessions.get(requestedSessionId);
+  }
+  return null;
+}
