@@ -1,0 +1,22 @@
+{
+  String registrationId=nearCacheInvalidationListeners.remove(member);
+  if (registrationId != null) {
+    try {
+      if (removeFromMemberAlso) {
+        ClientRequest request=new CacheRemoveInvalidationListenerRequest(nameWithPrefix,registrationId);
+        HazelcastClientInstanceImpl clientInstance=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
+        Address address=((AbstractMember)member).getAddress();
+        ClientInvocation invocation=new ClientInvocation(clientInstance,request,address);
+        Future future=invocation.invoke();
+        Boolean result=clientContext.getSerializationService().toObject(future.get());
+        if (!result) {
+          logger.warning("Invalidation listener couldn't be removed on member " + address);
+        }
+      }
+      clientContext.getListenerService().deRegisterListener(registrationId);
+    }
+ catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}
