@@ -1,6 +1,7 @@
 {
   int clusterSize=partitionService.getMemberPartitionsMap().size();
   Iterator<Object> keys=null;
+  Throwable loadError=null;
   try {
     Iterable<Object> allKeys=mapStoreContext.loadAllKeys();
     keys=allKeys.iterator();
@@ -16,8 +17,11 @@
       sendBatch(batch,replaceExistingValues);
     }
   }
-  finally {
-    sendLoadCompleted(clusterSize,partitionService.getPartitionCount(),replaceExistingValues);
+ catch (  Exception caught) {
+    loadError=caught;
+  }
+ finally {
+    sendLoadCompleted(clusterSize,partitionService.getPartitionCount(),replaceExistingValues,loadError);
     if (keys instanceof Closeable) {
       closeResource((Closeable)keys);
     }
