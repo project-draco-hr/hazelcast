@@ -5,8 +5,14 @@
   Config config=new Config().addMapConfig(mapConfig);
   HazelcastInstance[] hz=createHazelcastInstanceFactory(2).newInstances(config,2);
   IMap map=hz[0].getMap(mapConfig.getName());
-  map.get(generateKeyNotOwnedBy(hz[0]));
-  assertEquals(0,map.size());
+  Throwable exception=null;
+  try {
+    map.get(generateKeyNotOwnedBy(hz[0]));
+  }
+ catch (  Throwable e) {
+    exception=e;
+  }
+  assertNotNull("Exception wasn't propagated",exception);
   map.loadAll(true);
   assertEquals(1,map.size());
 }
