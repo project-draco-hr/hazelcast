@@ -6,13 +6,18 @@
   assertClusterSizeEventually(3,h1);
   assertClusterSizeEventually(3,h2);
   assertClusterSizeEventually(3,h3);
-  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
-  for (int i=0; i < 10000; i++) {
-    m1.put(i,i);
+  try {
+    IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+    for (int i=0; i < 10000; i++) {
+      m1.put(i,i);
+    }
+    JobTracker tracker=h1.getJobTracker("default");
+    Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+    ICompletableFuture<Integer> future=job.keyPredicate(new TestKeyPredicate()).mapper(new TestMapper()).submit(new GroupingTestCollator());
+    int result=future.get();
+    assertEquals(50,result);
   }
-  JobTracker tracker=h1.getJobTracker("default");
-  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
-  ICompletableFuture<Integer> future=job.keyPredicate(new TestKeyPredicate()).mapper(new TestMapper()).submit(new GroupingTestCollator());
-  int result=future.get();
-  assertEquals(50,result);
+  finally {
+    tripshutdown(h1,h2,h3);
+  }
 }

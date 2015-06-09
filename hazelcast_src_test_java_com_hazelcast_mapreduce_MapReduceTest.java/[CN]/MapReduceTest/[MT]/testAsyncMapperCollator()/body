@@ -6,36 +6,41 @@
   assertClusterSizeEventually(3,h1);
   assertClusterSizeEventually(3,h2);
   assertClusterSizeEventually(3,h3);
-  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
-  for (int i=0; i < 100; i++) {
-    m1.put(i,i);
-  }
-  final int[] result=new int[1];
-  final Semaphore semaphore=new Semaphore(1);
-  semaphore.acquire();
-  JobTracker tracker=h1.getJobTracker("default");
-  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
-  ICompletableFuture<Integer> future=job.mapper(new GroupingTestMapper()).submit(new GroupingTestCollator());
-  future.andThen(new ExecutionCallback<Integer>(){
-    @Override public void onResponse(    Integer response){
-      try {
-        result[0]=response.intValue();
-      }
+  try {
+    IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+    for (int i=0; i < 100; i++) {
+      m1.put(i,i);
+    }
+    final int[] result=new int[1];
+    final Semaphore semaphore=new Semaphore(1);
+    semaphore.acquire();
+    JobTracker tracker=h1.getJobTracker("default");
+    Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+    ICompletableFuture<Integer> future=job.mapper(new GroupingTestMapper()).submit(new GroupingTestCollator());
+    future.andThen(new ExecutionCallback<Integer>(){
+      @Override public void onResponse(      Integer response){
+        try {
+          result[0]=response.intValue();
+        }
   finally {
+          semaphore.release();
+        }
+      }
+      @Override public void onFailure(      Throwable t){
         semaphore.release();
       }
     }
-    @Override public void onFailure(    Throwable t){
-      semaphore.release();
+);
+    int expectedResult=0;
+    for (int i=0; i < 100; i++) {
+      expectedResult+=i;
+    }
+    semaphore.acquire();
+    for (int i=0; i < 4; i++) {
+      assertEquals(expectedResult,result[0]);
     }
   }
-);
-  int expectedResult=0;
-  for (int i=0; i < 100; i++) {
-    expectedResult+=i;
-  }
-  semaphore.acquire();
-  for (int i=0; i < 4; i++) {
-    assertEquals(expectedResult,result[0]);
+  finally {
+    tripshutdown(h1,h2,h3);
   }
 }
