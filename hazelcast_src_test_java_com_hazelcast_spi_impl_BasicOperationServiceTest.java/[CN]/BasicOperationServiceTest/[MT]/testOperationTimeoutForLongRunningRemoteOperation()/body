@@ -1,0 +1,13 @@
+{
+  int callTimeoutMillis=500;
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,String.valueOf(callTimeoutMillis));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance(config);
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  Address remoteAddress=getNode(hz2).getThisAddress();
+  OperationService operationService=getNode(hz1).getNodeEngine().getOperationService();
+  ICompletableFuture<Boolean> future=operationService.invokeOnTarget(null,new SleepingOperation(callTimeoutMillis * 5),remoteAddress);
+  sleepAtLeastMillis(callTimeoutMillis * 3);
+  assertTrue(future.get());
+}
