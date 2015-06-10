@@ -12,10 +12,12 @@
     }
     Iterator<Entry<Integer,Data>> partitionsAndKeys=map(dataKeys,toPartition(partitionService));
     Iterator<Map<Integer,List<Data>>> batches=toBatches(partitionsAndKeys,maxBatch);
+    List<Future> futures=new ArrayList<Future>();
     while (batches.hasNext()) {
       Map<Integer,List<Data>> batch=batches.next();
-      sendBatch(batch,replaceExistingValues);
+      futures.addAll(sendBatch(batch,replaceExistingValues));
     }
+    FutureUtil.waitWithDeadline(futures,KEY_DISTRIBUTION_TIMEOUT_MINUTES,TimeUnit.MINUTES);
   }
  catch (  Exception caught) {
     loadError=caught;
