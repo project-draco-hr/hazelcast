@@ -6,7 +6,7 @@
       joinInProgress=true;
       node.getPartitionService().pauseMigration();
       final Collection<MemberImpl> members=getMemberList();
-      final Collection<MemberInfo> memberInfos=createMemberInfos(members);
+      final Collection<MemberInfo> memberInfos=createMemberInfoList(members);
       for (      MemberInfo memberJoining : setJoins) {
         memberInfos.add(memberJoining);
       }
@@ -16,7 +16,8 @@
       final int count=members.size() - 1 + setJoins.size();
       final List<Future> calls=new ArrayList<Future>(count);
       for (      MemberInfo member : setJoins) {
-        calls.add(invokeClusterOperation(new FinalizeJoinOperation(memberInfos,postJoinOp,time),member.getAddress()));
+        final long startTime=clusterClock.getClusterStartTime();
+        calls.add(invokeClusterOperation(new FinalizeJoinOperation(memberInfos,postJoinOp,time,clusterId,startTime),member.getAddress()));
       }
       for (      MemberImpl member : members) {
         if (!member.getAddress().equals(thisAddress)) {

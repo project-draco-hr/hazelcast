@@ -1,26 +1,7 @@
 {
   writeQueue.clear();
   urgentWriteQueue.clear();
-  final CountDownLatch latch=new CountDownLatch(1);
-  ioSelector.addTask(new Runnable(){
-    @Override public void run(){
-      try {
-        socketChannel.closeOutbound();
-      }
- catch (      IOException e) {
-        logger.finest("Error while closing outbound",e);
-      }
- finally {
-        latch.countDown();
-      }
-    }
-  }
-);
-  ioSelector.wakeup();
-  try {
-    latch.await(TIMEOUT,TimeUnit.SECONDS);
-  }
- catch (  InterruptedException e) {
-    EmptyStatement.ignore(e);
-  }
+  ShutdownTask shutdownTask=new ShutdownTask();
+  offer(shutdownTask);
+  shutdownTask.awaitCompletion();
 }

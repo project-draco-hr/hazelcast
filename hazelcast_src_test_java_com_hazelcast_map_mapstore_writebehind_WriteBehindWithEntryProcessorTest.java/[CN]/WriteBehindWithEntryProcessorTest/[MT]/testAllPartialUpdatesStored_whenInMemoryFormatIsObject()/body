@@ -1,0 +1,12 @@
+{
+  CountDownLatch pauseStoreOp=new CountDownLatch(1);
+  JournalingMapStore mapStore=new JournalingMapStore(pauseStoreOp);
+  IMap map=TestMapUsingMapStoreBuilder.create().withMapStore(mapStore).withNodeFactory(createHazelcastInstanceFactory(1)).withWriteDelaySeconds(1).withWriteCoalescing(false).withInMemoryFormat(InMemoryFormat.OBJECT).build();
+  Double[] salaries={73D,111D,-23D,99D,12D,77D,33D};
+  for (int i=0; i < salaries.length; i++) {
+    updateSalary(map,1,salaries[i]);
+  }
+  pauseStoreOp.countDown();
+  assertStoreOperationsCompleted(salaries.length,mapStore);
+  assertArrayEquals("Map store should contain all partial updates on the object",salaries,getStoredSalaries(mapStore));
+}

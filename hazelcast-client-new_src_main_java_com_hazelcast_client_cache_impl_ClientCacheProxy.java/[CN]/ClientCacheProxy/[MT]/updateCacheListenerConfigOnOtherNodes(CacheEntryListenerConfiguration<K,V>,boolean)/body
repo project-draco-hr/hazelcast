@@ -1,14 +1,14 @@
 {
-  final Collection<MemberImpl> members=clientContext.getClusterService().getMemberList();
+  final Collection<Member> members=clientContext.getClusterService().getMemberList();
   final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
   final Collection<Future> futures=new ArrayList<Future>();
-  for (  MemberImpl member : members) {
+  for (  Member member : members) {
     try {
-      final Address address=member.getAddress();
+      final Address address=((AbstractMember)member).getAddress();
       Data configData=toData(cacheEntryListenerConfiguration);
-      final ClientMessage request=CacheListenerRegistrationParameters.encode(nameWithPrefix,configData,isRegister,address.getHost(),address.getPort());
+      final ClientMessage request=CacheListenerRegistrationCodec.encodeRequest(nameWithPrefix,configData,isRegister,address.getHost(),address.getPort());
       final ClientInvocation invocation=new ClientInvocation(client,request,address);
-      final Future<SerializableCollection> future=invocation.invoke();
+      final Future future=invocation.invoke();
       futures.add(future);
     }
  catch (    Exception e) {

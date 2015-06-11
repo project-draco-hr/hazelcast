@@ -1,0 +1,34 @@
+{
+  final TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  testMapStore.setLoadAllKeys(false);
+  Config config=newConfig(testMapStore,1,InitialLoadMode.EAGER);
+  HazelcastInstance h1=createHazelcastInstance(config);
+  IMap map=h1.getMap("default");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      Object event=testMapStore.getEvents().poll();
+      assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD_ALL_KEYS,event);
+    }
+  }
+);
+  map.put("1","value1");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(TestEventBasedMapStore.STORE_EVENTS.LOAD,testMapStore.getEvents().poll());
+    }
+  }
+);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(TestEventBasedMapStore.STORE_EVENTS.STORE,testMapStore.getEvents().poll());
+    }
+  }
+);
+  map.remove("1");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(TestEventBasedMapStore.STORE_EVENTS.DELETE,testMapStore.getEvents().poll());
+    }
+  }
+);
+}

@@ -1,0 +1,30 @@
+{
+  CookieStore cookieStore=new BasicCookieStore();
+  executeRequest("setAttribute?key=value&key2=value2&key2=value22",serverPort1,cookieStore);
+  IMap<Object,Object> map=hz.getMap(DEFAULT_MAP_NAME);
+  assertEquals(1,map.size());
+  String hazelcastSessionId=getHazelcastSessionId(cookieStore);
+  SessionState sessionState=(SessionState)map.get(hazelcastSessionId);
+  assertEquals(2,sessionState.getAttributes().size());
+  assertEquals("value",executeRequest("read",serverPort1,cookieStore));
+  assertEquals(1,map.size());
+  server1.stop();
+  assertEquals(1,map.size());
+  sessionState=(SessionState)map.get(hazelcastSessionId);
+  System.out.println(sessionState);
+  assertEquals(2,sessionState.getAttributes().size());
+  assertEquals("value",executeRequest("read",serverPort2,cookieStore));
+  server2.stop();
+  assertEquals(1,map.size());
+  sessionState=(SessionState)map.get(hazelcastSessionId);
+  assertEquals(2,sessionState.getAttributes().size());
+  server1.start();
+  assertEquals("value",executeRequest("read",serverPort1,cookieStore));
+  server2.start();
+  assertEquals("value",executeRequest("read",serverPort2,cookieStore));
+  executeRequest("invalidate",serverPort2,cookieStore);
+  assertEquals(0,map.size());
+  assertNull(map.get(hazelcastSessionId));
+  assertEquals("null",executeRequest("read",serverPort2,cookieStore));
+  assertEquals("null",executeRequest("read",serverPort1,cookieStore));
+}

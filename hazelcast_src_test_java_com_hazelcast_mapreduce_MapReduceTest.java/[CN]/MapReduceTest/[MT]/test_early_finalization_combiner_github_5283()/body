@@ -1,0 +1,28 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  try {
+    IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+    for (int i=0; i < 100; i++) {
+      m1.put(i,i);
+    }
+    JobTracker tracker=h1.getJobTracker("default");
+    KeyValueSource<Integer,Integer> kvs=KeyValueSource.fromMap(m1);
+    KeyValueSource<Integer,Integer> wrapper=new MapKeyValueSourceAdapter<Integer,Integer>(kvs);
+    Job<Integer,Integer> job=tracker.newJob(wrapper);
+    ICompletableFuture<Map<String,List<Integer>>> future=job.mapper(new TestMapper()).combiner(new FinalizingCombinerFactory()).reducer(new ListBasedReducerFactory()).submit();
+    Map<String,List<Integer>> result=future.get();
+    assertEquals(100,result.size());
+    for (    List<Integer> value : result.values()) {
+      assertEquals(1,value.size());
+    }
+  }
+  finally {
+    tripshutdown(h1,h2,h3);
+  }
+}

@@ -1,0 +1,11 @@
+{
+  MapReduceService mapReduceService=getService(MapReduceService.SERVICE_NAME);
+  NodeEngine nodeEngine=mapReduceService.getNodeEngine();
+  final String objectName=getDistributedObjectName();
+  AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.createDistributedObject(objectName);
+  TrackableJobFuture jobFuture=new TrackableJobFuture(objectName,getJobId(),jobTracker,nodeEngine,null);
+  if (jobTracker.registerTrackableJob(jobFuture)) {
+    startSupervisionTask(jobTracker);
+    jobFuture.andThen(this);
+  }
+}

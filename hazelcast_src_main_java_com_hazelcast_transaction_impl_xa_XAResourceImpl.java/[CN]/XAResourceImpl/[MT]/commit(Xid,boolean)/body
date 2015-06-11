@@ -1,0 +1,18 @@
+{
+  List<TransactionContext> contexts=xidContextMap.remove(xid);
+  if (contexts == null && onePhase) {
+    throw new XAException("There is no TransactionContexts for the given xid: " + xid);
+  }
+  if (contexts == null) {
+    finalizeTransactionRemotely(xid,true);
+    return;
+  }
+  for (  TransactionContext context : contexts) {
+    Transaction transaction=getTransaction(context);
+    if (onePhase) {
+      transaction.prepare();
+    }
+    transaction.commit();
+  }
+  clearRemoteTransactions(xid);
+}

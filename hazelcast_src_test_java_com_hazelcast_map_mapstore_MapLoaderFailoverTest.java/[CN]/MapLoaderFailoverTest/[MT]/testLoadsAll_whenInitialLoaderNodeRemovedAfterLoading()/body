@@ -1,0 +1,15 @@
+{
+  Config cfg=newConfig("default",LAZY);
+  HazelcastInstance[] nodes=nodeFactory.newInstances(cfg,3);
+  HazelcastInstance hz3=nodes[2];
+  String mapName=generateKeyOwnedBy(hz3);
+  IMap<Object,Object> map=nodes[0].getMap(mapName);
+  map.size();
+  assertSizeAndLoadCount(map);
+  hz3.getLifecycleService().terminate();
+  assertClusterSize(2,nodes[0]);
+  map.loadAll(true);
+  assertSizeEventually(MAP_STORE_ENTRY_COUNT,map);
+  assertEquals(2,mapLoader.getLoadAllKeysInvocations());
+  assertEquals(2 * MAP_STORE_ENTRY_COUNT,mapLoader.getLoadedValueCount());
+}

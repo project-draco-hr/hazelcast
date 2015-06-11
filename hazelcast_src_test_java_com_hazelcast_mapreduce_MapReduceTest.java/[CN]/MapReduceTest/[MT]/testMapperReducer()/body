@@ -6,20 +6,25 @@
   assertClusterSizeEventually(3,h1);
   assertClusterSizeEventually(3,h2);
   assertClusterSizeEventually(3,h3);
-  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
-  for (int i=0; i < 100; i++) {
-    m1.put(i,i);
+  try {
+    IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+    for (int i=0; i < 100; i++) {
+      m1.put(i,i);
+    }
+    JobTracker tracker=h1.getJobTracker("default");
+    Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
+    ICompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit();
+    Map<String,Integer> result=future.get();
+    int[] expectedResults=new int[4];
+    for (int i=0; i < 100; i++) {
+      int index=i % 4;
+      expectedResults[index]+=i;
+    }
+    for (int i=0; i < 4; i++) {
+      assertEquals(expectedResults[i],(int)result.get(String.valueOf(i)));
+    }
   }
-  JobTracker tracker=h1.getJobTracker("default");
-  Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
-  ICompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit();
-  Map<String,Integer> result=future.get();
-  int[] expectedResults=new int[4];
-  for (int i=0; i < 100; i++) {
-    int index=i % 4;
-    expectedResults[index]+=i;
-  }
-  for (int i=0; i < 4; i++) {
-    assertEquals(expectedResults[i],(int)result.get(String.valueOf(i)));
+  finally {
+    tripshutdown(h1,h2,h3);
   }
 }

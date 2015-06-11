@@ -1,23 +1,22 @@
 {
   try {
-    while (live) {
+    while (running) {
       processSelectionQueue();
-      if (!live || isInterrupted()) {
+      if (!running || isInterrupted()) {
         if (logger.isFinestEnabled()) {
           logger.finest(getName() + " is interrupted!");
         }
-        live=false;
+        running=false;
         return;
       }
-      int selectedKeyCount;
       try {
-        selectedKeyCount=selector.select(waitTime);
+        int selectedKeyCount=selector.select(waitTime);
+        if (selectedKeyCount == 0) {
+          continue;
+        }
       }
  catch (      Throwable e) {
         handleSelectFailure(e);
-        continue;
-      }
-      if (selectedKeyCount == 0) {
         continue;
       }
       handleSelectionKeys();

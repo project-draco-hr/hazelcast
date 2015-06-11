@@ -1,7 +1,11 @@
 {
   ClientClusterService clusterService=client.getClientClusterService();
-  Address master=clusterService.getMasterAddress();
-  GetPartitionsResultParameters response=getPartitionsFrom(master);
+  Address ownerAddress=clusterService.getOwnerConnectionAddress();
+  if (ownerAddress == null) {
+    return false;
+  }
+  Connection connection=client.getConnectionManager().getConnection(ownerAddress);
+  ClientGetPartitionsCodec.ResponseParameters response=getPartitionsFrom(connection);
   if (response != null) {
     return processPartitionResponse(response);
   }

@@ -1,20 +1,24 @@
 {
   TransactionContext transactionContext=instance.newTransactionContext();
-  transactionContext.beginTransaction();
-  TransactionalMap<Object,Integer> txnMap=transactionContext.getMap(mapName);
   try {
-    txnMap.values(TruePredicate.INSTANCE);
-    failExpectedException("TransactionalMap.values(predicate)");
+    transactionContext.beginTransaction();
+    TransactionalMap<Object,Integer> txnMap=transactionContext.getMap(mapName);
+    try {
+      txnMap.values(TruePredicate.INSTANCE);
+      failExpectedException("TransactionalMap.values(predicate)");
+    }
+ catch (    QueryResultSizeExceededException e) {
+      checkException(e);
+    }
+    try {
+      txnMap.keySet(TruePredicate.INSTANCE);
+      failExpectedException("TransactionalMap.keySet(predicate)");
+    }
+ catch (    QueryResultSizeExceededException e) {
+      checkException(e);
+    }
   }
- catch (  QueryResultSizeExceededException e) {
-    EmptyStatement.ignore(e);
+  finally {
+    transactionContext.rollbackTransaction();
   }
-  try {
-    txnMap.keySet(TruePredicate.INSTANCE);
-    failExpectedException("TransactionalMap.keySet(predicate)");
-  }
- catch (  QueryResultSizeExceededException e) {
-    EmptyStatement.ignore(e);
-  }
-  transactionContext.rollbackTransaction();
 }

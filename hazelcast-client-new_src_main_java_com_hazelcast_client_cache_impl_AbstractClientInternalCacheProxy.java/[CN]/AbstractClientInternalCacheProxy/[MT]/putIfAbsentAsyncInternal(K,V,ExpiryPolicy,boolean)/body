@@ -5,10 +5,11 @@
   final Data keyData=toData(key);
   final Data valueData=toData(value);
   final Data expiryPolicyData=toData(expiryPolicy);
-  ClientMessage request=CachePutIfAbsentParameters.encode(nameWithPrefix,keyData,valueData,expiryPolicyData);
-  ICompletableFuture<Boolean> future;
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  ClientMessage request=CachePutIfAbsentCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,completionId);
+  ClientInvocationFuture future;
   try {
-    future=invoke(request,keyData,withCompletionEvent);
+    future=invoke(request,keyData,completionId);
     if (cacheOnUpdate) {
       storeInNearCache(keyData,valueData,value);
     }
@@ -19,5 +20,5 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  return new DelegatingFuture<Boolean>(future,clientContext.getSerializationService());
+  return new ClientDelegatingFuture<Boolean>(future,clientContext.getSerializationService());
 }

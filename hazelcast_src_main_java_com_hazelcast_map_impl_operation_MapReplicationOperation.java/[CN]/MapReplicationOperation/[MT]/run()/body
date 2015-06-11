@@ -15,14 +15,15 @@
         applyRecordInfo(newRecord,recordReplicationInfo);
         recordStore.putRecord(key,newRecord);
       }
-      recordStore.setLoaded(true);
     }
   }
   for (  Entry<String,Collection<DelayedEntry>> entry : delayedEntries.entrySet()) {
-    final RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),entry.getKey());
-    final Collection<DelayedEntry> replicatedEntries=entry.getValue();
-    final WriteBehindQueue<DelayedEntry> writeBehindQueue=((WriteBehindStore)recordStore.getMapDataStore()).getWriteBehindQueue();
-    writeBehindQueue.clear();
-    writeBehindQueue.addFirst(replicatedEntries);
+    RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),entry.getKey());
+    WriteBehindStore mapDataStore=(WriteBehindStore)recordStore.getMapDataStore();
+    mapDataStore.clear();
+    Collection<DelayedEntry> replicatedEntries=entry.getValue();
+    for (    DelayedEntry delayedEntry : replicatedEntries) {
+      mapDataStore.add(delayedEntry);
+    }
   }
 }

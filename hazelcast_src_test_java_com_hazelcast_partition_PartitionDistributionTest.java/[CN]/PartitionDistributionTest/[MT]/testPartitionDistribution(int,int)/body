@@ -1,36 +1,3 @@
 {
-  final Config config=new Config();
-  config.setProperty(GroupProperties.PROP_PARTITION_COUNT,String.valueOf(partitionCount));
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
-  final BlockingQueue<Integer> counts=new ArrayBlockingQueue<Integer>(nodeCount);
-  final HazelcastInstance[] instances=new HazelcastInstance[nodeCount];
-  for (int i=0; i < nodeCount; i++) {
-    instances[i]=factory.newHazelcastInstance(config);
-  }
-  final ExecutorService ex=Executors.newCachedThreadPool();
-  try {
-    for (int j=0; j < nodeCount; j++) {
-      final int instanceIndex=j;
-      new Thread(new Runnable(){
-        public void run(){
-          HazelcastInstance h=instances[instanceIndex];
-          warmUpPartitions(h);
-          counts.offer(getLocalPartitionsCount(h));
-        }
-      }
-).start();
-    }
-    final int average=(partitionCount / nodeCount);
-    int total=0;
-    for (int i=0; i < nodeCount; i++) {
-      final Integer c=counts.poll(1,TimeUnit.MINUTES);
-      assertNotNull(c);
-      assertTrue("Partition count is : " + c + ", total partitions: "+ partitionCount+ ", nodes: "+ nodeCount,c >= average);
-      total+=c;
-    }
-    assertEquals(partitionCount,total);
-  }
-  finally {
-    ex.shutdownNow();
-  }
+  testPartitionDistribution(partitionCount,nodeCount,new Config());
 }

@@ -1,14 +1,6 @@
 {
-  final BlockingQueue qResponse=new ArrayBlockingQueue(1);
-  createSingleNodeExecutorService("testIssue292").submit(new MemberCheck(),new ExecutionCallback<Member>(){
-    public void onResponse(    Member response){
-      qResponse.offer(response);
-    }
-    public void onFailure(    Throwable t){
-    }
-  }
-);
-  Object response=qResponse.poll(10,TimeUnit.SECONDS);
-  assertNotNull(response);
-  assertTrue(response instanceof Member);
+  final CountingDownExecutionCallback<Member> callback=new CountingDownExecutionCallback<Member>(1);
+  createSingleNodeExecutorService("testIssue292").submit(new MemberCheck(),callback);
+  assertOpenEventually(callback.getLatch());
+  assertTrue(callback.getResult() instanceof Member);
 }

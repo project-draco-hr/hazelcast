@@ -1,0 +1,17 @@
+{
+  String mapName=randomMapName();
+  final WaitingMapStore mapStore=new WaitingMapStore<Integer,Integer>();
+  Config config=createConfig(mapName,mapStore);
+  HazelcastInstance node=createHazelcastInstance(config);
+  IMap<Object,Object> map=node.getMap(mapName);
+  mapStore.map=map;
+  mapStore.waitAllWriteOperations=new CountDownLatch(1);
+  mapStore.waitForSecondStoreOperation=new CountDownLatch(2);
+  map.put(1,0);
+  map.remove(1);
+  map.put(1,1);
+  map.remove(1);
+  mapStore.waitAllWriteOperations.countDown();
+  mapStore.waitForSecondStoreOperation.await();
+  assertNull(mapStore.valueAfterMapGet.get());
+}

@@ -1,31 +1,3 @@
 {
-  ensureOpen();
-  validateNotNull(key);
-  final Data keyData=toData(key);
-  Object cached=nearCache != null ? nearCache.get(keyData) : null;
-  if (cached != null && !NearCache.NULL_OBJECT.equals(cached)) {
-    return createCompletedFuture(cached);
-  }
-  CacheGetRequest request=new CacheGetRequest(nameWithPrefix,keyData,expiryPolicy,cacheConfig.getInMemoryFormat());
-  ClientInvocationFuture future;
-  try {
-    final int partitionId=clientContext.getPartitionService().getPartitionId(key);
-    final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
-    final ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionId);
-    future=clientInvocation.invoke();
-  }
- catch (  Exception e) {
-    throw ExceptionUtil.rethrow(e);
-  }
-  if (nearCache != null) {
-    future.andThenInternal(new ExecutionCallback<Data>(){
-      public void onResponse(      Data valueData){
-        storeInNearCache(keyData,valueData,null);
-      }
-      public void onFailure(      Throwable t){
-      }
-    }
-);
-  }
-  return new DelegatingFuture<V>(future,clientContext.getSerializationService());
+  return (ICompletableFuture<V>)getInternal(key,expiryPolicy,true);
 }

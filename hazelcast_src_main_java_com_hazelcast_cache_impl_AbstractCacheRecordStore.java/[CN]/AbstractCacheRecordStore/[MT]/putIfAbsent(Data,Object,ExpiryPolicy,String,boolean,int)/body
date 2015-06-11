@@ -4,14 +4,14 @@
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
   boolean result;
   R record=records.get(key);
-  boolean isExpired=processExpiredEntry(key,record,now);
+  boolean isExpired=processExpiredEntry(key,record,now,source);
   try {
     if (record == null || isExpired) {
       result=createRecordWithExpiry(key,value,expiryPolicy,now,disableWriteThrough,completionId) != null;
     }
  else {
       result=false;
-      publishEvent(CacheEventType.COMPLETED,key,null,null,false,completionId,CacheRecord.EXPIRATION_TIME_NOT_AVAILABLE);
+      publishEvent(createCacheCompleteEvent(key,completionId));
     }
     onPutIfAbsent(key,value,expiryPolicy,source,disableWriteThrough,record,isExpired,result);
     updateHasExpiringEntry(record);

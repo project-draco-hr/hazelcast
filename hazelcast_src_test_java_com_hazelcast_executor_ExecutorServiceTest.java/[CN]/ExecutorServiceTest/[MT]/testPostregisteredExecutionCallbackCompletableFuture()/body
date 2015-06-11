@@ -1,44 +1,23 @@
 {
-  HazelcastInstanceProxy proxy=(HazelcastInstanceProxy)createHazelcastInstance();
-  Field originalField=HazelcastInstanceProxy.class.getDeclaredField("original");
-  originalField.setAccessible(true);
-  HazelcastInstanceImpl hz=(HazelcastInstanceImpl)originalField.get(proxy);
-  NodeEngine nodeEngine=hz.node.nodeEngine;
-  ExecutionService es=nodeEngine.getExecutionService();
-  final CountDownLatch latch1=new CountDownLatch(1);
-  final CountDownLatch latch2=new CountDownLatch(1);
+  final ExecutionService es=getExecutionService(createHazelcastInstance());
+  final CountDownLatch callableLatch=new CountDownLatch(1);
   final ExecutorService executorService=Executors.newSingleThreadExecutor();
   try {
-    Future future=executorService.submit(new Callable<String>(){
-      @Override public String call(){
-        try {
-          return "success";
-        }
-  finally {
-          latch1.countDown();
-        }
-      }
+    final Future<String> future=executorService.submit(new CountDownLatchAwaitingCallable(callableLatch));
+    final ICompletableFuture<String> completableFuture=es.asCompletableFuture(future);
+    callableLatch.countDown();
+    future.get();
+    final CountingDownExecutionCallback<String> callback=new CountingDownExecutionCallback<String>(1);
+    completableFuture.andThen(callback);
+    try {
+      assertOpenEventually(callback.getLatch());
+      assertEquals(CountDownLatchAwaitingCallable.RESULT,callback.getResult());
     }
-);
-    final ICompletableFuture completableFuture=es.asCompletableFuture(future);
-    latch1.await(30,TimeUnit.SECONDS);
-    final AtomicReference reference=new AtomicReference();
-    completableFuture.andThen(new ExecutionCallback(){
-      @Override public void onResponse(      Object response){
-        reference.set(response);
-        latch2.countDown();
-      }
-      @Override public void onFailure(      Throwable t){
-        reference.set(t);
-        latch2.countDown();
-      }
+ catch (    AssertionError error) {
+      System.out.println(callback.getLatch().getCount());
+      System.out.println(callback.getResult());
+      throw error;
     }
-);
-    latch2.await(30,TimeUnit.SECONDS);
-    if (reference.get() instanceof Throwable) {
-      ((Throwable)reference.get()).printStackTrace();
-    }
-    assertEquals("success",reference.get());
   }
   finally {
     executorService.shutdown();

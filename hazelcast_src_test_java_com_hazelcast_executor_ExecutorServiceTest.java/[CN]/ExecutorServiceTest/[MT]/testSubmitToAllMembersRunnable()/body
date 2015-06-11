@@ -1,27 +1,25 @@
 {
-  final int k=simpleTestNodeCount;
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(NODE_COUNT);
   final HazelcastInstance[] instances=factory.newInstances(new Config());
-  final AtomicInteger count=new AtomicInteger(0);
-  final CountDownLatch latch=new CountDownLatch(k * k);
+  final AtomicInteger nullResponseCount=new AtomicInteger(0);
+  final CountDownLatch responseLatch=new CountDownLatch(NODE_COUNT * NODE_COUNT);
   final MultiExecutionCallback callback=new MultiExecutionCallback(){
     public void onResponse(    Member member,    Object value){
       if (value == null) {
-        count.incrementAndGet();
+        nullResponseCount.incrementAndGet();
       }
-      latch.countDown();
+      responseLatch.countDown();
     }
     public void onComplete(    Map<Member,Object> values){
     }
   }
 ;
-  for (int i=0; i < k; i++) {
+  for (int i=0; i < NODE_COUNT; i++) {
     final IExecutorService service=instances[i].getExecutorService("testSubmitToAllMembersRunnable");
-    final String script="hazelcast.getAtomicLong('testSubmitToAllMembersRunnable').incrementAndGet();";
-    service.submitToAllMembers(new ScriptRunnable(script,null),callback);
+    service.submitToAllMembers(new IncrementAtomicLongRunnable("testSubmitToAllMembersRunnable"),callback);
   }
-  assertTrue(latch.await(30,TimeUnit.SECONDS));
+  assertTrue(responseLatch.await(30,TimeUnit.SECONDS));
   final IAtomicLong result=instances[0].getAtomicLong("testSubmitToAllMembersRunnable");
-  assertEquals(k * k,result.get());
-  assertEquals(k * k,count.get());
+  assertEquals(NODE_COUNT * NODE_COUNT,result.get());
+  assertEquals(NODE_COUNT * NODE_COUNT,nullResponseCount.get());
 }

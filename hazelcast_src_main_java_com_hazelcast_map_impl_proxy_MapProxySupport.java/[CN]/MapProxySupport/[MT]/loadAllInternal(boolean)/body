@@ -1,10 +1,15 @@
 {
   NodeEngine nodeEngine=getNodeEngine();
   OperationService operationService=nodeEngine.getOperationService();
-  Collection<MemberImpl> members=nodeEngine.getClusterService().getMemberList();
-  for (  MemberImpl member : members) {
-    Operation operation=new LoadMapOperation(name,replaceExistingValues);
-    operationService.invokeOnTarget(MapService.SERVICE_NAME,operation,member.getAddress());
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  int mapNamePartition=partitionService.getPartitionId(name);
+  Operation operation=new LoadMapOperation(name,replaceExistingValues);
+  Future loadMapFuture=operationService.invokeOnPartition(MapService.SERVICE_NAME,operation,mapNamePartition);
+  try {
+    loadMapFuture.get();
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
   }
   waitUntilLoaded();
 }

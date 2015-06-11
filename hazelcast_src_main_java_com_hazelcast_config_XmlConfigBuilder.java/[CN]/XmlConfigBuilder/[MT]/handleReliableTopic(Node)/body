@@ -1,0 +1,27 @@
+{
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  final ReliableTopicConfig topicConfig=new ReliableTopicConfig(name);
+  for (  org.w3c.dom.Node n : new IterableNodeList(node.getChildNodes())) {
+    final String nodeName=cleanNodeName(n.getNodeName());
+    if ("read-batch-size".equals(cleanNodeName(nodeName))) {
+      String batchSize=getTextContent(n);
+      topicConfig.setReadBatchSize(getIntegerValue("read-batch-size",batchSize,ReliableTopicConfig.DEFAULT_READ_BATCH_SIZE));
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      topicConfig.setStatisticsEnabled(checkTrue(getTextContent(n)));
+    }
+ else     if ("topic-overload-policy".equals(nodeName)) {
+      TopicOverloadPolicy topicOverloadPolicy=TopicOverloadPolicy.valueOf(upperCaseInternal(getTextContent(n)));
+      topicConfig.setTopicOverloadPolicy(topicOverloadPolicy);
+    }
+ else     if ("message-listeners".equals(nodeName)) {
+      for (      org.w3c.dom.Node listenerNode : new IterableNodeList(n.getChildNodes())) {
+        if ("message-listener".equals(cleanNodeName(listenerNode))) {
+          topicConfig.addMessageListenerConfig(new ListenerConfig(getTextContent(listenerNode)));
+        }
+      }
+    }
+  }
+  config.addReliableTopicConfig(topicConfig);
+}

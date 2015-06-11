@@ -1,0 +1,22 @@
+{
+  topic.publish("1");
+  topic.publish("2");
+  topic.publish("3");
+  spawn(new Runnable(){
+    @Override public void run(){
+      sleepSeconds(5);
+      topic.publish("4");
+      topic.publish("5");
+      topic.publish("6");
+    }
+  }
+);
+  final ReliableMessageListenerMock listener=new ReliableMessageListenerMock();
+  topic.addMessageListener(listener);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(asList("4","5","6"),Arrays.asList(listener.objects.toArray()));
+    }
+  }
+);
+}

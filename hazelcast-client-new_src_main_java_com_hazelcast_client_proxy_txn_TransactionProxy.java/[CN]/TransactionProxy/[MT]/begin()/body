@@ -1,0 +1,22 @@
+{
+  try {
+    if (state == ACTIVE) {
+      throw new IllegalStateException("Transaction is already active");
+    }
+    checkThread();
+    if (TRANSACTION_EXISTS.get() != null) {
+      throw new IllegalStateException("Nested transactions are not allowed!");
+    }
+    TRANSACTION_EXISTS.set(Boolean.TRUE);
+    startTime=Clock.currentTimeMillis();
+    ClientMessage request=TransactionCreateCodec.encodeRequest(options.getTimeoutMillis(),options.getDurability(),options.getTransactionType().id(),threadId);
+    ClientMessage response=invoke(request);
+    TransactionCreateCodec.ResponseParameters result=TransactionCreateCodec.decodeResponse(response);
+    txnId=result.response;
+    state=ACTIVE;
+  }
+ catch (  Exception e) {
+    TRANSACTION_EXISTS.set(null);
+    throw ExceptionUtil.rethrow(e);
+  }
+}

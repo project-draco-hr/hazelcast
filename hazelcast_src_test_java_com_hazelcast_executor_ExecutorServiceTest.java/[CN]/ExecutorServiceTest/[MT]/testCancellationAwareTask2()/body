@@ -1,15 +1,27 @@
 {
-  Callable task1=new SleepingTask(5);
+  Callable task1=new SleepingTask(Integer.MAX_VALUE);
   ExecutorService executor=createSingleNodeExecutorService("testCancellationAwareTask",1);
-  executor.submit(task1);
-  Callable task2=new BasicTestTask();
-  Future future=executor.submit(task2);
-  assertFalse(future.isDone());
-  assertTrue(future.cancel(true));
-  assertTrue(future.isCancelled());
-  assertTrue(future.isDone());
+  Future future1=executor.submit(task1);
   try {
-    future.get();
+    future1.get(2,TimeUnit.SECONDS);
+    fail("SleepingTask should not return response");
+  }
+ catch (  TimeoutException ignored) {
+  }
+catch (  Exception e) {
+    if (e.getCause() instanceof RejectedExecutionException) {
+      fail("SleepingTask is rejected!");
+    }
+  }
+  assertFalse(future1.isDone());
+  Callable task2=new BasicTestCallable();
+  Future future2=executor.submit(task2);
+  assertFalse(future2.isDone());
+  assertTrue(future2.cancel(true));
+  assertTrue(future2.isCancelled());
+  assertTrue(future2.isDone());
+  try {
+    future2.get();
     fail("Should not complete the task successfully");
   }
  catch (  CancellationException expected) {

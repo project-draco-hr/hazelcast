@@ -1,0 +1,13 @@
+{
+  InternalOperationService operationService=nodeEngine.getOperationService();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  ClientEndpoint endpoint=getEndpoint();
+  Data xidData=serializationService.toData(parameters.xid);
+  Operation op=new ClearRemoteTransactionOperation(xidData);
+  op.setCallerUuid(endpoint.getUuid());
+  int partitionId=partitionService.getPartitionId(xidData);
+  InvocationBuilder builder=operationService.createInvocationBuilder(getServiceName(),op,partitionId);
+  builder.setTryCount(TRY_COUNT).setResultDeserialized(false);
+  builder.invoke();
+  return XATransactionClearRemoteCodec.encodeResponse();
+}

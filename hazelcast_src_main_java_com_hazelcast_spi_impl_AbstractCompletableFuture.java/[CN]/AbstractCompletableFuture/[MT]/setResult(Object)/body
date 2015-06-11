@@ -1,5 +1,12 @@
 {
-  if (resultUpdater.compareAndSet(this,NULL_VALUE,result)) {
-    fireCallbacks();
+  for (; ; ) {
+    Object currentState=this.state;
+    if (isDone(currentState)) {
+      return;
+    }
+    if (STATE.compareAndSet(this,currentState,result)) {
+      runAsynchronous((ExecutionCallbackNode)currentState,result);
+      break;
+    }
   }
 }

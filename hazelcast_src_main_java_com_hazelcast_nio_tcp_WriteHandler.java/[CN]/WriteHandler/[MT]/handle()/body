@@ -1,7 +1,7 @@
 {
   eventCount++;
   lastHandle=Clock.currentTimeMillis();
-  if (!connection.isAlive()) {
+  if (shutdown) {
     return;
   }
   if (socketWriter == null) {
@@ -17,5 +17,12 @@
  catch (  Throwable t) {
     logger.severe("Fatal Error at WriteHandler for endPoint: " + connection.getEndPoint(),t);
   }
-  unschedule();
+  if (newOwner == null) {
+    unschedule();
+  }
+ else {
+    IOSelector newOwner=this.newOwner;
+    this.newOwner=null;
+    startMigration(newOwner);
+  }
 }

@@ -3,16 +3,13 @@
   for (  K key : keys) {
     dataKeys.add(toData(key));
   }
-  ClientMessage request=MapExecuteOnKeysParameters.encode(name,toData(entryProcessor),dataKeys);
+  ClientMessage request=MapExecuteOnKeysCodec.encodeRequest(name,toData(entryProcessor),dataKeys);
   ClientMessage response=invoke(request);
-  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
-  int size=resultParameters.keys.size();
+  MapExecuteOnKeysCodec.ResponseParameters resultParameters=MapExecuteOnKeysCodec.decodeResponse(response);
   Map<K,Object> result=new HashMap<K,Object>();
-  for (int i=0; i < size; i++) {
-    Data keyData=resultParameters.keys.get(i);
-    Data valueData=resultParameters.values.get(i);
-    K key=toObject(keyData);
-    result.put(key,toObject(valueData));
+  for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
+    K key=toObject(entry.getKey());
+    result.put(key,toObject(entry.getValue()));
   }
   return result;
 }

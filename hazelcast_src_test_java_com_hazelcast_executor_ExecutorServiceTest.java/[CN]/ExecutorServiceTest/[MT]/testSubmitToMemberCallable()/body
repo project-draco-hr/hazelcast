@@ -1,34 +1,15 @@
 {
-  final int k=simpleTestNodeCount;
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(NODE_COUNT);
   final HazelcastInstance[] instances=factory.newInstances(new Config());
-  final AtomicInteger count=new AtomicInteger(0);
-  final CountDownLatch latch=new CountDownLatch(k / 2);
-  final ExecutionCallback callback=new ExecutionCallback(){
-    public void onResponse(    Object response){
-      if ((Boolean)response) {
-        count.incrementAndGet();
-      }
-      latch.countDown();
-    }
-    public void onFailure(    Throwable t){
-    }
-  }
-;
-  for (int i=0; i < k; i++) {
+  final List<Future> futures=new ArrayList<Future>();
+  for (int i=0; i < NODE_COUNT; i++) {
     final HazelcastInstance instance=instances[i];
     final IExecutorService service=instance.getExecutorService("testSubmitToMemberCallable");
-    final String script="hazelcast.getCluster().getLocalMember().getUuid().equals(memberUUID); ";
-    final HashMap map=new HashMap();
-    map.put("memberUUID",instance.getCluster().getLocalMember().getUuid());
-    if (i % 2 == 0) {
-      final Future f=service.submitToMember(new ScriptCallable(script,map),instance.getCluster().getLocalMember());
-      assertTrue((Boolean)f.get());
-    }
- else {
-      service.submitToMember(new ScriptCallable(script,map),instance.getCluster().getLocalMember(),callback);
-    }
+    String memberUuid=instance.getCluster().getLocalMember().getUuid();
+    final Future f=service.submitToMember(new MemberUUIDCheckCallable(memberUuid),instance.getCluster().getLocalMember());
+    futures.add(f);
   }
-  assertTrue(latch.await(30,TimeUnit.SECONDS));
-  assertEquals(k / 2,count.get());
+  for (  Future f : futures) {
+    assertTrue((Boolean)f.get(10,TimeUnit.SECONDS));
+  }
 }

@@ -1,0 +1,16 @@
+{
+  final ReliableMessageListenerMock messageListener=new ReliableMessageListenerMock();
+  Config config=new Config();
+  config.addReliableTopicConfig(new ReliableTopicConfig("foo*").addMessageListenerConfig(new ListenerConfig(messageListener)));
+  HazelcastInstance hz=createHazelcastInstance(config);
+  ITopic topic=hz.getReliableTopic("foo");
+  final ReliableTopicProxy proxy=assertInstanceOf(ReliableTopicProxy.class,topic);
+  assertEquals(1,proxy.runnersMap.size());
+  topic.publish("item");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(messageListener.objects.contains("item"));
+    }
+  }
+);
+}

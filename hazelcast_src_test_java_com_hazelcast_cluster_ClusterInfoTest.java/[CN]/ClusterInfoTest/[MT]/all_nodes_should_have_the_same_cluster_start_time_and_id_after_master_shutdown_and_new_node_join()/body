@@ -1,0 +1,28 @@
+{
+  HazelcastInstance h1=factory.newHazelcastInstance();
+  HazelcastInstance h2=factory.newHazelcastInstance();
+  HazelcastInstance h3=factory.newHazelcastInstance();
+  assertSizeEventually(3,h1.getCluster().getMembers());
+  assertSizeEventually(3,h2.getCluster().getMembers());
+  assertSizeEventually(3,h3.getCluster().getMembers());
+  Node node1=TestUtil.getNode(h1);
+  final ClusterServiceImpl clusterService=node1.getClusterService();
+  long node1ClusterStartTime=clusterService.getClusterClock().getClusterStartTime();
+  long clusterUpTime=clusterService.getClusterClock().getClusterUpTime();
+  String node1ClusterId=clusterService.getClusterId();
+  assertTrue(clusterUpTime > 0);
+  assertTrue(node1.isMaster());
+  h1.shutdown();
+  assertSizeEventually(2,h2.getCluster().getMembers());
+  HazelcastInstance h4=factory.newHazelcastInstance();
+  Node node2=TestUtil.getNode(h2);
+  Node node3=TestUtil.getNode(h3);
+  Node node4=TestUtil.getNode(h4);
+  assertNotEquals(node1ClusterStartTime,Long.MIN_VALUE);
+  assertEquals(node1ClusterStartTime,node2.getClusterService().getClusterClock().getClusterStartTime());
+  assertEquals(node1ClusterStartTime,node3.getClusterService().getClusterClock().getClusterStartTime());
+  assertEquals(node1ClusterStartTime,node4.getClusterService().getClusterClock().getClusterStartTime());
+  assertEquals(node1ClusterId,node2.getClusterService().getClusterId());
+  assertEquals(node1ClusterId,node3.getClusterService().getClusterId());
+  assertEquals(node1ClusterId,node4.getClusterService().getClusterId());
+}

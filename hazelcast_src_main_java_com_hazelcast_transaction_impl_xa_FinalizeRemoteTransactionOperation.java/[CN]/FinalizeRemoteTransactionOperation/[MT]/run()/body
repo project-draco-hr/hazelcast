@@ -1,0 +1,28 @@
+{
+  final ResponseHandler responseHandler=getResponseHandler();
+  XAService xaService=getService();
+  final List<XATransactionImpl> list=xaService.removeTransactions(xid);
+  if (list == null) {
+    responseHandler.sendResponse(getNodeEngine().toData(XAException.XAER_NOTA));
+    return;
+  }
+  final int size=list.size();
+  final ExecutionCallback callback=new ExecutionCallback(){
+    AtomicInteger counter=new AtomicInteger();
+    @Override public void onResponse(    Object response){
+      sendResponseIfComplete();
+    }
+    @Override public void onFailure(    Throwable t){
+      sendResponseIfComplete();
+    }
+    void sendResponseIfComplete(){
+      if (size == counter.incrementAndGet()) {
+        responseHandler.sendResponse(null);
+      }
+    }
+  }
+;
+  for (  XATransactionImpl xaTransaction : list) {
+    finalizeTransaction(xaTransaction,callback);
+  }
+}

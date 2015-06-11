@@ -1,0 +1,25 @@
+{
+  if (sessionChanged() || isNew()) {
+    Map<String,Object> updates=new HashMap<String,Object>();
+    Iterator<Map.Entry<String,LocalCacheEntry>> iterator=localCache.entrySet().iterator();
+    while (iterator.hasNext()) {
+      Map.Entry<String,LocalCacheEntry> entry=iterator.next();
+      LocalCacheEntry cacheEntry=entry.getValue();
+      if (cacheEntry.isDirty() && !cacheEntry.isTransient()) {
+        if (cacheEntry.isRemoved()) {
+          updates.put(entry.getKey(),null);
+        }
+ else {
+          updates.put(entry.getKey(),cacheEntry.getValue());
+        }
+        cacheEntry.setDirty(false);
+      }
+    }
+    try {
+      webFilter.getClusteredSessionService().updateAttributes(id,updates);
+    }
+ catch (    Exception ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+  }
+}

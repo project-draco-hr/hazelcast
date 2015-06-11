@@ -1,14 +1,11 @@
 {
-  ClientMessage request=MapEntrySetParameters.encode(name);
+  ClientMessage request=MapEntrySetCodec.encodeRequest(name);
   ClientMessage response=invoke(request);
-  DataEntryListResultParameters resultParameters=DataEntryListResultParameters.decode(response);
+  MapEntrySetCodec.ResponseParameters resultParameters=MapEntrySetCodec.decodeResponse(response);
   Set<Entry<K,V>> entrySet=new HashSet<Entry<K,V>>();
-  int size=resultParameters.keys.size();
-  for (int i=0; i < size; i++) {
-    Data keyData=resultParameters.keys.get(i);
-    Data valueData=resultParameters.values.get(i);
-    K key=toObject(keyData);
-    V value=toObject(valueData);
+  for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
+    K key=toObject(entry.getKey());
+    V value=toObject(entry.getValue());
     entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));
   }
   return entrySet;

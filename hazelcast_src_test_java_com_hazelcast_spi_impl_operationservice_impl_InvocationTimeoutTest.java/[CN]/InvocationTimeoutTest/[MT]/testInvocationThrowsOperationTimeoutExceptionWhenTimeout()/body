@@ -1,0 +1,15 @@
+{
+  final Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,"300");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  Set<Partition> partitions=remote.getPartitionService().getPartitions();
+  Partition partition=partitions.iterator().next();
+  OperationService service=getOperationService(local);
+  Operation op=new NonRespondingEmptyOperation();
+  op.setPartitionId(partition.getPartitionId());
+  Future f=service.createInvocationBuilder(MapService.SERVICE_NAME,op,partition.getPartitionId()).invoke();
+  f.get(10,TimeUnit.SECONDS);
+}

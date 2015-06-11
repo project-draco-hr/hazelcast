@@ -1,15 +1,15 @@
 {
   isNotNull(callback,"callback");
   isNotNull(executor,"executor");
-  if (isDone()) {
-    runAsynchronous(callback,executor);
-    return;
-  }
   for (; ; ) {
-    ExecutionCallbackNode oldCallbackHead=callbackHead;
-    ExecutionCallbackNode newCallbackHead=new ExecutionCallbackNode<V>(callback,executor,oldCallbackHead);
-    if (callbackUpdater.compareAndSet(this,oldCallbackHead,newCallbackHead)) {
-      break;
+    Object currentState=this.state;
+    if (isDone(currentState)) {
+      runAsynchronous(callback,executor,currentState);
+      return;
+    }
+    ExecutionCallbackNode newState=new ExecutionCallbackNode<V>(callback,executor,(ExecutionCallbackNode)currentState);
+    if (STATE.compareAndSet(this,currentState,newState)) {
+      return;
     }
   }
 }

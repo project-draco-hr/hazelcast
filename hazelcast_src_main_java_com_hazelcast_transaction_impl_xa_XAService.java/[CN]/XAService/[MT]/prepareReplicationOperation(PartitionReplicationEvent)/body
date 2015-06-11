@@ -1,0 +1,20 @@
+{
+  List<XATransactionHolder> migrationData=new ArrayList<XATransactionHolder>();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  for (  Map.Entry<SerializableXID,List<XATransactionImpl>> entry : transactions.entrySet()) {
+    SerializableXID xid=entry.getKey();
+    int partitionId=partitionService.getPartitionId(xid);
+    List<XATransactionImpl> xaTransactionList=entry.getValue();
+    for (    XATransactionImpl xaTransaction : xaTransactionList) {
+      if (partitionId == event.getPartitionId() && event.getReplicaIndex() <= 1) {
+        migrationData.add(new XATransactionHolder(xaTransaction));
+      }
+    }
+  }
+  if (migrationData.isEmpty()) {
+    return null;
+  }
+ else {
+    return new XaReplicationOperation(migrationData,event.getPartitionId(),event.getReplicaIndex());
+  }
+}

@@ -1,38 +1,11 @@
 {
   try {
-    ClientMessage request=MapAddNearCacheEntryListenerParameters.encode(name,false);
-    EventHandler handler=new EventHandler<ClientMessage>(){
-      @Override public void handle(      ClientMessage eventMessage){
-        EntryEventParameters event=EntryEventParameters.decode(eventMessage);
-        EntryEventType entryEventType=EntryEventType.getByType(event.eventType);
-switch (entryEventType) {
-case ADDED:
-case REMOVED:
-case UPDATED:
-case MERGED:
-case EVICTED:
-          nearCache.remove(event.key);
-        break;
-case CLEAR_ALL:
-case EVICT_ALL:
-      nearCache.clear();
-    break;
-default :
-  throw new IllegalArgumentException("Not a known event type " + entryEventType);
-}
-}
-@Override public void beforeListenerRegister(){
-nearCache.clear();
-}
-@Override public void onListenerRegister(){
-nearCache.clear();
-}
-}
-;
-String registrationId=getContext().getListenerService().startListening(request,null,handler);
-nearCache.setId(registrationId);
-}
- catch (Exception e) {
-Logger.getLogger(ClientHeapNearCache.class).severe("-----------------\n Near Cache is not initialized!!! \n-----------------",e);
-}
+    ClientMessage request=MapAddNearCacheEntryListenerCodec.encodeRequest(name,false);
+    EventHandler handler=new ClientMapAddNearCacheEventHandler();
+    String registrationId=getContext().getListenerService().startListening(request,null,handler);
+    nearCache.setId(registrationId);
+  }
+ catch (  Exception e) {
+    Logger.getLogger(ClientHeapNearCache.class).severe("-----------------\n Near Cache is not initialized!!! \n-----------------",e);
+  }
 }

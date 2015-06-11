@@ -1,0 +1,21 @@
+{
+  ReliableMessageListenerMock listener=new ReliableMessageListenerMock();
+  listener.initialSequence=0;
+  listener.isLossTolerant=false;
+  topic.publish("foo");
+  int k=0;
+  for (; ; ) {
+    topic.publish("item");
+    if (ringbuffer.headSequence() > listener.initialSequence) {
+      break;
+    }
+    k++;
+  }
+  topic.addMessageListener(listener);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(topic.runnersMap.isEmpty());
+    }
+  }
+);
+}

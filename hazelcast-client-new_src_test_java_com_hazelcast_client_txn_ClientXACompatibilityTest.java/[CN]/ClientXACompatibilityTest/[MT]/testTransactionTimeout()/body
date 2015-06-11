@@ -1,0 +1,17 @@
+{
+  boolean timeoutSet=xaResource.setTransactionTimeout(2);
+  assertTrue(timeoutSet);
+  xaResource.start(xid,TMNOFLAGS);
+  TransactionContext context=xaResource.getTransactionContext();
+  TransactionalMap<Object,Object> map=context.getMap("map");
+  map.put("key","val");
+  xaResource.end(xid,TMSUCCESS);
+  sleepSeconds(3);
+  try {
+    xaResource.commit(xid,true);
+    fail();
+  }
+ catch (  XAException e) {
+    assertEquals(XAException.XA_RBTIMEOUT,e.errorCode);
+  }
+}

@@ -1,0 +1,20 @@
+{
+  Map<Address,Member> memberMap=clusterService.getMembersRef();
+  if (memberMap == null) {
+    return;
+  }
+  if (memberAttributeChange == null) {
+    return;
+  }
+  for (  Member target : memberMap.values()) {
+    if (target.getUuid().equals(memberAttributeChange.getUuid())) {
+      final MemberAttributeOperationType operationType=memberAttributeChange.getOperationType();
+      final String key=memberAttributeChange.getKey();
+      final Object value=memberAttributeChange.getValue();
+      ((AbstractMember)target).updateAttribute(operationType,key,value);
+      MemberAttributeEvent memberAttributeEvent=new MemberAttributeEvent(client.getCluster(),target,operationType,key,value);
+      clusterService.fireMemberAttributeEvent(memberAttributeEvent);
+      break;
+    }
+  }
+}

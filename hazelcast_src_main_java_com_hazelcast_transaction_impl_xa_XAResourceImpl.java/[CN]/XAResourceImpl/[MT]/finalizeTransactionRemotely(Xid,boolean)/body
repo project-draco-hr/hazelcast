@@ -1,0 +1,20 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  OperationService operationService=nodeEngine.getOperationService();
+  SerializableXID serializableXID=new SerializableXID(xid.getFormatId(),xid.getGlobalTransactionId(),xid.getBranchQualifier());
+  Data xidData=nodeEngine.toData(serializableXID);
+  int partitionId=partitionService.getPartitionId(xidData);
+  FinalizeRemoteTransactionOperation operation=new FinalizeRemoteTransactionOperation(xidData,isCommit);
+  InternalCompletableFuture<Integer> future=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
+  Integer errorCode;
+  try {
+    errorCode=future.get();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  if (errorCode != null) {
+    throw new XAException(errorCode);
+  }
+}

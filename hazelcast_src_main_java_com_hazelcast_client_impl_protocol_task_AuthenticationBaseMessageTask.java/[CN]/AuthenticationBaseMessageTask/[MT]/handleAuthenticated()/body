@@ -13,9 +13,13 @@
       }
     }
   }
+  boolean isNotMember=clientEngine.getClusterService().getMember(principal.getOwnerUuid()) == null;
+  if (isNotMember) {
+    throw new AuthenticationException("Invalid owner-uuid: " + principal.getOwnerUuid() + ", it's not member of this cluster!");
+  }
   endpoint.authenticated(principal,credentials,isOwnerConnection());
   endpointManager.registerEndpoint(endpoint);
   clientEngine.bind(endpoint);
   final Address thisAddress=clientEngine.getThisAddress();
-  return AuthenticationResultParameters.encode(thisAddress,principal.getUuid(),principal.getOwnerUuid());
+  return encodeAuth(thisAddress,principal.getUuid(),principal.getOwnerUuid());
 }

@@ -1,12 +1,11 @@
 {
+  final NullResponseCountingCallback callback=new NullResponseCountingCallback(instances.length);
   for (  final HazelcastInstance instance : instances) {
     final IExecutorService service=instance.getExecutorService("testSubmitToMemberRunnable");
-    final String script="if(!hazelcast.getCluster().getLocalMember().getUuid().equals(memberUUID)) " + "hazelcast.getAtomicLong('testSubmitToMemberRunnable').incrementAndGet();";
-    final HashMap<String,String> map=new HashMap<String,String>();
-    map.put("memberUUID",instance.getCluster().getLocalMember().getUuid());
-    service.submitToMember(new ScriptRunnable(script,map),instance.getCluster().getLocalMember(),callback);
+    final Member localMember=instance.getCluster().getLocalMember();
+    service.submitToMember(new IncrementAtomicLongIfMemberUUIDNotMatchRunnable(localMember.getUuid(),"testSubmitToMemberRunnable"),localMember,callback);
   }
-  assertOpenEventually(latch);
+  assertOpenEventually(callback.getResponseLatch());
   assertEquals(0,instances[0].getAtomicLong("testSubmitToMemberRunnable").get());
-  assertEquals(instances.length,count.get());
+  assertEquals(instances.length,callback.getNullResponseCount());
 }

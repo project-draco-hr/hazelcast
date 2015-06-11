@@ -1,0 +1,19 @@
+{
+  if (state != PREPARED) {
+    throw new IllegalStateException("Transaction is not prepared");
+  }
+  checkTimeout();
+  try {
+    final List<Future> futures=new ArrayList<Future>(txLogs.size());
+    state=COMMITTING;
+    for (    TransactionLog txLog : txLogs) {
+      futures.add(txLog.commit(nodeEngine));
+    }
+    waitWithDeadline(futures,COMMIT_TIMEOUT_MINUTES,TimeUnit.MINUTES,commitExceptionHandler);
+    state=COMMITTED;
+  }
+ catch (  Throwable e) {
+    state=COMMIT_FAILED;
+    throw ExceptionUtil.rethrow(e,TransactionException.class);
+  }
+}
