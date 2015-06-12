@@ -1,0 +1,24 @@
+{
+  final StressMessageListener listener1=new StressMessageListener(1);
+  topic.addMessageListener(listener1);
+  final StressMessageListener listener2=new StressMessageListener(2);
+  topic.addMessageListener(listener2);
+  sleepSeconds(5);
+  final ProduceThread produceThread=new ProduceThread();
+  produceThread.start();
+  logger.info("Starting test");
+  sleepAndStop(stop,SECONDS.toSeconds(30));
+  logger.info("Completed");
+  produceThread.assertSucceedsEventually();
+  logger.info("Number of items produced: " + produceThread.send);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(produceThread.send,listener1.received);
+      assertEquals(produceThread.send,listener2.received);
+      assertEquals(0,listener1.failures);
+      assertEquals(0,listener2.failures);
+    }
+  }
+);
+  logger.info("Done");
+}

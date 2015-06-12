@@ -1,0 +1,18 @@
+{
+  ITopic topic=client.getReliableTopic("foo");
+  final ReliableMessageListenerMock listener=new ReliableMessageListenerMock();
+  topic.addMessageListener(listener);
+  final List<String> items=new ArrayList<String>();
+  for (int k=0; k < 5; k++) {
+    items.add("" + k);
+  }
+  for (  String item : items) {
+    topic.publish(item);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(items,Arrays.asList(listener.objects.toArray()));
+    }
+  }
+);
+}
