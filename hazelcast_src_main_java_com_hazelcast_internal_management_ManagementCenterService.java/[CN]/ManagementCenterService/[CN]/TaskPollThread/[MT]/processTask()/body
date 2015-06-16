@@ -15,21 +15,18 @@
       }
       ConsoleRequest task=requestClass.newInstance();
       task.fromJson(getObject(innerRequest,"request"));
-      processTaskAndSendResponse(taskId,task);
-    }
-    if (manCenterConnectionLost) {
-      logger.info("Connection to management center restored.");
-    }
-    manCenterConnectionLost=false;
-  }
- catch (  ConnectException e) {
-    if (!manCenterConnectionLost) {
-      manCenterConnectionLost=true;
-      log("Failed to connect to management center",e);
+      boolean success=processTaskAndSendResponse(taskId,task);
+      if (taskPollFailed && success) {
+        logger.info("Management center task polling successfull.");
+        taskPollFailed=false;
+      }
     }
   }
-catch (  Exception e) {
-    logger.warning(e);
+ catch (  Exception e) {
+    if (!taskPollFailed) {
+      taskPollFailed=true;
+      log("Failed to pull tasks from management center",e);
+    }
   }
  finally {
     IOUtil.closeResource(reader);

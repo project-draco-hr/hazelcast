@@ -13,20 +13,20 @@
     root.writeTo(writer);
     writer.flush();
     outputStream.flush();
-    post(connection);
-    if (manCenterConnectionLost) {
+    boolean success=post(connection);
+    if (manCenterConnectionLost && success) {
       logger.info("Connection to management center restored.");
+      manCenterConnectionLost=false;
     }
-    manCenterConnectionLost=false;
+ else     if (!success) {
+      manCenterConnectionLost=true;
+    }
   }
- catch (  ConnectException e) {
+ catch (  Exception e) {
     if (!manCenterConnectionLost) {
       manCenterConnectionLost=true;
       log("Failed to connect to:" + url,e);
     }
-  }
-catch (  Exception e) {
-    logger.warning(e);
   }
  finally {
     closeResource(writer);

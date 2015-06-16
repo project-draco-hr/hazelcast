@@ -1,25 +1,20 @@
 {
+  HttpURLConnection connection=openPostResponseConnection();
+  OutputStream outputStream=connection.getOutputStream();
+  final OutputStreamWriter writer=new OutputStreamWriter(outputStream,"UTF-8");
   try {
-    HttpURLConnection connection=openPostResponseConnection();
-    OutputStream outputStream=connection.getOutputStream();
-    final OutputStreamWriter writer=new OutputStreamWriter(outputStream,"UTF-8");
-    try {
-      JsonObject root=new JsonObject();
-      root.add("identifier",identifier.toJson());
-      root.add("taskId",taskId);
-      root.add("type",task.getType());
-      task.writeResponse(ManagementCenterService.this,root);
-      root.writeTo(writer);
-      writer.flush();
-      outputStream.flush();
-      post(connection);
-    }
-  finally {
-      closeResource(writer);
-      closeResource(outputStream);
-    }
+    JsonObject root=new JsonObject();
+    root.add("identifier",identifier.toJson());
+    root.add("taskId",taskId);
+    root.add("type",task.getType());
+    task.writeResponse(ManagementCenterService.this,root);
+    root.writeTo(writer);
+    writer.flush();
+    outputStream.flush();
+    return post(connection);
   }
- catch (  Exception e) {
-    logger.warning("Failed process task:" + task,e);
+  finally {
+    closeResource(writer);
+    closeResource(outputStream);
   }
 }
