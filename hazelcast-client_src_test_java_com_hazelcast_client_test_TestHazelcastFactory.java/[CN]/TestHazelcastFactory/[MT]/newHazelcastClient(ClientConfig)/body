@@ -1,0 +1,26 @@
+{
+  if (!mockNetwork) {
+    return HazelcastClient.newHazelcastClient(config);
+  }
+  if (config == null) {
+    config=new XmlClientConfigBuilder().build();
+  }
+  for (  Address address : addresses) {
+    config.getNetworkConfig().addAddress(address.getHost() + ":" + address.getPort());
+  }
+  final ClassLoader tccl=Thread.currentThread().getContextClassLoader();
+  HazelcastClientProxy proxy;
+  try {
+    Thread.currentThread().setContextClassLoader(HazelcastClient.class.getClassLoader());
+    ClientServiceFactory clientServiceFactory=clientRegistry.createClientServiceFactory(createAddress("127.0.0.1",clientPorts.incrementAndGet()));
+    final HazelcastClientInstanceImpl client=new HazelcastClientInstanceImpl(config,clientServiceFactory);
+    client.start();
+    clients.add(client);
+    OutOfMemoryErrorDispatcher.registerClient(client);
+    proxy=new HazelcastClientProxy(client);
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(tccl);
+  }
+  return proxy;
+}
