@@ -1,7 +1,7 @@
 {
   SerializationService serializationService=nodeEngine.getSerializationService();
   PagingPredicate pagingPredicate=predicate instanceof PagingPredicate ? (PagingPredicate)predicate : null;
-  List<QueryEntry> queryEntries=new LinkedList<QueryEntry>();
+  List<QueryableEntry> resultList=new LinkedList<QueryableEntry>();
   PartitionContainer container=mapServiceContext.getPartitionContainer(partitionId);
   Iterator<Record> iterator=container.getRecordStore(mapName).loadAwareIterator(getNow(),false);
   while (iterator.hasNext()) {
@@ -13,14 +13,8 @@
     }
     QueryEntry queryEntry=new QueryEntry(serializationService,key,key,value);
     if (predicate.apply(queryEntry)) {
-      if (pagingPredicate != null) {
-        Map.Entry anchor=pagingPredicate.getAnchor();
-        if (anchor != null && SortingUtil.compare(pagingPredicate.getComparator(),pagingPredicate.getIterationType(),anchor,queryEntry) >= 0) {
-          continue;
-        }
-      }
-      queryEntries.add(queryEntry);
+      resultList.add(queryEntry);
     }
   }
-  return getPage(queryEntries,pagingPredicate);
+  return SortingUtil.getSortedSubList(resultList,pagingPredicate);
 }

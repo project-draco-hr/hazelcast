@@ -1,30 +1,12 @@
 {
-  if (predicate instanceof IndexAwarePredicate) {
-    Set<QueryableEntry> set=((IndexAwarePredicate)predicate).filter(queryContext);
-    if (set == null) {
-      return null;
-    }
-    List<QueryableEntry> list=new LinkedList<QueryableEntry>();
-    Map.Entry anchor=getAnchor();
-    for (    QueryableEntry entry : set) {
-      if (SortingUtil.isSuitableForCompare(comparator,iterationType,entry)) {
-        if (anchor != null && SortingUtil.compare(comparator,iterationType,anchor,entry) >= 0) {
-          continue;
-        }
-        list.add(entry);
-      }
- else {
-        throw new IllegalArgumentException("If there is no comparator, " + "objects to compare (keys or values) must be comparable !");
-      }
-    }
-    if (list.isEmpty()) {
-      return null;
-    }
-    Collections.sort(list,SortingUtil.newComparator(this));
-    if (list.size() > pageSize) {
-      list=list.subList(0,pageSize);
-    }
-    return new LinkedHashSet<QueryableEntry>(list);
+  if (!(predicate instanceof IndexAwarePredicate)) {
+    return null;
   }
-  return null;
+  Set<QueryableEntry> set=((IndexAwarePredicate)predicate).filter(queryContext);
+  if (set == null || set.isEmpty()) {
+    return null;
+  }
+  List<QueryableEntry> resultList=new ArrayList<QueryableEntry>(set);
+  List<QueryableEntry> sortedSubList=SortingUtil.getSortedSubList(resultList,this);
+  return new LinkedHashSet<QueryableEntry>(sortedSubList);
 }

@@ -1,20 +1,12 @@
 {
   pagingPredicate.setIterationType(IterationType.KEY);
-  if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
-    pagingPredicate.previousPage();
-    keySet(pagingPredicate);
-    pagingPredicate.nextPage();
-  }
   ClientMessage request=MapKeySetWithPagingPredicateCodec.encodeRequest(name,toData(pagingPredicate));
   ClientMessage response=invoke(request);
   MapKeySetWithPagingPredicateCodec.ResponseParameters resultParameters=MapKeySetWithPagingPredicateCodec.decodeResponse(response);
-  final Comparator<Entry> comparator=SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.KEY);
-  final SortedQueryResultSet sortedResult=new SortedQueryResultSet(comparator,IterationType.KEY,pagingPredicate.getPageSize());
+  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
   for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
-    final K key=toObject(entry.getKey());
-    final V value=toObject(entry.getValue());
-    sortedResult.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
+    K key=toObject(entry.getKey());
+    resultList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,null));
   }
-  PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,sortedResult.last());
-  return (Set<K>)sortedResult;
+  return (Set<K>)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.KEY);
 }
