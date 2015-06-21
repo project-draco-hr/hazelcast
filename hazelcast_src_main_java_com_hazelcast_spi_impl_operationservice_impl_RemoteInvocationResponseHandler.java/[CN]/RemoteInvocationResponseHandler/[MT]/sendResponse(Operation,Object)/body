@@ -1,0 +1,16 @@
+{
+  Connection conn=operation.getConnection();
+  Response response;
+  if (obj instanceof Throwable) {
+    response=new ErrorResponse((Throwable)obj,operation.getCallId(),operation.isUrgent());
+  }
+ else   if (!(obj instanceof Response)) {
+    response=new NormalResponse(obj,operation.getCallId(),0,operation.isUrgent());
+  }
+ else {
+    response=(Response)obj;
+  }
+  if (!operationService.send(response,operation.getCallerAddress())) {
+    throw new HazelcastException("Cannot send response: " + obj + " to "+ conn.getEndPoint());
+  }
+}

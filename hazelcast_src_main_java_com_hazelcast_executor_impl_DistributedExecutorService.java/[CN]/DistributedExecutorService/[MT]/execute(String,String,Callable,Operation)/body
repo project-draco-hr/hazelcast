@@ -1,0 +1,18 @@
+{
+  startPending(name);
+  CallableProcessor processor=new CallableProcessor(name,uuid,callable,op);
+  if (uuid != null) {
+    submittedTasks.put(uuid,processor);
+  }
+  try {
+    executionService.execute(name,processor);
+  }
+ catch (  RejectedExecutionException e) {
+    rejectExecution(name);
+    logger.warning("While executing " + callable + " on Executor["+ name+ "]",e);
+    if (uuid != null) {
+      submittedTasks.remove(uuid);
+    }
+    processor.sendResponse(e);
+  }
+}
