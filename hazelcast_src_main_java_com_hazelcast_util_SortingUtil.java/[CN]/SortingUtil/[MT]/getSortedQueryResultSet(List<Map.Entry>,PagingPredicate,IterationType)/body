@@ -1,16 +1,23 @@
 {
+  if (list.isEmpty()) {
+    return new SortedQueryResultSet();
+  }
   Comparator<Map.Entry> comparator=SortingUtil.newComparator(pagingPredicate.getComparator(),iterationType);
   Collections.sort(list,comparator);
+  Map.Entry<Integer,Map.Entry> nearestAnchorEntry=getNearestAnchorEntry(pagingPredicate);
+  int nearestPage=nearestAnchorEntry.getKey();
+  int page=pagingPredicate.getPage();
   int pageSize=pagingPredicate.getPageSize();
-  int begin=pageSize * pagingPredicate.getPage();
+  int begin=pageSize * (page - nearestPage - 1);
   int size=list.size();
   if (begin > size) {
-    List<Map.Entry> emptyList=Collections.emptyList();
-    return new SortedQueryResultSet(emptyList,iterationType);
+    return new SortedQueryResultSet();
   }
   int end=begin + pageSize;
   if (end > size) {
     end=size;
   }
-  return new SortedQueryResultSet(list.subList(begin,end),iterationType);
+  setAnchor(list,pagingPredicate,nearestPage);
+  List<Map.Entry> subList=list.subList(begin,end);
+  return new SortedQueryResultSet(subList,iterationType);
 }
