@@ -1,32 +1,13 @@
 {
   pagingPredicate.setIterationType(IterationType.VALUE);
-  if (pagingPredicate.getPage() > 0 && pagingPredicate.getAnchor() == null) {
-    pagingPredicate.previousPage();
-    values(pagingPredicate);
-    pagingPredicate.nextPage();
-  }
   ClientMessage request=MapValuesWithPagingPredicateCodec.encodeRequest(name,toData(pagingPredicate));
   ClientMessage response=invoke(request);
   MapValuesWithPagingPredicateCodec.ResponseParameters resultParameters=MapValuesWithPagingPredicateCodec.decodeResponse(response);
-  int size=resultParameters.map.size();
-  List<Entry<K,V>> valueEntryList=new ArrayList<Entry<K,V>>(size);
+  List<Entry> resultList=new ArrayList<Entry>(resultParameters.map.size());
   for (  Entry<Data,Data> entry : resultParameters.map.entrySet()) {
     K key=toObject(entry.getKey());
     V value=toObject(entry.getValue());
-    valueEntryList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
+    resultList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
   }
-  Collections.sort(valueEntryList,SortingUtil.newComparator(pagingPredicate.getComparator(),IterationType.VALUE));
-  if (valueEntryList.size() > pagingPredicate.getPageSize()) {
-    valueEntryList=valueEntryList.subList(0,pagingPredicate.getPageSize());
-  }
-  Entry anchor=null;
-  if (valueEntryList.size() != 0) {
-    anchor=valueEntryList.get(valueEntryList.size() - 1);
-  }
-  PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,anchor);
-  ArrayList<V> values=new ArrayList<V>(valueEntryList.size());
-  for (  Entry<K,V> entry : valueEntryList) {
-    values.add(entry.getValue());
-  }
-  return values;
+  return (Collection)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.VALUE);
 }

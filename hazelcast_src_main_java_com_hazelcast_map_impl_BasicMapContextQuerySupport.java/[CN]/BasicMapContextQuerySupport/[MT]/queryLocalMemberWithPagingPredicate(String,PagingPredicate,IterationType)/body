@@ -1,15 +1,13 @@
 {
   pagingPredicate.setIterationType(iterationType);
-  setPreviousPagesAnchorsOnLocalMember(mapName,pagingPredicate,iterationType);
-  Set result=new SortedQueryResultSet(pagingPredicate.getComparator(),iterationType,pagingPredicate.getPageSize());
+  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
   List<Integer> partitionIds=getLocalPartitionIds();
   try {
     Future<QueryResult> future=queryOnLocalMember(mapName,pagingPredicate);
     List<Future<QueryResult>> futures=Collections.singletonList(future);
-    addResultsOfPagingPredicate(futures,result,partitionIds);
+    addResultsOfPagingPredicate(futures,resultList,partitionIds);
     if (partitionIds.isEmpty()) {
-      PagingPredicateAccessor.setPagingPredicateAnchor(pagingPredicate,((SortedQueryResultSet)result).last());
-      return result;
+      return getSortedQueryResultSet(resultList,pagingPredicate,iterationType);
     }
   }
  catch (  Throwable t) {
@@ -20,10 +18,10 @@
   }
   try {
     List<Future<QueryResult>> futures=queryOnPartitions(mapName,pagingPredicate,partitionIds);
-    addResultsOfPagingPredicate(futures,result,partitionIds);
+    addResultsOfPagingPredicate(futures,resultList,partitionIds);
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
   }
-  return result;
+  return getSortedQueryResultSet(resultList,pagingPredicate,iterationType);
 }
