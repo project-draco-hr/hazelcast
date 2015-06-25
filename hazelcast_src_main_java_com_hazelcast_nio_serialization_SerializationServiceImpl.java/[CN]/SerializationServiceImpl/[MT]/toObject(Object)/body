@@ -6,7 +6,8 @@
   if (isNullData(data)) {
     return null;
   }
-  BufferObjectDataInput in=createObjectDataInput(data);
+  BufferPool pool=bufferPoolThreadLocal.get();
+  BufferObjectDataInput in=pool.takeInputBuffer(data);
   try {
     final int typeId=data.getType();
     final SerializerAdapter serializer=serializerFor(typeId);
@@ -26,6 +27,6 @@
     throw handleException(e);
   }
  finally {
-    IOUtil.closeResource(in);
+    pool.returnInputBuffer(in);
   }
 }

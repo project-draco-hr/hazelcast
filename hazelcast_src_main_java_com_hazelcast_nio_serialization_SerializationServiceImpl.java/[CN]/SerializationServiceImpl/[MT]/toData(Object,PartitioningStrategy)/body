@@ -5,7 +5,8 @@
   if (obj instanceof Data) {
     return (Data)obj;
   }
-  BufferObjectDataOutput out=pop();
+  BufferPool pool=bufferPoolThreadLocal.get();
+  BufferObjectDataOutput out=pool.takeOutputBuffer();
   try {
     SerializerAdapter serializer=serializerFor(obj.getClass());
     out.writeInt(serializer.getTypeId(),ByteOrder.BIG_ENDIAN);
@@ -22,6 +23,6 @@
     throw handleException(e);
   }
  finally {
-    push(out);
+    pool.returnOutputBuffer(out);
   }
 }
