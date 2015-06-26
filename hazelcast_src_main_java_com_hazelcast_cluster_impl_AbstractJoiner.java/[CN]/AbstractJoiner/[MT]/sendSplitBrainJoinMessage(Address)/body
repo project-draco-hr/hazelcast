@@ -1,0 +1,32 @@
+{
+  if (logger.isFinestEnabled()) {
+    logger.finest(node.getThisAddress() + " is connecting to " + target);
+  }
+  Connection conn=node.connectionManager.getOrConnect(target,true);
+  int timeout=SPLIT_BRAIN_CONN_TIMEOUT;
+  while (conn == null) {
+    if ((timeout-=SPLIT_BRAIN_SLEEP_TIME) < 0) {
+      return null;
+    }
+    try {
+      Thread.sleep(SPLIT_BRAIN_SLEEP_TIME);
+    }
+ catch (    InterruptedException e) {
+      EmptyStatement.ignore(e);
+      return null;
+    }
+    conn=node.connectionManager.getConnection(target);
+  }
+  NodeEngine nodeEngine=node.nodeEngine;
+  Future f=nodeEngine.getOperationService().createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new JoinCheckOperation(node.createSplitBrainJoinMessage()),target).setTryCount(1).invoke();
+  try {
+    return (JoinMessage)f.get(5,TimeUnit.SECONDS);
+  }
+ catch (  TimeoutException e) {
+    logger.finest("Timeout during join check!",e);
+  }
+catch (  Exception e) {
+    logger.warning("Error during join check!",e);
+  }
+  return null;
+}

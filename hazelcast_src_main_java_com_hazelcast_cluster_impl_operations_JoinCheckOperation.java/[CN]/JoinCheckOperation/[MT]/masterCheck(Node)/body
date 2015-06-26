@@ -1,0 +1,17 @@
+{
+  ILogger logger=getLogger();
+  Address caller=getCallerAddress();
+  ClusterServiceImpl service=getService();
+  if (node.isMaster()) {
+    if (service.getMember(caller) != null) {
+      logger.info("Removing " + caller + ", since it thinks it's already split from this cluster "+ "and looking to merge.");
+      removeCaller=true;
+    }
+    return true;
+  }
+ else {
+    service.sendMasterConfirmation();
+    logger.info("Ignoring join check from " + caller + ", because this node is not master...");
+    return false;
+  }
+}

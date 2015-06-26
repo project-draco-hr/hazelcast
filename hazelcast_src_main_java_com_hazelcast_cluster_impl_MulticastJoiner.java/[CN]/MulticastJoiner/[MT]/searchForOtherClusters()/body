@@ -12,14 +12,21 @@
   }
 ;
   node.multicastService.addMulticastListener(listener);
-  node.multicastService.send(node.createJoinRequest());
+  node.multicastService.send(node.createJoinRequest(false));
   try {
     JoinMessage joinInfo=q.poll(3,TimeUnit.SECONDS);
     if (joinInfo != null) {
+      if (node.clusterService.getMember(joinInfo.getAddress()) != null) {
+        if (logger.isFinestEnabled()) {
+          logger.finest("Ignoring merge join response, since " + joinInfo.getAddress() + " is already a member.");
+        }
+        return;
+      }
       if (joinInfo.getMemberCount() == 1) {
         Thread.sleep(node.groupProperties.WAIT_SECONDS_BEFORE_JOIN.getInteger() * 1000L * 2);
       }
-      if (shouldMerge(joinInfo)) {
+      JoinMessage response=sendSplitBrainJoinMessage(joinInfo.getAddress());
+      if (shouldMerge(response)) {
         logger.warning(node.getThisAddress() + " is merging [multicast] to " + joinInfo.getAddress());
         startClusterMerge(joinInfo.getAddress());
       }
