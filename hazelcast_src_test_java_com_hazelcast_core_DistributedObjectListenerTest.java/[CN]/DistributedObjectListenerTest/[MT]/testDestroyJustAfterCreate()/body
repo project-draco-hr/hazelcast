@@ -1,0 +1,15 @@
+{
+  HazelcastInstance instance=Hazelcast.newHazelcastInstance();
+  instance.addDistributedObjectListener(new EventCountListener());
+  IMap<Object,Object> map=instance.getMap(randomString());
+  map.destroy();
+  AssertTask task=new AssertTask(){
+    @Override public void run() throws Exception {
+      Assert.assertEquals(1,EventCountListener.createdCount.get());
+      Assert.assertEquals(1,EventCountListener.destroyedCount.get());
+    }
+  }
+;
+  assertTrueEventually(task,5);
+  assertTrueAllTheTime(task,3);
+}
