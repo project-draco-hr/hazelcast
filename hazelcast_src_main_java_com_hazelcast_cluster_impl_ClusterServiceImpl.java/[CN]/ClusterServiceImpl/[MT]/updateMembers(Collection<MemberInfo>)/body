@@ -5,20 +5,22 @@
     if (!shouldProcessMemberUpdate(currentMemberMap,members)) {
       return;
     }
-    MemberImpl[] newMembers=new MemberImpl[members.size()];
+    MemberImpl[] updatedMembers=new MemberImpl[members.size()];
+    Collection<MemberImpl> newMembers=new LinkedList<MemberImpl>();
     int k=0;
     for (    MemberInfo memberInfo : members) {
       MemberImpl member=currentMemberMap.get(memberInfo.getAddress());
       if (member == null) {
         member=createMember(memberInfo.getAddress(),memberInfo.getUuid(),thisAddress.getScopeId(),memberInfo.getAttributes());
-        onHeartbeat(member);
+        newMembers.add(member);
+        long now=Clock.currentTimeMillis();
+        onHeartbeat(member,now);
+        masterConfirmationTimes.put(member,now);
       }
-      newMembers[k++]=member;
+      updatedMembers[k++]=member;
     }
-    setMembers(newMembers);
-    if (!getMemberList().contains(thisMember)) {
-      throw new HazelcastException("Member list doesn't contain local member!");
-    }
+    setMembers(updatedMembers);
+    sendMembershipEvents(currentMemberMap.values(),newMembers);
     joinReset();
     heartBeater();
     node.setJoined();

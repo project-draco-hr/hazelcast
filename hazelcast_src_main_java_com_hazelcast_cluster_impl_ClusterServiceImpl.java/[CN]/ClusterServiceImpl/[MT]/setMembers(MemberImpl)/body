@@ -7,34 +7,11 @@
   }
   lock.lock();
   try {
-    Map<Address,MemberImpl> oldMemberMap=membersMapRef.get();
     final Map<Address,MemberImpl> memberMap=new LinkedHashMap<Address,MemberImpl>();
-    final Collection<MemberImpl> newMembers=new LinkedList<MemberImpl>();
     for (    MemberImpl member : members) {
-      MemberImpl currentMember=oldMemberMap.get(member.getAddress());
-      if (currentMember == null) {
-        newMembers.add(member);
-        masterConfirmationTimes.put(member,Clock.currentTimeMillis());
-      }
       memberMap.put(member.getAddress(),member);
     }
     setMembersRef(memberMap);
-    if (!newMembers.isEmpty()) {
-      Set<Member> eventMembers=new LinkedHashSet<Member>(oldMemberMap.values());
-      if (newMembers.size() == 1) {
-        MemberImpl newMember=newMembers.iterator().next();
-        node.getPartitionService().memberAdded(newMember);
-        eventMembers.add(newMember);
-        sendMembershipEventNotifications(newMember,unmodifiableSet(eventMembers),true);
-      }
- else {
-        for (        MemberImpl newMember : newMembers) {
-          node.getPartitionService().memberAdded(newMember);
-          eventMembers.add(newMember);
-          sendMembershipEventNotifications(newMember,unmodifiableSet(new LinkedHashSet<Member>(eventMembers)),true);
-        }
-      }
-    }
   }
   finally {
     lock.unlock();
