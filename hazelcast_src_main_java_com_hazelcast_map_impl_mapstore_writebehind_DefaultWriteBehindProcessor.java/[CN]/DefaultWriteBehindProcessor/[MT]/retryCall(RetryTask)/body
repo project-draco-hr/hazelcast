@@ -1,13 +1,13 @@
 {
   boolean result=false;
-  Throwable throwable=null;
+  Exception exception=null;
   int k=0;
   for (; k < RETRY_TIMES_OF_A_FAILED_STORE_OPERATION; k++) {
     try {
       result=task.run();
     }
- catch (    Throwable t) {
-      throwable=t;
+ catch (    Exception ex) {
+      exception=ex;
     }
     if (!result) {
       sleepSeconds(RETRY_STORE_AFTER_WAIT_SECONDS);
@@ -17,10 +17,10 @@
     }
   }
   if (k > 0) {
-    final String msg=String.format("Store operation failed and retries %s",result ? "succeeded." : "failed too.");
-    logger.warning(msg,throwable);
     if (!result) {
-      return task.failureList();
+      List failureList=task.failureList();
+      logger.severe("Number of entries which could not be stored is = [" + failureList.size() + "]"+ ", Hazelcast will indefinitely retry to store them",exception);
+      return failureList;
     }
   }
   return Collections.emptyList();
