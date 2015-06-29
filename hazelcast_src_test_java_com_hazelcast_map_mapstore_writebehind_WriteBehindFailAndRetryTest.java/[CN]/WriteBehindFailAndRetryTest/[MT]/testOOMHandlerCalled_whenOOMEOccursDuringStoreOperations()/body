@@ -1,0 +1,13 @@
+{
+  LeakyMapStore mapStore=new LeakyMapStore<Integer,Integer>();
+  IMap map=TestMapUsingMapStoreBuilder.create().withMapStore(mapStore).withNodeCount(1).withNodeFactory(createHazelcastInstanceFactory(1)).withWriteDelaySeconds(1).withPartitionCount(1).build();
+  final CountDownLatch OOMHandlerCalled=new CountDownLatch(1);
+  OutOfMemoryErrorDispatcher.setServerHandler(new OutOfMemoryHandler(){
+    @Override public void onOutOfMemory(    OutOfMemoryError oome,    HazelcastInstance[] hazelcastInstances){
+      OOMHandlerCalled.countDown();
+    }
+  }
+);
+  map.put(1,2);
+  assertOpenEventually("OutOfMemoryHandler should be called",OOMHandlerCalled);
+}
