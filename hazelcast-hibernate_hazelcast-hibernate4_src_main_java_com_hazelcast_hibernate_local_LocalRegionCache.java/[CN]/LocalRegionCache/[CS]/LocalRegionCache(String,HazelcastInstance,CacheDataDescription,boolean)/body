@@ -1,12 +1,14 @@
 {
+  this.hazelcastInstance=hazelcastInstance;
   try {
     config=hazelcastInstance != null ? hazelcastInstance.getConfig().findMapConfig(name) : null;
   }
  catch (  UnsupportedOperationException e) {
-    Logger.getLogger(LocalRegionCache.class).finest(e);
+    log.finest(e);
   }
   versionComparator=metadata != null && metadata.isVersioned() ? metadata.getVersionComparator() : null;
-  cache=new ConcurrentHashMap<Object,Value>();
+  cache=new ConcurrentHashMap<Object,Expirable>();
+  markerIdCounter=new AtomicLong();
   messageListener=createMessageListener();
   if (withTopic && hazelcastInstance != null) {
     topic=hazelcastInstance.getTopic(name);

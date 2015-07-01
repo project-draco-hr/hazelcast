@@ -1,15 +1,16 @@
 {
   List<EvictionEntry> entries=null;
-  Iterator<Entry<Object,Value>> iter=cache.entrySet().iterator();
-  long now=Clock.currentTimeMillis();
+  Iterator<Entry<Object,Expirable>> iter=cache.entrySet().iterator();
+  long now=nextTimestamp();
   while (iter.hasNext()) {
-    final Entry<Object,Value> e=iter.next();
+    final Entry<Object,Expirable> e=iter.next();
     final Object k=e.getKey();
-    final Value v=e.getValue();
-    if (v.getLock() == LOCK_SUCCESS) {
+    final Expirable expirable=e.getValue();
+    if (expirable instanceof ExpiryMarker) {
       continue;
     }
-    if (timeToLive > 0 && v.getCreationTime() + timeToLive < now) {
+    final Value v=(Value)expirable;
+    if (timeToLive > 0 && v.getTimestamp() + timeToLive < now) {
       iter.remove();
     }
  else     if (limitSize) {
