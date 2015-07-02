@@ -1,0 +1,14 @@
+{
+  ExpiryMarker original=new ExpiryMarker(null,0L,"the-marker-id");
+  Map.Entry<Object,Expirable> entry=mockEntry(original);
+  LockEntryProcessor processor=new LockEntryProcessor("next-marker-id",100L,null);
+  ArgumentCaptor<Expirable> captor=ArgumentCaptor.forClass(Expirable.class);
+  processor.process(entry);
+  verify(entry).setValue(captor.capture());
+  Expirable result=captor.getValue();
+  assertThat(result,instanceOf(ExpiryMarker.class));
+  ExpiryMarker marker=(ExpiryMarker)result;
+  assertFalse(marker.matches(new ExpiryMarker(null,0L,"next-marker-id")));
+  assertTrue(marker.matches(original));
+  assertTrue(marker.isConcurrent());
+}

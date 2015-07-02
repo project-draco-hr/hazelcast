@@ -1,19 +1,8 @@
 {
   return new MessageListener<Object>(){
     public void onMessage(    final Message<Object> message){
-      final Invalidation invalidation=(Invalidation)message.getMessageObject();
-      if (versionComparator != null) {
-        final Value value=cache.get(invalidation.getKey());
-        if (value != null) {
-          Object currentVersion=value.getVersion();
-          Object newVersion=invalidation.getVersion();
-          if (versionComparator.compare(newVersion,currentVersion) > 0) {
-            cache.remove(invalidation.getKey(),value);
-          }
-        }
-      }
- else {
-        cache.remove(invalidation.getKey());
+      if (!message.getPublishingMember().localMember()) {
+        maybeInvalidate(message.getMessageObject());
       }
     }
   }

@@ -6,8 +6,16 @@
   when(mapConfig.getTimeToLiveSeconds()).thenReturn(timeout);
   Config config=mock(Config.class);
   when(config.findMapConfig(eq(REGION_NAME))).thenReturn(mapConfig);
+  Cluster cluster=mock(Cluster.class);
+  when(cluster.getClusterTime()).thenAnswer(new Answer<Long>(){
+    @Override public Long answer(    InvocationOnMock invocation) throws Throwable {
+      return System.currentTimeMillis();
+    }
+  }
+);
   HazelcastInstance instance=mock(HazelcastInstance.class);
   when(instance.getConfig()).thenReturn(config);
+  when(instance.getCluster()).thenReturn(cluster);
   HazelcastQueryResultsRegion region=new HazelcastQueryResultsRegion(instance,REGION_NAME,new Properties());
   assertEquals(TimeUnit.SECONDS.toMillis(timeout),region.getTimeout());
   verify(instance,atLeastOnce()).getConfig();
@@ -18,7 +26,7 @@
   assertNotNull(regionCache);
   int oversized=maxSize * 2;
   for (int i=0; i < oversized; ++i) {
-    regionCache.put(i,i,i);
+    regionCache.put(i,i,System.currentTimeMillis(),i);
   }
   assertEquals(oversized,regionCache.size());
   LocalRegionCacheTest.runCleanup(regionCache);
