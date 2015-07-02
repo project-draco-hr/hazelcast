@@ -1,0 +1,10 @@
+{
+  Map.Entry<Object,Expirable> entry=mockEntry(new Value(null,100L,"some-value"));
+  UpdateEntryProcessor processor=new UpdateEntryProcessor(new ExpiryMarker(null,100L,"the-marker-id"),"new-value",null,"next-marker-id",150L);
+  ArgumentCaptor<Expirable> captor=ArgumentCaptor.forClass(Expirable.class);
+  assertFalse(processor.process(entry));
+  verify(entry).setValue(captor.capture());
+  Expirable result=captor.getValue();
+  assertThat(result,instanceOf(ExpiryMarker.class));
+  assertTrue("Marker should be expired",result.isReplaceableBy(151L,null,null));
+}
