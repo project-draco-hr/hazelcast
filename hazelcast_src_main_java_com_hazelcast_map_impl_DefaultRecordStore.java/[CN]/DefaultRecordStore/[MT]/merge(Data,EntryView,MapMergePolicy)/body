@@ -13,6 +13,7 @@
     }
     newValue=mapDataStore.add(key,newValue,now);
     record=createRecord(key,newValue,now);
+    mergeRecordExpiration(record,mergingEntry);
     records.put(key,record);
     updateSizeEstimator(calculateRecordHeapCost(record));
   }
@@ -27,6 +28,9 @@
       updateSizeEstimator(-calculateRecordHeapCost(record));
       deleteRecord(key);
       return true;
+    }
+    if (newValue == mergingEntry.getValue()) {
+      mergeRecordExpiration(record,mergingEntry);
     }
     if (mapServiceContext.compare(name,newValue,oldValue)) {
       return true;
