@@ -1,0 +1,59 @@
+{
+  setLoggingLog4j();
+  System.out.println("nodeCount = " + nodeCount);
+  System.out.println("operations = " + operations);
+  System.out.println("keyCount = " + keyCount);
+  Config config=new Config();
+  config.getReplicatedMapConfig("test").setReplicationDelayMillis(0);
+  TestHazelcastInstanceFactory factory=new TestHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance[] instances=factory.newInstances(config);
+  String replicatedMapName="test";
+  final List<ReplicatedMap> maps=createMaps(instances,replicatedMapName);
+  ArrayList<Integer> keys=generateRandomIntegerList(keyCount);
+  Thread[] threads=createThreads(nodeCount,maps,keys,operations);
+  for (  Thread thread : threads) {
+    thread.start();
+  }
+  for (  Thread thread : threads) {
+    thread.join();
+  }
+  for (int i=0; i < keyCount; i++) {
+    final String key="foo-" + keys.get(i);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        System.out.println("---------------------");
+        System.out.println("key = " + key);
+        for (        HazelcastInstance instance : instances) {
+          NodeEngineImpl nodeEngine=getNodeEngineImpl(instance);
+          int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+          LongGauge version=nodeEngine.getMetricsRegistry().newLongGauge("test." + partitionId + ".version.version");
+          LongGauge increments=nodeEngine.getMetricsRegistry().newLongGauge("test." + partitionId + ".incrementVersion.incrementVersion");
+          LongGauge setVersion=nodeEngine.getMetricsRegistry().newLongGauge("test." + partitionId + ".setVersion.setVersion");
+          System.out.println("version= " + version.read());
+          System.out.println("increments= " + increments.read());
+          System.out.println("setVersion= " + setVersion.read());
+        }
+        printValues();
+        assertValuesAreEqual();
+      }
+      private void printValues() throws Exception {
+        for (int j=0; j < maps.size(); j++) {
+          ReplicatedMap map=maps.get(j);
+          System.out.println("value[" + j + "] = "+ map.get(key)+ " , store version : "+ getStore(map,key).getVersion());
+        }
+      }
+      private void assertValuesAreEqual(){
+        for (int i=0; i < maps.size() - 1; i++) {
+          ReplicatedMap map1=maps.get(i);
+          ReplicatedMap map2=maps.get(i + 1);
+          Object v1=map1.get(key);
+          Object v2=map2.get(key);
+          assertNotNull(v1);
+          assertNotNull(v2);
+          assertEquals(v1,v2);
+        }
+      }
+    }
+,120);
+  }
+}

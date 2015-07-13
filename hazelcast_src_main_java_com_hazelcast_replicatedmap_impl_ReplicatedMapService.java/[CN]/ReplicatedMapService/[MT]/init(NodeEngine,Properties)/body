@@ -1,2 +1,33 @@
 {
+  if (config.isLiteMember()) {
+    return;
+  }
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    partitionContainers[i]=new PartitionContainer(this,i);
+  }
+  nodeEngine.getExecutionService().getDefaultScheduledExecutor().scheduleWithFixedDelay(new Runnable(){
+    @Override public void run(){
+      if (clusterService.getSize() == 1) {
+        return;
+      }
+      Collection<Address> addresses=new ArrayList<Address>(getMemberAddresses(DATA_MEMBER_SELECTOR));
+      addresses.remove(nodeEngine.getThisAddress());
+      for (int i=0; i < partitionContainers.length; i++) {
+        Address thisAddress=nodeEngine.getThisAddress();
+        InternalPartition partition=partitionService.getPartition(i,false);
+        Address ownerAddress=partition.getOwnerOrNull();
+        if (!thisAddress.equals(ownerAddress)) {
+          continue;
+        }
+        PartitionContainer partitionContainer=partitionContainers[i];
+        for (        Address address : addresses) {
+          CheckReplicaVersion checkReplicaVersion=new CheckReplicaVersion(partitionContainer);
+          checkReplicaVersion.setPartitionId(i);
+          checkReplicaVersion.setValidateTarget(false);
+          operationService.invokeOnTarget(SERVICE_NAME,checkReplicaVersion,address);
+        }
+      }
+    }
+  }
+,0,SYNC_INTERVAL_SECONDS,TimeUnit.SECONDS);
 }

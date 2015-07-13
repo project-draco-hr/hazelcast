@@ -1,0 +1,19 @@
+{
+  int storeCount=container.getStores().size();
+  data=new HashMap<String,Set<RecordMigrationInfo>>(storeCount);
+  versions=new HashMap<String,Long>(storeCount);
+  for (  Map.Entry<String,ReplicatedRecordStore> entry : container.getStores().entrySet()) {
+    String name=entry.getKey();
+    ReplicatedRecordStore store=entry.getValue();
+    Set<RecordMigrationInfo> recordSet=new HashSet<RecordMigrationInfo>(store.size());
+    Iterator<ReplicatedRecord> iterator=store.recordIterator();
+    while (iterator.hasNext()) {
+      ReplicatedRecord record=iterator.next();
+      Data dataKey=serializationService.toData(record.getKeyInternal());
+      Data dataValue=serializationService.toData(record.getValueInternal());
+      recordSet.add(new RecordMigrationInfo(dataKey,dataValue,record.getTtlMillis()));
+    }
+    data.put(name,recordSet);
+    versions.put(name,store.getVersion());
+  }
+}

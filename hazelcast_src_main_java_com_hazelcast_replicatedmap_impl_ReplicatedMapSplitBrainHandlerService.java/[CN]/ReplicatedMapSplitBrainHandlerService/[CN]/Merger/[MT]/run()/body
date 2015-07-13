@@ -1,0 +1,41 @@
+{
+  final Semaphore semaphore=new Semaphore(0);
+  int recordCount=0;
+  final ILogger logger=nodeEngine.getLogger(ReplicatedMapService.class);
+  ExecutionCallback mergeCallback=new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      semaphore.release(1);
+    }
+    @Override public void onFailure(    Throwable t){
+      logger.warning("Error while running replicated map merge operation: " + t.getMessage());
+      semaphore.release(1);
+    }
+  }
+;
+  for (  Map.Entry<String,Collection<ReplicatedRecord>> entry : recordMap.entrySet()) {
+    recordCount++;
+    String name=entry.getKey();
+    Collection<ReplicatedRecord> records=entry.getValue();
+    ReplicatedMapConfig replicatedMapConfig=replicatedMapService.getReplicatedMapConfig(name);
+    String mergePolicy=replicatedMapConfig.getMergePolicy();
+    ReplicatedMapMergePolicy policy=mergePolicyProvider.getMergePolicy(mergePolicy);
+    for (    ReplicatedRecord record : records) {
+      ReplicatedMapEntryView entryView=createEntryView(record);
+      MergeOperation mergeOperation=new MergeOperation(name,record.getKeyInternal(),entryView,policy);
+      try {
+        int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKeyInternal());
+        ICompletableFuture f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,mergeOperation,partitionId);
+        f.andThen(mergeCallback);
+      }
+ catch (      Throwable t) {
+        throw ExceptionUtil.rethrow(t);
+      }
+    }
+  }
+  try {
+    semaphore.tryAcquire(recordCount,recordCount * TIMEOUT_FACTOR,TimeUnit.MILLISECONDS);
+  }
+ catch (  InterruptedException e) {
+    logger.finest("Interrupted while waiting replicated map merge operation...");
+  }
+}

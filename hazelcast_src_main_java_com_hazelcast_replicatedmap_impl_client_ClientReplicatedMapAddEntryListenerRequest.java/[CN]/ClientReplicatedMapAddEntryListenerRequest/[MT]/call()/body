@@ -1,14 +1,18 @@
 {
+  if (getClientEngine().getConfig().isLiteMember()) {
+    throw new ReplicatedMapCantBeCreatedOnLiteMemberException("Listener cannot be registered on lite members!");
+  }
   final ClientEndpoint endpoint=getEndpoint();
-  final ReplicatedRecordStore replicatedRecordStore=getReplicatedRecordStore();
-  final EntryListener<Object,Object> listener=new ClientReplicatedMapEntryListener();
+  ReplicatedMapService service=getService();
+  ReplicatedMapEventPublishingService eventPublishingService=service.getEventPublishingService();
+  final EntryListener listener=new ClientReplicatedMapEntryListener();
   String registrationId;
   if (predicate == null) {
-    registrationId=replicatedRecordStore.addEntryListener(listener,key);
+    registrationId=eventPublishingService.addEventListener(listener,new ReplicatedEntryEventFilter(key),mapName);
   }
  else {
-    registrationId=replicatedRecordStore.addEntryListener(listener,predicate,key);
+    registrationId=eventPublishingService.addEventListener(listener,new ReplicatedQueryEventFilter(key,predicate),mapName);
   }
-  endpoint.addListenerDestroyAction(ReplicatedMapService.SERVICE_NAME,getMapName(),registrationId);
+  endpoint.addListenerDestroyAction(ReplicatedMapService.SERVICE_NAME,mapName,registrationId);
   return registrationId;
 }

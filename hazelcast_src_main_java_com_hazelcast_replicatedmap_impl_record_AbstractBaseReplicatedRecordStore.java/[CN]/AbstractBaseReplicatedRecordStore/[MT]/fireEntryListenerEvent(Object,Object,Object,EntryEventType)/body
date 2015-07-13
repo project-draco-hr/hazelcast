@@ -1,13 +1,17 @@
 {
   Collection<EventRegistration> registrations=eventService.getRegistrations(ReplicatedMapService.SERVICE_NAME,name);
-  if (registrations.size() > 0) {
-    EntryEvent event=new EntryEvent(name,nodeEngine.getLocalMember(),eventType.getType(),key,oldValue,value);
-    for (    EventRegistration registration : registrations) {
-      EventFilter filter=registration.getFilter();
-      boolean publish=filter == null || filter.eval(marshallKey(key));
-      if (publish) {
-        eventService.publishEvent(ReplicatedMapService.SERVICE_NAME,registration,event,name.hashCode());
-      }
+  if (registrations.size() <= 0) {
+    return;
+  }
+  Data dataKey=serializationService.toData(key);
+  Data dataValue=serializationService.toData(value);
+  Data dataOldValue=serializationService.toData(oldValue);
+  EntryEventData eventData=new EntryEventData(name,name,nodeEngine.getThisAddress(),dataKey,dataValue,dataOldValue,eventType.getType());
+  for (  EventRegistration registration : registrations) {
+    EventFilter filter=registration.getFilter();
+    boolean publish=filter == null || filter.eval(dataKey);
+    if (publish) {
+      eventService.publishEvent(ReplicatedMapService.SERVICE_NAME,registration,eventData,dataKey.hashCode());
     }
   }
 }

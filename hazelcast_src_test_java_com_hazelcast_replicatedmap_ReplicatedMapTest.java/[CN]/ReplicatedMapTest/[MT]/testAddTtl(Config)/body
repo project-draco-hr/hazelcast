@@ -13,38 +13,36 @@
       }
     }
   }
-,60,EntryEventType.ADDED,operations,0.75,map1,map2);
-  getReplicationPublisher(map2).emptyReplicationQueue();
-  getReplicationPublisher(map1).emptyReplicationQueue();
+,60,EntryEventType.ADDED,operations,1,map1,map2);
   TimeUnit.SECONDS.sleep(2);
   Set<Entry<String,String>> map2entries=map2.entrySet();
-  for (  Map.Entry<String,String> entry : map2entries) {
+  for (  Entry<String,String> entry : map2entries) {
     assertStartsWith("foo-",entry.getKey());
     assertEquals("bar",entry.getValue());
     ReplicatedRecord<String,String> record=getReplicatedRecord(map2,entry.getKey());
     assertNotEquals(0,record.getTtlMillis());
-    record.setValue(record.getValue(),record.getLatestUpdateHash(),1);
+    record.setValue(record.getValue(),1);
   }
   Set<Entry<String,String>> map1entries=map1.entrySet();
-  for (  Map.Entry<String,String> entry : map1entries) {
+  for (  Entry<String,String> entry : map1entries) {
     assertStartsWith("foo-",entry.getKey());
     assertEquals("bar",entry.getValue());
     ReplicatedRecord<String,String> record=getReplicatedRecord(map1,entry.getKey());
     assertNotEquals(0,record.getTtlMillis());
-    record.setValue(record.getValue(),record.getLatestUpdateHash(),1);
+    record.setValue(record.getValue(),1);
   }
   TimeUnit.SECONDS.sleep(1);
   int map2Updated=0;
-  for (  Map.Entry<String,String> entry : map2entries) {
+  for (  Entry<String,String> entry : map2entries) {
     if (map2.get(entry.getKey()) == null) {
       map2Updated++;
     }
   }
   int map1Updated=0;
-  for (  Map.Entry<String,String> entry : map1entries) {
+  for (  Entry<String,String> entry : map1entries) {
     if (map1.get(entry.getKey()) == null) {
       map1Updated++;
     }
   }
-  assertMatchSuccessfulOperationQuota(0.75,operations,map1Updated,map2Updated);
+  assertMatchSuccessfulOperationQuota(1,operations,map1Updated,map2Updated);
 }

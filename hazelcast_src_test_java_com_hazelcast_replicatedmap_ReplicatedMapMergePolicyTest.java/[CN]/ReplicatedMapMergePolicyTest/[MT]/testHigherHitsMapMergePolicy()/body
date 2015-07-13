@@ -1,0 +1,30 @@
+{
+  String mapName=randomMapName();
+  Config config=newConfig(HigherHitsMapMergePolicy.class.getName(),mapName);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
+  h2.getCluster().addMembershipListener(memberShipListener);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  closeConnectionBetween(h1,h2);
+  assertOpenEventually(memberShipListener.latch);
+  assertClusterSizeEventually(1,h1);
+  assertClusterSizeEventually(1,h2);
+  ReplicatedMap<Object,Object> map1=h1.getReplicatedMap(mapName);
+  map1.put("key1","higherHitsValue");
+  map1.put("key2","value2");
+  map1.get("key1");
+  map1.get("key1");
+  ReplicatedMap<Object,Object> map2=h2.getReplicatedMap(mapName);
+  map2.put("key1","value1");
+  map2.put("key2","higherHitsValue2");
+  map2.get("key2");
+  map2.get("key2");
+  assertOpenEventually(lifeCycleListener.latch);
+  assertClusterSizeEventually(2,h1);
+  assertClusterSizeEventually(2,h2);
+  ReplicatedMap<Object,Object> mapTest=h2.getReplicatedMap(mapName);
+  assertEquals("higherHitsValue",mapTest.get("key1"));
+  assertEquals("higherHitsValue2",mapTest.get("key2"));
+}

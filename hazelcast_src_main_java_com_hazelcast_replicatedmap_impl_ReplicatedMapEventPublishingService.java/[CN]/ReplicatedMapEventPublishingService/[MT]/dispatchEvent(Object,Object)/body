@@ -1,0 +1,45 @@
+{
+  if (nodeEngine.getConfig().isLiteMember()) {
+    final Class<?> eventClazz=event.getClass();
+    nodeEngine.getLogger(ReplicatedMapService.class).warning("Replicated map event ignored by lite member " + eventClazz);
+    return;
+  }
+  if (!(event instanceof EntryEventData)) {
+    return;
+  }
+  EntryEventData entryEventData=(EntryEventData)event;
+  Member member=getMember(entryEventData);
+  EntryEvent entryEvent=createDataAwareEntryEvent(entryEventData,member);
+  EntryListener entryListener=(EntryListener)listener;
+switch (entryEvent.getEventType()) {
+case ADDED:
+    entryListener.entryAdded(entryEvent);
+  break;
+case EVICTED:
+entryListener.entryEvicted(entryEvent);
+break;
+case UPDATED:
+entryListener.entryUpdated(entryEvent);
+break;
+case REMOVED:
+entryListener.entryRemoved(entryEvent);
+break;
+default :
+throw new IllegalArgumentException("event type " + entryEvent.getEventType() + " not supported");
+}
+String mapName=((EntryEventData)event).getMapName();
+Boolean statisticsEnabled=statisticsMap.get(mapName);
+if (statisticsEnabled == null) {
+ReplicatedMapConfig mapConfig=config.findReplicatedMapConfig(mapName);
+statisticsEnabled=mapConfig.isStatisticsEnabled();
+statisticsMap.put(mapName,statisticsEnabled);
+}
+if (statisticsEnabled) {
+int partitionId=nodeEngine.getPartitionService().getPartitionId(entryEventData.getDataKey());
+ReplicatedRecordStore recordStore=replicatedMapService.getPartitionContainer(partitionId).getRecordStore(mapName);
+if (recordStore instanceof AbstractReplicatedRecordStore) {
+LocalReplicatedMapStatsImpl stats=((AbstractReplicatedRecordStore)recordStore).getStats();
+stats.incrementReceivedEvents();
+}
+}
+}

@@ -1,0 +1,28 @@
+{
+  String mapName=randomMapName();
+  Config config=newConfig(LatestUpdateMapMergePolicy.class.getName(),mapName);
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
+  h2.getCluster().addMembershipListener(memberShipListener);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  closeConnectionBetween(h1,h2);
+  assertOpenEventually(memberShipListener.latch);
+  assertClusterSizeEventually(1,h1);
+  assertClusterSizeEventually(1,h2);
+  ReplicatedMap<Object,Object> map1=h1.getReplicatedMap(mapName);
+  ReplicatedMap<Object,Object> map2=h2.getReplicatedMap(mapName);
+  map1.put("key1","value");
+  sleepMillis(1);
+  map2.put("key1","LatestUpdatedValue");
+  map2.put("key2","value2");
+  sleepMillis(1);
+  map1.put("key2","LatestUpdatedValue2");
+  assertOpenEventually(lifeCycleListener.latch);
+  assertClusterSizeEventually(2,h1);
+  assertClusterSizeEventually(2,h2);
+  ReplicatedMap<Object,Object> mapTest=h1.getReplicatedMap(mapName);
+  assertEquals("LatestUpdatedValue",mapTest.get("key1"));
+  assertEquals("LatestUpdatedValue2",mapTest.get("key2"));
+}

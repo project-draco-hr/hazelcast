@@ -1,3 +1,9 @@
 {
-  return (V)replicatedRecordStore.remove(key);
+  isNotNull(key,"key");
+  Data dataKey=nodeEngine.toData(key);
+  int partitionId=partitionService.getPartitionId(key);
+  RemoveOperation removeOperation=new RemoveOperation(getName(),dataKey);
+  InternalCompletableFuture<Object> future=getOperationService().invokeOnPartition(getServiceName(),removeOperation,partitionId);
+  VersionResponsePair result=(VersionResponsePair)future.getSafely();
+  return nodeEngine.toObject(result.getResponse());
 }

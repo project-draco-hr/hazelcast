@@ -1,0 +1,42 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory();
+  Config config=new Config();
+  String mapName=randomMapName();
+  ReplicatedMapConfig replicatedMapConfig=config.getReplicatedMapConfig(mapName);
+  replicatedMapConfig.setAsyncFillup(true);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap(mapName);
+  fillMap(map1,0,1000);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap(mapName);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1000,map1.size());
+      assertEquals(1000,map2.size());
+    }
+  }
+);
+  fillMap(map2,1000,2000);
+  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(config);
+  final ReplicatedMap<Integer,Integer> map3=instance3.getReplicatedMap(mapName);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(2000,map1.size());
+      assertEquals(2000,map2.size());
+      assertEquals(2000,map3.size());
+    }
+  }
+);
+  fillMap(map3,2000,3000);
+  HazelcastInstance instance4=nodeFactory.newHazelcastInstance(config);
+  final ReplicatedMap<Integer,Integer> map4=instance4.getReplicatedMap(mapName);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(3000,map1.size());
+      assertEquals(3000,map2.size());
+      assertEquals(3000,map3.size());
+      assertEquals(3000,map4.size());
+    }
+  }
+);
+}

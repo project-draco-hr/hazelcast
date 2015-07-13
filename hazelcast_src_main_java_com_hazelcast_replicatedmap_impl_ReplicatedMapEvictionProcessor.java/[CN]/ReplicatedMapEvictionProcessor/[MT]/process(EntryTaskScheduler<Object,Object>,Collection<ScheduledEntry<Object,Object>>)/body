@@ -1,14 +1,16 @@
 {
-  final ReplicatedRecordStore replicatedRecordStore=replicatedMapService.getReplicatedRecordStore(mapName,false);
-  if (replicatedRecordStore != null) {
-    for (    ScheduledEntry<Object,Object> entry : entries) {
-      Object key=entry.getKey();
-      if (entry.getValue() == null) {
-        replicatedRecordStore.removeTombstone(key);
-      }
+  for (  ScheduledEntry<Object,Object> entry : entries) {
+    Object key=entry.getKey();
+    int partitionId=replicatedMapService.getNodeEngine().getPartitionService().getPartitionId(key);
+    final ReplicatedRecordStore store=replicatedMapService.getReplicatedRecordStore(mapName,false,partitionId);
+    if (store == null) {
+      continue;
+    }
+    if (entry.getValue() == null) {
+      store.removeTombstone(key);
+    }
  else {
-        replicatedRecordStore.evict(key);
-      }
+      store.evict(key);
     }
   }
 }

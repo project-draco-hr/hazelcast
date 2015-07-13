@@ -1,0 +1,16 @@
+{
+  int partitionId=getPartitionId();
+  service=getService();
+  store=service.getReplicatedRecordStore(name,true,getPartitionId());
+  InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+  for (  Map.Entry<Data,Data> entry : entries.getEntries()) {
+    Data key=entry.getKey();
+    Data value=entry.getValue();
+    if (partitionId != partitionService.getPartitionId(key)) {
+      continue;
+    }
+    Object putResponse=store.put(key,value);
+    VersionResponsePair response=new VersionResponsePair(putResponse,store.getVersion());
+    publishReplicationMessage(key,value,response);
+  }
+}

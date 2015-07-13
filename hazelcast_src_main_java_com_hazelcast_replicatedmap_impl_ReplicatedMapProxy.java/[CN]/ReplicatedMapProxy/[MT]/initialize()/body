@@ -1,3 +1,18 @@
 {
-  replicatedRecordStore.initialize();
+  service.initializeListeners(name);
+  if (nodeEngine.getClusterService().getSize() == 1) {
+    return;
+  }
+  fireMapDataLoadingTasks();
+  if (!config.isAsyncFillup()) {
+    for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+      ReplicatedRecordStore store=service.getReplicatedRecordStore(name,false,i);
+      while (!store.isLoaded()) {
+        if ((retryCount++) % RETRY_INTERVAL_COUNT == 0) {
+          requestDataForPartition(i);
+        }
+        sleep();
+      }
+    }
+  }
 }

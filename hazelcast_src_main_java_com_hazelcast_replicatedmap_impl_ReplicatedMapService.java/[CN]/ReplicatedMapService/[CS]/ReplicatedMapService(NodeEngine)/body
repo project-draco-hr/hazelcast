@@ -1,11 +1,11 @@
 {
   this.nodeEngine=nodeEngine;
   this.config=nodeEngine.getConfig();
-  this.eventService=nodeEngine.getEventService();
-  if (!config.isLiteMember()) {
-    this.eventRegistration=eventService.registerListener(SERVICE_NAME,EVENT_TOPIC_NAME,new ReplicationListener());
-  }
- else {
-    this.eventRegistration=null;
-  }
+  this.partitionService=(InternalPartitionServiceImpl)nodeEngine.getPartitionService();
+  this.clusterService=(ClusterServiceImpl)nodeEngine.getClusterService();
+  this.operationService=nodeEngine.getOperationService();
+  this.partitionContainers=new PartitionContainer[nodeEngine.getPartitionService().getPartitionCount()];
+  this.eventPublishingService=new ReplicatedMapEventPublishingService(this);
+  this.mergePolicyProvider=new MergePolicyProvider(nodeEngine);
+  this.replicatedMapSplitBrainHandlerService=new ReplicatedMapSplitBrainHandlerService(this,mergePolicyProvider,partitionContainers);
 }

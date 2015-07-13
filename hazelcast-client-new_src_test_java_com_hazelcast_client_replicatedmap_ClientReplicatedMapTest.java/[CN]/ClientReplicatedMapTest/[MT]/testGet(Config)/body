@@ -1,0 +1,20 @@
+{
+  HazelcastInstance instance1=hazelcastFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=hazelcastFactory.newHazelcastClient();
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int operations=100;
+  WatchedOperationExecutor executor=new WatchedOperationExecutor();
+  executor.execute(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < operations; i++) {
+        map1.put("foo-" + i,"bar");
+      }
+    }
+  }
+,60,EntryEventType.ADDED,operations,1,map1,map2);
+  for (int i=0; i < operations; i++) {
+    assertEquals("bar",map1.get("foo-" + i));
+    assertEquals("bar",map2.get("foo-" + i));
+  }
+}
