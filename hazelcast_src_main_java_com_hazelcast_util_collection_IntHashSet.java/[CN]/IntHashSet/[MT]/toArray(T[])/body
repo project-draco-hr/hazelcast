@@ -1,3 +1,19 @@
 {
-  return (T[])(Object)Arrays.copyOf(values,values.length);
+  checkNotNull(into);
+  final Class<?> aryType=into.getClass().getComponentType();
+  if (!aryType.isAssignableFrom(Integer.class)) {
+    throw new ArrayStoreException("Cannot store Integers in array of type " + aryType);
+  }
+  final int[] values=this.values;
+  final Object[] ret=into.length >= this.size ? into : (T[])Array.newInstance(aryType,this.size);
+  for (int from=0, to=0; from < values.length; from++) {
+    final int val=values[from];
+    if (val != missingValue) {
+      ret[to++]=val;
+    }
+  }
+  if (ret.length > values.length) {
+    ret[values.length]=null;
+  }
+  return (T[])ret;
 }
