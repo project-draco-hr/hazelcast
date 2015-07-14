@@ -1,0 +1,21 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz2);
+  InternalOperationService operationService=getOperationService(hz2);
+  warmUpPartitions(hz2);
+  String name=randomNameOwnedBy(hz);
+  Data key=nodeEngine.toData(name);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  operationService.invokeOnPartition(LockService.SERVICE_NAME,new SlowLockOperation(name,key,2000),partitionId);
+  sleepMillis(500);
+  terminateInstance(hz2);
+  final ILock lock=hz.getLock(name);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse("Lock owned by dead member should have been released!",lock.isLocked());
+    }
+  }
+,30);
+}
