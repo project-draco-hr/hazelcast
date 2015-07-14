@@ -7,7 +7,7 @@
   finally {
     final Set<Data> keysToClean=new HashSet<Data>(keys.isEmpty() ? records.keySet() : keys);
     for (    Data key : keysToClean) {
-      isEventBatchingEnabled=true;
+      eventsBatchingEnabled=true;
       final R record=records.get(key);
       if (localKeys.contains(key) && record != null) {
         final boolean isExpired=processExpiredEntry(key,record,now);
@@ -22,11 +22,13 @@
  else {
         keys.remove(key);
       }
-      isEventBatchingEnabled=false;
+      eventsBatchingEnabled=false;
       hasExpiringEntry=false;
     }
     int orderKey=keys.hashCode();
     publishBatchedEvents(name,CacheEventType.REMOVED,orderKey);
-    publishEvent(createCacheCompleteEvent(new DefaultData(),completionId));
+    if (isEventsEnabled()) {
+      publishEvent(createCacheCompleteEvent(new DefaultData(),completionId));
+    }
   }
 }
