@@ -1,0 +1,63 @@
+{
+  final String CACHE_NAME="MyCache";
+  final String CACHE_NAME_WITH_PREFIX="/hz/" + CACHE_NAME;
+  CachingProvider provider=initAndGetCachingProvider();
+  CacheManager cacheManager=provider.getCacheManager();
+  CacheEntryListenerConfiguration<String,String> cacheEntryListenerConfig=new MutableCacheEntryListenerConfiguration<String,String>(FactoryBuilder.factoryOf(new TestListener()),null,true,true);
+  CompleteConfiguration<String,String> cacheConfig=new MutableConfiguration<String,String>();
+  Cache<String,String> cache=cacheManager.createCache(CACHE_NAME,cacheConfig);
+  cache.registerCacheEntryListener(cacheEntryListenerConfig);
+  final CacheService cacheService1=getCacheService(hazelcastInstance1);
+  final CacheService cacheService2=getCacheService(hazelcastInstance2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNotNull(cacheService1.getCacheContext(CACHE_NAME_WITH_PREFIX));
+    }
+  }
+);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNotNull(cacheService2.getCacheContext(CACHE_NAME_WITH_PREFIX));
+    }
+  }
+);
+  final CacheContext cacheContext1=cacheService1.getCacheContext(CACHE_NAME_WITH_PREFIX);
+  final CacheContext cacheContext2=cacheService2.getCacheContext(CACHE_NAME_WITH_PREFIX);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(cacheContext1.getCacheEntryListenerCount(),1);
+    }
+  }
+);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(cacheContext2.getCacheEntryListenerCount(),1);
+    }
+  }
+);
+switch (decreaseType) {
+case DEREGISTER:
+    cache.deregisterCacheEntryListener(cacheEntryListenerConfig);
+  break;
+case SHUTDOWN:
+driverInstance.getLifecycleService().shutdown();
+break;
+case TERMINATE:
+driverInstance.getLifecycleService().terminate();
+break;
+default :
+throw new IllegalArgumentException("Unsupported decrease type: " + decreaseType);
+}
+assertTrueEventually(new AssertTask(){
+@Override public void run() throws Exception {
+assertEquals(cacheContext1.getCacheEntryListenerCount(),0);
+}
+}
+);
+assertTrueEventually(new AssertTask(){
+@Override public void run() throws Exception {
+assertEquals(cacheContext2.getCacheEntryListenerCount(),0);
+}
+}
+);
+}

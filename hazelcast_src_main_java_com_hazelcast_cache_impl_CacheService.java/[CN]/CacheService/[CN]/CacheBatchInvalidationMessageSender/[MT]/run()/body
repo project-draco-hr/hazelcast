@@ -1,19 +1,12 @@
 {
-  if (cacheBatchInvalidationMessageSenderInProgress.compareAndSet(false,true)) {
-    try {
-      for (      Map.Entry<String,Queue<CacheSingleInvalidationMessage>> entry : invalidationMessageMap.entrySet()) {
-        if (Thread.currentThread().isInterrupted()) {
-          break;
-        }
-        String cacheName=entry.getKey();
-        Queue<CacheSingleInvalidationMessage> invalidationMessageQueue=entry.getValue();
-        if (invalidationMessageQueue.size() > 0) {
-          flushInvalidationMessages(cacheName,invalidationMessageQueue);
-        }
-      }
+  for (  Map.Entry<String,InvalidationEventQueue> entry : invalidationMessageMap.entrySet()) {
+    if (Thread.currentThread().isInterrupted()) {
+      break;
     }
-  finally {
-      cacheBatchInvalidationMessageSenderInProgress.set(false);
+    String cacheName=entry.getKey();
+    InvalidationEventQueue invalidationMessageQueue=entry.getValue();
+    if (invalidationMessageQueue.size() > 0) {
+      flushInvalidationMessages(cacheName,invalidationMessageQueue);
     }
   }
 }
