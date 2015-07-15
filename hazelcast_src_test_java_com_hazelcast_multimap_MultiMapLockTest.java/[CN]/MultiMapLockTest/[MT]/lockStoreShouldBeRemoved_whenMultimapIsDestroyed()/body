@@ -1,0 +1,15 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  MultiMap multiMap=hz.getMultiMap(randomName());
+  for (int i=0; i < 1000; i++) {
+    multiMap.lock(i);
+  }
+  multiMap.destroy();
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
+  LockServiceImpl lockService=nodeEngine.getService(LockService.SERVICE_NAME);
+  int partitionCount=nodeEngine.getPartitionService().getPartitionCount();
+  for (int i=0; i < partitionCount; i++) {
+    LockStoreContainer lockContainer=lockService.getLockContainer(i);
+    assertEquals("LockStores should be empty",0,lockContainer.getLockStores().size());
+  }
+}
