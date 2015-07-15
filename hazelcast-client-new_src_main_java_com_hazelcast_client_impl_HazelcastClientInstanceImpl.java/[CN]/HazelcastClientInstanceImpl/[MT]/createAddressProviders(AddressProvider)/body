@@ -1,9 +1,11 @@
 {
-  this.client=client;
-  ClientNetworkConfig networkConfig=client.getClientConfig().getNetworkConfig();
+  ClientNetworkConfig networkConfig=getClientConfig().getNetworkConfig();
   final ClientAwsConfig awsConfig=networkConfig.getAwsConfig();
-  addressProviders=new LinkedList<AddressProvider>();
+  Collection<AddressProvider> addressProviders=new LinkedList<AddressProvider>();
   addressProviders.add(new DefaultAddressProvider(networkConfig));
+  if (externalAddressProvider != null) {
+    addressProviders.add(externalAddressProvider);
+  }
   if (awsConfig != null && awsConfig.isEnabled()) {
     try {
       addressProviders.add(new AwsAddressProvider(awsConfig));
@@ -13,5 +15,5 @@
       throw e;
     }
   }
-  shuffleMemberList=client.getClientProperties().getShuffleMemberList().getBoolean();
+  return addressProviders;
 }
