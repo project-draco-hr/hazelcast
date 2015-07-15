@@ -1,19 +1,6 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
   final CacheService service=getService(CacheService.SERVICE_NAME);
-  CacheEventListener entryListener=new CacheEventListener(){
-    @Override public void handleEvent(    Object eventObject){
-      if (!endpoint.isAlive()) {
-        return;
-      }
-      if (eventObject instanceof CacheEventSet) {
-        CacheEventSet ces=(CacheEventSet)eventObject;
-        Data partitionKey=getPartitionKey(eventObject);
-        ClientMessage clientMessage=CacheAddEntryListenerCodec.encodeCacheEvent(ces.getEventType().getType(),ces.getEvents(),ces.getCompletionId());
-        sendClientMessage(partitionKey,clientMessage);
-      }
-    }
-  }
-;
-  return service.registerListener(parameters.name,entryListener);
+  CacheEntryListener cacheEntryListener=new CacheEntryListener(endpoint,this);
+  return service.registerListener(parameters.name,cacheEntryListener,cacheEntryListener);
 }
