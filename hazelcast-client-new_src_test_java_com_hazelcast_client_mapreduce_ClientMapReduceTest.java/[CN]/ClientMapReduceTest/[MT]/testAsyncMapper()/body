@@ -1,11 +1,20 @@
 {
-  prepareClusterNodes(3);
-  HazelcastInstance client=HazelcastClient.newHazelcastClient(null);
-  IMap<Integer,Integer> m1=getFilledIMap(client,100);
+  Config config=buildConfig();
+  HazelcastInstance h1=hazelcastFactory.newHazelcastInstance(config);
+  HazelcastInstance h2=hazelcastFactory.newHazelcastInstance(config);
+  HazelcastInstance h3=hazelcastFactory.newHazelcastInstance(config);
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  IMap<Integer,Integer> m1=client.getMap(randomString());
+  for (int i=0; i < 100; i++) {
+    m1.put(i,i);
+  }
   final Map<String,List<Integer>> listenerResults=new HashMap<String,List<Integer>>();
   final Semaphore semaphore=new Semaphore(1);
   semaphore.acquire();
-  JobTracker tracker=client.getJobTracker(randomString());
+  JobTracker tracker=client.getJobTracker("default");
   Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
   ICompletableFuture<Map<String,List<Integer>>> future=job.mapper(new TestMapper()).submit();
   future.andThen(new ExecutionCallback<Map<String,List<Integer>>>(){

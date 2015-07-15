@@ -1,15 +1,15 @@
 {
   Config config=new Config();
   config.setProperty(GroupProperties.PROP_IO_THREAD_COUNT,"1");
-  final HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
-  final HazelcastInstance hz2=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance hz=hazelcastFactory.newHazelcastInstance(config);
+  final HazelcastInstance hz2=hazelcastFactory.newHazelcastInstance(config);
   int clientCount=10;
   ClientDisconnectedListenerLatch listenerLatch=new ClientDisconnectedListenerLatch(2 * clientCount);
   hz.getClientService().addClientListener(listenerLatch);
   hz2.getClientService().addClientListener(listenerLatch);
   Collection<HazelcastInstance> clients=new LinkedList<HazelcastInstance>();
   for (int i=0; i < clientCount; i++) {
-    HazelcastInstance client=HazelcastClient.newHazelcastClient();
+    HazelcastInstance client=hazelcastFactory.newHazelcastClient();
     IMap<Object,Object> map=client.getMap(randomMapName());
     map.addEntryListener(new EntryAdapter<Object,Object>(),true);
     map.put(generateKeyOwnedBy(hz),"value");
