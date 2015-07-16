@@ -3,18 +3,18 @@
   long timeout=tx.getTimeoutMillis();
   long ttl=extendTimeout(timeout);
   Collection<MultiMapRecord> coll=txMap.get(key);
-  final MultiMapTransactionRecord log;
+  final MultiMapTransactionLogRecord log;
   if (coll == null) {
     MultiMapResponse response=lockAndGet(key,timeout,ttl);
     if (response == null) {
       throw new ConcurrentModificationException("Transaction couldn't obtain lock " + getThreadId());
     }
     coll=createCollection(response.getRecordCollection(getNodeEngine()));
-    log=new MultiMapTransactionRecord(key,name,ttl,getThreadId());
+    log=new MultiMapTransactionLogRecord(key,name,ttl,getThreadId());
     tx.add(log);
   }
  else {
-    log=(MultiMapTransactionRecord)tx.get(getTxLogKey(key));
+    log=(MultiMapTransactionLogRecord)tx.get(getRecordLogKey(key));
   }
   txMap.put(key,createCollection());
   TxnRemoveAllOperation operation=new TxnRemoveAllOperation(name,key,coll);
