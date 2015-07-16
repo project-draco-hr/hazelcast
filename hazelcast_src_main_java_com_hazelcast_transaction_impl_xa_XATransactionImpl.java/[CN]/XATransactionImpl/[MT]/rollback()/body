@@ -4,11 +4,12 @@
   }
   state=ROLLING_BACK;
   try {
-    final List<Future> futures=new ArrayList<Future>(txLogs.size());
-    final ListIterator<TransactionRecord> iterator=txLogs.listIterator(txLogs.size());
+    List<TransactionLogRecord> recordList=transactionLog.getRecordList();
+    List<Future> futures=new ArrayList<Future>(recordList.size());
+    ListIterator<TransactionLogRecord> iterator=recordList.listIterator(recordList.size());
     while (iterator.hasPrevious()) {
-      final TransactionRecord txLog=iterator.previous();
-      futures.add(txLog.rollback(nodeEngine));
+      TransactionLogRecord record=iterator.previous();
+      futures.add(record.rollback(nodeEngine));
     }
     waitWithDeadline(futures,ROLLBACK_TIMEOUT_MINUTES,TimeUnit.MINUTES,rollbackExceptionHandler);
   }
