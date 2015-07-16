@@ -1,8 +1,12 @@
 {
-  for (  Entry<Integer,List<Data>> e : batch.entrySet()) {
+  Set<Entry<Integer,List<Data>>> entries=batch.entrySet();
+  List<Future> futures=new ArrayList<Future>(entries.size());
+  for (  Entry<Integer,List<Data>> e : entries) {
     int partitionId=e.getKey();
     List<Data> keys=e.getValue();
     LoadAllOperation op=new LoadAllOperation(mapName,keys,replaceExistingValues);
-    opService.invokeOnPartition(SERVICE_NAME,op,partitionId);
+    InternalCompletableFuture<Object> future=opService.invokeOnPartition(SERVICE_NAME,op,partitionId);
+    futures.add(future);
   }
+  return futures;
 }
