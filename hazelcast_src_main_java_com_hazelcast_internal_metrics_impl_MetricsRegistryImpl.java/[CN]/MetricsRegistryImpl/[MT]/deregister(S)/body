@@ -1,18 +1,24 @@
 {
   checkNotNull(source,"source can't be null");
   boolean changed=false;
-  for (  Map.Entry<String,GaugeImpl> entry : metrics.entrySet()) {
-    GaugeImpl gauge=entry.getValue();
-    if (gauge.source != source) {
+  for (  Map.Entry<String,ProbeInstance> entry : probeInstances.entrySet()) {
+    ProbeInstance probeInstance=entry.getValue();
+    if (probeInstance.source != source) {
       continue;
     }
     String name=entry.getKey();
-    changed=true;
-    metrics.remove(name);
-    gauge.source=null;
-    gauge.input=null;
-    if (logger.isFinestEnabled()) {
-      logger.finest("Destroying gauge " + name);
+    boolean destroyed=false;
+synchronized (lockStripe.getLock(source)) {
+      if (probeInstance.source == source) {
+        changed=true;
+        probeInstances.remove(name);
+        probeInstance.source=null;
+        probeInstance.function=null;
+        destroyed=true;
+      }
+    }
+    if (destroyed && logger.isFinestEnabled()) {
+      logger.finest("Destroying probeInstance " + name);
     }
   }
   if (changed) {

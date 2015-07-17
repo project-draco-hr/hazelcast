@@ -1,0 +1,31 @@
+{
+  try {
+    if (logFile == null) {
+      logFile=new File(format(pathname,index));
+      renderHead=true;
+    }
+    if (writer == null) {
+      writer=new BufferedWriter(new FileWriter(logFile,true));
+    }
+    if (renderHead) {
+      headRenderer.render(writer);
+      renderHead=false;
+    }
+    bodyRenderer.render(writer);
+    writer.flush();
+    lastModified=logFile.lastModified();
+    if (logFile.length() > maxRollingFileSizeBytes) {
+      closeResource(writer);
+      writer=null;
+      logFile=null;
+      index++;
+      deleteOld();
+    }
+  }
+ catch (  IOException e) {
+    logIOError(e);
+    logFile=null;
+    closeResource(writer);
+    writer=null;
+  }
+}
