@@ -1,12 +1,13 @@
 {
-  final List<Future> futures=new ArrayList<Future>(transactionLog.size());
-  final OperationService operationService=nodeEngine.getOperationService();
+  List<Future> futures=new ArrayList<Future>(transactionLog.size());
+  OperationService operationService=nodeEngine.getOperationService();
   for (  Address backupAddress : backupAddresses) {
-    if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
-      final Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new ReplicateTxOperation(transactionLog.getRecordList(),txOwnerUuid,txnId,timeoutMillis,startTime),backupAddress);
-      futures.add(f);
+    if (nodeEngine.getClusterService().getMember(backupAddress) == null) {
+      continue;
     }
+    Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new ReplicateTxOperation(transactionLog.getRecordList(),txOwnerUuid,txnId,timeoutMillis,startTime),backupAddress);
+    futures.add(f);
   }
-  waitWithDeadline(futures,timeoutMillis,TimeUnit.MILLISECONDS,RETHROW_TRANSACTION_EXCEPTION);
+  waitWithDeadline(futures,timeoutMillis,MILLISECONDS,RETHROW_TRANSACTION_EXCEPTION);
   futures.clear();
 }

@@ -1,6 +1,6 @@
 {
   try {
-    if (transactionType.equals(TransactionType.TWO_PHASE) && state != PREPARED) {
+    if (transactionType.equals(TWO_PHASE) && state != PREPARED) {
       throw new IllegalStateException("Transaction is not prepared");
     }
     if (transactionType.equals(TransactionType.LOCAL) && state != ACTIVE) {
@@ -9,13 +9,10 @@
     checkThread();
     checkTimeout();
     try {
-      final List<Future> futures=new ArrayList<Future>(transactionLog.size());
       state=COMMITTING;
-      for (      TransactionLogRecord record : transactionLog) {
-        futures.add(transactionLog.commit(nodeEngine,record));
-      }
-      ExceptionHandler exceptionHandler=transactionType.equals(TransactionType.TWO_PHASE) ? commitExceptionHandler : FutureUtil.RETHROW_TRANSACTION_EXCEPTION;
-      waitWithDeadline(futures,COMMIT_TIMEOUT_MINUTES,TimeUnit.MINUTES,exceptionHandler);
+      List<Future> futures=transactionLog.commit(nodeEngine);
+      ExceptionHandler exceptionHandler=transactionType.equals(TWO_PHASE) ? commitExceptionHandler : FutureUtil.RETHROW_TRANSACTION_EXCEPTION;
+      waitWithDeadline(futures,COMMIT_TIMEOUT_MINUTES,MINUTES,exceptionHandler);
       state=COMMITTED;
       purgeTxBackups();
     }
