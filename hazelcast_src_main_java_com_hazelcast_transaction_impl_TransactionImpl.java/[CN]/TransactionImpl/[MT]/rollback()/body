@@ -7,13 +7,8 @@
     state=ROLLING_BACK;
     try {
       rollbackTxBackup();
-      List<Future> futures=new ArrayList<Future>(transactionLog.size());
-      ListIterator<TransactionLogRecord> iterator=transactionLog.getRecordList().listIterator(transactionLog.size());
-      while (iterator.hasPrevious()) {
-        TransactionLogRecord record=iterator.previous();
-        futures.add(transactionLog.rollback(nodeEngine,record));
-      }
-      waitWithDeadline(futures,ROLLBACK_TIMEOUT_MINUTES,TimeUnit.MINUTES,rollbackExceptionHandler);
+      List<Future> futures=transactionLog.rollback(nodeEngine);
+      waitWithDeadline(futures,ROLLBACK_TIMEOUT_MINUTES,MINUTES,rollbackExceptionHandler);
       purgeTxBackups();
     }
  catch (    Throwable e) {
