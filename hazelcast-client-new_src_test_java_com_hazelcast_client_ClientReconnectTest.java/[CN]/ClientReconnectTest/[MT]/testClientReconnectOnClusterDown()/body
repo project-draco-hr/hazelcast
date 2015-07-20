@@ -1,8 +1,8 @@
 {
-  final HazelcastInstance h1=Hazelcast.newHazelcastInstance();
+  final HazelcastInstance h1=hazelcastFactory.newHazelcastInstance();
   ClientConfig clientConfig=new ClientConfig();
   clientConfig.getNetworkConfig().setConnectionAttemptLimit(Integer.MAX_VALUE);
-  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  final HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
   final CountDownLatch connectedLatch=new CountDownLatch(2);
   client.getLifecycleService().addLifecycleListener(new LifecycleListener(){
     @Override public void stateChanged(    LifecycleEvent event){
@@ -12,7 +12,7 @@
 );
   IMap<String,String> m=client.getMap("default");
   h1.shutdown();
-  Hazelcast.newHazelcastInstance();
+  hazelcastFactory.newHazelcastInstance();
   assertOpenEventually(connectedLatch,10);
   assertNull(m.put("test","test"));
   assertEquals("test",m.get("test"));

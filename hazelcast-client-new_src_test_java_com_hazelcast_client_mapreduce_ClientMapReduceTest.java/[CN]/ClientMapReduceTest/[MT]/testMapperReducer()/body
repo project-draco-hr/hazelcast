@@ -1,8 +1,17 @@
 {
-  prepareClusterNodes(3);
-  HazelcastInstance client=HazelcastClient.newHazelcastClient(null);
-  IMap<Integer,Integer> m1=getFilledIMap(client,100);
-  JobTracker tracker=client.getJobTracker(randomString());
+  Config config=buildConfig();
+  HazelcastInstance h1=hazelcastFactory.newHazelcastInstance(config);
+  HazelcastInstance h2=hazelcastFactory.newHazelcastInstance(config);
+  HazelcastInstance h3=hazelcastFactory.newHazelcastInstance(config);
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  IMap<Integer,Integer> m1=client.getMap(randomString());
+  for (int i=0; i < 100; i++) {
+    m1.put(i,i);
+  }
+  JobTracker tracker=client.getJobTracker("default");
   Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
   ICompletableFuture<Map<String,Integer>> future=job.mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit();
   Map<String,Integer> result=future.get();

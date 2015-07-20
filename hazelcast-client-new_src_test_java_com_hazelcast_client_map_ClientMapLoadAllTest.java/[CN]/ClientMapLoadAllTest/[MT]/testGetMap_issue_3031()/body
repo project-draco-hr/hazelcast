@@ -3,7 +3,7 @@
   final String mapName=randomMapName();
   final AtomicBoolean breakMe=new AtomicBoolean(false);
   final Config config=createNewConfig(mapName,new BrokenLoadSimpleStore(breakMe));
-  final HazelcastInstance server=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance server=hazelcastFactory.newHazelcastInstance(config);
   try {
     final IMap<Object,Object> map=server.getMap(mapName);
     populateMap(map,itemCount);
@@ -13,11 +13,6 @@
     fail();
   }
   breakMe.set(true);
-  final HazelcastInstance client=HazelcastClient.newHazelcastClient();
-  try {
-    client.getMap(mapName);
-  }
-  finally {
-    closeResources(client,server);
-  }
+  final HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  client.getMap(mapName);
 }
