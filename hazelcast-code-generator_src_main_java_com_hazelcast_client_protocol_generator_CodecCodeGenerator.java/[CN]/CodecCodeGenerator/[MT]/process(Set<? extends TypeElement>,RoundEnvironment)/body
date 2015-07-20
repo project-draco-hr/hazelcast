@@ -1,5 +1,23 @@
 {
   try {
+    TypeElement te=elementUtils.getTypeElement("com.hazelcast.annotation.GenerateCodec");
+    if (!elements.contains(te)) {
+      return false;
+    }
+    for (    Element element : env.getElementsAnnotatedWith(Codec.class)) {
+      TypeElement classElement=(TypeElement)element;
+      classElement.getAnnotationMirrors();
+      Codec annotation=classElement.getAnnotation(Codec.class);
+      if (annotation != null) {
+        try {
+          annotation.value();
+        }
+ catch (        MirroredTypeException mte) {
+          TypeMirror value=mte.getTypeMirror();
+          CodecModel.CUSTOM_CODEC_MAP.put(value.toString(),classElement);
+        }
+      }
+    }
     for (    Element element : env.getElementsAnnotatedWith(GenerateCodec.class)) {
       register((TypeElement)element,Lang.JAVA);
     }
@@ -8,6 +26,10 @@
     }
     for (    ExecutableElement element : requestMap.values()) {
       generateCodec(element,Lang.JAVA);
+      if (csharpEnabled) {
+      }
+      if (cppEnabled) {
+      }
     }
   }
  catch (  Exception e) {
