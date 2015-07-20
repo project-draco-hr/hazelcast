@@ -1,0 +1,19 @@
+{
+  ClientNetworkConfig networkConfig=getClientConfig().getNetworkConfig();
+  final ClientAwsConfig awsConfig=networkConfig.getAwsConfig();
+  Collection<AddressProvider> addressProviders=new LinkedList<AddressProvider>();
+  addressProviders.add(new DefaultAddressProvider(networkConfig));
+  if (externalAddressProvider != null) {
+    addressProviders.add(externalAddressProvider);
+  }
+  if (awsConfig != null && awsConfig.isEnabled()) {
+    try {
+      addressProviders.add(new AwsAddressProvider(awsConfig));
+    }
+ catch (    NoClassDefFoundError e) {
+      LOGGER.log(Level.WARNING,"hazelcast-cloud.jar might be missing!");
+      throw e;
+    }
+  }
+  return addressProviders;
+}

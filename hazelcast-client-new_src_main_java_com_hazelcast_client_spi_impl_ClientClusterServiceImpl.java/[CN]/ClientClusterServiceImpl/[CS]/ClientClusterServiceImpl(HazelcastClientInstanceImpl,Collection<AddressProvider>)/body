@@ -1,0 +1,19 @@
+{
+  super(client,addressProviders);
+  final ClientConfig clientConfig=getClientConfig();
+  final List<ListenerConfig> listenerConfigs=client.getClientConfig().getListenerConfigs();
+  for (  ListenerConfig listenerConfig : listenerConfigs) {
+    EventListener listener=listenerConfig.getImplementation();
+    if (listener == null) {
+      try {
+        listener=ClassLoaderUtil.newInstance(clientConfig.getClassLoader(),listenerConfig.getClassName());
+      }
+ catch (      Exception e) {
+        LOGGER.severe(e);
+      }
+    }
+    if (listener instanceof MembershipListener) {
+      addMembershipListenerWithoutInit((MembershipListener)listener);
+    }
+  }
+}
