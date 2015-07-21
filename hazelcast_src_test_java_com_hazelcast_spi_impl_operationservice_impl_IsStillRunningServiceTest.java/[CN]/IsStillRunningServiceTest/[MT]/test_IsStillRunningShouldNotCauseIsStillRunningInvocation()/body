@@ -1,0 +1,27 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  OperationServiceImpl operationService=(OperationServiceImpl)getOperationService(hz);
+  IsStillRunningService isStillRunningService=operationService.getIsStillRunningService();
+  final OperationExecutor operationExecutor=operationService.getOperationExecutor();
+  final int partitionId=0;
+  long callId=123;
+  final CountDownLatch started=new CountDownLatch(1);
+  final Operation isStillExecutingOperation=new IsStillExecutingOperation(callId,partitionId){
+    @Override public void run() throws Exception {
+      super.run();
+      started.countDown();
+    }
+  }
+;
+  isStillExecutingOperation.setPartitionId(partitionId);
+  spawn(new Runnable(){
+    @Override public void run(){
+      operationExecutor.getPartitionOperationRunners()[partitionId].run(isStillExecutingOperation);
+    }
+  }
+);
+  started.countDown();
+  PartitionInvocation invocation=new PartitionInvocation(getNodeEngineImpl(hz),null,isStillExecutingOperation,partitionId,0,0,0,0,null,false);
+  boolean result=isStillRunningService.isOperationExecuting(invocation);
+  assertFalse(result);
+}
