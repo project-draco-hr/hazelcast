@@ -1,0 +1,22 @@
+{
+  if (isDone() || cancelled) {
+    return false;
+  }
+  waitForRequestToBeSend();
+  ClientInvocationFuture f=invokeCancelRequest(mayInterruptIfRunning);
+  try {
+    boolean cancelSuccessful=ExecutorServiceCancelOnPartitionCodec.decodeResponse(f.get()).response;
+    if (cancelSuccessful) {
+      setError(new CancellationException());
+      cancelled=true;
+      return true;
+    }
+    return false;
+  }
+ catch (  Exception e) {
+    throw rethrow(e);
+  }
+ finally {
+    setDone();
+  }
+}

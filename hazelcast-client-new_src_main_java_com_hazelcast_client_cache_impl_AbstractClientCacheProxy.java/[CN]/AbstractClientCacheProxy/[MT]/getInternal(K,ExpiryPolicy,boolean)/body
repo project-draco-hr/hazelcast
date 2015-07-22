@@ -19,7 +19,7 @@
     throw ExceptionUtil.rethrow(e);
   }
   SerializationService serializationService=clientContext.getSerializationService();
-  ClientDelegatingFuture<V> delegatingFuture=new ClientDelegatingFuture<V>(future,serializationService);
+  ClientDelegatingFuture<V> delegatingFuture=new ClientDelegatingFuture<V>(future,serializationService,cacheGetResponseDecoder);
   if (async) {
     if (nearCache != null) {
       delegatingFuture.andThenInternal(new ExecutionCallback<Data>(){
@@ -37,7 +37,7 @@
     try {
       Object value=delegatingFuture.get();
       if (nearCache != null) {
-        storeInNearCache(keyData,delegatingFuture.getValueData(),null);
+        storeInNearCache(keyData,(Data)delegatingFuture.getResponse(),null);
       }
       if (!(value instanceof Data)) {
         return value;
