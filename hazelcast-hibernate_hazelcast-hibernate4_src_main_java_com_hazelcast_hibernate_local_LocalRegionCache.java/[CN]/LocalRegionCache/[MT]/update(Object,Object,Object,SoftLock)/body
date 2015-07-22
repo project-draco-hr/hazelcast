@@ -1,5 +1,5 @@
 {
-  boolean updated;
+  boolean updated=false;
   while (true) {
     Expirable original=cache.get(key);
     Expirable revised;
@@ -12,30 +12,36 @@
       }
     }
  else {
-      if (original.matches(softLock)) {
-        final ExpiryMarker marker=(ExpiryMarker)original;
-        if (marker.isConcurrent()) {
-          revised=marker.expire(timestamp);
+      if (softLock instanceof MarkerWrapper) {
+        final ExpiryMarker unwrappedMarker=((MarkerWrapper)softLock).getMarker();
+        if (original.matches(unwrappedMarker)) {
+          final ExpiryMarker marker=(ExpiryMarker)original;
+          if (marker.isConcurrent()) {
+            revised=marker.expire(timestamp);
+            updated=false;
+          }
+ else {
+            revised=new Value(newVersion,timestamp,newValue);
+            updated=true;
+          }
+          if (cache.replace(key,original,revised)) {
+            break;
+          }
+        }
+ else         if (original.getValue() == null) {
           updated=false;
-        }
- else {
-          revised=new Value(newVersion,timestamp,newValue);
-          updated=true;
-        }
-        if (cache.replace(key,original,revised)) {
           break;
         }
+ else {
+          revised=new ExpiryMarker(newVersion,timestamp,nextMarkerId()).expire(timestamp);
+          updated=false;
+          if (cache.replace(key,original,revised)) {
+            break;
+          }
+        }
       }
- else       if (original.getValue() == null) {
-        updated=false;
+ else {
         break;
-      }
- else {
-        revised=new ExpiryMarker(newVersion,timestamp,nextMarkerId()).expire(timestamp);
-        updated=false;
-        if (cache.replace(key,original,revised)) {
-          break;
-        }
       }
     }
   }
