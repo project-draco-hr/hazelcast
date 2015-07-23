@@ -1,7 +1,15 @@
 {
   if (nearCache != null && nearCache.getId() != null) {
     String registrationId=nearCache.getId();
-    ClientMessage request=ReplicatedMapRemoveEntryListenerCodec.encodeRequest(getName(),registrationId);
-    getContext().getListenerService().stopListening(request,registrationId);
+    final String name=getName();
+    getContext().getListenerService().stopListening(registrationId,new ListenerRemoveCodec(){
+      @Override public ClientMessage encodeRequest(      String realRegistrationId){
+        return ReplicatedMapRemoveEntryListenerCodec.encodeRequest(name,realRegistrationId);
+      }
+      @Override public boolean decodeResponse(      ClientMessage clientMessage){
+        return ReplicatedMapRemoveEntryListenerCodec.decodeResponse(clientMessage).response;
+      }
+    }
+);
   }
 }

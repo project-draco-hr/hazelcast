@@ -3,15 +3,24 @@
     throw new NullPointerException("CacheEntryListenerConfiguration can't be null");
   }
   final String regId=removeListenerLocally(cacheEntryListenerConfiguration);
-  if (regId != null) {
-    ClientMessage removeReq=CacheRemoveEntryListenerCodec.encodeRequest(nameWithPrefix,regId);
-    boolean isDeregistered=clientContext.getListenerService().stopListening(removeReq,regId);
-    if (isDeregistered) {
-      cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
-      updateCacheListenerConfigOnOtherNodes(cacheEntryListenerConfiguration,false);
+  if (regId == null) {
+    return;
+  }
+  ClientListenerService listenerService=clientContext.getListenerService();
+  boolean isDeregistered=listenerService.stopListening(regId,new ListenerRemoveCodec(){
+    @Override public ClientMessage encodeRequest(    String realRegistrationId){
+      return CacheRemoveEntryListenerCodec.encodeRequest(nameWithPrefix,realRegistrationId);
     }
+    @Override public boolean decodeResponse(    ClientMessage clientMessage){
+      return CacheRemoveEntryListenerCodec.decodeResponse(clientMessage).response;
+    }
+  }
+);
+  if (isDeregistered) {
+    cacheConfig.removeCacheEntryListenerConfiguration(cacheEntryListenerConfiguration);
+    updateCacheListenerConfigOnOtherNodes(cacheEntryListenerConfiguration,false);
+  }
  else {
-      addListenerLocally(regId,cacheEntryListenerConfiguration);
-    }
+    addListenerLocally(regId,cacheEntryListenerConfiguration);
   }
 }
