@@ -2,7 +2,11 @@
   while (true) {
     final Expirable original=cache.get(key);
     if (original != null) {
-      if (original.matches(lock)) {
+      if (!(lock instanceof MarkerWrapper)) {
+        break;
+      }
+      final ExpiryMarker unwrappedMarker=((MarkerWrapper)lock).getMarker();
+      if (original.matches(unwrappedMarker)) {
         final Expirable revised=((ExpiryMarker)original).expire(nextTimestamp());
         if (cache.replace(key,original,revised)) {
           break;
