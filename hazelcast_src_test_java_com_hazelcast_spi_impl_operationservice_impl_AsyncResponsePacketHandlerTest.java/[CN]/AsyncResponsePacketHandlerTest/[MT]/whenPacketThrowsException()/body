@@ -1,0 +1,17 @@
+{
+  final Packet badPacket=new Packet(serializationService.toData(new NormalResponse("foo",1,0,false)));
+  badPacket.setHeader(Packet.HEADER_OP);
+  badPacket.setHeader(Packet.HEADER_RESPONSE);
+  final Packet goodPacket=new Packet(serializationService.toData(new NormalResponse("foo",1,0,false)));
+  goodPacket.setHeader(Packet.HEADER_OP);
+  goodPacket.setHeader(Packet.HEADER_RESPONSE);
+  doThrow(new Exception()).when(responsePacketHandler).handle(badPacket);
+  asyncHandler.handle(badPacket);
+  asyncHandler.handle(goodPacket);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      verify(responsePacketHandler).handle(goodPacket);
+    }
+  }
+);
+}
