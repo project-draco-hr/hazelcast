@@ -1,0 +1,41 @@
+{
+  JoinConfig join=config.getNetworkConfig().getJoin();
+  MulticastConfig multicastConfig=join.getMulticastConfig();
+  if (!multicastConfig.isEnabled()) {
+    return null;
+  }
+  MulticastService mcService=null;
+  try {
+    MulticastSocket multicastSocket=new MulticastSocket(null);
+    multicastSocket.setReuseAddress(true);
+    multicastSocket.bind(new InetSocketAddress(multicastConfig.getMulticastPort()));
+    multicastSocket.setTimeToLive(multicastConfig.getMulticastTimeToLive());
+    try {
+      if (!bindAddress.getInetAddress().isLoopbackAddress()) {
+        multicastSocket.setInterface(bindAddress.getInetAddress());
+      }
+ else       if (multicastConfig.isLoopbackModeEnabled()) {
+        multicastSocket.setLoopbackMode(true);
+        multicastSocket.setInterface(bindAddress.getInetAddress());
+      }
+    }
+ catch (    Exception e) {
+      logger.warning(e);
+    }
+    multicastSocket.setReceiveBufferSize(64 * 1024);
+    multicastSocket.setSendBufferSize(64 * 1024);
+    String multicastGroup=System.getProperty("hazelcast.multicast.group");
+    if (multicastGroup == null) {
+      multicastGroup=multicastConfig.getMulticastGroup();
+    }
+    multicastConfig.setMulticastGroup(multicastGroup);
+    multicastSocket.joinGroup(InetAddress.getByName(multicastGroup));
+    multicastSocket.setSoTimeout(1000);
+    mcService=new MulticastService(node,multicastSocket);
+    mcService.addMulticastListener(new NodeMulticastListener(node));
+  }
+ catch (  Exception e) {
+    logger.severe(e);
+  }
+  return mcService;
+}
