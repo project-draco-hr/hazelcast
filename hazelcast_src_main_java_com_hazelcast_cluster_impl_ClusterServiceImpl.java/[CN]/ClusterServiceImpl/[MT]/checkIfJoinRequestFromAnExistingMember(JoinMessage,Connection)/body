@@ -1,0 +1,34 @@
+{
+  MemberImpl member=getMember(joinMessage.getAddress());
+  if (member == null) {
+    return false;
+  }
+  Address target=member.getAddress();
+  if (joinMessage.getUuid().equals(member.getUuid())) {
+    if (node.isMaster()) {
+      if (logger.isFinestEnabled()) {
+        String message="Ignoring join request, member already exists.. => " + joinMessage;
+        logger.finest(message);
+      }
+      final Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
+      final PostJoinOperation postJoinOp=postJoinOps != null && postJoinOps.length > 0 ? new PostJoinOperation(postJoinOps) : null;
+      Operation op=new FinalizeJoinOperation(createMemberInfoList(getMemberList()),postJoinOp,clusterClock.getClusterTime(),false);
+      nodeEngine.getOperationService().send(op,target);
+    }
+ else {
+      sendMasterAnswer(target);
+    }
+    return true;
+  }
+  if (node.isMaster() || target.equals(node.getMasterAddress())) {
+    logger.warning("New join request has been received from an existing endpoint! => " + member + " Removing old member and processing join request...");
+    doRemoveAddress(target,false);
+    Connection existing=node.connectionManager.getConnection(target);
+    if (existing != connection) {
+      node.connectionManager.destroyConnection(existing);
+      node.connectionManager.registerConnection(target,connection);
+    }
+    return false;
+  }
+  return true;
+}

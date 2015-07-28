@@ -1,16 +1,27 @@
 {
-  final ClusterServiceImpl service=getService();
-  final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-  final Node node=nodeEngine.getNode();
-  boolean ok=false;
-  if (joinRequest != null && node.joined() && node.isActive()) {
-    try {
-      ok=service.validateJoinMessage(joinRequest);
-    }
- catch (    Exception ignored) {
-    }
+  ClusterServiceImpl service=getService();
+  NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+  Node node=nodeEngine.getNode();
+  if (!preCheck(node)) {
+    return;
   }
-  if (ok) {
-    response=node.createJoinRequest();
+  if (!masterCheck(node)) {
+    return;
+  }
+  if (request != null) {
+    ILogger logger=getLogger();
+    try {
+      if (service.validateJoinMessage(request)) {
+        response=node.createSplitBrainJoinMessage();
+      }
+      if (logger.isFinestEnabled()) {
+        logger.finest("Returning " + response + " to "+ getCallerAddress());
+      }
+    }
+ catch (    Exception e) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Could not validate split-brain join message! -> " + e.getMessage());
+      }
+    }
   }
 }
