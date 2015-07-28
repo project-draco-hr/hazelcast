@@ -1,0 +1,19 @@
+{
+  Collection<Future> futures=new LinkedList<Future>();
+  for (  Runnable task : tasks) {
+    Future f=nodeEngine.getExecutionService().submit("hz:system",task);
+    futures.add(f);
+  }
+  long callTimeout=node.groupProperties.OPERATION_CALL_TIMEOUT_MILLIS.getLong();
+  for (  Future f : futures) {
+    try {
+      waitOnFutureInterruptible(f,callTimeout,TimeUnit.MILLISECONDS);
+    }
+ catch (    HazelcastInstanceNotActiveException e) {
+      EmptyStatement.ignore(e);
+    }
+catch (    Exception e) {
+      logger.severe("While merging...",e);
+    }
+  }
+}
