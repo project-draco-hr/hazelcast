@@ -10,12 +10,23 @@
   }
   Configuration cfg=new Configuration(Configuration.VERSION_2_3_23);
   cfg.setTemplateLoader(new ClassTemplateLoader(getClass(),"/"));
-  try {
-    codecTemplate=cfg.getTemplate("codec-template-java.ftl");
-    messageTypeTemplate=cfg.getTemplate("messagetype-template-java.ftl");
-    messageTypeTemplateCSharp=cfg.getTemplate("messagetype-template-csharp.ftl");
-  }
- catch (  IOException e) {
-    messager.printMessage(Diagnostic.Kind.ERROR,e.getMessage());
+  for (  Lang lang : Lang.values()) {
+    boolean enabled=Boolean.getBoolean("hazelcast.generator." + lang.name().toLowerCase());
+    if (enabled || lang == Lang.JAVA) {
+      try {
+        Template codecTemplate=cfg.getTemplate("codec-template-" + lang.name().toLowerCase() + ".ftl");
+        codecTemplateMap.put(lang,codecTemplate);
+      }
+ catch (      IOException e) {
+        messager.printMessage(Diagnostic.Kind.ERROR,"Cannot find template for lang:" + lang);
+      }
+      try {
+        Template messageTypeTemplate=cfg.getTemplate("messagetype-template-" + lang.name().toLowerCase() + ".ftl");
+        messageTypeTemplateMap.put(lang,messageTypeTemplate);
+      }
+ catch (      IOException e) {
+        messager.printMessage(Diagnostic.Kind.WARNING,"Cannot find messagetype template for lang:" + lang);
+      }
+    }
   }
 }
