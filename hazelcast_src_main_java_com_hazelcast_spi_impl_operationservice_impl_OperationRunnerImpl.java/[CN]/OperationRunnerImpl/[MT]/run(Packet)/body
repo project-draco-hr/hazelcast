@@ -5,9 +5,8 @@
   }
   Connection connection=packet.getConn();
   Address caller=connection.getEndPoint();
-  Data data=packet.getData();
   try {
-    Object object=nodeEngine.toObject(data);
+    Object object=nodeEngine.toObject(packet);
     Operation op=(Operation)object;
     op.setNodeEngine(nodeEngine);
     setCallerAddress(op,caller);
@@ -23,7 +22,7 @@
     run(op);
   }
  catch (  Throwable throwable) {
-    long callId=IOUtil.extractOperationCallId(data,node.getSerializationService());
+    long callId=extractOperationCallId(packet,node.getSerializationService());
     operationService.send(new ErrorResponse(throwable,callId,packet.isUrgent()),caller);
     logOperationDeserializationException(throwable,callId);
     throw ExceptionUtil.rethrow(throwable);

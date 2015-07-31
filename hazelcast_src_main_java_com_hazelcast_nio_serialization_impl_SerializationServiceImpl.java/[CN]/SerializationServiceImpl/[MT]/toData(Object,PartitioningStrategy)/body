@@ -5,24 +5,6 @@
   if (obj instanceof Data) {
     return (Data)obj;
   }
-  BufferPool pool=bufferPoolThreadLocal.get();
-  BufferObjectDataOutput out=pool.takeOutputBuffer();
-  try {
-    SerializerAdapter serializer=serializerFor(obj.getClass());
-    out.writeInt(serializer.getTypeId(),ByteOrder.BIG_ENDIAN);
-    int partitionHash=calculatePartitionHash(obj,strategy);
-    boolean hasPartitionHash=partitionHash != 0;
-    out.writeBoolean(hasPartitionHash);
-    serializer.write(out,obj);
-    if (hasPartitionHash) {
-      out.writeInt(partitionHash,ByteOrder.BIG_ENDIAN);
-    }
-    return new HeapData(out.toByteArray());
-  }
- catch (  Throwable e) {
-    throw handleException(e);
-  }
- finally {
-    pool.returnOutputBuffer(out);
-  }
+  byte[] bytes=toBytes(obj,strategy);
+  return new HeapData(bytes);
 }
