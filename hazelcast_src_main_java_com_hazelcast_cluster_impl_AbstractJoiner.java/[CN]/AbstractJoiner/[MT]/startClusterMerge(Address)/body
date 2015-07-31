@@ -1,8 +1,8 @@
 {
   final OperationService operationService=node.nodeEngine.getOperationService();
-  final Collection<MemberImpl> memberList=node.getClusterService().getMemberList();
+  final Collection<Member> memberList=node.getClusterService().getMembers();
   final Collection<Future> calls=new ArrayList<Future>();
-  for (  MemberImpl member : memberList) {
+  for (  Member member : memberList) {
     if (!member.localMember()) {
       Operation operation=new PrepareMergeOperation(targetAddress);
       Future f=operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,operation,member.getAddress()).setTryCount(3).invoke();
@@ -13,7 +13,7 @@
   final PrepareMergeOperation prepareMergeOperation=new PrepareMergeOperation(targetAddress);
   prepareMergeOperation.setNodeEngine(node.nodeEngine).setService(node.getClusterService()).setOperationResponseHandler(createEmptyResponseHandler());
   operationService.runOperationOnCallingThread(prepareMergeOperation);
-  for (  MemberImpl member : memberList) {
+  for (  Member member : memberList) {
     if (!member.localMember()) {
       operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new MergeClustersOperation(targetAddress),member.getAddress()).setTryCount(1).invoke();
     }
