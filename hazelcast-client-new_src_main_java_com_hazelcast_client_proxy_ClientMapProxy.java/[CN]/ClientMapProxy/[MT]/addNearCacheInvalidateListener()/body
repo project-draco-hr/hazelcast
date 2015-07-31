@@ -2,7 +2,12 @@
   try {
     ClientMessage request=MapAddNearCacheEntryListenerCodec.encodeRequest(name,false);
     EventHandler handler=new ClientMapAddNearCacheEventHandler();
-    String registrationId=getContext().getListenerService().startListening(request,null,handler);
+    String registrationId=getContext().getListenerService().startListening(request,null,handler,new ClientMessageDecoder(){
+      @Override public <T>T decodeClientMessage(      ClientMessage clientMessage){
+        return (T)MapAddNearCacheEntryListenerCodec.decodeResponse(clientMessage).response;
+      }
+    }
+);
     nearCache.setId(registrationId);
   }
  catch (  Exception e) {

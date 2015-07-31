@@ -2,5 +2,11 @@
   Data predicateData=toData(predicate);
   ClientMessage request=ReplicatedMapAddEntryListenerWithPredicateCodec.encodeRequest(getName(),predicateData);
   EventHandler<ClientMessage> handler=createHandler(listener);
-  return listen(request,null,handler);
+  ClientMessageDecoder responseDecoder=new ClientMessageDecoder(){
+    @Override public <T>T decodeClientMessage(    ClientMessage clientMessage){
+      return (T)ReplicatedMapAddEntryListenerWithPredicateCodec.decodeResponse(clientMessage).response;
+    }
+  }
+;
+  return listen(request,null,handler,responseDecoder);
 }
