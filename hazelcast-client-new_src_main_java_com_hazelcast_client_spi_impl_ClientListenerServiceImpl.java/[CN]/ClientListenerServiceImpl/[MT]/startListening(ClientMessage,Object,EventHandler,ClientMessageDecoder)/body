@@ -1,0 +1,20 @@
+{
+  final ClientInvocationFuture future;
+  try {
+    handler.beforeListenerRegister();
+    if (key == null) {
+      future=new ClientListenerInvocation(client,handler,clientMessage,responseDecoder).invoke();
+    }
+ else {
+      final int partitionId=client.getClientPartitionService().getPartitionId(key);
+      future=new ClientListenerInvocation(client,handler,clientMessage,partitionId,responseDecoder).invoke();
+    }
+    ClientMessage responseMessage=future.get();
+    String registrationId=responseDecoder.decodeClientMessage(responseMessage);
+    registerListener(registrationId,clientMessage.getCorrelationId());
+    return registrationId;
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

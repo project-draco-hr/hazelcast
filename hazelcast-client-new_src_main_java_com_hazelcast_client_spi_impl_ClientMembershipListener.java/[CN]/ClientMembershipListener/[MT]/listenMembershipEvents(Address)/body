@@ -6,7 +6,12 @@
     if (connection == null) {
       throw new IllegalStateException("Can not load initial members list because owner connection is null. " + "Address " + ownerConnectionAddress);
     }
-    ClientInvocation invocation=new ClientInvocation(client,this,clientMessage,connection);
+    ClientInvocation invocation=new ClientListenerInvocation(client,this,clientMessage,connection,new ClientMessageDecoder(){
+      @Override public <T>T decodeClientMessage(      ClientMessage clientMessage){
+        return (T)ClientMembershipListenerCodec.decodeResponse(clientMessage).response;
+      }
+    }
+);
     invocation.invoke().get();
     waitInitialMemberListFetched();
   }
