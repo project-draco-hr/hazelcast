@@ -1,18 +1,6 @@
 {
 synchronized (this) {
-    if (this.response != null && handler == null) {
-      LOGGER.warning("The Future.set() method can only be called once. Request: " + clientMessage + ", current response: "+ this.response+ ", new response: "+ response);
-      return;
-    }
-    if (handler != null && !(response instanceof Throwable)) {
-      handler.onListenerRegister();
-    }
-    if (this.response != null && !(response instanceof Throwable)) {
-      ClientMessage uuidMessage=(ClientMessage)this.response;
-      ClientMessage copyFlyweight=ClientMessage.createForDecode(uuidMessage.buffer(),0);
-      String uuid=MapAddEntryListenerCodec.decodeResponse(copyFlyweight).response;
-      String alias=MapAddEntryListenerCodec.decodeResponse((ClientMessage)response).response;
-      clientListenerService.reRegisterListener(uuid,alias,clientMessage.getCorrelationId());
+    if (!shouldSetResponse(response)) {
       return;
     }
     this.response=response;

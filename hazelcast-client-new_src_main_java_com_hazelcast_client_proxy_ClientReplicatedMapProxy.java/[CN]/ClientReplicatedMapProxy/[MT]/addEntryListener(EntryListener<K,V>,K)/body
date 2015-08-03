@@ -3,5 +3,11 @@
   Data keyData=toData(key);
   ClientMessage request=ReplicatedMapAddEntryListenerToKeyCodec.encodeRequest(getName(),keyData);
   EventHandler<ClientMessage> handler=createHandler(listener);
-  return listen(request,keyData,handler);
+  ClientMessageDecoder responseDecoder=new ClientMessageDecoder(){
+    @Override public <T>T decodeClientMessage(    ClientMessage clientMessage){
+      return (T)ReplicatedMapAddEntryListenerToKeyCodec.decodeResponse(clientMessage).response;
+    }
+  }
+;
+  return listen(request,keyData,handler,responseDecoder);
 }
