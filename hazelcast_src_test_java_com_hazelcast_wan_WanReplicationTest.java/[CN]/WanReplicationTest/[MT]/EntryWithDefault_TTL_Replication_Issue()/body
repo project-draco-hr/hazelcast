@@ -1,18 +1,15 @@
 {
   setupReplicateFrom(configA,configB,clusterB.length,"atob",PassThroughMergePolicy.class.getName());
   setupReplicateFrom(configB,configA,clusterA.length,"btoa",PassThroughMergePolicy.class.getName());
-  configA.getMapConfig("default").setTimeToLiveSeconds(5);
-  configB.getMapConfig("default").setTimeToLiveSeconds(5);
+  configA.getMapConfig("default").setTimeToLiveSeconds(60);
+  configB.getMapConfig("default").setTimeToLiveSeconds(60);
   initClusterA();
   initClusterB();
-  createDataIn(clusterA,"map",0,10,10,TimeUnit.SECONDS);
+  createDataIn(clusterA,"map",0,10,5,TimeUnit.SECONDS);
   assertDataInFrom(clusterB,"map",0,10,clusterA);
-  createDataIn(clusterB,"map",10,20,10,TimeUnit.SECONDS);
+  createDataIn(clusterB,"map",10,20,5,TimeUnit.SECONDS);
   assertDataInFrom(clusterA,"map",10,20,clusterB);
-  sleepSeconds(5);
-  assertKeysIn(clusterA,"map",0,20);
-  assertKeysIn(clusterB,"map",0,20);
-  sleepSeconds(5);
-  assertKeysNotIn(clusterA,"map",0,20);
-  assertKeysNotIn(clusterB,"map",0,20);
+  sleepSeconds(10);
+  checkKeysNotIn(clusterA,"map",0,20);
+  checkKeysNotIn(clusterB,"map",0,20);
 }
