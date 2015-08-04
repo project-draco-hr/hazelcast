@@ -1,0 +1,40 @@
+{
+  lock();
+  try {
+    removeStale();
+    int c=count;
+    if (c++ > threshold) {
+      int reduced=rehash();
+      if (reduced > 0) {
+        count=(c-=reduced) - 1;
+      }
+    }
+    HashEntry<K,V>[] tab=table;
+    int index=hash & (tab.length - 1);
+    HashEntry<K,V> first=tab[index];
+    HashEntry<K,V> e=first;
+    while (e != null && (e.hash != hash || !keyEq(key,e.key()))) {
+      e=e.next;
+    }
+    V resultValue;
+    if (e != null) {
+      resultValue=e.value();
+      if (!onlyIfAbsent) {
+        e.setValue(getValue(key,value,function),valueType,refQueue);
+      }
+    }
+ else {
+      V v=getValue(key,value,function);
+      resultValue=function != null ? v : null;
+      if (v != null) {
+        ++modCount;
+        tab[index]=newHashEntry(key,hash,first,v);
+        count=c;
+      }
+    }
+    return resultValue;
+  }
+  finally {
+    unlock();
+  }
+}
