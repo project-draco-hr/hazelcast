@@ -1,8 +1,9 @@
 {
   operationService.retryCount.inc();
-  if (invokeCount > LOG_MAX_INVOCATION_COUNT && invokeCount % LOG_INVOCATION_COUNT_MOD == 0) {
-    if (logger.isLoggable(WARNING)) {
-      logger.warning("Retrying invocation: " + toString() + ", Reason: "+ cause);
+  if (invokeCount % LOG_INVOCATION_COUNT_MOD == 0) {
+    Level level=invokeCount > LOG_MAX_INVOCATION_COUNT ? WARNING : FINEST;
+    if (logger.isLoggable(level)) {
+      logger.log(level,"Retrying invocation: " + toString() + ", Reason: "+ cause);
     }
   }
   operationService.invocationsRegistry.deregister(this);
@@ -10,7 +11,10 @@
     invocationFuture.set(INTERRUPTED_RESPONSE);
     return;
   }
-  invocationFuture.set(WAIT_RESPONSE);
+  if (!invocationFuture.set(WAIT_RESPONSE)) {
+    logger.finest("Cannot retry " + toString() + ", because a different response is already set: "+ invocationFuture.response);
+    return;
+  }
   ExecutionService ex=nodeEngine.getExecutionService();
   if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
     operationService.asyncExecutor.execute(this);

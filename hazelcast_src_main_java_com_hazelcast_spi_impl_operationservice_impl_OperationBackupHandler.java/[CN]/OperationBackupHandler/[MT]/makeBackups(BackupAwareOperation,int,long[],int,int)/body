@@ -2,6 +2,7 @@
   int sendSyncBackups=0;
   InternalPartitionService partitionService=node.getPartitionService();
   InternalPartition partition=partitionService.getPartition(partitionId);
+  Data backupOpData=getBackupOperationData(backupAwareOp);
   for (int replicaIndex=1; replicaIndex <= syncBackups + asyncBackups; replicaIndex++) {
     Address target=partition.getReplicaAddress(replicaIndex);
     if (target == null) {
@@ -9,7 +10,7 @@
     }
     assertNoBackupOnPrimaryMember(partition,target);
     boolean isSyncBackup=replicaIndex <= syncBackups;
-    Backup backup=newBackup(backupAwareOp,replicaVersions,replicaIndex,isSyncBackup);
+    Backup backup=newBackup(backupAwareOp,backupOpData,replicaVersions,replicaIndex,isSyncBackup);
     operationService.send(backup,target);
     if (isSyncBackup) {
       sendSyncBackups++;
