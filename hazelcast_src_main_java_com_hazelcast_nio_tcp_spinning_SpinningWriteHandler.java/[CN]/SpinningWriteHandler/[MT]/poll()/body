@@ -1,0 +1,24 @@
+{
+  for (; ; ) {
+    boolean urgent=true;
+    SocketWritable packet=urgentWriteQueue.poll();
+    if (packet == null) {
+      urgent=false;
+      packet=writeQueue.poll();
+    }
+    if (packet == null) {
+      return null;
+    }
+    if (packet instanceof TaskPacket) {
+      ((TaskPacket)packet).run();
+      continue;
+    }
+    if (urgent) {
+      priorityPacketsWritten.inc();
+    }
+ else {
+      normalPacketsWritten.inc();
+    }
+    return packet;
+  }
+}
