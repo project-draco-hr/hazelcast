@@ -1,0 +1,14 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_LOCK_MAX_LEASE_TIME_SECONDS,"1");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
+  final ILock lock=hz.getLock(randomName());
+  lock.lock();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse("Lock should be released after lease expires!",lock.isLocked());
+    }
+  }
+,30);
+}

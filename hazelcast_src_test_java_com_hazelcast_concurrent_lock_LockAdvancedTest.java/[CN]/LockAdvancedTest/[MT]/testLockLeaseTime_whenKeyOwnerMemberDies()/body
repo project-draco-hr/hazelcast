@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  warmUpPartitions(hz1,hz2);
+  String key=generateKeyOwnedBy(hz1);
+  final ILock lock=hz2.getLock(key);
+  lock.lock(3,TimeUnit.SECONDS);
+  terminateInstance(hz1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse("Lock should be released after lease expires!",lock.isLocked());
+    }
+  }
+,30);
+}
