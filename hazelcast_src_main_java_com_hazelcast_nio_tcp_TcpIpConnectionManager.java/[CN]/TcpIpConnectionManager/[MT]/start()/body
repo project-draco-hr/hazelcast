@@ -7,24 +7,6 @@
   }
   live=true;
   log(Level.FINEST,"Starting ConnectionManager and IO selectors.");
-  IOSelectorOutOfMemoryHandler oomeHandler=new IOSelectorOutOfMemoryHandler(){
-    @Override public void handle(    OutOfMemoryError error){
-      ioService.onOutOfMemory(error);
-    }
-  }
-;
-  for (int i=0; i < inSelectors.length; i++) {
-    InSelectorImpl inSelector=new InSelectorImpl(ioService.getThreadGroup(),ioService.getThreadPrefix() + "in-" + i,ioService.getLogger(InSelectorImpl.class.getName()),oomeHandler);
-    inSelectors[i]=inSelector;
-    metricRegistry.scanAndRegister(inSelector,"tcp." + inSelector.getName());
-    inSelector.start();
-  }
-  for (int i=0; i < outSelectors.length; i++) {
-    OutSelectorImpl outSelector=new OutSelectorImpl(ioService.getThreadGroup(),ioService.getThreadPrefix() + "out-" + i,ioService.getLogger(OutSelectorImpl.class.getName()),oomeHandler);
-    outSelectors[i]=outSelector;
-    metricRegistry.scanAndRegister(outSelector,"tcp." + outSelector.getName());
-    outSelector.start();
-  }
-  startIOBalancer();
+  threadingModel.start();
   startAcceptorThread();
 }
