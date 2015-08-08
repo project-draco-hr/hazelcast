@@ -1,0 +1,28 @@
+{
+  return new DefaultPacketReader(connection,new PacketTransceiver(){
+    private ILogger logger=getLogger("PacketTransceiver");
+    @Override public boolean transmit(    Packet packet,    Connection connection){
+      return false;
+    }
+    @Override public boolean transmit(    Packet packet,    Address target){
+      return false;
+    }
+    @Override public void receive(    Packet packet){
+      try {
+        if (packet.isHeaderSet(Packet.HEADER_BIND)) {
+          connection.getConnectionManager().handle(packet);
+        }
+ else {
+          PacketHandler handler=packetHandler;
+          if (handler != null) {
+            handler.handle(packet);
+          }
+        }
+      }
+ catch (      Exception e) {
+        logger.severe(e);
+      }
+    }
+  }
+);
+}
