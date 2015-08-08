@@ -1,14 +1,16 @@
 {
+  Address address=joinMessage.getAddress();
   try {
     if (isValidJoinMessage(joinMessage)) {
       return true;
     }
-    logger.warning("Received an invalid join request from " + joinMessage.getAddress() + ", cause: clusters part of different cluster-groups");
-    nodeEngine.getOperationService().send(new GroupMismatchOperation(),joinMessage.getAddress());
+    logger.warning(format("Received an invalid join request from %s, cause: clusters part of different cluster-groups",address));
+    nodeEngine.getOperationService().send(new GroupMismatchOperation(),address);
   }
  catch (  ConfigMismatchException e) {
-    logger.warning("Received an invalid join request from " + joinMessage.getAddress() + ", cause:"+ e.getMessage());
-    sendConfigurationMismatchFailure(joinMessage.getAddress(),e.getMessage());
+    logger.warning(format("Received an invalid join request from %s, cause: %s",address,e.getMessage()));
+    OperationService operationService=nodeEngine.getOperationService();
+    operationService.send(new ConfigMismatchOperation(e.getMessage()),address);
   }
   return false;
 }

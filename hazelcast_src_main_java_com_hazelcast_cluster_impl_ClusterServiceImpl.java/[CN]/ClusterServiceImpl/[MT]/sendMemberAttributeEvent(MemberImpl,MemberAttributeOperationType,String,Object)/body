@@ -1,7 +1,7 @@
 {
-  final MemberAttributeEvent memberAttributeEvent=new MemberAttributeEvent(getClusterProxy(),member,operationType,key,value);
-  final Collection<MembershipAwareService> membershipAwareServices=nodeEngine.getServices(MembershipAwareService.class);
   final MemberAttributeServiceEvent event=new MemberAttributeServiceEvent(getClusterProxy(),member,operationType,key,value);
+  MemberAttributeEvent attributeEvent=new MemberAttributeEvent(getClusterProxy(),member,operationType,key,value);
+  Collection<MembershipAwareService> membershipAwareServices=nodeEngine.getServices(MembershipAwareService.class);
   if (membershipAwareServices != null && !membershipAwareServices.isEmpty()) {
     for (    final MembershipAwareService service : membershipAwareServices) {
       nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
@@ -12,9 +12,9 @@
 );
     }
   }
-  final EventService eventService=nodeEngine.getEventService();
+  EventService eventService=nodeEngine.getEventService();
   Collection<EventRegistration> registrations=eventService.getRegistrations(SERVICE_NAME,SERVICE_NAME);
   for (  EventRegistration reg : registrations) {
-    eventService.publishEvent(SERVICE_NAME,reg,memberAttributeEvent,reg.getId().hashCode());
+    eventService.publishEvent(SERVICE_NAME,reg,attributeEvent,reg.getId().hashCode());
   }
 }

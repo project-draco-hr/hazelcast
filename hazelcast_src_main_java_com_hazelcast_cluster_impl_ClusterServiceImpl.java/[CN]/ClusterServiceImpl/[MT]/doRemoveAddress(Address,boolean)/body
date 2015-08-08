@@ -1,12 +1,5 @@
 {
-  if (preparingToMerge.get()) {
-    logger.warning("Cluster-merge process is ongoing, won't process member removal: " + deadAddress);
-    return;
-  }
-  if (!node.joined()) {
-    return;
-  }
-  if (deadAddress.equals(thisAddress)) {
+  if (!ensureMemberIsRemovable(deadAddress)) {
     return;
   }
   lock.lock();
@@ -17,7 +10,7 @@
     if (node.isMaster()) {
       setJoins.remove(new MemberInfo(deadAddress));
     }
-    final Connection conn=node.connectionManager.getConnection(deadAddress);
+    Connection conn=node.connectionManager.getConnection(deadAddress);
     if (destroyConnection && conn != null) {
       node.connectionManager.destroyConnection(conn);
     }

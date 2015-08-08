@@ -1,27 +1,30 @@
 {
-  logger.finest("Starting Join.");
+  logger.finest("Starting join...");
   lock.lock();
   try {
     try {
       joinInProgress=true;
       node.getPartitionService().pauseMigration();
-      final Collection<MemberImpl> members=getMemberImpls();
-      final Collection<MemberInfo> memberInfos=createMemberInfoList(members);
+      Collection<MemberImpl> members=getMemberImpls();
+      Collection<MemberInfo> memberInfos=createMemberInfoList(members);
       for (      MemberInfo memberJoining : setJoins) {
         memberInfos.add(memberJoining);
       }
-      final long time=clusterClock.getClusterTime();
-      final Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
-      final PostJoinOperation postJoinOp=postJoinOps != null && postJoinOps.length > 0 ? new PostJoinOperation(postJoinOps) : null;
-      final int count=members.size() - 1 + setJoins.size();
-      final List<Future> calls=new ArrayList<Future>(count);
+      long time=clusterClock.getClusterTime();
+      Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
+      boolean createPostJoinOperation=(postJoinOps != null && postJoinOps.length > 0);
+      PostJoinOperation postJoinOp=(createPostJoinOperation ? new PostJoinOperation(postJoinOps) : null);
+      int count=members.size() - 1 + setJoins.size();
+      List<Future> calls=new ArrayList<Future>(count);
       for (      MemberInfo member : setJoins) {
-        final long startTime=clusterClock.getClusterStartTime();
-        calls.add(invokeClusterOperation(new FinalizeJoinOperation(memberInfos,postJoinOp,time,clusterId,startTime),member.getAddress()));
+        long startTime=clusterClock.getClusterStartTime();
+        Operation joinOperation=new FinalizeJoinOperation(memberInfos,postJoinOp,time,clusterId,startTime);
+        calls.add(invokeClusterOperation(joinOperation,member.getAddress()));
       }
       for (      MemberImpl member : members) {
         if (!member.getAddress().equals(thisAddress)) {
-          calls.add(invokeClusterOperation(new MemberInfoUpdateOperation(memberInfos,time,true),member.getAddress()));
+          Operation infoUpdateOperation=new MemberInfoUpdateOperation(memberInfos,time,true);
+          calls.add(invokeClusterOperation(infoUpdateOperation,member.getAddress()));
         }
       }
       updateMembers(memberInfos);

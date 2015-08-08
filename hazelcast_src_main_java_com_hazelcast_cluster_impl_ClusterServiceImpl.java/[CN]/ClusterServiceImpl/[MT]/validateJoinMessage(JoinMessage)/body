@@ -1,16 +1,14 @@
 {
-  boolean valid=Packet.VERSION == joinMessage.getPacketVersion();
-  if (valid) {
-    try {
-      ConfigCheck newMemberConfigCheck=joinMessage.getConfigCheck();
-      ConfigCheck clusterConfigCheck=node.createConfigCheck();
-      valid=clusterConfigCheck.isCompatible(newMemberConfigCheck);
-    }
- catch (    Exception e) {
-      final String message="Invalid join request from: " + joinMessage.getAddress() + ", reason:"+ e.getMessage();
-      logger.warning(message);
-      throw e;
-    }
+  if (joinMessage.getPacketVersion() != Packet.VERSION) {
+    return false;
   }
-  return valid;
+  try {
+    ConfigCheck newMemberConfigCheck=joinMessage.getConfigCheck();
+    ConfigCheck clusterConfigCheck=node.createConfigCheck();
+    return clusterConfigCheck.isCompatible(newMemberConfigCheck);
+  }
+ catch (  Exception e) {
+    logger.warning(format("Invalid join request from %s, cause: %s",joinMessage.getAddress(),e.getMessage()));
+    throw e;
+  }
 }
