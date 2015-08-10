@@ -1,21 +1,20 @@
 {
-  final SocketChannel socketChannel=SocketChannel.open();
+  SocketChannel socketChannel=SocketChannel.open();
   connectionManager.initSocket(socketChannel.socket());
   if (ioService.isSocketBind()) {
     bindSocket(socketChannel);
   }
-  final Level level=silent ? Level.FINEST : Level.INFO;
+  Level level=silent ? Level.FINEST : Level.INFO;
   if (logger.isLoggable(level)) {
-    final String message="Connecting to " + socketAddress + ", timeout: "+ timeout+ ", bind-any: "+ ioService.isSocketBindAny();
-    log(level,message);
+    logger.log(level,"Connecting to " + socketAddress + ", timeout: "+ timeout+ ", bind-any: "+ ioService.isSocketBindAny());
   }
   try {
     socketChannel.configureBlocking(true);
     connectSocketChannel(socketAddress,timeout,socketChannel);
     if (logger.isFinestEnabled()) {
-      log(Level.FINEST,"Successfully connected to: " + address + " using socket "+ socketChannel.socket());
+      logger.finest("Successfully connected to: " + address + " using socket "+ socketChannel.socket());
     }
-    final SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
+    SocketChannelWrapper socketChannelWrapper=connectionManager.wrapSocketChannel(socketChannel,true);
     connectionManager.interceptSocket(socketChannel.socket(),false);
     socketChannelWrapper.configureBlocking(false);
     TcpIpConnection connection=connectionManager.newConnection(socketChannelWrapper,address);
@@ -24,7 +23,7 @@
   }
  catch (  Exception e) {
     closeSocket(socketChannel);
-    log(level,"Could not connect to: " + socketAddress + ". Reason: "+ e.getClass().getSimpleName()+ "["+ e.getMessage()+ "]");
+    logger.log(level,"Could not connect to: " + socketAddress + ". Reason: "+ e.getClass().getSimpleName()+ "["+ e.getMessage()+ "]");
     throw e;
   }
 }

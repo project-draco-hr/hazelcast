@@ -1,0 +1,25 @@
+{
+  InetAddress inetAddress=getInetAddress();
+  Socket socket=socketChannel.socket();
+  if (connectionManager.useAnyOutboundPort()) {
+    SocketAddress socketAddress=new InetSocketAddress(inetAddress,0);
+    socket.bind(socketAddress);
+  }
+ else {
+    IOException ex=null;
+    int retryCount=connectionManager.getOutboundPortCount() * 2;
+    for (int i=0; i < retryCount; i++) {
+      int port=connectionManager.acquireOutboundPort();
+      SocketAddress socketAddress=new InetSocketAddress(inetAddress,port);
+      try {
+        socket.bind(socketAddress);
+        return;
+      }
+ catch (      IOException e) {
+        ex=e;
+        logger.finest("Could not bind port[ " + port + "]: "+ e.getMessage());
+      }
+    }
+    throw ex;
+  }
+}
