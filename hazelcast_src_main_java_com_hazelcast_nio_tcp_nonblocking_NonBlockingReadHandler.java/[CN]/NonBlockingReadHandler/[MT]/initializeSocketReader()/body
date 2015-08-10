@@ -1,0 +1,43 @@
+{
+  if (socketReader != null) {
+    return;
+  }
+  ByteBuffer protocolBuffer=ByteBuffer.allocate(3);
+  int readBytes=socketChannel.read(protocolBuffer);
+  if (readBytes == -1) {
+    throw new EOFException("Could not read protocol type!");
+  }
+  if (readBytes == 0 && connectionManager.isSSLEnabled()) {
+    return;
+  }
+  if (!protocolBuffer.hasRemaining()) {
+    String protocol=bytesToString(protocolBuffer.array());
+    NonBlockingWriteHandler writeHandler=(NonBlockingWriteHandler)connection.getWriteHandler();
+    if (CLUSTER.equals(protocol)) {
+      configureBuffers(connectionManager.getSocketReceiveBufferSize());
+      connection.setType(MEMBER);
+      writeHandler.setProtocol(CLUSTER);
+      socketReader=new SocketPacketReader(connection);
+    }
+ else     if (CLIENT_BINARY.equals(protocol)) {
+      configureBuffers(connectionManager.getSocketClientReceiveBufferSize());
+      writeHandler.setProtocol(CLIENT_BINARY);
+      socketReader=new SocketClientDataReader(connection);
+    }
+ else     if (CLIENT_BINARY_NEW.equals(protocol)) {
+      configureBuffers(connectionManager.getSocketClientReceiveBufferSize());
+      writeHandler.setProtocol(CLIENT_BINARY_NEW);
+      socketReader=new SocketClientMessageReader(connection);
+    }
+ else {
+      configureBuffers(connectionManager.getSocketReceiveBufferSize());
+      writeHandler.setProtocol(Protocols.TEXT);
+      inputBuffer.put(protocolBuffer.array());
+      socketReader=new SocketTextReader(connection);
+      connection.getConnectionManager().incrementTextConnections();
+    }
+  }
+  if (socketReader == null) {
+    throw new IOException("Could not initialize SocketReader!");
+  }
+}

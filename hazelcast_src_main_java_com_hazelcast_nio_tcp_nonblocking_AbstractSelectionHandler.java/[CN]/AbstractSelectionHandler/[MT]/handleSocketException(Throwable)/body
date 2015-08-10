@@ -1,0 +1,25 @@
+{
+  if (e instanceof OutOfMemoryError) {
+    ioService.onOutOfMemory((OutOfMemoryError)e);
+  }
+  if (selectionKey != null) {
+    selectionKey.cancel();
+  }
+  connection.close(e);
+  ConnectionType connectionType=connection.getType();
+  if (connectionType.isClient() && !connectionType.isBinary()) {
+    return;
+  }
+  StringBuilder sb=new StringBuilder();
+  sb.append(Thread.currentThread().getName());
+  sb.append(" Closing socket to endpoint ");
+  sb.append(connection.getEndPoint());
+  sb.append(", Cause:").append(e);
+  Level level=ioService.isActive() ? Level.WARNING : Level.FINEST;
+  if (e instanceof IOException) {
+    logger.log(level,sb.toString());
+  }
+ else {
+    logger.log(level,sb.toString(),e);
+  }
+}
