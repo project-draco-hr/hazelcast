@@ -1,0 +1,29 @@
+{
+  long prev=System.currentTimeMillis();
+  while (!stop.get()) {
+    Packet packet=nextPacket();
+    if (packet.isUrgent()) {
+      urgentPackets++;
+    }
+ else {
+      normalPackets++;
+    }
+    writeHandler.offer(packet);
+    long now=System.currentTimeMillis();
+    if (now > prev + 2000) {
+      prev=now;
+      logger.info("At normal-packets:" + normalPackets + " priority-packets:"+ urgentPackets);
+    }
+    double usage=getUsage();
+    if (usage < 90) {
+      continue;
+    }
+    for (; ; ) {
+      sleep(random.nextInt(5));
+      if (getUsage() < 10) {
+        break;
+      }
+    }
+  }
+  logger.info("Finished, normal packets written: " + normalPackets + " urgent packets written:"+ urgentPackets);
+}
