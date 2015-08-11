@@ -1,0 +1,18 @@
+{
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      CloseableHttpClient client=HttpClientBuilder.create().disableRedirectHandling().build();
+      HttpUriRequest request;
+      request=new HttpGet("http://localhost:" + portNum + "/mancen/memberStateCheck");
+      HttpResponse response=client.execute(request);
+      HttpEntity entity=response.getEntity();
+      String responseString=EntityUtils.toString(entity);
+      assertNotEquals("",responseString);
+      JsonObject object=JsonObject.readFrom(responseString);
+      TimedMemberState memberState=new TimedMemberState();
+      memberState.fromJson(object);
+      assertEquals("dev",memberState.getClusterName());
+    }
+  }
+);
+}
