@@ -1,0 +1,34 @@
+{
+  int count=0;
+  Config config=instance.getConfig();
+  Set<String> longInstanceNames=new HashSet<String>(maxVisibleInstanceCount);
+  for (  StatisticsAwareService service : services) {
+    if (count < maxVisibleInstanceCount) {
+      if (service instanceof MapService) {
+        count=handleMap(memberState,count,config,((MapService)service).getStats(),longInstanceNames);
+      }
+ else       if (service instanceof MultiMapService) {
+        count=handleMultimap(memberState,count,config,((MultiMapService)service).getStats(),longInstanceNames);
+      }
+ else       if (service instanceof QueueService) {
+        count=handleQueue(memberState,count,config,((QueueService)service).getStats(),longInstanceNames);
+      }
+ else       if (service instanceof TopicService) {
+        count=handleTopic(memberState,count,config,((TopicService)service).getStats(),longInstanceNames);
+      }
+ else       if (service instanceof DistributedExecutorService) {
+        count=handleExecutorService(memberState,count,config,((DistributedExecutorService)service).getStats(),longInstanceNames);
+      }
+    }
+  }
+  if (cacheServiceEnabled) {
+    ICacheService cacheService=getCacheService();
+    for (    CacheConfig cacheConfig : cacheService.getCacheConfigs()) {
+      if (cacheConfig.isStatisticsEnabled() && count < maxVisibleInstanceCount) {
+        CacheStatistics statistics=cacheService.getStatistics(cacheConfig.getNameWithPrefix());
+        count=handleCache(memberState,count,cacheConfig,statistics,longInstanceNames);
+      }
+    }
+  }
+  timedMemberState.setInstanceNames(longInstanceNames);
+}
