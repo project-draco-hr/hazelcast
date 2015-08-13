@@ -1,0 +1,28 @@
+{
+  try {
+    Data data=serializationService.toData(payload);
+    ReliableTopicMessage message=new ReliableTopicMessage(data,null);
+switch (overloadPolicy) {
+case ERROR:
+      addOrFail(message);
+    break;
+case DISCARD_OLDEST:
+  addOrOverwrite(message);
+break;
+case DISCARD_NEWEST:
+ringbuffer.addAsync(message,OverflowPolicy.FAIL).get();
+break;
+case BLOCK:
+addWithBackoff(message);
+break;
+default :
+throw new IllegalArgumentException("Unknown overloadPolicy:" + overloadPolicy);
+}
+}
+ catch (RuntimeException e) {
+throw e;
+}
+catch (Exception e) {
+throw new HazelcastException("Failed to publish message: " + payload + " to topic:"+ getName(),e);
+}
+}
