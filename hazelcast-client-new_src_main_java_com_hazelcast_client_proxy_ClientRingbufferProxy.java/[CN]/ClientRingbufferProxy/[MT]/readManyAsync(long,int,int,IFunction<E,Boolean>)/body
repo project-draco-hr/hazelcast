@@ -1,0 +1,16 @@
+{
+  checkSequence(startSequence);
+  checkNotNegative(minCount,"minCount can't be smaller than 0");
+  checkTrue(maxCount >= minCount,"maxCount should be equal or larger than minCount");
+  checkTrue(minCount <= capacity(),"the minCount should be smaller than or equal to the capacity");
+  checkTrue(maxCount <= MAX_BATCH_SIZE,"maxCount can't be larger than " + MAX_BATCH_SIZE);
+  ClientMessage request=RingbufferReadManyAsyncCodec.encodeRequest(getName(),startSequence,minCount,maxCount,toData(filter));
+  request.setPartitionId(partitionId);
+  try {
+    ClientInvocationFuture invocationFuture=new ClientInvocation(getClient(),request).invoke();
+    return new ClientDelegatingFuture<ReadResultSet<E>>(invocationFuture,getContext().getSerializationService(),readManyAsyncResponseDecoder);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}
