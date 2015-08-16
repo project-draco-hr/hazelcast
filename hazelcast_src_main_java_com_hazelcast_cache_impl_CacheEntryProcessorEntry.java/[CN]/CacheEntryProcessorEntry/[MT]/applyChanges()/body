@@ -5,28 +5,32 @@ switch (state) {
 case ACCESS:
     cacheRecordStore.accessRecord(keyData,record,expiryPolicy,now);
   break;
+case CREATE:
+if (isStatisticsEnabled) {
+  statistics.increaseCachePuts(1);
+  statistics.addGetTimeNanos(System.nanoTime() - start);
+}
+boolean saved=cacheRecordStore.createRecordWithExpiry(keyData,value,expiryPolicy,now,false,completionId) != null;
+onCreate(keyData,value,expiryPolicy,now,false,completionId,saved);
+break;
+case LOAD:
+saved=cacheRecordStore.createRecordWithExpiry(keyData,valueLoaded,expiryPolicy,now,true,completionId) != null;
+onLoad(keyData,valueLoaded,expiryPolicy,now,true,completionId,saved);
+break;
 case UPDATE:
-cacheRecordStore.updateRecordWithExpiry(keyData,value,record,expiryPolicy,now,false,completionId);
+saved=cacheRecordStore.updateRecordWithExpiry(keyData,value,record,expiryPolicy,now,false,completionId);
+onUpdate(keyData,value,record,expiryPolicy,now,false,completionId,saved);
 if (isStatisticsEnabled) {
 statistics.increaseCachePuts(1);
 statistics.addGetTimeNanos(System.nanoTime() - start);
 }
 break;
 case REMOVE:
-cacheRecordStore.remove(keyData,null,completionId);
-break;
-case CREATE:
-if (isStatisticsEnabled) {
-statistics.increaseCachePuts(1);
-statistics.addGetTimeNanos(System.nanoTime() - start);
-}
-cacheRecordStore.createRecordWithExpiry(keyData,value,expiryPolicy,now,false,completionId);
-break;
-case LOAD:
-cacheRecordStore.createRecordWithExpiry(keyData,valueLoaded,expiryPolicy,now,true,completionId);
+boolean removed=cacheRecordStore.remove(keyData,null,completionId);
+onRemove(keyData,null,completionId,removed);
 break;
 case NONE:
-cacheRecordStore.publishEvent(CacheEventContextUtil.createCacheCompleteEvent(keyData,completionId));
+cacheRecordStore.publishEvent(CacheEventContextUtil.createCacheCompleteEvent(cacheRecordStore.toEventData(keyData),completionId));
 break;
 default :
 break;
