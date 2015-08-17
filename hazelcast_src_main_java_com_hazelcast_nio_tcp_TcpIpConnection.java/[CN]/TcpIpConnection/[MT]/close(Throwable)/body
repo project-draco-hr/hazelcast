@@ -1,20 +1,24 @@
 {
-  if (!live) {
+  if (!alive.compareAndSet(true,false)) {
     return;
   }
   try {
-    close0();
+    if (socketChannel != null && socketChannel.isOpen()) {
+      readHandler.shutdown();
+      writeHandler.shutdown();
+      socketChannel.close();
+    }
   }
  catch (  Exception e) {
     logger.warning(e);
   }
   Object connAddress=getConnectionAddress();
   String message="Connection [" + connAddress + "] lost. Reason: ";
-  if (t != null) {
-    message+=t.getClass().getName() + "[" + t.getMessage()+ "]";
+  if (t == null) {
+    message+="Socket explicitly closed";
   }
  else {
-    message+="Socket explicitly closed";
+    message+=t.getClass().getName() + "[" + t.getMessage()+ "]";
   }
   logger.info(message);
   connectionManager.destroyConnection(this);
