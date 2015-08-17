@@ -7,12 +7,9 @@
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   try {
-    if (record != null) {
-      obj=toValue(record);
-    }
+    obj=toValue(record);
     if (record == null || isExpired) {
       obj=null;
-      replaced=false;
       if (isEventsEnabled()) {
         publishEvent(createCacheCompleteEvent(toEventData(key),completionId));
       }
@@ -21,7 +18,9 @@
       replaced=updateRecordWithExpiry(key,value,record,expiryPolicy,now,false,completionId,source);
     }
     onReplace(key,null,value,expiryPolicy,source,false,record,isExpired,replaced);
-    updateHasExpiringEntry(record);
+    if (replaced) {
+      updateHasExpiringEntry(record);
+    }
     if (isStatisticsEnabled()) {
       statistics.addGetTimeNanos(System.nanoTime() - start);
       if (obj != null) {

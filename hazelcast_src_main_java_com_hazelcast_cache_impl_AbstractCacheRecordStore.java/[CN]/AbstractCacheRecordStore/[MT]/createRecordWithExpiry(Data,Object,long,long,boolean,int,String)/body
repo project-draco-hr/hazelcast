@@ -4,7 +4,13 @@
   }
   if (!isExpiredAt(expiryTime,now)) {
     R record=createRecord(key,value,expiryTime,completionId,origin);
-    doPutRecord(key,record);
+    try {
+      doPutRecord(key,record);
+    }
+ catch (    Throwable error) {
+      onCreateRecordWithExpiryError(key,value,expiryTime,now,disableWriteThrough,completionId,origin,record,error);
+      throw ExceptionUtil.rethrow(error);
+    }
     return record;
   }
   if (isEventsEnabled()) {
