@@ -1,0 +1,29 @@
+{
+  final CountDownLatch countDownLatch=new CountDownLatch(1);
+  Config config=new Config();
+  QuorumListenerConfig listenerConfig=new QuorumListenerConfig();
+  listenerConfig.setImplementation(new QuorumListener(){
+    public void onChange(    QuorumEvent quorumEvent){
+      if (!quorumEvent.isPresent()) {
+        countDownLatch.countDown();
+      }
+    }
+  }
+);
+  String cacheName=randomString();
+  String quorumName=randomString();
+  QuorumConfig quorumConfig=new QuorumConfig(quorumName,true,3);
+  quorumConfig.addListenerConfig(listenerConfig);
+  config.getCacheConfig(cacheName).setQuorumName(quorumName);
+  config.addQuorumConfig(quorumConfig);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  HazelcastServerCachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(instance);
+  Cache<Object,Object> cache=cachingProvider.getCacheManager().getCache(cacheName);
+  try {
+    cache.put(generateKeyOwnedBy(instance),1);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+  }
+  assertOpenEventually(countDownLatch,15);
+}
