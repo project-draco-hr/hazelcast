@@ -7,10 +7,7 @@
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   try {
-    if (record == null || isExpired) {
-      replaced=false;
-    }
- else {
+    if (record != null && !isExpired) {
       isHit=true;
       Object currentValue=toStorageValue(record);
       if (compare(currentValue,toStorageValue(oldValue))) {
@@ -18,7 +15,6 @@
       }
  else {
         onRecordAccess(key,record,expiryPolicy,now);
-        replaced=false;
       }
     }
     if (!replaced) {
@@ -28,7 +24,9 @@
     }
     onReplace(key,oldValue,newValue,expiryPolicy,source,false,record,isExpired,replaced);
     updateReplaceStat(replaced,isHit,start);
-    updateHasExpiringEntry(record);
+    if (replaced) {
+      updateHasExpiringEntry(record);
+    }
     return replaced;
   }
  catch (  Throwable error) {
