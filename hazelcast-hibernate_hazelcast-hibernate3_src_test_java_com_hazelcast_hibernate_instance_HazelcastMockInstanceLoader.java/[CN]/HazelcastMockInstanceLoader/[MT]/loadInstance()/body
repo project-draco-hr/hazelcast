@@ -1,0 +1,61 @@
+{
+  if (CacheEnvironment.isNativeClient(props)) {
+    if (client != null && client.getLifecycleService().isRunning()) {
+      LOGGER.warning("Current HazelcastClient is already active! Shutting it down...");
+      unloadInstance();
+    }
+    String address=PropertiesHelper.getString(CacheEnvironment.NATIVE_CLIENT_ADDRESS,props,null);
+    String group=PropertiesHelper.getString(CacheEnvironment.NATIVE_CLIENT_GROUP,props,null);
+    String pass=PropertiesHelper.getString(CacheEnvironment.NATIVE_CLIENT_PASSWORD,props,null);
+    String configResourcePath=CacheEnvironment.getConfigFilePath(props);
+    ClientConfig clientConfig=buildClientConfig(configResourcePath);
+    if (group != null) {
+      clientConfig.getGroupConfig().setName(group);
+    }
+    if (pass != null) {
+      clientConfig.getGroupConfig().setPassword(pass);
+    }
+    if (address != null) {
+      clientConfig.getNetworkConfig().addAddress(address);
+    }
+    clientConfig.getNetworkConfig().setSmartRouting(true);
+    clientConfig.getNetworkConfig().setRedoOperation(true);
+    client=factory.newHazelcastClient(clientConfig);
+    return client;
+  }
+ else {
+    if (instance != null && instance.getLifecycleService().isRunning()) {
+      LOGGER.warning("Current HazelcastInstance is already loaded and running! " + "Returning current instance...");
+      return instance;
+    }
+    String configResourcePath=null;
+    instanceName=CacheEnvironment.getInstanceName(props);
+    configResourcePath=CacheEnvironment.getConfigFilePath(props);
+    if (!isEmpty(configResourcePath)) {
+      try {
+        config=ConfigLoader.load(configResourcePath);
+      }
+ catch (      IOException e) {
+        LOGGER.warning("IOException: " + e.getMessage());
+      }
+      if (config == null) {
+        throw new CacheException("Could not find configuration file: " + configResourcePath);
+      }
+    }
+    if (instanceName != null) {
+      instance=getHazelcastInstanceByName(instanceName);
+      if (instance == null) {
+        try {
+          createOrGetInstance();
+        }
+ catch (        DuplicateInstanceNameException ignored) {
+          instance=getHazelcastInstanceByName(instanceName);
+        }
+      }
+    }
+ else {
+      createOrGetInstance();
+    }
+    return instance;
+  }
+}
