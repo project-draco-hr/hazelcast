@@ -1,5 +1,4 @@
 {
-  ClientEngineImpl clientEngine=getService();
   if (ownerConnection) {
     final String uuid=getUuid();
     principal=new ClientPrincipal(uuid,clientEngine.getLocalMember().getUuid());
@@ -16,6 +15,9 @@
   if (clientEngine.getClusterService().getMember(principal.getOwnerUuid()) == null) {
     return new AuthenticationException("Invalid owner-uuid: " + principal.getOwnerUuid() + ", it's not member of this cluster!");
   }
+  Connection connection=endpoint.getConnection();
+  ILogger logger=clientEngine.getLogger(getClass());
+  logger.log(Level.INFO,"Received auth from " + connection + ", successfully authenticated"+ ", principal : "+ principal+ ", owner connection : "+ ownerConnection);
   endpoint.authenticated(principal,credentials,ownerConnection);
   clientEngine.getEndpointManager().registerEndpoint(endpoint);
   clientEngine.bind(endpoint);
