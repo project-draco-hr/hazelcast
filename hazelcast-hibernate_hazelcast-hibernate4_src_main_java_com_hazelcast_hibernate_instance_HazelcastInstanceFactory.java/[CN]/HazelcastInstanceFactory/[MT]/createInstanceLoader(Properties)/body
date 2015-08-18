@@ -1,23 +1,15 @@
 {
-  boolean useNativeClient=false;
-  if (props != null) {
-    useNativeClient=CacheEnvironment.isNativeClient(props);
-  }
-  IHazelcastInstanceLoader loader=null;
-  Class loaderClass=null;
-  ClassLoader cl=HazelcastInstanceFactory.class.getClassLoader();
   try {
-    if (useNativeClient) {
-      loaderClass=cl.loadClass(HZ_CLIENT_LOADER_CLASSNAME);
+    IHazelcastInstanceLoader instanceLoader=(IHazelcastInstanceLoader)props.get("com.hazelcast.hibernate.instance.loader");
+    if (instanceLoader != null) {
+      return instanceLoader;
     }
- else {
-      loaderClass=cl.loadClass(HZ_INSTANCE_LOADER_CLASSNAME);
-    }
-    loader=(IHazelcastInstanceLoader)loaderClass.newInstance();
+    Class loaderClass=getInstanceLoaderClass(props);
+    instanceLoader=(IHazelcastInstanceLoader)loaderClass.newInstance();
+    instanceLoader.configure(props);
+    return instanceLoader;
   }
  catch (  Exception e) {
     throw new CacheException(e);
   }
-  loader.configure(props);
-  return loader;
 }
