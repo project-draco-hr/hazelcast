@@ -7,13 +7,13 @@
   if (joinMessage.getUuid().equals(member.getUuid())) {
     if (node.isMaster()) {
       if (logger.isFinestEnabled()) {
-        String message="Ignoring join request, member already exists.. => " + joinMessage;
-        logger.finest(message);
+        logger.finest(format("Ignoring join request, member already exists: %s",joinMessage));
       }
-      final Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
-      final PostJoinOperation postJoinOp=postJoinOps != null && postJoinOps.length > 0 ? new PostJoinOperation(postJoinOps) : null;
-      Operation op=new FinalizeJoinOperation(createMemberInfoList(getMemberImpls()),postJoinOp,clusterClock.getClusterTime(),false);
-      nodeEngine.getOperationService().send(op,target);
+      Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
+      boolean isPostJoinOperation=postJoinOps != null && postJoinOps.length > 0;
+      PostJoinOperation postJoinOp=isPostJoinOperation ? new PostJoinOperation(postJoinOps) : null;
+      Operation operation=new FinalizeJoinOperation(createMemberInfoList(getMemberImpls()),postJoinOp,clusterClock.getClusterTime(),false);
+      nodeEngine.getOperationService().send(operation,target);
     }
  else {
       sendMasterAnswer(target);
@@ -21,7 +21,7 @@
     return true;
   }
   if (node.isMaster() || target.equals(node.getMasterAddress())) {
-    logger.warning("New join request has been received from an existing endpoint! => " + member + " Removing old member and processing join request...");
+    logger.warning(format("New join request has been received from an existing endpoint %s." + " Removing old member and processing join request...",member));
     doRemoveAddress(target,false);
     Connection existing=node.connectionManager.getConnection(target);
     if (existing != connection) {

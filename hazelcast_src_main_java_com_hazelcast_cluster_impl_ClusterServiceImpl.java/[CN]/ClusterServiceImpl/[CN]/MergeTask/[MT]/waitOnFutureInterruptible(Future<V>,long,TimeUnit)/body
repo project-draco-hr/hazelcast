@@ -2,14 +2,14 @@
   isNotNull(timeUnit,"timeUnit");
   long deadline=Clock.currentTimeMillis() + timeUnit.toMillis(timeout);
   while (true) {
-    long localTimeout=Math.min(1000 * 10,deadline);
+    long localTimeoutMs=Math.min(MIN_WAIT_ON_FUTURE_TIMEOUT_MILLIS,deadline);
     try {
-      return future.get(localTimeout,TimeUnit.MILLISECONDS);
+      return future.get(localTimeoutMs,TimeUnit.MILLISECONDS);
     }
- catch (    TimeoutException te) {
-      deadline-=localTimeout;
+ catch (    TimeoutException t) {
+      deadline-=localTimeoutMs;
       if (deadline <= 0) {
-        throw te;
+        throw t;
       }
       if (!node.isActive()) {
         future.cancel(true);

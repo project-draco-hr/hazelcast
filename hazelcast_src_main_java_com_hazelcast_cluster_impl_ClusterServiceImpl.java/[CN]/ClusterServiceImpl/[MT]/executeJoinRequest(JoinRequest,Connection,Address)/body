@@ -1,0 +1,24 @@
+{
+  lock.lock();
+  try {
+    if (checkIfJoinRequestFromAnExistingMember(joinRequest,connection)) {
+      return;
+    }
+    long now=Clock.currentTimeMillis();
+    if (logger.isFinestEnabled()) {
+      String timeToStart=(timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
+      logger.finest(format("Handling join from %s, joinInProgress: %b%s",target,joinInProgress,timeToStart));
+    }
+    MemberInfo memberInfo=getMemberInfo(joinRequest,target);
+    if (memberInfo == null) {
+      return;
+    }
+    if (!prepareJoinIfNodeIsMaster(target)) {
+      return;
+    }
+    startJoinRequest(target,now,memberInfo);
+  }
+  finally {
+    lock.unlock();
+  }
+}

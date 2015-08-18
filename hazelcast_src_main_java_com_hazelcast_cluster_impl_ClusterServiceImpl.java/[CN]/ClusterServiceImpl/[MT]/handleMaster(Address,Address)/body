@@ -1,45 +1,18 @@
 {
   if (node.joined()) {
     if (logger.isFinestEnabled()) {
-      logger.finest("Ignoring master response: " + masterAddress + " from: "+ callerAddress+ ". This node is already joined...");
+      logger.finest(format("Ignoring master response %s from %s, this node is already joined",masterAddress,callerAddress));
     }
     return;
   }
   if (node.getThisAddress().equals(masterAddress)) {
     if (node.isMaster()) {
-      logger.finest("Ignoring master response: " + masterAddress + " from: "+ callerAddress+ ". This node is already master...");
+      logger.finest(format("Ignoring master response %s from %s, this node is already master",masterAddress,callerAddress));
     }
  else {
       node.setAsMaster();
     }
     return;
   }
-  lock.lock();
-  try {
-    if (logger.isFinestEnabled()) {
-      logger.finest("Handling master response: " + masterAddress + " from: "+ callerAddress);
-    }
-    final Address currentMaster=node.getMasterAddress();
-    if (currentMaster == null || currentMaster.equals(masterAddress)) {
-      setMasterAndJoin(masterAddress);
-    }
- else     if (currentMaster.equals(callerAddress)) {
-      logger.info("Setting master to: " + masterAddress + ", since "+ currentMaster+ " says it's not master anymore.");
-      setMasterAndJoin(masterAddress);
-    }
- else {
-      final Connection conn=node.connectionManager.getConnection(currentMaster);
-      if (conn != null && conn.isAlive()) {
-        logger.info("Ignoring master response: " + masterAddress + " from: "+ callerAddress+ ", since this node has an active master: "+ currentMaster);
-        sendJoinRequest(currentMaster,true);
-      }
- else {
-        logger.warning("Ambiguous master response, this node has a master: " + currentMaster + ", but doesn't have a connection to. "+ callerAddress+ " sent master response as: "+ masterAddress+ ". Master field will be unset now...");
-        node.setMasterAddress(null);
-      }
-    }
-  }
-  finally {
-    lock.unlock();
-  }
+  handleMasterResponse(masterAddress,callerAddress);
 }

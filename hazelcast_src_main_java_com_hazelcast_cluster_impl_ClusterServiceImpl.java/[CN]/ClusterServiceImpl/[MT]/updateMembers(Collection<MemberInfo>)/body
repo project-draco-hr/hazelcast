@@ -5,19 +5,20 @@
     if (!shouldProcessMemberUpdate(currentMemberMap,members)) {
       return;
     }
-    MemberImpl[] updatedMembers=new MemberImpl[members.size()];
+    String scopeId=thisAddress.getScopeId();
     Collection<MemberImpl> newMembers=new LinkedList<MemberImpl>();
-    int k=0;
+    MemberImpl[] updatedMembers=new MemberImpl[members.size()];
+    int memberIndex=0;
     for (    MemberInfo memberInfo : members) {
       MemberImpl member=currentMemberMap.get(memberInfo.getAddress());
       if (member == null) {
-        member=createMember(memberInfo.getAddress(),memberInfo.getUuid(),thisAddress.getScopeId(),memberInfo.getAttributes());
+        member=createMember(memberInfo.getAddress(),memberInfo.getUuid(),scopeId,memberInfo.getAttributes());
         newMembers.add(member);
         long now=Clock.currentTimeMillis();
         onHeartbeat(member,now);
         masterConfirmationTimes.put(member,now);
       }
-      updatedMembers[k++]=member;
+      updatedMembers[memberIndex++]=member;
     }
     setMembers(updatedMembers);
     sendMembershipEvents(currentMemberMap.values(),newMembers);

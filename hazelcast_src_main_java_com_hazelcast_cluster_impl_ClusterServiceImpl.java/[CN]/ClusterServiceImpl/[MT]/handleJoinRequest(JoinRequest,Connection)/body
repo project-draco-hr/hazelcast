@@ -1,8 +1,5 @@
 {
-  if (!node.joined() || !node.isActive()) {
-    if (logger.isFinestEnabled()) {
-      logger.finest("Node is not ready to process join request...");
-    }
+  if (!ensureNodeIsReady()) {
     return;
   }
   if (!ensureValidConfiguration(joinRequest)) {
@@ -16,56 +13,9 @@
   }
   if (joinInProgress) {
     if (logger.isFinestEnabled()) {
-      logger.finest("Join is in-progress. Cannot handle join request from " + target + " at the moment.");
+      logger.finest(format("Join is in progress, cannot handle join request from %s at the moment",target));
     }
     return;
   }
-  lock.lock();
-  try {
-    if (checkIfJoinRequestFromAnExistingMember(joinRequest,connection)) {
-      return;
-    }
-    long now=Clock.currentTimeMillis();
-    if (logger.isFinestEnabled()) {
-      String msg="Handling join from " + target + ", inProgress: "+ joinInProgress+ (timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
-      logger.finest(msg);
-    }
-    MemberInfo memberInfo=new MemberInfo(target,joinRequest.getUuid(),joinRequest.getAttributes());
-    if (!setJoins.contains(memberInfo)) {
-      try {
-        checkSecureLogin(joinRequest,memberInfo);
-      }
- catch (      Exception e) {
-        ILogger securityLogger=node.loggingService.getLogger("com.hazelcast.security");
-        sendAuthenticationFailure(target);
-        securityLogger.severe(e);
-        return;
-      }
-    }
-    if (node.isMaster()) {
-      try {
-        node.getNodeExtension().beforeJoin();
-      }
- catch (      Exception e) {
-        logger.warning(e.getMessage());
-        sendBeforeJoinCheckFailure(target,e.getMessage());
-        return;
-      }
-    }
-    if (firstJoinRequest == 0) {
-      firstJoinRequest=now;
-    }
-    if (setJoins.add(memberInfo)) {
-      sendMasterAnswer(target);
-      if (now - firstJoinRequest < maxWaitMillisBeforeJoin) {
-        timeToStartJoin=now + waitMillisBeforeJoin;
-      }
-    }
-    if (now > timeToStartJoin) {
-      startJoin();
-    }
-  }
-  finally {
-    lock.unlock();
-  }
+  executeJoinRequest(joinRequest,connection,target);
 }
