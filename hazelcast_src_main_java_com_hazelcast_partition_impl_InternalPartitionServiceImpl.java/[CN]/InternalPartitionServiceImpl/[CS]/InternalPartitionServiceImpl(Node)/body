@@ -1,5 +1,5 @@
 {
-  this.partitionCount=node.groupProperties.PARTITION_COUNT.getInteger();
+  this.partitionCount=node.groupProperties.getInteger(GroupProperty.PARTITION_COUNT);
   this.node=node;
   this.nodeEngine=node.nodeEngine;
   this.logger=node.getLogger(InternalPartitionService.class);
@@ -15,9 +15,9 @@
   }
   memberGroupFactory=MemberGroupFactoryFactory.newMemberGroupFactory(node.getConfig().getPartitionGroupConfig());
   partitionStateGenerator=new PartitionStateGeneratorImpl();
-  long interval=node.groupProperties.PARTITION_MIGRATION_INTERVAL.getLong();
-  partitionMigrationInterval=interval > 0 ? TimeUnit.SECONDS.toMillis(interval) : 0;
-  partitionMigrationTimeout=TimeUnit.SECONDS.toMillis(node.groupProperties.PARTITION_MIGRATION_TIMEOUT.getLong());
+  long intervalMillis=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_INTERVAL);
+  partitionMigrationInterval=(intervalMillis > 0 ? intervalMillis : 0);
+  partitionMigrationTimeout=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_TIMEOUT);
   migrationThread=new MigrationThread(node);
   proxy=new PartitionServiceProxy(this);
   ExecutionService executionService=nodeEngine.getExecutionService();
@@ -32,9 +32,9 @@
     }
   }
 );
-  long definedBackupSyncCheckInterval=node.groupProperties.PARTITION_BACKUP_SYNC_INTERVAL.getInteger();
+  long definedBackupSyncCheckInterval=node.groupProperties.getSeconds(GroupProperty.PARTITION_BACKUP_SYNC_INTERVAL);
   backupSyncCheckInterval=definedBackupSyncCheckInterval > 0 ? definedBackupSyncCheckInterval : 1;
-  maxParallelReplications=node.groupProperties.PARTITION_MAX_PARALLEL_REPLICATIONS.getInteger();
+  maxParallelReplications=node.groupProperties.getInteger(GroupProperty.PARTITION_MAX_PARALLEL_REPLICATIONS);
   replicaSyncProcessLock=new Semaphore(maxParallelReplications);
   nodeEngine.getMetricsRegistry().scanAndRegister(this,"partitions");
 }
