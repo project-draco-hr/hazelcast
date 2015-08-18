@@ -1,26 +1,24 @@
 {
   try {
-    while (running) {
-      processSelectionQueue();
-      if (!running || isInterrupted()) {
-        if (logger.isFinestEnabled()) {
-          logger.finest(getName() + " is interrupted!");
-        }
-        running=false;
-        return;
-      }
+    for (; ; ) {
       try {
-        int selectedKeyCount=selector.select(waitTime);
-        lastSelectTimeMs=System.currentTimeMillis();
-        if (selectedKeyCount == 0) {
-          continue;
+        if (selectNow) {
+          runSelectNowLoop();
+        }
+ else {
+          runSelectLoop();
+        }
+        break;
+      }
+ catch (      IOException nonFatalException) {
+        logger.warning(getName() + " " + nonFatalException.toString(),nonFatalException);
+        try {
+          Thread.sleep(SELECT_FAILURE_PAUSE_MILLIS);
+        }
+ catch (        InterruptedException i) {
+          interrupt();
         }
       }
- catch (      Throwable e) {
-        handleSelectFailure(e);
-        continue;
-      }
-      handleSelectionKeys();
     }
   }
  catch (  OutOfMemoryError e) {
@@ -32,4 +30,5 @@ catch (  Throwable e) {
  finally {
     closeSelector();
   }
+  logger.finest(getName() + " finished");
 }

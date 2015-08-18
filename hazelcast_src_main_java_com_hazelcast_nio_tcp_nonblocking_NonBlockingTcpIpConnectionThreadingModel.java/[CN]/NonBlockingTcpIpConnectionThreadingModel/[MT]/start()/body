@@ -1,4 +1,7 @@
 {
+  logger.info("TcpIpConnection managed configured NonBlocking threading model:  " + inputThreads.length + " input threads and "+ outputThreads.length+ " output threads");
+  logger.log(inputSelectNow ? INFO : FINE,"InputThreads selectNow enabled=" + inputSelectNow);
+  logger.log(outputSelectNow ? INFO : FINE,"OutputThreads selectNow enabled=" + outputSelectNow);
   NonBlockingIOThreadOutOfMemoryHandler oomeHandler=new NonBlockingIOThreadOutOfMemoryHandler(){
     @Override public void handle(    OutOfMemoryError error){
       ioService.onOutOfMemory(error);
@@ -6,13 +9,13 @@
   }
 ;
   for (int i=0; i < inputThreads.length; i++) {
-    NonBlockingInputThread thread=new NonBlockingInputThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "in-" + i,ioService.getLogger(NonBlockingInputThread.class.getName()),oomeHandler);
+    NonBlockingInputThread thread=new NonBlockingInputThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "in-" + i,ioService.getLogger(NonBlockingInputThread.class.getName()),oomeHandler,inputSelectNow);
     inputThreads[i]=thread;
     metricsRegistry.scanAndRegister(thread,"tcp." + thread.getName());
     thread.start();
   }
   for (int i=0; i < outputThreads.length; i++) {
-    NonBlockingOutputThread thread=new NonBlockingOutputThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "out-" + i,ioService.getLogger(NonBlockingOutputThread.class.getName()),oomeHandler);
+    NonBlockingOutputThread thread=new NonBlockingOutputThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "out-" + i,ioService.getLogger(NonBlockingOutputThread.class.getName()),oomeHandler,outputSelectNow);
     outputThreads[i]=thread;
     metricsRegistry.scanAndRegister(thread,"tcp." + thread.getName());
     thread.start();
