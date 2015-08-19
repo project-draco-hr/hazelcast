@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  warmUpPartitions(hz,hz2);
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
+  nodeEngine.getOperationService().invokeOnPartition(null,new EmptyBackupAwareOperation(),0);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNotNull(backupOperationFailure.get());
+    }
+  }
+);
+  Throwable failure=backupOperationFailure.getAndSet(null);
+  assertInstanceOf(ExpectedRuntimeException.class,failure);
+}
