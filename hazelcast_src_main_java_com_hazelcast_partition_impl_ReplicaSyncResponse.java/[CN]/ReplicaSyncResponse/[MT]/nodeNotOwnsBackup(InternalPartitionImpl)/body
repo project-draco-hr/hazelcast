@@ -1,0 +1,17 @@
+{
+  int partitionId=getPartitionId();
+  int replicaIndex=getReplicaIndex();
+  Address thisAddress=getNodeEngine().getThisAddress();
+  int currentReplicaIndex=partition.getReplicaIndex(thisAddress);
+  ILogger logger=getLogger();
+  if (logger.isFinestEnabled()) {
+    logger.finest("This node is not backup replica of partitionId=" + partitionId + ", replicaIndex="+ replicaIndex+ " anymore. current replicaIndex="+ currentReplicaIndex);
+  }
+  if (tasks != null) {
+    Throwable throwable=new WrongTargetException(thisAddress,partition.getReplicaAddress(replicaIndex),partitionId,replicaIndex,getClass().getName());
+    for (    Operation op : tasks) {
+      prepareOperation(op);
+      onOperationFailure(op,throwable);
+    }
+  }
+}
