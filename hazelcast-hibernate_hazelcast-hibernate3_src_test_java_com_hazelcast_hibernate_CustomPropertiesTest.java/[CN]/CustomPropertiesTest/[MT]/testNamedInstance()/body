@@ -1,14 +1,18 @@
 {
+  TestHazelcastFactory factory=new TestHazelcastFactory();
   Config config=new Config();
   config.setInstanceName("hibernate");
-  HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
   Properties props=getDefaultProperties();
   props.setProperty(Environment.CACHE_REGION_FACTORY,HazelcastCacheRegionFactory.class.getName());
   props.put(CacheEnvironment.HAZELCAST_INSTANCE_NAME,"hibernate");
   props.put(CacheEnvironment.SHUTDOWN_ON_STOP,"false");
-  final SessionFactory sf=createSessionFactory(props);
-  assertTrue(hz == HazelcastAccessor.getHazelcastInstance(sf));
+  HazelcastMockInstanceLoader instanceLoader=new HazelcastMockInstanceLoader();
+  instanceLoader.configure(props);
+  instanceLoader.setInstanceFactory(factory);
+  final SessionFactory sf=createSessionFactory(props,instanceLoader);
+  assertTrue(hz.equals(HazelcastAccessor.getHazelcastInstance(sf)));
   sf.close();
   assertTrue(hz.getLifecycleService().isRunning());
-  hz.shutdown();
+  factory.shutdownAll();
 }

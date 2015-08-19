@@ -1,0 +1,20 @@
+{
+  Configuration conf=new Configuration();
+  URL xml=HibernateTestSupport.class.getClassLoader().getResource("test-hibernate.cfg.xml");
+  props.put(CacheEnvironment.EXPLICIT_VERSION_CHECK,"true");
+  if (customInstanceLoader != null) {
+    props.put("com.hazelcast.hibernate.instance.loader",customInstanceLoader);
+    customInstanceLoader.configure(props);
+  }
+ else {
+    props.remove("com.hazelcast.hibernate.instance.loader");
+  }
+  conf.configure(xml);
+  conf.setCacheConcurrencyStrategy(DummyEntity.class.getName(),getCacheStrategy());
+  conf.setCacheConcurrencyStrategy(DummyProperty.class.getName(),getCacheStrategy());
+  conf.setCollectionCacheConcurrencyStrategy(DummyEntity.class.getName() + ".properties",getCacheStrategy());
+  conf.addProperties(props);
+  final SessionFactory sf=conf.buildSessionFactory();
+  sf.getStatistics().setStatisticsEnabled(true);
+  return sf;
+}

@@ -1,0 +1,32 @@
+{
+  if (CacheEnvironment.isNativeClient(props)) {
+    if (client == null) {
+      return;
+    }
+    try {
+      client.getLifecycleService().shutdown();
+      client=null;
+    }
+ catch (    Exception e) {
+      throw new CacheException(e);
+    }
+  }
+ else {
+    if (instance == null) {
+      return;
+    }
+    final boolean shutDown=CacheEnvironment.shutdownOnStop(props,(instanceName == null));
+    if (!shutDown) {
+      LOGGER.warning(CacheEnvironment.SHUTDOWN_ON_STOP + " property is set to 'false'. " + "Leaving current HazelcastInstance active! (Warning: Do not disable Hazelcast "+ GroupProperties.PROP_SHUTDOWNHOOK_ENABLED+ " property!)");
+      return;
+    }
+    try {
+      instance.getLifecycleService().shutdown();
+      instance=null;
+      factory.shutdownAll();
+    }
+ catch (    Exception e) {
+      throw new CacheException(e);
+    }
+  }
+}
