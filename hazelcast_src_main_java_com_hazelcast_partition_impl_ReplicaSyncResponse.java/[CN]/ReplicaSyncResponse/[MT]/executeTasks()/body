@@ -1,18 +1,17 @@
 {
   int partitionId=getPartitionId();
   int replicaIndex=getReplicaIndex();
-  if (tasks != null && tasks.size() > 0) {
-    NodeEngine nodeEngine=getNodeEngine();
+  if (tasks != null && !tasks.isEmpty()) {
     logApplyReplicaSync(partitionId,replicaIndex);
     for (    Operation op : tasks) {
+      prepareOperation(op);
       try {
-        ErrorLoggingResponseHandler responseHandler=new ErrorLoggingResponseHandler(nodeEngine.getLogger(op.getClass()));
-        op.setNodeEngine(nodeEngine).setPartitionId(partitionId).setReplicaIndex(replicaIndex).setResponseHandler(responseHandler);
         op.beforeRun();
         op.run();
         op.afterRun();
       }
  catch (      Throwable e) {
+        onOperationFailure(op,e);
         logException(op,e);
       }
     }
