@@ -1,9 +1,17 @@
 {
-  String className=throwable.getClass().getName();
+  ClientExceptionFactory clientExceptionFactory=clientEngine.getClientExceptionFactory();
+  int errorCode=clientExceptionFactory.getErrorCode(throwable);
   String message=throwable.getMessage();
-  StringWriter sw=new StringWriter();
-  throwable.printStackTrace(new PrintWriter(sw));
+  StackTraceElement[] stackTrace=throwable.getStackTrace();
   Throwable cause=throwable.getCause();
-  String causeClassName=cause != null ? cause.getClass().getName() : null;
-  return ExceptionResultParameters.encode(className,causeClassName,message,sw.toString());
+  boolean hasCause=cause != null;
+  String className=throwable.getClass().getName();
+  if (hasCause) {
+    int causeErrorCode=clientExceptionFactory.getErrorCode(cause);
+    String causeClassName=cause.getClass().getName();
+    return ErrorCodec.encode(errorCode,className,message,stackTrace,causeErrorCode,causeClassName);
+  }
+ else {
+    return ErrorCodec.encode(errorCode,className,message,stackTrace,ClientProtocolErrorCodes.UNDEFINED,null);
+  }
 }
