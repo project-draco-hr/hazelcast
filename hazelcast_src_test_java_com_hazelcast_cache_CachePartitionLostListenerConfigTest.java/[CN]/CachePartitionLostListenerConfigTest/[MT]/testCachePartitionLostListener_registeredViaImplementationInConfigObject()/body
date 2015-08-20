@@ -1,0 +1,22 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  final Config config=new Config();
+  final String cacheName="myCache";
+  final CacheSimpleConfig cacheConfig=config.getCacheConfig(cacheName);
+  final CachePartitionLostListener listener=mock(CachePartitionLostListener.class);
+  cacheConfig.addCachePartitionLostListenerConfig(new CachePartitionLostListenerConfig(listener));
+  final int backupCount=0;
+  cacheConfig.setBackupCount(backupCount);
+  final HazelcastInstance instance=factory.newHazelcastInstance(config);
+  final HazelcastServerCachingProvider cachingProvider=createCachingProvider(instance);
+  final CacheManager cacheManager=cachingProvider.getCacheManager();
+  cacheManager.getCache(cacheName);
+  final EventService eventService=getNode(instance).getNodeEngine().getEventService();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final Collection<EventRegistration> registrations=eventService.getRegistrations(CacheService.SERVICE_NAME,cacheName);
+      assertFalse(registrations.isEmpty());
+    }
+  }
+);
+}

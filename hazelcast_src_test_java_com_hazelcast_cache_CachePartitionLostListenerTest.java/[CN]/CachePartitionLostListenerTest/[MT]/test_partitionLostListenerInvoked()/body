@@ -1,0 +1,26 @@
+{
+  final List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp(1);
+  final HazelcastInstance instance=instances.get(0);
+  final EventCollectingCachePartitionLostListener listener=new EventCollectingCachePartitionLostListener(0);
+  final HazelcastServerCachingProvider cachingProvider=createCachingProvider(instance);
+  final CacheManager cacheManager=cachingProvider.getCacheManager();
+  final CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
+  final Cache<Integer,String> cache=cacheManager.createCache(getIthCacheName(0),config);
+  final ICache iCache=cache.unwrap(ICache.class);
+  iCache.addPartitionLostListener(listener);
+  final InternalPartitionLostEvent internalEvent=new InternalPartitionLostEvent(1,1,null);
+  final CacheService cacheService=getNode(instance).getNodeEngine().getService(CacheService.SERVICE_NAME);
+  cacheService.onPartitionLost(internalEvent);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final List<CachePartitionLostEvent> events=listener.getEvents();
+      assertEquals(1,events.size());
+      final CachePartitionLostEvent event=events.get(0);
+      assertEquals(internalEvent.getPartitionId(),event.getPartitionId());
+    }
+  }
+);
+  cacheManager.destroyCache(getIthCacheName(0));
+  cacheManager.close();
+  cachingProvider.close();
+}
