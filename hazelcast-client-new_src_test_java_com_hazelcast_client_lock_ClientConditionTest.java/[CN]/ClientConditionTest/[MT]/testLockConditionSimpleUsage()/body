@@ -1,11 +1,13 @@
 {
-  final String name="testLockConditionSimpleUsage";
+  final String name=randomString();
   final ILock lock=client.getLock(name);
-  final ICondition condition=lock.newCondition(name + "c");
+  final ICondition condition=lock.newCondition(randomString());
   final AtomicInteger count=new AtomicInteger(0);
+  final CountDownLatch threadGetTheLock=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
       lock.lock();
+      threadGetTheLock.countDown();
       try {
         if (lock.isLockedByCurrentThread()) {
           count.incrementAndGet();
@@ -24,8 +26,7 @@
   }
 );
   t.start();
-  Thread.sleep(1000);
-  assertEquals(false,lock.isLocked());
+  assertOpenEventually(threadGetTheLock);
   lock.lock();
   assertEquals(true,lock.isLocked());
   condition.signal();
