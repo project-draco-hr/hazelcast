@@ -1,0 +1,10 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
+  FailingOperation op=new FailingOperation(new CountDownLatch(1));
+  op.setPartitionId(1).setReplicaIndex(1);
+  nodeEngine.getOperationService().executeOperation(op);
+  assertOpenEventually(op.latch);
+  assertInstanceOf(WrongTargetException.class,op.failure);
+}
