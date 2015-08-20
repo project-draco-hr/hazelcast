@@ -8,18 +8,20 @@
     writer=new OutputStreamWriter(outputStream,"UTF-8");
     JsonObject root=new JsonObject();
     root.add("identifier",identifier.toJson());
-    TimedMemberState timedMemberState=timedMemberStateFactory.createTimedMemberState();
-    root.add("timedMemberState",timedMemberState.toJson());
-    root.writeTo(writer);
-    writer.flush();
-    outputStream.flush();
-    boolean success=post(connection);
-    if (manCenterConnectionLost && success) {
-      logger.info("Connection to management center restored.");
-      manCenterConnectionLost=false;
-    }
- else     if (!success) {
-      manCenterConnectionLost=true;
+    TimedMemberState memberState=timedMemberState.get();
+    if (memberState != null) {
+      root.add("timedMemberState",memberState.toJson());
+      root.writeTo(writer);
+      writer.flush();
+      outputStream.flush();
+      boolean success=post(connection);
+      if (manCenterConnectionLost && success) {
+        logger.info("Connection to management center restored.");
+        manCenterConnectionLost=false;
+      }
+ else       if (!success) {
+        manCenterConnectionLost=true;
+      }
     }
   }
  catch (  Exception e) {
