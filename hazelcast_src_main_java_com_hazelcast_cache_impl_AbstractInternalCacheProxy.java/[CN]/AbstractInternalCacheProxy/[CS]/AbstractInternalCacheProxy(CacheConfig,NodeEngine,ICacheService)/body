@@ -3,4 +3,14 @@
   asyncListenerRegistrations=new ConcurrentHashMap<CacheEntryListenerConfiguration,String>();
   syncListenerRegistrations=new ConcurrentHashMap<CacheEntryListenerConfiguration,String>();
   syncLocks=new ConcurrentHashMap<Integer,CountDownLatch>();
+  final List<CachePartitionLostListenerConfig> configs=cacheConfig.getPartitionLostListenerConfigs();
+  for (  CachePartitionLostListenerConfig listenerConfig : configs) {
+    final CachePartitionLostListener listener=initializeListener(listenerConfig);
+    if (listener != null) {
+      final InternalCachePartitionLostListenerAdapter listenerAdapter=new InternalCachePartitionLostListenerAdapter(listener);
+      final EventFilter filter=new CachePartitionLostEventFilter();
+      final ICacheService service=getService();
+      service.getNodeEngine().getEventService().registerListener(AbstractCacheService.SERVICE_NAME,name,filter,listenerAdapter);
+    }
+  }
 }

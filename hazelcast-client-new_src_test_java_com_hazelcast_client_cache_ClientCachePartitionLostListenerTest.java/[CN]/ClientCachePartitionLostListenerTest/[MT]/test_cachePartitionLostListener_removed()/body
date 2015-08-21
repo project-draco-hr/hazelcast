@@ -1,0 +1,18 @@
+{
+  final String cacheName=randomName();
+  HazelcastInstance instance=hazelcastFactory.newHazelcastInstance();
+  final HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  final HazelcastServerCachingProvider cachingProvider=createCachingProvider(instance);
+  final CacheManager cacheManager=cachingProvider.getCacheManager();
+  final CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
+  config.setBackupCount(0);
+  cacheManager.createCache(cacheName,config);
+  final CachingProvider clientCachingProvider=HazelcastClientCachingProvider.createCachingProvider(client);
+  final CacheManager clientCacheManager=clientCachingProvider.getCacheManager();
+  final Cache<Integer,String> cache=clientCacheManager.getCache(cacheName);
+  final ICache iCache=cache.unwrap(ICache.class);
+  final String registrationId=iCache.addPartitionLostListener(mock(CachePartitionLostListener.class));
+  assertRegistrationsSizeEventually(instance,cacheName,1);
+  assertTrue(iCache.removePartitionLostListener(registrationId));
+  assertRegistrationsSizeEventually(instance,cacheName,0);
+}
