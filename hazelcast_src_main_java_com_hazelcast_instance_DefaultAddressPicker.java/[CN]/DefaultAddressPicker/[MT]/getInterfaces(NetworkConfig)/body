@@ -1,25 +1,25 @@
 {
-  final Map<String,String> addressDomainMap;
-  final TcpIpConfig tcpIpConfig=networkConfig.getJoin().getTcpIpConfig();
+  Map<String,String> addressDomainMap;
+  TcpIpConfig tcpIpConfig=networkConfig.getJoin().getTcpIpConfig();
   if (tcpIpConfig.isEnabled()) {
     addressDomainMap=new LinkedHashMap<String,String>();
-    final Collection<String> possibleAddresses=TcpIpJoiner.getConfigurationMembers(node.config);
+    Collection<String> possibleAddresses=TcpIpJoiner.getConfigurationMembers(node.config);
     for (    String possibleAddress : possibleAddresses) {
-      final String s=AddressUtil.getAddressHolder(possibleAddress).getAddress();
-      if (AddressUtil.isIpAddress(s)) {
-        if (!addressDomainMap.containsKey(s)) {
-          addressDomainMap.put(s,null);
+      String addressHolder=AddressUtil.getAddressHolder(possibleAddress).getAddress();
+      if (AddressUtil.isIpAddress(addressHolder)) {
+        if (!addressDomainMap.containsKey(addressHolder)) {
+          addressDomainMap.put(addressHolder,null);
         }
       }
  else {
         try {
-          final Collection<String> addresses=resolveDomainNames(s);
+          Collection<String> addresses=resolveDomainNames(addressHolder);
           for (          String address : addresses) {
-            addressDomainMap.put(address,s);
+            addressDomainMap.put(address,addressHolder);
           }
         }
  catch (        UnknownHostException e) {
-          logger.warning("Cannot resolve hostname: '" + s + "'");
+          logger.warning("Cannot resolve hostname: '" + addressHolder + "'");
         }
       }
     }
@@ -27,9 +27,9 @@
  else {
     addressDomainMap=Collections.emptyMap();
   }
-  final Collection<InterfaceDefinition> interfaces=new HashSet<InterfaceDefinition>();
+  Collection<InterfaceDefinition> interfaces=new HashSet<InterfaceDefinition>();
   if (networkConfig.getInterfaces().isEnabled()) {
-    final Collection<String> configInterfaces=networkConfig.getInterfaces().getInterfaces();
+    Collection<String> configInterfaces=networkConfig.getInterfaces().getInterfaces();
     for (    String configInterface : configInterfaces) {
       if (AddressUtil.isIpAddress(configInterface)) {
         String hostname=findHostnameMatchingInterface(addressDomainMap,configInterface);
@@ -39,13 +39,13 @@
         logger.info("'" + configInterface + "' is not an IP address! Removing from interface list.");
       }
     }
-    log(Level.INFO,"Interfaces is enabled, trying to pick one address matching " + "to one of: " + interfaces);
+    log(Level.INFO,"Interfaces is enabled, trying to pick one address matching to one of: " + interfaces);
   }
  else   if (tcpIpConfig.isEnabled()) {
     for (    Entry<String,String> entry : addressDomainMap.entrySet()) {
       interfaces.add(new InterfaceDefinition(entry.getValue(),entry.getKey()));
     }
-    log(Level.INFO,"Interfaces is disabled, trying to pick one address from TCP-IP config " + "addresses: " + interfaces);
+    log(Level.INFO,"Interfaces is disabled, trying to pick one address from TCP-IP config addresses: " + interfaces);
   }
   return interfaces;
 }
