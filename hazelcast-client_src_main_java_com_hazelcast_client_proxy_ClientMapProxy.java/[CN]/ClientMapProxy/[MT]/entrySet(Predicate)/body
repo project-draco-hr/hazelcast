@@ -7,13 +7,14 @@
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.ENTRY);
   QueryResultSet result=invoke(request);
   if (pagingPredicate == null) {
-    Set<Entry<K,V>> entrySet=new HashSet<Entry<K,V>>(result.size());
+    SerializationService serializationService=getContext().getSerializationService();
+    InflatableSet<Entry<K,V>> entrySet=new InflatableSet<Entry<K,V>>(result.size());
     for (    Object data : result) {
       AbstractMap.SimpleImmutableEntry<Data,Data> dataEntry=(AbstractMap.SimpleImmutableEntry<Data,Data>)data;
-      K key=toObject(dataEntry.getKey());
-      V value=toObject(dataEntry.getValue());
-      entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));
+      LazyMapEntry lazyEntry=new LazyMapEntry(dataEntry.getKey(),dataEntry.getValue(),serializationService);
+      entrySet.add(lazyEntry);
     }
+    entrySet.close();
     return entrySet;
   }
   ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
