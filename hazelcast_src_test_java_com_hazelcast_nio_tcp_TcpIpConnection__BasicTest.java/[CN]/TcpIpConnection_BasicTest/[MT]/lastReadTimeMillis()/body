@@ -1,0 +1,19 @@
+{
+  TcpIpConnection connAB=connect(connManagerA,addressB);
+  TcpIpConnection connBA=connect(connManagerB,addressA);
+  sleepSeconds(3);
+  Packet packet=new Packet(serializationService.toBytes("foo"));
+  connAB.write(packet);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,packetsB.size());
+      System.out.println("Packet processed");
+    }
+  }
+);
+  long lastReadTimeMs=connBA.lastReadTimeMillis();
+  long nowMs=currentTimeMillis();
+  int marginOfErrorMs=1000;
+  assertTrue("nowMs = " + nowMs + " lastReadTimeMs:"+ lastReadTimeMs,lastReadTimeMs <= nowMs);
+  assertTrue("nowMs = " + nowMs + " lastReadTimeMs:"+ lastReadTimeMs,lastReadTimeMs >= nowMs - marginOfErrorMs);
+}
