@@ -3,7 +3,7 @@
   NodeEngine nodeEngine=getNodeEngine();
   MapServiceContext mapServiceContext=mapService.getMapServiceContext();
   MapContextQuerySupport mapQuerySupport=mapServiceContext.getMapContextQuerySupport();
-  int partitionStateVersion=partitionService.getPartitionStateVersion();
+  int initialPartitionStateVersion=partitionService.getPartitionStateVersion();
   Collection<Integer> initialPartitions=mapServiceContext.getOwnedPartitions();
   Set<QueryableEntry> entries=null;
   if (!partitionService.hasOnGoingMigrationLocal()) {
@@ -16,13 +16,8 @@
  else {
     fullTableScan(initialPartitions,nodeEngine.getGroupProperties());
   }
-  Collection<Integer> finalPartitions=mapServiceContext.getOwnedPartitions();
-  if (initialPartitions.equals(finalPartitions)) {
-    result.setPartitionIds(finalPartitions);
+  if (checkPartitionState(partitionService,initialPartitionStateVersion)) {
+    result.setPartitionIds(initialPartitions);
   }
-  if (mapContainer.getMapConfig().isStatisticsEnabled()) {
-    LocalMapStatsImpl localStats=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
-    localStats.incrementOtherOperations();
-  }
-  checkPartitionStateChanges(partitionService,partitionStateVersion);
+  updateStatisticsIfEnabled(mapServiceContext);
 }
