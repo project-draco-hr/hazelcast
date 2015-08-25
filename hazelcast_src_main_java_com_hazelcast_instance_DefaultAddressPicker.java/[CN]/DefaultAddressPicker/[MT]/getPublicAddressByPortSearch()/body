@@ -1,0 +1,50 @@
+{
+  NetworkConfig networkConfig=node.getConfig().getNetworkConfig();
+  boolean bindAny=node.getGroupProperties().SOCKET_SERVER_BIND_ANY.getBoolean();
+  Throwable error=null;
+  ServerSocket serverSocket=null;
+  InetSocketAddress inetSocketAddress;
+  boolean reuseAddress=networkConfig.isReuseAddress();
+  logger.finest("inet reuseAddress:" + reuseAddress);
+  int portCount=networkConfig.getPortCount();
+  int port=networkConfig.getPort();
+  AddressDefinition bindAddressDef=pickAddress(networkConfig);
+  for (int i=0; i < portCount; i++) {
+    serverSocketChannel=ServerSocketChannel.open();
+    serverSocket=serverSocketChannel.socket();
+    serverSocket.setReuseAddress(reuseAddress);
+    serverSocket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
+    try {
+      if (bindAny) {
+        inetSocketAddress=new InetSocketAddress(port);
+      }
+ else {
+        inetSocketAddress=new InetSocketAddress(bindAddressDef.inetAddress,port);
+      }
+      logger.finest("Trying to bind inet socket address:" + inetSocketAddress);
+      serverSocket.bind(inetSocketAddress,SOCKET_BACKLOG_LENGTH);
+      logger.finest("Bind successful to inet socket address:" + inetSocketAddress);
+      break;
+    }
+ catch (    Exception e) {
+      serverSocket.close();
+      serverSocketChannel.close();
+      if (networkConfig.isPortAutoIncrement()) {
+        port++;
+        error=e;
+      }
+ else {
+        String msg="Port [" + port + "] is already in use and auto-increment is disabled."+ " Hazelcast cannot start.";
+        logger.severe(msg,e);
+        throw new HazelcastException(msg,error);
+      }
+    }
+  }
+  if (serverSocket == null || !serverSocket.isBound()) {
+    throw new HazelcastException("ServerSocket bind has failed. Hazelcast cannot start!" + " config-port: " + networkConfig.getPort() + ", latest-port: "+ port,error);
+  }
+  serverSocketChannel.configureBlocking(false);
+  bindAddress=createAddress(bindAddressDef,port);
+  logger.info("Picked " + bindAddress + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
+  return getPublicAddress(node.getConfig(),port);
+}

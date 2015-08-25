@@ -1,0 +1,24 @@
+{
+  Collection<InterfaceDefinition> interfaces=getInterfaces(networkConfig);
+  if (interfaces.contains(new InterfaceDefinition("127.0.0.1")) || interfaces.contains(new InterfaceDefinition("localhost"))) {
+    return pickLoopbackAddress();
+  }
+  if (preferIPv4Stack()) {
+    logger.info("Prefer IPv4 stack is true.");
+  }
+  if (interfaces.size() > 0) {
+    AddressDefinition addressDef=pickMatchingAddress(interfaces);
+    if (addressDef != null) {
+      return addressDef;
+    }
+  }
+  if (networkConfig.getInterfaces().isEnabled()) {
+    String msg="Hazelcast CANNOT start on this node. No matching network interface found.\n" + "Interface matching must be either disabled or updated in the hazelcast.xml config file.";
+    logger.severe(msg);
+    throw new RuntimeException(msg);
+  }
+  if (networkConfig.getJoin().getTcpIpConfig().isEnabled()) {
+    logger.warning("Could not find a matching address to start with! Picking one of non-loopback addresses.");
+  }
+  return pickMatchingAddress(null);
+}
