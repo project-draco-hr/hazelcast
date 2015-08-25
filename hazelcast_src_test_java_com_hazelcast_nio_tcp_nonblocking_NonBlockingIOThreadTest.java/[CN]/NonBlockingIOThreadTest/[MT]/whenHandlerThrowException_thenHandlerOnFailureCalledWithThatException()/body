@@ -1,0 +1,15 @@
+{
+  startThread();
+  SelectionKey selectionKey=mock(SelectionKey.class);
+  selectionKey.attach(handler);
+  when(selectionKey.isValid()).thenReturn(true);
+  doThrow(new ExpectedRuntimeException()).when(handler).handle();
+  selector.scheduleSelectAction(selectionKey);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      verify(handler).onFailure(isA(ExpectedRuntimeException.class));
+    }
+  }
+);
+  assertStillRunning();
+}
