@@ -1,10 +1,10 @@
 {
-  doneLatch=new CountDownLatch(2);
-  final ICompletableFuture<String> f=submit(openStartLatch());
-  assertOpenEventually(startLatch);
-  f.andThen(setRefAndBumpDoneLatch(ref1));
-  f.andThen(setRefAndBumpDoneLatch(ref2));
-  assertOpenEventually(doneLatch);
-  assertEquals("success",ref1.get());
-  assertEquals("success",ref2.get());
+  ICompletableFuture<String> f=submitAwaitingTask(expectedNumberOfCallbacks(2),NO_EXCEPTION);
+  releaseAwaitingTask();
+  assertTaskFinishedEventually();
+  f.andThen(storeTaskResponseToReference(reference1));
+  f.andThen(storeTaskResponseToReference(reference2));
+  assertCallbacksExecutedEventually();
+  assertEquals("success",reference1.get());
+  assertEquals("success",reference2.get());
 }
