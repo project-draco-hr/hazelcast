@@ -3,35 +3,31 @@
     value="";
   }
   List<String> list=new ArrayList<String>();
-  int CHAR=1;
-  int DELIMITER=2;
-  int STARTQUOTE=4;
-  int ENDQUOTE=8;
   StringBuilder sb=new StringBuilder();
-  int expecting=(CHAR | DELIMITER | STARTQUOTE);
+  int expecting=(CHAR | DELIMITER | START_QUOTE);
   for (int i=0; i < value.length(); i++) {
-    char p=i > 0 ? value.charAt(i - 1) : 0;
-    char c=value.charAt(i);
-    boolean isDelimiter=(delim == c) && (p != '\\');
-    boolean isQuote=((c == '"') || (c == '\'')) && (p != '\\');
+    char character=value.charAt(i);
+    boolean isEscaped=isEscaped(value,i);
+    boolean isDelimiter=isDelimiter(delimiter,character,isEscaped);
+    boolean isQuote=isQuote(character,isEscaped);
     if (isDelimiter && ((expecting & DELIMITER) > 0)) {
       addPart(list,sb,trim);
       sb.delete(0,sb.length());
-      expecting=(CHAR | DELIMITER | STARTQUOTE);
+      expecting=(CHAR | DELIMITER | START_QUOTE);
     }
- else     if (isQuote && ((expecting & STARTQUOTE) > 0)) {
-      sb.append(c);
-      expecting=CHAR | ENDQUOTE;
+ else     if (isQuote && ((expecting & START_QUOTE) > 0)) {
+      sb.append(character);
+      expecting=CHAR | END_QUOTE;
     }
- else     if (isQuote && ((expecting & ENDQUOTE) > 0)) {
-      sb.append(c);
-      expecting=(CHAR | STARTQUOTE | DELIMITER);
+ else     if (isQuote && ((expecting & END_QUOTE) > 0)) {
+      sb.append(character);
+      expecting=(CHAR | START_QUOTE | DELIMITER);
     }
  else     if ((expecting & CHAR) > 0) {
-      sb.append(c);
+      sb.append(character);
     }
  else {
-      String message=String.format("Invalid delimited string [%s] for delimiter: %s",value,delim);
+      String message=String.format("Invalid delimited string [%s] for delimiter: %s",value,delimiter);
       throw new IllegalArgumentException(message);
     }
   }
