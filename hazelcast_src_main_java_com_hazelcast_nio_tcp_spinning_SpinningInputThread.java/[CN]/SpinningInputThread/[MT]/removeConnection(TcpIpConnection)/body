@@ -1,0 +1,26 @@
+{
+  SpinningReadHandler readHandler=(SpinningReadHandler)connection.getReadHandler();
+  for (; ; ) {
+    ConnectionHandlers current=connectionHandlers;
+    if (current == SHUTDOWN) {
+      return;
+    }
+    int indexOf=current.indexOf(readHandler);
+    if (indexOf == -1) {
+      return;
+    }
+    int length=current.readHandlers.length;
+    SpinningReadHandler[] newReadHandlers=new SpinningReadHandler[length - 1];
+    int destIndex=0;
+    for (int sourceIndex=0; sourceIndex < length; sourceIndex++) {
+      if (sourceIndex != indexOf) {
+        newReadHandlers[destIndex]=current.readHandlers[sourceIndex];
+        destIndex++;
+      }
+    }
+    ConnectionHandlers update=new ConnectionHandlers(newReadHandlers);
+    if (CONNECTION_HANDLERS.compareAndSet(this,current,update)) {
+      return;
+    }
+  }
+}
