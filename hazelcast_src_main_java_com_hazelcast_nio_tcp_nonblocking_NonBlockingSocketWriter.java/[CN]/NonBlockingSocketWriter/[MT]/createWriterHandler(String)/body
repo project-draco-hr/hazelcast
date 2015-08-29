@@ -1,0 +1,22 @@
+{
+  if (writeHandler == null) {
+    if (CLUSTER.equals(protocol)) {
+      configureBuffers(ioService.getSocketSendBufferSize() * KILO_BYTE);
+      writeHandler=ioService.createWriteHandler(connection);
+      outputBuffer.put(stringToBytes(CLUSTER));
+      registerOp(SelectionKey.OP_WRITE);
+    }
+ else     if (CLIENT_BINARY.equals(protocol)) {
+      configureBuffers(ioService.getSocketClientSendBufferSize() * KILO_BYTE);
+      writeHandler=new OldClientWriteHandler();
+    }
+ else     if (CLIENT_BINARY_NEW.equals(protocol)) {
+      configureBuffers(ioService.getSocketClientReceiveBufferSize() * KILO_BYTE);
+      writeHandler=new NewClientWriteHandler();
+    }
+ else {
+      configureBuffers(ioService.getSocketClientSendBufferSize() * KILO_BYTE);
+      writeHandler=new TextWriteHandler(connection);
+    }
+  }
+}

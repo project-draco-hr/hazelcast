@@ -1,7 +1,7 @@
 {
-  SpinningWriteHandler writeHandlers=(SpinningWriteHandler)connection.getWriteHandler();
+  SpinningSocketWriter writeHandlers=(SpinningSocketWriter)connection.getSocketWriter();
   for (; ; ) {
-    ConnectionHandlers current=connectionHandlers;
+    SocketWriters current=socketWriters;
     if (current == SHUTDOWN) {
       return;
     }
@@ -9,16 +9,16 @@
     if (indexOf == -1) {
       return;
     }
-    int length=current.writeHandlers.length;
-    SpinningWriteHandler[] newWriteHandlers=new SpinningWriteHandler[length - 1];
+    int length=current.writers.length;
+    SpinningSocketWriter[] newWriters=new SpinningSocketWriter[length - 1];
     int destIndex=0;
     for (int sourceIndex=0; sourceIndex < length; sourceIndex++) {
       if (sourceIndex != indexOf) {
-        newWriteHandlers[destIndex]=current.writeHandlers[sourceIndex];
+        newWriters[destIndex]=current.writers[sourceIndex];
         destIndex++;
       }
     }
-    ConnectionHandlers update=new ConnectionHandlers(newWriteHandlers);
+    SocketWriters update=new SocketWriters(newWriters);
     if (CONNECTION_HANDLERS.compareAndSet(this,current,update)) {
       return;
     }

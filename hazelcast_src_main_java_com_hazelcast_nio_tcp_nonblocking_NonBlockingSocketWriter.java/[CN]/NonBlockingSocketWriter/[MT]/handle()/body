@@ -1,0 +1,21 @@
+{
+  eventCount.inc();
+  lastWriteTime=currentTimeMillis();
+  if (shutdown) {
+    return;
+  }
+  if (writeHandler == null) {
+    logger.log(Level.WARNING,"SocketWriter is not set, creating SocketWriter with CLUSTER protocol!");
+    createWriterHandler(CLUSTER);
+  }
+  fillOutputBuffer();
+  if (dirtyOutputBuffer()) {
+    writeOutputBufferToSocket();
+  }
+  if (newOwner == null) {
+    unschedule();
+  }
+ else {
+    startMigration();
+  }
+}

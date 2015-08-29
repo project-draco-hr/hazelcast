@@ -1,0 +1,13 @@
+{
+  ByteBuffer buffer=ByteBuffer.allocate(1000);
+  Packet packet=new Packet(serializationService.toBytes("foobar"));
+  packet.setHeader(Packet.HEADER_URGENT);
+  packet.writeTo(buffer);
+  buffer.flip();
+  readHandler.onRead(buffer);
+  assertEquals(1,dispatcher.packets.size());
+  Packet found=dispatcher.packets.get(0);
+  assertEquals(packet,found);
+  assertEquals(oldNormalPacketsRead,socketReader.getNormalPacketsReadCounter().get());
+  assertEquals(oldPriorityPacketsRead + 1,socketReader.getPriorityPacketsReadCounter().get());
+}
