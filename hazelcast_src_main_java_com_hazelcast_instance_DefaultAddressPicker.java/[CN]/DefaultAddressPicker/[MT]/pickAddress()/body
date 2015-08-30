@@ -3,68 +3,17 @@
     return;
   }
   try {
-    NetworkConfig networkConfig=node.getConfig().getNetworkConfig();
-    AddressDefinition bindAddressDef=pickAddress(networkConfig);
-    boolean reuseAddress=networkConfig.isReuseAddress();
-    boolean bindAny=node.getGroupProperties().SOCKET_SERVER_BIND_ANY.getBoolean();
-    int portCount=networkConfig.getPortCount();
-    log(Level.FINEST,"inet reuseAddress:" + reuseAddress);
-    InetSocketAddress inetSocketAddress;
-    ServerSocket serverSocket=null;
-    int port=networkConfig.getPort();
-    Throwable error=null;
-    for (int i=0; i < portCount; i++) {
-      serverSocketChannel=ServerSocketChannel.open();
-      serverSocket=serverSocketChannel.socket();
-      serverSocket.setReuseAddress(reuseAddress);
-      serverSocket.setSoTimeout(SOCKET_TIMEOUT_MILLIS);
-      try {
-        if (bindAny) {
-          inetSocketAddress=new InetSocketAddress(port);
-        }
- else {
-          inetSocketAddress=new InetSocketAddress(bindAddressDef.inetAddress,port);
-        }
-        log(Level.FINEST,"Trying to bind inet socket address:" + inetSocketAddress);
-        serverSocket.bind(inetSocketAddress,SOCKET_BACKLOG_LENGTH);
-        log(Level.FINEST,"Bind successful to inet socket address:" + inetSocketAddress);
-        break;
-      }
- catch (      Exception e) {
-        serverSocket.close();
-        serverSocketChannel.close();
-        if (networkConfig.isPortAutoIncrement()) {
-          port++;
-          error=e;
-        }
- else {
-          String msg="Port [" + port + "] is already in use and auto-increment is disabled."+ " Hazelcast cannot start.";
-          logger.severe(msg,e);
-          throw new HazelcastException(msg,error);
-        }
-      }
-    }
-    if (serverSocket == null || !serverSocket.isBound()) {
-      throw new HazelcastException("ServerSocket bind has failed. Hazelcast cannot start!" + " config-port: " + networkConfig.getPort() + ", latest-port: "+ port,error);
-    }
-    serverSocketChannel.configureBlocking(false);
-    bindAddress=createAddress(bindAddressDef,port);
-    log(Level.INFO,"Picked " + bindAddress + ", using socket "+ serverSocket+ ", bind any local is "+ bindAny);
-    AddressDefinition publicAddressDef=getPublicAddress(node.getConfig(),port);
+    AddressDefinition publicAddressDef=getPublicAddressByPortSearch();
     if (publicAddressDef != null) {
       publicAddress=createAddress(publicAddressDef,publicAddressDef.port);
-      log(Level.INFO,"Using public address: " + publicAddress);
+      logger.info("Using public address: " + publicAddress);
     }
  else {
       publicAddress=bindAddress;
-      log(Level.FINEST,"Using public address the same as the bind address. " + publicAddress);
+      logger.finest("Using public address the same as the bind address: " + publicAddress);
     }
   }
- catch (  RuntimeException re) {
-    logger.severe(re);
-    throw re;
-  }
-catch (  Exception e) {
+ catch (  Exception e) {
     logger.severe(e);
     throw e;
   }
