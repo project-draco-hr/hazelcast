@@ -1,0 +1,14 @@
+{
+  int key=1;
+  String initialValue="foo";
+  String newValue="bar";
+  HazelcastInstance instance=createHazelcastInstance();
+  IMap<Integer,String> map=instance.getMap(randomMapName());
+  map.put(key,initialValue);
+  UpdateListenerRecordingOldValue<Integer,String> listener=new UpdateListenerRecordingOldValue<Integer,String>();
+  map.addEntryListener(listener,true);
+  Map<Integer,String> newMap=createMapWithEntry(key,newValue);
+  map.putAll(newMap);
+  String oldValue=listener.waitForOldValue();
+  assertEquals(initialValue,oldValue);
+}
