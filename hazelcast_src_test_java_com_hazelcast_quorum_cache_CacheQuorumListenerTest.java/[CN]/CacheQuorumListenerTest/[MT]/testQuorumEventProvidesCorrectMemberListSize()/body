@@ -21,13 +21,15 @@
   config.addQuorumConfig(quorumConfig);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
   HazelcastInstance instance1=factory.newHazelcastInstance(config);
-  HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  factory.newHazelcastInstance(config);
   HazelcastServerCachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(instance1);
   Cache<Object,Object> cache=cachingProvider.getCacheManager().getCache(cacheName);
   try {
     cache.put(generateKeyOwnedBy(instance1),1);
+    fail("Expected a QuorumException");
   }
- catch (  Exception e) {
+ catch (  QuorumException expected) {
+    EmptyStatement.ignore(expected);
   }
   assertOpenEventually(belowLatch,15);
 }
