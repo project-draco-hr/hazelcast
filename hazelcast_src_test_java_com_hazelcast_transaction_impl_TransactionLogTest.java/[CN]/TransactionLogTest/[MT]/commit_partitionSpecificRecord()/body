@@ -1,0 +1,12 @@
+{
+  OperationService operationService=mock(OperationService.class);
+  NodeEngine nodeEngine=mock(NodeEngine.class);
+  when(nodeEngine.getOperationService()).thenReturn(operationService);
+  TransactionLog log=new TransactionLog();
+  TransactionLogRecord partitionRecord=mock(TransactionLogRecord.class);
+  Operation partitionOperation=new DummyPartitionOperation();
+  when(partitionRecord.newCommitOperation()).thenReturn(partitionOperation);
+  log.add(partitionRecord);
+  log.commit(nodeEngine);
+  verify(operationService,times(1)).invokeOnPartition(partitionOperation.getServiceName(),partitionOperation,partitionOperation.getPartitionId());
+}

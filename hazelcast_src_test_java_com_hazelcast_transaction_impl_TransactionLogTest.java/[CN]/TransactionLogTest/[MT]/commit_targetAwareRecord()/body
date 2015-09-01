@@ -1,0 +1,14 @@
+{
+  OperationService operationService=mock(OperationService.class);
+  NodeEngine nodeEngine=mock(NodeEngine.class);
+  when(nodeEngine.getOperationService()).thenReturn(operationService);
+  TransactionLog log=new TransactionLog();
+  Address target=new Address(InetAddress.getLocalHost(),5000);
+  TargetAwareTransactionLogRecord targetRecord=mock(TargetAwareTransactionLogRecord.class);
+  when(targetRecord.getTarget()).thenReturn(target);
+  DummyTargetOperation targetOperation=new DummyTargetOperation();
+  when(targetRecord.newCommitOperation()).thenReturn(targetOperation);
+  log.add(targetRecord);
+  log.commit(nodeEngine);
+  verify(operationService,times(1)).invokeOnTarget(targetOperation.getServiceName(),targetOperation,target);
+}
