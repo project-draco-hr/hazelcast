@@ -8,7 +8,7 @@
     checkNotNull(entry.getValue(),NULL_VALUE_IS_NOT_ALLOWED);
     final Data keyData=toData(entry.getKey());
     invalidateNearCache(keyData);
-    int partitionId=partitionService.getPartitionId(entry.getKey());
+    int partitionId=partitionService.getPartitionId(keyData);
     MapEntrySet entrySet=entrySetPerPartition[partitionId];
     if (entrySet == null) {
       entrySet=new MapEntrySet();
@@ -19,8 +19,8 @@
   for (int partitionId=0; partitionId < entrySetPerPartition.length; partitionId++) {
     MapEntrySet entrySet=entrySetPerPartition[partitionId];
     if (entrySet != null) {
-      MapPutAllRequest request=new MapPutAllRequest(name,entrySet);
-      futures.add(new ClientInvocation(getClient(),request,partitionService.getPartitionOwner(partitionId)).invoke());
+      MapPutAllRequest request=new MapPutAllRequest(name,entrySet,partitionId);
+      futures.add(new ClientInvocation(getClient(),request,partitionId).invoke());
     }
   }
   try {
