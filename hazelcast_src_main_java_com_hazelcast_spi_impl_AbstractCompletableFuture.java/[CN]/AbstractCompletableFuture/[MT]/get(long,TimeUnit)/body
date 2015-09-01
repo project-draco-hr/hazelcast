@@ -1,0 +1,25 @@
+{
+  final long deadlineTimeMillis=System.currentTimeMillis() + unit.toMillis(timeout);
+  long millisToWait;
+  for (; ; ) {
+    Object currentState=this.state;
+    if (isCancelledState(currentState)) {
+      throw new CancellationException();
+    }
+    if (isDoneState(currentState)) {
+      return getResult();
+    }
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
+    }
+    millisToWait=deadlineTimeMillis - System.currentTimeMillis();
+    if (millisToWait <= 0) {
+      throw new TimeoutException();
+    }
+synchronized (this) {
+      if (!isDoneState(this.state)) {
+        this.wait(millisToWait);
+      }
+    }
+  }
+}

@@ -1,8 +1,26 @@
 {
+  if (isDone()) {
+    return;
+  }
+  if (runner != null || !RUNNER.compareAndSet(this,null,Thread.currentThread())) {
+    return;
+  }
   try {
-    super.run();
+    Callable c=callable;
+    if (c != null) {
+      Object result=null;
+      try {
+        result=c.call();
+      }
+ catch (      Throwable ex) {
+        result=new ExecutionException(ex);
+      }
+ finally {
+        setResult(result);
+      }
+    }
   }
   finally {
-    fireCallbacks();
+    runner=null;
   }
 }
