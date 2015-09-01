@@ -1,24 +1,24 @@
 {
-  SpinningReadHandler readHandler=(SpinningReadHandler)connection.getReadHandler();
+  SpinningSocketReader reader=(SpinningSocketReader)connection.getSocketReader();
   for (; ; ) {
-    ConnectionHandlers current=connectionHandlers;
+    SocketReaders current=socketReaders;
     if (current == SHUTDOWN) {
       return;
     }
-    int indexOf=current.indexOf(readHandler);
+    int indexOf=current.indexOf(reader);
     if (indexOf == -1) {
       return;
     }
-    int length=current.readHandlers.length;
-    SpinningReadHandler[] newReadHandlers=new SpinningReadHandler[length - 1];
+    int length=current.readers.length;
+    SpinningSocketReader[] newReaders=new SpinningSocketReader[length - 1];
     int destIndex=0;
     for (int sourceIndex=0; sourceIndex < length; sourceIndex++) {
       if (sourceIndex != indexOf) {
-        newReadHandlers[destIndex]=current.readHandlers[sourceIndex];
+        newReaders[destIndex]=current.readers[sourceIndex];
         destIndex++;
       }
     }
-    ConnectionHandlers update=new ConnectionHandlers(newReadHandlers);
+    SocketReaders update=new SocketReaders(newReaders);
     if (CONNECTION_HANDLERS.compareAndSet(this,current,update)) {
       return;
     }
