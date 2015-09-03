@@ -1,0 +1,37 @@
+{
+  final Predicate[] originalPredicates=andPredicate.predicates;
+  InternalMultiMap<String,GreaterLessPredicate> candidates=findCandidatesAndGroupByAttribute(originalPredicates,indexes);
+  if (candidates == null) {
+    return andPredicate;
+  }
+  int toBeRemovedCounter=0;
+  boolean modified=false;
+  Predicate[] target=originalPredicates;
+  for (  Map.Entry<String,List<GreaterLessPredicate>> entry : candidates.entrySet()) {
+    List<GreaterLessPredicate> predicates=entry.getValue();
+    if (predicates.size() == 1) {
+      continue;
+    }
+    String attributeName=entry.getKey();
+    Boundaries boundaries=findBoundaryOrNull(attributeName,predicates,indexes);
+    if (boundaries == null) {
+      continue;
+    }
+    if (boundaries.isOverlapping()) {
+      return FalsePredicate.INSTANCE;
+    }
+    if (!modified) {
+      modified=true;
+      target=createCopy(target);
+    }
+    toBeRemovedCounter=rewriteAttribute(boundaries,target,toBeRemovedCounter);
+  }
+  Predicate[] newPredicates=removeEliminatedPredicates(target,toBeRemovedCounter);
+  if (newPredicates == originalPredicates) {
+    return andPredicate;
+  }
+  if (newPredicates.length == 1) {
+    return newPredicates[0];
+  }
+  return new AndPredicate(newPredicates);
+}
