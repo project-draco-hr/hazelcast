@@ -1,24 +1,24 @@
 {
   for (; ; ) {
     boolean urgent=true;
-    SocketWritable packet=urgentWriteQueue.poll();
-    if (packet == null) {
+    OutboundFrame frame=urgentWriteQueue.poll();
+    if (frame == null) {
       urgent=false;
-      packet=writeQueue.poll();
+      frame=writeQueue.poll();
     }
-    if (packet == null) {
+    if (frame == null) {
       return null;
     }
-    if (packet instanceof TaskPacket) {
-      ((TaskPacket)packet).run();
+    if (frame instanceof TaskFrame) {
+      ((TaskFrame)frame).run();
       continue;
     }
     if (urgent) {
-      priorityPacketsWritten.inc();
+      priorityFramesWritten.inc();
     }
  else {
-      normalPacketsWritten.inc();
+      normalFramesWritten.inc();
     }
-    return packet;
+    return frame;
   }
 }
