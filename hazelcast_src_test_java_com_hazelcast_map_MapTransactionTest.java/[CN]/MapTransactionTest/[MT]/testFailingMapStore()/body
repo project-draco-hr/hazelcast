@@ -4,22 +4,26 @@
   Config config=new Config();
   config.getMapConfig(map).setMapStoreConfig(new MapStoreConfig().setEnabled(true).setImplementation(new MapStoreAdapter(){
     public void store(    Object key,    Object value){
-      throw new IllegalStateException("Map store intentionally failed :) ");
+      throw new ExpectedRuntimeException("Map store intentionally failed :) ");
     }
   }
 ));
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   final HazelcastInstance h1=factory.newHazelcastInstance(config);
   final HazelcastInstance h2=factory.newHazelcastInstance(config);
-  boolean b=h1.executeTransaction(options,new TransactionalTask<Boolean>(){
-    public Boolean execute(    TransactionalTaskContext context) throws TransactionException {
-      assertNull(context.getMap(map).put("1","value1"));
-      assertNull(context.getMap(anotherMap).put("1","value1"));
-      return true;
+  try {
+    h1.executeTransaction(options,new TransactionalTask<Boolean>(){
+      public Boolean execute(      TransactionalTaskContext context) throws TransactionException {
+        assertNull(context.getMap(map).put("1","value1"));
+        assertNull(context.getMap(anotherMap).put("1","value1"));
+        return true;
+      }
     }
-  }
 );
-  assertTrue(b);
+    fail();
+  }
+ catch (  ExpectedRuntimeException expected) {
+  }
   assertNull(h2.getMap(map).get("1"));
   assertEquals("value1",h2.getMap(anotherMap).get("1"));
 }

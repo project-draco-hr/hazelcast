@@ -1,0 +1,30 @@
+{
+  backupLogsCreated=true;
+  OperationService operationService=nodeEngine.getOperationService();
+  List<Future> futures=new ArrayList<Future>(backupAddresses.length);
+  for (  Address backupAddress : backupAddresses) {
+    if (nodeEngine.getClusterService().getMember(backupAddress) != null) {
+      Future f=operationService.invokeOnTarget(SERVICE_NAME,new CreateTxBackupLogOperation(txOwnerUuid,txnId),backupAddress);
+      futures.add(f);
+    }
+  }
+  for (  Future future : futures) {
+    try {
+      future.get(timeoutMillis,MILLISECONDS);
+    }
+ catch (    MemberLeftException e) {
+      nodeEngine.getLogger(Transaction.class).warning("Member left while replicating tx begin: " + e);
+    }
+catch (    Throwable e) {
+      if (e instanceof ExecutionException) {
+        e=e.getCause() != null ? e.getCause() : e;
+      }
+      if (e instanceof TargetNotMemberException) {
+        nodeEngine.getLogger(Transaction.class).warning("Member left while replicating tx begin: " + e);
+      }
+ else {
+        RETHROW_TRANSACTION_EXCEPTION.handleException(e);
+      }
+    }
+  }
+}

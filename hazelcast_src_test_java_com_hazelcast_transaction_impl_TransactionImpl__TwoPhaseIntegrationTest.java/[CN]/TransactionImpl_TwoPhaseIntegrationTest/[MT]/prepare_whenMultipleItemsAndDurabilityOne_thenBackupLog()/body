@@ -1,0 +1,16 @@
+{
+  TransactionOptions options=new TransactionOptions().setTransactionType(TWO_PHASE).setDurability(1);
+  TransactionImpl tx=new TransactionImpl(localTxService,localNodeEngine,options,txOwner);
+  tx.begin();
+  MockTransactionLogRecord record1=new MockTransactionLogRecord();
+  tx.add(record1);
+  MockTransactionLogRecord record2=new MockTransactionLogRecord();
+  tx.add(record2);
+  tx.prepare();
+  assertPrepared(tx);
+  TxBackupLog log=remoteTxService.txBackupLogs.get(tx.getTxnId());
+  assertNotNull(log);
+  assertEquals(COMMITTING,log.state);
+  record1.assertPrepareCalled().assertCommitNotCalled().assertRollbackNotCalled();
+  record2.assertPrepareCalled().assertCommitNotCalled().assertRollbackNotCalled();
+}

@@ -1,0 +1,20 @@
+{
+  TransactionOptions options=new TransactionOptions().setTransactionType(TWO_PHASE).setDurability(1);
+  final TransactionImpl tx=new TransactionImpl(localTxService,localNodeEngine,options,txOwner);
+  tx.begin();
+  MockTransactionLogRecord record1=new MockTransactionLogRecord();
+  tx.add(record1);
+  MockTransactionLogRecord record2=new MockTransactionLogRecord();
+  tx.add(record2);
+  tx.prepare();
+  tx.commit();
+  assertCommitted(tx);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNoBackupLogOnRemote(tx);
+    }
+  }
+);
+  record1.assertPrepareCalled().assertCommitCalled().assertRollbackNotCalled();
+  record2.assertPrepareCalled().assertCommitCalled().assertRollbackNotCalled();
+}
