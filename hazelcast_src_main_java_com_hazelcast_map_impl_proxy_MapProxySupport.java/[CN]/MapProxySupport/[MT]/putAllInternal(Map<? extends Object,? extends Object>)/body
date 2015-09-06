@@ -1,7 +1,6 @@
 {
   NodeEngine nodeEngine=getNodeEngine();
   InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  OperationService operationService=nodeEngine.getOperationService();
   int partitionCount=partitionService.getPartitionCount();
   final MapServiceContext mapServiceContext=getService().getMapServiceContext();
   try {
@@ -23,21 +22,7 @@
     for (int partitionId=0; partitionId < entrySetPerPartition.length; partitionId++) {
       MapEntrySet entrySet=entrySetPerPartition[partitionId];
       if (entrySet != null) {
-        Operation op=new PutAllOperation(name,entrySet).setPartitionId(partitionId);
-        final long size=entrySet.getEntrySet().size();
-        final long time=System.currentTimeMillis();
-        InternalCompletableFuture<Object> f=operationService.invokeOnPartition(SERVICE_NAME,op,partitionId);
-        f.andThen(new ExecutionCallback(){
-          @Override public void onResponse(          Object response){
-            LocalMapStatsProvider localMapStatsProvider=mapServiceContext.getLocalMapStatsProvider();
-            LocalMapStatsImpl localMapStats=localMapStatsProvider.getLocalMapStatsImpl(name);
-            long currentTime=System.currentTimeMillis();
-            localMapStats.incrementPuts(size,currentTime - time);
-          }
-          @Override public void onFailure(          Throwable t){
-          }
-        }
-);
+        Future f=createPutAllOperationFuture(name,entrySet,partitionId);
         futures.add(f);
       }
     }
