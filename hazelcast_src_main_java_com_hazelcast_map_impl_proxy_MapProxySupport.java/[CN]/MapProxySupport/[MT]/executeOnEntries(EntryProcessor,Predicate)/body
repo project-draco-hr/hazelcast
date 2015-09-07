@@ -1,15 +1,13 @@
 {
   Map result=new HashMap();
   try {
-    NodeEngine nodeEngine=getNodeEngine();
-    Map<Integer,Object> results=nodeEngine.getOperationService().invokeOnAllPartitions(SERVICE_NAME,new PartitionWideEntryWithPredicateOperationFactory(name,entryProcessor,predicate));
+    Map<Integer,Object> results=operationService.invokeOnAllPartitions(SERVICE_NAME,new PartitionWideEntryWithPredicateOperationFactory(name,entryProcessor,predicate));
     for (    Object o : results.values()) {
       if (o != null) {
-        final MapService service=getService();
-        final MapEntrySet mapEntrySet=(MapEntrySet)o;
+        MapEntrySet mapEntrySet=(MapEntrySet)o;
         for (        Entry<Data,Data> entry : mapEntrySet.getEntrySet()) {
-          final Data key=entry.getKey();
-          result.put(service.getMapServiceContext().toObject(key),service.getMapServiceContext().toObject(entry.getValue()));
+          Data key=entry.getKey();
+          result.put(toObject(key),toObject(entry.getValue()));
           invalidateNearCache(key);
         }
       }

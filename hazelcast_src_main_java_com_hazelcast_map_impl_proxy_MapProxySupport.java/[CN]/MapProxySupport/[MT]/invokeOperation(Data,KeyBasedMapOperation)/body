@@ -1,15 +1,12 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  int partitionId=partitionService.getPartitionId(key);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
-    Future f;
-    Object o;
-    OperationService operationService=nodeEngine.getOperationService();
-    if (getMapConfig().isStatisticsEnabled()) {
+    Object result;
+    if (statisticsEnabled) {
       long time=System.currentTimeMillis();
-      f=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
-      o=f.get();
+      Future f=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
+      result=f.get();
       if (operation instanceof BasePutOperation) {
         localMapStats.incrementPuts(System.currentTimeMillis() - time);
       }
@@ -21,10 +18,10 @@
       }
     }
  else {
-      f=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
-      o=f.get();
+      Future f=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
+      result=f.get();
     }
-    return o;
+    return result;
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);

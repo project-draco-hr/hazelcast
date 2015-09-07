@@ -1,8 +1,6 @@
 {
-  final MapConfig mapConfig=getMapConfig();
-  final boolean nearCacheEnabled=mapConfig.isNearCacheEnabled();
-  if (nearCacheEnabled) {
-    final Object fromNearCache=getFromNearCache(key);
+  if (nearCache != null) {
+    Object fromNearCache=getFromNearCache(key);
     if (fromNearCache != null) {
       if (isCachedAsNullInNearCache(fromNearCache)) {
         return null;
@@ -10,16 +8,16 @@
       return fromNearCache;
     }
   }
-  if (mapConfig.isReadBackupData()) {
-    final Object fromBackup=readBackupDataOrNull(key);
+  if (getMapConfig().isReadBackupData()) {
+    Object fromBackup=readBackupDataOrNull(key);
     if (fromBackup != null) {
       return fromBackup;
     }
   }
-  final GetOperation operation=new GetOperation(name,key);
+  GetOperation operation=new GetOperation(name,key);
   operation.setThreadId(ThreadUtil.getThreadId());
-  final Data value=(Data)invokeOperation(key,operation);
-  if (nearCacheEnabled) {
+  Data value=(Data)invokeOperation(key,operation);
+  if (nearCache != null) {
     if (notOwnerPartitionForKey(key) || cacheKeyAnyway()) {
       return putNearCache(key,value);
     }

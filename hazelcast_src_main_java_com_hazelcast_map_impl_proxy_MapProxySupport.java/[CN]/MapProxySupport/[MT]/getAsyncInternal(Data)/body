@@ -1,28 +1,23 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  final MapService mapService=getService();
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-  final boolean nearCacheEnabled=getMapConfig().isNearCacheEnabled();
-  if (nearCacheEnabled) {
-    Object cached=mapService.getMapServiceContext().getNearCacheProvider().getFromNearCache(name,key);
+  int partitionId=partitionService.getPartitionId(key);
+  if (nearCache != null) {
+    Object cached=nearCache.get(key);
     if (cached != null) {
       if (NearCache.NULL_OBJECT.equals(cached)) {
         cached=null;
       }
-      return new CompletedFuture<Data>(nodeEngine.getSerializationService(),cached,nodeEngine.getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR));
+      return new CompletedFuture<Data>(getNodeEngine().getSerializationService(),cached,getNodeEngine().getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR));
     }
   }
-  GetOperation operation=new GetOperation(name,key);
+  GetOperation op=new GetOperation(name,key);
   try {
-    final OperationService operationService=nodeEngine.getOperationService();
-    final InvocationBuilder invocationBuilder=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false);
-    final InternalCompletableFuture<Data> future=invocationBuilder.invoke();
+    InternalCompletableFuture<Data> future=operationService.createInvocationBuilder(SERVICE_NAME,op,partitionId).setResultDeserialized(false).invoke();
     future.andThen(new ExecutionCallback<Data>(){
       @Override public void onResponse(      Data response){
-        if (nearCacheEnabled) {
-          int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
-          if (!nodeEngine.getPartitionService().getPartitionOwner(partitionId).equals(nodeEngine.getClusterService().getThisAddress()) || getMapConfig().getNearCacheConfig().isCacheLocalEntries()) {
-            mapService.getMapServiceContext().getNearCacheProvider().putNearCache(name,key,response);
+        if (nearCache != null) {
+          int partitionId=partitionService.getPartitionId(key);
+          if (!partitionService.getPartitionOwner(partitionId).equals(thisAddress) || getMapConfig().getNearCacheConfig().isCacheLocalEntries()) {
+            nearCache.put(key,response);
           }
         }
       }
