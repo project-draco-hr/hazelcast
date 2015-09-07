@@ -5,7 +5,12 @@
   fillAttributeValues(node,cacheConfigBuilder);
   for (  Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
     if ("eviction".equals(cleanNodeName(childNode))) {
-      cacheConfigBuilder.addPropertyValue("evictionConfig",getEvictionConfig(childNode));
+      EvictionConfig evictionConfig=getEvictionConfig(childNode);
+      EvictionPolicy evictionPolicy=evictionConfig.getEvictionPolicy();
+      if (evictionPolicy == null || evictionPolicy == EvictionPolicy.NONE) {
+        throw new InvalidConfigurationException("Eviction policy of cache cannot be null or \"NONE\"");
+      }
+      cacheConfigBuilder.addPropertyValue("evictionConfig",evictionConfig);
     }
  else     if ("expiry-policy-factory".equals(cleanNodeName(childNode))) {
       cacheConfigBuilder.addPropertyValue("expiryPolicyFactoryConfig",getExpiryPolicyFactoryConfig(childNode));
