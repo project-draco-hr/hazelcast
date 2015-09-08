@@ -2,11 +2,14 @@
   if (awsConfig == null) {
     throw new IllegalArgumentException("AwsConfig is required!");
   }
-  if (awsConfig.getAccessKey() == null) {
-    throw new IllegalArgumentException("AWS access key is required!");
+  if (awsConfig.getAccessKey() == null && awsConfig.getIamRole() == null) {
+    throw new IllegalArgumentException("AWS access key or IAM Role is required!");
   }
   this.awsConfig=awsConfig;
   this.endpoint=endpoint;
+  if (awsConfig.getIamRole() != null) {
+    getKeysFromIamRole();
+  }
   rs=new EC2RequestSigner(awsConfig,timeStamp,endpoint);
   attributes.put("Action",this.getClass().getSimpleName());
   attributes.put("Version",DOC_VERSION);
