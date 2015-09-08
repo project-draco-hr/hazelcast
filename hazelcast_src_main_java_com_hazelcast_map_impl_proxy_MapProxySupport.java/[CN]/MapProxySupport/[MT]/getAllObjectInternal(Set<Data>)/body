@@ -2,11 +2,8 @@
   if (keys == null || keys.isEmpty()) {
     return Collections.emptyMap();
   }
-  final NodeEngine nodeEngine=getNodeEngine();
-  final MapService mapService=getService();
   Map<Object,Object> result=new HashMap<Object,Object>();
-  final boolean nearCacheEnabled=getMapConfig().isNearCacheEnabled();
-  if (nearCacheEnabled) {
+  if (nearCache != null) {
     getFromNearCache(result,keys);
   }
   if (keys.isEmpty()) {
@@ -15,12 +12,12 @@
   Collection<Integer> partitions=getPartitionsForKeys(keys);
   Map<Integer,Object> responses;
   try {
-    responses=nodeEngine.getOperationService().invokeOnPartitions(SERVICE_NAME,new MapGetAllOperationFactory(name,keys),partitions);
+    responses=operationService.invokeOnPartitions(SERVICE_NAME,new MapGetAllOperationFactory(name,keys),partitions);
     for (    Object response : responses.values()) {
-      Set<Map.Entry<Data,Data>> entries=((MapEntrySet)mapService.getMapServiceContext().toObject(response)).getEntrySet();
+      Set<Map.Entry<Data,Data>> entries=((MapEntrySet)toObject(response)).getEntrySet();
       for (      Entry<Data,Data> entry : entries) {
-        result.put(mapService.getMapServiceContext().toObject(entry.getKey()),mapService.getMapServiceContext().toObject(entry.getValue()));
-        if (nearCacheEnabled) {
+        result.put(toObject(entry.getKey()),toObject(entry.getValue()));
+        if (nearCache != null) {
           if (notOwnerPartitionForKey(entry.getKey()) || cacheKeyAnyway()) {
             putNearCache(entry.getKey(),entry.getValue());
           }

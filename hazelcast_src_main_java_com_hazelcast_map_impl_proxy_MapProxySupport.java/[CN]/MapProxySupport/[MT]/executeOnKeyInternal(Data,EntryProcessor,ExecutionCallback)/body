@@ -1,14 +1,13 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  int partitionId=partitionService.getPartitionId(key);
   EntryOperation operation=new EntryOperation(name,key,entryProcessor);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
     if (callback == null) {
-      return nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
+      return operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
     }
  else {
-      ICompletableFuture future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,partitionId).setExecutionCallback(new MapExecutionCallbackAdapter(callback)).invoke();
+      ICompletableFuture future=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setExecutionCallback(new MapExecutionCallbackAdapter(callback)).invoke();
       invalidateNearCache(key);
       return future;
     }

@@ -2,8 +2,20 @@
   super(nodeEngine,service);
   this.name=name;
   this.mapServiceContext=service.getMapServiceContext();
-  partitionStrategy=mapServiceContext.getMapContainer(name).getPartitioningStrategy();
-  localMapStats=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
+  this.mapContainer=mapServiceContext.getMapContainer(name);
+  this.partitionStrategy=mapServiceContext.getMapContainer(name).getPartitioningStrategy();
+  this.localMapStats=mapServiceContext.getLocalMapStatsProvider().getLocalMapStatsImpl(name);
   this.partitionService=getNodeEngine().getPartitionService();
-  lockSupport=new LockProxySupport(new DefaultObjectNamespace(MapService.SERVICE_NAME,name),LockServiceImpl.getMaxLeaseTimeInMillis(nodeEngine.getGroupProperties()));
+  this.operationService=nodeEngine.getOperationService();
+  this.serializationService=nodeEngine.getSerializationService();
+  this.lockSupport=new LockProxySupport(new DefaultObjectNamespace(MapService.SERVICE_NAME,name),LockServiceImpl.getMaxLeaseTimeInMillis(nodeEngine.getGroupProperties()));
+  this.thisAddress=nodeEngine.getClusterService().getThisAddress();
+  this.statisticsEnabled=mapContainer.getMapConfig().isStatisticsEnabled();
+  if (mapContainer.isNearCacheEnabled()) {
+    NearCacheProvider nearCacheProvider=mapServiceContext.getNearCacheProvider();
+    nearCache=nearCacheProvider.getNearCache(name);
+  }
+ else {
+    nearCache=null;
+  }
 }

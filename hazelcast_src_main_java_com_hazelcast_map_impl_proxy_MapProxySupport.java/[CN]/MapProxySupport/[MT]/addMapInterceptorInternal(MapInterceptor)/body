@@ -1,7 +1,5 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  final MapService mapService=getService();
-  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  NodeEngine nodeEngine=getNodeEngine();
   if (interceptor instanceof HazelcastInstanceAware) {
     ((HazelcastInstanceAware)interceptor).setHazelcastInstance(nodeEngine.getHazelcastInstance());
   }
@@ -9,7 +7,8 @@
   Collection<Member> members=nodeEngine.getClusterService().getMembers();
   for (  Member member : members) {
     try {
-      Future f=nodeEngine.getOperationService().invokeOnTarget(SERVICE_NAME,new AddInterceptorOperation(id,interceptor,name),member.getAddress());
+      AddInterceptorOperation op=new AddInterceptorOperation(id,interceptor,name);
+      Future f=operationService.invokeOnTarget(SERVICE_NAME,op,member.getAddress());
       f.get();
     }
  catch (    Throwable t) {
