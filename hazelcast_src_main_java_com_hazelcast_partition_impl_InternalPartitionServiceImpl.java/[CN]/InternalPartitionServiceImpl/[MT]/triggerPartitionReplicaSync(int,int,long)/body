@@ -9,11 +9,11 @@
   Address target=partition.getOwnerOrNull();
   ReplicaSyncInfo syncInfo=new ReplicaSyncInfo(partitionId,replicaIndex,target);
   if (delayMillis > 0) {
-    schedulePartitionReplicaSync(syncInfo,target,delayMillis);
+    schedulePartitionReplicaSync(syncInfo,target,delayMillis,"EXPLICIT DELAY");
     return;
   }
   if (!isMigrationActive() || partition.isMigrating()) {
-    schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
+    schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY,"MIGRATION IS DISABLED OR PARTITION IS MIGRATING");
     return;
   }
   if (replicaSyncRequests.compareAndSet(partitionId,null,syncInfo)) {
@@ -21,9 +21,9 @@
       return;
     }
     replicaSyncRequests.compareAndSet(partitionId,syncInfo,null);
-    schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY);
+    schedulePartitionReplicaSync(syncInfo,target,REPLICA_SYNC_RETRY_DELAY,"NO PERMIT AVAILABLE");
     return;
   }
   long scheduleDelay=getReplicaSyncScheduleDelay(partitionId);
-  schedulePartitionReplicaSync(syncInfo,target,scheduleDelay);
+  schedulePartitionReplicaSync(syncInfo,target,scheduleDelay,"ANOTHER SYNC IN PROGRESS");
 }

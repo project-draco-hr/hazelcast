@@ -18,31 +18,8 @@
     if (!isMigrationAllowed()) {
       return;
     }
-    int migrationCount=0;
-    int lostCount=0;
-    lastRepartitionTime.set(Clock.currentTimeMillis());
-    for (int partitionId=0; partitionId < partitionCount; partitionId++) {
-      Address[] replicas=newState[partitionId];
-      InternalPartitionImpl currentPartition=partitions[partitionId];
-      Address currentOwner=currentPartition.getOwnerOrNull();
-      Address newOwner=replicas[0];
-      if (currentOwner == null) {
-        lostCount++;
-        assignNewPartitionOwner(partitionId,replicas,currentPartition,newOwner);
-      }
- else       if (newOwner != null && !currentOwner.equals(newOwner)) {
-        if (logger.isFinestEnabled()) {
-          logger.finest("PartitionToMigrate partitionId=" + partitionId + " replicas="+ Arrays.toString(replicas)+ " currentOwner="+ currentOwner+ " newOwner="+ newOwner);
-        }
-        migrationCount++;
-        migratePartitionToNewOwner(partitionId,replicas,currentOwner,newOwner);
-      }
- else {
-        currentPartition.setReplicaAddresses(replicas);
-      }
-    }
+    processNewPartitionState(newState);
     syncPartitionRuntimeState(members);
-    logMigrationStatistics(migrationCount,lostCount);
   }
   finally {
     lock.unlock();
