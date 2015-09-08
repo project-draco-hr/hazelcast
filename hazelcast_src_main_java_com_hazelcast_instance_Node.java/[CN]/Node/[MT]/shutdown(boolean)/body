@@ -1,53 +1,51 @@
 {
   long start=Clock.currentTimeMillis();
   if (logger.isFinestEnabled()) {
-    logger.finest("** we are being asked to shutdown when active = " + String.valueOf(active));
+    logger.finest("We are being asked to shutdown when state = " + state);
   }
-  if (!terminate && isActive() && joined()) {
+  if (!NODE_STATE_UPDATER.compareAndSet(this,NodeState.ACTIVE,NodeState.SHUTTING_DOWN)) {
+    waitIfAlreadyShuttingDown();
+    return;
+  }
+  if (!terminate) {
     final int maxWaitSeconds=groupProperties.getSeconds(GroupProperty.GRACEFUL_SHUTDOWN_MAX_WAIT);
     if (!partitionService.prepareToSafeShutdown(maxWaitSeconds,TimeUnit.SECONDS)) {
       logger.warning("Graceful shutdown could not be completed in " + maxWaitSeconds + " seconds!");
     }
+    clusterService.sendShutdownMessage();
   }
-  if (isActive()) {
-    if (!terminate) {
-      final int maxWaitSeconds=groupProperties.getSeconds(GroupProperty.GRACEFUL_SHUTDOWN_MAX_WAIT);
-      if (!partitionService.prepareToSafeShutdown(maxWaitSeconds,TimeUnit.SECONDS)) {
-        logger.warning("Graceful shutdown could not be completed in " + maxWaitSeconds + " seconds!");
-      }
-      clusterService.sendShutdownMessage();
-    }
  else {
-      logger.warning("Terminating forcefully...");
-    }
-    joined.set(false);
-    setActive(false);
-    setMasterAddress(null);
-    try {
-      if (groupProperties.getBoolean(GroupProperty.SHUTDOWNHOOK_ENABLED))       Runtime.getRuntime().removeShutdownHook(shutdownHookThread);
-    }
- catch (    Throwable ignored) {
-    }
-    versionCheck.shutdown();
-    if (managementCenterService != null) {
-      managementCenterService.shutdown();
-    }
-    textCommandService.stop();
-    if (multicastService != null) {
-      logger.info("Shutting down multicast service...");
-      multicastService.stop();
-    }
-    logger.info("Shutting down connection manager...");
-    connectionManager.shutdown();
-    logger.info("Shutting down node engine...");
-    nodeEngine.shutdown(terminate);
-    if (securityContext != null) {
-      securityContext.destroy();
-    }
-    nodeExtension.destroy();
-    logger.finest("Destroying serialization service...");
-    serializationService.destroy();
-    hazelcastThreadGroup.destroy();
-    logger.info("Hazelcast Shutdown is completed in " + (Clock.currentTimeMillis() - start) + " ms.");
+    logger.warning("Terminating forcefully...");
   }
+  joined.set(false);
+  setMasterAddress(null);
+  try {
+    if (groupProperties.getBoolean(GroupProperty.SHUTDOWNHOOK_ENABLED)) {
+      Runtime.getRuntime().removeShutdownHook(shutdownHookThread);
+    }
+  }
+ catch (  Throwable ignored) {
+  }
+  versionCheck.shutdown();
+  if (managementCenterService != null) {
+    managementCenterService.shutdown();
+  }
+  textCommandService.stop();
+  if (multicastService != null) {
+    logger.info("Shutting down multicast service...");
+    multicastService.stop();
+  }
+  logger.info("Shutting down connection manager...");
+  connectionManager.shutdown();
+  logger.info("Shutting down node engine...");
+  nodeEngine.shutdown(terminate);
+  if (securityContext != null) {
+    securityContext.destroy();
+  }
+  nodeExtension.destroy();
+  logger.finest("Destroying serialization service...");
+  serializationService.destroy();
+  hazelcastThreadGroup.destroy();
+  logger.info("Hazelcast Shutdown is completed in " + (Clock.currentTimeMillis() - start) + " ms.");
+  state=NodeState.SHUT_DOWN;
 }
