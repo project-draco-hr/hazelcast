@@ -1,13 +1,16 @@
 {
-  List<Future> futures=new ArrayList<Future>(transactionLog.size());
+  if (skipBackupLogReplication()) {
+    return;
+  }
   OperationService operationService=nodeEngine.getOperationService();
+  ClusterService clusterService=nodeEngine.getClusterService();
+  List<Future> futures=new ArrayList<Future>(backupAddresses.length);
   for (  Address backupAddress : backupAddresses) {
-    if (nodeEngine.getClusterService().getMember(backupAddress) == null) {
-      continue;
+    if (clusterService.getMember(backupAddress) != null) {
+      Operation op=new ReplicateTxBackupLogOperation(transactionLog.getRecordList(),txOwnerUuid,txnId,timeoutMillis,startTime);
+      Future f=operationService.invokeOnTarget(SERVICE_NAME,op,backupAddress);
+      futures.add(f);
     }
-    Future f=operationService.invokeOnTarget(TransactionManagerServiceImpl.SERVICE_NAME,new ReplicateTxOperation(transactionLog.getRecordList(),txOwnerUuid,txnId,timeoutMillis,startTime),backupAddress);
-    futures.add(f);
   }
   waitWithDeadline(futures,timeoutMillis,MILLISECONDS,RETHROW_TRANSACTION_EXCEPTION);
-  futures.clear();
 }

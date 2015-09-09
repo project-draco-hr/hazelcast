@@ -5,16 +5,14 @@
   checkThread();
   checkTimeout();
   try {
+    createBackupLogs();
     state=PREPARING;
     List<Future> futures=transactionLog.prepare(nodeEngine);
     waitWithDeadline(futures,timeoutMillis,MILLISECONDS,RETHROW_TRANSACTION_EXCEPTION);
-    futures.clear();
     state=PREPARED;
-    if (durability > 0) {
-      replicateTxnLog();
-    }
+    replicateTxnLog();
   }
  catch (  Throwable e) {
-    throw ExceptionUtil.rethrow(e,TransactionException.class);
+    throw rethrow(e,TransactionException.class);
   }
 }

@@ -1,0 +1,17 @@
+{
+  if (!backupLogsCreated) {
+    return;
+  }
+  OperationService operationService=nodeEngine.getOperationService();
+  ClusterService clusterService=nodeEngine.getClusterService();
+  for (  Address backupAddress : backupAddresses) {
+    if (clusterService.getMember(backupAddress) != null) {
+      try {
+        operationService.invokeOnTarget(SERVICE_NAME,new PurgeTxBackupLogOperation(txnId),backupAddress);
+      }
+ catch (      Throwable e) {
+        logger.warning("Error during purging backups!",e);
+      }
+    }
+  }
+}

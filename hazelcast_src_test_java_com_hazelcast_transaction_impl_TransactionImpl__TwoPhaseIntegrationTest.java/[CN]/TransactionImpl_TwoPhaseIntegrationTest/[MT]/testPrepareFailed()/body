@@ -1,0 +1,16 @@
+{
+  TransactionOptions options=new TransactionOptions().setTransactionType(TWO_PHASE).setDurability(1);
+  TransactionImpl tx=new TransactionImpl(localTxService,localNodeEngine,options,txOwner);
+  tx.begin();
+  MockTransactionLogRecord record=new MockTransactionLogRecord().failPrepare();
+  tx.add(record);
+  try {
+    tx.prepare();
+    fail();
+  }
+ catch (  TransactionException expected) {
+  }
+  assertPreparing(tx);
+  assertNoBackupLogOnRemote(tx);
+  record.assertPrepareCalled().assertCommitNotCalled().assertRollbackNotCalled();
+}

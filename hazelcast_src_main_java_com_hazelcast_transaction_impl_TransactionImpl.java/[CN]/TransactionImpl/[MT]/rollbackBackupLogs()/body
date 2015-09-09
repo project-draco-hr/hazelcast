@@ -1,0 +1,15 @@
+{
+  if (!backupLogsCreated) {
+    return;
+  }
+  OperationService operationService=nodeEngine.getOperationService();
+  ClusterService clusterService=nodeEngine.getClusterService();
+  List<Future> futures=new ArrayList<Future>(backupAddresses.length);
+  for (  Address backupAddress : backupAddresses) {
+    if (clusterService.getMember(backupAddress) != null) {
+      Future f=operationService.invokeOnTarget(SERVICE_NAME,new RollbackTxBackupLogOperation(txnId),backupAddress);
+      futures.add(f);
+    }
+  }
+  waitWithDeadline(futures,timeoutMillis,MILLISECONDS,rollbackTxExceptionHandler);
+}
