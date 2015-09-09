@@ -1,0 +1,32 @@
+{
+  for (int i=0; i < numberOfReturnedQueryEntries; i++) {
+    QueryableEntry queryableEntry=mock(QueryableEntry.class);
+    when(queryableEntry.getKeyData()).thenAnswer(randomDataAnswer);
+    when(queryableEntry.getIndexKey()).thenAnswer(randomDataAnswer);
+    when(queryableEntry.getValueData()).thenAnswer(randomDataAnswer);
+    queryEntries.add(queryableEntry);
+    queryEntrySet.add(queryableEntry);
+  }
+  QueryResult queryResult=new QueryResult(nodeResultLimit);
+  when(mapQueryEngine.newQueryResult(anyInt())).thenReturn(queryResult);
+  when(mapQueryEngine.queryOnPartition(MAP_NAME,TruePredicate.INSTANCE,Operation.GENERIC_PARTITION_ID)).thenReturn(queryEntries);
+  IndexService indexService=mock(IndexService.class);
+  when(indexService.query(TruePredicate.INSTANCE)).thenReturn(queryEntrySet);
+  MapConfig mapConfig=mock(MapConfig.class);
+  when(mapConfig.isStatisticsEnabled()).thenReturn(false);
+  MapServiceContext mapServiceContext=mock(MapServiceContext.class);
+  when(mapServiceContext.getMapQueryEngine()).thenReturn(mapQueryEngine);
+  MapService mapService=mock(MapService.class);
+  when(mapService.getMapServiceContext()).thenReturn(mapServiceContext);
+  queryOperation.setMapService(mapService);
+  MapContainer mapContainer=mock(MapContainer.class);
+  when(mapContainer.getIndexService()).thenReturn(indexService);
+  when(mapContainer.getMapConfig()).thenReturn(mapConfig);
+  queryOperation.setMapContainer(mapContainer);
+  InternalPartitionService partitionService=mock(InternalPartitionService.class);
+  when(partitionService.getPartitionStateVersion()).thenReturn(0);
+  when(partitionService.hasOnGoingMigrationLocal()).thenReturn(false);
+  NodeEngine nodeEngine=mock(NodeEngine.class);
+  when(nodeEngine.getPartitionService()).thenReturn(partitionService);
+  queryOperation.setNodeEngine(nodeEngine);
+}

@@ -1,0 +1,19 @@
+{
+  RetryableHazelcastException storedException=null;
+  MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  MapQueryEngine querySupport=mapServiceContext.getMapQueryEngine();
+  for (  Integer partitionId : initialPartitions) {
+    try {
+      Collection<QueryableEntry> entries=querySupport.queryOnPartition(name,predicate,partitionId);
+      result.addAll(entries);
+    }
+ catch (    RetryableHazelcastException e) {
+      if (storedException == null) {
+        storedException=e;
+      }
+    }
+  }
+  if (storedException != null) {
+    throw storedException;
+  }
+}

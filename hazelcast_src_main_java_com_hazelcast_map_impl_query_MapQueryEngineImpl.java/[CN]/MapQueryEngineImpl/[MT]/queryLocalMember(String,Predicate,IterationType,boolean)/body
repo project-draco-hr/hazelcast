@@ -1,0 +1,27 @@
+{
+  checkIfNotPagingPredicate(predicate);
+  Set result=new QueryResultSet(serializationService,iterationType,dataResult);
+  List<Integer> partitionIds=getLocalPartitionIds();
+  try {
+    Future<QueryResult> future=queryOnLocalMember(mapName,predicate);
+    List<Future<QueryResult>> futures=Collections.singletonList(future);
+    addResultsOfPredicate(futures,result,partitionIds);
+    if (partitionIds.isEmpty()) {
+      return result;
+    }
+  }
+ catch (  Throwable t) {
+    if (t.getCause() instanceof QueryResultSizeExceededException) {
+      throw ExceptionUtil.rethrow(t);
+    }
+    logger.warning("Could not get results",t);
+  }
+  try {
+    List<Future<QueryResult>> futures=queryOnPartitions(mapName,predicate,partitionIds);
+    addResultsOfPredicate(futures,result,partitionIds);
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+  return result;
+}
