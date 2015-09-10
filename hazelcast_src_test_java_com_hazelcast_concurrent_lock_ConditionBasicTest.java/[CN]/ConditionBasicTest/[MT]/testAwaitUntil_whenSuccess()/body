@@ -1,25 +1,24 @@
 {
   final ILock lock=callerInstance.getLock(newName());
   final ICondition condition=lock.newCondition(newName());
-  final CountDownLatch latch=new CountDownLatch(1);
+  final CountDownLatch locked=new CountDownLatch(1);
+  final AtomicBoolean signalledCorrectly=new AtomicBoolean(false);
   new Thread(new Runnable(){
     @Override public void run(){
       lock.lock();
+      locked.countDown();
       try {
-        Date date=new Date();
-        date.setTime(System.currentTimeMillis() + 10000);
-        if (condition.awaitUntil(date)) {
-          latch.countDown();
+        if (condition.awaitUntil(currentTimeAfterGivenMillis(10000))) {
+          signalledCorrectly.set(true);
         }
       }
  catch (      InterruptedException e) {
-        e.printStackTrace();
+        ignore(e);
       }
     }
   }
 ).start();
-  sleepSeconds(1);
-  lock.lock();
-  condition.signal();
-  lock.unlock();
+  locked.await();
+  signal(lock,condition);
+  assertAtomicEventually("awaiting thread should have been signalled",true,signalledCorrectly,THIRTY_SECONDS);
 }

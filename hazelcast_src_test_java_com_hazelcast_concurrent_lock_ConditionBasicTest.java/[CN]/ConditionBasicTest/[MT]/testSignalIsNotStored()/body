@@ -1,10 +1,8 @@
 {
   ILock lock=callerInstance.getLock(newName());
   ICondition condition=lock.newCondition(newName());
-  CountDownLatch latch=new CountDownLatch(1);
-  lock.lock();
-  condition.signal();
-  lock.unlock();
-  createThreadWaitsForCondition(latch,lock,condition,new CountDownLatch(0)).start();
-  assertFalse(latch.await(3000,TimeUnit.MILLISECONDS));
+  CountDownLatch signalled=new CountDownLatch(1);
+  signal(lock,condition);
+  startThreadWaitingOnCondition(lock,condition,new CountDownLatch(0),signalled);
+  assertFalse("The time should elapse but the latch reached zero unexpectedly",signalled.await(3000,TimeUnit.MILLISECONDS));
 }
