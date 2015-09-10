@@ -1,0 +1,20 @@
+{
+  PagingPredicate pagingPredicate=predicate instanceof PagingPredicate ? (PagingPredicate)predicate : null;
+  List<QueryableEntry> resultList=new LinkedList<QueryableEntry>();
+  PartitionContainer container=mapServiceContext.getPartitionContainer(partitionId);
+  Iterator<Record> iterator=container.getRecordStore(mapName).loadAwareIterator(getNow(),false);
+  Map.Entry<Integer,Map.Entry> nearestAnchorEntry=PagingPredicateAccessor.getNearestAnchorEntry(pagingPredicate);
+  while (iterator.hasNext()) {
+    Record record=iterator.next();
+    Data key=record.getKey();
+    Object value=getValueOrCachedValue(record);
+    if (value == null) {
+      continue;
+    }
+    QueryEntry queryEntry=new QueryEntry(serializationService,key,key,value);
+    if (predicate.apply(queryEntry) && compareAnchor(pagingPredicate,queryEntry,nearestAnchorEntry)) {
+      resultList.add(queryEntry);
+    }
+  }
+  return getSortedSubList(resultList,pagingPredicate,nearestAnchorEntry);
+}

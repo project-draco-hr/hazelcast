@@ -1,0 +1,16 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  ExecutorService executor=nodeEngine.getExecutionService().getExecutor(QUERY_EXECUTOR);
+  List<Future<Collection<QueryableEntry>>> lsFutures=new ArrayList<Future<Collection<QueryableEntry>>>(initialPartitions.size());
+  for (  Integer partitionId : initialPartitions) {
+    Future<Collection<QueryableEntry>> future=executor.submit(new PartitionCallable(partitionId));
+    lsFutures.add(future);
+  }
+  Collection<Collection<QueryableEntry>> returnedResults=getResult(lsFutures);
+  for (  Collection<QueryableEntry> returnedResult : returnedResults) {
+    if (returnedResult == null) {
+      continue;
+    }
+    result.addAll(returnedResult);
+  }
+}

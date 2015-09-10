@@ -1,0 +1,23 @@
+{
+  InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+  NodeEngine nodeEngine=getNodeEngine();
+  MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  MapQueryEngine queryEngine=mapServiceContext.getMapQueryEngine();
+  int initialPartitionStateVersion=partitionService.getPartitionStateVersion();
+  Collection<Integer> initialPartitions=mapServiceContext.getOwnedPartitions();
+  Set<QueryableEntry> entries=null;
+  if (!partitionService.hasOnGoingMigrationLocal()) {
+    entries=mapContainer.getIndexService().query(predicate);
+  }
+  result=queryEngine.newQueryResult(initialPartitions.size());
+  if (entries != null) {
+    result.addAll(entries);
+  }
+ else {
+    fullTableScan(initialPartitions,nodeEngine.getGroupProperties());
+  }
+  if (checkPartitionState(partitionService,initialPartitionStateVersion)) {
+    result.setPartitionIds(initialPartitions);
+  }
+  updateStatisticsIfEnabled(mapServiceContext);
+}
