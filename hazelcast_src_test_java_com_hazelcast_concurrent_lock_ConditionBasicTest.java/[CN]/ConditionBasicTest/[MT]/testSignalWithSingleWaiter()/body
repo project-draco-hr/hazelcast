@@ -4,6 +4,7 @@
   final ILock lock=callerInstance.getLock(lockName);
   final ICondition condition=lock.newCondition(conditionName);
   final AtomicInteger count=new AtomicInteger(0);
+  final CountDownLatch threadLockedTheLock=new CountDownLatch(1);
   Thread t=new Thread(new Runnable(){
     public void run(){
       try {
@@ -11,6 +12,7 @@
         if (lock.isLockedByCurrentThread()) {
           count.incrementAndGet();
         }
+        threadLockedTheLock.countDown();
         condition.await();
         if (lock.isLockedByCurrentThread()) {
           count.incrementAndGet();
@@ -25,12 +27,8 @@
   }
 );
   t.start();
-  Thread.sleep(1000);
-  assertEquals(false,lock.isLocked());
-  lock.lock();
-  assertEquals(true,lock.isLocked());
-  condition.signal();
-  lock.unlock();
-  t.join();
-  assertEquals(2,count.get());
+  threadLockedTheLock.await();
+  assertUnlockedEventually(lock,THIRTY_SECONDS);
+  signal(lock,condition);
+  assertAtomicEventually("Locks was not always locked by the expected thread",2,count,THIRTY_SECONDS);
 }

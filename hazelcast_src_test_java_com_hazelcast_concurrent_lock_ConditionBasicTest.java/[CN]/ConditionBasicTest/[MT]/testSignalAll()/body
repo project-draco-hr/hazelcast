@@ -1,13 +1,11 @@
 {
   ILock lock=callerInstance.getLock(newName());
   ICondition condition=lock.newCondition(newName());
-  CountDownLatch latch=new CountDownLatch(2);
-  CountDownLatch syncLatch=new CountDownLatch(2);
-  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
-  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
-  syncLatch.await();
-  lock.lock();
-  condition.signalAll();
-  lock.unlock();
-  assertOpenEventually(latch);
+  CountDownLatch allAwaited=new CountDownLatch(2);
+  CountDownLatch allSignalled=new CountDownLatch(2);
+  startThreadWaitingOnCondition(lock,condition,allAwaited,allSignalled);
+  startThreadWaitingOnCondition(lock,condition,allAwaited,allSignalled);
+  assertOpenEventually("All threads should have been reached await",allAwaited);
+  signalAll(lock,condition);
+  assertOpenEventually("All threads should have been signalled",allSignalled);
 }

@@ -1,20 +1,13 @@
 {
   ILock lock=callerInstance.getLock(newName());
-  final ICondition condition=lock.newCondition(newName());
-  final CountDownLatch latch=new CountDownLatch(10);
-  final CountDownLatch syncLatch=new CountDownLatch(3);
-  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
-  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
-  createThreadWaitsForCondition(latch,lock,condition,syncLatch).start();
-  syncLatch.await();
-  lock.lock();
-  condition.signal();
-  lock.unlock();
-  assertTrueDelayed5sec(new AssertTask(){
-    @Override public void run() throws Exception {
-      assertEquals(9,latch.getCount());
-    }
-  }
-);
-  assertEquals(false,lock.isLocked());
+  ICondition condition=lock.newCondition(newName());
+  CountDownLatch allAwaited=new CountDownLatch(3);
+  CountDownLatch allSignalled=new CountDownLatch(10);
+  startThreadWaitingOnCondition(lock,condition,allAwaited,allSignalled);
+  startThreadWaitingOnCondition(lock,condition,allAwaited,allSignalled);
+  startThreadWaitingOnCondition(lock,condition,allAwaited,allSignalled);
+  assertOpenEventually("All threads should have been reached await",allAwaited);
+  signal(lock,condition);
+  assertCountEventually("Condition has not been signalled",9,allSignalled,THIRTY_SECONDS);
+  assertFalse(lock.isLocked());
 }
