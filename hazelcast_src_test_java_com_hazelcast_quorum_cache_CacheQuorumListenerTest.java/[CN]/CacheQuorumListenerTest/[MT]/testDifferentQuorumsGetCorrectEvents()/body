@@ -33,21 +33,23 @@
   config.addCacheConfig(threeNodeCacheConfig);
   config.addQuorumConfig(threeNodeQuorumConfig);
   HazelcastInstance h1=factory.newHazelcastInstance(config);
-  HazelcastInstance h2=factory.newHazelcastInstance(config);
+  factory.newHazelcastInstance(config);
   HazelcastServerCachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(h1);
   Cache<Object,Object> fourNode=cachingProvider.getCacheManager().getCache("fourNode");
   Cache<Object,Object> threeNode=cachingProvider.getCacheManager().getCache("threeNode");
   try {
     threeNode.put(generateKeyOwnedBy(h1),"bar");
-    fail();
+    fail("Expected a QuorumException");
   }
- catch (  Exception e) {
+ catch (  QuorumException expected) {
+    EmptyStatement.ignore(expected);
   }
   try {
     fourNode.put(generateKeyOwnedBy(h1),"bar");
-    fail();
+    fail("Expected a QuorumException");
   }
- catch (  Exception e) {
+ catch (  QuorumException expected) {
+    EmptyStatement.ignore(expected);
   }
   assertOpenEventually(quorumFailureLatch,15);
 }

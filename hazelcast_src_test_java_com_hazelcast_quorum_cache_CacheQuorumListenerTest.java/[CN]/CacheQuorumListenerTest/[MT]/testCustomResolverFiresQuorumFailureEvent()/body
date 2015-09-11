@@ -25,15 +25,14 @@
   config.getCacheConfig(cacheName).setQuorumName(quorumName);
   config.addQuorumConfig(quorumConfig);
   HazelcastInstance instance=createHazelcastInstance(config);
-  QuorumService quorumService=instance.getQuorumService();
-  Quorum quorum=quorumService.getQuorum(quorumName);
   HazelcastServerCachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(instance);
   Cache<Object,Object> cache=cachingProvider.getCacheManager().getCache(cacheName);
   try {
     cache.put(generateKeyOwnedBy(instance),1);
+    fail("Expected a QuorumException");
   }
- catch (  Exception e) {
-    e.printStackTrace();
+ catch (  QuorumException expected) {
+    EmptyStatement.ignore(expected);
   }
   assertOpenEventually(countDownLatch,15);
 }
