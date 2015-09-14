@@ -4,9 +4,11 @@
   HazelcastInstance instance=createHazelcastInstance(config);
   final IQueue<Object> queue=instance.getQueue(randomName());
   final AtomicBoolean interrupted=new AtomicBoolean();
+  final CountDownLatch latch=new CountDownLatch(1);
   Thread t=new Thread(){
     public void run(){
       try {
+        latch.countDown();
         queue.take();
       }
  catch (      InterruptedException e) {
@@ -16,7 +18,7 @@
   }
 ;
   t.start();
-  sleepSeconds(1);
+  latch.await(10,TimeUnit.SECONDS);
   t.interrupt();
   t.join(5000);
   assertTrue(interrupted.get());
