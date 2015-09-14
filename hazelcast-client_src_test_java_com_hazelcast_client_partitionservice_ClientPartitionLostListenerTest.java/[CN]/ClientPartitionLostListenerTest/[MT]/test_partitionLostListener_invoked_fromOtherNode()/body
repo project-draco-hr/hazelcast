@@ -1,12 +1,17 @@
 {
   final HazelcastInstance instance1=hazelcastFactory.newHazelcastInstance();
   final HazelcastInstance instance2=hazelcastFactory.newHazelcastInstance();
-  final HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  final ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getNetworkConfig().setSmartRouting(false);
+  final HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
+  final HazelcastClientInstanceImpl clientInstanceImpl=getHazelcastClientInstanceImpl(client);
+  final Address clientOwnerAddress=clientInstanceImpl.getClientClusterService().getOwnerConnectionAddress();
+  final HazelcastInstance other=getAddress(instance1).equals(clientOwnerAddress) ? instance2 : instance1;
   final EventCollectingPartitionLostListener listener=new EventCollectingPartitionLostListener();
   client.getPartitionService().addPartitionLostListener(listener);
   assertRegistrationsSizeEventually(instance1,1);
   assertRegistrationsSizeEventually(instance2,1);
-  final InternalPartitionServiceImpl partitionService=getNode(instance2).getNodeEngine().getService(SERVICE_NAME);
+  final InternalPartitionServiceImpl partitionService=getNode(other).getNodeEngine().getService(SERVICE_NAME);
   final int partitionId=5;
   partitionService.onPartitionLost(new InternalPartitionLostEvent(partitionId,0,null));
   assertPartitionLostEventEventually(listener,partitionId);
