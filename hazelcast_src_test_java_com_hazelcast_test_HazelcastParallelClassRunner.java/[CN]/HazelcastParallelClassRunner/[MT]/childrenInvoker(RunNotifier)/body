@@ -1,9 +1,16 @@
 {
   return new Statement(){
     @Override public void evaluate() throws Throwable {
-      HazelcastParallelClassRunner.super.childrenInvoker(notifier).evaluate();
-      while (numThreads.get() > 0) {
-        Thread.sleep(25);
+      final Properties currentSystemProperties=System.getProperties();
+      try {
+        System.setProperties(new ThreadLocalProperties(currentSystemProperties));
+        HazelcastParallelClassRunner.super.childrenInvoker(notifier).evaluate();
+        while (numThreads.get() > 0) {
+          Thread.sleep(25);
+        }
+      }
+  finally {
+        System.setProperties(currentSystemProperties);
       }
     }
   }
