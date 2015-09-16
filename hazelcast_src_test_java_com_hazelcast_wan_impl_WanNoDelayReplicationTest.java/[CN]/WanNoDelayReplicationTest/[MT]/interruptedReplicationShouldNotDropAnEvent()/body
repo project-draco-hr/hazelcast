@@ -1,0 +1,11 @@
+{
+  WanNoDelayReplication replication=spy(new WanNoDelayReplication());
+  doThrow(InterruptedException.class).when(replication).getConnection();
+  ReplicationEventObject eventObject=new MapReplicationUpdate();
+  replication.publishReplicationEvent("service",eventObject);
+  replication.run();
+  replication.shutdown();
+  assertEquals(0,replication.getEventQueue().size());
+  assertEquals(1,replication.getFailureQ().size());
+  assertSame(eventObject,replication.getFailureQ().peek().getEventObject());
+}

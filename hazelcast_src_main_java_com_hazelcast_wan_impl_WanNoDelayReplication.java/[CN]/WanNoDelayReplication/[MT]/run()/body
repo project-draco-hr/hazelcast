@@ -1,8 +1,9 @@
 {
   Connection conn=null;
   while (running) {
+    WanReplicationEvent event=null;
     try {
-      WanReplicationEvent event=(failureQ.size() > 0) ? failureQ.removeFirst() : eventQueue.take();
+      event=(failureQ.size() > 0) ? failureQ.removeFirst() : eventQueue.take();
       if (conn == null) {
         conn=getConnection();
         if (conn != null) {
@@ -14,9 +15,9 @@
         Packet packet=new Packet(bytes);
         packet.setHeader(Packet.HEADER_WAN_REPLICATION);
         conn.write(packet);
+        event=null;
       }
  else {
-        failureQ.addFirst(event);
         conn=null;
       }
     }
@@ -28,6 +29,11 @@ catch (    Throwable e) {
         logger.warning(e);
       }
       conn=null;
+    }
+ finally {
+      if (event != null) {
+        failureQ.addFirst(event);
+      }
     }
   }
 }
