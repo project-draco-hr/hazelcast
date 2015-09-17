@@ -1,0 +1,12 @@
+{
+  HazelcastInstance local=createHazelcastInstance();
+  OperationService operationService=getOperationService(local);
+  int outerPartitionId=getPartitionId(local);
+  int innerPartitionId=randomPartitionIdNotMappedToSameThreadAsGivenPartitionIdOnInstance(local,outerPartitionId);
+  InnerOperation innerOperation=new InnerOperation(RESPONSE,innerPartitionId);
+  OuterOperation outerOperation=new OuterOperation(innerOperation,outerPartitionId);
+  InternalCompletableFuture f=operationService.invokeOnPartition(null,outerOperation,outerOperation.getPartitionId());
+  expected.expect(IllegalThreadStateException.class);
+  expected.expectMessage("cannot make remote call");
+  f.getSafely();
+}

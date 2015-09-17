@@ -1,0 +1,15 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperty.PARTITION_COUNT,"2");
+  config.setProperty(GroupProperty.PARTITION_OPERATION_THREAD_COUNT,"1");
+  HazelcastInstance local=createHazelcastInstance(config);
+  final OperationService operationService=getOperationService(local);
+  int outerPartitionId=1;
+  int innerPartitionId=0;
+  InnerOperation innerOperation=new InnerOperation(RESPONSE,innerPartitionId);
+  OuterOperation outerOperation=new OuterOperation(innerOperation,outerPartitionId);
+  InternalCompletableFuture f=operationService.invokeOnPartition(null,outerOperation,outerOperation.getPartitionId());
+  expected.expect(IllegalThreadStateException.class);
+  expected.expectMessage("cannot make remote call");
+  f.getSafely();
+}
