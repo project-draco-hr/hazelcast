@@ -1,0 +1,19 @@
+{
+  HazelcastInstance instance=hazelcastFactory.newHazelcastInstance();
+  final ClientConfig clientConfig=new ClientConfig();
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig.setExecutorPoolSize(1));
+  hazelcastFactory.newHazelcastInstance();
+  final CountDownLatch latch=new CountDownLatch(1);
+  final IMap<Object,Object> map=client.getMap(randomMapName());
+  client.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleState.CLIENT_DISCONNECTED) {
+        map.get(1);
+        latch.countDown();
+      }
+    }
+  }
+);
+  instance.shutdown();
+  assertOpenEventually(latch);
+}
