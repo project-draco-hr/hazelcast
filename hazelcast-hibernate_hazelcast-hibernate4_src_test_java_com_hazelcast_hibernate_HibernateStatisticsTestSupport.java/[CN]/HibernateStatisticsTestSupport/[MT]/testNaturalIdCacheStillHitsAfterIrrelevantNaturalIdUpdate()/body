@@ -1,0 +1,19 @@
+{
+  insertAnnotatedEntities(10);
+  sf.getCache().evictNaturalIdRegions();
+  Session session=sf.openSession();
+  Transaction tx=session.beginTransaction();
+  Criteria criteria=session.createCriteria(AnnotatedEntity.class).add(Restrictions.naturalId().set("title","dummy:0")).setCacheable(true);
+  criteria.uniqueResult();
+  AnnotatedEntity toBeUpdated=(AnnotatedEntity)session.byNaturalId(AnnotatedEntity.class).using("title","dummy:5").getReference();
+  toBeUpdated.setTitle("dummy501");
+  tx.commit();
+  session.close();
+  sf.getStatistics().clear();
+  session=sf.openSession();
+  criteria=session.createCriteria(AnnotatedEntity.class).add(Restrictions.naturalId().set("title","dummy:0")).setCacheable(true);
+  criteria.uniqueResult();
+  session.close();
+  assertEquals(0,sf.getStatistics().getNaturalIdCacheMissCount());
+  assertEquals(1,sf.getStatistics().getNaturalIdCacheHitCount());
+}
