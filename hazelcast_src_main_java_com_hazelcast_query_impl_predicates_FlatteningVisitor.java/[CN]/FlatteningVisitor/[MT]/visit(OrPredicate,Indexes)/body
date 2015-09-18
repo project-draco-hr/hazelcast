@@ -1,0 +1,22 @@
+{
+  Predicate[] originalPredicates=orPredicate.predicates;
+  List<Predicate> toBeAdded=null;
+  boolean modified=false;
+  Predicate[] target=originalPredicates;
+  for (int i=0; i < target.length; i++) {
+    Predicate predicate=target[i];
+    if (predicate instanceof OrPredicate) {
+      Predicate[] subPredicates=((OrPredicate)predicate).predicates;
+      if (!modified) {
+        modified=true;
+        target=createCopy(target);
+      }
+      toBeAdded=replaceFirstAndStoreOthers(target,subPredicates,i,toBeAdded);
+    }
+  }
+  Predicate[] newInners=createNewInners(target,toBeAdded);
+  if (newInners == originalPredicates) {
+    return orPredicate;
+  }
+  return new OrPredicate(newInners);
+}

@@ -1,0 +1,27 @@
+{
+  Predicate[] originalInnerPredicates=orPredicate.predicates;
+  if (originalInnerPredicates == null || originalInnerPredicates.length < MINIMUM_NUMBER_OF_OR_TO_REPLACE) {
+    return orPredicate;
+  }
+  InternalMultiMap<String,Integer> candidates=findAndGroupCandidates(originalInnerPredicates);
+  if (candidates == null) {
+    return orPredicate;
+  }
+  int toBeRemoved=0;
+  boolean modified=false;
+  Predicate[] target=originalInnerPredicates;
+  for (  Map.Entry<String,List<Integer>> candidate : candidates.entrySet()) {
+    String attribute=candidate.getKey();
+    List<Integer> positions=candidate.getValue();
+    if (positions.size() < MINIMUM_NUMBER_OF_OR_TO_REPLACE) {
+      continue;
+    }
+    if (!modified) {
+      modified=true;
+      target=createCopy(target);
+    }
+    toBeRemoved=replaceForAttribute(attribute,target,positions,toBeRemoved);
+  }
+  Predicate[] newInnerPredicates=replaceInnerPredicates(target,toBeRemoved);
+  return getOrCreateFinalPredicate(orPredicate,originalInnerPredicates,newInnerPredicates);
+}
