@@ -1,0 +1,40 @@
+{
+  takeReadLock();
+  try {
+    MultiResultSet results=createMultiResultSet();
+    Set<Comparable> values=recordMap.keySet();
+    for (    Comparable value : values) {
+      boolean valid;
+      int result=searchedValue.compareTo(value);
+switch (comparisonType) {
+case LESSER:
+        valid=result > 0;
+      break;
+case LESSER_EQUAL:
+    valid=result >= 0;
+  break;
+case GREATER:
+valid=result < 0;
+break;
+case GREATER_EQUAL:
+valid=result <= 0;
+break;
+case NOT_EQUAL:
+valid=result != 0;
+break;
+default :
+throw new IllegalStateException("Unrecognized comparisonType: " + comparisonType);
+}
+if (valid) {
+ConcurrentMap<Data,QueryableEntry> records=recordMap.get(value);
+if (records != null) {
+results.addResultSet(records);
+}
+}
+}
+return results;
+}
+  finally {
+releaseReadLock();
+}
+}

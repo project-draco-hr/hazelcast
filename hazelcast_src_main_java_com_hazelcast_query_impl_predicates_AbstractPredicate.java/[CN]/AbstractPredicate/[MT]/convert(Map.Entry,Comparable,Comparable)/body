@@ -1,28 +1,18 @@
 {
-  if (attributeValue == null) {
+  if (givenAttributeValue == null) {
     return null;
   }
-  if (attributeValue instanceof IndexImpl.NullObject) {
+  if (givenAttributeValue instanceof IndexImpl.NullObject) {
     return IndexImpl.NULL;
   }
   AttributeType type=attributeType;
   if (type == null) {
-    QueryableEntry queryableEntry=(QueryableEntry)mapEntry;
-    type=queryableEntry.getAttributeType(attribute);
+    if (entryAttributeValue == null) {
+      return givenAttributeValue;
+    }
+    type=((QueryableEntry)entry).getAttributeType(attributeName);
     attributeType=type;
   }
-  if (type == AttributeType.ENUM) {
-    return type.getConverter().convert(attributeValue);
-  }
- else {
-    if (entryValue != null && entryValue.getClass().isAssignableFrom(attributeValue.getClass())) {
-      return attributeValue;
-    }
- else     if (type != null) {
-      return type.getConverter().convert(attributeValue);
-    }
- else {
-      throw new QueryException("Unknown attribute type: " + attributeValue.getClass().getName() + " for attribute: "+ attribute);
-    }
-  }
+  Class<?> entryAttributeClass=entryAttributeValue != null ? entryAttributeValue.getClass() : null;
+  return convert(type,entryAttributeClass,givenAttributeValue);
 }

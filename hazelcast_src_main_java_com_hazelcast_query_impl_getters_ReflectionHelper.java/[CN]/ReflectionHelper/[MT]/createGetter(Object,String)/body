@@ -4,29 +4,37 @@
   }
   final Class targetClazz=obj.getClass();
   Class clazz=targetClazz;
-  Getter getter=get(clazz,attribute);
+  Getter getter=getFromCache(clazz,attribute);
   if (getter != null) {
     return getter;
   }
   try {
     Getter parent=null;
     List<String> possibleMethodNames=new ArrayList<String>(INITIAL_CAPACITY);
-    for (    final String name : attribute.split("\\.")) {
+    for (    final String fullname : attribute.split("\\.")) {
+      String baseName=removeModifierSuffix(fullname);
+      String modifier=getModifierSuffix(fullname,baseName);
       Getter localGetter=null;
       possibleMethodNames.clear();
-      possibleMethodNames.add(name);
-      final String camelName=Character.toUpperCase(name.charAt(0)) + name.substring(1);
+      possibleMethodNames.add(baseName);
+      final String camelName=Character.toUpperCase(baseName.charAt(0)) + baseName.substring(1);
       possibleMethodNames.add("get" + camelName);
       possibleMethodNames.add("is" + camelName);
-      if (name.equals(THIS_ATTRIBUTE_NAME)) {
-        localGetter=new ThisGetter(parent,obj);
+      if (baseName.equals(THIS_ATTRIBUTE_NAME.value())) {
+        localGetter=GetterFactory.newThisGetter(parent,obj);
       }
  else {
+        if (parent != null) {
+          clazz=parent.getReturnType();
+        }
         for (        String methodName : possibleMethodNames) {
           try {
             final Method method=clazz.getMethod(methodName);
             method.setAccessible(true);
-            localGetter=new MethodGetter(parent,method);
+            localGetter=GetterFactory.newMethodGetter(obj,parent,method,modifier);
+            if (localGetter == NULL_GETTER) {
+              return localGetter;
+            }
             clazz=method.getReturnType();
             break;
           }
@@ -36,8 +44,11 @@
         }
         if (localGetter == null) {
           try {
-            final Field field=clazz.getField(name);
-            localGetter=new FieldGetter(parent,field);
+            final Field field=clazz.getField(baseName);
+            localGetter=GetterFactory.newFieldGetter(obj,parent,field,modifier);
+            if (localGetter == NULL_GETTER) {
+              return localGetter;
+            }
             clazz=field.getType();
           }
  catch (          NoSuchFieldException ignored) {
@@ -48,9 +59,12 @@
           Class c=clazz;
           while (!c.isInterface() && !Object.class.equals(c)) {
             try {
-              final Field field=c.getDeclaredField(name);
+              final Field field=c.getDeclaredField(baseName);
               field.setAccessible(true);
-              localGetter=new FieldGetter(parent,field);
+              localGetter=GetterFactory.newFieldGetter(obj,parent,field,modifier);
+              if (localGetter == NULL_GETTER) {
+                return NULL_GETTER;
+              }
               clazz=field.getType();
               break;
             }
@@ -61,13 +75,13 @@
         }
       }
       if (localGetter == null) {
-        throw new IllegalArgumentException("There is no suitable accessor for '" + name + "' on class '"+ clazz+ "'");
+        throw new IllegalArgumentException("There is no suitable accessor for '" + baseName + "' on class '"+ clazz+ "'");
       }
       parent=localGetter;
     }
     getter=parent;
     if (getter.isCacheable()) {
-      getter=set(targetClazz,attribute,getter);
+      getter=storeIntoCache(targetClazz,attribute,getter);
     }
     return getter;
   }
