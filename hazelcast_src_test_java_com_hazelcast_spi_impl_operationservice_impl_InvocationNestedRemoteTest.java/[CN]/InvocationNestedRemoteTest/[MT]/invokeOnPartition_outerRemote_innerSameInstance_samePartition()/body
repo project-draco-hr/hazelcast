@@ -1,0 +1,11 @@
+{
+  HazelcastInstance[] cluster=createHazelcastInstanceFactory(2).newInstances();
+  HazelcastInstance local=cluster[0];
+  HazelcastInstance remote=cluster[1];
+  OperationService operationService=getOperationService(local);
+  int partitionId=getPartitionId(remote);
+  InnerOperation innerOperation=new InnerOperation(RESPONSE,partitionId);
+  OuterOperation outerOperation=new OuterOperation(innerOperation,partitionId);
+  InternalCompletableFuture f=operationService.invokeOnPartition(null,outerOperation,outerOperation.getPartitionId());
+  assertEquals(RESPONSE,f.getSafely());
+}
