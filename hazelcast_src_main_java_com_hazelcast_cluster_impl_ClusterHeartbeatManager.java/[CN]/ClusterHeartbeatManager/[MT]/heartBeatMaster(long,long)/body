@@ -1,0 +1,21 @@
+{
+  Collection<MemberImpl> members=clusterService.getMemberImpls();
+  for (  MemberImpl member : members) {
+    if (!member.localMember()) {
+      try {
+        logIfConnectionToEndpointIsMissing(now,member);
+        if (removeMemberIfNotHeartBeating(now - clockJump,member)) {
+          continue;
+        }
+        if (removeMemberIfMasterConfirmationExpired(now - clockJump,member)) {
+          continue;
+        }
+        pingMemberIfRequired(now,member);
+        sendHeartbeat(member.getAddress());
+      }
+ catch (      Throwable e) {
+        logger.severe(e);
+      }
+    }
+  }
+}

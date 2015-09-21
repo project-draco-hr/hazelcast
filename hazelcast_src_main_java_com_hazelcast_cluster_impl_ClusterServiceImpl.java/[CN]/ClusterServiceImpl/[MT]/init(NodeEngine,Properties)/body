@@ -2,30 +2,9 @@
   long mergeFirstRunDelayMs=node.groupProperties.getMillis(GroupProperty.MERGE_FIRST_RUN_DELAY_SECONDS);
   mergeFirstRunDelayMs=(mergeFirstRunDelayMs > 0 ? mergeFirstRunDelayMs : DEFAULT_MERGE_RUN_DELAY_MILLIS);
   ExecutionService executionService=nodeEngine.getExecutionService();
-  executionService.register(EXECUTOR_NAME,2,MERGE_EXECUTOR_SERVICE_QUEUE_CAPACITY,ExecutorType.CACHED);
+  executionService.register(EXECUTOR_NAME,2,CLUSTER_EXECUTOR_QUEUE_CAPACITY,ExecutorType.CACHED);
   long mergeNextRunDelayMs=node.groupProperties.getMillis(GroupProperty.MERGE_NEXT_RUN_DELAY_SECONDS);
   mergeNextRunDelayMs=(mergeNextRunDelayMs > 0 ? mergeNextRunDelayMs : DEFAULT_MERGE_RUN_DELAY_MILLIS);
   executionService.scheduleWithFixedDelay(EXECUTOR_NAME,new SplitBrainHandler(node),mergeFirstRunDelayMs,mergeNextRunDelayMs,TimeUnit.MILLISECONDS);
-  executionService.scheduleWithFixedDelay(EXECUTOR_NAME,new Runnable(){
-    public void run(){
-      heartBeater();
-    }
-  }
-,heartbeatIntervalMillis,heartbeatIntervalMillis,TimeUnit.MILLISECONDS);
-  long masterConfirmationInterval=node.groupProperties.getSeconds(GroupProperty.MASTER_CONFIRMATION_INTERVAL_SECONDS);
-  masterConfirmationInterval=(masterConfirmationInterval > 0 ? masterConfirmationInterval : 1);
-  executionService.scheduleWithFixedDelay(EXECUTOR_NAME,new Runnable(){
-    public void run(){
-      sendMasterConfirmation();
-    }
-  }
-,masterConfirmationInterval,masterConfirmationInterval,TimeUnit.SECONDS);
-  long memberListPublishInterval=node.groupProperties.getSeconds(GroupProperty.MEMBER_LIST_PUBLISH_INTERVAL_SECONDS);
-  memberListPublishInterval=(memberListPublishInterval > 0 ? memberListPublishInterval : 1);
-  executionService.scheduleWithFixedDelay(EXECUTOR_NAME,new Runnable(){
-    public void run(){
-      sendMemberListToOthers();
-    }
-  }
-,memberListPublishInterval,memberListPublishInterval,TimeUnit.SECONDS);
+  clusterHeartbeatManager.init();
 }
