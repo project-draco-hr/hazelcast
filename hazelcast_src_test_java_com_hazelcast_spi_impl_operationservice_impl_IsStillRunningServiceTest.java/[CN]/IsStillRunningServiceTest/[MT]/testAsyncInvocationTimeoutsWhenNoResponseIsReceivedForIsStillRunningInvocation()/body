@@ -1,0 +1,30 @@
+{
+  int callTimeoutMillis=500;
+  Config config=new Config();
+  config.setProperty(GroupProperties.PROP_OPERATION_CALL_TIMEOUT_MILLIS,String.valueOf(callTimeoutMillis));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  Address remoteAddress=getNode(remote).getThisAddress();
+  TargetInvocation orgInvocation=new TargetInvocation(getNodeEngineImpl(local),null,new IsStillRunningServiceTest.DummyOperation(60000),remoteAddress,0,0,-1,null,true);
+  InvocationFuture future=orgInvocation.invoke();
+  final CountDownLatch timeoutLatch=new CountDownLatch(1);
+  future.andThen(new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+    }
+    @Override public void onFailure(    Throwable t){
+      if (t instanceof OperationTimeoutException) {
+        timeoutLatch.countDown();
+      }
+ else {
+        t.printStackTrace();
+      }
+    }
+  }
+);
+  long orgCallId=orgInvocation.op.getCallId();
+  TargetInvocation isStillExecutingInvocation=new TargetInvocation(getNodeEngineImpl(local),null,new SleepingIsStillExecutingOperation(orgCallId,60000),remoteAddress,0,0,-1,null,true);
+  InvocationFuture isStillExecutingFuture=isStillExecutingInvocation.invoke();
+  isStillExecutingFuture.andThen(new IsStillRunningService.IsOperationStillRunningCallback(orgInvocation));
+  assertOpenEventually(timeoutLatch,30);
+}
