@@ -1,22 +1,22 @@
 {
   int testSize=3007;
-  SerializationService ss=new DefaultSerializationServiceBuilder().build();
+  SerializationService serializationService=new DefaultSerializationServiceBuilder().build();
   for (int fetchSize=1; fetchSize < 102; fetchSize++) {
-    CacheConcurrentHashMap<Data,String> cmap=new CacheConcurrentHashMap<Data,String>(1000);
+    CacheConcurrentHashMap<Data,String> map=new CacheConcurrentHashMap<Data,String>(1000);
     for (int i=0; i < testSize; i++) {
       Integer key=i;
-      Data data=ss.toData(key);
+      Data data=serializationService.toData(key);
       String value1="value" + i;
-      cmap.put(data,value1);
+      map.put(data,value1);
     }
-    int nti=Integer.MAX_VALUE;
+    int nextTableIndex=Integer.MAX_VALUE;
     int total=0;
     int remaining=testSize;
-    while (remaining > 0 && nti > 0) {
-      int fsize=remaining > fetchSize ? fetchSize : remaining;
-      CacheKeyIteratorResult iteratorResult=cmap.fetchNext(nti,fsize);
+    while (remaining > 0 && nextTableIndex > 0) {
+      int size=(remaining > fetchSize ? fetchSize : remaining);
+      CacheKeyIteratorResult iteratorResult=map.fetchNext(nextTableIndex,size);
       List<Data> keys=iteratorResult.getKeys();
-      nti=iteratorResult.getTableIndex();
+      nextTableIndex=iteratorResult.getTableIndex();
       remaining-=keys.size();
       total+=keys.size();
     }
