@@ -1,0 +1,31 @@
+{
+  final Map<String,Map<Data,CacheRecord>> recordMap=new HashMap<String,Map<Data,CacheRecord>>(configs.size());
+  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
+  final int partitionCount=partitionService.getPartitionCount();
+  final Address thisAddress=nodeEngine.getClusterService().getThisAddress();
+  for (int i=0; i < partitionCount; i++) {
+    if (thisAddress.equals(partitionService.getPartitionOwner(i))) {
+      CachePartitionSegment segment=segments[i];
+      Iterator<ICacheRecordStore> iter=segment.recordStoreIterator();
+      while (iter.hasNext()) {
+        ICacheRecordStore cacheRecordStore=iter.next();
+        if (!(cacheRecordStore instanceof SplitBrainAwareCacheRecordStore)) {
+          continue;
+        }
+        String cacheName=cacheRecordStore.getName();
+        Map<Data,CacheRecord> records=recordMap.get(cacheName);
+        if (records == null) {
+          records=new HashMap<Data,CacheRecord>(cacheRecordStore.size());
+          recordMap.put(cacheName,records);
+        }
+        for (        Map.Entry<Data,CacheRecord> cacheRecordEntry : cacheRecordStore.getReadOnlyRecords().entrySet()) {
+          Data key=cacheRecordEntry.getKey();
+          CacheRecord cacheRecord=cacheRecordEntry.getValue();
+          records.put(key,cacheRecord);
+        }
+        cacheRecordStore.clear();
+      }
+    }
+  }
+  return new CacheMerger(nodeEngine,configs,recordMap,mergePolicyProvider);
+}

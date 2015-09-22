@@ -1,0 +1,35 @@
+{
+  String cacheName=randomMapName();
+  Config config=newConfig();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
+  h2.getCluster().addMembershipListener(memberShipListener);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  closeConnectionBetween(h1,h2);
+  assertOpenEventually(memberShipListener.latch);
+  assertClusterSizeEventually(1,h1);
+  assertClusterSizeEventually(1,h2);
+  CachingProvider cachingProvider1=HazelcastServerCachingProvider.createCachingProvider(h1);
+  CachingProvider cachingProvider2=HazelcastServerCachingProvider.createCachingProvider(h2);
+  CacheManager cacheManager1=cachingProvider1.getCacheManager();
+  CacheManager cacheManager2=cachingProvider2.getCacheManager();
+  CacheConfig cacheConfig=newCacheConfig(cacheName,HigherHitsCacheMergePolicy.class.getName());
+  Cache cache1=cacheManager1.createCache(cacheName,cacheConfig);
+  Cache cache2=cacheManager2.createCache(cacheName,cacheConfig);
+  cache1.put("key1","higherHitsValue");
+  cache1.put("key2","value2");
+  assertEquals("higherHitsValue",cache1.get("key1"));
+  assertEquals("higherHitsValue",cache1.get("key1"));
+  cache2.put("key1","value1");
+  cache2.put("key2","higherHitsValue2");
+  assertEquals("higherHitsValue2",cache2.get("key2"));
+  assertEquals("higherHitsValue2",cache2.get("key2"));
+  assertOpenEventually(lifeCycleListener.latch);
+  assertClusterSizeEventually(2,h1);
+  assertClusterSizeEventually(2,h2);
+  Cache cacheTest=cacheManager2.getCache(cacheName);
+  assertEquals("higherHitsValue",cacheTest.get("key1"));
+  assertEquals("higherHitsValue2",cacheTest.get("key2"));
+}
