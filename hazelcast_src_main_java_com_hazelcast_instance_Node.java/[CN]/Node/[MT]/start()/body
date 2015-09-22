@@ -1,20 +1,15 @@
 {
-  if (logger.isFinestEnabled()) {
-    logger.finest("We are asked to start and completelyShutdown is " + String.valueOf(completelyShutdown));
-  }
-  if (completelyShutdown)   return;
   nodeEngine.start();
   connectionManager.start();
   if (config.getNetworkConfig().getJoin().getMulticastConfig().isEnabled()) {
     final Thread multicastServiceThread=new Thread(hazelcastThreadGroup.getInternalThreadGroup(),multicastService,hazelcastThreadGroup.getThreadNamePrefix("MulticastThread"));
     multicastServiceThread.start();
   }
-  setActive(true);
-  if (!completelyShutdown && groupProperties.getBoolean(GroupProperty.SHUTDOWNHOOK_ENABLED)) {
+  if (groupProperties.getBoolean(GroupProperty.SHUTDOWNHOOK_ENABLED)) {
     logger.finest("Adding ShutdownHook");
     Runtime.getRuntime().addShutdownHook(shutdownHookThread);
   }
-  logger.finest("finished starting threads, calling join");
+  state=NodeState.ACTIVE;
   join();
   int clusterSize=clusterService.getSize();
   if (config.getNetworkConfig().isPortAutoIncrement() && address.getPort() >= config.getNetworkConfig().getPort() + clusterSize) {

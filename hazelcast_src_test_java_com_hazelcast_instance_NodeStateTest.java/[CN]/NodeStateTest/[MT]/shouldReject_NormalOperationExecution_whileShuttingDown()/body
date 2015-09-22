@@ -1,0 +1,20 @@
+{
+  InvocationTask task=new InvocationTask(){
+    @Override public void invoke(    NodeEngine nodeEngine) throws Exception {
+      final CountDownLatch latch=new CountDownLatch(1);
+      Operation op=new DummyOperation(){
+        @Override public void onExecutionFailure(        Throwable e){
+          latch.countDown();
+        }
+        @Override public boolean returnsResponse(){
+          return false;
+        }
+      }
+;
+      nodeEngine.getOperationService().runOperationOnCallingThread(op);
+      assertOpenEventually(latch);
+    }
+  }
+;
+  testInvocation_whileShuttingDown(task);
+}

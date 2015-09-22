@@ -1,8 +1,12 @@
 {
-  if (nodeEngine.isActive()) {
+  final NodeState state=nodeEngine.getNode().getState();
+  if (state == NodeState.ACTIVE) {
     return true;
   }
-  remote=false;
-  notify(new HazelcastInstanceNotActiveException());
-  return false;
+  boolean allowed=state == NodeState.SHUTTING_DOWN && (op instanceof AllowedDuringShutdown);
+  if (!allowed) {
+    notify(new HazelcastInstanceNotActiveException("State: " + state));
+    remote=false;
+  }
+  return allowed;
 }
