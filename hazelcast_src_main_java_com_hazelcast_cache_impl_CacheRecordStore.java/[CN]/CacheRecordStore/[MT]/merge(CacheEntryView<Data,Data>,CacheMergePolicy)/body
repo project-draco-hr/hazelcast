@@ -1,0 +1,29 @@
+{
+  final long now=Clock.currentTimeMillis();
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  boolean merged=false;
+  Data key=cacheEntryView.getKey();
+  Data value=cacheEntryView.getValue();
+  long expiryTime=cacheEntryView.getExpirationTime();
+  CacheRecord record=records.get(key);
+  boolean isExpired=processExpiredEntry(key,record,now);
+  if (record == null || isExpired) {
+    Object newValue=mergePolicy.merge(name,createCacheEntryView(key,value,cacheEntryView.getExpirationTime(),cacheEntryView.getLastAccessTime(),cacheEntryView.getAccessHit(),mergePolicy),null);
+    if (newValue != null) {
+      record=createRecordWithExpiry(key,newValue,expiryTime,now,true,IGNORE_COMPLETION);
+      merged=record != null;
+    }
+  }
+ else {
+    Object existingValue=record.getValue();
+    Object newValue=mergePolicy.merge(name,createCacheEntryView(key,value,cacheEntryView.getExpirationTime(),cacheEntryView.getLastAccessTime(),cacheEntryView.getAccessHit(),mergePolicy),createCacheEntryView(key,existingValue,record.getExpirationTime(),record.getAccessTime(),record.getAccessHit(),mergePolicy));
+    if (existingValue != newValue) {
+      merged=updateRecordWithExpiry(key,newValue,record,expiryTime,now,true,IGNORE_COMPLETION);
+    }
+  }
+  if (merged && isStatisticsEnabled()) {
+    statistics.increaseCachePuts(1);
+    statistics.addPutTimeNanos(System.nanoTime() - start);
+  }
+  return merged ? record : null;
+}

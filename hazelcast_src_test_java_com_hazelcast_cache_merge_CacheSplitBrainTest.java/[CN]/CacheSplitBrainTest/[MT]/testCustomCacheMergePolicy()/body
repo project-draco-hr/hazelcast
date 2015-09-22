@@ -1,0 +1,30 @@
+{
+  String cacheName=randomMapName();
+  Config config=newConfig();
+  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
+  h2.getCluster().addMembershipListener(memberShipListener);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
+  closeConnectionBetween(h1,h2);
+  assertOpenEventually(memberShipListener.latch);
+  assertClusterSizeEventually(1,h1);
+  assertClusterSizeEventually(1,h2);
+  CachingProvider cachingProvider1=HazelcastServerCachingProvider.createCachingProvider(h1);
+  CachingProvider cachingProvider2=HazelcastServerCachingProvider.createCachingProvider(h2);
+  CacheManager cacheManager1=cachingProvider1.getCacheManager();
+  CacheManager cacheManager2=cachingProvider2.getCacheManager();
+  CacheConfig cacheConfig=newCacheConfig(cacheName,CustomCacheMergePolicy.class.getName());
+  Cache cache1=cacheManager1.createCache(cacheName,cacheConfig);
+  Cache cache2=cacheManager2.createCache(cacheName,cacheConfig);
+  String key=generateKeyOwnedBy(h1);
+  cache1.put(key,"value");
+  cache2.put(key,Integer.valueOf(1));
+  assertOpenEventually(lifeCycleListener.latch);
+  assertClusterSizeEventually(2,h1);
+  assertClusterSizeEventually(2,h2);
+  Cache cacheTest=cacheManager2.getCache(cacheName);
+  assertNotNull(cacheTest.get(key));
+  assertTrue(cacheTest.get(key) instanceof Integer);
+}

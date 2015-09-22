@@ -1,0 +1,24 @@
+{
+  if (invalidationMessageQueue.flushingInProgress.compareAndSet(false,true)) {
+    try {
+      CacheBatchInvalidationMessage batchInvalidationMessage=new CacheBatchInvalidationMessage(cacheName,invalidationMessageQueue.size());
+      CacheSingleInvalidationMessage invalidationMessage;
+      final int size=invalidationMessageQueue.size();
+      for (int i=0; i < size; i++) {
+        invalidationMessage=invalidationMessageQueue.poll();
+        if (invalidationMessage == null) {
+          break;
+        }
+        batchInvalidationMessage.addInvalidationMessage(invalidationMessage);
+      }
+      EventService eventService=nodeEngine.getEventService();
+      Collection<EventRegistration> registrations=eventService.getRegistrations(ICacheService.SERVICE_NAME,cacheName);
+      if (!registrations.isEmpty()) {
+        eventService.publishEvent(ICacheService.SERVICE_NAME,registrations,batchInvalidationMessage,cacheName.hashCode());
+      }
+    }
+  finally {
+      invalidationMessageQueue.flushingInProgress.set(false);
+    }
+  }
+}
