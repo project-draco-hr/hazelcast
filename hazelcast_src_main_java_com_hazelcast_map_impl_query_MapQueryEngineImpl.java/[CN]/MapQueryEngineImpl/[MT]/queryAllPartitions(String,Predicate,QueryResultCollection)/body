@@ -1,0 +1,27 @@
+{
+  checkNotPagingPredicate(predicate);
+  if (predicate == TruePredicate.INSTANCE) {
+    queryResultSizeLimiter.checkMaxResultLimitOnLocalPartitions(mapName);
+  }
+  Set<Integer> partitionIds=getAllPartitionIds();
+  try {
+    List<Future<QueryResult>> futures=queryOnMembers(mapName,predicate,result.getIterationType());
+    addResultsOfPredicate(futures,result,partitionIds);
+    if (partitionIds.isEmpty()) {
+      return;
+    }
+  }
+ catch (  Throwable t) {
+    if (t.getCause() instanceof QueryResultSizeExceededException) {
+      throw rethrow(t);
+    }
+    logger.warning("Could not get results",t);
+  }
+  try {
+    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds,result.getIterationType());
+    addResultsOfPredicate(futures,result,partitionIds);
+  }
+ catch (  Throwable t) {
+    throw rethrow(t);
+  }
+}

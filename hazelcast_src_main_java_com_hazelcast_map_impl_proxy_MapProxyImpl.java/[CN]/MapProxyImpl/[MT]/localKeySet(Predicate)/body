@@ -1,4 +1,12 @@
 {
   checkNotNull(predicate,NULL_PREDICATE_IS_NOT_ALLOWED);
-  return queryLocal(predicate,IterationType.KEY,false);
+  MapQueryEngine queryEngine=getMapQueryEngine();
+  if (predicate instanceof PagingPredicate) {
+    return queryEngine.queryLocalPartitionsWithPagingPredicate(name,(PagingPredicate)predicate,IterationType.KEY);
+  }
+ else {
+    QueryResultCollection<K> result=new QueryResultCollection<K>(getNodeEngine().getSerializationService(),IterationType.KEY,false,true);
+    queryEngine.queryLocalPartitions(name,predicate,result);
+    return result;
+  }
 }

@@ -2,8 +2,9 @@
   predicate.setIterationType(iterationType);
   ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
   List<Integer> partitionIds=getLocalPartitionIds();
+  IterationType retrievalIterationType=iterationType == IterationType.VALUE ? IterationType.ENTRY : iterationType;
   try {
-    Future<QueryResult> future=queryOnLocalMember(mapName,predicate);
+    Future<QueryResult> future=queryOnLocalMember(mapName,predicate,retrievalIterationType);
     List<Future<QueryResult>> futures=singletonList(future);
     addResultsOfPagingPredicate(futures,resultList,partitionIds);
     if (partitionIds.isEmpty()) {
@@ -17,7 +18,7 @@
     logger.warning("Could not get results",t);
   }
   try {
-    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds);
+    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds,retrievalIterationType);
     addResultsOfPagingPredicate(futures,resultList,partitionIds);
   }
  catch (  Throwable t) {
