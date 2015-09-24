@@ -1,0 +1,18 @@
+{
+  QueryResult result=newQueryResult(partitions.size());
+  List<Future<Collection<QueryableEntry>>> futures=new ArrayList<Future<Collection<QueryableEntry>>>(partitions.size());
+  for (  Integer partitionId : partitions) {
+    QueryPartitionCallable task=new QueryPartitionCallable(name,predicate,partitionId);
+    Future<Collection<QueryableEntry>> future=executor.submit(task);
+    futures.add(future);
+  }
+  List<QueryableEntry> toMerge=new LinkedList<QueryableEntry>();
+  Collection<Collection<QueryableEntry>> returnedResults=getResult(futures);
+  for (  Collection<QueryableEntry> returnedResult : returnedResults) {
+    toMerge.addAll(returnedResult);
+  }
+  Map.Entry<Integer,Map.Entry> nearestAnchorEntry=getNearestAnchorEntry(predicate);
+  List<QueryableEntry> sortedSubList=getSortedSubList(toMerge,predicate,nearestAnchorEntry);
+  result.addAll(sortedSubList);
+  return result;
+}

@@ -1,0 +1,27 @@
+{
+  predicate.setIterationType(iterationType);
+  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
+  List<Integer> partitionIds=getLocalPartitionIds();
+  try {
+    Future<QueryResult> future=queryOnLocalMember(mapName,predicate);
+    List<Future<QueryResult>> futures=singletonList(future);
+    addResultsOfPagingPredicate(futures,resultList,partitionIds);
+    if (partitionIds.isEmpty()) {
+      return getSortedQueryResultSet(resultList,predicate,iterationType);
+    }
+  }
+ catch (  Throwable t) {
+    if (t.getCause() instanceof QueryResultSizeExceededException) {
+      throw rethrow(t);
+    }
+    logger.warning("Could not get results",t);
+  }
+  try {
+    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds);
+    addResultsOfPagingPredicate(futures,resultList,partitionIds);
+  }
+ catch (  Throwable t) {
+    throw rethrow(t);
+  }
+  return getSortedQueryResultSet(resultList,predicate,iterationType);
+}
