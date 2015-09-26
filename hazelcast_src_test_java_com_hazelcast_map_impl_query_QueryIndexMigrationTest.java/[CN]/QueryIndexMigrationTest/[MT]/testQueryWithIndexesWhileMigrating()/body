@@ -1,18 +1,18 @@
 {
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
-  IMap imap=h1.getMap("employees");
-  imap.addIndex("age",true);
-  imap.addIndex("active",false);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance();
+  IMap<String,Employee> map=instance.getMap("employees");
+  map.addIndex("age",true);
+  map.addIndex("active",false);
   for (int i=0; i < 500; i++) {
-    imap.put("e" + i,new Employee("name" + i,i % 50,((i & 1) == 1),(double)i));
+    map.put("e" + i,new Employee("name" + i,i % 50,((i & 1) == 1),(double)i));
   }
-  assertEquals(500,imap.size());
-  Set<Map.Entry> entries=imap.entrySet(new SqlPredicate("active=true and age>44"));
+  assertEquals(500,map.size());
+  Set<Map.Entry<String,Employee>> entries=map.entrySet(new SqlPredicate("active=true and age>44"));
   assertEquals(30,entries.size());
   nodeFactory.newInstances(new Config(),3);
   long startNow=Clock.currentTimeMillis();
   while ((Clock.currentTimeMillis() - startNow) < 10000) {
-    entries=imap.entrySet(new SqlPredicate("active=true and age>44"));
+    entries=map.entrySet(new SqlPredicate("active=true and age>44"));
     assertEquals(30,entries.size());
   }
 }

@@ -1,15 +1,15 @@
 {
-  Config cfg=new Config();
-  final HazelcastInstance h1=nodeFactory.newHazelcastInstance(cfg);
-  IMap imap=h1.getMap("employees");
-  imap.addIndex("name",false);
-  imap.addIndex("active",false);
+  Config config=new Config();
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+  IMap<String,Employee> map=instance.getMap("employees");
+  map.addIndex("name",false);
+  map.addIndex("active",false);
   int size=500;
   for (int i=0; i < size; i++) {
-    imap.put(String.valueOf(i),new Employee("joe" + i,i % 60,((i & 1) == 1),(double)i));
+    map.put(String.valueOf(i),new Employee("joe" + i,i % 60,((i & 1) == 1),(double)i));
   }
-  nodeFactory.newInstances(cfg,3);
-  final IMap employees=h1.getMap("employees");
+  nodeFactory.newInstances(config,3);
+  final IMap<String,Employee> employees=instance.getMap("employees");
   assertTrueAllTheTime(new AssertTask(){
     @Override public void run() throws Exception {
       Collection<Employee> values=employees.values(new SqlPredicate("active and name LIKE 'joe15%'"));

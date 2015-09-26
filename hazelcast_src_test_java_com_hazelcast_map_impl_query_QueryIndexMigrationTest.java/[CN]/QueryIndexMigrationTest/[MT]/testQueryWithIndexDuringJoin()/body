@@ -1,17 +1,17 @@
 {
   final String name="test";
-  final String FIND_ME="find-me";
-  final int nodes=5;
+  final String findMe="find-me";
+  int nodeCount=5;
   final int entryPerNode=1000;
   final int modulo=10;
-  final CountDownLatch latch=new CountDownLatch(nodes);
+  final CountDownLatch latch=new CountDownLatch(nodeCount);
   final Config config=newConfigWithIndex(name,"name");
-  for (int n=0; n < nodes; n++) {
+  for (int i=0; i < nodeCount; i++) {
     new Thread(new Runnable(){
       @Override public void run(){
         HazelcastInstance hz=nodeFactory.newHazelcastInstance(config);
         IMap<Object,Object> map=hz.getMap(name);
-        fillMap(map,FIND_ME,entryPerNode,modulo);
+        fillMap(map,findMe,entryPerNode,modulo);
         latch.countDown();
       }
     }
@@ -19,12 +19,12 @@
   }
   assertTrue(latch.await(1,MINUTES));
   Collection<HazelcastInstance> instances=nodeFactory.getAllHazelcastInstances();
-  assertEquals(nodes,instances.size());
+  assertEquals(nodeCount,instances.size());
   waitAllForSafeState(instances);
-  final int expected=entryPerNode / modulo * nodes;
+  int expected=entryPerNode / modulo * nodeCount;
   for (  HazelcastInstance hz : instances) {
     IMap<Object,Object> map=hz.getMap(name);
-    Predicate predicate=equal("name",FIND_ME);
+    Predicate predicate=equal("name",findMe);
     for (int i=0; i < 10; i++) {
       int size=map.values(predicate).size();
       assertEquals(expected,size);
