@@ -1,0 +1,26 @@
+{
+  String xmlFileName="test-hazelcast-discovery-spi.xml";
+  InputStream xmlResource=DiscoverySpiTest.class.getClassLoader().getResourceAsStream(xmlFileName);
+  Config config=new XmlConfigBuilder(xmlResource).build();
+  config.getNetworkConfig().setPort(50001);
+  InterfacesConfig interfaces=config.getNetworkConfig().getInterfaces();
+  interfaces.clear();
+  interfaces.setEnabled(true);
+  interfaces.addInterface("127.0.0.1");
+  String[] addresses={"127.0.0.1","127.0.0.1","127.0.0.1"};
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(50001,addresses);
+  final HazelcastInstance hazelcastInstance1=factory.newHazelcastInstance(config);
+  final HazelcastInstance hazelcastInstance2=factory.newHazelcastInstance(config);
+  final HazelcastInstance hazelcastInstance3=factory.newHazelcastInstance(config);
+  assertNotNull(hazelcastInstance1);
+  assertNotNull(hazelcastInstance2);
+  assertNotNull(hazelcastInstance3);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(3,hazelcastInstance1.getCluster().getMembers().size());
+      assertEquals(3,hazelcastInstance2.getCluster().getMembers().size());
+      assertEquals(3,hazelcastInstance3.getCluster().getMembers().size());
+    }
+  }
+);
+}

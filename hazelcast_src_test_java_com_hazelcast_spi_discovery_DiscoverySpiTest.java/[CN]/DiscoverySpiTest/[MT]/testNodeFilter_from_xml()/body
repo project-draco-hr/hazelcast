@@ -1,0 +1,18 @@
+{
+  String xmlFileName="test-hazelcast-discovery-spi.xml";
+  InputStream xmlResource=DiscoverySpiTest.class.getClassLoader().getResourceAsStream(xmlFileName);
+  Config config=new XmlConfigBuilder(xmlResource).build();
+  JoinConfig joinConfig=config.getNetworkConfig().getJoin();
+  DiscoveryStrategiesConfig discoveryStrategiesConfig=joinConfig.getDiscoveryStrategiesConfig();
+  assertNotNull(discoveryStrategiesConfig);
+  assertNotNull(discoveryStrategiesConfig.getNodeFilterClass());
+  DiscoveryServiceProvider provider=new DefaultDiscoveryServiceProvider();
+  DiscoveryService discoveryService=provider.newDiscoveryService(DiscoveryMode.Client,discoveryStrategiesConfig,DiscoverySpiTest.class.getClassLoader());
+  discoveryService.start();
+  discoveryService.discoverNodes();
+  discoveryService.destroy();
+  Field nodeFilterField=DefaultDiscoveryService.class.getDeclaredField("nodeFilter");
+  nodeFilterField.setAccessible(true);
+  TestNodeFilter nodeFilter=(TestNodeFilter)nodeFilterField.get(discoveryService);
+  assertEquals(4,nodeFilter.getNodes().size());
+}

@@ -1,0 +1,26 @@
+{
+  final NamedNodeMap atts=node.getAttributes();
+  boolean enabled=false;
+  String clazz=null;
+  for (int a=0; a < atts.getLength(); a++) {
+    final Node att=atts.item(a);
+    final String value=getTextContent(att).trim();
+    if ("enabled".equalsIgnoreCase(att.getNodeName())) {
+      enabled=checkTrue(value);
+    }
+ else     if ("class".equals(att.getNodeName())) {
+      clazz=value;
+    }
+  }
+  if (!enabled || clazz == null) {
+    return;
+  }
+  Map<String,Comparable> properties=new HashMap<String,Comparable>();
+  for (  Node child : new IterableNodeList(node.getChildNodes())) {
+    final String name=cleanNodeName(child.getNodeName());
+    if ("properties".equals(name)) {
+      fillProperties(child,properties);
+    }
+  }
+  discoveryStrategiesConfig.addDiscoveryProviderConfig(new DiscoveryStrategyConfig(clazz,properties));
+}
