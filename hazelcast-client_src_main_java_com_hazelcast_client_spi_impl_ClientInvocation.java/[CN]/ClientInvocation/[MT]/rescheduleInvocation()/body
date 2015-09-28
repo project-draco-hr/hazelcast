@@ -1,0 +1,19 @@
+{
+  executionService.schedule(new Runnable(){
+    @Override public void run(){
+      ICompletableFuture<?> future=((ClientExecutionServiceImpl)executionService).submitInternal(ClientInvocation.this);
+      future.andThen(new ExecutionCallback(){
+        @Override public void onResponse(        Object response){
+        }
+        @Override public void onFailure(        Throwable t){
+          if (LOGGER.isFinestEnabled()) {
+            LOGGER.finest("Failure during retry ",t);
+          }
+          clientInvocationFuture.setResponse(t);
+        }
+      }
+);
+    }
+  }
+,RETRY_WAIT_TIME_IN_SECONDS,TimeUnit.SECONDS);
+}
