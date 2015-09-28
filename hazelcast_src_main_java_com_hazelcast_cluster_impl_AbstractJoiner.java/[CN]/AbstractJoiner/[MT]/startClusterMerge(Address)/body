@@ -1,24 +1,17 @@
 {
-  final OperationService operationService=node.nodeEngine.getOperationService();
-  final Collection<Member> memberList=node.getClusterService().getMembers();
-  final Collection<Future> calls=new ArrayList<Future>();
+  ClusterServiceImpl clusterService=node.clusterService;
+  if (!prepareClusterState(clusterService)) {
+    return;
+  }
+  OperationService operationService=node.nodeEngine.getOperationService();
+  Collection<Member> memberList=clusterService.getMembers();
   for (  Member member : memberList) {
     if (!member.localMember()) {
-      Operation operation=new PrepareMergeOperation(targetAddress);
-      Future f=operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,operation,member.getAddress()).setTryCount(3).invoke();
-      calls.add(f);
+      Operation op=new MergeClustersOperation(targetAddress);
+      operationService.invokeOnTarget(ClusterServiceImpl.SERVICE_NAME,op,member.getAddress());
     }
   }
-  waitWithDeadline(calls,3,TimeUnit.SECONDS,whileWaitMergeExceptionHandler);
-  final PrepareMergeOperation prepareMergeOperation=new PrepareMergeOperation(targetAddress);
-  prepareMergeOperation.setNodeEngine(node.nodeEngine).setService(node.getClusterService()).setOperationResponseHandler(createEmptyResponseHandler());
-  operationService.runOperationOnCallingThread(prepareMergeOperation);
-  for (  Member member : memberList) {
-    if (!member.localMember()) {
-      operationService.createInvocationBuilder(ClusterServiceImpl.SERVICE_NAME,new MergeClustersOperation(targetAddress),member.getAddress()).setTryCount(1).invoke();
-    }
-  }
-  final MergeClustersOperation mergeClustersOperation=new MergeClustersOperation(targetAddress);
+  Operation mergeClustersOperation=new MergeClustersOperation(targetAddress);
   mergeClustersOperation.setNodeEngine(node.nodeEngine).setService(node.getClusterService()).setOperationResponseHandler(createEmptyResponseHandler());
   operationService.runOperationOnCallingThread(mergeClustersOperation);
 }
