@@ -7,10 +7,13 @@
   }
   boolean isKey=isKey(attributeName);
   attributeName=getAttributeName(isKey,attributeName);
-  Data data=getOptionalTargetData(isKey);
-  if (data != null && data.isPortable()) {
-    PortableContext portableContext=serializationService.getPortableContext();
-    return PortableExtractor.getAttributeType(portableContext,data,attributeName);
+  Object target=isKey ? key : value;
+  if (target instanceof Portable || target instanceof Data) {
+    Data data=serializationService.toData(target);
+    if (data.isPortable()) {
+      PortableContext portableContext=serializationService.getPortableContext();
+      return PortableExtractor.getAttributeType(portableContext,data,attributeName);
+    }
   }
   return ReflectionHelper.getAttributeType(isKey ? getKey() : getValue(),attributeName);
 }

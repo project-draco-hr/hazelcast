@@ -3,6 +3,7 @@
   final long now=getNow();
   markRecordStoreExpirable(ttl);
   Record record=getRecordOrNull(key,now,false);
+  Object oldValue=null;
   if (record == null) {
     value=mapServiceContext.interceptPut(name,null,value);
     record=createRecord(key,value,ttl,now);
@@ -10,12 +11,13 @@
     updateSizeEstimator(calculateRecordHeapCost(record));
   }
  else {
-    value=mapServiceContext.interceptPut(name,record.getValue(),value);
+    oldValue=record.getValue();
+    value=mapServiceContext.interceptPut(name,oldValue,value);
     updateSizeEstimator(-calculateRecordHeapCost(record));
     updateRecord(record,value,now);
     updateSizeEstimator(calculateRecordHeapCost(record));
     updateExpiryTime(record,ttl,mapContainer.getMapConfig());
   }
-  saveIndex(record);
+  saveIndex(record,oldValue);
   mapDataStore.addTransient(key,now);
 }
