@@ -3,11 +3,11 @@
   if (logger.isFinestEnabled()) {
     logger.finest("We are being asked to shutdown when state = " + state);
   }
-  if (!STATE.compareAndSet(this,NodeState.ACTIVE,NodeState.SHUTTING_DOWN)) {
+  if (!setShuttingDown()) {
     waitIfAlreadyShuttingDown();
     return;
   }
-  if (!terminate) {
+  if (!terminate && clusterService.getClusterState() != ClusterState.SHUTTING_DOWN) {
     final int maxWaitSeconds=groupProperties.getSeconds(GroupProperty.GRACEFUL_SHUTDOWN_MAX_WAIT);
     if (!partitionService.prepareToSafeShutdown(maxWaitSeconds,TimeUnit.SECONDS)) {
       logger.warning("Graceful shutdown could not be completed in " + maxWaitSeconds + " seconds!");

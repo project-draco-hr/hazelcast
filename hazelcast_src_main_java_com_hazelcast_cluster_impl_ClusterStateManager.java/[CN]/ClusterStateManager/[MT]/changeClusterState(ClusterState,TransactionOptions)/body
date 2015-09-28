@@ -1,0 +1,23 @@
+{
+  checkParameters(newState,options);
+  if (getState() == newState) {
+    return;
+  }
+  NodeEngineImpl nodeEngine=node.getNodeEngine();
+  TransactionManagerServiceImpl txManagerService=(TransactionManagerServiceImpl)nodeEngine.getTransactionManagerService();
+  Transaction tx=txManagerService.newTransaction(options);
+  tx.begin();
+  try {
+    String txnId=tx.getTxnId();
+    Collection<MemberImpl> members=getMemberImpls();
+    lockClusterState(newState,nodeEngine,options.getTimeoutMillis(),txnId,members);
+    checkMemberListChange(members);
+    addTransactionRecords(newState,tx,members);
+    tx.prepare();
+    tx.commit();
+  }
+ catch (  Throwable e) {
+    tx.rollback();
+    throw ExceptionUtil.rethrow(e);
+  }
+}

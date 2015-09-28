@@ -8,13 +8,17 @@
       newMembers.remove(deadMember.getAddress());
       masterConfirmationTimes.remove(deadMember);
       setMembersRef(newMembers);
-      node.getPartitionService().memberRemoved(deadMember);
-      nodeEngine.onMemberLeft(deadMember);
       if (node.isMaster()) {
         if (logger.isFinestEnabled()) {
           logger.finest(deadMember + " is dead, sending remove to all other members...");
         }
         invokeMemberRemoveOperation(deadMember.getAddress());
+      }
+      if (clusterStateManager.getState() == ClusterState.FROZEN) {
+        membersRemovedWhileFrozen.put(deadMember.getAddress(),deadMember);
+      }
+ else {
+        onMemberRemove(deadMember,newMembers);
       }
       sendMembershipEventNotifications(deadMember,unmodifiableSet(new LinkedHashSet<Member>(newMembers.values())),false);
     }

@@ -1,0 +1,23 @@
+{
+  Config config=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance[] instances=factory.newInstances(config);
+  HazelcastInstance hz1=instances[0];
+  HazelcastInstance hz2=instances[1];
+  HazelcastInstance hz3=instances[2];
+  warmUpPartitions(instances);
+  waitAllForSafeState(instances);
+  final Address owner=getNode(hz1).getThisAddress();
+  int partitionId=getPartitionId(hz1);
+  hz2.getCluster().changeClusterState(ClusterState.FROZEN);
+  terminateInstance(hz1);
+  factory.newHazelcastInstance(owner);
+  assertClusterSizeEventually(3,hz2);
+  final InternalPartition partition=getNode(hz2).getPartitionService().getPartition(partitionId);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(owner,partition.getOwnerOrNull());
+    }
+  }
+,3);
+}

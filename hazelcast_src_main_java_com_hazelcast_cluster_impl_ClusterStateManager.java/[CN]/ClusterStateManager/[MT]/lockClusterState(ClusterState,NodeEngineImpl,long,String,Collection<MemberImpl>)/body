@@ -1,0 +1,14 @@
+{
+  Collection<Future> futures=new ArrayList<Future>(members.size());
+  for (  MemberImpl member : members) {
+    Operation op=new LockClusterStateOperation(newState,node.getThisAddress(),txnId,leaseTime);
+    Future future=nodeEngine.getOperationService().invokeOnTarget(SERVICE_NAME,op,member.getAddress());
+    futures.add(future);
+  }
+  waitWithDeadline(futures,leaseTime,TimeUnit.MILLISECONDS,new FutureUtil.ExceptionHandler(){
+    @Override public void handleException(    Throwable throwable){
+      throw ExceptionUtil.rethrow(throwable);
+    }
+  }
+);
+}
