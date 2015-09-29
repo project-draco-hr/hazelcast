@@ -1,0 +1,18 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance lite1=factory.newHazelcastInstance(liteConfig);
+  final HazelcastInstance lite2=factory.newHazelcastInstance(liteConfig);
+  final HazelcastInstance other=factory.newHazelcastInstance();
+  final String name=randomString();
+  final IExecutorService executor=other.getExecutorService(name);
+  executor.executeOnMembers(new ResultSettingRunnable(name),LITE_MEMBER_SELECTOR);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final IMap<Object,Object> results=lite1.getMap(name);
+      assertEquals(2,results.size());
+      assertTrue(results.containsKey(lite1.getCluster().getLocalMember()));
+      assertTrue(results.containsKey(lite2.getCluster().getLocalMember()));
+    }
+  }
+);
+}
