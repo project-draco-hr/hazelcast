@@ -5,20 +5,18 @@
     pagingPredicate.setIterationType(IterationType.KEY);
   }
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.KEY);
-  QueryResultSet result=invoke(request);
+  Collection<QueryResultRow> result=invoke(request);
   if (pagingPredicate == null) {
     InflatableSet.Builder<K> setBuilder=InflatableSet.newBuilder(result.size());
-    for (    Object o : result) {
-      final K key=toObject(o);
+    for (    QueryResultRow row : result) {
+      K key=toObject(row.getKey());
       setBuilder.add(key);
     }
     return setBuilder.build();
   }
-  Iterator<Entry> iterator=result.rawIterator();
-  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
-  while (iterator.hasNext()) {
-    Entry entry=iterator.next();
-    K key=toObject(entry.getKey());
+  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>(result.size());
+  for (  QueryResultRow row : result) {
+    K key=toObject(row.getKey());
     resultList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,null));
   }
   return (Set<K>)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.KEY);

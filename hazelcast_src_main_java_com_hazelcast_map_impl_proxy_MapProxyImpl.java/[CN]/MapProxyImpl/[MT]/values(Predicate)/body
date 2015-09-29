@@ -1,4 +1,12 @@
 {
   checkNotNull(predicate,NULL_PREDICATE_IS_NOT_ALLOWED);
-  return query(predicate,IterationType.VALUE,false);
+  MapQueryEngine queryEngine=getMapQueryEngine();
+  if (predicate instanceof PagingPredicate) {
+    return queryEngine.queryAllPartitionsWithPagingPredicate(name,(PagingPredicate)predicate,IterationType.VALUE);
+  }
+ else {
+    QueryResultCollection<V> result=new QueryResultCollection<V>(getNodeEngine().getSerializationService(),IterationType.VALUE,false,false);
+    queryEngine.queryAllPartitions(name,predicate,result);
+    return result;
+  }
 }

@@ -1,0 +1,19 @@
+{
+  QueryResult result=newQueryResult(partitions.size(),iterationType);
+  RetryableHazelcastException storedException=null;
+  for (  Integer partitionId : partitions) {
+    try {
+      Collection<QueryableEntry> entries=queryTheLocalPartition(name,predicate,partitionId);
+      result.addAll(entries);
+    }
+ catch (    RetryableHazelcastException e) {
+      if (storedException == null) {
+        storedException=e;
+      }
+    }
+  }
+  if (storedException != null) {
+    throw storedException;
+  }
+  return result;
+}

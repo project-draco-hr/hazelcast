@@ -5,22 +5,20 @@
     pagingPredicate.setIterationType(IterationType.ENTRY);
   }
   MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.ENTRY);
-  QueryResultSet result=invoke(request);
+  Collection<QueryResultRow> result=invoke(request);
   if (pagingPredicate == null) {
     SerializationService serializationService=getContext().getSerializationService();
     InflatableSet.Builder<Entry<K,V>> setBuilder=InflatableSet.newBuilder(result.size());
-    for (    Object data : result) {
-      AbstractMap.SimpleImmutableEntry<Data,Data> dataEntry=(AbstractMap.SimpleImmutableEntry<Data,Data>)data;
-      LazyMapEntry lazyEntry=new LazyMapEntry(dataEntry.getKey(),dataEntry.getValue(),serializationService);
-      setBuilder.add(lazyEntry);
+    for (    QueryResultRow row : result) {
+      LazyMapEntry entry=new LazyMapEntry(row.getKey(),row.getValue(),serializationService);
+      setBuilder.add(entry);
     }
     return setBuilder.build();
   }
   ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
-  for (  Object data : result) {
-    AbstractMap.SimpleImmutableEntry<Data,Data> dataEntry=(AbstractMap.SimpleImmutableEntry<Data,Data>)data;
-    K key=toObject(dataEntry.getKey());
-    V value=toObject(dataEntry.getValue());
+  for (  QueryResultRow data : result) {
+    K key=toObject(data.getKey());
+    V value=toObject(data.getValue());
     resultList.add(new AbstractMap.SimpleEntry<K,V>(key,value));
   }
   return (Set)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.ENTRY);
