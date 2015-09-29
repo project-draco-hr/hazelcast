@@ -1,0 +1,36 @@
+{
+  CacheManager cacheManager=liteCachingProvider.getCacheManager();
+  CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
+  final SimpleEntryListener<Integer,String> listener=new SimpleEntryListener<Integer,String>();
+  MutableCacheEntryListenerConfiguration<Integer,String> listenerConfiguration=new MutableCacheEntryListenerConfiguration<Integer,String>(FactoryBuilder.factoryOf(listener),null,true,true);
+  config.addCacheEntryListenerConfiguration(listenerConfiguration);
+  Cache<Integer,String> cache=cacheManager.createCache(cacheName,config);
+  assertNotNull(cache);
+  final Cache<Object,Object> instanceCache=instanceCachingProvider.getCacheManager().getCache(cacheName);
+  Integer key1=1;
+  String value1="value1";
+  instanceCache.put(key1,value1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,listener.created.get());
+    }
+  }
+);
+  Integer key2=2;
+  String value2="value2";
+  instanceCache.put(key2,value2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(2,listener.created.get());
+    }
+  }
+);
+  instanceCache.remove(key1);
+  instanceCache.remove(key2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(2,listener.removed.get());
+    }
+  }
+);
+}
