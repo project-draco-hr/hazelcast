@@ -1,0 +1,53 @@
+{
+  config.setProperty(GroupProperty.PARTITION_COUNT,String.valueOf(partitionCount));
+  int nodeCount=dataNodeCount + liteNodeCount;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  final BlockingQueue<Integer> counts=new ArrayBlockingQueue<Integer>(nodeCount);
+  final HazelcastInstance[] instances=new HazelcastInstance[nodeCount];
+  for (int i=0; i < dataNodeCount; i++) {
+    instances[i]=factory.newHazelcastInstance(config);
+  }
+  liteConfig.setProperty(GroupProperties.PROP_PARTITION_COUNT,String.valueOf(partitionCount));
+  liteConfig.setLiteMember(true);
+  for (int i=dataNodeCount; i < nodeCount; i++) {
+    instances[i]=factory.newHazelcastInstance(liteConfig);
+  }
+  ExecutorService ex=Executors.newCachedThreadPool();
+  try {
+    for (int i=0; i < dataNodeCount; i++) {
+      final int instanceIndex=i;
+      new Thread(new Runnable(){
+        public void run(){
+          HazelcastInstance instance=instances[instanceIndex];
+          counts.offer(getLocalPartitionsCount(instance));
+        }
+      }
+).start();
+    }
+    ILogger logger=instances[0].getLoggingService().getLogger(getClass());
+    String firstFailureMessage=null;
+    int average=(partitionCount / dataNodeCount);
+    logger.info(format("Partition count: %d, nodes: %d, average: %d",partitionCount,dataNodeCount,average));
+    int totalPartitions=0;
+    for (int i=0; i < dataNodeCount; i++) {
+      Integer localPartitionCount=counts.poll(1,TimeUnit.MINUTES);
+      assertNotNull(localPartitionCount);
+      String msg=format("Node: %d, local partition count: %d",i + 1,localPartitionCount);
+      if (firstFailureMessage == null && localPartitionCount < average) {
+        firstFailureMessage=msg;
+      }
+      logger.info(msg);
+      totalPartitions+=localPartitionCount;
+    }
+    assertEqualsStringFormat("Expected sum of local partitions to be %d, but was %d",partitionCount,totalPartitions);
+    if (firstFailureMessage != null) {
+      fail(format("%s, partition count: %d, nodes: %d, average: %d",firstFailureMessage,partitionCount,dataNodeCount,average));
+    }
+    for (int i=dataNodeCount; i < nodeCount; i++) {
+      assertEquals(0,getLocalPartitionsCount(instances[i]));
+    }
+  }
+  finally {
+    ex.shutdownNow();
+  }
+}

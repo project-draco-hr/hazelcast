@@ -1,13 +1,15 @@
 {
-  Address owner=getPartitionOwner(partition);
-  while (owner == null) {
+  Address owner;
+  while ((owner=getPartitionOwner(partitionId)) == null) {
+    if (isClusterFormedByOnlyLiteMembers()) {
+      throw new PartitionsCantBeAssignedException();
+    }
     try {
       Thread.sleep(PARTITION_OWNERSHIP_WAIT_MILLIS);
     }
  catch (    InterruptedException e) {
       throw ExceptionUtil.rethrow(e);
     }
-    owner=getPartitionOwner(partition);
   }
   return owner;
 }

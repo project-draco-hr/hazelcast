@@ -1,0 +1,12 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance dataInstance=factory.newHazelcastInstance();
+  final HazelcastInstance lite=factory.newHazelcastInstance(liteMemberConfig);
+  warmUpPartitions(dataInstance,lite);
+  lite.getLifecycleService().shutdown();
+  assertClusterSizeEventually(1,dataInstance);
+  final InternalPartitionServiceImpl partitionService=getInternalPartitionServiceImpl(dataInstance);
+  for (int i=0; i < partitionService.getPartitionCount(); i++) {
+    assertEquals(getNode(dataInstance).getThisAddress(),partitionService.getPartition(i).getOwnerOrNull());
+  }
+}
