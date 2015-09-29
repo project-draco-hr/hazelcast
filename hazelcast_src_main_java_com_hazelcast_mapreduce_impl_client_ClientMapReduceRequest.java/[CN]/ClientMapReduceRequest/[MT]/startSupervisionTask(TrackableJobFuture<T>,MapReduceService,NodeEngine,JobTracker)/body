@@ -7,13 +7,12 @@
   if (topologyChangedStrategy == null) {
     topologyChangedStrategy=config.getTopologyChangedStrategy();
   }
-  ClusterService cs=nodeEngine.getClusterService();
-  Collection<Member> members=cs.getMembers();
-  for (  Member member : members) {
+  ClusterService clusterService=nodeEngine.getClusterService();
+  for (  Member member : clusterService.getMembers(KeyValueJobOperation.MEMBER_SELECTOR)) {
     Operation operation=new KeyValueJobOperation<KeyIn,ValueIn>(name,jobId,chunkSize,keyValueSource,mapper,combinerFactory,reducerFactory,communicateStats,topologyChangedStrategy);
     executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
-  for (  Member member : members) {
+  for (  Member member : clusterService.getMembers(DATA_MEMBER_SELECTOR)) {
     Operation operation=new StartProcessingJobOperation<KeyIn>(name,jobId,keys,predicate);
     executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }

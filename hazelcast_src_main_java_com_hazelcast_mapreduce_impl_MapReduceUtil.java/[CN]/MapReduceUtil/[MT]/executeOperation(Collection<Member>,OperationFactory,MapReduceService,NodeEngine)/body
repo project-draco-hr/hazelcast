@@ -1,0 +1,44 @@
+{
+  final OperationService operationService=nodeEngine.getOperationService();
+  final List<InternalCompletableFuture<V>> futures=new ArrayList<InternalCompletableFuture<V>>();
+  final List<V> results=new ArrayList<V>();
+  final List<Exception> exceptions=new ArrayList<Exception>(members.size());
+  for (  Member member : members) {
+    try {
+      Operation operation=operationFactory.createOperation();
+      if (nodeEngine.getThisAddress().equals(member.getAddress())) {
+        operation.setNodeEngine(nodeEngine);
+        operation.setCallerUuid(nodeEngine.getLocalMember().getUuid());
+        operation.setService(mapReduceService);
+        operation.run();
+        V response=(V)operation.getResponse();
+        if (response != null) {
+          results.add(response);
+        }
+      }
+ else {
+        InvocationBuilder ib=operationService.createInvocationBuilder(SERVICE_NAME,operation,member.getAddress());
+        final InternalCompletableFuture<V> future=ib.invoke();
+        futures.add(future);
+      }
+    }
+ catch (    Exception e) {
+      exceptions.add(e);
+    }
+  }
+  for (  InternalCompletableFuture<V> future : futures) {
+    try {
+      V response=future.getSafely();
+      if (response != null) {
+        results.add(response);
+      }
+    }
+ catch (    Exception e) {
+      exceptions.add(e);
+    }
+  }
+  if (exceptions.size() > 0) {
+    throw new RemoteMapReduceException("Exception on mapreduce operation",exceptions);
+  }
+  return results;
+}

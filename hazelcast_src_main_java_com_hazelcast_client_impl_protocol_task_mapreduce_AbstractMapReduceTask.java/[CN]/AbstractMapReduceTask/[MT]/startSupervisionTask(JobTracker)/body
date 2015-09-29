@@ -1,41 +1,24 @@
 {
-  MapReduceService mapReduceService=getService(MapReduceService.SERVICE_NAME);
-  JobTrackerConfig config=((AbstractJobTracker)jobTracker).getJobTrackerConfig();
-  boolean communicateStats=config.isCommunicateStats();
-  int chunkSize=getChunkSize();
-  if (chunkSize == -1) {
-    chunkSize=config.getChunkSize();
-  }
-  String topologyChangedStrategyStr=getTopologyChangedStrategy();
-  TopologyChangedStrategy topologyChangedStrategy;
-  if (topologyChangedStrategyStr == null) {
-    topologyChangedStrategy=config.getTopologyChangedStrategy();
-  }
- else {
-    topologyChangedStrategy=TopologyChangedStrategy.valueOf(topologyChangedStrategyStr.toUpperCase(Locale.ENGLISH));
-  }
-  ClusterService cs=nodeEngine.getClusterService();
-  Collection<Member> members=cs.getMembers();
-  String name=getDistributedObjectName();
-  String jobId=getJobId();
-  KeyValueSource keyValueSource=getKeyValueSource();
-  Mapper mapper=getMapper();
-  CombinerFactory combinerFactory=getCombinerFactory();
-  ReducerFactory reducerFactory=getReducerFactory();
-  Collection keys=getKeys();
-  Collection<Object> keyObjects=null;
-  if (keys != null) {
-    keyObjects=new ArrayList<Object>(keys.size());
-    for (    Object key : keys) {
-      keyObjects.add(serializationService.toObject(key));
-    }
-  }
-  KeyPredicate predicate=getPredicate();
-  for (  Member member : members) {
+  final MapReduceService mapReduceService=getService(MapReduceService.SERVICE_NAME);
+  final JobTrackerConfig config=((AbstractJobTracker)jobTracker).getJobTrackerConfig();
+  final boolean communicateStats=config.isCommunicateStats();
+  final int chunkSize=getChunkSizeOrConfigChunkSize(config);
+  final TopologyChangedStrategy topologyChangedStrategy=getTopologyChangedStrategyOrConfigTopologyChangedStrategy(config);
+  final String name=getDistributedObjectName();
+  final String jobId=getJobId();
+  final KeyValueSource keyValueSource=getKeyValueSource();
+  final Mapper mapper=getMapper();
+  final CombinerFactory combinerFactory=getCombinerFactory();
+  final ReducerFactory reducerFactory=getReducerFactory();
+  final Collection keys=getKeys();
+  final Collection<Object> keyObjects=getKeyObjects(keys);
+  final KeyPredicate predicate=getPredicate();
+  final ClusterService clusterService=nodeEngine.getClusterService();
+  for (  Member member : clusterService.getMembers(KeyValueJobOperation.MEMBER_SELECTOR)) {
     Operation operation=new KeyValueJobOperation(name,jobId,chunkSize,keyValueSource,mapper,combinerFactory,reducerFactory,communicateStats,topologyChangedStrategy);
     executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }
-  for (  Member member : members) {
+  for (  Member member : clusterService.getMembers(DATA_MEMBER_SELECTOR)) {
     Operation operation=new StartProcessingJobOperation(name,jobId,keyObjects,predicate);
     executeOperation(operation,member.getAddress(),mapReduceService,nodeEngine);
   }

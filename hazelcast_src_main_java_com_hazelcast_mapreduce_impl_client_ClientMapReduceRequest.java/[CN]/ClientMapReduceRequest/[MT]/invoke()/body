@@ -1,8 +1,12 @@
 {
+  MapReduceService mapReduceService=getService();
+  NodeEngine nodeEngine=mapReduceService.getNodeEngine();
+  ClusterService clusterService=nodeEngine.getClusterService();
+  if (clusterService.getSize(MemberSelectors.DATA_MEMBER_SELECTOR) == 0) {
+    throw new IllegalStateException("Could not register map reduce job since there are no nodes owning a partition");
+  }
   try {
     final ClientEndpoint endpoint=getEndpoint();
-    MapReduceService mapReduceService=getService();
-    NodeEngine nodeEngine=mapReduceService.getNodeEngine();
     AbstractJobTracker jobTracker=(AbstractJobTracker)mapReduceService.createDistributedObject(name);
     TrackableJobFuture jobFuture=new TrackableJobFuture(name,jobId,jobTracker,nodeEngine,null);
     if (jobTracker.registerTrackableJob(jobFuture)) {

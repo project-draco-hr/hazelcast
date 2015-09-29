@@ -1,0 +1,27 @@
+{
+  Object finalResult=null;
+  try {
+    ClusterService clusterService=nodeEngine.getClusterService();
+    final Collection<Member> members=clusterService.getMembers(DATA_MEMBER_SELECTOR);
+    List<Map> results=MapReduceUtil.executeOperation(members,operationFactory,mapReduceService,nodeEngine);
+    boolean reducedResult=configuration.getReducerFactory() != null;
+    if (results != null) {
+      Map<Object,Object> mergedResults=new HashMap<Object,Object>();
+      for (      Map<?,?> map : results) {
+        for (        Map.Entry entry : map.entrySet()) {
+          collectResults(reducedResult,mergedResults,entry);
+        }
+      }
+      finalResult=mergedResults;
+    }
+  }
+ catch (  Exception e) {
+    finalResult=e;
+  }
+ finally {
+    jobTracker.unregisterMapCombineTask(jobId);
+    jobTracker.unregisterReducerTask(jobId);
+    mapReduceService.destroyJobSupervisor(jobSupervisor);
+    future.setResult(finalResult);
+  }
+}
