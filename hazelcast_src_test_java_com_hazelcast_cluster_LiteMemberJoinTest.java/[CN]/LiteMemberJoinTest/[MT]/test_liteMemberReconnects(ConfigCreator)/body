@@ -1,0 +1,12 @@
+{
+  final HazelcastInstance master=Hazelcast.newHazelcastInstance(configCreator.create(false));
+  final HazelcastInstance liteInstance=Hazelcast.newHazelcastInstance(configCreator.create(true));
+  closeConnectionBetween(master,liteInstance);
+  assertClusterSizeEventually(1,master);
+  assertClusterSizeEventually(1,liteInstance);
+  reconnect(master,liteInstance);
+  assertClusterSizeEventually(2,master);
+  assertClusterSizeEventually(2,liteInstance);
+  final Set<Member> members=master.getCluster().getMembers();
+  assertLiteMemberExcluding(members,master);
+}
