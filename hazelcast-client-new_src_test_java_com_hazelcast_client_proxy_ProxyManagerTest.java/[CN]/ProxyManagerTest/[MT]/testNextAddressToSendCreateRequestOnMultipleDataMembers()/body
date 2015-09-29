@@ -1,0 +1,14 @@
+{
+  final List<HazelcastInstance> instances=createNodes(3,3);
+  final HazelcastInstance client=factory.newHazelcastClient();
+  final HazelcastClientInstanceImpl clientInstanceImpl=getHazelcastClientInstanceImpl(client);
+  Set<Address> addresses=new HashSet<Address>();
+  final ProxyManager proxyManager=clientInstanceImpl.getProxyManager();
+  for (int i=0; i < instances.size() * 100; i++) {
+    addresses.add(proxyManager.findNextAddressToSendCreateRequest());
+  }
+  assertEquals(3,addresses.size());
+  for (  HazelcastInstance lite : instances.subList(3,6)) {
+    assertTrue(addresses.contains(getAddress(lite)));
+  }
+}
