@@ -1,0 +1,17 @@
+{
+  String mapName=recordStore.getName();
+  Data key=record.getKey();
+  Object value=record.getValue();
+  if (!evictIfNotLocked(key,recordStore,backup)) {
+    return false;
+  }
+  if (!backup) {
+    mapServiceContext.interceptAfterRemove(mapName,value);
+    boolean expired=recordStore.isExpired(record,now,false);
+    if (expired) {
+      fireEvent(key,value,mapName,EXPIRED,mapServiceContext);
+    }
+    fireEvent(key,value,mapName,EVICTED,mapServiceContext);
+  }
+  return true;
+}

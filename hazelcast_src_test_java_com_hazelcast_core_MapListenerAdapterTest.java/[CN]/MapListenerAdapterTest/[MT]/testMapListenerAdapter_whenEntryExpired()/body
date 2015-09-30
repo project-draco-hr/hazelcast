@@ -1,0 +1,18 @@
+{
+  String mapName=randomMapName();
+  Config cfg=new Config();
+  TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=instanceFactory.newHazelcastInstance(cfg);
+  IMap map=instance.getMap(mapName);
+  final CountDownLatch expirationLatch=new CountDownLatch(1);
+  map.addEntryListener(new MapListenerAdapter(){
+    public void onEntryEvent(    EntryEvent event){
+      expirationLatch.countDown();
+    }
+  }
+,false);
+  map.put(1,1,100,TimeUnit.MILLISECONDS);
+  sleepSeconds(1);
+  map.get(1);
+  assertOpenEventually(expirationLatch);
+}
