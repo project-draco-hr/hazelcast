@@ -4,11 +4,12 @@
     queryResultSizeLimiter.checkMaxResultLimitOnLocalPartitions(mapName);
   }
   Set<Integer> partitionIds=getAllPartitionIds();
+  QueryResult result=newQueryResult(partitionIds.size(),iterationType);
   try {
-    List<Future<QueryResult>> futures=queryOnMembers(mapName,predicate,result.getIterationType());
+    List<Future<QueryResult>> futures=queryOnMembers(mapName,predicate,iterationType);
     addResultsOfPredicate(futures,result,partitionIds);
     if (partitionIds.isEmpty()) {
-      return;
+      return result;
     }
   }
  catch (  Throwable t) {
@@ -18,10 +19,11 @@
     logger.warning("Could not get results",t);
   }
   try {
-    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds,result.getIterationType());
+    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds,iterationType);
     addResultsOfPredicate(futures,result,partitionIds);
   }
  catch (  Throwable t) {
     throw rethrow(t);
   }
+  return result;
 }

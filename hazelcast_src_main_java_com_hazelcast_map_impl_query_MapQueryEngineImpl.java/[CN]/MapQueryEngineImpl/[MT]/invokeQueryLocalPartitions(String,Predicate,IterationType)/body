@@ -1,12 +1,13 @@
 {
   checkNotPagingPredicate(predicate);
   List<Integer> partitionIds=getLocalPartitionIds();
+  QueryResult result=newQueryResult(partitionIds.size(),iterationType);
   try {
-    Future<QueryResult> future=queryOnLocalMember(mapName,predicate,result.getIterationType());
+    Future<QueryResult> future=queryOnLocalMember(mapName,predicate,iterationType);
     List<Future<QueryResult>> futures=singletonList(future);
     addResultsOfPredicate(futures,result,partitionIds);
     if (partitionIds.isEmpty()) {
-      return;
+      return result;
     }
   }
  catch (  Throwable t) {
@@ -16,10 +17,11 @@
     logger.warning("Could not get results",t);
   }
   try {
-    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds,result.getIterationType());
+    List<Future<QueryResult>> futures=queryPartitions(mapName,predicate,partitionIds,iterationType);
     addResultsOfPredicate(futures,result,partitionIds);
   }
  catch (  Throwable t) {
     throw rethrow(t);
   }
+  return result;
 }
