@@ -1,0 +1,22 @@
+{
+  checkIfLoaded();
+  long now=getNow();
+  markRecordStoreExpirable(ttl);
+  Record record=getRecordOrNull(key,now,false);
+  Object oldValue=record == null ? (loadFromStore ? mapDataStore.load(key) : null) : record.getValue();
+  value=mapServiceContext.interceptPut(name,oldValue,value);
+  value=mapDataStore.add(key,value,now);
+  onStore(record);
+  if (record == null) {
+    record=createRecord(key,value,ttl,now);
+    records.put(key,record);
+  }
+ else {
+    updateRecord(record,value,now);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    updateExpiryTime(record,ttl,mapContainer.getMapConfig());
+  }
+  updateSizeEstimator(calculateRecordHeapCost(record));
+  saveIndex(record);
+  return oldValue;
+}
