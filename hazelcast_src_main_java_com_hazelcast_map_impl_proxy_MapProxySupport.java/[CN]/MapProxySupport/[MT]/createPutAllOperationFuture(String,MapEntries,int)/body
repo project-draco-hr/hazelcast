@@ -1,0 +1,18 @@
+{
+  Operation op=new PutAllOperation(name,entries).setPartitionId(partitionId);
+  final long size=entries.size();
+  final long time=System.currentTimeMillis();
+  InternalCompletableFuture<Object> f=operationService.invokeOnPartition(SERVICE_NAME,op,partitionId);
+  f.andThen(new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      LocalMapStatsProvider localMapStatsProvider=mapServiceContext.getLocalMapStatsProvider();
+      LocalMapStatsImpl localMapStats=localMapStatsProvider.getLocalMapStatsImpl(name);
+      long currentTime=System.currentTimeMillis();
+      localMapStats.incrementPuts(size,currentTime - time);
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+);
+  return f;
+}

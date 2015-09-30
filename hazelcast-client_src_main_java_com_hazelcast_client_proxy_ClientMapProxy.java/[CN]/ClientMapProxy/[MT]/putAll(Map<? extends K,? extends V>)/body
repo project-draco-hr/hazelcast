@@ -2,24 +2,24 @@
   ClientPartitionService partitionService=getContext().getPartitionService();
   int partitionCount=partitionService.getPartitionCount();
   List<Future<?>> futures=new ArrayList<Future<?>>(partitionCount);
-  MapEntrySet[] entrySetPerPartition=new MapEntrySet[partitionCount];
+  MapEntries[] entriesPerPartition=new MapEntries[partitionCount];
   for (  Entry<? extends K,? extends V> entry : m.entrySet()) {
     checkNotNull(entry.getKey(),NULL_KEY_IS_NOT_ALLOWED);
     checkNotNull(entry.getValue(),NULL_VALUE_IS_NOT_ALLOWED);
     final Data keyData=toData(entry.getKey());
     invalidateNearCache(keyData);
     int partitionId=partitionService.getPartitionId(keyData);
-    MapEntrySet entrySet=entrySetPerPartition[partitionId];
-    if (entrySet == null) {
-      entrySet=new MapEntrySet();
-      entrySetPerPartition[partitionId]=entrySet;
+    MapEntries entries=entriesPerPartition[partitionId];
+    if (entries == null) {
+      entries=new MapEntries();
+      entriesPerPartition[partitionId]=entries;
     }
-    entrySet.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(keyData,toData(entry.getValue())));
+    entries.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(keyData,toData(entry.getValue())));
   }
-  for (int partitionId=0; partitionId < entrySetPerPartition.length; partitionId++) {
-    MapEntrySet entrySet=entrySetPerPartition[partitionId];
-    if (entrySet != null) {
-      MapPutAllRequest request=new MapPutAllRequest(name,entrySet,partitionId);
+  for (int partitionId=0; partitionId < entriesPerPartition.length; partitionId++) {
+    MapEntries entries=entriesPerPartition[partitionId];
+    if (entries != null) {
+      MapPutAllRequest request=new MapPutAllRequest(name,entries,partitionId);
       futures.add(new ClientInvocation(getClient(),request,partitionId).invoke());
     }
   }
