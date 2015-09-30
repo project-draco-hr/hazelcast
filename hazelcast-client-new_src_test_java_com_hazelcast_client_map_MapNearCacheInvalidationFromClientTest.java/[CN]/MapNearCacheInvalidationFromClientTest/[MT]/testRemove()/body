@@ -1,0 +1,16 @@
+{
+  final IMap<Object,Object> map=client.getMap(mapName);
+  map.put(1,1);
+  final IMap<Object,Object> liteMap=lite.getMap(mapName);
+  assertNotNull(liteMap.get(1));
+  final NearCache nearCache=getNearCache(lite,mapName);
+  final Data keyData=toData(lite,1);
+  assertEquals(keyData,nearCache.get(keyData));
+  map.remove(1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNull(toObject(lite,nearCache.get(keyData)));
+    }
+  }
+);
+}

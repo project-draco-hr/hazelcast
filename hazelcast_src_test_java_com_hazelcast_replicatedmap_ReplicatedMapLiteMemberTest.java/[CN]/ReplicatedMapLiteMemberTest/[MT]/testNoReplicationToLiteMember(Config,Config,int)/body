@@ -1,0 +1,21 @@
+{
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance lite=nodeFactory.newHazelcastInstance(liteConfig);
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  map1.put("key","value");
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(instance2.getReplicatedMap("default").containsKey("key"));
+    }
+  }
+);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      final ReplicatedMapService service=getReplicatedMapService(lite);
+      assertEquals(0,service.getReplicatedRecordStoresSize());
+    }
+  }
+,assertionDurationInSecs);
+}

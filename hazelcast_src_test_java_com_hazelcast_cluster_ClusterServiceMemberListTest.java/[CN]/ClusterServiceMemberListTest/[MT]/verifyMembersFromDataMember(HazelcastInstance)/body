@@ -1,0 +1,12 @@
+{
+  final Member localMember=getLocalMember(instance);
+  final ClusterService clusterService=getClusterService(instance);
+  final Collection<Member> liteMembers=clusterService.getMembers(LITE_MEMBER_SELECTOR);
+  final Collection<Member> dataMembers=clusterService.getMembers(DATA_MEMBER_SELECTOR);
+  assertTrue(dataMembers.contains(localMember));
+  assertFalse(liteMembers.contains(localMember));
+  final Collection<Member> dataMembersWithoutThis=clusterService.getMembers(MemberSelectors.and(DATA_MEMBER_SELECTOR,NON_LOCAL_MEMBER_SELECTOR));
+  assertFalse(dataMembersWithoutThis.contains(localMember));
+  final Collection<Member> liteMembersWithThis=clusterService.getMembers(MemberSelectors.or(LITE_MEMBER_SELECTOR,LOCAL_MEMBER_SELECTOR));
+  assertTrue(liteMembersWithThis.contains(localMember));
+}

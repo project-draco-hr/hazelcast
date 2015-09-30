@@ -1,0 +1,17 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  factory.newHazelcastInstance();
+  final Config liteConfig=new Config().setLiteMember(true);
+  final HazelcastInstance lite=factory.newHazelcastInstance(liteConfig);
+  warmUpPartitions(lite);
+  final DummyMigrationListener listener=new DummyMigrationListener();
+  lite.getPartitionService().addMigrationListener(listener);
+  factory.newHazelcastInstance();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(listener.started.get());
+      assertTrue(listener.completed.get());
+    }
+  }
+);
+}

@@ -1,4 +1,9 @@
 {
+  if (config.isLiteMember()) {
+    final Class<?> eventClazz=event.getClass();
+    nodeEngine.getLogger(ReplicatedMapService.class).warning("Replicated map event ignored by lite member " + eventClazz);
+    return;
+  }
   if (event instanceof EntryEvent) {
     EntryEvent entryEvent=(EntryEvent)event;
     EntryListener entryListener=(EntryListener)listener;
@@ -20,7 +25,7 @@ throw new IllegalArgumentException("event type " + entryEvent.getEventType() + "
 }
 String mapName=((EntryEvent)event).getName();
 if (config.findReplicatedMapConfig(mapName).isStatisticsEnabled()) {
-ReplicatedRecordStore recordStore=replicatedStorages.get(mapName);
+ReplicatedRecordStore recordStore=replicatedRecordStores.get(mapName);
 if (recordStore instanceof AbstractReplicatedRecordStore) {
 LocalReplicatedMapStatsImpl stats=((AbstractReplicatedRecordStore)recordStore).getReplicatedMapStats();
 stats.incrementReceivedEvents();

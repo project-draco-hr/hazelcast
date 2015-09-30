@@ -1,14 +1,11 @@
 {
-  final Future future;
+  if (key != null) {
+    final int partitionId=client.getClientPartitionService().getPartitionId(key);
+    return startListeningOnPartition(request,partitionId,handler);
+  }
   try {
     handler.beforeListenerRegister();
-    if (key == null) {
-      future=new ClientInvocation(client,handler,request).invoke();
-    }
- else {
-      final int partitionId=client.getClientPartitionService().getPartitionId(key);
-      future=new ClientInvocation(client,handler,request,partitionId).invoke();
-    }
+    final Future future=new ClientInvocation(client,handler,request).invoke();
     String registrationId=serializationService.toObject(future.get());
     registerListener(registrationId,request.getCallId());
     return registrationId;

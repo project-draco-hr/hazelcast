@@ -1,0 +1,18 @@
+{
+  int expectedResult=0;
+  final String listName=randomName();
+  IList<Integer> list=instance.getList(listName);
+  for (int o=0; o < 100; o++) {
+    list.add(o);
+    expectedResult+=o;
+  }
+  JobTracker jobTracker=instance.getJobTracker(listName);
+  Job<String,Integer> job=jobTracker.newJob(KeyValueSource.fromList(list));
+  ICompletableFuture<Map<String,Integer>> ICompletableFuture=job.chunkSize(10).mapper(new ListSetMapper()).combiner(new ListSetCombinerFactory()).reducer(new ListSetReducerFactory()).submit();
+  Map<String,Integer> result=ICompletableFuture.get();
+  assertEquals(1,result.size());
+  for (  Map.Entry<String,Integer> entry : result.entrySet()) {
+    assertEquals(list.getName(),entry.getKey());
+    assertEquals(expectedResult,(int)entry.getValue());
+  }
+}

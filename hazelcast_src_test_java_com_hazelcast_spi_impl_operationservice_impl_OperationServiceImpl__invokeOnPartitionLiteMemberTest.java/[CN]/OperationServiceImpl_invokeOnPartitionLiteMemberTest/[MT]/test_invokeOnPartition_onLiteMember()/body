@@ -1,0 +1,13 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=factory.newHazelcastInstance(liteMemberConfig);
+  final InternalOperationService operationService=getOperationService(instance);
+  final InternalCompletableFuture<Object> future=operationService.invokeOnPartition(null,operation,0);
+  try {
+    future.get();
+    fail("partition operation should not run on lite member!");
+  }
+ catch (  ExecutionException e) {
+    assertTrue(e.getCause() instanceof NoDataMemberInClusterException);
+  }
+}

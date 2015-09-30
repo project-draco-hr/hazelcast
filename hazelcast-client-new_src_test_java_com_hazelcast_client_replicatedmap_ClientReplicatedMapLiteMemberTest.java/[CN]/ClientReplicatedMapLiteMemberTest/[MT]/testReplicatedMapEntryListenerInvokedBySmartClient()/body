@@ -1,0 +1,15 @@
+{
+  createNodes(3,1);
+  final HazelcastInstance client=factory.newHazelcastClient();
+  final ReplicatedMap<Object,Object> map=client.getReplicatedMap(randomMapName());
+  final DummyEntryAddedListener listener=new DummyEntryAddedListener();
+  map.addEntryListener(listener);
+  map.put(1,2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,listener.key);
+      assertEquals(2,listener.value);
+    }
+  }
+);
+}

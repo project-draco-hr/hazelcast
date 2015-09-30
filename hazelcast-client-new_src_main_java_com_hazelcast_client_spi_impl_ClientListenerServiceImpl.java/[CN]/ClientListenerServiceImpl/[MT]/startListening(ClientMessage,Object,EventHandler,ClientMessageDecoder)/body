@@ -1,14 +1,11 @@
 {
-  final ClientInvocationFuture future;
+  if (key != null) {
+    final int partitionId=client.getClientPartitionService().getPartitionId(key);
+    return startListeningOnPartition(clientMessage,partitionId,handler,responseDecoder);
+  }
   try {
     handler.beforeListenerRegister();
-    if (key == null) {
-      future=new ClientListenerInvocation(client,handler,clientMessage,responseDecoder).invoke();
-    }
- else {
-      final int partitionId=client.getClientPartitionService().getPartitionId(key);
-      future=new ClientListenerInvocation(client,handler,clientMessage,partitionId,responseDecoder).invoke();
-    }
+    final ClientInvocationFuture future=new ClientListenerInvocation(client,handler,clientMessage,responseDecoder).invoke();
     ClientMessage responseMessage=future.get();
     String registrationId=responseDecoder.decodeClientMessage(responseMessage);
     registerListener(registrationId,clientMessage.getCorrelationId());

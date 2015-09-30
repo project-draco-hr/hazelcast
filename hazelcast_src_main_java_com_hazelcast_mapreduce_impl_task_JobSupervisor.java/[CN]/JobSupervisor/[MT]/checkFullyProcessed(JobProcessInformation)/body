@@ -15,34 +15,7 @@
       return;
     }
     final JobSupervisor jobSupervisor=this;
-    Runnable runnable=new Runnable(){
-      public void run(){
-        Object finalResult=null;
-        try {
-          List<Map> results=MapReduceUtil.executeOperation(operationFactory,mapReduceService,nodeEngine,true);
-          boolean reducedResult=configuration.getReducerFactory() != null;
-          if (results != null) {
-            Map<Object,Object> mergedResults=new HashMap<Object,Object>();
-            for (            Map<?,?> map : results) {
-              for (              Map.Entry entry : map.entrySet()) {
-                collectResults(reducedResult,mergedResults,entry);
-              }
-            }
-            finalResult=mergedResults;
-          }
-        }
- catch (        Exception e) {
-          finalResult=e;
-        }
- finally {
-          jobTracker.unregisterMapCombineTask(jobId);
-          jobTracker.unregisterReducerTask(jobId);
-          mapReduceService.destroyJobSupervisor(jobSupervisor);
-          future.setResult(finalResult);
-        }
-      }
-    }
-;
+    Runnable runnable=new GetResultsRunnable(nodeEngine,operationFactory,jobId,jobSupervisor,future);
     ExecutionService executionService=nodeEngine.getExecutionService();
     ManagedExecutorService executor=executionService.getExecutor(ExecutionService.ASYNC_EXECUTOR);
     executor.submit(runnable);

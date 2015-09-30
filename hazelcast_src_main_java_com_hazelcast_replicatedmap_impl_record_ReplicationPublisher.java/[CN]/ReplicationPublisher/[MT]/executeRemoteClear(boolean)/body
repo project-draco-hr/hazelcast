@@ -1,9 +1,10 @@
 {
-  List<MemberImpl> failedMembers=new ArrayList<MemberImpl>(clusterService.getMemberImpls());
+  MemberSelector selector=MemberSelectors.and(DATA_MEMBER_SELECTOR,NON_LOCAL_MEMBER_SELECTOR);
+  List<Member> failedMembers=new ArrayList<Member>(clusterService.getMembers(selector));
   for (int i=0; i < MAX_CLEAR_EXECUTION_RETRY; i++) {
-    Map<MemberImpl,InternalCompletableFuture> futures=executeClearOnMembers(failedMembers,emptyReplicationQueue);
+    Map<Member,InternalCompletableFuture> futures=executeClearOnMembers(failedMembers,emptyReplicationQueue);
     failedMembers.clear();
-    for (    Map.Entry<MemberImpl,InternalCompletableFuture> future : futures.entrySet()) {
+    for (    Entry<Member,InternalCompletableFuture> future : futures.entrySet()) {
       try {
         future.getValue().get();
       }

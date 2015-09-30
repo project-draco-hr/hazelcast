@@ -1,0 +1,14 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  final HazelcastInstance lite1=factory.newHazelcastInstance(liteConfig);
+  final HazelcastInstance lite2=factory.newHazelcastInstance(liteConfig);
+  final HazelcastInstance other=factory.newHazelcastInstance();
+  final CountingDownExecutionCallback<Member> callback=new CountingDownExecutionCallback<Member>(1);
+  final IExecutorService executor=other.getExecutorService(randomString());
+  executor.submit(new LocalMemberReturningCallable(),LITE_MEMBER_SELECTOR,callback);
+  assertOpenEventually(callback.getLatch());
+  final Object result=callback.getResult();
+  final boolean executedOnLite1=lite1.getCluster().getLocalMember().equals(result);
+  final boolean executedOnLite2=lite2.getCluster().getLocalMember().equals(result);
+  assertTrue(executedOnLite1 || executedOnLite2);
+}
