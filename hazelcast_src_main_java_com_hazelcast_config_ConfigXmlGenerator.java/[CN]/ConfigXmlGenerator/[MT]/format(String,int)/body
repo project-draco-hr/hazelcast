@@ -2,9 +2,10 @@
   if (!formatted) {
     return input;
   }
+  StreamResult xmlOutput=null;
   try {
     final Source xmlInput=new StreamSource(new StringReader(input));
-    final StreamResult xmlOutput=new StreamResult(new StringWriter());
+    xmlOutput=new StreamResult(new StringWriter());
     TransformerFactory transformerFactory=TransformerFactory.newInstance();
     try {
       transformerFactory.setAttribute("indent-number",indent);
@@ -27,10 +28,16 @@
       }
     }
     transformer.transform(xmlInput,xmlOutput);
-    return xmlOutput.getWriter().toString();
+    String response=xmlOutput.getWriter().toString();
+    return response;
   }
  catch (  Exception e) {
     LOGGER.warning(e);
     return input;
+  }
+ finally {
+    if (xmlOutput != null) {
+      closeResource(xmlOutput.getWriter());
+    }
   }
 }
