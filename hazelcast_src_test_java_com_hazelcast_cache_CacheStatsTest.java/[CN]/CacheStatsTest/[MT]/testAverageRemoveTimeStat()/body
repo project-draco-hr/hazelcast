@@ -1,0 +1,23 @@
+{
+  ICache<Integer,String> cache=createCache();
+  CacheStatistics stats=cache.getLocalCacheStatistics();
+  assertNotNull(stats);
+  final int ENTRY_COUNT=100;
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    cache.put(i,"Value-" + i);
+  }
+  long start=System.nanoTime();
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    cache.remove(i);
+  }
+  long end=System.nanoTime();
+  float avgRemoveTime=(end - start) / 1000;
+  assertTrue(stats.getAverageRemoveTime() > 0);
+  assertTrue(stats.getAverageRemoveTime() < avgRemoveTime);
+  float currentAverageRemoveTime=stats.getAverageRemoveTime();
+  sleepAtLeastMillis(1);
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    cache.remove(i);
+  }
+  assertEquals(currentAverageRemoveTime,stats.getAverageRemoveTime(),0.0f);
+}
