@@ -1,5 +1,6 @@
 {
   expiryPolicy=getExpiryPolicy(expiryPolicy);
+  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
   long now=Clock.currentTimeMillis();
   Object value=null;
   R record=records.get(key);
@@ -11,6 +12,9 @@
       }
       value=readThroughCache(key);
       if (value == null) {
+        if (isStatisticsEnabled()) {
+          statistics.addGetTimeNanos(System.nanoTime() - start);
+        }
         return null;
       }
       record=createRecordWithExpiry(key,value,expiryPolicy,now,true,IGNORE_COMPLETION);
@@ -21,6 +25,9 @@
       if (isStatisticsEnabled()) {
         statistics.increaseCacheHits(1);
       }
+    }
+    if (isStatisticsEnabled()) {
+      statistics.addGetTimeNanos(System.nanoTime() - start);
     }
     onGet(key,expiryPolicy,value,record);
     return value;
