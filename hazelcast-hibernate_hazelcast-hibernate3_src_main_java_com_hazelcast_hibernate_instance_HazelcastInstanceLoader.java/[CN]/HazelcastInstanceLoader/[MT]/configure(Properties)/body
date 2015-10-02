@@ -1,3 +1,22 @@
 {
-  this.props.putAll(props);
+  String configResourcePath=CacheEnvironment.getConfigFilePath(props);
+  if (!StringUtil.isNullOrEmptyAfterTrim(configResourcePath)) {
+    try {
+      this.config=ConfigLoader.load(configResourcePath);
+    }
+ catch (    IOException e) {
+      LOGGER.warning("IOException: " + e.getMessage());
+    }
+    if (config == null) {
+      throw new CacheException("Could not find configuration file: " + configResourcePath);
+    }
+  }
+ else {
+    this.config=new XmlConfigBuilder().build();
+  }
+  String instanceName=CacheEnvironment.getInstanceName(props);
+  if (instanceName != null) {
+    config.setInstanceName(instanceName);
+  }
+  this.shutDown=CacheEnvironment.shutdownOnStop(props,(instanceName == null));
 }
