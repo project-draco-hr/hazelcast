@@ -1,6 +1,7 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
   final MapService mapService=getService();
+  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
   MapListenerAdapter<Object,Object> listener=new MapListenerAdapter<Object,Object>(){
     @Override public void onEntryEvent(    EntryEvent<Object,Object> event){
       if (endpoint.isAlive()) {
@@ -26,8 +27,9 @@
     }
   }
 ;
-  final EventFilter eventFilter=getEventFilter();
-  final String registrationId=mapService.getMapServiceContext().addEventListener(listener,eventFilter,name);
+  EventFilter eventFilter=getEventFilter();
+  EventFilter eventListenerFilter=new EventListenerFilter(listenerFlags,eventFilter);
+  String registrationId=mapServiceContext.addEventListener(listener,eventListenerFilter,name);
   endpoint.addListenerDestroyAction(MapService.SERVICE_NAME,name,registrationId);
   return registrationId;
 }

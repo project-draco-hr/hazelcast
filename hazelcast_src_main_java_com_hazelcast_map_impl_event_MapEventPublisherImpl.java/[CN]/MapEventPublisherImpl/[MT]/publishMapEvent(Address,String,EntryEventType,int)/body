@@ -1,14 +1,27 @@
 {
-  final Collection<EventRegistration> registrations=new LinkedList<EventRegistration>();
-  for (  EventRegistration registration : getRegistrations(mapName)) {
-    if (!(registration.getFilter() instanceof MapPartitionLostEventFilter)) {
+  Collection<EventRegistration> mapsListenerRegistrations=getRegistrations(mapName);
+  if (isEmpty(mapsListenerRegistrations)) {
+    return;
+  }
+  Collection<EventRegistration> registrations=null;
+  for (  EventRegistration registration : mapsListenerRegistrations) {
+    EventFilter filter=registration.getFilter();
+    if (filter instanceof EventListenerFilter) {
+      if (!filter.eval(eventType.getType())) {
+        continue;
+      }
+    }
+    if (!(filter instanceof MapPartitionLostEventFilter)) {
+      if (registrations == null) {
+        registrations=new ArrayList<EventRegistration>();
+      }
       registrations.add(registration);
     }
   }
-  if (registrations.isEmpty()) {
+  if (isEmpty(registrations)) {
     return;
   }
-  final String source=getThisNodesAddress();
-  final MapEventData mapEventData=new MapEventData(source,mapName,caller,eventType.getType(),numberOfEntriesAffected);
+  String source=getThisNodesAddress();
+  MapEventData mapEventData=new MapEventData(source,mapName,caller,eventType.getType(),numberOfEntriesAffected);
   publishEventInternal(registrations,mapEventData,mapName.hashCode());
 }
