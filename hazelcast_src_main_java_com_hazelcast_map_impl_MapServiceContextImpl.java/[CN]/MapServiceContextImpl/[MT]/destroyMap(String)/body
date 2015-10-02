@@ -1,17 +1,18 @@
 {
   final PartitionContainer[] containers=partitionContainers;
   final List<Future> futures=new ArrayList<Future>(containers.length);
+  Address thisAddress=getNodeEngine().getThisAddress();
+  OperationService operationService=nodeEngine.getOperationService();
   for (  PartitionContainer container : containers) {
-    if (container != null) {
-      int partitionId=container.getPartitionId();
-      InternalPartition partition=nodeEngine.getPartitionService().getPartition(partitionId);
-      if (partition.isLocal()) {
-        OperationService operationService=nodeEngine.getOperationService();
-        Operation operation=new MapPartitionDestroyOperation(container,mapName);
-        Future f=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
-        futures.add(f);
-      }
+    if (container == null) {
+      continue;
     }
+    int partitionId=container.getPartitionId();
+    Operation operation=new MapPartitionDestroyOperation(container,mapName);
+    operation.setPartitionId(partitionId);
+    operation.setValidateTarget(false);
+    Future f=operationService.invokeOnTarget(SERVICE_NAME,operation,thisAddress);
+    futures.add(f);
   }
   try {
     for (    Future f : futures) {
