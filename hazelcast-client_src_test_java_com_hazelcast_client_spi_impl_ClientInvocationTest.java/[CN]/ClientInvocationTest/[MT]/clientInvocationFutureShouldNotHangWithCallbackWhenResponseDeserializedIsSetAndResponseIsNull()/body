@@ -1,0 +1,20 @@
+{
+  hazelcastFactory.newHazelcastInstance();
+  HazelcastClientProxy clientProxy=(HazelcastClientProxy)hazelcastFactory.newHazelcastClient();
+  HazelcastClientInstanceImpl client=clientProxy.client;
+  Data key=client.getSerializationService().toData("key");
+  int partitionId=client.getPartitionService().getPartition(key).getPartitionId();
+  for (int i=0; i < 100; i++) {
+    ClientInvocation invocation=new ClientInvocation(client,new MapGetRequest("MyMap",key),partitionId);
+    ClientInvocationFuture future=invocation.invoke();
+    future.setResponseDeserialized(true);
+    future.andThen(new ExecutionCallback(){
+      @Override public void onResponse(      Object response){
+      }
+      @Override public void onFailure(      Throwable t){
+      }
+    }
+);
+    future.get();
+  }
+}
