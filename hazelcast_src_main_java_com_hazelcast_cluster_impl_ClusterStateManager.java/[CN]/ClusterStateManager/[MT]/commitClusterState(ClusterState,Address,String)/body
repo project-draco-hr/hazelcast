@@ -1,0 +1,24 @@
+{
+  Preconditions.checkNotNull(newState);
+  if (newState == ClusterState.IN_TRANSITION) {
+    throw new IllegalArgumentException("IN_TRANSITION is an internal state!");
+  }
+  clusterServiceLock.lock();
+  try {
+    final ClusterStateLock stateLock=getStateLock();
+    if (!stateLock.allowsUnlock(txnId)) {
+      throw new TransactionException("Cluster state change [" + state + " -> "+ newState+ "] failed for "+ initiator+ ", current state: "+ stateToString());
+    }
+    this.state=newState;
+    stateLockRef.set(ClusterStateLock.NOT_LOCKED);
+    if (newState == ClusterState.SHUTTING_DOWN) {
+      node.changeStateToShuttingDown();
+    }
+    if (newState == ClusterState.ACTIVE) {
+      node.getClusterService().removeMembersDeadWhileFrozen();
+    }
+  }
+  finally {
+    clusterServiceLock.unlock();
+  }
+}

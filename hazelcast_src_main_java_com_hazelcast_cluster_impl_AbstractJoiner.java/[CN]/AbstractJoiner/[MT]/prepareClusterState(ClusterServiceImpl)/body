@@ -1,0 +1,26 @@
+{
+  long until=Clock.currentTimeMillis() + mergeNextRunDelayMs;
+  while (clusterService.getClusterState() == ClusterState.ACTIVE) {
+    try {
+      clusterService.changeClusterState(ClusterState.FROZEN);
+      return true;
+    }
+ catch (    Exception e) {
+      String error=e.getClass().getName() + ": " + e.getMessage();
+      logger.warning("While freezing cluster state! " + error);
+    }
+    if (Clock.currentTimeMillis() >= until) {
+      logger.warning("Could not change cluster state to FROZEN in time. " + "Postponing merge process until next attempt.");
+      return false;
+    }
+    try {
+      Thread.sleep(1000);
+    }
+ catch (    InterruptedException e) {
+      logger.warning("Interrupted while preparing cluster for merge!");
+      Thread.currentThread().interrupt();
+      return false;
+    }
+  }
+  return false;
+}

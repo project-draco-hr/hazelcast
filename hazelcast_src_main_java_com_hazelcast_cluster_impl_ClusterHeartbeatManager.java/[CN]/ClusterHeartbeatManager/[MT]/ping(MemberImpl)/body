@@ -1,0 +1,27 @@
+{
+  nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
+    public void run(){
+      try {
+        Address address=memberImpl.getAddress();
+        logger.warning(format("%s will ping %s",node.getThisAddress(),address));
+        for (int i=0; i < MAX_PING_RETRY_COUNT; i++) {
+          try {
+            if (address.getInetAddress().isReachable(null,icmpTtl,icmpTimeoutMillis)) {
+              logger.info(format("%s pinged %s successfully",node.getThisAddress(),address));
+              return;
+            }
+          }
+ catch (          ConnectException ignored) {
+            EmptyStatement.ignore(ignored);
+          }
+        }
+        logger.warning(format("%s could not ping %s",node.getThisAddress(),address));
+        clusterService.removeAddress(address);
+      }
+ catch (      Throwable ignored) {
+        EmptyStatement.ignore(ignored);
+      }
+    }
+  }
+);
+}

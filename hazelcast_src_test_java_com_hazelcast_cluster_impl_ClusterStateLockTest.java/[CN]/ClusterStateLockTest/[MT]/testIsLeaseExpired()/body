@@ -1,0 +1,15 @@
+{
+  ClusterStateLock stateLock=ClusterStateLock.NOT_LOCKED;
+  assertFalse(stateLock.isLeaseExpired());
+  Address endpoint=newAddress();
+  stateLock=new ClusterStateLock(endpoint,"txn",TimeUnit.HOURS.toMillis(1));
+  assertFalse(stateLock.isLeaseExpired());
+  stateLock=new ClusterStateLock(endpoint,"txn",1);
+  final ClusterStateLock finalStateLock=stateLock;
+  HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(finalStateLock.isLeaseExpired());
+    }
+  }
+);
+}

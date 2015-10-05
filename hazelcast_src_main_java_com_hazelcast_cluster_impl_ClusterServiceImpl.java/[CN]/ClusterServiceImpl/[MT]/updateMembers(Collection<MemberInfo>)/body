@@ -15,15 +15,16 @@
         member=createMember(memberInfo,scopeId);
         newMembers.add(member);
         long now=Clock.currentTimeMillis();
-        onHeartbeat(member,now);
-        masterConfirmationTimes.put(member,now);
+        clusterHeartbeatManager.onHeartbeat(member,now);
+        clusterHeartbeatManager.acceptMasterConfirmation(member,now);
+        membersRemovedInFrozenState.remove(member.getAddress());
       }
       updatedMembers[memberIndex++]=member;
     }
     setMembers(updatedMembers);
     sendMembershipEvents(currentMemberMap.values(),newMembers);
-    joinReset();
-    heartBeater();
+    clusterJoinManager.reset();
+    clusterHeartbeatManager.heartBeat();
     node.setJoined();
     logger.info(membersString());
   }
