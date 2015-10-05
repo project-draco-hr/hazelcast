@@ -1,4 +1,5 @@
 {
+  final long start=System.nanoTime();
   ensureOpen();
   validateNotNull(key);
   final Data keyData=toData(key);
@@ -22,6 +23,9 @@
       future.andThenInternal(new ExecutionCallback<Data>(){
         public void onResponse(        Data valueData){
           storeInNearCache(keyData,valueData,null);
+          if (statisticsEnabled) {
+            handleStatisticsOnGet(start,valueData);
+          }
         }
         public void onFailure(        Throwable t){
         }
@@ -36,7 +40,11 @@
       if (nearCache != null) {
         storeInNearCache(keyData,toData(value),null);
       }
-      return toObject(value);
+      Object result=toObject(value);
+      if (statisticsEnabled) {
+        handleStatisticsOnGet(start,result);
+      }
+      return result;
     }
  catch (    Throwable e) {
       throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);

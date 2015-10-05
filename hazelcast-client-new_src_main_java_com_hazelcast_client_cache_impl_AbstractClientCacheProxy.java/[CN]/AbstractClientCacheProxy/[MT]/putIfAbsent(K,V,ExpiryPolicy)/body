@@ -1,7 +1,12 @@
 {
-  final Future<Boolean> f=putIfAbsentAsyncInternal(key,value,expiryPolicy,true);
+  final long start=System.nanoTime();
+  final Future<Boolean> f=putIfAbsentAsyncInternal(key,value,expiryPolicy,true,false);
   try {
-    return (Boolean)toObject(f.get());
+    boolean saved=toObject(f.get());
+    if (statisticsEnabled) {
+      handleStatisticsOnPutIfAbsent(start,saved);
+    }
+    return saved;
   }
  catch (  Throwable e) {
     throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);

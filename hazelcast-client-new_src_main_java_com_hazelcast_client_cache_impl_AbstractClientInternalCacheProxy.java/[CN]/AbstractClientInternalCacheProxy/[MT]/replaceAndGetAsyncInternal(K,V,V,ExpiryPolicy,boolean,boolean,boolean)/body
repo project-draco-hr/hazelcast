@@ -1,0 +1,38 @@
+{
+  final long start=System.nanoTime();
+  ensureOpen();
+  if (hasOldValue) {
+    validateNotNull(key,oldValue,newValue);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,oldValue,newValue);
+  }
+ else {
+    validateNotNull(key,newValue);
+    CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,newValue);
+  }
+  final Data keyData=toData(key);
+  final Data newValueData=toData(newValue);
+  final Data expiryPolicyData=toData(expiryPolicy);
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  ClientMessage request=CacheGetAndReplaceCodec.encodeRequest(nameWithPrefix,keyData,newValueData,expiryPolicyData,completionId);
+  ClientInvocationFuture future;
+  try {
+    future=invoke(request,keyData,completionId);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<T>(future,clientContext.getSerializationService(),getAndReplaceResponseDecoder);
+  if (async && statisticsEnabled) {
+    delegatingFuture.andThen(new ExecutionCallback<Object>(){
+      public void onResponse(      Object responseData){
+        Object response=clientContext.getSerializationService().toObject(responseData);
+        handleStatisticsOnReplace(true,start,response);
+      }
+      public void onFailure(      Throwable t){
+      }
+    }
+);
+  }
+  return delegatingFuture;
+}
