@@ -1,20 +1,18 @@
 {
-  final MapContainer mapContainer=this.mapContainer;
-  if (mapContainer.getWanReplicationPublisher() == null && mapContainer.getWanMergePolicy() == null) {
-    return;
-  }
-  final MapEventPublisher mapEventPublisher=getMapEventPublisher();
-  if (EntryEventType.REMOVED.equals(eventType)) {
-    mapEventPublisher.publishWanReplicationRemoveBackup(name,key,getNow());
-    wanEventList.add(new WanEventWrapper(key,null,EntryEventType.REMOVED));
-  }
+  if (mapContainer.isWanReplicationEnabled()) {
+    final MapEventPublisher mapEventPublisher=getMapEventPublisher();
+    if (EntryEventType.REMOVED.equals(eventType)) {
+      mapEventPublisher.publishWanReplicationRemoveBackup(name,key,getNow());
+      wanEventList.add(new WanEventWrapper(key,null,EntryEventType.REMOVED));
+    }
  else {
-    final Record record=recordStore.getRecord(key);
-    if (record != null) {
-      final Data dataValueAsData=toData(value);
-      final EntryView entryView=createSimpleEntryView(key,dataValueAsData,record);
-      mapEventPublisher.publishWanReplicationUpdateBackup(name,entryView);
-      wanEventList.add(new WanEventWrapper(key,value,EntryEventType.UPDATED));
+      final Record record=recordStore.getRecord(key);
+      if (record != null) {
+        final Data dataValueAsData=toData(value);
+        final EntryView entryView=createSimpleEntryView(key,dataValueAsData,record);
+        mapEventPublisher.publishWanReplicationUpdateBackup(name,entryView);
+        wanEventList.add(new WanEventWrapper(key,value,EntryEventType.UPDATED));
+      }
     }
   }
 }
