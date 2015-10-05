@@ -1,0 +1,34 @@
+{
+  final long start=System.nanoTime();
+  ensureOpen();
+  validateNotNull(key,value);
+  CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
+  final Data keyData=toData(key);
+  final Data valueData=toData(value);
+  InMemoryFormat inMemoryFormat=cacheConfig.getInMemoryFormat();
+  CachePutRequest request=new CachePutRequest(nameWithPrefix,keyData,valueData,expiryPolicy,isGet,inMemoryFormat);
+  ICompletableFuture future;
+  try {
+    future=invoke(request,keyData,withCompletionEvent);
+    if (cacheOnUpdate) {
+      storeInNearCache(keyData,valueData,value);
+    }
+ else {
+      invalidateNearCache(keyData);
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  if (async && statisticsEnabled) {
+    future.andThen(new ExecutionCallback<Object>(){
+      @Override public void onResponse(      Object responseData){
+        handleStatisticsOnPut(isGet,start,responseData);
+      }
+      @Override public void onFailure(      Throwable t){
+      }
+    }
+);
+  }
+  return future;
+}
