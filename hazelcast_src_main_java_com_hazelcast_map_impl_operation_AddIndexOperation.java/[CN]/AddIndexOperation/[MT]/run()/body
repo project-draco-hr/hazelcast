@@ -3,14 +3,15 @@
   MapContainer mapContainer=mapService.getMapServiceContext().getMapContainer(name);
   RecordStore recordStore=mapService.getMapServiceContext().getPartitionContainer(getPartitionId()).getRecordStore(name);
   Indexes indexes=mapContainer.getIndexes();
-  SerializationService ss=getNodeEngine().getSerializationService();
   Index index=indexes.addOrGetIndex(attributeName,ordered);
+  MapServiceContext serviceContext=mapContainer.getMapServiceContext();
   final long now=getNow();
   final Iterator<Record> iterator=recordStore.iterator(now,false);
   while (iterator.hasNext()) {
     final Record record=iterator.next();
     Data key=record.getKey();
     Object value=record.getValue();
-    index.saveEntryIndex(new QueryEntry(ss,key,key,value),null);
+    QueryableEntry queryEntry=serviceContext.newQueryEntry(key,key,value);
+    index.saveEntryIndex(queryEntry,null);
   }
 }

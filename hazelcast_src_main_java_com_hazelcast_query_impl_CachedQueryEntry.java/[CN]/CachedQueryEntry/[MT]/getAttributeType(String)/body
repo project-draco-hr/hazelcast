@@ -1,0 +1,19 @@
+{
+  if (KEY_ATTRIBUTE_NAME.equals(attributeName)) {
+    return ReflectionHelper.getAttributeType(getKey().getClass());
+  }
+ else   if (THIS_ATTRIBUTE_NAME.equals(attributeName)) {
+    return ReflectionHelper.getAttributeType(getValue().getClass());
+  }
+  boolean isKey=QueryEntryUtils.isKey(attributeName);
+  attributeName=QueryEntryUtils.getAttributeName(isKey,attributeName);
+  Object target=getTargetObject(isKey);
+  if (target instanceof Portable || target instanceof Data) {
+    Data data=serializationService.toData(target);
+    if (data.isPortable()) {
+      PortableContext portableContext=serializationService.getPortableContext();
+      return PortableExtractor.getAttributeType(portableContext,data,attributeName);
+    }
+  }
+  return ReflectionHelper.getAttributeType(isKey ? getKey() : getValue(),attributeName);
+}
