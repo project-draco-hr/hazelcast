@@ -1,7 +1,12 @@
 {
-  final ICompletableFuture<V> f=putAsyncInternal(key,value,expiryPolicy,true,true);
+  final long start=System.nanoTime();
+  final ICompletableFuture<V> f=putAsyncInternal(key,value,expiryPolicy,true,true,false);
   try {
-    return f.get();
+    V oldValue=f.get();
+    if (statisticsEnabled) {
+      handleStatisticsOnPut(true,start,oldValue);
+    }
+    return oldValue;
   }
  catch (  Throwable e) {
     throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);

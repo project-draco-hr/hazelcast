@@ -1,4 +1,5 @@
 {
+  final long start=System.nanoTime();
   final Set<Data> keysData;
   if (keys != null) {
     keysData=new HashSet<Data>();
@@ -27,6 +28,15 @@
       }
     }
     waitCompletionLatch(completionId,partitionCount - completionCount,null);
+    if (statisticsEnabled) {
+      if (keysData != null) {
+        statistics.increaseCacheRemovals(keysData.size());
+        statistics.addRemoveTimeNanos(System.nanoTime() - start);
+      }
+ else {
+        statistics.setLastUpdateTime(System.currentTimeMillis());
+      }
+    }
   }
  catch (  Throwable t) {
     deregisterCompletionLatch(completionId);
