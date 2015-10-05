@@ -1,7 +1,12 @@
 {
-  final Future<V> f=replaceAsyncInternal(key,null,value,expiryPolicy,false,true,true);
+  final long start=System.nanoTime();
+  final Future<V> f=replaceAsyncInternal(key,null,value,expiryPolicy,false,true,true,false);
   try {
-    return f.get();
+    V oldValue=f.get();
+    if (statisticsEnabled) {
+      handleStatisticsOnReplace(true,start,oldValue);
+    }
+    return oldValue;
   }
  catch (  Throwable e) {
     throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);

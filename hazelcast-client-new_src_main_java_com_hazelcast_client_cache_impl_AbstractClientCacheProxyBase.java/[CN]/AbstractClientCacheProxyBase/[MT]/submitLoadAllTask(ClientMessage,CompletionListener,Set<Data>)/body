@@ -1,0 +1,17 @@
+{
+  final long start=System.nanoTime();
+  LoadAllTask loadAllTask=new LoadAllTask(request,completionListener);
+  ClientExecutionServiceImpl executionService=(ClientExecutionServiceImpl)clientContext.getExecutionService();
+  final ICompletableFuture<?> future=executionService.submitInternal(loadAllTask);
+  loadAllTasks.add(future);
+  future.andThen(new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+      loadAllTasks.remove(future);
+      onLoadAll(keys,response,start,System.nanoTime());
+    }
+    @Override public void onFailure(    Throwable t){
+      loadAllTasks.remove(future);
+    }
+  }
+);
+}

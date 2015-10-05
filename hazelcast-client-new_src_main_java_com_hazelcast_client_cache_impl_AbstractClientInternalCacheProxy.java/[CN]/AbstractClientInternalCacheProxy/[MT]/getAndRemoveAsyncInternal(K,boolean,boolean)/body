@@ -1,0 +1,30 @@
+{
+  final long start=System.nanoTime();
+  ensureOpen();
+  validateNotNull(key);
+  CacheProxyUtil.validateConfiguredTypes(cacheConfig,key);
+  final Data keyData=toData(key);
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  ClientMessage request=CacheGetAndRemoveCodec.encodeRequest(nameWithPrefix,keyData,completionId);
+  ClientInvocationFuture future;
+  try {
+    future=invoke(request,keyData,completionId);
+    invalidateNearCache(keyData);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<T>(future,clientContext.getSerializationService(),getAndRemoveResponseDecoder);
+  if (async && statisticsEnabled) {
+    delegatingFuture.andThen(new ExecutionCallback<Object>(){
+      public void onResponse(      Object responseData){
+        Object response=clientContext.getSerializationService().toObject(responseData);
+        handleStatisticsOnRemove(true,start,response);
+      }
+      public void onFailure(      Throwable t){
+      }
+    }
+);
+  }
+  return delegatingFuture;
+}
