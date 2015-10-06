@@ -8,16 +8,18 @@
   QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.KEY,false);
   Set<Object> keySet=new HashSet<Object>(queryResultSet);
   for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
-    Object key=ss.toObject(entry.getKey());
+    Data keyData=entry.getKey();
     if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
       Object value=entry.getValue().value instanceof Data ? mapServiceContext.toObject(entry.getValue().value) : entry.getValue().value;
-      QueryableEntry queryEntry=mapServiceContext.newQueryEntry(entry.getKey(),key,value);
+      QueryableEntry queryEntry=mapServiceContext.newQueryEntry(keyData,value);
       if (predicate.apply(queryEntry)) {
-        keySet.add(key);
+        Object keyObject=ss.toObject(keyData);
+        keySet.add(keyObject);
       }
     }
  else {
-      keySet.remove(key);
+      Object keyObject=ss.toObject(keyData);
+      keySet.remove(keyObject);
     }
   }
   return keySet;
