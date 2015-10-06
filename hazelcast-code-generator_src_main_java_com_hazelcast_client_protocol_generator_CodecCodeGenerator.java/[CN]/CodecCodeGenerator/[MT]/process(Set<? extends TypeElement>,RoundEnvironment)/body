@@ -1,13 +1,8 @@
 {
+  messager.printMessage(Diagnostic.Kind.NOTE,"Processing code generator. round:" + (++round));
   try {
-    TypeElement genCodecElement=elementUtils.getTypeElement("com.hazelcast.annotation.GenerateCodec");
-    TypeElement codecElement=elementUtils.getTypeElement("com.hazelcast.annotation.Codec");
-    if (!elements.contains(genCodecElement) || !elements.contains(codecElement)) {
-      return false;
-    }
     for (    Element element : env.getElementsAnnotatedWith(Codec.class)) {
       TypeElement classElement=(TypeElement)element;
-      classElement.getAnnotationMirrors();
       Codec annotation=classElement.getAnnotation(Codec.class);
       if (annotation != null) {
         try {
@@ -22,6 +17,13 @@
     for (    Element element : env.getElementsAnnotatedWith(GenerateCodec.class)) {
       register((TypeElement)element);
     }
+    if (CodecModel.CUSTOM_CODEC_MAP.size() != CODEC_COUNT) {
+      messager.printMessage(Diagnostic.Kind.NOTE,"Codec count do not match found codec count:" + CodecModel.CUSTOM_CODEC_MAP.size());
+      return false;
+    }
+ else {
+      messager.printMessage(Diagnostic.Kind.NOTE,"Codec count is validated. round:" + round);
+    }
     for (    Lang lang : codecTemplateMap.keySet()) {
       generateContent(lang);
     }
@@ -30,5 +32,8 @@
     messager.printMessage(Diagnostic.Kind.ERROR,e.getMessage());
     e.printStackTrace();
   }
+  requestMap.clear();
+  responseMap.clear();
+  eventResponseMap.clear();
   return true;
 }
