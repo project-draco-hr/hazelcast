@@ -6,13 +6,12 @@
   HazelcastInstance hz2=instances[1];
   HazelcastInstance hz3=instances[2];
   warmUpPartitions(instances);
-  waitAllForSafeState(instances);
   final Address owner=getNode(hz1).getThisAddress();
   int partitionId=getPartitionId(hz1);
-  hz2.getCluster().changeClusterState(ClusterState.FROZEN);
+  changeClusterStateEventually(hz2,ClusterState.FROZEN);
   terminateInstance(hz1);
   assertClusterSizeEventually(2,hz2);
-  hz2.getCluster().changeClusterState(ClusterState.ACTIVE);
+  changeClusterStateEventually(hz2,ClusterState.ACTIVE);
   final InternalPartition partition=getNode(hz2).getPartitionService().getPartition(partitionId);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {

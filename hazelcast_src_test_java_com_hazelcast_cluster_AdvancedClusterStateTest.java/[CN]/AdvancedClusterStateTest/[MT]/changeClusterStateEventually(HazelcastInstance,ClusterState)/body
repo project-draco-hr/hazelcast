@@ -1,0 +1,19 @@
+{
+  final Cluster cluster=hz.getCluster();
+  long timeout=TimeUnit.SECONDS.toMillis(ASSERT_TRUE_EVENTUALLY_TIMEOUT);
+  Throwable t=null;
+  while (timeout > 0 && cluster.getClusterState() != newState) {
+    long start=Clock.currentTimeMillis();
+    try {
+      cluster.changeClusterState(newState);
+      return;
+    }
+ catch (    Throwable e) {
+      t=e;
+    }
+    sleepMillis(100);
+    long end=Clock.currentTimeMillis();
+    timeout-=(end - start);
+  }
+  throw ExceptionUtil.rethrow(t);
+}
