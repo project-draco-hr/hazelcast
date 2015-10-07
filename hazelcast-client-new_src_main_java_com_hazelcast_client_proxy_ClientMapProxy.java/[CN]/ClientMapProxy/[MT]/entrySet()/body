@@ -2,11 +2,11 @@
   ClientMessage request=MapEntrySetCodec.encodeRequest(name);
   ClientMessage response=invoke(request);
   MapEntrySetCodec.ResponseParameters resultParameters=MapEntrySetCodec.decodeResponse(response);
-  Set<Entry<K,V>> entrySet=new HashSet<Entry<K,V>>();
-  for (  Entry<Data,Data> entry : resultParameters.entrySet) {
-    K key=toObject(entry.getKey());
-    V value=toObject(entry.getValue());
-    entrySet.add(new AbstractMap.SimpleEntry<K,V>(key,value));
+  InflatableSet.Builder<Entry<K,V>> setBuilder=InflatableSet.newBuilder(resultParameters.entrySet.size());
+  SerializationService serializationService=getContext().getSerializationService();
+  for (  Entry<Data,Data> row : resultParameters.entrySet) {
+    LazyMapEntry entry=new LazyMapEntry(row.getKey(),row.getValue(),serializationService);
+    setBuilder.add(entry);
   }
-  return entrySet;
+  return setBuilder.build();
 }
