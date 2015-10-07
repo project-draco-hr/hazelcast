@@ -2,17 +2,16 @@
   final String mapName=randomMapName();
   final int size=100;
   final AtomicInteger entryEvictedEventCount=new AtomicInteger(0);
-  final Config cfg=new Config();
-  MapConfig mc=cfg.getMapConfig(mapName);
-  mc.setTimeToLiveSeconds(1);
-  mc.addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
+  Config config=getConfig();
+  MapConfig mapConfig=config.getMapConfig(mapName);
+  mapConfig.setTimeToLiveSeconds(1);
+  mapConfig.addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
     public void entryEvicted(    EntryEvent event){
       entryEvictedEventCount.incrementAndGet();
     }
   }
 ).setLocal(true));
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
-  final HazelcastInstance instance=factory.newHazelcastInstance(cfg);
+  HazelcastInstance instance=createHazelcastInstance(config);
   final IMap map=instance.getMap(mapName);
   for (int i=0; i < size; i++) {
     map.put(i,i);

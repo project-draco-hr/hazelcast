@@ -1,14 +1,13 @@
 {
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(new Config());
-  IMap<String,String> map=h1.getMap(name);
-  final Object[] value=new Object[1];
-  final Object[] oldValue=new Object[1];
+  HazelcastInstance instance=createHazelcastInstance(getConfig());
+  IMap<String,String> map=instance.getMap(randomString());
+  final AtomicReference valueRef=new AtomicReference();
+  final AtomicReference oldValueRef=new AtomicReference();
   final CountDownLatch latch=new CountDownLatch(1);
   map.addEntryListener(new EntryAdapter<String,String>(){
     public void entryRemoved(    EntryEvent<String,String> event){
-      value[0]=event.getValue();
-      oldValue[0]=event.getOldValue();
+      valueRef.set(event.getValue());
+      oldValueRef.set(event.getOldValue());
       latch.countDown();
     }
   }
@@ -16,6 +15,6 @@
   map.put("key","value");
   map.remove("key");
   assertOpenEventually(latch);
-  assertNull(value[0]);
-  assertEquals("value",oldValue[0]);
+  assertNull(valueRef.get());
+  assertEquals("value",oldValueRef.get());
 }
