@@ -1,20 +1,13 @@
 {
-  int sendSyncBackups=0;
+  int sendSyncBackups;
+  int totalBackups=syncBackups + asyncBackups;
   InternalPartitionService partitionService=node.getPartitionService();
   InternalPartition partition=partitionService.getPartition(partitionId);
-  Data backupOpData=getBackupOperationData(backupAwareOp);
-  for (int replicaIndex=1; replicaIndex <= syncBackups + asyncBackups; replicaIndex++) {
-    Address target=partition.getReplicaAddress(replicaIndex);
-    if (target == null) {
-      continue;
-    }
-    assertNoBackupOnPrimaryMember(partition,target);
-    boolean isSyncBackup=replicaIndex <= syncBackups;
-    Backup backup=newBackup(backupAwareOp,backupOpData,replicaVersions,replicaIndex,isSyncBackup);
-    operationService.send(backup,target);
-    if (isSyncBackup) {
-      sendSyncBackups++;
-    }
+  if (totalBackups == 1) {
+    sendSyncBackups=sendSingleBackup(backupAwareOp,partition,replicaVersions,syncBackups);
+  }
+ else {
+    sendSyncBackups=sendMultipleBackups(backupAwareOp,partition,replicaVersions,syncBackups,totalBackups);
   }
   return sendSyncBackups;
 }

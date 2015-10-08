@@ -1,0 +1,19 @@
+{
+  int sendSyncBackups=0;
+  Operation backupOp=getBackupOperation(backupAwareOp);
+  Data backupOpData=nodeEngine.getSerializationService().toData(backupOp);
+  for (int replicaIndex=1; replicaIndex <= totalBackups; replicaIndex++) {
+    Address target=partition.getReplicaAddress(replicaIndex);
+    if (target == null) {
+      continue;
+    }
+    assertNoBackupOnPrimaryMember(partition,target);
+    boolean isSyncBackup=replicaIndex <= syncBackups;
+    Backup backup=newBackup(backupAwareOp,backupOpData,replicaVersions,replicaIndex,isSyncBackup);
+    operationService.send(backup,target);
+    if (isSyncBackup) {
+      sendSyncBackups++;
+    }
+  }
+  return sendSyncBackups;
+}
