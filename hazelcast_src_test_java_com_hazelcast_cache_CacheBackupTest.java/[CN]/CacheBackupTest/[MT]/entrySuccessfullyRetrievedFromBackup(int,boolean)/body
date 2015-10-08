@@ -1,0 +1,42 @@
+{
+  final String KEY="key";
+  final String VALUE="value";
+  final int nodeCount=backupCount + 1;
+  final TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(nodeCount);
+  final HazelcastInstance[] instances=new HazelcastInstance[nodeCount];
+  for (int i=0; i < instances.length; i++) {
+    instances[i]=instanceFactory.newHazelcastInstance();
+  }
+  final HazelcastInstance hz=instances[0];
+  final CachingProvider cachingProvider=HazelcastServerCachingProvider.createCachingProvider(hz);
+  final CacheManager cacheManager=cachingProvider.getCacheManager();
+  final String cacheName=randomName();
+  final CacheConfig cacheConfig=new CacheConfig().setName(cacheName);
+  if (sync) {
+    cacheConfig.setBackupCount(backupCount);
+  }
+ else {
+    cacheConfig.setAsyncBackupCount(backupCount);
+  }
+  final Cache cache=cacheManager.createCache(cacheName,cacheConfig);
+  cache.put(KEY,VALUE);
+  final Node node=getNode(hz);
+  final InternalPartitionService partitionService=node.getPartitionService();
+  final int keyPartitionId=partitionService.getPartitionId(KEY);
+  for (int i=1; i <= backupCount; i++) {
+    final Node backupNode=getNode(instances[i]);
+    final SerializationService serializationService=backupNode.getSerializationService();
+    final ICacheService cacheService=backupNode.getNodeEngine().getService(ICacheService.SERVICE_NAME);
+    if (sync) {
+      checkSavedRecordOnBackup(KEY,VALUE,cacheName,keyPartitionId,serializationService,cacheService);
+    }
+ else {
+      assertTrueEventually(new AssertTask(){
+        @Override public void run() throws Exception {
+          checkSavedRecordOnBackup(KEY,VALUE,cacheName,keyPartitionId,serializationService,cacheService);
+        }
+      }
+);
+    }
+  }
+}
