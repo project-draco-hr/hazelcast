@@ -4,6 +4,7 @@
   Record record=getRecordOrNull(key,now,false);
   mergingEntry=EntryViews.convertToLazyEntryView(mergingEntry,serializationService,mergePolicy);
   Object newValue;
+  Object oldValue=null;
   if (record == null) {
     final Object notExistingKey=mapServiceContext.toObject(key);
     final EntryView nullEntryView=EntryViews.createNullEntryView(notExistingKey);
@@ -18,11 +19,11 @@
     updateSizeEstimator(calculateRecordHeapCost(record));
   }
  else {
-    Object oldValue=record.getValue();
+    oldValue=record.getValue();
     EntryView existingEntry=EntryViews.createLazyEntryView(record.getKey(),record.getValue(),record,serializationService,mergePolicy);
     newValue=mergePolicy.merge(name,mergingEntry,existingEntry);
     if (newValue == null) {
-      removeIndex(key);
+      removeIndex(record);
       mapDataStore.remove(key,now);
       onStore(record);
       updateSizeEstimator(-calculateRecordHeapCost(record));
@@ -41,6 +42,6 @@
     recordFactory.setValue(record,newValue);
     updateSizeEstimator(calculateRecordHeapCost(record));
   }
-  saveIndex(record);
+  saveIndex(record,oldValue);
   return newValue != null;
 }

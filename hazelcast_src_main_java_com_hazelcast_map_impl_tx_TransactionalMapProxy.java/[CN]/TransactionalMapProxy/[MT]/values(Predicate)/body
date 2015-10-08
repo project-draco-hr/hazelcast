@@ -6,6 +6,7 @@
   QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
   List<Object> valueSet=new ArrayList<Object>();
   Set<Object> keyWontBeIncluded=new HashSet<Object>();
+  MapServiceContext mapServiceContext=getService().getMapServiceContext();
   for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
     boolean isRemoved=TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type);
     boolean isUpdated=TxnValueWrapper.Type.UPDATED.equals(entry.getValue().type);
@@ -18,7 +19,7 @@
         keyWontBeIncluded.add(keyObject);
       }
       Object entryValue=entry.getValue().value;
-      QueryEntry queryEntry=new QueryEntry(serializationService,entry.getKey(),keyObject,entryValue);
+      QueryableEntry queryEntry=new CachedQueryEntry(serializationService,entry.getKey(),entryValue);
       if (predicate.apply(queryEntry)) {
         valueSet.add(queryEntry.getValue());
       }
