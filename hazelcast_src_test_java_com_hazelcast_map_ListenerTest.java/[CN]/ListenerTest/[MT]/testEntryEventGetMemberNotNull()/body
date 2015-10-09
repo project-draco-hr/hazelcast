@@ -1,21 +1,22 @@
 {
+  Config config=getConfig();
+  String name=randomString();
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
-  HazelcastInstance h2=nodeFactory.newHazelcastInstance();
-  final String mapName=randomMapName();
-  final IMap<Object,Object> map=h1.getMap(mapName);
-  final IMap<Object,Object> map2=h2.getMap(mapName);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  IMap<String,String> map1=instance1.getMap(name);
+  IMap<String,String> map2=instance2.getMap(name);
   final CountDownLatch latch=new CountDownLatch(1);
-  map.addEntryListener(new EntryAdapter<Object,Object>(){
+  map1.addEntryListener(new EntryAdapter<Object,Object>(){
     @Override public void entryAdded(    EntryEvent<Object,Object> event){
       assertNotNull(event.getMember());
       latch.countDown();
     }
   }
 ,false);
-  final String key=generateKeyOwnedBy(h2);
-  final String value=randomString();
+  String key=generateKeyOwnedBy(instance2);
+  String value=randomString();
   map2.put(key,value);
-  h2.getLifecycleService().shutdown();
+  instance2.getLifecycleService().shutdown();
   assertOpenEventually(latch);
 }

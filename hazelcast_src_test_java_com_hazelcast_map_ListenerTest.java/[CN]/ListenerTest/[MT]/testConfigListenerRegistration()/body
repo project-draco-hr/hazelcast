@@ -1,14 +1,18 @@
 {
-  Config config=new Config();
-  final String name="default";
   final CountDownLatch latch=new CountDownLatch(1);
-  config.getMapConfig(name).addEntryListenerConfig(new EntryListenerConfig().setImplementation(new EntryAdapter(){
+  String name=randomString();
+  Config config=getConfig();
+  MapConfig mapConfig=config.getMapConfig(name);
+  EntryListenerConfig entryListenerConfig=new EntryListenerConfig();
+  entryListenerConfig.setImplementation(new EntryAdapter(){
     public void entryAdded(    EntryEvent event){
       latch.countDown();
     }
   }
-));
-  final HazelcastInstance hz=createHazelcastInstance(config);
-  hz.getMap(name).put(1,1);
+);
+  mapConfig.addEntryListenerConfig(entryListenerConfig);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<Object,Object> map=instance.getMap(name);
+  map.put(1,1);
   assertTrue(latch.await(10,TimeUnit.SECONDS));
 }

@@ -1,19 +1,20 @@
 {
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  final String MAP_A="MAP_A";
-  final String KEY="KEY";
-  final String VAL_2="VAL_2";
-  final HazelcastInstance node1=nodeFactory.newHazelcastInstance();
-  final HazelcastInstance node2=nodeFactory.newHazelcastInstance();
-  final IMap map1=node1.getMap(MAP_A);
-  final IMap map2=node2.getMap(MAP_A);
-  map1.lock(KEY);
-  boolean putResult=map2.tryPut(KEY,VAL_2,2,TimeUnit.SECONDS);
+  Config config=getConfig();
+  final String name=randomString();
+  final String key="KEY";
+  final String val="VAL_2";
+  final HazelcastInstance node1=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance node2=nodeFactory.newHazelcastInstance(config);
+  final IMap map1=node1.getMap(name);
+  final IMap map2=node2.getMap(name);
+  map1.lock(key);
+  boolean putResult=map2.tryPut(key,val,2,TimeUnit.SECONDS);
   Assert.assertFalse("the result of try put should be false as the absent key is locked",putResult);
   assertTrueEventually(new AssertTask(){
     public void run(){
-      Assert.assertEquals("the key should be absent ",null,map1.get(KEY));
-      Assert.assertEquals("the key should be absent ",null,map2.get(KEY));
+      Assert.assertEquals("the key should be absent ",null,map1.get(key));
+      Assert.assertEquals("the key should be absent ",null,map2.get(key));
     }
   }
 );
