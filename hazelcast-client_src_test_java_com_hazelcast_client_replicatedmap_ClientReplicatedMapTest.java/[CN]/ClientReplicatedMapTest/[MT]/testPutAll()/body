@@ -1,0 +1,19 @@
+{
+  HazelcastInstance server=hazelcastFactory.newHazelcastInstance();
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  final ReplicatedMap<String,String> map1=client.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=server.getReplicatedMap("default");
+  final Map<String,String> mapTest=new HashMap<String,String>();
+  for (int i=0; i < 100; i++) {
+    mapTest.put("foo-" + i,"bar");
+  }
+  map1.putAll(mapTest);
+  for (  Entry<String,String> entry : map2.entrySet()) {
+    assertStartsWith("foo-",entry.getKey());
+    assertEquals("bar",entry.getValue());
+  }
+  for (  Entry<String,String> entry : map1.entrySet()) {
+    assertStartsWith("foo-",entry.getKey());
+    assertEquals("bar",entry.getValue());
+  }
+}

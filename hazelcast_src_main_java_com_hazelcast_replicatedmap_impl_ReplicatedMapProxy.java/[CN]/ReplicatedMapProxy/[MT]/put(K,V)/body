@@ -1,3 +1,11 @@
 {
-  return (V)replicatedRecordStore.put(key,value);
+  isNotNull(key,"key must not be null!");
+  isNotNull(value,"value must not be null!");
+  Data dataKey=nodeEngine.toData(key);
+  Data dataValue=nodeEngine.toData(value);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(dataKey);
+  PutOperation putOperation=new PutOperation(getName(),dataKey,dataValue);
+  InternalCompletableFuture<Object> future=getOperationService().invokeOnPartition(getServiceName(),putOperation,partitionId);
+  VersionResponsePair result=(VersionResponsePair)future.getSafely();
+  return nodeEngine.toObject(result.getResponse());
 }

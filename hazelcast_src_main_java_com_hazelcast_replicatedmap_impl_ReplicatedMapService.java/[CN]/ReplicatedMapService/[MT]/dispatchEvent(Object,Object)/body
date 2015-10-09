@@ -1,38 +1,3 @@
 {
-  if (config.isLiteMember()) {
-    final Class<?> eventClazz=event.getClass();
-    nodeEngine.getLogger(ReplicatedMapService.class).warning("Replicated map event ignored by lite member " + eventClazz);
-    return;
-  }
-  if (event instanceof EntryEvent) {
-    EntryEvent entryEvent=(EntryEvent)event;
-    EntryListener entryListener=(EntryListener)listener;
-switch (entryEvent.getEventType()) {
-case ADDED:
-      entryListener.entryAdded(entryEvent);
-    break;
-case EVICTED:
-  entryListener.entryEvicted(entryEvent);
-break;
-case UPDATED:
-entryListener.entryUpdated(entryEvent);
-break;
-case REMOVED:
-entryListener.entryRemoved(entryEvent);
-break;
-default :
-throw new IllegalArgumentException("event type " + entryEvent.getEventType() + " not supported");
-}
-String mapName=((EntryEvent)event).getName();
-if (config.findReplicatedMapConfig(mapName).isStatisticsEnabled()) {
-ReplicatedRecordStore recordStore=replicatedRecordStores.get(mapName);
-if (recordStore instanceof AbstractReplicatedRecordStore) {
-LocalReplicatedMapStatsImpl stats=((AbstractReplicatedRecordStore)recordStore).getReplicatedMapStats();
-stats.incrementReceivedEvents();
-}
-}
-}
- else if (listener instanceof ReplicatedMessageListener) {
-((ReplicatedMessageListener)listener).onMessage((IdentifiedDataSerializable)event);
-}
+  eventPublishingService.dispatchEvent(event,listener);
 }

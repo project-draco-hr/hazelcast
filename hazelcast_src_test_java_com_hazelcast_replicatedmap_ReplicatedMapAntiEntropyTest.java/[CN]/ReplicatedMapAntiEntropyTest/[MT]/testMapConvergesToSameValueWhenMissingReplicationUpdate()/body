@@ -1,0 +1,29 @@
+{
+  Config config=new Config();
+  SerializationConfig serializationConfig=new SerializationConfig();
+  SerializerConfig serializerConfig=new SerializerConfig();
+  serializerConfig.setTypeClassName(PutOperation.class.getName());
+  serializerConfig.setImplementation(new PutOperationWithNoReplicationSerializer());
+  serializationConfig.addSerializerConfig(serializerConfig);
+  config.setSerializationConfig(serializationConfig);
+  System.setProperty("hazelcast.serialization.custom.override","true");
+  String mapName=randomMapName();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  HazelcastInstance instance3=factory.newHazelcastInstance(config);
+  final ReplicatedMap<Object,Object> map1=instance1.getReplicatedMap(mapName);
+  final ReplicatedMap<Object,Object> map2=instance2.getReplicatedMap(mapName);
+  final ReplicatedMap<Object,Object> map3=instance3.getReplicatedMap(mapName);
+  final String key=generateKeyOwnedBy(instance2);
+  final String value=randomString();
+  map1.put(key,value);
+  assertEquals(value,map1.get(key));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(value,map2.get(key));
+      assertEquals(value,map3.get(key));
+    }
+  }
+);
+}

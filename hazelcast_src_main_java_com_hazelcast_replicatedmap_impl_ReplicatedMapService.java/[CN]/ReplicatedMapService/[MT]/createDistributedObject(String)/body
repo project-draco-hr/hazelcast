@@ -1,4 +1,13 @@
 {
-  final ReplicatedRecordStore replicatedRecordStore=getReplicatedRecordStore(objectName,true);
-  return new ReplicatedMapProxy(nodeEngine,(AbstractReplicatedRecordStore)replicatedRecordStore);
+  if (config.isLiteMember()) {
+    throw new ReplicatedMapCantBeCreatedOnLiteMemberException(nodeEngine.getThisAddress());
+  }
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    PartitionContainer partitionContainer=partitionContainers[i];
+    if (partitionContainer == null) {
+      continue;
+    }
+    partitionContainer.getOrCreateRecordStore(objectName);
+  }
+  return new ReplicatedMapProxy(nodeEngine,objectName,this);
 }

@@ -1,0 +1,24 @@
+{
+  HashMap<String,Collection<ReplicatedRecord>> recordMap=new HashMap<String,Collection<ReplicatedRecord>>();
+  Address thisAddress=replicatedMapService.getNodeEngine().getThisAddress();
+  List<Integer> partitions=nodeEngine.getPartitionService().getMemberPartitions(thisAddress);
+  for (  Integer partition : partitions) {
+    PartitionContainer partitionContainer=partitionContainers[partition];
+    ConcurrentMap<String,ReplicatedRecordStore> stores=partitionContainer.getStores();
+    for (    ReplicatedRecordStore store : stores.values()) {
+      String name=store.getName();
+      Collection<ReplicatedRecord> records=recordMap.get(name);
+      if (records == null) {
+        records=new ArrayList<ReplicatedRecord>();
+      }
+      Iterator<ReplicatedRecord> iterator=store.recordIterator();
+      while (iterator.hasNext()) {
+        ReplicatedRecord record=iterator.next();
+        records.add(record);
+      }
+      recordMap.put(name,records);
+      store.reset();
+    }
+  }
+  return new Merger(recordMap);
+}

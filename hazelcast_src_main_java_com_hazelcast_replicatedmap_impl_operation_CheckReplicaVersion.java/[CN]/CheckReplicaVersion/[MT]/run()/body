@@ -1,0 +1,18 @@
+{
+  ReplicatedMapService service=getService();
+  PartitionContainer container=service.getPartitionContainer(getPartitionId());
+  ConcurrentMap<String,ReplicatedRecordStore> stores=container.getStores();
+  for (  Map.Entry<String,Long> entry : versions.entrySet()) {
+    String name=entry.getKey();
+    Long version=entry.getValue();
+    ReplicatedRecordStore store=stores.get(name);
+    if (store == null) {
+      logger.finest("Missing store on the replica ! Owner version -> " + version);
+      requestDataFromOwner(name);
+    }
+ else     if (!version.equals(store.getVersion())) {
+      logger.finest("Version mismatch on the replica ! Owner version ->  " + version + ", Replica version -> "+ store.getVersion());
+      requestDataFromOwner(name);
+    }
+  }
+}

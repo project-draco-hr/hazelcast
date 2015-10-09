@@ -1,0 +1,22 @@
+{
+  LocalReplicatedMapStatsImpl stats=getLocalMapStatsImpl(name);
+  long hits=0;
+  long count=0;
+  for (  PartitionContainer container : partitionContainers) {
+    ReplicatedRecordStore store=container.getRecordStore(name);
+    if (store == null) {
+      continue;
+    }
+    Iterator<ReplicatedRecord> iterator=store.recordIterator();
+    while (iterator.hasNext()) {
+      ReplicatedRecord record=iterator.next();
+      stats.setLastAccessTime(Math.max(stats.getLastAccessTime(),record.getLastAccessTime()));
+      stats.setLastUpdateTime(Math.max(stats.getLastUpdateTime(),record.getUpdateTime()));
+      hits+=record.getHits();
+      count++;
+    }
+  }
+  stats.setOwnedEntryCount(count);
+  stats.setHits(hits);
+  return stats;
+}

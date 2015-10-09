@@ -1,3 +1,16 @@
 {
-  return (V)replicatedRecordStore.put(key,value,ttl,timeUnit);
+  isNotNull(key,"key must not be null!");
+  isNotNull(value,"value must not be null!");
+  isNotNull(timeUnit,"timeUnit");
+  if (ttl < 0) {
+    throw new IllegalArgumentException("ttl must be a positive integer");
+  }
+  long ttlMillis=timeUnit.toMillis(ttl);
+  Data dataKey=nodeEngine.toData(key);
+  Data dataValue=nodeEngine.toData(value);
+  int partitionId=partitionService.getPartitionId(dataKey);
+  PutOperation putOperation=new PutOperation(getName(),dataKey,dataValue,ttlMillis);
+  InternalCompletableFuture<Object> future=getOperationService().invokeOnPartition(getServiceName(),putOperation,partitionId);
+  VersionResponsePair result=(VersionResponsePair)future.getSafely();
+  return nodeEngine.toObject(result.getResponse());
 }

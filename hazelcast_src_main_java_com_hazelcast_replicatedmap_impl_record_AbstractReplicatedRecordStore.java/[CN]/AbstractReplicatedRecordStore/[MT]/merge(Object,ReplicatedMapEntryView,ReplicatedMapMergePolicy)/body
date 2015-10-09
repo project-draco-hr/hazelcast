@@ -1,0 +1,44 @@
+{
+  Object marshalledKey=marshall(key);
+  ReplicatedRecord<K,V> record=storage.get(marshalledKey);
+  Object newValue;
+  if (record == null) {
+    ReplicatedMapEntryView nullEntryView=new ReplicatedMapEntryView(unmarshall(key),null);
+    newValue=policy.merge(getName(),mergingEntry,nullEntryView);
+    if (newValue == null) {
+      return false;
+    }
+    record=buildReplicatedRecord(marshalledKey,newValue,0);
+    storage.put((K)marshalledKey,record);
+    Data dataKey=serializationService.toData(marshalledKey);
+    Data dataValue=serializationService.toData(newValue);
+    VersionResponsePair responsePair=new VersionResponsePair(mergingEntry.getValue(),getVersion());
+    sendReplicationOperation(false,getName(),dataKey,dataValue,record.getTtlMillis(),responsePair);
+  }
+ else {
+    Object oldValue=record.getValueInternal();
+    ReplicatedMapEntryView existingEntry=new ReplicatedMapEntryView(unmarshall(key),unmarshall(oldValue));
+    existingEntry.setCreationTime(record.getCreationTime());
+    existingEntry.setLastUpdateTime(record.getUpdateTime());
+    existingEntry.setLastAccessTime(record.getLastAccessTime());
+    existingEntry.setHits(record.getHits());
+    existingEntry.setTtl(record.getTtlMillis());
+    newValue=policy.merge(getName(),mergingEntry,existingEntry);
+    if (newValue == null) {
+      record.setValue(null,TOMBSTONE_REMOVAL_PERIOD_MS);
+      storage.incrementVersion();
+      scheduleTtlEntry(TOMBSTONE_REMOVAL_PERIOD_MS,(K)marshalledKey,null);
+      Data dataKey=serializationService.toData(marshalledKey);
+      VersionResponsePair responsePair=new VersionResponsePair(mergingEntry.getValue(),getVersion());
+      sendReplicationOperation(true,getName(),dataKey,null,record.getTtlMillis(),responsePair);
+      return false;
+    }
+    storage.incrementVersion();
+    record.setValueInternal((V)newValue,record.getTtlMillis());
+    Data dataKey=serializationService.toData(marshalledKey);
+    Data dataValue=serializationService.toData(newValue);
+    VersionResponsePair responsePair=new VersionResponsePair(mergingEntry.getValue(),getVersion());
+    sendReplicationOperation(false,getName(),dataKey,dataValue,record.getTtlMillis(),responsePair);
+  }
+  return true;
+}

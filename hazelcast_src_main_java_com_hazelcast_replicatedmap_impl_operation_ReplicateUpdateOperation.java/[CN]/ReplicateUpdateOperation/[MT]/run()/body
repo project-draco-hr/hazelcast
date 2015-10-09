@@ -1,0 +1,19 @@
+{
+  ReplicatedMapService service=getService();
+  ReplicatedRecordStore store=service.getReplicatedRecordStore(name,true,getPartitionId());
+  long currentVersion=store.getVersion();
+  long updateVersion=response.getVersion();
+  if (currentVersion >= updateVersion) {
+    logger.finest("Stale update received for replicated map -> " + name + ",  partitionId -> "+ getPartitionId()+ " , current version -> "+ currentVersion+ ", update version -> "+ updateVersion+ ", rejecting update!");
+    return;
+  }
+  Object key=store.marshall(dataKey);
+  Object value=store.marshall(dataValue);
+  if (isRemove) {
+    store.remove(key);
+  }
+ else {
+    store.put(key,value,ttl,TimeUnit.MILLISECONDS,false);
+  }
+  store.setVersion(updateVersion);
+}

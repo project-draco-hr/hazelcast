@@ -1,0 +1,23 @@
+{
+  return new ConstructorFunction<String,ReplicatedRecordStore>(){
+    @Override public ReplicatedRecordStore createNew(    String name){
+      ReplicatedMapConfig replicatedMapConfig=service.getReplicatedMapConfig(name);
+      InMemoryFormat inMemoryFormat=replicatedMapConfig.getInMemoryFormat();
+      AbstractReplicatedRecordStore replicatedRecordStorage=null;
+switch (inMemoryFormat) {
+case OBJECT:
+        replicatedRecordStorage=new ObjectReplicatedRecordStorage(name,service,partitionId);
+      break;
+case BINARY:
+    replicatedRecordStorage=new DataReplicatedRecordStore(name,service,partitionId);
+  break;
+case NATIVE:
+throw new IllegalStateException("Native memory not yet supported for replicated map");
+default :
+throw new IllegalStateException("Unhandled in memory format:" + inMemoryFormat);
+}
+return replicatedRecordStorage;
+}
+}
+;
+}

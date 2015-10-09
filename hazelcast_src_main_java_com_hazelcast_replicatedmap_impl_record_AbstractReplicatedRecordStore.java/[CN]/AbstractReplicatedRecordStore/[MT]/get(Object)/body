@@ -1,15 +1,14 @@
 {
   isNotNull(key,"key");
   long time=Clock.currentTimeMillis();
-  storage.checkState();
-  ReplicatedRecord replicatedRecord=storage.get(marshallKey(key));
+  ReplicatedRecord replicatedRecord=storage.get(marshall(key));
   long ttlMillis=replicatedRecord == null ? 0 : replicatedRecord.getTtlMillis();
   if (ttlMillis > 0 && Clock.currentTimeMillis() - replicatedRecord.getUpdateTime() >= ttlMillis) {
     replicatedRecord=null;
   }
-  Object value=replicatedRecord == null ? null : unmarshallValue(replicatedRecord.getValue());
+  Object value=replicatedRecord == null ? null : unmarshall(replicatedRecord.getValue());
   if (replicatedMapConfig.isStatisticsEnabled()) {
-    mapStats.incrementGets(Clock.currentTimeMillis() - time);
+    getStats().incrementGets(Clock.currentTimeMillis() - time);
   }
   return value;
 }
