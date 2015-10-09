@@ -1,36 +1,18 @@
 {
   AwsConfig awsConfig=new AwsConfig();
-  awsConfig.setRegion(TEST_REGION);
-  awsConfig.setHostHeader(TEST_HOST);
-  awsConfig.setAccessKey(TEST_ACCESS_KEY);
-  awsConfig.setSecretKey(TEST_SECRET_KEY);
+  awsConfig.setRegion(TEST_REGION).setHostHeader(TEST_HOST).setAccessKey(TEST_ACCESS_KEY).setSecretKey(TEST_SECRET_KEY);
   DescribeInstances di=new DescribeInstances(awsConfig,TEST_HOST);
-  try {
-    Field field=null;
-    Map<String,String> attributes=null;
-    field=di.getClass().getDeclaredField("attributes");
-    field.setAccessible(true);
-    attributes=(Map<String,String>)field.get(di);
-    attributes.put("X-Amz-Date",TEST_REQUEST_DATE);
-    field.set(di,attributes);
-  }
- catch (  Exception e) {
-    throw new RuntimeException(e);
-  }
+  Field field=di.getClass().getDeclaredField("attributes");
+  field.setAccessible(true);
+  Map<String,String> attributes=(Map<String,String>)field.get(di);
+  attributes.put("X-Amz-Date",TEST_REQUEST_DATE);
+  field.set(di,attributes);
   EC2RequestSigner rs=new EC2RequestSigner(awsConfig,TEST_REQUEST_DATE,TEST_HOST);
-  byte[] derivedKey=null;
-  try {
-    Field field=null;
-    field=rs.getClass().getDeclaredField("service");
-    field.setAccessible(true);
-    field.set(rs,"ec2");
-    Method method=null;
-    method=rs.getClass().getDeclaredMethod("deriveSigningKey",null);
-    method.setAccessible(true);
-    derivedKey=(byte[])method.invoke(rs);
-  }
- catch (  Exception e) {
-    throw new RuntimeException(e);
-  }
+  field=rs.getClass().getDeclaredField("service");
+  field.setAccessible(true);
+  field.set(rs,"ec2");
+  Method method=rs.getClass().getDeclaredMethod("deriveSigningKey",null);
+  method.setAccessible(true);
+  byte[] derivedKey=(byte[])method.invoke(rs);
   assertEquals(TEST_DERIVED_EXPECTED,bytesToHex(derivedKey));
 }
