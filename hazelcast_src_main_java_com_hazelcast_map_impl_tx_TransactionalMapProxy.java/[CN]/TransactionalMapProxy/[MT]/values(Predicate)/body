@@ -2,8 +2,12 @@
   checkTransactionState();
   checkNotNull(predicate,"Predicate can not be null!");
   checkNotInstanceOf(PagingPredicate.class,predicate,"Paging is not supported for Transactional queries");
+  MapService service=getService();
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  MapQueryEngine queryEngine=mapServiceContext.getMapQueryEngine(name);
   SerializationService serializationService=getNodeEngine().getSerializationService();
-  QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.ENTRY,false);
+  QueryResult result=queryEngine.invokeQueryAllPartitions(name,predicate,IterationType.ENTRY);
+  QueryResultCollection<Map.Entry> queryResult=new QueryResultCollection<Map.Entry>(serializationService,IterationType.ENTRY,false,true,result);
   List<Object> valueSet=new ArrayList<Object>();
   Set<Object> keyWontBeIncluded=new HashSet<Object>();
   for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
@@ -24,6 +28,6 @@
       }
     }
   }
-  removeFromResultSet(queryResultSet,valueSet,keyWontBeIncluded);
+  removeFromResultSet(queryResult,valueSet,keyWontBeIncluded);
   return valueSet;
 }
