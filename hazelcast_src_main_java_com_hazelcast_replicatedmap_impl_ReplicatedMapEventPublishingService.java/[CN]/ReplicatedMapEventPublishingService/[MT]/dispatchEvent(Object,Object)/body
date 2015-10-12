@@ -4,19 +4,17 @@
     nodeEngine.getLogger(ReplicatedMapService.class).warning("Replicated map event ignored by lite member " + eventClazz);
     return;
   }
-  if (!(event instanceof EntryEventData)) {
-    return;
-  }
-  EntryEventData entryEventData=(EntryEventData)event;
-  Member member=getMember(entryEventData);
-  EntryEvent entryEvent=createDataAwareEntryEvent(entryEventData,member);
-  EntryListener entryListener=(EntryListener)listener;
+  if ((event instanceof EntryEventData)) {
+    EntryEventData entryEventData=(EntryEventData)event;
+    Member member=getMember(entryEventData);
+    EntryEvent entryEvent=createDataAwareEntryEvent(entryEventData,member);
+    EntryListener entryListener=(EntryListener)listener;
 switch (entryEvent.getEventType()) {
 case ADDED:
-    entryListener.entryAdded(entryEvent);
-  break;
+      entryListener.entryAdded(entryEvent);
+    break;
 case EVICTED:
-entryListener.entryEvicted(entryEvent);
+  entryListener.entryEvicted(entryEvent);
 break;
 case UPDATED:
 entryListener.entryUpdated(entryEvent);
@@ -40,6 +38,21 @@ ReplicatedRecordStore recordStore=replicatedMapService.getPartitionContainer(par
 if (recordStore instanceof AbstractReplicatedRecordStore) {
 LocalReplicatedMapStatsImpl stats=((AbstractReplicatedRecordStore)recordStore).getStats();
 stats.incrementReceivedEvents();
+}
+}
+}
+ else if (event instanceof MapEventData) {
+MapEventData mapEventData=(MapEventData)event;
+Member member=getMember(mapEventData);
+MapEvent mapEvent=new MapEvent(mapEventData.getMapName(),member,mapEventData.getEventType(),mapEventData.getNumberOfEntries());
+EntryListener entryListener=(EntryListener)listener;
+EntryEventType type=EntryEventType.getByType(mapEventData.getEventType());
+switch (type) {
+case CLEAR_ALL:
+entryListener.mapCleared(mapEvent);
+break;
+default :
+throw new IllegalArgumentException("event type " + type + " not supported");
 }
 }
 }

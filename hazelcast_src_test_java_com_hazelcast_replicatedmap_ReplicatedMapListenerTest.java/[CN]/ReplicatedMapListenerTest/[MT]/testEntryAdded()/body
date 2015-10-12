@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance h1=factory.newHazelcastInstance();
+  HazelcastInstance h2=factory.newHazelcastInstance();
+  String mapName=randomMapName();
+  ReplicatedMap<Object,Object> replicatedMap=h1.getReplicatedMap(mapName);
+  final EventCountingListener listener=new EventCountingListener();
+  replicatedMap.addEntryListener(listener);
+  replicatedMap.put(1,1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      Assert.assertEquals(1,listener.addCount.get());
+    }
+  }
+);
+}
