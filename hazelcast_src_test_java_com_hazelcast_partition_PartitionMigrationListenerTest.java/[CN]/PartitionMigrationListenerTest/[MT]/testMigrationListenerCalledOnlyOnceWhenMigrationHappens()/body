@@ -1,0 +1,14 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  Config config=new Config();
+  int partitionCount=10;
+  config.setProperty(GroupProperties.PROP_PARTITION_COUNT,String.valueOf(partitionCount));
+  HazelcastInstance instance=factory.newHazelcastInstance(config);
+  CountingMigrationListener migrationListener=new CountingMigrationListener(partitionCount);
+  instance.getPartitionService().addMigrationListener(migrationListener);
+  IMap<Object,Object> aDefault=instance.getMap(randomName());
+  aDefault.put(1,1);
+  factory.newHazelcastInstance(config);
+  assertAllLesserOrEquals(migrationListener.migrationStarted,1);
+  assertAllLesserOrEquals(migrationListener.migrationCompleted,1);
+}
