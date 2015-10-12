@@ -1,5 +1,6 @@
 {
   if (!valid) {
+    onExecutionFailure(new IllegalStateException("Wrong target! " + toString() + " cannot be processed!"));
     return;
   }
   NodeEngine nodeEngine=getNodeEngine();
@@ -7,12 +8,7 @@
     backupOp=nodeEngine.getSerializationService().toObject(backupOpData);
   }
   if (backupOp != null) {
-    backupOp.setPartitionId(getPartitionId()).setReplicaIndex(getReplicaIndex());
-    backupOp.setNodeEngine(nodeEngine);
-    backupOp.setCallerUuid(getCallerUuid());
-    OperationAccessor.setCallerAddress(backupOp,getCallerAddress());
-    OperationAccessor.setInvocationTime(backupOp,Clock.currentTimeMillis());
-    backupOp.setOperationResponseHandler(createEmptyResponseHandler());
+    ensureBackupOperationInitialized();
     backupOp.beforeRun();
     backupOp.run();
     backupOp.afterRun();
