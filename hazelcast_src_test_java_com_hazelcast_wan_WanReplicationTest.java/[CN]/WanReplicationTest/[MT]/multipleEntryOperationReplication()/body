@@ -1,0 +1,14 @@
+{
+  setupReplicateFrom(configA,configB,clusterB.length,"atob",PassThroughMergePolicy.class.getName());
+  initClusterA();
+  initClusterB();
+  createDataIn(clusterA,"map",0,1000);
+  assertKeysIn(clusterB,"map",0,1000);
+  Set<Integer> keySet=new HashSet<Integer>();
+  for (int i=0; i < 1000; i++) {
+    keySet.add(i);
+  }
+  IMap map=getNode(clusterA).getMap("map");
+  map.executeOnKeys(keySet,new MyEntryProcessor());
+  assertGivenDataAppliedEventually(clusterB,"map",0,1000,"TEST");
+}

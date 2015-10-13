@@ -1,0 +1,19 @@
+{
+  final MapContainer mapContainer=this.mapContainer;
+  if (!mapContainer.isWanReplicationEnabled()) {
+    return;
+  }
+  final MapEventPublisher mapEventPublisher=mapContainer.getMapServiceContext().getMapEventPublisher();
+  final Data key=dataKey;
+  if (EntryEventType.REMOVED == eventType) {
+    mapEventPublisher.publishWanReplicationRemoveBackup(name,key,getNow());
+  }
+ else {
+    final Record record=recordStore.getRecord(key);
+    if (record != null) {
+      dataValue=mapContainer.getMapServiceContext().toData(dataValue);
+      final EntryView entryView=createSimpleEntryView(key,dataValue,record);
+      mapEventPublisher.publishWanReplicationUpdateBackup(name,entryView);
+    }
+  }
+}
