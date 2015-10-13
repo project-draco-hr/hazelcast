@@ -1,0 +1,20 @@
+{
+  try {
+    final int typeId=in.readInt();
+    final SerializerAdapter serializer=serializerFor(typeId);
+    if (serializer == null) {
+      if (active) {
+        throw new HazelcastSerializationException("There is no suitable de-serializer for type " + typeId);
+      }
+      throw new HazelcastInstanceNotActiveException();
+    }
+    Object obj=serializer.read(in);
+    if (managedContext != null) {
+      obj=managedContext.initialize(obj);
+    }
+    return (T)obj;
+  }
+ catch (  Throwable e) {
+    throw handleException(e);
+  }
+}

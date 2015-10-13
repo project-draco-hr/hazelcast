@@ -1,0 +1,33 @@
+{
+  final ByteBuffer initData=ByteBuffer.wrap("CB2".getBytes());
+  channel.write(initData);
+  String username=GroupConfig.DEFAULT_GROUP_NAME;
+  String pass="TheInvalidPassword";
+  final ClientMessage parameters=ClientAuthenticationCodec.encodeRequest(username,pass,null,null,true,ClientTypes.JAVA,SerializationService.VERSION_1);
+  parameters.setCorrelationId(1).addFlag(ClientMessage.BEGIN_AND_END_FLAGS);
+  final ClientProtocolBuffer byteBuffer=parameters.buffer();
+  channel.write(ByteBuffer.wrap(byteBuffer.byteArray()));
+  final ByteBuffer socketBuffer=ByteBuffer.allocate(4096);
+  ClientMessage clientMessage=ClientMessage.create();
+  do {
+    channel.read(socketBuffer);
+    socketBuffer.flip();
+    clientMessage.readFrom(socketBuffer);
+    if (socketBuffer.hasRemaining()) {
+      socketBuffer.compact();
+    }
+ else {
+      socketBuffer.clear();
+    }
+  }
+ while (!clientMessage.isComplete());
+  assertTrue(clientMessage.isComplete());
+  ClientMessage cmResult=ClientMessage.createForDecode(clientMessage.buffer(),0);
+  ClientAuthenticationCodec.ResponseParameters resultParameters=ClientAuthenticationCodec.decodeResponse(cmResult);
+  assertEquals(cmResult.getCorrelationId(),1);
+  assertEquals(resultParameters.status,1);
+  assertEquals(resultParameters.serializationVersion,1);
+  assertNull(resultParameters.ownerUuid);
+  assertNull(resultParameters.uuid);
+  assertNull(resultParameters.address);
+}

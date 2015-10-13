@@ -1,5 +1,6 @@
 {
   final SerializationService ss=client.getSerializationService();
+  byte serializationVersion=ss.getVersion();
   String uuid=null;
   String ownerUuid=null;
   if (principal != null) {
@@ -9,11 +10,11 @@
   ClientMessage clientMessage;
   if (credentials instanceof UsernamePasswordCredentials) {
     UsernamePasswordCredentials cr=(UsernamePasswordCredentials)credentials;
-    clientMessage=ClientAuthenticationCodec.encodeRequest(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,true,ClientTypes.JAVA);
+    clientMessage=ClientAuthenticationCodec.encodeRequest(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,true,ClientTypes.JAVA,serializationVersion);
   }
  else {
     Data data=ss.toData(credentials);
-    clientMessage=ClientAuthenticationCustomCodec.encodeRequest(data,uuid,ownerUuid,true,ClientTypes.JAVA);
+    clientMessage=ClientAuthenticationCustomCodec.encodeRequest(data,uuid,ownerUuid,true,ClientTypes.JAVA,serializationVersion);
   }
   connection.init();
   ClientMessage response;
@@ -26,6 +27,15 @@
     throw ExceptionUtil.rethrow(e,IOException.class);
   }
   ClientAuthenticationCodec.ResponseParameters result=ClientAuthenticationCodec.decodeResponse(response);
-  connection.setRemoteEndpoint(result.address);
+  AuthenticationStatus authenticationStatus=AuthenticationStatus.getById(result.status);
+switch (authenticationStatus) {
+case AUTHENTICATED:
+    connection.setRemoteEndpoint(result.address);
   principal=new ClientPrincipal(result.uuid,result.ownerUuid);
+return;
+case CREDENTIALS_FAILED:
+throw new AuthenticationException("Invalid credentials!");
+default :
+throw new AuthenticationException("Authentication status code not supported. status:" + authenticationStatus);
+}
 }
