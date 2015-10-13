@@ -1,9 +1,9 @@
 {
   VersionedValue versionedValue=lockAndGet(key,tx.getTimeoutMillis());
-  if (!getService().getMapServiceContext().compare(name,versionedValue.value,value)) {
+  if (!isEquals(versionedValue.value,value)) {
     addUnlockTransactionRecord(key,versionedValue.version);
     return false;
   }
-  tx.add(new MapTransactionLogRecord(name,key,getPartitionId(key),new TxnDeleteOperation(name,key,versionedValue.version),versionedValue.version,tx.getOwnerUuid()));
+  tx.add(new MapTransactionLogRecord(name,key,getPartitionId(key),operationProvider.createTxnDeleteOperation(name,key,versionedValue.version),versionedValue.version,tx.getOwnerUuid()));
   return true;
 }
