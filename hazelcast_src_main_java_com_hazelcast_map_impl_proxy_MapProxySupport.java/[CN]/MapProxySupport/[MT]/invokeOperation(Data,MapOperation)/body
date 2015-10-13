@@ -1,0 +1,22 @@
+{
+  final NodeEngine nodeEngine=getNodeEngine();
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  operation.setThreadId(ThreadUtil.getThreadId());
+  try {
+    Object result;
+    if (statisticsEnabled) {
+      long time=System.currentTimeMillis();
+      Future f=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
+      result=f.get();
+      mapServiceContext.incrementOperationStats(time,localMapStats,name,operation);
+    }
+ else {
+      Future f=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
+      result=f.get();
+    }
+    return result;
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}
