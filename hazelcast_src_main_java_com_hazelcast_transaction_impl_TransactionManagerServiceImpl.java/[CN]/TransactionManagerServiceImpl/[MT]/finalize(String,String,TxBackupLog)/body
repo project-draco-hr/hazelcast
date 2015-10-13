@@ -15,7 +15,13 @@
     waitWithDeadline(futures,timeoutMillis,TimeUnit.MILLISECONDS,finalizeExceptionHandler);
   }
  else {
-    TransactionImpl tx=new TransactionImpl(this,nodeEngine,txnId,log.records,log.timeoutMillis,log.startTime,log.callerUuid);
+    TransactionImpl tx;
+    if (log.allowedDuringPassiveState) {
+      tx=new AllowedDuringPassiveStateTransactionImpl(this,nodeEngine,txnId,log.records,log.timeoutMillis,log.startTime,log.callerUuid);
+    }
+ else {
+      tx=new TransactionImpl(this,nodeEngine,txnId,log.records,log.timeoutMillis,log.startTime,log.callerUuid);
+    }
     if (log.state == COMMITTING) {
       try {
         tx.commit();

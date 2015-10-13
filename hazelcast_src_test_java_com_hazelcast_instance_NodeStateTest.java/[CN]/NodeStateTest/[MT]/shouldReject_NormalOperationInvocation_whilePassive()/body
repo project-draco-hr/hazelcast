@@ -1,0 +1,17 @@
+{
+  InvocationTask task=new InvocationTask(){
+    @Override public void invoke(    NodeEngine nodeEngine) throws Exception {
+      Future<Object> future=nodeEngine.getOperationService().invokeOnPartition(null,new DummyOperation(),1);
+      try {
+        future.get();
+        fail("Invocation should fail while node is passive!");
+      }
+ catch (      ExecutionException e) {
+        Throwable cause=e.getCause();
+        assertTrue("Cause: " + cause,cause instanceof HazelcastInstanceNotActiveException);
+      }
+    }
+  }
+;
+  testInvocation_whilePassive(task);
+}
