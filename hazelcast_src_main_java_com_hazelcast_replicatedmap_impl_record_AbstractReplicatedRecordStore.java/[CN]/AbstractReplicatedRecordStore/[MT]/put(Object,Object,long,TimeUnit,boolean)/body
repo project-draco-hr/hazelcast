@@ -10,21 +10,21 @@
   K marshalledKey=(K)marshall(key);
   V marshalledValue=(V)marshall(value);
   final long ttlMillis=ttl == 0 ? 0 : timeUnit.toMillis(ttl);
-  final ReplicatedRecord old=storage.get(marshalledKey);
+  final ReplicatedRecord old=getStorage().get(marshalledKey);
   ReplicatedRecord<K,V> record=old;
   if (old == null) {
     record=buildReplicatedRecord(marshalledKey,marshalledValue,ttlMillis);
-    storage.put(marshalledKey,record);
+    getStorage().put(marshalledKey,record);
   }
  else {
     oldValue=(V)old.getValueInternal();
     if (incrementHits) {
-      storage.get(marshalledKey).setValue(marshalledValue,ttlMillis);
+      getStorage().get(marshalledKey).setValue(marshalledValue,ttlMillis);
     }
  else {
-      storage.get(marshalledKey).setValueInternal(marshalledValue,ttlMillis);
+      getStorage().get(marshalledKey).setValueInternal(marshalledValue,ttlMillis);
     }
-    storage.incrementVersion();
+    getStorage().incrementVersion();
   }
   if (ttlMillis > 0) {
     scheduleTtlEntry(ttlMillis,marshalledKey,marshalledValue);

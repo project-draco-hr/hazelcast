@@ -3,15 +3,13 @@
   long time=Clock.currentTimeMillis();
   V oldValue;
   K marshalledKey=(K)marshall(key);
-  final ReplicatedRecord current=storage.get(marshalledKey);
+  final ReplicatedRecord current=getStorage().get(marshalledKey);
   if (current == null) {
     oldValue=null;
   }
  else {
     oldValue=(V)current.getValueInternal();
-    if (oldValue != null) {
-      current.setValueInternal(null,0);
-    }
+    getStorage().remove(marshalledKey,current);
   }
   Object unmarshalledOldValue=unmarshall(oldValue);
   fireEntryListenerEvent(key,unmarshalledOldValue,null,EntryEventType.EVICTED);
