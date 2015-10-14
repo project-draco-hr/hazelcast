@@ -4,21 +4,23 @@
   checkNotInstanceOf(PagingPredicate.class,predicate,"Paging is not supported for Transactional queries!");
   MapService service=getService();
   MapServiceContext mapServiceContext=service.getMapServiceContext();
-  SerializationService ss=getNodeEngine().getSerializationService();
-  QueryResultSet queryResultSet=(QueryResultSet)queryInternal(predicate,IterationType.KEY,false);
-  Set<Object> keySet=new HashSet<Object>(queryResultSet);
+  MapQueryEngine queryEngine=mapServiceContext.getMapQueryEngine(name);
+  SerializationService serializationService=getNodeEngine().getSerializationService();
+  QueryResult result=queryEngine.invokeQueryAllPartitions(name,predicate,IterationType.KEY);
+  Set<Object> queryResult=new QueryResultCollection(serializationService,IterationType.KEY,false,true,result);
+  Set<Object> keySet=new HashSet<Object>(queryResult);
   for (  Map.Entry<Data,TxnValueWrapper> entry : txMap.entrySet()) {
     Data keyData=entry.getKey();
     if (!TxnValueWrapper.Type.REMOVED.equals(entry.getValue().type)) {
-      Object value=entry.getValue().value instanceof Data ? mapServiceContext.toObject(entry.getValue().value) : entry.getValue().value;
-      QueryableEntry queryEntry=new CachedQueryEntry(ss,keyData,value);
+      Object value=(entry.getValue().value instanceof Data) ? mapServiceContext.toObject(entry.getValue().value) : entry.getValue().value;
+      QueryableEntry queryEntry=new CachedQueryEntry(serializationService,keyData,value);
       if (predicate.apply(queryEntry)) {
-        Object keyObject=ss.toObject(keyData);
+        Object keyObject=serializationService.toObject(keyData);
         keySet.add(keyObject);
       }
     }
  else {
-      Object keyObject=ss.toObject(keyData);
+      Object keyObject=serializationService.toObject(keyData);
       keySet.remove(keyObject);
     }
   }
