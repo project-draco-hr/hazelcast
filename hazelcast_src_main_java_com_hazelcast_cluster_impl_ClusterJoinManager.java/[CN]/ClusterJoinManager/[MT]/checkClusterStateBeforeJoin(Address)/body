@@ -1,6 +1,13 @@
 {
-  if (clusterStateManager.getState() != ClusterState.ACTIVE) {
-    if (!clusterService.isMemberRemovedInFrozenState(target)) {
+  if (clusterStateManager.getState() == ClusterState.IN_TRANSITION) {
+    String message="Cluster state either is in transition process. Join is not allowed for now -> " + clusterStateManager.stateToString();
+    logger.warning(message);
+    OperationService operationService=nodeEngine.getOperationService();
+    operationService.send(new BeforeJoinCheckFailureOperation(message),target);
+    return true;
+  }
+ else   if (clusterStateManager.getState() != ClusterState.ACTIVE) {
+    if (!clusterService.isMemberRemovedWhileClusterIsNotActive(target)) {
       String message="Cluster state either is locked or doesn't allow new members to join -> " + clusterStateManager.stateToString();
       logger.warning(message);
       OperationService operationService=nodeEngine.getOperationService();

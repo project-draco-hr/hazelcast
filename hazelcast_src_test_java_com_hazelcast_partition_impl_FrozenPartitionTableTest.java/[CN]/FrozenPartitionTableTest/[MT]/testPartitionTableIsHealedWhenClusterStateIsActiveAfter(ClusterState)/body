@@ -1,0 +1,24 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance[] instances=factory.newInstances();
+  warmUpPartitions(instances);
+  changeClusterStateEventually(instances[0],clusterState);
+  List<HazelcastInstance> instancesList=new ArrayList<HazelcastInstance>(Arrays.asList(instances));
+  Collections.shuffle(instancesList);
+  final HazelcastInstance instanceToShutdown=instancesList.remove(0);
+  final Address addressToShutdown=getNode(instanceToShutdown).getThisAddress();
+  instanceToShutdown.shutdown();
+  for (  HazelcastInstance instance : instancesList) {
+    assertClusterSizeEventually(2,instance);
+  }
+  instancesList.get(0).getCluster().changeClusterState(ClusterState.ACTIVE);
+  waitAllForSafeState(instancesList);
+  for (  HazelcastInstance instance : instancesList) {
+    final Map<Integer,List<Address>> partitionTable=getPartitionTable(instance);
+    for (    List<Address> addresses : partitionTable.values()) {
+      for (      Address address : addresses) {
+        assertNotEquals(addressToShutdown,address);
+      }
+    }
+  }
+}

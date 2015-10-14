@@ -5,17 +5,18 @@
   if (!node.isMaster()) {
     return;
   }
-  if (!isMigrationActive()) {
+  if (!isMigrationAllowed()) {
     return;
   }
   lock.lock();
   try {
-    Collection<MemberImpl> members=node.clusterService.getMemberImpls();
+    Collection<MemberImpl> members=getCurrentMembersAndMembersRemovedWhileNotClusterNotActive();
     PartitionRuntimeState partitionState=createPartitionState(members);
     PartitionStateOperation op=new PartitionStateOperation(partitionState);
     OperationService operationService=nodeEngine.getOperationService();
+    final ClusterServiceImpl clusterService=node.clusterService;
     for (    MemberImpl member : members) {
-      if (!member.localMember()) {
+      if (!(member.localMember() || clusterService.isMemberRemovedWhileClusterIsNotActive(member.getAddress()))) {
         try {
           operationService.send(op,member.getAddress());
         }

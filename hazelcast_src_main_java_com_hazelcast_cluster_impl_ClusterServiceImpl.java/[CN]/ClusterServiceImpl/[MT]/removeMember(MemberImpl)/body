@@ -3,19 +3,28 @@
   lock.lock();
   try {
     Map<Address,MemberImpl> members=membersMapRef.get();
-    if (members.containsKey(deadMember.getAddress())) {
+    final Address deadAddress=deadMember.getAddress();
+    if (members.containsKey(deadAddress)) {
       Map<Address,MemberImpl> newMembers=new LinkedHashMap<Address,MemberImpl>(members);
-      newMembers.remove(deadMember.getAddress());
+      newMembers.remove(deadAddress);
       clusterHeartbeatManager.removeMember(deadMember);
       setMembersRef(newMembers);
       if (node.isMaster()) {
         if (logger.isFinestEnabled()) {
           logger.finest(deadMember + " is dead, sending remove to all other members...");
         }
-        invokeMemberRemoveOperation(deadMember.getAddress());
+        invokeMemberRemoveOperation(deadAddress);
       }
-      if (clusterStateManager.getState() == ClusterState.FROZEN) {
-        membersRemovedInFrozenState.put(deadMember.getAddress(),deadMember);
+      final ClusterState clusterState=clusterStateManager.getState();
+      if (clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE) {
+        if (logger.isFinestEnabled()) {
+          logger.info(deadMember + " is dead, added to members left while cluster is " + clusterState+ " state");
+        }
+        Map<Address,MemberImpl> membersRemovedInNotActiveState=new LinkedHashMap<Address,MemberImpl>(membersRemovedInNotActiveStateRef.get());
+        membersRemovedInNotActiveState.put(deadAddress,deadMember);
+        membersRemovedInNotActiveStateRef.set(Collections.unmodifiableMap(membersRemovedInNotActiveState));
+        final InternalPartitionServiceImpl partitionService=node.partitionService;
+        partitionService.cancelReplicaSyncRequestsTo(deadAddress);
       }
  else {
         onMemberRemove(deadMember,newMembers);

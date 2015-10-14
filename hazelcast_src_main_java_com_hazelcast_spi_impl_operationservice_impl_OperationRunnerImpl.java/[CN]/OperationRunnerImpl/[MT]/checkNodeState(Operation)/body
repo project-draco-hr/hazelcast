@@ -1,16 +1,19 @@
 {
-  final NodeState state=node.getState();
-  if (state == NodeState.ACTIVE) {
+  if (node.getState() == NodeState.ACTIVE) {
     return;
   }
+  final NodeState state=node.getState();
   if (state == NodeState.SHUT_DOWN) {
     throw new HazelcastInstanceNotActiveException("This node is shut down! Operation: " + op);
   }
-  if (op instanceof AllowedDuringShutdown) {
+  if (op instanceof AllowedDuringPassiveState) {
     return;
   }
+  if (nodeEngine.getClusterService().getClusterState() == ClusterState.PASSIVE) {
+    throw new IllegalStateException("Cluster is in " + ClusterState.PASSIVE + " state!");
+  }
   if (op.getPartitionId() < 0) {
-    throw new HazelcastInstanceNotActiveException("This node is currently shutting down! Operation: " + op);
+    throw new HazelcastInstanceNotActiveException("This node is currently passive! Operation: " + op);
   }
   throw new RetryableHazelcastException("This node is currently shutting down! Operation: " + op);
 }

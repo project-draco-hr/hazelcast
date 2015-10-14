@@ -1,0 +1,16 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(4);
+  HazelcastInstance[] instances=new HazelcastInstance[3];
+  for (int i=0; i < 3; i++) {
+    instances[i]=factory.newHazelcastInstance();
+  }
+  HazelcastInstance hz1=instances[instances.length - 1];
+  hz1.getCluster().changeClusterState(ClusterState.PASSIVE);
+  HazelcastInstance hz2=instances[0];
+  Address address=getNode(hz2).getThisAddress();
+  hz2.getLifecycleService().terminate();
+  hz2=factory.newHazelcastInstance(address);
+  assertClusterSizeEventually(3,hz1);
+  assertClusterSizeEventually(3,hz2);
+  assertEquals(NodeState.PASSIVE,getNode(hz2).getState());
+}
