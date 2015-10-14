@@ -1,0 +1,18 @@
+{
+  List<Map.Entry<Data,Data>>[] entriesPerPartition=new List[partitionCount];
+  for (  Map.Entry<? extends K,? extends V> entry : map.entrySet()) {
+    K key=entry.getKey();
+    V value=entry.getValue();
+    validateNotNull(key,value);
+    Data keyData=serializationService.toData(key);
+    Data valueData=serializationService.toData(value);
+    int partitionId=partitionService.getPartitionId(keyData);
+    List<Map.Entry<Data,Data>> entries=entriesPerPartition[partitionId];
+    if (entries == null) {
+      entries=new ArrayList<Map.Entry<Data,Data>>();
+      entriesPerPartition[partitionId]=entries;
+    }
+    entries.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(keyData,valueData));
+  }
+  return entriesPerPartition;
+}
