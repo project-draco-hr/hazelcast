@@ -1,0 +1,29 @@
+{
+  ICache<String,String> cache=createCache();
+  String cacheName=cache.getName();
+  Map<String,String> entries=createAndFillEntries();
+  cache.putAll(entries);
+  for (  Map.Entry<String,String> entry : entries.entrySet()) {
+    String key=entry.getKey();
+    String expectedValue=entries.get(key);
+    String actualValue=cache.get(key);
+    assertEquals(expectedValue,actualValue);
+  }
+  Node node=getNode(hazelcastInstance);
+  InternalPartitionService partitionService=node.getPartitionService();
+  SerializationService serializationService=node.getSerializationService();
+  for (  Map.Entry<String,String> entry : entries.entrySet()) {
+    String key=entry.getKey();
+    String expectedValue=entries.get(key);
+    Data keyData=serializationService.toData(key);
+    int keyPartitionId=partitionService.getPartitionId(keyData);
+    for (int i=0; i < INSTANCE_COUNT; i++) {
+      Node n=getNode(hazelcastInstances[i]);
+      ICacheService cacheService=n.getNodeEngine().getService(ICacheService.SERVICE_NAME);
+      ICacheRecordStore recordStore=cacheService.getRecordStore("/hz/" + cacheName,keyPartitionId);
+      assertNotNull(recordStore);
+      String actualValue=serializationService.toObject(recordStore.get(keyData,null));
+      assertEquals(expectedValue,actualValue);
+    }
+  }
+}

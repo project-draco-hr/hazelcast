@@ -1,7 +1,13 @@
 {
   ensureOpen();
   validateNotNull(map);
-  for (  Map.Entry<? extends K,? extends V> entry : map.entrySet()) {
-    put(entry.getKey(),entry.getValue(),expiryPolicy);
+  int partitionCount=partitionService.getPartitionCount();
+  try {
+    List<Future> futures=new ArrayList<Future>(partitionCount);
+    List<Map.Entry<Data,Data>>[] entriesPerPartition=groupDataToPartitions(map,partitionCount);
+    putToAllPartitionsAndWaitForCompletion(entriesPerPartition,futures,expiryPolicy);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }
