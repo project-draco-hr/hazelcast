@@ -1,0 +1,28 @@
+{
+  long now=Clock.currentTimeMillis();
+  MapConfig mapConfig=recordStore.getMapContainer().getMapConfig();
+  boolean backup=isBackup(recordStore);
+  final EvictionPolicy evictionPolicy=mapConfig.getEvictionPolicy();
+  final long[] criterias=createAndPopulateEvictionCriteriaArray(recordStore,evictionPolicy);
+  if (criterias == null) {
+    return;
+  }
+  Arrays.sort(criterias);
+  final int evictableBaseIndex=getEvictionStartIndex(criterias,removalSize);
+  final long criteriaValue=criterias[evictableBaseIndex];
+  int evictedRecordCounter=0;
+  final Iterator<Record> iterator=recordStore.iterator();
+  while (iterator.hasNext()) {
+    Record record=iterator.next();
+    Data key=record.getKey();
+    long value=getEvictionCriteriaValue(record,evictionPolicy);
+    if (value <= criteriaValue) {
+      if (tryEvict(key,record,recordStore,backup,now)) {
+        evictedRecordCounter++;
+      }
+    }
+    if (evictedRecordCounter >= removalSize) {
+      break;
+    }
+  }
+}
