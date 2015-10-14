@@ -1,0 +1,21 @@
+{
+  MapIndexConfig mapIndexConfig=new MapIndexConfig();
+  mapIndexConfig.setAttribute("amount");
+  mapIndexConfig.setOrdered(false);
+  MapConfig mapConfig=new MapConfig().setName("map");
+  mapConfig.addMapIndexConfig(mapIndexConfig);
+  Config config=new Config();
+  config.addMapConfig(mapConfig);
+  Trade trade=new Trade();
+  trade.setCurrency("EUR");
+  trade.setAmount(null);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<Integer,Trade> map=instance.getMap("map");
+  map.put(1,trade);
+  map.remove(1);
+  EntryObject e=new PredicateBuilder().getEntryObject();
+  Predicate predicate=e.get("amount").isNull();
+  Collection<Trade> values=map.values(predicate);
+  assertEquals(0,values.size());
+  assertNull(map.get(1));
+}
