@@ -2,18 +2,18 @@
   this.name=name;
   this.mapConfig=mapConfig;
   this.mapServiceContext=mapServiceContext;
+  NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
   this.partitioningStrategy=createPartitioningStrategy();
   this.quorumName=mapConfig.getQuorumName();
-  this.queryEntryFactory=new QueryEntryFactory(mapConfig.isOptimizeQueries());
-  final NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
   this.serializationService=nodeEngine.getSerializationService();
-  recordFactory=createRecordFactory(nodeEngine);
+  this.recordFactoryConstructor=createRecordFactoryConstructor(serializationService);
+  this.queryEntryFactory=new QueryEntryFactory(mapConfig.isOptimizeQueries());
   initWanReplication(nodeEngine);
-  interceptors=new CopyOnWriteArrayList<MapInterceptor>();
-  interceptorMap=new ConcurrentHashMap<String,MapInterceptor>();
-  nearCacheSizeEstimator=new NearCacheSizeEstimator();
-  mapStoreContext=createMapStoreContext(this);
-  mapStoreContext.start();
-  indexes=new Indexes(serializationService);
+  this.interceptors=new CopyOnWriteArrayList<MapInterceptor>();
+  this.interceptorMap=new ConcurrentHashMap<String,MapInterceptor>();
+  this.nearCacheSizeEstimator=createNearCacheSizeEstimator(mapConfig.getNearCacheConfig());
+  this.mapStoreContext=createMapStoreContext(this);
+  this.mapStoreContext.start();
+  this.indexes=new Indexes(serializationService);
   this.evictor=createEvictor(mapServiceContext);
 }
