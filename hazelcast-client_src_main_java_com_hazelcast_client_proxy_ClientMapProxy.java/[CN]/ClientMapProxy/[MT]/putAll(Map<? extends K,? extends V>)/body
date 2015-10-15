@@ -6,8 +6,7 @@
   for (  Entry<? extends K,? extends V> entry : m.entrySet()) {
     checkNotNull(entry.getKey(),NULL_KEY_IS_NOT_ALLOWED);
     checkNotNull(entry.getValue(),NULL_VALUE_IS_NOT_ALLOWED);
-    final Data keyData=toData(entry.getKey());
-    invalidateNearCache(keyData);
+    Data keyData=toData(entry.getKey());
     int partitionId=partitionService.getPartitionId(keyData);
     MapEntries entries=entriesPerPartition[partitionId];
     if (entries == null) {
@@ -16,19 +15,5 @@
     }
     entries.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(keyData,toData(entry.getValue())));
   }
-  for (int partitionId=0; partitionId < entriesPerPartition.length; partitionId++) {
-    MapEntries entries=entriesPerPartition[partitionId];
-    if (entries != null) {
-      MapPutAllRequest request=new MapPutAllRequest(name,entries,partitionId);
-      futures.add(new ClientInvocation(getClient(),request,partitionId).invoke());
-    }
-  }
-  try {
-    for (    Future<?> future : futures) {
-      future.get();
-    }
-  }
- catch (  Exception e) {
-    ExceptionUtil.rethrow(e);
-  }
+  putAllInternal(futures,entriesPerPartition);
 }

@@ -1,0 +1,16 @@
+{
+  List<Future<?>> futures=new ArrayList<Future<?>>(entryMap.size());
+  for (  final Entry<Integer,Map<Data,Data>> entry : entryMap.entrySet()) {
+    final Integer partitionId=entry.getKey();
+    ClientMessage request=MapPutAllCodec.encodeRequest(name,entry.getValue());
+    futures.add(new ClientInvocation(getClient(),request,partitionId).invoke());
+  }
+  try {
+    for (    Future<?> future : futures) {
+      future.get();
+    }
+  }
+ catch (  Exception e) {
+    ExceptionUtil.rethrow(e);
+  }
+}

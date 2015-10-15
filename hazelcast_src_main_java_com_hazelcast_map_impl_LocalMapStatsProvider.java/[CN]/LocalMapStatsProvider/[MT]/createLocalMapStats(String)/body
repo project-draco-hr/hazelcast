@@ -1,17 +1,14 @@
 {
-  final NodeEngine nodeEngine=this.nodeEngine;
-  final MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
-  final LocalMapStatsImpl localMapStats=getLocalMapStatsImpl(mapName);
+  MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
+  LocalMapStatsImpl stats=getLocalMapStatsImpl(mapName);
   if (!mapContainer.getMapConfig().isStatisticsEnabled()) {
-    return localMapStats;
+    return stats;
   }
-  final int backupCount=mapContainer.getTotalBackupCount();
-  final ClusterService clusterService=nodeEngine.getClusterService();
-  final InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  final Address thisAddress=clusterService.getThisAddress();
-  LocalMapOnDemandCalculatedStats localMapOnDemandCalculatedStats=new LocalMapOnDemandCalculatedStats();
-  localMapOnDemandCalculatedStats.setBackupCount(backupCount);
-  addNearCacheStats(localMapStats,localMapOnDemandCalculatedStats,mapContainer);
+  int backupCount=mapContainer.getTotalBackupCount();
+  Address thisAddress=clusterService.getThisAddress();
+  LocalMapOnDemandCalculatedStats onDemandStats=new LocalMapOnDemandCalculatedStats();
+  onDemandStats.setBackupCount(backupCount);
+  addNearCacheStats(stats,onDemandStats,mapContainer);
   for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
     InternalPartition partition=partitionService.getPartition(partitionId);
     Address owner=partition.getOwnerOrNull();
@@ -19,12 +16,12 @@
       continue;
     }
     if (owner.equals(thisAddress)) {
-      addOwnerPartitionStats(localMapStats,localMapOnDemandCalculatedStats,mapName,partitionId);
+      addOwnerPartitionStats(stats,onDemandStats,mapName,partitionId);
     }
  else {
-      addReplicaPartitionStats(localMapOnDemandCalculatedStats,mapName,partitionId,partition,partitionService,backupCount,thisAddress);
+      addReplicaPartitionStats(onDemandStats,mapName,partitionId,partition,partitionService,backupCount,thisAddress);
     }
   }
-  localMapOnDemandCalculatedStats.copyValuesTo(localMapStats);
-  return localMapStats;
+  onDemandStats.copyValuesTo(stats);
+  return stats;
 }

@@ -1,34 +1,17 @@
 {
-  initNearCache();
-  Set<Data> keySet=new HashSet<Data>(keys.size());
-  Map<K,V> result=new HashMap<K,V>();
+  if (CollectionUtil.isEmpty(keys)) {
+    return emptyMap();
+  }
+  List<Data> keyList=new ArrayList<Data>(keys.size());
   for (  Object key : keys) {
-    keySet.add(toData(key));
+    keyList.add(toData(key));
   }
-  if (nearCache != null) {
-    final Iterator<Data> iterator=keySet.iterator();
-    while (iterator.hasNext()) {
-      Data key=iterator.next();
-      Object cached=nearCache.get(key);
-      if (cached != null && !ClientHeapNearCache.NULL_OBJECT.equals(cached)) {
-        result.put((K)toObject(key),(V)cached);
-        iterator.remove();
-      }
-    }
-  }
-  if (keySet.isEmpty()) {
-    return result;
-  }
-  ClientMessage request=MapGetAllCodec.encodeRequest(name,keySet);
-  ClientMessage response=invoke(request);
-  MapGetAllCodec.ResponseParameters resultParameters=MapGetAllCodec.decodeResponse(response);
+  Map<K,V> result=new HashMap<K,V>();
+  MapGetAllCodec.ResponseParameters resultParameters=getAllInternal(keyList,result);
   for (  Entry<Data,Data> entry : resultParameters.entrySet) {
-    final V value=toObject(entry.getValue());
-    final K key=toObject(entry.getKey());
+    V value=toObject(entry.getValue());
+    K key=toObject(entry.getKey());
     result.put(key,value);
-    if (nearCache != null) {
-      nearCache.put(entry.getKey(),value);
-    }
   }
   return result;
 }
