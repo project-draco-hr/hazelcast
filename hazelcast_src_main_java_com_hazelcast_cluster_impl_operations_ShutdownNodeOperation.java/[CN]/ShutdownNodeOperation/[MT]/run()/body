@@ -1,0 +1,23 @@
+{
+  final ClusterServiceImpl clusterService=getService();
+  final ILogger logger=getLogger();
+  final ClusterState clusterState=clusterService.getClusterState();
+  if (clusterState == ClusterState.PASSIVE) {
+    final NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
+    if (nodeEngine.isRunning()) {
+      logger.info("Shutting down node in cluster passive state. Requested by: " + getCallerAddress());
+      new Thread(new Runnable(){
+        @Override public void run(){
+          nodeEngine.getNode().shutdown(false);
+        }
+      }
+).start();
+    }
+ else {
+      logger.info("Node is already shutting down. NodeState: " + nodeEngine.getNode().getState());
+    }
+  }
+ else {
+    logger.severe("Can not shut down node because cluster is in " + clusterState + " state. Requested by: "+ getCallerAddress());
+  }
+}
