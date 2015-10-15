@@ -11,8 +11,10 @@
     oldValue=(V)current.getValueInternal();
     getStorage().remove(marshalledKey,current);
   }
-  Object unmarshalledOldValue=unmarshall(oldValue);
-  fireEntryListenerEvent(key,unmarshalledOldValue,null,EntryEventType.EVICTED);
+  Data dataKey=nodeEngine.toData(key);
+  Data dataOldValue=nodeEngine.toData(oldValue);
+  ReplicatedMapEventPublishingService eventPublishingService=replicatedMapService.getEventPublishingService();
+  eventPublishingService.fireEntryListenerEvent(dataKey,dataOldValue,null,EVICTED,name,nodeEngine.getThisAddress());
   if (replicatedMapConfig.isStatisticsEnabled()) {
     getStats().incrementRemoves(Clock.currentTimeMillis() - time);
   }
