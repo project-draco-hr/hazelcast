@@ -1,14 +1,26 @@
 {
+  ClusterState clusterState=node.getClusterService().getClusterState();
+  if (clusterState != ClusterState.ACTIVE) {
+    logger.warning("Partitions can't be assigned since cluster-state= " + clusterState);
+    return false;
+  }
   PartitionStateGenerator psg=partitionStateGenerator;
   Collection<MemberGroup> memberGroups=createMemberGroups();
   if (memberGroups.isEmpty()) {
     logger.warning("No member group is available to assign partition ownership...");
-    return true;
+    return false;
   }
   logger.info("Initializing cluster partition table first arrangement...");
   Address[][] newState=psg.initialize(memberGroups,partitionCount);
   if (newState.length != partitionCount) {
     throw new HazelcastException("Invalid partition count! " + "Expected: " + partitionCount + ", Actual: "+ newState.length);
+  }
+  stateVersion.incrementAndGet();
+  clusterState=node.getClusterService().getClusterState();
+  if (clusterState != ClusterState.ACTIVE) {
+    stateVersion.decrementAndGet();
+    logger.warning("Partitions can't be assigned since cluster-state= " + clusterState);
+    return false;
   }
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     InternalPartitionImpl partition=partitions[partitionId];
@@ -16,5 +28,5 @@
     partition.setReplicaAddresses(replicas);
   }
   initialized=true;
-  return false;
+  return true;
 }

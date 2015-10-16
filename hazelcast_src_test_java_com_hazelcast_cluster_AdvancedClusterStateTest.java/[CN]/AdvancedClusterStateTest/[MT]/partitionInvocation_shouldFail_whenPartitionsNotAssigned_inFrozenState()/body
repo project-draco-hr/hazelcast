@@ -1,0 +1,19 @@
+{
+  Config config=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance[] instances=factory.newInstances(config);
+  HazelcastInstance hz1=instances[0];
+  HazelcastInstance hz2=instances[1];
+  HazelcastInstance hz3=instances[2];
+  hz2.getCluster().changeClusterState(ClusterState.FROZEN);
+  InternalOperationService operationService=getNode(hz3).getNodeEngine().getOperationService();
+  Operation op=new AddAndGetOperation(randomName(),1);
+  Future<Long> future=operationService.invokeOnPartition(AtomicLongService.SERVICE_NAME,op,1);
+  try {
+    future.get();
+    fail("Partition invocation must fail, because partitions cannot be assigned!");
+  }
+ catch (  ExecutionException e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}
