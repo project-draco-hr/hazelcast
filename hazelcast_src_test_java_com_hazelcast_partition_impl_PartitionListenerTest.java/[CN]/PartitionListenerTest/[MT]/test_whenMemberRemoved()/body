@@ -1,0 +1,18 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  InternalPartitionServiceImpl partitionService=getNode(hz2).partitionService;
+  final int partitionCount=partitionService.getPartitionCount();
+  warmUpPartitionsAndDrainEvents(hz2,partitionCount * 2);
+  final AtomicInteger count=addEventCountingPartitionListener(partitionService);
+  hz1.getLifecycleService().terminate();
+  assertClusterSizeEventually(1,hz2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      int currentCount=count.get();
+      assertTrue("Expecting events equal or greater than partition-count! Count: " + currentCount,currentCount >= partitionCount);
+    }
+  }
+);
+}

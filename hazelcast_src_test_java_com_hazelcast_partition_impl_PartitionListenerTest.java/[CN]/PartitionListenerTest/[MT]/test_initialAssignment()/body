@@ -1,0 +1,11 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  factory.newHazelcastInstance();
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  InternalPartitionServiceImpl partitionService=getNode(hz).partitionService;
+  final int partitionCount=partitionService.getPartitionCount();
+  final AtomicInteger count=addEventCountingPartitionListener(partitionService);
+  warmUpPartitions(hz);
+  final int expectedEventCount=2 * partitionCount;
+  assertPartitionEventsEventually(expectedEventCount,count);
+}
