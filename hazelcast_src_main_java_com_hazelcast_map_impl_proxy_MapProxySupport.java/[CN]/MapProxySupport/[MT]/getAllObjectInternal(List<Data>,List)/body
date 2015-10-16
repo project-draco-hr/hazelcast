@@ -1,0 +1,26 @@
+{
+  if (keys == null || keys.isEmpty()) {
+    return;
+  }
+  if (keys.isEmpty()) {
+    return;
+  }
+  Collection<Integer> partitions=getPartitionsForKeys(keys);
+  Map<Integer,Object> responses;
+  try {
+    OperationFactory operationFactory=operationProvider.createGetAllOperationFactory(name,keys);
+    responses=operationService.invokeOnPartitions(SERVICE_NAME,operationFactory,partitions);
+    for (    Object response : responses.values()) {
+      MapEntries entries=((MapEntries)toObject(response));
+      for (      Entry<Data,Data> entry : entries) {
+        Data key=entry.getKey();
+        Data value=entry.getValue();
+        resultingKeyValuePairs.add(toObject(key));
+        resultingKeyValuePairs.add(toObject(value));
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

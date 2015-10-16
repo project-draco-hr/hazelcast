@@ -1,23 +1,21 @@
 {
-  long heapCost=0;
   long backupEntryCount=0;
   long backupEntryMemoryCost=0;
   for (int replica=1; replica <= backupCount; replica++) {
-    final Address replicaAddress=getReplicaAddress(replica,partition,partitionService,backupCount);
-    if (notGotReplicaAddress(replicaAddress,partitionService,backupCount)) {
+    Address replicaAddress=getReplicaAddress(replica,partition,partitionService,backupCount);
+    if (!isReplicaAvailable(replicaAddress,partitionService,backupCount)) {
       printWarning(partition,replica);
       continue;
     }
-    if (gotReplicaAddress(replicaAddress,thisAddress)) {
+    if (isReplicaOnThisNode(replicaAddress,thisAddress)) {
       RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
       if (hasRecords(recordStore)) {
-        heapCost+=recordStore.getHeapCost();
+        backupEntryMemoryCost+=recordStore.getHeapCost();
         backupEntryCount+=recordStore.size();
-        backupEntryMemoryCost+=getMemoryCost(recordStore);
       }
     }
   }
-  localMapOnDemandCalculatedStats.incrementHeapCost(heapCost);
-  localMapOnDemandCalculatedStats.incrementBackupEntryCount(backupEntryCount);
-  localMapOnDemandCalculatedStats.incrementBackupEntryMemoryCost(backupEntryMemoryCost);
+  onDemandStats.incrementHeapCost(backupEntryMemoryCost);
+  onDemandStats.incrementBackupEntryMemoryCost(backupEntryMemoryCost);
+  onDemandStats.incrementBackupEntryCount(backupEntryCount);
 }

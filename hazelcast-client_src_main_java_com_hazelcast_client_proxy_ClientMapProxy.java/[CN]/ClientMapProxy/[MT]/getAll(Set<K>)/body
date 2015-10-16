@@ -1,33 +1,12 @@
 {
-  initNearCache();
-  Set<Data> keySet=new HashSet<Data>(keys.size());
-  Map<K,V> result=new HashMap<K,V>();
+  if (CollectionUtil.isEmpty(keys)) {
+    return Collections.emptyMap();
+  }
+  List<Data> keySet=new ArrayList<Data>(keys.size());
   for (  Object key : keys) {
     keySet.add(toData(key));
   }
-  if (nearCache != null) {
-    final Iterator<Data> iterator=keySet.iterator();
-    while (iterator.hasNext()) {
-      Data key=iterator.next();
-      Object cached=nearCache.get(key);
-      if (cached != null && !ClientHeapNearCache.NULL_OBJECT.equals(cached)) {
-        result.put((K)toObject(key),(V)cached);
-        iterator.remove();
-      }
-    }
-  }
-  if (keySet.isEmpty()) {
-    return result;
-  }
-  MapGetAllRequest request=new MapGetAllRequest(name,keySet);
-  MapEntries mapEntries=invoke(request);
-  for (  Entry<Data,Data> dataEntry : mapEntries) {
-    final V value=toObject(dataEntry.getValue());
-    final K key=toObject(dataEntry.getKey());
-    result.put(key,value);
-    if (nearCache != null) {
-      nearCache.put(dataEntry.getKey(),value);
-    }
-  }
+  Map<K,V> result=new HashMap<K,V>();
+  getAllInternal(keySet,result);
   return result;
 }

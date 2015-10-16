@@ -1,0 +1,16 @@
+{
+  Object cached=nearCache.get(keyData);
+  if (cached != null && NULL_OBJECT != cached) {
+    return new CompletedFuture<V>(getContext().getSerializationService(),cached,getContext().getExecutionService().getAsyncExecutor());
+  }
+  ICompletableFuture<V> future=super.getAsyncInternal(keyData);
+  ((ClientDelegatingFuture)future).andThenInternal(new ExecutionCallback<Data>(){
+    @Override public void onResponse(    Data response){
+      nearCache.put(keyData,response);
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+);
+  return future;
+}
