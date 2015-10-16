@@ -2,6 +2,8 @@
   LocalReplicatedMapStatsImpl stats=getLocalMapStatsImpl(name);
   long hits=0;
   long count=0;
+  long memoryUsage=0;
+  boolean isBinary=(getReplicatedMapConfig(name).getInMemoryFormat() == InMemoryFormat.BINARY);
   for (  PartitionContainer container : partitionContainers) {
     ReplicatedRecordStore store=container.getRecordStore(name);
     if (store == null) {
@@ -13,10 +15,14 @@
       stats.setLastAccessTime(Math.max(stats.getLastAccessTime(),record.getLastAccessTime()));
       stats.setLastUpdateTime(Math.max(stats.getLastUpdateTime(),record.getUpdateTime()));
       hits+=record.getHits();
+      if (isBinary) {
+        memoryUsage+=((HeapData)record.getValueInternal()).getHeapCost();
+      }
       count++;
     }
   }
   stats.setOwnedEntryCount(count);
   stats.setHits(hits);
+  stats.setOwnedEntryMemoryCost(memoryUsage);
   return stats;
 }
