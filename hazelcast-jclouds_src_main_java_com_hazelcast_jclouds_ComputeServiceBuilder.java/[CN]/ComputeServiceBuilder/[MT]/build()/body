@@ -4,7 +4,6 @@
   String credential=getOrNull(JCloudsProperties.CREDENTIAL);
   final String credentialPath=getOrNull(JCloudsProperties.CREDENTIAL_PATH);
   checkNotNull(cloudProvider,"Cloud provider is not set");
-  checkNotNull(identity,"Cloud provider identity is not set");
   if (credential != null && credentialPath != null) {
     throw new UnsupportedOperationException("Both credential and credentialPath are set. Use only one method.");
   }
@@ -14,10 +13,11 @@
   if (LOGGER.isFinestEnabled()) {
     LOGGER.finest("Using CLOUD_PROVIDER: " + cloudProvider);
   }
-  ContextBuilder contextBuilder=newContextBuilder(cloudProvider);
+  final String roleName=getOrNull(JCloudsProperties.ROLE_NAME);
+  ContextBuilder contextBuilder=newContextBuilder(cloudProvider,identity,credential,roleName);
   Properties jcloudsProperties=buildRegionZonesConfig();
   buildTagConfig();
   buildNodeFilter();
-  computeService=contextBuilder.overrides(jcloudsProperties).credentials(identity,credential).buildView(ComputeServiceContext.class).getComputeService();
+  computeService=contextBuilder.overrides(jcloudsProperties).buildView(ComputeServiceContext.class).getComputeService();
   return computeService;
 }
