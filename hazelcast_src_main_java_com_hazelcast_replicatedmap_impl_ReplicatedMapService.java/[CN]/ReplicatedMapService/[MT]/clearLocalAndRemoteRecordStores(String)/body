@@ -2,23 +2,10 @@
   Operation operation=new ClearLocalOperation(name);
   InternalCompletableFuture<Object> result=operationService.invokeOnTarget(SERVICE_NAME,operation,nodeEngine.getThisAddress());
   Integer deletedEntrySize=(Integer)result.getSafely();
-  Collection<Address> failedMembers=getMemberAddresses(DATA_MEMBER_SELECTOR);
-  for (int i=0; i < MAX_CLEAR_EXECUTION_RETRY; i++) {
-    Map<Address,InternalCompletableFuture> futures=executeClearOnMembers(failedMembers,name);
-    failedMembers.clear();
-    for (    Map.Entry<Address,InternalCompletableFuture> future : futures.entrySet()) {
-      try {
-        future.getValue().get();
-      }
- catch (      Exception e) {
-        nodeEngine.getLogger(ReplicatedMapService.class).finest(e);
-        failedMembers.add(future.getKey());
-      }
-    }
-    if (failedMembers.size() == 0) {
-      eventPublishingService.fireMapClearedEvent(deletedEntrySize,name);
-      return;
-    }
+  Collection<Address> memberAddresses=getMemberAddresses(DATA_MEMBER_SELECTOR);
+  Map<Address,InternalCompletableFuture> futures=executeClearOnMembers(memberAddresses,name);
+  for (  Map.Entry<Address,InternalCompletableFuture> future : futures.entrySet()) {
+    future.getValue().getSafely();
   }
-  throw new OperationTimeoutException("Clear operation couldn't be finished, failed nodes: " + failedMembers);
+  eventPublishingService.fireMapClearedEvent(deletedEntrySize,name);
 }

@@ -9,8 +9,10 @@
     if (partitionId != partitionService.getPartitionId(key)) {
       continue;
     }
-    Object putResponse=store.put(key,value);
-    VersionResponsePair response=new VersionResponsePair(putResponse,store.getVersion());
+    Object putResult=store.put(key,value);
+    Data oldValue=getNodeEngine().toData(putResult);
+    publishEvent(key,value,oldValue);
+    VersionResponsePair response=new VersionResponsePair(putResult,store.getVersion());
     publishReplicationMessage(key,value,response);
   }
 }

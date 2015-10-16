@@ -1,11 +1,20 @@
 {
   logger.finest("Carrying " + recordSet.size() + " records for partition -> "+ getPartitionId()+ " from -> "+ getCallerAddress()+ ", to -> "+ getNodeEngine().getThisAddress());
   ReplicatedMapService service=getService();
-  ReplicatedRecordStore store=service.getReplicatedRecordStore(name,true,getPartitionId());
-  store.clear();
+  AbstractReplicatedRecordStore store=(AbstractReplicatedRecordStore)service.getReplicatedRecordStore(name,true,getPartitionId());
+  InternalReplicatedMapStorage<K,V> newStorage=new InternalReplicatedMapStorage<K,V>();
   for (  RecordMigrationInfo record : recordSet) {
-    store.putRecord(record);
+    K key=(K)store.marshall(record.getKey());
+    V value=(V)store.marshall(record.getValue());
+    ReplicatedRecord<K,V> replicatedRecord=buildReplicatedRecord(key,value,record.getTtl());
+    ReplicatedRecord oldRecord=store.getReplicatedRecord(key);
+    if (oldRecord != null) {
+      replicatedRecord.setHits(oldRecord.getHits());
+    }
+    newStorage.putInternal(key,replicatedRecord);
   }
-  store.setVersion(version);
+  newStorage.setVersion(version);
+  AtomicReference<InternalReplicatedMapStorage<K,V>> storageRef=store.getStorageRef();
+  storageRef.set(newStorage);
   store.setLoaded(true);
 }

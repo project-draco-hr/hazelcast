@@ -1,0 +1,14 @@
+{
+  Collection<EventRegistration> registrations=eventService.getRegistrations(SERVICE_NAME,name);
+  if (registrations.isEmpty()) {
+    return;
+  }
+  EntryEventData eventData=new EntryEventData(name,name,caller,key,value,oldValue,eventType.getType());
+  for (  EventRegistration registration : registrations) {
+    EventFilter filter=registration.getFilter();
+    boolean publish=filter == null || filter.eval(key);
+    if (publish) {
+      eventService.publishEvent(SERVICE_NAME,registration,eventData,key.hashCode());
+    }
+  }
+}
