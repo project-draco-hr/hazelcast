@@ -1,6 +1,10 @@
 {
   Address owner;
   while ((owner=getPartitionOwner(partitionId)) == null) {
+    ClusterState clusterState=node.getClusterService().getClusterState();
+    if (clusterState != ClusterState.ACTIVE) {
+      throw new IllegalStateException("Partitions can't be assigned since cluster-state: " + clusterState);
+    }
     if (isClusterFormedByOnlyLiteMembers()) {
       throw new NoDataMemberInClusterException("Partitions can't be assigned since all nodes in the cluster are lite members");
     }
