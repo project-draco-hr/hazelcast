@@ -1,0 +1,19 @@
+{
+  ClientMessage request=registrationKey.getRequest();
+  EventHandler handler=registrationKey.getHandler();
+  handler.beforeListenerRegister();
+  ClientInvocation invocation=new ClientInvocation(client,request,address);
+  invocation.setEventHandler(handler);
+  ListenerMessageCodec codec=registrationKey.getCodec();
+  try {
+    ClientInvocationFuture future=invocation.invoke();
+    String serverRegistrationId=codec.decodeAddResponse(future.get());
+    handler.onListenerRegister();
+    int correlationId=request.getCorrelationId();
+    ClientEventRegistration registration=new ClientEventRegistration(serverRegistrationId,correlationId,address,codec);
+    registerListener(registrationKey,registration);
+  }
+ catch (  Exception e) {
+    EmptyStatement.ignore(e);
+  }
+}

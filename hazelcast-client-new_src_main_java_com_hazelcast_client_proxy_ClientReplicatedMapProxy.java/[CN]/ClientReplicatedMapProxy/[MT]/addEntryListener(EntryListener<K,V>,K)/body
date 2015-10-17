@@ -1,13 +1,6 @@
 {
   checkNotNull(key,NULL_KEY_IS_NOT_ALLOWED);
-  Data keyData=toData(key);
-  ClientMessage request=ReplicatedMapAddEntryListenerToKeyCodec.encodeRequest(name,keyData);
+  final Data keyData=toData(key);
   EventHandler<ClientMessage> handler=createHandler(listener);
-  ClientMessageDecoder responseDecoder=new ClientMessageDecoder(){
-    @Override public <T>T decodeClientMessage(    ClientMessage clientMessage){
-      return (T)ReplicatedMapAddEntryListenerToKeyCodec.decodeResponse(clientMessage).response;
-    }
-  }
-;
-  return listen(request,handler,responseDecoder);
+  return registerListener(createEntryListenerToKeyCodec(keyData),handler);
 }

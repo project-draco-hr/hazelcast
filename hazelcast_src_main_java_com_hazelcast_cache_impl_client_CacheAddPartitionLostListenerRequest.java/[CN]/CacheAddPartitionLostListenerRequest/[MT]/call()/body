@@ -1,19 +1,25 @@
 {
   final ClientEndpoint endpoint=getEndpoint();
-  final CachePartitionLostListener listener=new CachePartitionLostListener(){
+  CachePartitionLostListener listener=new CachePartitionLostListener(){
     @Override public void partitionLost(    CachePartitionLostEvent event){
       if (endpoint.isAlive()) {
-        final PortableCachePartitionLostEvent portableEvent=new PortableCachePartitionLostEvent(event.getPartitionId(),event.getMember().getUuid());
+        PortableCachePartitionLostEvent portableEvent=new PortableCachePartitionLostEvent(event.getPartitionId(),event.getMember().getUuid());
         endpoint.sendEvent(null,portableEvent,getCallId());
       }
     }
   }
 ;
-  final InternalCachePartitionLostListenerAdapter listenerAdapter=new InternalCachePartitionLostListenerAdapter(listener);
-  final EventFilter filter=new CachePartitionLostEventFilter();
-  final ICacheService service=getService();
-  final EventRegistration registration=service.getNodeEngine().getEventService().registerListener(ICacheService.SERVICE_NAME,name,filter,listenerAdapter);
-  final String registrationId=registration.getId();
+  InternalCachePartitionLostListenerAdapter listenerAdapter=new InternalCachePartitionLostListenerAdapter(listener);
+  ICacheService service=getService();
+  EventService eventService=service.getNodeEngine().getEventService();
+  EventRegistration registration;
+  if (localOnly) {
+    registration=eventService.registerLocalListener(ICacheService.SERVICE_NAME,name,EVENT_FILTER,listenerAdapter);
+  }
+ else {
+    registration=eventService.registerListener(ICacheService.SERVICE_NAME,name,EVENT_FILTER,listenerAdapter);
+  }
+  String registrationId=registration.getId();
   endpoint.addListenerDestroyAction(ICacheService.SERVICE_NAME,name,registrationId);
   return registrationId;
 }
