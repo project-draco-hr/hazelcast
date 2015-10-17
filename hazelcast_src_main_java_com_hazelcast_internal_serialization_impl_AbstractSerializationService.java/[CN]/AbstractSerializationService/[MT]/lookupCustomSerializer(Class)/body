@@ -1,0 +1,26 @@
+{
+  SerializerAdapter serializer=typeMap.get(type);
+  if (serializer != null) {
+    return serializer;
+  }
+  Class typeSuperclass=type.getSuperclass();
+  final Set<Class> interfaces=new LinkedHashSet<Class>(5);
+  getInterfaces(type,interfaces);
+  while (typeSuperclass != null) {
+    serializer=registerFromSuperType(type,typeSuperclass);
+    if (serializer != null) {
+      break;
+    }
+    getInterfaces(typeSuperclass,interfaces);
+    typeSuperclass=typeSuperclass.getSuperclass();
+  }
+  if (serializer == null) {
+    for (    Class typeInterface : interfaces) {
+      serializer=registerFromSuperType(type,typeInterface);
+      if (serializer != null) {
+        break;
+      }
+    }
+  }
+  return serializer;
+}

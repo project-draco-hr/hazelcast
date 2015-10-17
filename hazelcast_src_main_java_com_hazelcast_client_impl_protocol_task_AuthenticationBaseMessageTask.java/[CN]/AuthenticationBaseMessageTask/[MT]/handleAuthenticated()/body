@@ -15,7 +15,8 @@
   }
   boolean isNotMember=clientEngine.getClusterService().getMember(principal.getOwnerUuid()) == null;
   if (isNotMember) {
-    throw new AuthenticationException("Invalid owner-uuid: " + principal.getOwnerUuid() + ", it's not member of this cluster!");
+    byte status=AuthenticationStatus.CREDENTIALS_FAILED.getId();
+    return encodeAuth(status,null,null,null,serializationService.getVersion());
   }
   Connection connection=endpoint.getConnection();
   ILogger logger=clientEngine.getLogger(getClass());
@@ -25,5 +26,6 @@
   endpointManager.registerEndpoint(endpoint);
   clientEngine.bind(endpoint);
   final Address thisAddress=clientEngine.getThisAddress();
-  return encodeAuth(thisAddress,principal.getUuid(),principal.getOwnerUuid());
+  byte status=AuthenticationStatus.AUTHENTICATED.getId();
+  return encodeAuth(status,thisAddress,principal.getUuid(),principal.getOwnerUuid(),serializationService.getVersion());
 }
