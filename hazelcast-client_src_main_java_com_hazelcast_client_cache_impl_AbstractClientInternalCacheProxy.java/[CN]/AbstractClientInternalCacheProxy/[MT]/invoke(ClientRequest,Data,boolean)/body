@@ -1,29 +1,4 @@
 {
-  Integer completionId=null;
-  if (completionOperation) {
-    completionId=registerCompletionLatch(1);
-    if (req instanceof AbstractCacheRequest) {
-      ((AbstractCacheRequest)req).setCompletionId(completionId);
-    }
-  }
-  try {
-    int partitionId=clientContext.getPartitionService().getPartitionId(keyData);
-    HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
-    final ClientInvocation clientInvocation=new ClientInvocation(client,req,partitionId);
-    final ClientInvocationFuture<T> f=clientInvocation.invoke();
-    f.setResponseDeserialized(true);
-    if (completionOperation) {
-      waitCompletionLatch(completionId,f);
-    }
-    return f;
-  }
- catch (  Throwable e) {
-    if (e instanceof IllegalStateException) {
-      close();
-    }
-    if (completionOperation) {
-      deregisterCompletionLatch(completionId);
-    }
-    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
-  }
+  int partitionId=clientContext.getPartitionService().getPartitionId(keyData);
+  return invoke(req,partitionId,completionOperation);
 }

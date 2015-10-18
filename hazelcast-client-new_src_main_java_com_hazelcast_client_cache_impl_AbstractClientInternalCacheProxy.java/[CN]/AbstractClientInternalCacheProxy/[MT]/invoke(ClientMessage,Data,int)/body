@@ -1,25 +1,4 @@
 {
-  final boolean completionOperation=completionId != -1;
-  if (completionOperation) {
-    registerCompletionLatch(completionId,1);
-  }
-  try {
-    int partitionId=clientContext.getPartitionService().getPartitionId(keyData);
-    HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
-    final ClientInvocation clientInvocation=new ClientInvocation(client,req,partitionId);
-    ClientInvocationFuture f=clientInvocation.invoke();
-    if (completionOperation) {
-      waitCompletionLatch(completionId,f);
-    }
-    return f;
-  }
- catch (  Throwable e) {
-    if (e instanceof IllegalStateException) {
-      close();
-    }
-    if (completionOperation) {
-      deregisterCompletionLatch(completionId);
-    }
-    throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
-  }
+  int partitionId=clientContext.getPartitionService().getPartitionId(keyData);
+  return invoke(req,partitionId,completionId);
 }

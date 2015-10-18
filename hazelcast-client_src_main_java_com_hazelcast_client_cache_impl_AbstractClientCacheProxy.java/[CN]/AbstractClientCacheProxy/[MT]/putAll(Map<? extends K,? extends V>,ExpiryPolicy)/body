@@ -1,7 +1,14 @@
 {
+  final long start=System.nanoTime();
   ensureOpen();
   validateNotNull(map);
-  for (  Map.Entry<? extends K,? extends V> entry : map.entrySet()) {
-    put(entry.getKey(),entry.getValue(),expiryPolicy);
+  ClientPartitionService partitionService=clientContext.getPartitionService();
+  int partitionCount=partitionService.getPartitionCount();
+  try {
+    List<Map.Entry<Data,Data>>[] entriesPerPartition=groupDataToPartitions(map,partitionService,partitionCount);
+    putToAllPartitionsAndWaitForCompletion(entriesPerPartition,expiryPolicy,start);
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }
