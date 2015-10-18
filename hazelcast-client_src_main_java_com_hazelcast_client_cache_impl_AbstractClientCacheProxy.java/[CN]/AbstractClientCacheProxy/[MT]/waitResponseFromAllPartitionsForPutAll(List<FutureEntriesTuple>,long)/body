@@ -1,0 +1,31 @@
+{
+  Throwable error=null;
+  for (  FutureEntriesTuple tuple : futureEntriesTuples) {
+    Future future=tuple.future;
+    List<Map.Entry<Data,Data>> entries=tuple.entries;
+    try {
+      future.get();
+      if (nearCache != null) {
+        handleNearCacheOnPutAll(entries,!cacheOnUpdate);
+      }
+      if (statisticsEnabled) {
+        statistics.increaseCachePuts(entries.size());
+      }
+    }
+ catch (    Throwable t) {
+      if (nearCache != null) {
+        handleNearCacheOnPutAll(entries,true);
+      }
+      logger.finest("Error occurred while putting entries as batch!",t);
+      if (error == null) {
+        error=t;
+      }
+    }
+  }
+  if (statisticsEnabled) {
+    statistics.addPutTimeNanos(System.nanoTime() - start);
+  }
+  if (error != null) {
+    ExceptionUtil.rethrow(error);
+  }
+}

@@ -11,22 +11,26 @@
   ClientInvocationFuture future;
   try {
     future=invoke(request,keyData,completionId);
-    if (cacheOnUpdate) {
-      storeInNearCache(keyData,valueData,value);
-    }
- else {
-      invalidateNearCache(keyData);
-    }
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
   ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<Boolean>(future,clientContext.getSerializationService(),putIfAbsentResponseDecoder);
-  if (async && statisticsEnabled) {
+  if (nearCache != null || (async && statisticsEnabled)) {
     delegatingFuture.andThen(new ExecutionCallback<Object>(){
       @Override public void onResponse(      Object responseData){
-        Object response=clientContext.getSerializationService().toObject(responseData);
-        handleStatisticsOnPutIfAbsent(start,(Boolean)response);
+        if (nearCache != null) {
+          if (cacheOnUpdate) {
+            storeInNearCache(keyData,valueData,value);
+          }
+ else {
+            invalidateNearCache(keyData);
+          }
+        }
+        if (async && statisticsEnabled) {
+          Object response=clientContext.getSerializationService().toObject(responseData);
+          handleStatisticsOnPutIfAbsent(start,(Boolean)response);
+        }
       }
       @Override public void onFailure(      Throwable t){
       }

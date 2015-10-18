@@ -9,22 +9,26 @@
   ICompletableFuture<Boolean> future;
   try {
     future=invoke(request,keyData,withCompletionEvent);
-    if (cacheOnUpdate) {
-      storeInNearCache(keyData,valueData,value);
-    }
- else {
-      invalidateNearCache(keyData);
-    }
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
   DelegatingFuture delegatingFuture=new DelegatingFuture<Boolean>(future,clientContext.getSerializationService());
-  if (async && statisticsEnabled) {
+  if (nearCache != null || (async && statisticsEnabled)) {
     delegatingFuture.andThen(new ExecutionCallback<Object>(){
       @Override public void onResponse(      Object responseData){
-        Object response=clientContext.getSerializationService().toObject(responseData);
-        handleStatisticsOnPutIfAbsent(start,(Boolean)response);
+        if (nearCache != null) {
+          if (cacheOnUpdate) {
+            storeInNearCache(keyData,valueData,value);
+          }
+ else {
+            invalidateNearCache(keyData);
+          }
+        }
+        if (async && statisticsEnabled) {
+          Object response=clientContext.getSerializationService().toObject(responseData);
+          handleStatisticsOnPutIfAbsent(start,(Boolean)response);
+        }
       }
       @Override public void onFailure(      Throwable t){
       }

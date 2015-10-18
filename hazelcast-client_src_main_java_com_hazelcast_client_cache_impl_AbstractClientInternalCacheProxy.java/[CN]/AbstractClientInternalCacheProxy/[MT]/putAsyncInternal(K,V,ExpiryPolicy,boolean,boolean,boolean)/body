@@ -10,20 +10,24 @@
   ICompletableFuture future;
   try {
     future=invoke(request,keyData,withCompletionEvent);
-    if (cacheOnUpdate) {
-      storeInNearCache(keyData,valueData,value);
-    }
- else {
-      invalidateNearCache(keyData);
-    }
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  if (async && statisticsEnabled) {
+  if (nearCache != null || (async && statisticsEnabled)) {
     future.andThen(new ExecutionCallback<Object>(){
       @Override public void onResponse(      Object responseData){
-        handleStatisticsOnPut(isGet,start,responseData);
+        if (nearCache != null) {
+          if (cacheOnUpdate) {
+            storeInNearCache(keyData,valueData,value);
+          }
+ else {
+            invalidateNearCache(keyData);
+          }
+        }
+        if (async && statisticsEnabled) {
+          handleStatisticsOnPut(isGet,start,responseData);
+        }
       }
       @Override public void onFailure(      Throwable t){
       }
