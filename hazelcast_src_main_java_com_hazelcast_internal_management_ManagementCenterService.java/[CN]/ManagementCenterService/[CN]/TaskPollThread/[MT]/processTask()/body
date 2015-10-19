@@ -15,9 +15,16 @@
       }
       ConsoleRequest task=requestClass.newInstance();
       task.fromJson(getObject(innerRequest,"request"));
-      boolean success=processTaskAndSendResponse(taskId,task);
+      boolean success;
+      if (task instanceof AsyncConsoleRequest) {
+        executionService.execute(ASYNC_EXECUTOR,new AsyncConsoleRequestTask(taskId,task));
+        success=true;
+      }
+ else {
+        success=processTaskAndSendResponse(taskId,task);
+      }
       if (taskPollFailed && success) {
-        logger.info("Management center task polling successfull.");
+        logger.info("Management center task polling successful.");
         taskPollFailed=false;
       }
     }
