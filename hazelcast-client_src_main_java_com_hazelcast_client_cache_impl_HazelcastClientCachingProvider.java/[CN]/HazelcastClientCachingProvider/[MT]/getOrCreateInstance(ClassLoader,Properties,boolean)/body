@@ -1,6 +1,4 @@
 {
-  ClassLoader theClassLoader=classLoader == null ? getDefaultClassLoader() : classLoader;
-  HazelcastInstance instance=null;
   String location=properties.getProperty(HazelcastCachingProvider.HAZELCAST_CONFIG_LOCATION);
   if (location != null) {
     URI uri=new URI(location);
@@ -8,6 +6,7 @@
     if (scheme == null) {
       uri=new URI(System.getProperty(uri.getRawSchemeSpecificPart()));
     }
+    ClassLoader theClassLoader=classLoader == null ? getDefaultClassLoader() : classLoader;
     final URL configURL;
     if ("classpath".equals(scheme)) {
       configURL=theClassLoader.getResource(uri.getRawSchemeSpecificPart());
@@ -21,7 +20,7 @@
     try {
       final ClientConfig config=new XmlClientConfigBuilder(configURL).build();
       config.setClassLoader(theClassLoader);
-      instance=HazelcastClient.newHazelcastClient(config);
+      return HazelcastClient.newHazelcastClient(config);
     }
  catch (    Exception e) {
       throw ExceptionUtil.rethrow(e);
@@ -29,10 +28,17 @@
   }
   String instanceName=properties.getProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME);
   if (instanceName != null) {
-    instance=HazelcastClient.getHazelcastClientByName(instanceName);
+    return HazelcastClient.getHazelcastClientByName(instanceName);
   }
-  if (isDefault) {
-    instance=HazelcastClient.newHazelcastClient();
+  HazelcastInstance instance=null;
+  if (isDefaultURI) {
+    if (hazelcastInstance == null) {
+      instance=HazelcastClient.newHazelcastClient();
+      hazelcastInstance=instance;
+    }
+ else {
+      instance=hazelcastInstance;
+    }
   }
   return instance;
 }
