@@ -1,26 +1,14 @@
 {
+  final boolean isDefaultURI=(uri == null || uri.equals(getDefaultURI()));
   final HazelcastInstance instance;
-  if (uri == null || uri.equals(getDefaultURI())) {
-    if (hazelcastInstance == null) {
-      try {
-        hazelcastInstance=instanceFromProperties(classLoader,properties,true);
-      }
- catch (      Exception e) {
-        throw ExceptionUtil.rethrow(e);
-      }
+  try {
+    instance=getOrCreateInstance(classLoader,properties,isDefaultURI);
+    if (instance == null) {
+      throw new IllegalArgumentException(INVALID_HZ_INSTANCE_SPECIFICATION_MESSAGE);
     }
-    instance=hazelcastInstance;
   }
- else {
-    try {
-      instance=instanceFromProperties(classLoader,properties,false);
-      if (instance == null) {
-        throw new IllegalArgumentException(INVALID_HZ_INSTANCE_SPECIFICATION_MESSAGE);
-      }
-    }
- catch (    Exception e) {
-      throw ExceptionUtil.rethrow(e);
-    }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
   return new HazelcastClientCacheManager(this,instance,uri,classLoader,properties);
 }

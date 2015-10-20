@@ -1,6 +1,4 @@
 {
-  ClassLoader theClassLoader=classLoader == null ? getDefaultClassLoader() : classLoader;
-  HazelcastInstance instance=null;
   String location=properties.getProperty(HazelcastCachingProvider.HAZELCAST_CONFIG_LOCATION);
   if (location != null) {
     URI uri=new URI(location);
@@ -8,6 +6,7 @@
     if (scheme == null) {
       uri=new URI(System.getProperty(uri.getRawSchemeSpecificPart()));
     }
+    ClassLoader theClassLoader=classLoader == null ? getDefaultClassLoader() : classLoader;
     final URL configURL;
     if ("classpath".equals(scheme)) {
       configURL=theClassLoader.getResource(uri.getRawSchemeSpecificPart());
@@ -22,7 +21,7 @@
       Config config=new XmlConfigBuilder(configURL).build();
       config.setClassLoader(theClassLoader);
       config.setInstanceName(configURL.toString());
-      instance=HazelcastInstanceFactory.getOrCreateHazelcastInstance(config);
+      return HazelcastInstanceFactory.getOrCreateHazelcastInstance(config);
     }
  catch (    Exception e) {
       throw ExceptionUtil.rethrow(e);
@@ -30,14 +29,17 @@
   }
   String instanceName=properties.getProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME);
   if (instanceName != null) {
-    instance=Hazelcast.getHazelcastInstanceByName(instanceName);
+    return Hazelcast.getHazelcastInstanceByName(instanceName);
   }
-  if (isDefault) {
-    Config config=new XmlConfigBuilder().build();
-    if (config.getInstanceName() == null) {
-      config.setInstanceName("JCacheSharedInstance");
+  HazelcastInstance instance=null;
+  if (isDefaultURI) {
+    if (hazelcastInstance == null) {
+      instance=Hazelcast.newHazelcastInstance();
+      hazelcastInstance=instance;
     }
-    instance=HazelcastInstanceFactory.getOrCreateHazelcastInstance(config);
+ else {
+      instance=hazelcastInstance;
+    }
   }
   return instance;
 }
