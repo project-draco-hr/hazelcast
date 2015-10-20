@@ -1,0 +1,40 @@
+{
+  final JoinConfig join=config.getNetworkConfig().getJoin();
+  final NamedNodeMap atts=node.getAttributes();
+  final MulticastConfig multicastConfig=join.getMulticastConfig();
+  for (int a=0; a < atts.getLength(); a++) {
+    final Node att=atts.item(a);
+    final String value=getTextContent(att).trim();
+    if ("enabled".equals(lowerCaseInternal(att.getNodeName()))) {
+      multicastConfig.setEnabled(checkTrue(value));
+    }
+ else     if ("loopbackmodeenabled".equals(lowerCaseInternal(att.getNodeName()))) {
+      multicastConfig.setLoopbackModeEnabled(checkTrue(value));
+    }
+  }
+  for (  Node n : new IterableNodeList(node.getChildNodes())) {
+    final String value=getTextContent(n).trim();
+    if ("multicast-group".equals(cleanNodeName(n.getNodeName()))) {
+      multicastConfig.setMulticastGroup(value);
+    }
+ else     if ("multicast-port".equals(cleanNodeName(n.getNodeName()))) {
+      multicastConfig.setMulticastPort(parseInt(value));
+    }
+ else     if ("multicast-timeout-seconds".equals(cleanNodeName(n.getNodeName()))) {
+      multicastConfig.setMulticastTimeoutSeconds(parseInt(value));
+    }
+ else     if ("multicast-time-to-live-seconds".equals(cleanNodeName(n.getNodeName()))) {
+      multicastConfig.setMulticastTimeToLive(parseInt(value));
+    }
+ else     if ("multicast-time-to-live".equals(cleanNodeName(n.getNodeName()))) {
+      multicastConfig.setMulticastTimeToLive(parseInt(value));
+    }
+ else     if ("trusted-interfaces".equals(cleanNodeName(n.getNodeName()))) {
+      for (      Node child : new IterableNodeList(n.getChildNodes())) {
+        if ("interface".equals(lowerCaseInternal(cleanNodeName(child.getNodeName())))) {
+          multicastConfig.addTrustedInterface(getTextContent(child).trim());
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  final Method method=getMethod(target,"set" + cleanNodeName(toPropertyName(nodeName)),true);
+  if (method == null) {
+    throw new InvalidConfigurationException("Invalid element/attribute name in XML configuration: " + nodeName);
+  }
+  final Class<?> arg=method.getParameterTypes()[0];
+  final Object coercedArg=arg == String.class ? argument : arg == int.class ? Integer.valueOf(argument) : arg == long.class ? Long.valueOf(argument) : arg == boolean.class ? checkTrue(argument) : null;
+  if (coercedArg == null) {
+    throw new HazelcastException(String.format("Method %s has unsupported argument type %s",method.getName(),arg.getSimpleName()));
+  }
+  try {
+    method.invoke(target,coercedArg);
+  }
+ catch (  Exception e) {
+    throw new HazelcastException(e);
+  }
+}

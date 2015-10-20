@@ -1,0 +1,23 @@
+{
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  final TopicConfig tConfig=new TopicConfig();
+  tConfig.setName(name);
+  for (  Node n : new IterableNodeList(node.getChildNodes())) {
+    final String nodeName=cleanNodeName(n.getNodeName());
+    if (nodeName.equals("global-ordering-enabled")) {
+      tConfig.setGlobalOrderingEnabled(checkTrue(getTextContent(n)));
+    }
+ else     if ("message-listeners".equals(nodeName)) {
+      for (      Node listenerNode : new IterableNodeList(n.getChildNodes())) {
+        if ("message-listener".equals(cleanNodeName(listenerNode))) {
+          tConfig.addMessageListenerConfig(new ListenerConfig(getTextContent(listenerNode)));
+        }
+      }
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      tConfig.setStatisticsEnabled(checkTrue(getTextContent(n)));
+    }
+  }
+  config.addTopicConfig(tConfig);
+}
