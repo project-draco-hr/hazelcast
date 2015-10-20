@@ -1,17 +1,17 @@
 {
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(clusterSize);
   final HazelcastInstance[] instances=factory.newInstances();
-  warmUpPartitions(instances);
-  changeClusterStateEventually(instances[0],ClusterState.PASSIVE);
+  instances[0].getCluster().changeClusterState(ClusterState.PASSIVE);
   final CountDownLatch latch=new CountDownLatch(1);
-  final Runnable shutdownRunnable=new Runnable(){
-    @Override public void run(){
-      assertOpenEventually(latch);
-      instances[0].getCluster().shutdown();
-    }
-  }
-;
   for (int i=0; i < nodeCountToTriggerShutdown; i++) {
+    final HazelcastInstance instance=instances[i];
+    final Runnable shutdownRunnable=new Runnable(){
+      @Override public void run(){
+        assertOpenEventually(latch);
+        instance.getCluster().shutdown();
+      }
+    }
+;
     new Thread(shutdownRunnable).start();
   }
   latch.countDown();
