@@ -1,0 +1,23 @@
+{
+  PagingPredicate pagingPredicate=null;
+  if (predicate instanceof PagingPredicate) {
+    pagingPredicate=(PagingPredicate)predicate;
+    pagingPredicate.setIterationType(IterationType.KEY);
+  }
+  MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.KEY);
+  QueryResult result=invoke(request);
+  if (pagingPredicate == null) {
+    InflatableSet.Builder<K> setBuilder=InflatableSet.newBuilder(result.size());
+    for (    QueryResultRow row : result) {
+      K key=toObject(row.getKey());
+      setBuilder.add(key);
+    }
+    return setBuilder.build();
+  }
+  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>(result.size());
+  for (  QueryResultRow row : result) {
+    K key=toObject(row.getKey());
+    resultList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,null));
+  }
+  return (Set<K>)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.KEY);
+}

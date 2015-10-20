@@ -3,11 +3,14 @@
   HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)clientContext.getHazelcastInstance();
   try {
     int partitionId=clientContext.getPartitionService().getPartitionId(config.getNameWithPrefix());
-    CacheCreateConfigRequest request=new CacheCreateConfigRequest(config,createAlsoOnOthers,false,partitionId);
+    Data cacheConfigData=clientContext.getSerializationService().toData(config);
+    ClientMessage request=CacheCreateConfigCodec.encodeRequest(cacheConfigData,createAlsoOnOthers);
     ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionId);
-    Future<SerializableList> future=clientInvocation.invoke();
+    Future<ClientMessage> future=clientInvocation.invoke();
     if (syncCreate) {
-      return (CacheConfig<K,V>)clientContext.getSerializationService().toObject(future.get());
+      final ClientMessage response=future.get();
+      final Data data=CacheCreateConfigCodec.decodeResponse(response).response;
+      return (CacheConfig<K,V>)clientContext.getSerializationService().toObject(data);
     }
  else {
       return currentCacheConfig;

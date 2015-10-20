@@ -1,22 +1,42 @@
 {
   final SerializationService ss=client.getSerializationService();
-  AuthenticationRequest auth=new AuthenticationRequest(credentials,principal);
+  byte serializationVersion=ss.getVersion();
+  String uuid=null;
+  String ownerUuid=null;
+  if (principal != null) {
+    uuid=principal.getUuid();
+    ownerUuid=principal.getOwnerUuid();
+  }
+  ClientMessage clientMessage;
+  if (credentials instanceof UsernamePasswordCredentials) {
+    UsernamePasswordCredentials cr=(UsernamePasswordCredentials)credentials;
+    clientMessage=ClientAuthenticationCodec.encodeRequest(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,true,ClientTypes.JAVA,serializationVersion);
+  }
+ else {
+    Data data=ss.toData(credentials);
+    clientMessage=ClientAuthenticationCustomCodec.encodeRequest(data,uuid,ownerUuid,true,ClientTypes.JAVA,serializationVersion);
+  }
   connection.init();
-  auth.setOwnerConnection(true);
-  SerializableList collectionWrapper;
-  final ClientInvocation clientInvocation=new ClientInvocation(client,auth,connection);
-  final Future<SerializableList> future=clientInvocation.invoke();
+  ClientMessage response;
+  final ClientInvocation clientInvocation=new ClientInvocation(client,clientMessage,connection);
+  final Future<ClientMessage> future=clientInvocation.invoke();
   try {
-    collectionWrapper=ss.toObject(future.get());
+    response=future.get();
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e,IOException.class);
   }
-  final Iterator<Data> iter=collectionWrapper.iterator();
-  final Data addressData=iter.next();
-  final Address address=ss.toObject(addressData);
-  connection.setRemoteEndpoint(address);
+  ClientAuthenticationCodec.ResponseParameters result=ClientAuthenticationCodec.decodeResponse(response);
+  AuthenticationStatus authenticationStatus=AuthenticationStatus.getById(result.status);
+switch (authenticationStatus) {
+case AUTHENTICATED:
+    connection.setRemoteEndpoint(result.address);
   connection.setIsAuthenticatedAsOwner();
-  final Data principalData=iter.next();
-  principal=ss.toObject(principalData);
+principal=new ClientPrincipal(result.uuid,result.ownerUuid);
+return;
+case CREDENTIALS_FAILED:
+throw new AuthenticationException("Invalid credentials!");
+default :
+throw new AuthenticationException("Authentication status code not supported. status:" + authenticationStatus);
+}
 }

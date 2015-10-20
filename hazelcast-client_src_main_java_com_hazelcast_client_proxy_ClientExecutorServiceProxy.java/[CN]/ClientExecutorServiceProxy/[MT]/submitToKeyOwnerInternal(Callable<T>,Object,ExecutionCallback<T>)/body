@@ -1,8 +1,10 @@
 {
   checkNotNull(task,"task should not be null");
-  final String uuid=getUUID();
-  final int partitionId=getPartitionId(key);
-  final PartitionTargetCallableRequest request=new PartitionTargetCallableRequest(name,uuid,task,partitionId);
-  final ICompletableFuture<T> f=invokeOnPartitionOwner(request,partitionId);
-  f.andThen(callback);
+  String uuid=getUUID();
+  int partitionId=getPartitionId(key);
+  ClientMessage request=ExecutorServiceSubmitToPartitionCodec.encodeRequest(name,uuid,toData(task),partitionId);
+  ClientInvocationFuture f=invokeOnPartitionOwner(request,partitionId);
+  SerializationService serializationService=getContext().getSerializationService();
+  ClientDelegatingFuture<T> delegatingFuture=new ClientDelegatingFuture<T>(f,serializationService,SUBMIT_TO_PARTITION_DECODER);
+  delegatingFuture.andThen(callback);
 }

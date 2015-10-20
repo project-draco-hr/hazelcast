@@ -1,11 +1,12 @@
 {
   try {
-    GetDistributedObjectsRequest request=new GetDistributedObjectsRequest();
-    final Future<SerializableList> future=new ClientInvocation(this,request).invoke();
-    final SerializableList serializableList=serializationService.toObject(future.get());
-    for (    Data data : serializableList) {
-      final DistributedObjectInfo o=serializationService.toObject(data);
-      getDistributedObject(o.getServiceName(),o.getName());
+    ClientMessage request=ClientGetDistributedObjectsCodec.encodeRequest();
+    final Future<ClientMessage> future=new ClientInvocation(this,request).invoke();
+    ClientMessage response=future.get();
+    ClientGetDistributedObjectsCodec.ResponseParameters resultParameters=ClientGetDistributedObjectsCodec.decodeResponse(response);
+    Collection<DistributedObjectInfo> infoCollection=resultParameters.infoCollection;
+    for (    DistributedObjectInfo distributedObjectInfo : infoCollection) {
+      getDistributedObject(distributedObjectInfo.getServiceName(),distributedObjectInfo.getName());
     }
     return (Collection<DistributedObject>)proxyManager.getDistributedObjects();
   }

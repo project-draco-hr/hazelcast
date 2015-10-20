@@ -1,10 +1,11 @@
 {
-  DrainRequest request=new DrainRequest(name,maxElements);
-  PortableCollection result=invoke(request);
-  Collection<Data> coll=result.getCollection();
-  for (  Data data : coll) {
-    E e=getContext().getSerializationService().toObject(data);
+  ClientMessage request=QueueDrainToMaxSizeCodec.encodeRequest(name,maxElements);
+  ClientMessage response=invokeOnPartition(request);
+  QueueDrainToMaxSizeCodec.ResponseParameters resultParameters=QueueDrainToMaxSizeCodec.decodeResponse(response);
+  Collection<Data> resultCollection=resultParameters.list;
+  for (  Data data : resultCollection) {
+    E e=toObject(data);
     c.add(e);
   }
-  return coll.size();
+  return resultCollection.size();
 }

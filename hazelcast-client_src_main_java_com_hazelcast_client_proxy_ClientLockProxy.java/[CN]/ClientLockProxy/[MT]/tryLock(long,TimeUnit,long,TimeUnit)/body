@@ -1,7 +1,8 @@
 {
   long timeoutInMillis=getTimeInMillis(timeout,unit);
   long leaseTimeInMillis=getTimeInMillis(leaseTime,leaseUnit);
-  LockRequest request=new LockRequest(getKeyData(),ThreadUtil.getThreadId(),leaseTimeInMillis,timeoutInMillis);
-  Boolean result=invoke(request);
-  return result;
+  long threadId=ThreadUtil.getThreadId();
+  ClientMessage request=LockTryLockCodec.encodeRequest(name,threadId,leaseTimeInMillis,timeoutInMillis);
+  LockTryLockCodec.ResponseParameters resultParameters=LockTryLockCodec.decodeResponse(invokeOnPartition(request));
+  return resultParameters.response;
 }

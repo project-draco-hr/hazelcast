@@ -1,9 +1,11 @@
 {
   checkNotNull(key,NULL_KEY_IS_NOT_ALLOWED);
   final Data keyData=toData(key);
-  long timeoutInMillis=getTimeInMillis(timeout,timeunit);
-  long leaseTimeInMillis=getTimeInMillis(leaseTime,leaseTimeunit);
-  MapLockRequest request=new MapLockRequest(name,keyData,ThreadUtil.getThreadId(),leaseTimeInMillis,timeoutInMillis);
-  Boolean result=invoke(request,keyData);
-  return result;
+  long timeoutInMillis=getTimeInMillis(time,timeunit);
+  long leaseTimeInMillis=getTimeInMillis(leaseTime,leaseUnit);
+  long threadId=ThreadUtil.getThreadId();
+  ClientMessage request=MapTryLockCodec.encodeRequest(name,keyData,threadId,leaseTimeInMillis,timeoutInMillis);
+  ClientMessage response=invoke(request,keyData);
+  MapTryLockCodec.ResponseParameters resultParameters=MapTryLockCodec.decodeResponse(response);
+  return resultParameters.response;
 }

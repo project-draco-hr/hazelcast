@@ -7,7 +7,8 @@
   if (cached != null) {
     return cached;
   }
-  CacheGetRequest request=new CacheGetRequest(nameWithPrefix,keyData,expiryPolicy,cacheConfig.getInMemoryFormat());
+  final Data expiryPolicyData=toData(expiryPolicy);
+  ClientMessage request=CacheGetCodec.encodeRequest(nameWithPrefix,keyData,expiryPolicyData);
   ClientInvocationFuture future;
   try {
     final int partitionId=clientContext.getPartitionService().getPartitionId(key);
@@ -18,9 +19,11 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
+  SerializationService serializationService=clientContext.getSerializationService();
+  ClientDelegatingFuture<V> delegatingFuture=new ClientDelegatingFuture<V>(future,serializationService,cacheGetResponseDecoder);
   if (async) {
     if (nearCache != null) {
-      future.andThenInternal(new ExecutionCallback<Data>(){
+      delegatingFuture.andThenInternal(new ExecutionCallback<Data>(){
         public void onResponse(        Data valueData){
           storeInNearCache(keyData,valueData,null);
           if (statisticsEnabled) {
@@ -32,19 +35,23 @@
       }
 );
     }
-    return new DelegatingFuture<V>(future,clientContext.getSerializationService());
+    return delegatingFuture;
   }
  else {
     try {
-      Object value=future.get();
+      Object value=delegatingFuture.get();
       if (nearCache != null) {
-        storeInNearCache(keyData,toData(value),null);
+        storeInNearCache(keyData,(Data)delegatingFuture.getResponse(),null);
       }
-      Object result=toObject(value);
       if (statisticsEnabled) {
-        handleStatisticsOnGet(start,result);
+        handleStatisticsOnGet(start,value);
       }
-      return result;
+      if (!(value instanceof Data)) {
+        return value;
+      }
+ else {
+        return serializationService.toObject(value);
+      }
     }
  catch (    Throwable e) {
       throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);

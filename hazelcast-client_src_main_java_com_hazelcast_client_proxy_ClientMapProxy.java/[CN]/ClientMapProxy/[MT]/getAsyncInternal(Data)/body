@@ -1,9 +1,9 @@
 {
-  MapGetRequest request=new MapGetRequest(name,keyData,ThreadUtil.getThreadId());
-  request.setAsAsync();
+  SerializationService serializationService=getContext().getSerializationService();
+  ClientMessage request=MapGetAsyncCodec.encodeRequest(name,keyData,ThreadUtil.getThreadId());
   try {
-    ICompletableFuture future=invokeOnKeyOwner(request,keyData);
-    return new DelegatingFuture<V>(future,getContext().getSerializationService());
+    ClientInvocationFuture future=invokeOnKeyOwner(request,keyData);
+    return new ClientDelegatingFuture<V>(future,serializationService,getAsyncResponseDecoder);
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);

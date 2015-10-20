@@ -5,17 +5,19 @@
   CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
   final Data keyData=toData(key);
   final Data valueData=toData(value);
-  InMemoryFormat inMemoryFormat=cacheConfig.getInMemoryFormat();
-  CachePutRequest request=new CachePutRequest(nameWithPrefix,keyData,valueData,expiryPolicy,isGet,inMemoryFormat);
-  ICompletableFuture future;
+  final Data expiryPolicyData=toData(expiryPolicy);
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  ClientMessage request=CachePutCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,isGet,completionId);
+  ClientInvocationFuture future;
   try {
-    future=invoke(request,keyData,withCompletionEvent);
+    future=invoke(request,keyData,completionId);
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
+  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<T>(future,clientContext.getSerializationService(),putResponseDecoder);
   if (nearCache != null || (async && statisticsEnabled)) {
-    future.andThen(new ExecutionCallback<Object>(){
+    delegatingFuture.andThen(new ExecutionCallback<Object>(){
       @Override public void onResponse(      Object responseData){
         if (nearCache != null) {
           if (cacheOnUpdate) {
@@ -34,5 +36,5 @@
     }
 );
   }
-  return future;
+  return delegatingFuture;
 }

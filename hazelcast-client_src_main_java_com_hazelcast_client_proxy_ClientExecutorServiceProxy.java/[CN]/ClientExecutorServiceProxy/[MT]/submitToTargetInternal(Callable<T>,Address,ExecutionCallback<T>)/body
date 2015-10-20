@@ -1,6 +1,9 @@
 {
   checkNotNull(task,"task should not be null");
-  final SpecificTargetCallableRequest request=new SpecificTargetCallableRequest(name,null,task,address);
-  ICompletableFuture<T> f=invokeOnTarget(request,address);
-  f.andThen(callback);
+  String uuid=getUUID();
+  ClientMessage request=ExecutorServiceSubmitToAddressCodec.encodeRequest(name,uuid,toData(task),address);
+  ClientInvocationFuture f=invokeOnTarget(request,address);
+  SerializationService serializationService=getContext().getSerializationService();
+  ClientDelegatingFuture<T> delegatingFuture=new ClientDelegatingFuture<T>(f,serializationService,SUBMIT_TO_ADDRESS_DECODER);
+  delegatingFuture.andThen(callback);
 }

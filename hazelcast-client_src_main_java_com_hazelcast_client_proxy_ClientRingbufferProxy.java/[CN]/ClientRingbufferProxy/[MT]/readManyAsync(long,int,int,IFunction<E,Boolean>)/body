@@ -4,15 +4,13 @@
   checkTrue(maxCount >= minCount,"maxCount should be equal or larger than minCount");
   checkTrue(minCount <= capacity(),"the minCount should be smaller than or equal to the capacity");
   checkTrue(maxCount <= MAX_BATCH_SIZE,"maxCount can't be larger than " + MAX_BATCH_SIZE);
-  ReadManyRequest request=new ReadManyRequest(getName(),startSequence,minCount,maxCount,toData(filter));
-  ClientInvocationFuture f=new ClientInvocation(getClient(),request,getPartitionId()).invoke();
-  f.setResponseDeserialized(true);
-  f.afterDeserialize(new IFunction<PortableReadResultSet,PortableReadResultSet>(){
-    @Override public PortableReadResultSet apply(    PortableReadResultSet input){
-      input.setSerializationService(getContext().getSerializationService());
-      return input;
-    }
+  ClientMessage request=RingbufferReadManyAsyncCodec.encodeRequest(name,startSequence,minCount,maxCount,toData(filter));
+  request.setPartitionId(partitionId);
+  try {
+    ClientInvocationFuture invocationFuture=new ClientInvocation(getClient(),request).invoke();
+    return new ClientDelegatingFuture<ReadResultSet<E>>(invocationFuture,getContext().getSerializationService(),readManyAsyncResponseDecoder);
   }
-);
-  return f;
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
 }

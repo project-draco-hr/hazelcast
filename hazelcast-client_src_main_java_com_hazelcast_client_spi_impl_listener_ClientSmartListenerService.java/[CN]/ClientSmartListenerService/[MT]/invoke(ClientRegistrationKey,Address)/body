@@ -1,18 +1,19 @@
 {
-  ClientRequest request=registrationKey.getRequest();
+  ClientMessage request=registrationKey.getRequest();
   EventHandler handler=registrationKey.getHandler();
   handler.beforeListenerRegister();
-  ClientInvocation invocation=new ClientInvocation(client,handler,request,address);
+  ClientInvocation invocation=new ClientInvocation(client,request,address);
+  invocation.setEventHandler(handler);
+  ListenerMessageCodec codec=registrationKey.getCodec();
   try {
     ClientInvocationFuture future=invocation.invoke();
-    String serverRegistrationId=serializationService.toObject(future.get());
+    String serverRegistrationId=codec.decodeAddResponse(future.get());
     handler.onListenerRegister();
-    int callId=invocation.getRequest().getCallId();
-    ClientEventRegistration registration=new ClientEventRegistration(serverRegistrationId,callId,address);
+    int correlationId=request.getCorrelationId();
+    ClientEventRegistration registration=new ClientEventRegistration(serverRegistrationId,correlationId,address,codec);
     registerListener(registrationKey,registration);
   }
  catch (  Exception e) {
-    e.printStackTrace();
     EmptyStatement.ignore(e);
   }
 }

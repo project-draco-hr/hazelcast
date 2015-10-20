@@ -1,3 +1,12 @@
 {
-  return entrySet(null);
+  ClientMessage request=MapEntrySetCodec.encodeRequest(name);
+  ClientMessage response=invoke(request);
+  MapEntrySetCodec.ResponseParameters resultParameters=MapEntrySetCodec.decodeResponse(response);
+  InflatableSet.Builder<Entry<K,V>> setBuilder=InflatableSet.newBuilder(resultParameters.entrySet.size());
+  SerializationService serializationService=getContext().getSerializationService();
+  for (  Entry<Data,Data> row : resultParameters.entrySet) {
+    LazyMapEntry entry=new LazyMapEntry(row.getKey(),row.getValue(),serializationService);
+    setBuilder.add(entry);
+  }
+  return setBuilder.build();
 }

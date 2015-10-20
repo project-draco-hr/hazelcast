@@ -1,23 +1,22 @@
 {
-  if (response == NULL_RESPONSE) {
-    return null;
-  }
   if (response instanceof Throwable) {
-    return resolveException();
+    ExceptionUtil.fixRemoteStackTrace((Throwable)response,Thread.currentThread().getStackTrace());
+    if (response instanceof ExecutionException) {
+      throw (ExecutionException)response;
+    }
+    if (response instanceof TimeoutException) {
+      throw (TimeoutException)response;
+    }
+    if (response instanceof Error) {
+      throw (Error)response;
+    }
+    if (response instanceof InterruptedException) {
+      throw (InterruptedException)response;
+    }
+    throw new ExecutionException((Throwable)response);
   }
   if (response == null) {
     throw new TimeoutException();
   }
-  if (responseDeserialized) {
-    Object resp=serializationService.toObject(response);
-    if (afterDeserializeFunction != null) {
-      resp=afterDeserializeFunction.apply(resp);
-    }
-    if (resp == null) {
-      this.response=NULL_RESPONSE;
-      return null;
-    }
-    this.response=resp;
-  }
-  return (V)response;
+  return (ClientMessage)response;
 }

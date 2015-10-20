@@ -1,0 +1,29 @@
+{
+  final long start=System.nanoTime();
+  ensureOpen();
+  validateNotNull(keys);
+  if (keys.isEmpty()) {
+    return Collections.EMPTY_MAP;
+  }
+  final Set<Data> keySet=new HashSet(keys.size());
+  for (  K key : keys) {
+    final Data k=toData(key);
+    keySet.add(k);
+  }
+  Map<K,V> result=getAllFromNearCache(keySet);
+  final CacheGetAllRequest request=new CacheGetAllRequest(nameWithPrefix,keySet,expiryPolicy);
+  final MapEntries mapEntries=invoke(request);
+  for (  Map.Entry<Data,Data> dataEntry : mapEntries) {
+    final Data keyData=dataEntry.getKey();
+    final Data valueData=dataEntry.getValue();
+    final K key=toObject(keyData);
+    final V value=toObject(valueData);
+    result.put(key,value);
+    storeInNearCache(keyData,valueData,value);
+  }
+  if (statisticsEnabled) {
+    statistics.increaseCacheHits(mapEntries.size());
+    statistics.addGetTimeNanos(System.nanoTime() - start);
+  }
+  return result;
+}

@@ -5,15 +5,17 @@
   CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
   final Data keyData=toData(key);
   final Data valueData=toData(value);
-  CachePutIfAbsentRequest request=new CachePutIfAbsentRequest(nameWithPrefix,keyData,valueData,expiryPolicy,cacheConfig.getInMemoryFormat());
-  ICompletableFuture<Boolean> future;
+  final Data expiryPolicyData=toData(expiryPolicy);
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  ClientMessage request=CachePutIfAbsentCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,completionId);
+  ClientInvocationFuture future;
   try {
-    future=invoke(request,keyData,withCompletionEvent);
+    future=invoke(request,keyData,completionId);
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  DelegatingFuture delegatingFuture=new DelegatingFuture<Boolean>(future,clientContext.getSerializationService());
+  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<Boolean>(future,clientContext.getSerializationService(),putIfAbsentResponseDecoder);
   if (nearCache != null || (async && statisticsEnabled)) {
     delegatingFuture.andThen(new ExecutionCallback<Object>(){
       @Override public void onResponse(      Object responseData){

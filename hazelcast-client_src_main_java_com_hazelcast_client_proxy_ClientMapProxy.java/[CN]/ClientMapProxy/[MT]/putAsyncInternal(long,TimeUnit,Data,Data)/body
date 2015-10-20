@@ -1,9 +1,8 @@
 {
-  MapPutRequest request=new MapPutRequest(name,keyData,valueData,ThreadUtil.getThreadId(),getTimeInMillis(ttl,timeunit));
-  request.setAsAsync();
+  ClientMessage request=MapPutAsyncCodec.encodeRequest(name,keyData,valueData,ThreadUtil.getThreadId(),getTimeInMillis(ttl,timeunit));
   try {
-    ICompletableFuture future=invokeOnKeyOwner(request,keyData);
-    return new DelegatingFuture<V>(future,getContext().getSerializationService());
+    ClientInvocationFuture future=invokeOnKeyOwner(request,keyData);
+    return new ClientDelegatingFuture<V>(future,getContext().getSerializationService(),putAsyncResponseDecoder);
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
