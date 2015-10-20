@@ -1,12 +1,18 @@
 {
-  final ClientEndpoint endpoint=getEndpoint();
-  final ClientEngine clientEngine=getClientEngine();
+  ClientEndpoint endpoint=getEndpoint();
+  ClientEngine clientEngine=getClientEngine();
   Data partitionKey=serializationService.toData(name);
   ItemListener listener=createItemListener(endpoint,partitionKey);
-  final EventService eventService=clientEngine.getEventService();
-  final CollectionEventFilter filter=new CollectionEventFilter(includeValue);
-  final EventRegistration registration=eventService.registerListener(getServiceName(),name,filter,listener);
-  final String registrationId=registration.getId();
+  EventService eventService=clientEngine.getEventService();
+  CollectionEventFilter filter=new CollectionEventFilter(includeValue);
+  EventRegistration registration;
+  if (localOnly) {
+    registration=eventService.registerLocalListener(getServiceName(),name,filter,listener);
+  }
+ else {
+    registration=eventService.registerListener(getServiceName(),name,filter,listener);
+  }
+  String registrationId=registration.getId();
   endpoint.addListenerDestroyAction(getServiceName(),name,registrationId);
   return registrationId;
 }

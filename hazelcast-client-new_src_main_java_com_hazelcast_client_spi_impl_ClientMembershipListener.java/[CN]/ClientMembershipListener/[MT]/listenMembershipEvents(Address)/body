@@ -1,17 +1,13 @@
 {
   initialListFetchedLatch=new CountDownLatch(1);
   try {
-    ClientMessage clientMessage=ClientMembershipListenerCodec.encodeRequest();
+    ClientMessage clientMessage=ClientAddMembershipListenerCodec.encodeRequest(false);
     Connection connection=connectionManager.getConnection(ownerConnectionAddress);
     if (connection == null) {
-      throw new IllegalStateException("Can not load initial members list because owner connection is null. " + "Address " + ownerConnectionAddress);
+      throw new IllegalStateException("Can not load initial members list because owner connection is null. Address " + ownerConnectionAddress);
     }
-    ClientInvocation invocation=new ClientListenerInvocation(client,this,clientMessage,connection,new ClientMessageDecoder(){
-      @Override public <T>T decodeClientMessage(      ClientMessage clientMessage){
-        return (T)ClientMembershipListenerCodec.decodeResponse(clientMessage).response;
-      }
-    }
-);
+    ClientInvocation invocation=new ClientInvocation(client,clientMessage,connection);
+    invocation.setEventHandler(this);
     invocation.invoke().get();
     waitInitialMemberListFetched();
   }

@@ -1,10 +1,9 @@
 {
   if (nearCache != null && nearCache.isInvalidateOnChange()) {
-    ClientClusterService clusterService=clientContext.getClusterService();
-    nearCacheMembershipRegistrationId=clusterService.addMembershipListener(new NearCacheMembershipListener());
-    Collection<Member> memberList=clusterService.getMemberList();
-    for (    Member member : memberList) {
-      addInvalidationListener(member);
-    }
+    ClientListenerService listenerService=clientContext.getListenerService();
+    CacheAddInvalidationListenerRequest request=new CacheAddInvalidationListenerRequest(nameWithPrefix);
+    Client client=clientContext.getClusterService().getLocalClient();
+    EventHandler handler=new NearCacheInvalidationHandler(client);
+    nearCacheMembershipRegistrationId=listenerService.registerListener(request,handler);
   }
 }

@@ -1,0 +1,18 @@
+{
+  ClientRequest request=registrationKey.getRequest();
+  EventHandler handler=registrationKey.getHandler();
+  handler.beforeListenerRegister();
+  ClientInvocation invocation=new ClientInvocation(client,handler,request,address);
+  try {
+    ClientInvocationFuture future=invocation.invoke();
+    String serverRegistrationId=serializationService.toObject(future.get());
+    handler.onListenerRegister();
+    int callId=invocation.getRequest().getCallId();
+    ClientEventRegistration registration=new ClientEventRegistration(serverRegistrationId,callId,address);
+    registerListener(registrationKey,registration);
+  }
+ catch (  Exception e) {
+    e.printStackTrace();
+    EmptyStatement.ignore(e);
+  }
+}
