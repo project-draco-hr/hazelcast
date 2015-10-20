@@ -6,8 +6,8 @@
   final WanReplicationConfig wanReplicationConfig=new WanReplicationConfig();
   wanReplicationConfig.setName(name);
   wanReplicationConfig.setSnapshotEnabled(snapshotEnabled);
-  for (  Node nodeTarget : new IterableNodeList(node.getChildNodes())) {
-    final String nodeName=cleanNodeName(nodeTarget.getNodeName());
+  for (  Node nodeTarget : childElements(node)) {
+    final String nodeName=cleanNodeName(nodeTarget);
     if ("target-cluster".equals(nodeName)) {
       WanTargetClusterConfig wanTarget=new WanTargetClusterConfig();
       String groupName=getAttribute(nodeTarget,"group-name");
@@ -18,8 +18,8 @@
       if (groupPassword != null) {
         wanTarget.setGroupPassword(groupPassword);
       }
-      for (      Node targetChild : new IterableNodeList(nodeTarget.getChildNodes())) {
-        final String targetChildName=cleanNodeName(targetChild.getNodeName());
+      for (      Node targetChild : childElements(nodeTarget)) {
+        final String targetChildName=cleanNodeName(targetChild);
         if ("replication-impl".equals(targetChildName)) {
           String replicationImpl=getTextContent(targetChild);
           if (WanNoDelayReplication.class.getName().equals(replicationImpl) && wanReplicationConfig.isSnapshotEnabled()) {
@@ -28,8 +28,8 @@
           wanTarget.setReplicationImpl(getTextContent(targetChild));
         }
  else         if ("end-points".equals(targetChildName)) {
-          for (          Node address : new IterableNodeList(targetChild.getChildNodes())) {
-            final String addressNodeName=cleanNodeName(address.getNodeName());
+          for (          Node address : childElements(targetChild)) {
+            final String addressNodeName=cleanNodeName(address);
             if ("address".equals(addressNodeName)) {
               String addressStr=getTextContent(address);
               wanTarget.addEndpoint(addressStr);
