@@ -1,0 +1,37 @@
+{
+  final int MAX_SIZE=withoutEviction ? 1000000 : 10000;
+  final CacheConfig<Integer,Integer> config=getCacheConfigWithMaxSize(MAX_SIZE);
+  final ICache<Integer,Integer> cache=createCache(config);
+  final int maxSize=withoutEviction ? getMaxCacheSizeWithoutEviction(config) : getMaxCacheSizeWithEviction(config);
+  for (int i=0; i < maxSize; i++) {
+    cache.put(i,i);
+  }
+  AbstractCacheWorker worker=new AbstractCacheWorker(){
+    @Override void doRun(    Random random){
+      int i=random.nextInt(maxSize);
+      cache.remove(i);
+    }
+  }
+;
+  worker.awaitFirstIteration();
+  try {
+    int i=0;
+    Iterator<Cache.Entry<Integer,Integer>> iterator=cache.iterator();
+    while (iterator.hasNext()) {
+      Cache.Entry<Integer,Integer> e=iterator.next();
+      Integer key=e.getKey();
+      Integer value=e.getValue();
+      if (value != null) {
+        assertEquals(key,value);
+      }
+      i++;
+    }
+    if (withoutEviction) {
+      assertTrue("should have iterated over at most " + maxSize + " entries, but was "+ i,i <= maxSize);
+      assertThatNoCacheEvictionHappened(cache);
+    }
+  }
+  finally {
+    worker.shutdown();
+  }
+}
