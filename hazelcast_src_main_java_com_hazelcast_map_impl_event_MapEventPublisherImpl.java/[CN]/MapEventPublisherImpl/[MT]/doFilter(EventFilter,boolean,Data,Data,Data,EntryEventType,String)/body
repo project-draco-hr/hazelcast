@@ -1,0 +1,31 @@
+{
+  if (filter instanceof MapPartitionLostEventFilter) {
+    return false;
+  }
+  if (filter instanceof EventListenerFilter) {
+    if (!filter.eval(eventType.getType())) {
+      return false;
+    }
+ else {
+      filter=((EventListenerFilter)filter).getEventFilter();
+    }
+  }
+  if (filter instanceof SyntheticEventFilter) {
+    if (syntheticEvent) {
+      return false;
+    }
+ else {
+      filter=((SyntheticEventFilter)filter).getFilter();
+    }
+  }
+  if (filter instanceof TrueEventFilter) {
+    return true;
+  }
+  if (filter instanceof QueryEventFilter) {
+    return processQueryEventFilter(filter,eventType,dataKey,dataOldValue,dataValue,mapNameOrNull);
+  }
+  if (filter instanceof EntryEventFilter) {
+    return processEntryEventFilter(filter,dataKey);
+  }
+  throw new IllegalArgumentException("Unknown EventFilter type = [" + filter.getClass().getCanonicalName() + "]");
+}
