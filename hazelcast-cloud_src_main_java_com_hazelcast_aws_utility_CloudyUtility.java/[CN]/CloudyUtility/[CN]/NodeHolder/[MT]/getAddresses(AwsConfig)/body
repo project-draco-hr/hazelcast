@@ -3,24 +3,20 @@
   if (node == null) {
     return privatePublicPairs;
   }
-  for (  Node node : childElements(this.node)) {
-    String nodeName=cleanNodeName(node);
-    if (!"item".equals(nodeName)) {
-      continue;
-    }
-    final NodeHolder nodeHolder=new NodeHolder(node);
-    final String state=getState(nodeHolder);
-    final String privateIp=getIp("privateipaddress",nodeHolder);
-    final String publicIp=getIp("ipaddress",nodeHolder);
-    final String instanceName=getInstanceName(nodeHolder);
+  for (  NodeHolder childHolder : getSubNodes("item")) {
+    final String state=getState(childHolder);
+    final String privateIp=getIp("privateipaddress",childHolder);
+    final String publicIp=getIp("ipaddress",childHolder);
+    final String instanceName=getInstanceName(childHolder);
     if (privateIp != null) {
+      final Node child=childHolder.getNode();
       if (!acceptState(state)) {
         LOGGER.finest(format("Ignoring EC2 instance [%s][%s] reason:" + " the instance is not running but %s",instanceName,privateIp,state));
       }
- else       if (!acceptTag(awsConfig,node)) {
+ else       if (!acceptTag(awsConfig,child)) {
         LOGGER.finest(format("Ignoring EC2 instance [%s][%s] reason:" + " tag-key/tag-value don't match",instanceName,privateIp));
       }
- else       if (!acceptGroupName(awsConfig,node)) {
+ else       if (!acceptGroupName(awsConfig,child)) {
         LOGGER.finest(format("Ignoring EC2 instance [%s][%s] reason:" + " security-group-name doesn't match",instanceName,privateIp));
       }
  else {
