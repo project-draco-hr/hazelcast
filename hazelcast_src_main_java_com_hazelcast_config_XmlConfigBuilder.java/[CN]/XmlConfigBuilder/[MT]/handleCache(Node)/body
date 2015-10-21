@@ -1,0 +1,69 @@
+{
+  final String name=getAttribute(node,"name");
+  final CacheSimpleConfig cacheConfig=new CacheSimpleConfig();
+  cacheConfig.setName(name);
+  for (  Node n : childElements(node)) {
+    final String nodeName=cleanNodeName(n);
+    final String value=getTextContent(n).trim();
+    if ("key-type".equals(nodeName)) {
+      cacheConfig.setKeyType(getAttribute(n,"class-name"));
+    }
+ else     if ("value-type".equals(nodeName)) {
+      cacheConfig.setValueType(getAttribute(n,"class-name"));
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      cacheConfig.setStatisticsEnabled(getBooleanValue(value));
+    }
+ else     if ("management-enabled".equals(nodeName)) {
+      cacheConfig.setManagementEnabled(getBooleanValue(value));
+    }
+ else     if ("read-through".equals(nodeName)) {
+      cacheConfig.setReadThrough(getBooleanValue(value));
+    }
+ else     if ("write-through".equals(nodeName)) {
+      cacheConfig.setWriteThrough(getBooleanValue(value));
+    }
+ else     if ("cache-loader-factory".equals(nodeName)) {
+      cacheConfig.setCacheLoaderFactory(getAttribute(n,"class-name"));
+    }
+ else     if ("cache-writer-factory".equals(nodeName)) {
+      cacheConfig.setCacheWriterFactory(getAttribute(n,"class-name"));
+    }
+ else     if ("expiry-policy-factory".equals(nodeName)) {
+      cacheConfig.setExpiryPolicyFactoryConfig(getExpiryPolicyFactoryConfig(n));
+    }
+ else     if ("cache-entry-listeners".equals(nodeName)) {
+      cacheListenerHandle(n,cacheConfig);
+    }
+ else     if ("in-memory-format".equals(nodeName)) {
+      cacheConfig.setInMemoryFormat(InMemoryFormat.valueOf(upperCaseInternal(value)));
+    }
+ else     if ("backup-count".equals(nodeName)) {
+      cacheConfig.setBackupCount(getIntegerValue("backup-count",value));
+    }
+ else     if ("async-backup-count".equals(nodeName)) {
+      cacheConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value));
+    }
+ else     if ("wan-replication-ref".equals(nodeName)) {
+      cacheWanReplicationRefHandle(n,cacheConfig);
+    }
+ else     if ("eviction".equals(nodeName)) {
+      EvictionConfig evictionConfig=getEvictionConfig(n);
+      EvictionPolicy evictionPolicy=evictionConfig.getEvictionPolicy();
+      if (evictionPolicy == null || evictionPolicy == EvictionPolicy.NONE) {
+        throw new InvalidConfigurationException("Eviction policy of cache cannot be null or \"NONE\"");
+      }
+      cacheConfig.setEvictionConfig(evictionConfig);
+    }
+ else     if ("quorum-ref".equals(nodeName)) {
+      cacheConfig.setQuorumName(value);
+    }
+ else     if ("partition-lost-listeners".equals(nodeName)) {
+      cachePartitionLostListenerHandle(n,cacheConfig);
+    }
+ else     if ("merge-policy".equals(nodeName)) {
+      cacheConfig.setMergePolicy(value);
+    }
+  }
+  this.config.addCacheConfig(cacheConfig);
+}

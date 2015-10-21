@@ -1,15 +1,14 @@
 {
-  File config1=createConfigFile("hz1","xml");
-  File config2=createConfigFile("hz2","xml");
-  File config3=createConfigFile("hz3","xml");
-  FileOutputStream os1=new FileOutputStream(config1);
-  FileOutputStream os2=new FileOutputStream(config2);
-  FileOutputStream os3=new FileOutputStream(config2);
-  String config1Xml="<hazelcast>" + "    <import resource=\"file:///" + config2.getAbsolutePath() + "\"/>\n"+ "</hazelcast>";
-  String config2Xml="<hazelcast>" + "    <import resource=\"file:///" + config3.getAbsolutePath() + "\"/>\n"+ "</hazelcast>";
-  String config3Xml="<hazelcast>" + "    <import resource=\"file:///" + config1.getAbsolutePath() + "\"/>\n"+ "</hazelcast>";
-  writeStringToStreamAndClose(os1,config1Xml);
-  writeStringToStreamAndClose(os2,config2Xml);
-  writeStringToStreamAndClose(os3,config3Xml);
+  final String template=HAZELCAST_START_TAG + "    <import resource=\"file:///%s\"/>\n</hazelcast>";
+  final File config1=createConfigFile("hz1","xml");
+  final File config2=createConfigFile("hz2","xml");
+  final File config3=createConfigFile("hz3","xml");
+  final String config1Xml=String.format(template,config2.getAbsolutePath());
+  final String config2Xml=String.format(template,config3.getAbsolutePath());
+  final String config3Xml=String.format(template,config1.getAbsolutePath());
+  writeStringToStreamAndClose(new FileOutputStream(config1),config1Xml);
+  writeStringToStreamAndClose(new FileOutputStream(config2),config2Xml);
+  writeStringToStreamAndClose(new FileOutputStream(config3),config3Xml);
+  expectInvalid("Cyclic loading of resource");
   buildConfig(config1Xml,null);
 }

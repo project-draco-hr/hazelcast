@@ -1,0 +1,31 @@
+{
+  final String expiryPolicyTypeStr=getAttribute(node,"expiry-policy-type");
+  final String durationAmountStr=getAttribute(node,"duration-amount");
+  final String timeUnitStr=getAttribute(node,"time-unit");
+  final ExpiryPolicyType expiryPolicyType=ExpiryPolicyType.valueOf(upperCaseInternal(expiryPolicyTypeStr));
+  if (expiryPolicyType != ExpiryPolicyType.ETERNAL && (StringUtil.isNullOrEmpty(durationAmountStr) || StringUtil.isNullOrEmpty(timeUnitStr))) {
+    throw new InvalidConfigurationException("Both of the \"duration-amount\" or \"time-unit\" attributes " + "are required for expiry policy factory configuration " + "(except \"ETERNAL\" expiry policy type)");
+  }
+  DurationConfig durationConfig=null;
+  if (expiryPolicyType != ExpiryPolicyType.ETERNAL) {
+    long durationAmount;
+    try {
+      durationAmount=parseLong(durationAmountStr);
+    }
+ catch (    NumberFormatException e) {
+      throw new InvalidConfigurationException("Invalid value for duration amount: " + durationAmountStr,e);
+    }
+    if (durationAmount <= 0) {
+      throw new InvalidConfigurationException("Duration amount must be positive: " + durationAmount);
+    }
+    TimeUnit timeUnit;
+    try {
+      timeUnit=TimeUnit.valueOf(upperCaseInternal(timeUnitStr));
+    }
+ catch (    IllegalArgumentException e) {
+      throw new InvalidConfigurationException("Invalid value for time unit: " + timeUnitStr,e);
+    }
+    durationConfig=new DurationConfig(durationAmount,timeUnit);
+  }
+  return new TimedExpiryPolicyFactoryConfig(expiryPolicyType,durationConfig);
+}
