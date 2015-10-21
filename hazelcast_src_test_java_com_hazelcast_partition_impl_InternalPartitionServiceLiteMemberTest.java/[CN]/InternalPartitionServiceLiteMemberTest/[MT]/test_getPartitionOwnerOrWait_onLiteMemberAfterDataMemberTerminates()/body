@@ -4,7 +4,16 @@
   final HazelcastInstance lite=factory.newHazelcastInstance(liteMemberConfig);
   warmUpPartitions(master,lite);
   master.getLifecycleService().terminate();
-  assertClusterSizeEventually(1,lite);
-  final InternalPartitionServiceImpl partitionService=getInternalPartitionServiceImpl(lite);
-  partitionService.getPartitionOwnerOrWait(0);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      try {
+        final InternalPartitionServiceImpl partitionService=getInternalPartitionServiceImpl(lite);
+        partitionService.getPartitionOwnerOrWait(0);
+        fail();
+      }
+ catch (      NoDataMemberInClusterException expected) {
+      }
+    }
+  }
+);
 }

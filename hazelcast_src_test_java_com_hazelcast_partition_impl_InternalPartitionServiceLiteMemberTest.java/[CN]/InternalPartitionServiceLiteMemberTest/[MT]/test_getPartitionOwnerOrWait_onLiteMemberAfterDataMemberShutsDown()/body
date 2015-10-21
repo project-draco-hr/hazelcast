@@ -6,7 +6,16 @@
   assertClusterSizeEventually(2,lite);
   warmUpPartitions(master,lite);
   master.getLifecycleService().shutdown();
-  assertClusterSizeEventually(1,lite);
-  final InternalPartitionServiceImpl partitionService=getInternalPartitionServiceImpl(lite);
-  partitionService.getPartitionOwnerOrWait(0);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      try {
+        final InternalPartitionServiceImpl partitionService=getInternalPartitionServiceImpl(lite);
+        partitionService.getPartitionOwnerOrWait(0);
+        fail();
+      }
+ catch (      NoDataMemberInClusterException expected) {
+      }
+    }
+  }
+);
 }
