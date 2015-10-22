@@ -1,0 +1,34 @@
+{
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  final MultiMapConfig multiMapConfig=new MultiMapConfig();
+  multiMapConfig.setName(name);
+  for (  Node n : childElements(node)) {
+    final String nodeName=cleanNodeName(n);
+    final String value=getTextContent(n).trim();
+    if ("value-collection-type".equals(nodeName)) {
+      multiMapConfig.setValueCollectionType(value);
+    }
+ else     if ("backup-count".equals(nodeName)) {
+      multiMapConfig.setBackupCount(getIntegerValue("backup-count",value));
+    }
+ else     if ("async-backup-count".equals(nodeName)) {
+      multiMapConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value));
+    }
+ else     if ("entry-listeners".equals(nodeName)) {
+      for (      Node listenerNode : childElements(n)) {
+        if ("entry-listener".equals(cleanNodeName(listenerNode))) {
+          final NamedNodeMap attrs=listenerNode.getAttributes();
+          boolean incValue=getBooleanValue(getTextContent(attrs.getNamedItem("include-value")));
+          boolean local=getBooleanValue(getTextContent(attrs.getNamedItem("local")));
+          String listenerClass=getTextContent(listenerNode);
+          multiMapConfig.addEntryListenerConfig(new EntryListenerConfig(listenerClass,local,incValue));
+        }
+      }
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      multiMapConfig.setStatisticsEnabled(getBooleanValue(value));
+    }
+  }
+  this.config.addMultiMapConfig(multiMapConfig);
+}

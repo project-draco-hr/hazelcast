@@ -1,0 +1,33 @@
+{
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  final SetConfig sConfig=new SetConfig();
+  sConfig.setName(name);
+  for (  Node n : childElements(node)) {
+    final String nodeName=cleanNodeName(n);
+    final String value=getTextContent(n).trim();
+    if ("max-size".equals(nodeName)) {
+      sConfig.setMaxSize(getIntegerValue("max-size",value));
+    }
+ else     if ("backup-count".equals(nodeName)) {
+      sConfig.setBackupCount(getIntegerValue("backup-count",value));
+    }
+ else     if ("async-backup-count".equals(nodeName)) {
+      sConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value));
+    }
+ else     if ("item-listeners".equals(nodeName)) {
+      for (      Node listenerNode : childElements(n)) {
+        if ("item-listener".equals(cleanNodeName(listenerNode))) {
+          final NamedNodeMap attrs=listenerNode.getAttributes();
+          boolean incValue=getBooleanValue(getTextContent(attrs.getNamedItem("include-value")));
+          String listenerClass=getTextContent(listenerNode);
+          sConfig.addItemListenerConfig(new ItemListenerConfig(listenerClass,incValue));
+        }
+      }
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      sConfig.setStatisticsEnabled(getBooleanValue(value));
+    }
+  }
+  this.config.addSetConfig(sConfig);
+}

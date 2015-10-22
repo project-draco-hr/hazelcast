@@ -1,0 +1,86 @@
+{
+  final String name=getAttribute(parentNode,"name");
+  final MapConfig mapConfig=new MapConfig();
+  mapConfig.setName(name);
+  for (  Node node : childElements(parentNode)) {
+    final String nodeName=cleanNodeName(node);
+    final String value=getTextContent(node).trim();
+    if ("backup-count".equals(nodeName)) {
+      mapConfig.setBackupCount(getIntegerValue("backup-count",value));
+    }
+ else     if ("in-memory-format".equals(nodeName)) {
+      mapConfig.setInMemoryFormat(InMemoryFormat.valueOf(upperCaseInternal(value)));
+    }
+ else     if ("async-backup-count".equals(nodeName)) {
+      mapConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value));
+    }
+ else     if ("eviction-policy".equals(nodeName)) {
+      mapConfig.setEvictionPolicy(EvictionPolicy.valueOf(upperCaseInternal(value)));
+    }
+ else     if ("max-size".equals(nodeName)) {
+      final MaxSizeConfig msc=mapConfig.getMaxSizeConfig();
+      final Node maxSizePolicy=node.getAttributes().getNamedItem("policy");
+      if (maxSizePolicy != null) {
+        msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.valueOf(upperCaseInternal(getTextContent(maxSizePolicy))));
+      }
+      final int size=sizeParser(value);
+      msc.setSize(size);
+    }
+ else     if ("eviction-percentage".equals(nodeName)) {
+      mapConfig.setEvictionPercentage(getIntegerValue("eviction-percentage",value));
+    }
+ else     if ("min-eviction-check-millis".equals(nodeName)) {
+      mapConfig.setMinEvictionCheckMillis(getLongValue("min-eviction-check-millis",value));
+    }
+ else     if ("time-to-live-seconds".equals(nodeName)) {
+      mapConfig.setTimeToLiveSeconds(getIntegerValue("time-to-live-seconds",value));
+    }
+ else     if ("max-idle-seconds".equals(nodeName)) {
+      mapConfig.setMaxIdleSeconds(getIntegerValue("max-idle-seconds",value));
+    }
+ else     if ("map-store".equals(nodeName)) {
+      MapStoreConfig mapStoreConfig=createMapStoreConfig(node);
+      mapConfig.setMapStoreConfig(mapStoreConfig);
+    }
+ else     if ("near-cache".equals(nodeName)) {
+      handleViaReflection(node,mapConfig,new NearCacheConfig());
+    }
+ else     if ("merge-policy".equals(nodeName)) {
+      mapConfig.setMergePolicy(value);
+    }
+ else     if ("read-backup-data".equals(nodeName)) {
+      mapConfig.setReadBackupData(getBooleanValue(value));
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      mapConfig.setStatisticsEnabled(getBooleanValue(value));
+    }
+ else     if ("optimize-queries".equals(nodeName)) {
+      mapConfig.setOptimizeQueries(getBooleanValue(value));
+    }
+ else     if ("wan-replication-ref".equals(nodeName)) {
+      mapWanReplicationRefHandle(node,mapConfig);
+    }
+ else     if ("indexes".equals(nodeName)) {
+      mapIndexesHandle(node,mapConfig);
+    }
+ else     if ("attributes".equals(nodeName)) {
+      mapAttributesHandle(node,mapConfig);
+    }
+ else     if ("entry-listeners".equals(nodeName)) {
+      mapEntryListenerHandle(node,mapConfig);
+    }
+ else     if ("partition-lost-listeners".equals(nodeName)) {
+      mapPartitionLostListenerHandle(node,mapConfig);
+    }
+ else     if ("partition-strategy".equals(nodeName)) {
+      mapConfig.setPartitioningStrategyConfig(new PartitioningStrategyConfig(value));
+    }
+ else     if ("quorum-ref".equals(nodeName)) {
+      mapConfig.setQuorumName(value);
+    }
+ else     if ("query-caches".equals(nodeName)) {
+      mapQueryCacheHandler(node,mapConfig);
+    }
+  }
+  this.config.addMapConfig(mapConfig);
+}
