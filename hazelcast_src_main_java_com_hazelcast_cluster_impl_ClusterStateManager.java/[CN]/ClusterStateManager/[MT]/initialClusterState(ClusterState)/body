@@ -3,9 +3,12 @@
   try {
     final ClusterState currentState=getState();
     if (currentState != ClusterState.ACTIVE) {
-      throw new IllegalStateException("Initial state is already set! " + "Current state: " + currentState + ", Given state: "+ initialState);
+      logger.warning("Initial state is already set! " + "Current state: " + currentState + ", Given state: "+ initialState);
+      return;
     }
     this.state=initialState;
+    changeNodeState(initialState);
+    node.getNodeExtension().onClusterStateChange(initialState);
   }
   finally {
     clusterServiceLock.unlock();

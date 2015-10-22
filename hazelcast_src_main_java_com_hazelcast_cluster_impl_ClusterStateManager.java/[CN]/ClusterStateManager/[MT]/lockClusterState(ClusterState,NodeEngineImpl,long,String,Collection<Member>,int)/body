@@ -1,0 +1,12 @@
+{
+  Collection<Future> futures=new ArrayList<Future>(members.size());
+  final Address thisAddress=node.getThisAddress();
+  for (  Member member : members) {
+    Operation op=new LockClusterStateOperation(newState,thisAddress,txnId,leaseTime,partitionStateVersion);
+    Future future=nodeEngine.getOperationService().invokeOnTarget(SERVICE_NAME,op,member.getAddress());
+    futures.add(future);
+  }
+  StateManagerExceptionHandler exceptionHandler=new StateManagerExceptionHandler(logger);
+  waitWithDeadline(futures,leaseTime,TimeUnit.MILLISECONDS,exceptionHandler);
+  exceptionHandler.rethrowIfFailed();
+}
