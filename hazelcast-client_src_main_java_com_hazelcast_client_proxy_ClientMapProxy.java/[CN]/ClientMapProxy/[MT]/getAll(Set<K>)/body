@@ -2,16 +2,19 @@
   if (CollectionUtil.isEmpty(keys)) {
     return emptyMap();
   }
-  List<Data> keyList=new ArrayList<Data>(keys.size());
+  Map<Integer,List<Data>> partitionToKeyData=new HashMap<Integer,List<Data>>();
+  ClientPartitionService partitionService=getContext().getPartitionService();
   for (  Object key : keys) {
-    keyList.add(toData(key));
+    Data keyData=toData(key);
+    int partitionId=partitionService.getPartitionId(keyData);
+    List<Data> keyList=partitionToKeyData.get(partitionId);
+    if (keyList == null) {
+      keyList=new ArrayList<Data>();
+      partitionToKeyData.put(partitionId,keyList);
+    }
+    keyList.add(keyData);
   }
   Map<K,V> result=new HashMap<K,V>();
-  MapGetAllCodec.ResponseParameters resultParameters=getAllInternal(keyList,result);
-  for (  Entry<Data,Data> entry : resultParameters.entrySet) {
-    V value=toObject(entry.getValue());
-    K key=toObject(entry.getKey());
-    result.put(key,value);
-  }
+  getAllInternal(partitionToKeyData,result);
   return result;
 }
