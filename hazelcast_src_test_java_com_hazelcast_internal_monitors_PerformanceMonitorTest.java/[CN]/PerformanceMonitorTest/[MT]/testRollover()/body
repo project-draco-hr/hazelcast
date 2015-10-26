@@ -1,0 +1,36 @@
+{
+  String id=generateRandomString(10000);
+  final List<File> files=new LinkedList<File>();
+  LongProbeFunction f=new LongProbeFunction(){
+    @Override public long get(    Object source) throws Exception {
+      return 0;
+    }
+  }
+;
+  for (int k=0; k < 10; k++) {
+    metricsRegistry.register(this,id + k,ProbeLevel.MANDATORY,f);
+  }
+  while (files.size() < 3) {
+    final File file=performanceLogFile.logFile;
+    if (file != null) {
+      if (!files.contains(file)) {
+        files.add(file);
+      }
+      assertTrueEventually(new AssertTask(){
+        @Override public void run() throws Exception {
+          assertExist(file);
+        }
+      }
+);
+    }
+    sleepMillis(100);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      File file : files) {
+        assertNotExist(file);
+      }
+    }
+  }
+);
+}

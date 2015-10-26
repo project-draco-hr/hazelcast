@@ -6,7 +6,8 @@
     }
     if (writer == null) {
       FileOutputStream fos=new FileOutputStream(logFile,true);
-      writer=new BufferedWriter(new OutputStreamWriter(fos,UTF8));
+      CharsetEncoder encoder=Charset.forName("UTF-8").newEncoder();
+      writer=new BufferedWriter(new OutputStreamWriter(fos,encoder));
     }
     if (renderHead) {
       headRenderer.render(writer);
@@ -16,17 +17,16 @@
     writer.flush();
     lastModified=logFile.lastModified();
     if (logFile.length() > maxRollingFileSizeBytes) {
-      closeResource(writer);
-      writer=null;
-      logFile=null;
-      index++;
-      deleteOld();
+      rollover();
     }
   }
  catch (  IOException e) {
-    logIOError(e);
+    log(e);
     logFile=null;
     closeResource(writer);
     writer=null;
+  }
+catch (  RuntimeException e) {
+    logger.severe("Failed to write PerformanceLogFile: " + logFile,e);
   }
 }
