@@ -1,0 +1,16 @@
+{
+  if (InMemoryFormat.NATIVE.equals(inMemoryFormat)) {
+    key=toData(key);
+    value=toData(value);
+  }
+  DelayedEntry delayedEntry=stagingArea.get(key);
+  if (delayedEntry == TRANSIENT) {
+    stagingArea.remove(key);
+    return null;
+  }
+  if (writeBehindQueue.size() == 0 || !writeBehindQueue.contains(DelayedEntries.createWithoutValue(key))) {
+    return null;
+  }
+  flushCounter.incrementAndGet();
+  return value;
+}

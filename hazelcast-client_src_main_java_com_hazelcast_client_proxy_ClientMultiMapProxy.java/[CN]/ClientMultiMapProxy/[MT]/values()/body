@@ -1,5 +1,12 @@
 {
-  ValuesRequest request=new ValuesRequest(name);
-  PortableCollection result=invoke(request);
-  return toObjectCollection(result);
+  ClientMessage request=MultiMapValuesCodec.encodeRequest(name);
+  ClientMessage response=invoke(request);
+  MultiMapValuesCodec.ResponseParameters resultParameters=MultiMapValuesCodec.decodeResponse(response);
+  Collection<Data> result=resultParameters.list;
+  Collection<V> resultCollection=new ArrayList<V>(result.size());
+  for (  Data data : result) {
+    final V value=toObject(data);
+    resultCollection.add(value);
+  }
+  return resultCollection;
 }

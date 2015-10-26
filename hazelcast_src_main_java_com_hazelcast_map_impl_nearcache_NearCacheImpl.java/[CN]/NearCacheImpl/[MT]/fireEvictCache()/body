@@ -1,0 +1,42 @@
+{
+  if (canEvict.compareAndSet(true,false)) {
+    try {
+      final ExecutionService executionService=nodeEngine.getExecutionService();
+      executionService.execute(NEAR_CACHE_EXECUTOR_NAME,new Runnable(){
+        public void run(){
+          try {
+            Set<NearCacheRecord> records=new TreeSet<NearCacheRecord>(selectedComparator);
+            records.addAll(cache.values());
+            int evictSize=(int)(cache.size() * EVICTION_FACTOR);
+            int i=0;
+            for (            NearCacheRecord record : records) {
+              cache.remove(record.getKey());
+              updateSizeEstimator(-calculateCost(record));
+              if (++i > evictSize) {
+                break;
+              }
+            }
+          }
+  finally {
+            canEvict.set(true);
+          }
+          if (cache.size() >= maxSize && canEvict.compareAndSet(true,false)) {
+            try {
+              executionService.execute(NEAR_CACHE_EXECUTOR_NAME,this);
+            }
+ catch (            RejectedExecutionException e) {
+              canEvict.set(true);
+            }
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canEvict.set(true);
+    }
+catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+}

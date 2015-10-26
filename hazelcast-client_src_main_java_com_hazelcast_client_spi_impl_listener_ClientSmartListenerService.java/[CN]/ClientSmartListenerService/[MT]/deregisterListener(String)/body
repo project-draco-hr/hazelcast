@@ -1,0 +1,19 @@
+{
+  Set<ClientEventRegistration> regSet=registrations.remove(new ClientRegistrationKey(userRegistrationId));
+  if (regSet == null) {
+    return false;
+  }
+  for (  ClientEventRegistration registration : regSet) {
+    try {
+      removeEventHandler(registration.getCallId());
+      ListenerMessageCodec listenerMessageCodec=registration.getCodec();
+      ClientMessage request=listenerMessageCodec.encodeRemoveRequest(registration.getServerRegistrationId());
+      Future future=new ClientInvocation(client,request,registration.getSubscriber()).invoke();
+      future.get();
+    }
+ catch (    Exception e) {
+      EmptyStatement.ignore(e);
+    }
+  }
+  return true;
+}

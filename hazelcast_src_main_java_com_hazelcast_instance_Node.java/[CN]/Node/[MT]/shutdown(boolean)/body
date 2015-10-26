@@ -7,12 +7,20 @@
     waitIfAlreadyShuttingDown();
     return;
   }
-  if (!terminate && clusterService.getClusterState() != ClusterState.PASSIVE) {
+  if (!terminate) {
     final int maxWaitSeconds=groupProperties.getSeconds(GroupProperty.GRACEFUL_SHUTDOWN_MAX_WAIT);
     if (!partitionService.prepareToSafeShutdown(maxWaitSeconds,TimeUnit.SECONDS)) {
       logger.warning("Graceful shutdown could not be completed in " + maxWaitSeconds + " seconds!");
     }
-    clusterService.sendShutdownMessage();
+    try {
+      clusterService.sendShutdownMessage();
+      if (logger.isFinestEnabled()) {
+        logger.finest("Shutdown message sent to other members");
+      }
+    }
+ catch (    Throwable t) {
+      EmptyStatement.ignore(t);
+    }
   }
  else {
     logger.warning("Terminating forcefully...");
@@ -24,11 +32,10 @@
       Runtime.getRuntime().removeShutdownHook(shutdownHookThread);
     }
     discoveryService.destroy();
-    logger.info("Shutting down connection manager...");
-    connectionManager.shutdown();
   }
  catch (  Throwable ignored) {
   }
+  nodeExtension.beforeShutdown();
   versionCheck.shutdown();
   if (managementCenterService != null) {
     managementCenterService.shutdown();
@@ -45,10 +52,10 @@
   if (securityContext != null) {
     securityContext.destroy();
   }
-  nodeExtension.destroy();
   logger.finest("Destroying serialization service...");
   serializationService.destroy();
   hazelcastThreadGroup.destroy();
+  nodeExtension.shutdown();
   logger.info("Hazelcast Shutdown is completed in " + (Clock.currentTimeMillis() - start) + " ms.");
   state=NodeState.SHUT_DOWN;
 }

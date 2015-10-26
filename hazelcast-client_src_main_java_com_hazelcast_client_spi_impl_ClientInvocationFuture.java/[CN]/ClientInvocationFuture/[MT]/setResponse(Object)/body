@@ -1,22 +1,12 @@
 {
 synchronized (this) {
-    if (this.response != null && handler == null) {
-      LOGGER.warning("The Future.set() method can only be called once. Request: " + request + ", current response: "+ this.response+ ", new response: "+ response);
-      return;
-    }
-    if (handler != null && !(response instanceof Throwable)) {
-      handler.onListenerRegister();
-    }
-    if (this.response != null && !(response instanceof Throwable)) {
-      String uuid=serializationService.toObject(this.response);
-      String alias=serializationService.toObject(response);
-      clientListenerService.reRegisterListener(uuid,alias,request.getCallId());
+    if (!shouldSetResponse(response)) {
       return;
     }
     this.response=response;
     this.notifyAll();
     for (    ExecutionCallbackNode node : callbackNodeList) {
-      runAsynchronous(node.callback,node.executor,node.deserialized);
+      runAsynchronous(node.callback,node.executor);
     }
     callbackNodeList.clear();
   }

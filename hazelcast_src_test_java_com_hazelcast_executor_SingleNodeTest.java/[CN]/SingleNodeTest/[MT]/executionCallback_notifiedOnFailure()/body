@@ -1,12 +1,14 @@
 {
+  final FailingTestTask task=new FailingTestTask();
   final CountDownLatch latch=new CountDownLatch(1);
-  executor.submit(new FailingTestTask(),new ExecutionCallback<String>(){
-    @Override public void onResponse(    String response){
+  final ExecutionCallback<String> executionCallback=new ExecutionCallback<String>(){
+    public void onResponse(    String response){
     }
-    @Override public void onFailure(    Throwable t){
+    public void onFailure(    Throwable t){
       latch.countDown();
     }
   }
-);
-  assertTrue(latch.await(10,TimeUnit.SECONDS));
+;
+  executor.submit(task,executionCallback);
+  assertOpenEventually(latch);
 }

@@ -1,12 +1,8 @@
 {
   checkIfLoaded();
-  final int sizeBeforeEviction=size();
-  resetSizeEstimator();
+  Collection<Record> evictableRecords=getNotLockedRecords();
+  flush(evictableRecords,backup);
+  removeIndex(evictableRecords);
   resetAccessSequenceNumber();
-  Map<Data,Record> recordsToPreserve=getLockedRecords();
-  updateSizeEstimator(calculateRecordHeapCost(recordsToPreserve.values()));
-  flush(recordsToPreserve,backup);
-  removeIndexByPreservingKeys(records.values(),recordsToPreserve.keySet());
-  clearRecordsMap(recordsToPreserve);
-  return sizeBeforeEviction - recordsToPreserve.size();
+  return removeRecords(evictableRecords);
 }

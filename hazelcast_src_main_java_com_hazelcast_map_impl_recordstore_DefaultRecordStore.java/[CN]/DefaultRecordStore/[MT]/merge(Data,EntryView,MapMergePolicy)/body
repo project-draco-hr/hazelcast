@@ -13,10 +13,9 @@
       return false;
     }
     newValue=mapDataStore.add(key,newValue,now);
-    record=createRecord(key,newValue,now);
+    record=createRecord(newValue,DEFAULT_TTL,now);
     mergeRecordExpiration(record,mergingEntry);
-    records.put(key,record);
-    updateSizeEstimator(calculateRecordHeapCost(record));
+    storage.put(key,record);
   }
  else {
     oldValue=record.getValue();
@@ -26,21 +25,18 @@
       removeIndex(record);
       mapDataStore.remove(key,now);
       onStore(record);
-      updateSizeEstimator(-calculateRecordHeapCost(record));
-      deleteRecord(key);
+      storage.removeRecord(record);
       return true;
     }
     if (newValue == mergingEntry.getValue()) {
       mergeRecordExpiration(record,mergingEntry);
     }
-    if (mapServiceContext.compare(name,newValue,oldValue)) {
+    if (recordFactory.isEquals(newValue,oldValue)) {
       return true;
     }
     newValue=mapDataStore.add(key,newValue,now);
     onStore(record);
-    updateSizeEstimator(-calculateRecordHeapCost(record));
-    recordFactory.setValue(record,newValue);
-    updateSizeEstimator(calculateRecordHeapCost(record));
+    storage.updateRecordValue(key,record,newValue);
   }
   saveIndex(record,oldValue);
   return newValue != null;

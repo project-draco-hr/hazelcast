@@ -1,0 +1,26 @@
+{
+  List<Future> futures=new ArrayList<Future>(entriesPerPartition.length);
+  for (int partitionId=0; partitionId < entriesPerPartition.length; partitionId++) {
+    List<Map.Entry<Data,Data>> entries=entriesPerPartition[partitionId];
+    if (entries != null) {
+      Operation operation=operationProvider.createPutAllOperation(entries,expiryPolicy,partitionId);
+      Future f=invoke(operation,partitionId,true);
+      futures.add(f);
+    }
+  }
+  Throwable error=null;
+  for (  Future future : futures) {
+    try {
+      future.get();
+    }
+ catch (    Throwable t) {
+      logger.finest("Error occurred while putting entries as batch!",t);
+      if (error == null) {
+        error=t;
+      }
+    }
+  }
+  if (error != null) {
+    ExceptionUtil.rethrow(error);
+  }
+}

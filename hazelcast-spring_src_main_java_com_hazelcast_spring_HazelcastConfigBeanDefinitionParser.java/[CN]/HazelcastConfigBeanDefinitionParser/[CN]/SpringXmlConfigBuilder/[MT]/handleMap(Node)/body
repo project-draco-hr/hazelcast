@@ -16,8 +16,8 @@
   if (maxSizePolicyNode != null) {
     maxSizeConfigBuilder.addPropertyValue(xmlToJavaName(cleanNodeName(maxSizePolicyNode)),MaxSizeConfig.MaxSizePolicy.valueOf(getTextContent(maxSizePolicyNode)));
   }
-  for (  Node childNode : new IterableNodeList(node.getChildNodes(),Node.ELEMENT_NODE)) {
-    final String nodeName=cleanNodeName(childNode.getNodeName());
+  for (  Node childNode : childElements(node)) {
+    final String nodeName=cleanNodeName(childNode);
     if ("map-store".equals(nodeName)) {
       handleMapStoreConfig(childNode,mapConfigBuilder);
     }
@@ -25,19 +25,25 @@
       handleNearCacheConfig(childNode,mapConfigBuilder);
     }
  else     if ("wan-replication-ref".equals(nodeName)) {
-      final BeanDefinitionBuilder wanReplicationRefBuilder=createBeanBuilder(WanReplicationRef.class);
-      final AbstractBeanDefinition wanReplicationRefBeanDefinition=wanReplicationRefBuilder.getBeanDefinition();
-      fillValues(childNode,wanReplicationRefBuilder);
-      mapConfigBuilder.addPropertyValue("wanReplicationRef",wanReplicationRefBeanDefinition);
+      handleWanReplicationRef(mapConfigBuilder,childNode);
     }
  else     if ("indexes".equals(nodeName)) {
       ManagedList indexes=new ManagedList();
-      for (      Node indexNode : new IterableNodeList(childNode.getChildNodes(),Node.ELEMENT_NODE)) {
+      for (      Node indexNode : childElements(childNode)) {
         final BeanDefinitionBuilder indexConfBuilder=createBeanBuilder(MapIndexConfig.class);
         fillAttributeValues(indexNode,indexConfBuilder);
         indexes.add(indexConfBuilder.getBeanDefinition());
       }
       mapConfigBuilder.addPropertyValue("mapIndexConfigs",indexes);
+    }
+ else     if ("attributes".equals(nodeName)) {
+      ManagedList attributes=new ManagedList();
+      for (      Node attributeNode : childElements(childNode)) {
+        final BeanDefinitionBuilder attributeConfBuilder=createBeanBuilder(MapAttributeConfig.class);
+        fillAttributeValues(attributeNode,attributeConfBuilder);
+        attributes.add(attributeConfBuilder.getBeanDefinition());
+      }
+      mapConfigBuilder.addPropertyValue("mapAttributeConfigs",attributes);
     }
  else     if ("entry-listeners".equals(nodeName)) {
       ManagedList listeners=parseListeners(childNode,EntryListenerConfig.class);

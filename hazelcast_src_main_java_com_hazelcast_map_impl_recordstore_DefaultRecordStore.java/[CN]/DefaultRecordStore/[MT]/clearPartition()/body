@@ -1,20 +1,19 @@
 {
-  final NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
-  final LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
+  NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
+  LockService lockService=nodeEngine.getSharedService(LockService.SERVICE_NAME);
   if (lockService != null) {
     final DefaultObjectNamespace namespace=new DefaultObjectNamespace(MapService.SERVICE_NAME,name);
     lockService.clearLockStore(partitionId,namespace);
   }
-  final Indexes indexes=mapContainer.getIndexes();
+  Indexes indexes=mapContainer.getIndexes();
   if (indexes.hasIndex()) {
-    for (    Record record : records.values()) {
+    for (    Record record : storage.values()) {
       Data key=record.getKey();
       Object value=Records.getValueOrCachedValue(record,serializationService);
       indexes.removeEntryIndex(key,value);
     }
   }
-  clearRecordsMap(Collections.<Data,Record>emptyMap());
-  resetSizeEstimator();
   resetAccessSequenceNumber();
   mapDataStore.clear();
+  storage.clear();
 }

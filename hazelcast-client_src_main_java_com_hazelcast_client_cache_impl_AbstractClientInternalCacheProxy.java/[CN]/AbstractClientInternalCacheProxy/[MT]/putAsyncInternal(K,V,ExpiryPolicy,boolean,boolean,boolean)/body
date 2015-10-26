@@ -5,30 +5,36 @@
   CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
   final Data keyData=toData(key);
   final Data valueData=toData(value);
-  InMemoryFormat inMemoryFormat=cacheConfig.getInMemoryFormat();
-  CachePutRequest request=new CachePutRequest(nameWithPrefix,keyData,valueData,expiryPolicy,isGet,inMemoryFormat);
-  ICompletableFuture future;
+  final Data expiryPolicyData=toData(expiryPolicy);
+  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  ClientMessage request=CachePutCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,isGet,completionId);
+  ClientInvocationFuture future;
   try {
-    future=invoke(request,keyData,withCompletionEvent);
-    if (cacheOnUpdate) {
-      storeInNearCache(keyData,valueData,value);
-    }
- else {
-      invalidateNearCache(keyData);
-    }
+    future=invoke(request,keyData,completionId);
   }
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  if (async && statisticsEnabled) {
-    future.andThen(new ExecutionCallback<Object>(){
+  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<T>(future,clientContext.getSerializationService(),putResponseDecoder);
+  if (nearCache != null || (async && statisticsEnabled)) {
+    delegatingFuture.andThen(new ExecutionCallback<Object>(){
       @Override public void onResponse(      Object responseData){
-        handleStatisticsOnPut(isGet,start,responseData);
+        if (nearCache != null) {
+          if (cacheOnUpdate) {
+            storeInNearCache(keyData,valueData,value);
+          }
+ else {
+            invalidateNearCache(keyData);
+          }
+        }
+        if (async && statisticsEnabled) {
+          handleStatisticsOnPut(isGet,start,responseData);
+        }
       }
       @Override public void onFailure(      Throwable t){
       }
     }
 );
   }
-  return future;
+  return delegatingFuture;
 }

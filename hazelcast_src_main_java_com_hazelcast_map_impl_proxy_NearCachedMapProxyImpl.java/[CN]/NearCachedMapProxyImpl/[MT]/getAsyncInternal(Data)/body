@@ -1,0 +1,21 @@
+{
+  Object value=nearCache.get(key);
+  if (value != null) {
+    if (isCachedNull(value)) {
+      value=null;
+    }
+    return new CompletedFuture<Data>(getNodeEngine().getSerializationService(),value,getNodeEngine().getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR));
+  }
+  ICompletableFuture<Data> future=super.getAsyncInternal(key);
+  future.andThen(new ExecutionCallback<Data>(){
+    @Override public void onResponse(    Data response){
+      if (!isOwn(key) || cacheLocalEntries) {
+        nearCache.put(key,response);
+      }
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+);
+  return future;
+}

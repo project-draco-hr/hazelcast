@@ -1,0 +1,15 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance[] instances=factory.newInstances();
+  HazelcastInstance hz=instances[instances.length - 1];
+  hz.getMap(randomMapName()).put(1,1);
+  changeClusterStateEventually(hz,ClusterState.PASSIVE);
+  List<HazelcastInstance> instanceList=new ArrayList<HazelcastInstance>(Arrays.asList(instances));
+  while (!instanceList.isEmpty()) {
+    HazelcastInstance instanceToShutdown=instanceList.remove(0);
+    instanceToShutdown.shutdown();
+    for (    HazelcastInstance instance : instanceList) {
+      assertClusterSizeEventually(instanceList.size(),instance);
+    }
+  }
+}

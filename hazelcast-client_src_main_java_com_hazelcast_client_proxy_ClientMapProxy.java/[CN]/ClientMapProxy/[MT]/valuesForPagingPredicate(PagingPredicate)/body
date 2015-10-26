@@ -1,12 +1,13 @@
 {
-  pagingPredicate.setIterationType(IterationType.ENTRY);
-  MapQueryRequest request=new MapQueryRequest(name,pagingPredicate,IterationType.ENTRY);
-  QueryResult result=invoke(request);
-  List<Entry> resultList=new ArrayList<Entry>(result.size());
-  for (  QueryResultRow row : result) {
-    K key=toObject(row.getKey());
-    V value=toObject(row.getValue());
-    resultList.add(new AbstractMap.SimpleImmutableEntry<Object,V>(key,value));
+  pagingPredicate.setIterationType(IterationType.VALUE);
+  ClientMessage request=MapValuesWithPagingPredicateCodec.encodeRequest(name,toData(pagingPredicate));
+  ClientMessage response=invoke(request);
+  MapValuesWithPagingPredicateCodec.ResponseParameters resultParameters=MapValuesWithPagingPredicateCodec.decodeResponse(response);
+  List<Entry> resultList=new ArrayList<Entry>(resultParameters.entrySet.size());
+  for (  Entry<Data,Data> entry : resultParameters.entrySet) {
+    K key=toObject(entry.getKey());
+    V value=toObject(entry.getValue());
+    resultList.add(new AbstractMap.SimpleImmutableEntry<K,V>(key,value));
   }
   return (Collection)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.VALUE);
 }

@@ -3,20 +3,15 @@
   long time=Clock.currentTimeMillis();
   V oldValue;
   K marshalledKey=(K)marshall(key);
-  final ReplicatedRecord current=storage.get(marshalledKey);
+  final ReplicatedRecord current=getStorage().get(marshalledKey);
   if (current == null) {
     oldValue=null;
   }
  else {
     oldValue=(V)current.getValueInternal();
-    if (oldValue != null) {
-      current.setValue(null,TOMBSTONE_REMOVAL_PERIOD_MS);
-      storage.incrementVersion();
-      scheduleTtlEntry(TOMBSTONE_REMOVAL_PERIOD_MS,marshalledKey,null);
-    }
+    getStorage().remove(marshalledKey,current);
   }
   Object unmarshalledOldValue=unmarshall(oldValue);
-  fireEntryListenerEvent(key,unmarshalledOldValue,null);
   if (replicatedMapConfig.isStatisticsEnabled()) {
     getStats().incrementRemoves(Clock.currentTimeMillis() - time);
   }

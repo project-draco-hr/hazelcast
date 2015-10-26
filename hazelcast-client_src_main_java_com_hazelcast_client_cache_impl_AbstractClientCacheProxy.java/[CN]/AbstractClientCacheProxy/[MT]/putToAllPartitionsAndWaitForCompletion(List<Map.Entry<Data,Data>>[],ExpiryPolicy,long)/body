@@ -1,0 +1,26 @@
+{
+  Data expiryPolicyData=toData(expiryPolicy);
+  List<FutureEntriesTuple> futureEntriesTuples=new ArrayList<FutureEntriesTuple>(entriesPerPartition.length);
+  for (int partitionId=0; partitionId < entriesPerPartition.length; partitionId++) {
+    List<Map.Entry<Data,Data>> entries=entriesPerPartition[partitionId];
+    if (entries != null) {
+      int completionId=nextCompletionId();
+      ClientMessage request=CachePutAllCodec.encodeRequest(nameWithPrefix,entries,expiryPolicyData,completionId);
+      Future f=invoke(request,partitionId,completionId);
+      futureEntriesTuples.add(new FutureEntriesTuple(f,entries));
+      if (nearCache != null) {
+        if (cacheOnUpdate) {
+          for (          Map.Entry<Data,Data> entry : entries) {
+            storeInNearCache(entry.getKey(),entry.getValue(),null);
+          }
+        }
+ else {
+          for (          Map.Entry<Data,Data> entry : entries) {
+            invalidateNearCache(entry.getKey());
+          }
+        }
+      }
+    }
+  }
+  waitResponseFromAllPartitionsForPutAll(futureEntriesTuples,start);
+}

@@ -3,19 +3,18 @@
   long time=Clock.currentTimeMillis();
   V oldValue;
   K marshalledKey=(K)marshall(key);
-  final ReplicatedRecord current=storage.get(marshalledKey);
+  final ReplicatedRecord current=getStorage().get(marshalledKey);
   if (current == null) {
     oldValue=null;
   }
  else {
     oldValue=(V)current.getValueInternal();
-    if (oldValue != null) {
-      current.setValueInternal(null,TOMBSTONE_REMOVAL_PERIOD_MS);
-      scheduleTtlEntry(TOMBSTONE_REMOVAL_PERIOD_MS,marshalledKey,null);
-    }
+    getStorage().remove(marshalledKey,current);
   }
-  Object unmarshalledOldValue=unmarshall(oldValue);
-  fireEntryListenerEvent(key,unmarshalledOldValue,null,EntryEventType.EVICTED);
+  Data dataKey=nodeEngine.toData(key);
+  Data dataOldValue=nodeEngine.toData(oldValue);
+  ReplicatedMapEventPublishingService eventPublishingService=replicatedMapService.getEventPublishingService();
+  eventPublishingService.fireEntryListenerEvent(dataKey,dataOldValue,null,EVICTED,name,nodeEngine.getThisAddress());
   if (replicatedMapConfig.isStatisticsEnabled()) {
     getStats().incrementRemoves(Clock.currentTimeMillis() - time);
   }

@@ -1,9 +1,20 @@
 {
-  boolean authenticated=authenticate();
-  if (authenticated) {
-    return handleAuthenticated();
+  byte serializationServiceVersion=serializationService.getVersion();
+  AuthenticationStatus authenticationStatus;
+  if (clientSerializationVersion != serializationServiceVersion) {
+    authenticationStatus=AuthenticationStatus.SERIALIZATION_VERSION_MISMATCH;
   }
  else {
-    return handleUnauthenticated();
+    authenticationStatus=authenticate();
   }
+switch (authenticationStatus) {
+case AUTHENTICATED:
+    return handleAuthenticated();
+case CREDENTIALS_FAILED:
+  return handleUnauthenticated();
+case SERIALIZATION_VERSION_MISMATCH:
+return handleSerializationVersionMismatch();
+default :
+throw new IllegalStateException("Unsupported authentication status :" + authenticationStatus);
+}
 }

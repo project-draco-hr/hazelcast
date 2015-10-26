@@ -1,6 +1,6 @@
 {
   Object marshalledKey=marshall(key);
-  ReplicatedRecord<K,V> record=storage.get(marshalledKey);
+  ReplicatedRecord<K,V> record=getStorage().get(marshalledKey);
   Object newValue;
   if (record == null) {
     ReplicatedMapEntryView nullEntryView=new ReplicatedMapEntryView(unmarshall(key),null);
@@ -9,7 +9,7 @@
       return false;
     }
     record=buildReplicatedRecord(marshalledKey,newValue,0);
-    storage.put((K)marshalledKey,record);
+    getStorage().put((K)marshalledKey,record);
     Data dataKey=serializationService.toData(marshalledKey);
     Data dataValue=serializationService.toData(newValue);
     VersionResponsePair responsePair=new VersionResponsePair(mergingEntry.getValue(),getVersion());
@@ -25,15 +25,13 @@
     existingEntry.setTtl(record.getTtlMillis());
     newValue=policy.merge(getName(),mergingEntry,existingEntry);
     if (newValue == null) {
-      record.setValue(null,TOMBSTONE_REMOVAL_PERIOD_MS);
-      storage.incrementVersion();
-      scheduleTtlEntry(TOMBSTONE_REMOVAL_PERIOD_MS,(K)marshalledKey,null);
+      getStorage().remove((K)marshalledKey,record);
       Data dataKey=serializationService.toData(marshalledKey);
       VersionResponsePair responsePair=new VersionResponsePair(mergingEntry.getValue(),getVersion());
       sendReplicationOperation(true,getName(),dataKey,null,record.getTtlMillis(),responsePair);
       return false;
     }
-    storage.incrementVersion();
+    getStorage().incrementVersion();
     record.setValueInternal((V)newValue,record.getTtlMillis());
     Data dataKey=serializationService.toData(marshalledKey);
     Data dataValue=serializationService.toData(newValue);

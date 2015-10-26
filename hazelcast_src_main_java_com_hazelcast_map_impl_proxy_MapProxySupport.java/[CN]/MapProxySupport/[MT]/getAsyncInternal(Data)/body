@@ -1,30 +1,8 @@
 {
   int partitionId=partitionService.getPartitionId(key);
-  if (nearCache != null) {
-    Object cached=nearCache.get(key);
-    if (cached != null) {
-      if (NearCache.NULL_OBJECT.equals(cached)) {
-        cached=null;
-      }
-      return new CompletedFuture<Data>(getNodeEngine().getSerializationService(),cached,getNodeEngine().getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR));
-    }
-  }
   MapOperation operation=operationProvider.createGetOperation(name,key);
   try {
     InternalCompletableFuture<Data> future=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
-    future.andThen(new ExecutionCallback<Data>(){
-      @Override public void onResponse(      Data response){
-        if (nearCache != null) {
-          int partitionId=partitionService.getPartitionId(key);
-          if (!thisAddress.equals(partitionService.getPartitionOwner(partitionId)) || getMapConfig().getNearCacheConfig().isCacheLocalEntries()) {
-            nearCache.put(key,response);
-          }
-        }
-      }
-      @Override public void onFailure(      Throwable t){
-      }
-    }
-);
     return future;
   }
  catch (  Throwable t) {

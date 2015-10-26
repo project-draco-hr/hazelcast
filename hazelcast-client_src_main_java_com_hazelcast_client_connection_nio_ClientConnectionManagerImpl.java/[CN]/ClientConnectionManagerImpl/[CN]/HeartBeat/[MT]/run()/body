@@ -6,16 +6,20 @@
   for (  ClientConnection connection : connections.values()) {
     if (now - connection.lastReadTimeMillis() > heartBeatTimeout) {
       if (connection.isHeartBeating()) {
+        LOGGER.warning("Heartbeat failed to connection : " + connection);
         connection.heartBeatingFailed();
         fireHeartBeatStopped(connection);
       }
     }
     if (now - connection.lastReadTimeMillis() > heartBeatInterval) {
-      final ClientPingRequest request=new ClientPingRequest();
-      new ClientInvocation(client,request,connection).invoke();
+      ClientMessage request=ClientPingCodec.encodeRequest();
+      ClientInvocation clientInvocation=new ClientInvocation(client,request,connection);
+      clientInvocation.setBypassHeartbeatCheck(true);
+      clientInvocation.invoke();
     }
  else {
       if (!connection.isHeartBeating()) {
+        LOGGER.warning("Heartbeat is back to healthy for connection : " + connection);
         connection.heartBeatingSucceed();
         fireHeartBeatStarted(connection);
       }

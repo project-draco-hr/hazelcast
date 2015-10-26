@@ -5,10 +5,21 @@
     throw new NullPointerException("Entry Processor is null");
   }
   final Data keyData=toData(key);
-  final CacheEntryProcessorRequest request=new CacheEntryProcessorRequest(nameWithPrefix,keyData,entryProcessor,cacheConfig.getInMemoryFormat(),arguments);
+  Data epData=toData(entryProcessor);
+  List<Data> argumentsData=null;
+  if (arguments != null) {
+    argumentsData=new ArrayList<Data>(arguments.length);
+    for (int i=0; i < arguments.length; i++) {
+      argumentsData.add(toData(arguments[i]));
+    }
+  }
+  final int completionId=nextCompletionId();
+  ClientMessage request=CacheEntryProcessorCodec.encodeRequest(nameWithPrefix,keyData,epData,argumentsData,completionId);
   try {
-    final ICompletableFuture f=invoke(request,keyData,true);
-    return (T)getSafely(f);
+    final ICompletableFuture<ClientMessage> f=invoke(request,keyData,completionId);
+    final ClientMessage response=getSafely(f);
+    final Data data=CacheEntryProcessorCodec.decodeResponse(response).response;
+    return toObject(data);
   }
  catch (  CacheException ce) {
     throw ce;

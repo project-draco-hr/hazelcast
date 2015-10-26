@@ -1,9 +1,11 @@
 {
   JoinConfig joinConfig=config.getNetworkConfig().getJoin();
-  DiscoveryStrategiesConfig providersConfig=joinConfig.getDiscoveryStrategiesConfig().getAsReadOnly();
-  DiscoveryServiceProvider factory=providersConfig.getDiscoveryServiceProvider();
+  DiscoveryConfig discoveryConfig=joinConfig.getDiscoveryConfig().getAsReadOnly();
+  DiscoveryServiceProvider factory=discoveryConfig.getDiscoveryServiceProvider();
   if (factory == null) {
     factory=new DefaultDiscoveryServiceProvider();
   }
-  return factory.newDiscoveryService(DiscoveryMode.Member,providersConfig,config.getClassLoader());
+  ILogger logger=getLogger(DiscoveryService.class);
+  DiscoveryServiceSettings settings=new DiscoveryServiceSettings().setConfigClassLoader(configClassLoader).setLogger(logger).setDiscoveryMode(DiscoveryMode.Member).setDiscoveryConfig(discoveryConfig).setDiscoveryNode(new SimpleDiscoveryNode(localMember.getAddress(),localMember.getAttributes()));
+  return factory.newDiscoveryService(settings);
 }

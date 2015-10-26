@@ -1,0 +1,19 @@
+{
+  SerializationService ss;
+  try {
+    ClientConfig config=client.getClientConfig();
+    ClassLoader configClassLoader=config.getClassLoader();
+    HazelcastInstance hazelcastInstance=client;
+    PartitioningStrategy partitioningStrategy=getPartitioningStrategy(configClassLoader);
+    SerializationServiceBuilder builder=new DefaultSerializationServiceBuilder();
+    SerializationConfig serializationConfig=config.getSerializationConfig() != null ? config.getSerializationConfig() : new SerializationConfig();
+    if (version > 0) {
+      builder.setVersion(version);
+    }
+    ss=builder.setClassLoader(configClassLoader).setConfig(serializationConfig).setManagedContext(new HazelcastClientManagedContext(client,config.getManagedContext())).setPartitioningStrategy(partitioningStrategy).setHazelcastInstance(hazelcastInstance).build();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+  return ss;
+}

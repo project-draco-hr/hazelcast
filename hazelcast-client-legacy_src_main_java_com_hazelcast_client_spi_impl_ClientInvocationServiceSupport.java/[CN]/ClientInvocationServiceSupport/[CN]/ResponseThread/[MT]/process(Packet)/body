@@ -1,0 +1,18 @@
+{
+  final ClientConnection conn=(ClientConnection)packet.getConn();
+  try {
+    final ClientResponse clientResponse=client.getSerializationService().toObject(packet);
+    final int callId=clientResponse.getCallId();
+    Data response=clientResponse.getResponse();
+    if (response == null) {
+      response=new HeapData();
+    }
+    handlePacket(response,clientResponse.isError(),callId);
+  }
+ catch (  Exception e) {
+    logger.severe("Failed to process task: " + packet + " on responseThread :"+ getName(),e);
+  }
+ finally {
+    conn.decrementPacketCount();
+  }
+}

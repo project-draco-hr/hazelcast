@@ -1,0 +1,31 @@
+{
+  final NamedNodeMap atts=node.getAttributes();
+  final JoinConfig join=config.getNetworkConfig().getJoin();
+  final TcpIpConfig tcpIpConfig=join.getTcpIpConfig();
+  for (int a=0; a < atts.getLength(); a++) {
+    final Node att=atts.item(a);
+    final String value=getTextContent(att).trim();
+    if (att.getNodeName().equals("enabled")) {
+      tcpIpConfig.setEnabled(getBooleanValue(value));
+    }
+ else     if (att.getNodeName().equals("connection-timeout-seconds")) {
+      tcpIpConfig.setConnectionTimeoutSeconds(getIntegerValue("connection-timeout-seconds",value));
+    }
+  }
+  final Set<String> memberTags=new HashSet<String>(Arrays.asList("interface","member","members"));
+  for (  Node n : childElements(node)) {
+    final String value=getTextContent(n).trim();
+    if (cleanNodeName(n).equals("member-list")) {
+      handleMemberList(n);
+    }
+ else     if (cleanNodeName(n).equals("required-member")) {
+      if (tcpIpConfig.getRequiredMember() != null) {
+        throw new InvalidConfigurationException("Duplicate required-member" + " definition found in XML configuration. ");
+      }
+      tcpIpConfig.setRequiredMember(value);
+    }
+ else     if (memberTags.contains(cleanNodeName(n))) {
+      tcpIpConfig.addMember(value);
+    }
+  }
+}

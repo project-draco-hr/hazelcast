@@ -1,0 +1,33 @@
+{
+  Config config=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
+  HazelcastInstance[] instances=factory.newInstances(config);
+  HazelcastInstance hz1=instances[0];
+  HazelcastInstance hz2=instances[1];
+  HazelcastInstance hz3=instances[2];
+  final InternalPartitionService partitionService=getNode(hz1).getPartitionService();
+  final int initialPartitionStateVersion=partitionService.getPartitionStateVersion();
+  final ClusterServiceImpl cluster=getNode(hz2).getClusterService();
+  final ClusterState newState=ClusterState.PASSIVE;
+  Thread thread=new Thread(){
+    public void run(){
+      try {
+        cluster.changeClusterState(newState,initialPartitionStateVersion);
+      }
+ catch (      Exception ignored) {
+      }
+    }
+  }
+;
+  thread.start();
+  partitionService.firstArrangement();
+  thread.join(TimeUnit.MINUTES.toMillis(1));
+  final ClusterState currentState=cluster.getClusterState();
+  if (currentState == newState) {
+    assertEquals(initialPartitionStateVersion,partitionService.getPartitionStateVersion());
+  }
+ else {
+    assertEquals(ClusterState.ACTIVE,currentState);
+    assertTrue(partitionService.getPartitionStateVersion() > 0);
+  }
+}

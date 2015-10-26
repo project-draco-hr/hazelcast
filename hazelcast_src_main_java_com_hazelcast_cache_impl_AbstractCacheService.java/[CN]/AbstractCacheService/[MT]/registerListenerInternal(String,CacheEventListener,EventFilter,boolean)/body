@@ -1,0 +1,31 @@
+{
+  EventService eventService=getNodeEngine().getEventService();
+  EventRegistration reg;
+  if (isLocal) {
+    if (eventFilter == null) {
+      reg=eventService.registerLocalListener(AbstractCacheService.SERVICE_NAME,name,listener);
+    }
+ else {
+      reg=eventService.registerLocalListener(AbstractCacheService.SERVICE_NAME,name,eventFilter,listener);
+    }
+  }
+ else {
+    if (eventFilter == null) {
+      reg=eventService.registerListener(AbstractCacheService.SERVICE_NAME,name,listener);
+    }
+ else {
+      reg=eventService.registerListener(AbstractCacheService.SERVICE_NAME,name,eventFilter,listener);
+    }
+  }
+  final String id=reg.getId();
+  if (listener instanceof Closeable) {
+    closeableListeners.put(id,(Closeable)listener);
+  }
+ else   if (listener instanceof CacheEntryListenerProvider) {
+    CacheEntryListener cacheEntryListener=((CacheEntryListenerProvider)listener).getCacheEntryListener();
+    if (cacheEntryListener instanceof Closeable) {
+      closeableListeners.put(id,(Closeable)cacheEntryListener);
+    }
+  }
+  return id;
+}

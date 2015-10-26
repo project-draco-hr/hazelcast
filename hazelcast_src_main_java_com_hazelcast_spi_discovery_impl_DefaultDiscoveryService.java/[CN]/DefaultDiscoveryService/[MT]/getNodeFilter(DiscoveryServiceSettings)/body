@@ -1,0 +1,21 @@
+{
+  DiscoveryConfig discoveryConfig=settings.getDiscoveryConfig();
+  ClassLoader configClassLoader=settings.getConfigClassLoader();
+  if (discoveryConfig.getNodeFilter() != null) {
+    return discoveryConfig.getNodeFilter();
+  }
+  if (discoveryConfig.getNodeFilterClass() != null) {
+    try {
+      ClassLoader cl=configClassLoader;
+      if (cl == null) {
+        cl=DefaultDiscoveryService.class.getClassLoader();
+      }
+      String className=discoveryConfig.getNodeFilterClass();
+      return (NodeFilter)cl.loadClass(className).newInstance();
+    }
+ catch (    Exception e) {
+      throw new RuntimeException("Failed to configure discovery node filter",e);
+    }
+  }
+  return null;
+}

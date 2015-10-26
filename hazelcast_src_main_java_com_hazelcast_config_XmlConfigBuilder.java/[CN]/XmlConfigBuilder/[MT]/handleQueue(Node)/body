@@ -1,0 +1,40 @@
+{
+  final Node attName=node.getAttributes().getNamedItem("name");
+  final String name=getTextContent(attName);
+  final QueueConfig qConfig=new QueueConfig();
+  qConfig.setName(name);
+  for (  Node n : childElements(node)) {
+    final String nodeName=cleanNodeName(n);
+    final String value=getTextContent(n).trim();
+    if ("max-size".equals(nodeName)) {
+      qConfig.setMaxSize(getIntegerValue("max-size",value));
+    }
+ else     if ("backup-count".equals(nodeName)) {
+      qConfig.setBackupCount(getIntegerValue("backup-count",value));
+    }
+ else     if ("async-backup-count".equals(nodeName)) {
+      qConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value));
+    }
+ else     if ("item-listeners".equals(nodeName)) {
+      for (      Node listenerNode : childElements(n)) {
+        if ("item-listener".equals(cleanNodeName(listenerNode))) {
+          final NamedNodeMap attrs=listenerNode.getAttributes();
+          boolean incValue=getBooleanValue(getTextContent(attrs.getNamedItem("include-value")));
+          String listenerClass=getTextContent(listenerNode);
+          qConfig.addItemListenerConfig(new ItemListenerConfig(listenerClass,incValue));
+        }
+      }
+    }
+ else     if ("statistics-enabled".equals(nodeName)) {
+      qConfig.setStatisticsEnabled(getBooleanValue(value));
+    }
+ else     if ("queue-store".equals(nodeName)) {
+      final QueueStoreConfig queueStoreConfig=createQueueStoreConfig(n);
+      qConfig.setQueueStoreConfig(queueStoreConfig);
+    }
+ else     if ("empty-queue-ttl".equals(nodeName)) {
+      qConfig.setEmptyQueueTtl(getIntegerValue("empty-queue-ttl",value));
+    }
+  }
+  this.config.addQueueConfig(qConfig);
+}

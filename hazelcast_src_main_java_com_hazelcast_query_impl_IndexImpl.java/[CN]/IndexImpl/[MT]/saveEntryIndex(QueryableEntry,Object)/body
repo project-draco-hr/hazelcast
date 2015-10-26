@@ -1,19 +1,13 @@
 {
-  if (converter == null) {
-    AttributeType attributeType=e.getAttributeType(attribute);
-    converter=attributeType == null ? IDENTITY_CONVERTER : attributeType.getConverter();
+  if (converter == null || converter == NULL_CONVERTER) {
+    converter=entry.getConverter(attributeName);
   }
-  Comparable oldValue=null;
-  if (oldRecordValue != null) {
-    oldValue=QueryEntryUtils.extractAttribute(attribute,e.getKeyData(),oldRecordValue,ss);
-    oldValue=sanitizeValue(oldValue);
-  }
-  Comparable newValue=e.getAttribute(attribute);
-  newValue=sanitizeValue(newValue);
-  if (oldValue == null) {
-    indexStore.newIndex(newValue,e);
+  Object newAttributeValue=extractAttributeValue(entry.getKeyData(),entry.getValue());
+  if (oldRecordValue == null) {
+    indexStore.newIndex(newAttributeValue,entry);
   }
  else {
-    indexStore.updateIndex(oldValue,newValue,e);
+    Object oldAttributeValue=extractAttributeValue(entry.getKeyData(),oldRecordValue);
+    indexStore.updateIndex(oldAttributeValue,newAttributeValue,entry);
   }
 }
