@@ -9,18 +9,19 @@
     logger.warning("While calling 'operation.onFailure(e)'... op: " + operation + ", error: "+ e,t);
   }
   operation.logError(e);
+  if (e instanceof ResponseNotSentException || !operation.returnsResponse()) {
+    return;
+  }
   OperationResponseHandler responseHandler=operation.getOperationResponseHandler();
-  if (operation.returnsResponse() && responseHandler != null) {
-    try {
-      if (nodeEngine.isRunning()) {
-        responseHandler.sendResponse(operation,e);
-      }
- else       if (responseHandler.isLocal()) {
-        responseHandler.sendResponse(operation,new HazelcastInstanceNotActiveException());
-      }
+  try {
+    if (nodeEngine.isRunning()) {
+      responseHandler.sendResponse(operation,e);
     }
- catch (    Throwable t) {
-      logger.warning("While sending op error... op: " + operation + ", error: "+ e,t);
+ else     if (responseHandler.isLocal()) {
+      responseHandler.sendResponse(operation,new HazelcastInstanceNotActiveException());
     }
+  }
+ catch (  Throwable t) {
+    logger.warning("While sending op error... op: " + operation + ", error: "+ e,t);
   }
 }
