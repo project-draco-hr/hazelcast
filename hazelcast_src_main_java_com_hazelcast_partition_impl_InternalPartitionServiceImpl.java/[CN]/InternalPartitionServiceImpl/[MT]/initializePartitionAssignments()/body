@@ -10,7 +10,7 @@
     logger.warning("No member group is available to assign partition ownership...");
     return false;
   }
-  logger.info("Initializing cluster partition table first arrangement...");
+  logger.info("Initializing cluster partition table arrangement...");
   Address[][] newState=psg.initialize(memberGroups,partitionCount);
   if (newState.length != partitionCount) {
     throw new HazelcastException("Invalid partition count! " + "Expected: " + partitionCount + ", Actual: "+ newState.length);
@@ -22,6 +22,11 @@
     logger.warning("Partitions can't be assigned since cluster-state= " + clusterState);
     return false;
   }
-  setInitialState(newState);
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    InternalPartitionImpl partition=partitions[partitionId];
+    Address[] replicas=newState[partitionId];
+    partition.setReplicaAddresses(replicas);
+  }
+  initialized=true;
   return true;
 }
