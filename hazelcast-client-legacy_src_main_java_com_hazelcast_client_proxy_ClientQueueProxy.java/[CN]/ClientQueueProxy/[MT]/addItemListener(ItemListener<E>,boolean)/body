@@ -2,9 +2,10 @@
   final AddListenerRequest request=new AddListenerRequest(name,includeValue);
   EventHandler<PortableItemEvent> eventHandler=new EventHandler<PortableItemEvent>(){
     public void handle(    PortableItemEvent portableItemEvent){
-      E item=includeValue ? (E)getContext().getSerializationService().toObject(portableItemEvent.getItem()) : null;
+      SerializationService ss=getContext().getSerializationService();
       Member member=getContext().getClusterService().getMember(portableItemEvent.getUuid());
-      ItemEvent<E> itemEvent=new ItemEvent<E>(name,portableItemEvent.getEventType(),item,member);
+      Data item=portableItemEvent.getItem();
+      ItemEvent<E> itemEvent=new DataAwareItemEvent(name,portableItemEvent.getEventType(),item,member,ss);
       if (portableItemEvent.getEventType() == ItemEventType.ADDED) {
         listener.itemAdded(itemEvent);
       }
