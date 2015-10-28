@@ -3,10 +3,11 @@
   request.setServiceName(getServiceName());
   EventHandler<PortableItemEvent> eventHandler=new EventHandler<PortableItemEvent>(){
     public void handle(    PortableItemEvent portableItemEvent){
-      E item=includeValue ? (E)getContext().getSerializationService().toObject(portableItemEvent.getItem()) : null;
+      Data item=portableItemEvent.getItem();
       Member member=getContext().getClusterService().getMember(portableItemEvent.getUuid());
-      ItemEvent<E> itemEvent=new ItemEvent<E>(getName(),portableItemEvent.getEventType(),item,member);
-      if (portableItemEvent.getEventType() == ItemEventType.ADDED) {
+      ItemEventType eventType=portableItemEvent.getEventType();
+      ItemEvent<E> itemEvent=new DataAwareItemEvent(getName(),eventType,item,member,getContext().getSerializationService());
+      if (eventType == ItemEventType.ADDED) {
         listener.itemAdded(itemEvent);
       }
  else {
