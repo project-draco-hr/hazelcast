@@ -1,0 +1,28 @@
+{
+  final String GROUP_NAME="my-osgi-group";
+  String propValue=System.getProperty(HazelcastOSGiService.HAZELCAST_OSGI_GROUPING_DISABLED);
+  TestBundle testBundle=null;
+  try {
+    System.setProperty(HazelcastOSGiService.HAZELCAST_OSGI_GROUPING_DISABLED,"true");
+    testBundle=new TestBundle();
+    TestBundleContext testBundleContext=testBundle.getBundleContext();
+    testBundle.start();
+    HazelcastInternalOSGiService service=getService(testBundleContext);
+    Config config=new Config();
+    config.getGroupConfig().setName(GROUP_NAME);
+    HazelcastOSGiInstance osgiInstance=service.newHazelcastInstance(config);
+    assertNotNull(osgiInstance);
+    assertEquals(GROUP_NAME,osgiInstance.getConfig().getGroupConfig().getName());
+    HazelcastInstance instance=osgiInstance.getDelegatedInstance();
+    assertNotNull(instance);
+    assertEquals(GROUP_NAME,instance.getConfig().getGroupConfig().getName());
+  }
+  finally {
+    if (propValue != null) {
+      System.setProperty(HazelcastOSGiService.HAZELCAST_OSGI_GROUPING_DISABLED,propValue);
+    }
+    if (testBundle != null) {
+      testBundle.stop();
+    }
+  }
+}
