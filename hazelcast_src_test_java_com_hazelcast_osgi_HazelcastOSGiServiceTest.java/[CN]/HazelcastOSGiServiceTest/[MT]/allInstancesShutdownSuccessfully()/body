@@ -1,0 +1,22 @@
+{
+  Set<HazelcastOSGiInstance> osgiInstances=new HashSet<HazelcastOSGiInstance>();
+  HazelcastInternalOSGiService service=getService();
+  osgiInstances.add(service.newHazelcastInstance());
+  osgiInstances.add(service.newHazelcastInstance(new Config("test-osgi-instance")));
+  Set<HazelcastOSGiInstance> allOSGiInstances=service.getAllHazelcastInstances();
+  for (  HazelcastOSGiInstance osgiInstance : allOSGiInstances) {
+    assertTrue(osgiInstance.getLifecycleService().isRunning());
+    HazelcastInstance instance=osgiInstance.getDelegatedInstance();
+    assertNotNull(instance);
+    assertTrue(instance.getLifecycleService().isRunning());
+  }
+  service.shutdownAll();
+  for (  HazelcastOSGiInstance osgiInstance : osgiInstances) {
+    assertFalse(osgiInstance.getLifecycleService().isRunning());
+    HazelcastInstance instance=osgiInstance.getDelegatedInstance();
+    assertNotNull(instance);
+    assertFalse(instance.getLifecycleService().isRunning());
+  }
+  allOSGiInstances=service.getAllHazelcastInstances();
+  assertEquals(0,allOSGiInstances.size());
+}

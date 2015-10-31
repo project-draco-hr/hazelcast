@@ -1,0 +1,25 @@
+{
+  String propValue=System.getProperty(HazelcastOSGiService.HAZELCAST_OSGI_GROUPING_DISABLED);
+  TestBundle testBundle=null;
+  try {
+    System.setProperty(HazelcastOSGiService.HAZELCAST_OSGI_GROUPING_DISABLED,"true");
+    testBundle=new TestBundle();
+    TestBundleContext testBundleContext=testBundle.getBundleContext();
+    testBundle.start();
+    HazelcastInternalOSGiService service=getService(testBundleContext);
+    HazelcastOSGiInstance osgiInstance=service.newHazelcastInstance();
+    assertNotNull(osgiInstance);
+    assertEquals(GroupConfig.DEFAULT_GROUP_NAME,osgiInstance.getConfig().getGroupConfig().getName());
+    HazelcastInstance instance=osgiInstance.getDelegatedInstance();
+    assertNotNull(instance);
+    assertEquals(GroupConfig.DEFAULT_GROUP_NAME,instance.getConfig().getGroupConfig().getName());
+  }
+  finally {
+    if (propValue != null) {
+      System.setProperty(HazelcastOSGiService.HAZELCAST_OSGI_GROUPING_DISABLED,propValue);
+    }
+    if (testBundle != null) {
+      testBundle.stop();
+    }
+  }
+}
