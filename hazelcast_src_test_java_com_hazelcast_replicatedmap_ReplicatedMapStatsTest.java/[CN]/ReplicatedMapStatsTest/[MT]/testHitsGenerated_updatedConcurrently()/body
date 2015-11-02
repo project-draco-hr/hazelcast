@@ -1,0 +1,26 @@
+{
+  final ReplicatedMap<Integer,Integer> replicatedMap=getReplicatedMap();
+  final int actionCount=100;
+  for (int i=0; i < actionCount; i++) {
+    replicatedMap.put(i,i);
+    replicatedMap.get(i);
+  }
+  final LocalReplicatedMapStats stats=replicatedMap.getReplicatedMapStats();
+  final long initialHits=stats.getHits();
+  new Thread(new Runnable(){
+    @Override public void run(){
+      for (int i=0; i < actionCount; i++) {
+        replicatedMap.get(i);
+      }
+      replicatedMap.getReplicatedMapStats();
+    }
+  }
+).start();
+  assertEquals(actionCount,initialHits);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(actionCount * 2,stats.getHits());
+    }
+  }
+);
+}

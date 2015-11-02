@@ -1,0 +1,24 @@
+{
+  final long startTime=Clock.currentTimeMillis();
+  final ReplicatedMap<String,String> map=getReplicatedMap();
+  final String key="key";
+  map.put(key,"value");
+  map.get(key);
+  final LocalReplicatedMapStats stats=map.getReplicatedMapStats();
+  final long lastAccessTime=stats.getLastAccessTime();
+  new Thread(new Runnable(){
+    @Override public void run(){
+      sleepAtLeastMillis(1);
+      map.get(key);
+      map.getReplicatedMapStats();
+    }
+  }
+).start();
+  assertTrue(lastAccessTime >= startTime);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(stats.getLastAccessTime() > lastAccessTime);
+    }
+  }
+);
+}
