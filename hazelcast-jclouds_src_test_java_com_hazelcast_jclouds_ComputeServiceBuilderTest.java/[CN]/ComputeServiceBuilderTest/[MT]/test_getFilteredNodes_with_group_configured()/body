@@ -1,0 +1,19 @@
+{
+  Map<String,Comparable> properties=new HashMap<String,Comparable>();
+  String groupUnderTest="group3";
+  properties.put("group",groupUnderTest);
+  ComputeServiceBuilder builder=new ComputeServiceBuilder(properties);
+  ComputeService mockComputeService=mock(ComputeService.class);
+  builder.setComputeService(mockComputeService);
+  Set<NodeMetadata> nodes=new HashSet<NodeMetadata>();
+  for (int i=0; i < 5; i++) {
+    nodes.add(new NodeMetadataBuilder().id(UuidUtil.newSecureUuidString()).group("group" + i).status(NodeMetadata.Status.RUNNING).build());
+  }
+  nodes.add(new NodeMetadataBuilder().id(UuidUtil.newSecureUuidString()).group(groupUnderTest).status(NodeMetadata.Status.RUNNING).build());
+  doReturn(nodes).when(mockComputeService).listNodesDetailsMatching(null);
+  Set<NodeMetadata> result=(Set)builder.getFilteredNodes();
+  assertEquals(2,result.size());
+  for (  NodeMetadata node : result) {
+    assertEquals(groupUnderTest,node.getGroup());
+  }
+}
