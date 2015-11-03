@@ -1,0 +1,24 @@
+{
+  String propValue=System.getProperty(HazelcastOSGiService.HAZELCAST_OSGI_START);
+  TestBundle testBundle=null;
+  try {
+    System.setProperty(HazelcastOSGiService.HAZELCAST_OSGI_START,"true");
+    TestBundleRegisterDeregisterListener registerDeregisterListener=new TestBundleRegisterDeregisterListener(HazelcastOSGiService.class.getName());
+    registerDeregisterListener.throwExceptionOnRegister=true;
+    testBundle=new TestBundle(registerDeregisterListener);
+    try {
+      testBundle.start();
+      fail("OSGI service could not be activated because of exception while registering default instance. " + "It is expected to get `IllegalStateException` here!");
+    }
+ catch (    IllegalStateException e) {
+    }
+  }
+  finally {
+    if (propValue != null) {
+      System.setProperty(HazelcastOSGiService.HAZELCAST_OSGI_START,propValue);
+    }
+    if (testBundle != null) {
+      testBundle.stop();
+    }
+  }
+}
