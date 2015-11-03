@@ -3,50 +3,23 @@ synchronized (serviceMutex) {
     if (ownerBundle.getState() == Bundle.STARTING) {
       try {
         if (hazelcastInstance != null) {
-          try {
-            LOGGER.warning("Default Hazelcast instance should be null while activating service !");
-            hazelcastInstance.shutdown();
-          }
- catch (          Throwable t) {
-            LOGGER.finest("Error occurred while shutting down the default Hazelcast instance !",t);
-          }
- finally {
-            hazelcastInstance=null;
-          }
+          LOGGER.warning("Default Hazelcast instance should be null while activating service !");
+          shutdownDefaultHazelcastInstanceIfActive();
         }
-        try {
-          if (Boolean.getBoolean(HAZELCAST_OSGI_START)) {
-            hazelcastInstance=new HazelcastOSGiInstanceImpl(createHazelcastInstance(null),this);
-            LOGGER.info("Default Hazelcast instance has been created");
-          }
-          if (hazelcastInstance != null && !Boolean.getBoolean(HAZELCAST_OSGI_REGISTER_DISABLED)) {
-            registerInstance(hazelcastInstance);
-            LOGGER.info("Default Hazelcast instance has been registered as OSGI service");
-          }
+        if (Boolean.getBoolean(HAZELCAST_OSGI_START)) {
+          hazelcastInstance=new HazelcastOSGiInstanceImpl(createHazelcastInstance(null),this);
+          LOGGER.info("Default Hazelcast instance has been created");
         }
- catch (        Throwable t) {
-          if (hazelcastInstance != null) {
-            shutdownHazelcastInstance(hazelcastInstance);
-            hazelcastInstance=null;
-          }
-          ExceptionUtil.rethrow(t);
+        if (hazelcastInstance != null && !Boolean.getBoolean(HAZELCAST_OSGI_REGISTER_DISABLED)) {
+          registerInstance(hazelcastInstance);
+          LOGGER.info("Default Hazelcast instance has been registered as OSGI service");
         }
         serviceRegistration=ownerBundleContext.registerService(HazelcastOSGiService.class.getName(),this,null);
         LOGGER.info(this + " has been registered as OSGI service and activated now");
       }
- catch (      Throwable t1) {
-        if (hazelcastInstance != null) {
-          try {
-            hazelcastInstance.shutdown();
-          }
- catch (          Throwable t2) {
-            LOGGER.finest("Error occurred while shutting down the default Hazelcast instance !",t2);
-          }
- finally {
-            hazelcastInstance=null;
-          }
-        }
-        ExceptionUtil.rethrow(t1);
+ catch (      Throwable t) {
+        shutdownDefaultHazelcastInstanceIfActive();
+        ExceptionUtil.rethrow(t);
       }
     }
   }
