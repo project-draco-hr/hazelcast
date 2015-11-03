@@ -1,0 +1,16 @@
+{
+  IMap<Integer,SampleObject> map=createInstanceAndGetMap();
+  int count=10;
+  final CountDownLatch latch=new CountDownLatch(count);
+  map.addEntryListener(new EntryAddedListener<Integer,SampleObject>(){
+    @Override public void entryAdded(    EntryEvent<Integer,SampleObject> event){
+      assertEquals(event.getKey() + 1,event.getValue().version);
+      latch.countDown();
+    }
+  }
+,true);
+  for (int i=0; i < count; i++) {
+    map.put(i,new SampleObject(i));
+  }
+  assertOpenEventually(latch);
+}

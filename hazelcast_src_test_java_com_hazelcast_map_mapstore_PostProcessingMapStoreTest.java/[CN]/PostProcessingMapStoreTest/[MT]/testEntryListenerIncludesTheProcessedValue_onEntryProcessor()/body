@@ -1,0 +1,28 @@
+{
+  IMap<Integer,SampleObject> map=createInstanceAndGetMap();
+  int count=10;
+  final CountDownLatch latch=new CountDownLatch(count);
+  map.addEntryListener(new EntryUpdatedListener<Integer,SampleObject>(){
+    @Override public void entryUpdated(    EntryEvent<Integer,SampleObject> event){
+      assertEquals(event.getKey() + 3,event.getValue().version);
+      latch.countDown();
+    }
+  }
+,true);
+  for (int i=0; i < count; i++) {
+    map.put(i,new SampleObject(i));
+    map.executeOnKey(i,new EntryProcessor(){
+      @Override public Object process(      Map.Entry entry){
+        SampleObject value=(SampleObject)entry.getValue();
+        value.version++;
+        entry.setValue(value);
+        return null;
+      }
+      @Override public EntryBackupProcessor getBackupProcessor(){
+        return null;
+      }
+    }
+);
+  }
+  assertOpenEventually(latch);
+}
