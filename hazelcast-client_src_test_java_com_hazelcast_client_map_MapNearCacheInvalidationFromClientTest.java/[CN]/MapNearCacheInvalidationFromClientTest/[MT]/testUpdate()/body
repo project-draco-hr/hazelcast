@@ -1,19 +1,16 @@
 {
   final IMap<Object,Object> map=client.getMap(mapName);
-  final CountDownLatch latch=new CountDownLatch(1);
-  final IMap<Object,Object> liteMap=lite.getMap(mapName);
-  liteMap.addEntryListener(new EntryAddedListener<Integer,Integer>(){
-    @Override public void entryAdded(    EntryEvent<Integer,Integer> event){
-      latch.countDown();
-    }
-  }
-,false);
   map.put(1,1);
-  assertOpenEventually(latch);
-  liteMap.get(1);
+  final IMap<Object,Object> liteMap=lite.getMap(mapName);
   final NearCache nearCache=getNearCache(lite,mapName);
   final Data keyData=toData(lite,1);
-  assertEquals(keyData,nearCache.get(keyData));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      liteMap.get(1);
+      assertEquals(keyData,nearCache.get(keyData));
+    }
+  }
+);
   map.put(1,2);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
