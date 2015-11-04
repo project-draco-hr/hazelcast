@@ -1,30 +1,32 @@
 {
-  final int partitionId=getPartitionId();
-  final InternalPartitionService partitionService=getNodeEngine().getPartitionService();
-  Set<Data> filteredKeys=new HashSet<Data>();
+  int partitionId=getPartitionId();
+  InternalPartitionService partitionService=getNodeEngine().getPartitionService();
+  Set<Data> filteredKeys=null;
   if (keys != null) {
+    filteredKeys=new HashSet<Data>();
     for (    Data k : keys) {
       if (partitionService.getPartitionId(k) == partitionId) {
         filteredKeys.add(k);
       }
     }
   }
-  if (filteredKeys.isEmpty()) {
+  if (filteredKeys == null || filteredKeys.isEmpty()) {
     return;
   }
   try {
-    final ICacheService service=getService();
+    ICacheService service=getService();
     cache=service.getOrCreateRecordStore(name,partitionId);
-    final Set<Data> keysLoaded=cache.loadAll(filteredKeys,replaceExistingValues);
-    shouldBackup=!keysLoaded.isEmpty();
-    if (shouldBackup) {
-      backupRecords=new HashMap<Data,CacheRecord>(keysLoaded.size());
+    Set<Data> keysLoaded=cache.loadAll(filteredKeys,replaceExistingValues);
+    int loadedKeyCount=keysLoaded.size();
+    if (loadedKeyCount > 0) {
+      backupRecords=new HashMap<Data,CacheRecord>(loadedKeyCount);
       for (      Data key : keysLoaded) {
         CacheRecord record=cache.getRecord(key);
         if (record != null) {
           backupRecords.put(key,record);
         }
       }
+      shouldBackup=!backupRecords.isEmpty();
     }
   }
  catch (  CacheException e) {
