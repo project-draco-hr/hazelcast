@@ -1,0 +1,13 @@
+{
+  final HazelcastInstance hazelcastInstance=createHazelcastInstance(getConfig());
+  final IMap<String,Object> map=hazelcastInstance.getMap(mapName);
+  hazelcastInstance.executeTransaction(new TransactionalTask<Object>(){
+    @Override public Object execute(    TransactionalTaskContext transactionContext) throws TransactionException {
+      TransactionalMap<String,Object> transactionalMap=transactionContext.getMap(mapName);
+      transactionalMap.replace(key,value);
+      assertFalse("Key remains locked!",map.isLocked(key));
+      return null;
+    }
+  }
+);
+}
