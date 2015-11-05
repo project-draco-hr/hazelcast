@@ -1,0 +1,18 @@
+{
+  NearCacheConfig nearCacheConfig=createNearCacheConfig(InMemoryFormat.OBJECT,NearCacheConfig.LocalUpdatePolicy.CACHE);
+  prepareCache(nearCacheConfig);
+  final String key=randomString();
+  SerializationCountingData value=new SerializationCountingData();
+  cache.put(key,value);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,nearCache.size());
+    }
+  }
+);
+  assertAndReset(1,0);
+  cache.get(key);
+  assertAndReset(0,0);
+  cache.get(key);
+  assertAndReset(0,0);
+}
