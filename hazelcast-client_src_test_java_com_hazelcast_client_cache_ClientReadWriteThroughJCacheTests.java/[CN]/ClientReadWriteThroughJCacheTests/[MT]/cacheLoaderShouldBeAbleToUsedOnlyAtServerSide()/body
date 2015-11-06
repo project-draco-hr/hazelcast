@@ -1,0 +1,18 @@
+{
+  final String cacheName=randomName();
+  CacheManager serverCacheManager=serverProvider1.getCacheManager();
+  CompleteConfiguration<Integer,String> config=new CacheConfig<Integer,String>().setTypes(Integer.class,String.class).setReadThrough(true).setCacheLoaderFactory(new ServerSideCacheLoaderFactory());
+  serverCacheManager.createCache(cacheName,config);
+  CacheManager clientCacheManager=clientProvider.getCacheManager();
+  Cache<Integer,String> cache=clientCacheManager.getCache(cacheName,Integer.class,String.class);
+  assertNotNull(cache);
+  Set<Integer> keys=new HashSet<Integer>();
+  for (int i=0; i < 100; i++) {
+    keys.add(i);
+  }
+  Map<Integer,String> loaded=cache.getAll(keys);
+  assertEquals(keys.size(),loaded.size());
+  for (  Map.Entry<Integer,String> entry : loaded.entrySet()) {
+    assertEquals(ServerSideCacheLoader.valueOf(entry.getKey()),entry.getValue());
+  }
+}
