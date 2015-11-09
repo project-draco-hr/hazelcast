@@ -1,0 +1,16 @@
+{
+  String mapName=randomMapName();
+  Config config=createConfig(PER_NODE,300,mapName);
+  TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance node1=instanceFactory.newHazelcastInstance(config);
+  HazelcastInstance node2=instanceFactory.newHazelcastInstance(config);
+  IMap map1=node1.getMap(mapName);
+  for (int i=0; i < 2222; i++) {
+    map1.put(i,i);
+  }
+  IMap map2=node2.getMap(mapName);
+  LocalMapStats localMapStats1=map1.getLocalMapStats();
+  LocalMapStats localMapStats2=map2.getLocalMapStats();
+  assertEquals(localMapStats1.getOwnedEntryCount(),localMapStats2.getBackupEntryCount());
+  assertEquals(localMapStats2.getOwnedEntryCount(),localMapStats1.getBackupEntryCount());
+}

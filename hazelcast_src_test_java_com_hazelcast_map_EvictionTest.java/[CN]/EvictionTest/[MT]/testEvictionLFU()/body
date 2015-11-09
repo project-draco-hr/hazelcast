@@ -1,6 +1,5 @@
 {
   final String mapName="testEvictionLFU_" + randomString();
-  final int instanceCount=1;
   final int size=10000;
   Config cfg=getConfig();
   cfg.setProperty(GroupProperty.PARTITION_COUNT,"1");
@@ -11,11 +10,10 @@
   msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
   msc.setSize(size);
   mc.setMaxSizeConfig(msc);
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(instanceCount);
-  final HazelcastInstance[] instances=factory.newInstances(cfg);
+  HazelcastInstance node=createHazelcastInstance(cfg);
+  IMap<Object,Object> map=node.getMap(mapName);
   final int atLeastShouldEvict=size / 40;
   final CountDownLatch latch=new CountDownLatch(atLeastShouldEvict);
-  IMap<Object,Object> map=instances[0].getMap(mapName);
   map.addLocalEntryListener(new EntryAdapter<Object,Object>(){
     @Override public void entryEvicted(    EntryEvent<Object,Object> event){
       latch.countDown();
@@ -26,7 +24,7 @@
     map.put(i,i);
     map.get(i);
   }
-  for (int i=size / 2; i < size; i++) {
+  for (int i=size / 2; i < size + 1; i++) {
     map.put(i,i);
   }
   assertOpenEventually(latch,120);
