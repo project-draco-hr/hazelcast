@@ -8,7 +8,10 @@
     try {
       migrationQueue.clear();
       if (initialized) {
-        migrationQueue.add(new RepartitioningTask());
+        final ClusterState clusterState=nodeEngine.getClusterService().getClusterState();
+        if (clusterState == ClusterState.ACTIVE) {
+          migrationQueue.add(new RepartitioningTask());
+        }
         Collection<MemberImpl> members=getCurrentMembersAndMembersRemovedWhileNotClusterNotActive();
         PartitionStateOperation op=new PartitionStateOperation(createPartitionState(members));
         nodeEngine.getOperationService().send(op,member.getAddress());
