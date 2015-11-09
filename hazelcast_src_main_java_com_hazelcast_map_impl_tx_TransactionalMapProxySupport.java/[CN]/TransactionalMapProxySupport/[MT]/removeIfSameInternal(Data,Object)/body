@@ -1,6 +1,11 @@
 {
+  boolean unlockImmediately=!valueMap.containsKey(key);
   VersionedValue versionedValue=lockAndGet(key,tx.getTimeoutMillis());
   if (!isEquals(versionedValue.value,value)) {
+    if (unlockImmediately) {
+      unlock(key,versionedValue);
+      return false;
+    }
     addUnlockTransactionRecord(key,versionedValue.version);
     return false;
   }

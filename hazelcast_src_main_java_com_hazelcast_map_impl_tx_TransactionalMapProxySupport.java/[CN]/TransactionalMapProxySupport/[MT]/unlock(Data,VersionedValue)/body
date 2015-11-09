@@ -1,0 +1,15 @@
+{
+  try {
+    NodeEngine nodeEngine=getNodeEngine();
+    TxnUnlockOperation unlockOperation=new TxnUnlockOperation(name,key,versionedValue.version);
+    unlockOperation.setThreadId(ThreadUtil.getThreadId());
+    unlockOperation.setOwnerUuid(tx.getOwnerUuid());
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+    Future<VersionedValue> future=nodeEngine.getOperationService().invokeOnPartition(MapService.SERVICE_NAME,unlockOperation,partitionId);
+    future.get();
+    valueMap.remove(key);
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}
