@@ -1,20 +1,20 @@
 {
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
-  final HazelcastInstance h1=nodeFactory.newHazelcastInstance();
-  final HazelcastInstance h2=nodeFactory.newHazelcastInstance();
-  final HazelcastInstance h3=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h1=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h2=nodeFactory.newHazelcastInstance();
+  HazelcastInstance h3=nodeFactory.newHazelcastInstance();
   assertClusterSizeEventually(3,h1);
   assertClusterSizeEventually(3,h2);
   assertClusterSizeEventually(3,h3);
   try {
-    final IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
+    IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
     for (int i=0; i < 10000; i++) {
       m1.put(i,i);
     }
     JobTracker tracker=h1.getJobTracker("default");
     Job<Integer,Integer> job=tracker.newJob(KeyValueSource.fromMap(m1));
     JobCompletableFuture<Map<String,Integer>> future=job.chunkSize(10).mapper(new GroupingTestMapper()).reducer(new TestReducerFactory()).submit();
-    final TrackableJob trackableJob=tracker.getTrackableJob(future.getJobId());
+    TrackableJob trackableJob=tracker.getTrackableJob(future.getJobId());
     final JobProcessInformation processInformation=trackableJob.getJobProcessInformation();
     Map<String,Integer> result=future.get();
     int[] expectedResults=new int[4];

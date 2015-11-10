@@ -4,8 +4,8 @@
   HazelcastInstance h2=nodeFactory.newHazelcastInstance();
   HazelcastInstance h3=nodeFactory.newHazelcastInstance();
   try {
-    final IMap map=h1.getMap(randomString());
-    final int keyCount=100;
+    IMap<Integer,Employee> map=h1.getMap(randomString());
+    int keyCount=100;
     for (int id=0; id < keyCount; id++) {
       map.put(id,new Employee(id));
     }
@@ -13,7 +13,7 @@
     Job<Integer,Employee> job=tracker.newJob(KeyValueSource.fromMap(map));
     ICompletableFuture<Map<Integer,Set<Employee>>> future=job.mapper(new ModIdMapper(2)).combiner(new RangeIdCombinerFactory(10,30)).reducer(new IdReducerFactory(10,20,30)).submit();
     Map<Integer,Set<Employee>> result=future.get();
-    assertEquals("expected 8 Employees with id's ending 2, 4, 6, 8",8,result.size());
+    assertEquals("Expected 8 employees with ids ending 2, 4, 6, 8",8,result.size());
   }
   finally {
     tripTerminate(h1,h2,h3);
