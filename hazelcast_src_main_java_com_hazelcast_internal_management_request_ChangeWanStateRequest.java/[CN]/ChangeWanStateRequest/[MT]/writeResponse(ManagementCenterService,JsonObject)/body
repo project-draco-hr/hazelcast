@@ -1,14 +1,12 @@
 {
-  final JsonObject result=new JsonObject();
-  result.add("start",start);
   ChangeWanStateOperation changeWanStateOperation=new ChangeWanStateOperation(schemeName,publisherName,start);
-  String[] hostAndPort=memberAddress.split(":");
-  Address address=new Address(hostAndPort[0],Integer.parseInt(hostAndPort[1]));
-  final Set<Member> members=mcs.getHazelcastInstance().getCluster().getMembers();
-  for (  Member member : members) {
-    if (member.getAddress().equals(address)) {
-      mcs.callOnMember(member,changeWanStateOperation);
-      break;
-    }
+  Object operationResult=mcs.callOnThis(changeWanStateOperation);
+  JsonObject result=new JsonObject();
+  if (operationResult == null) {
+    result.add("result",SUCCESS);
   }
+ else {
+    result.add("result",operationResult.toString());
+  }
+  out.add("result",result);
 }
