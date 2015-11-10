@@ -1,12 +1,11 @@
 {
-  final List<Future> futures=new ArrayList<Future>();
-  for (int i=0; i < instances.length; i++) {
-    final HazelcastInstance instance=instances[i];
-    final IExecutorService service=instance.getExecutorService("testSubmitToKeyOwnerCallable");
-    final Member localMember=instance.getCluster().getLocalMember();
-    final int key=findNextKeyForMember(instance,localMember);
-    final Future f=service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key);
-    futures.add(f);
+  List<Future> futures=new ArrayList<Future>();
+  for (  HazelcastInstance instance : instances) {
+    IExecutorService service=instance.getExecutorService("testSubmitToKeyOwnerCallable");
+    Member localMember=instance.getCluster().getLocalMember();
+    int key=findNextKeyForMember(instance,localMember);
+    Future future=service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key);
+    futures.add(future);
   }
   for (  Future future : futures) {
     assertTrue((Boolean)future.get(60,TimeUnit.SECONDS));

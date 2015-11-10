@@ -1,20 +1,20 @@
 {
   int sum=0;
-  final ResponseCountingMultiExecutionCallback callback=new ResponseCountingMultiExecutionCallback(instances.length);
-  final Set<Member> membersSet=instances[0].getCluster().getMembers();
-  final Member[] members=membersSet.toArray(new Member[membersSet.size()]);
-  final Random random=new Random();
-  final String name="testSubmitToMembersCallable";
+  ResponseCountingMultiExecutionCallback callback=new ResponseCountingMultiExecutionCallback(instances.length);
+  Set<Member> membersSet=instances[0].getCluster().getMembers();
+  Member[] members=membersSet.toArray(new Member[membersSet.size()]);
+  Random random=new Random();
+  String name="testSubmitToMembersCallable";
   for (  HazelcastInstance instance : instances) {
-    final IExecutorService service=instance.getExecutorService(name);
-    final int n=random.nextInt(instances.length) + 1;
+    IExecutorService service=instance.getExecutorService(name);
+    int n=random.nextInt(instances.length) + 1;
     sum+=n;
     Member[] m=new Member[n];
     System.arraycopy(members,0,m,0,n);
     service.submitToMembers(new IncrementAtomicLongCallable(name),Arrays.asList(m),callback);
   }
   assertOpenEventually(callback.getLatch());
-  final IAtomicLong result=instances[0].getAtomicLong(name);
+  IAtomicLong result=instances[0].getAtomicLong(name);
   assertEquals(sum,result.get());
   assertEquals(sum,callback.getCount());
 }
