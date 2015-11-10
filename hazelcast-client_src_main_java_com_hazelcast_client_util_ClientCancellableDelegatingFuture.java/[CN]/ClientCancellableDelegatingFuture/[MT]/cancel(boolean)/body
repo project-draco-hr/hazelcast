@@ -2,10 +2,14 @@
   if (isDone() || cancelled) {
     return false;
   }
-  waitForRequestToBeSend();
-  final Future f=invokeCancelRequest(mayInterruptIfRunning);
+  Boolean b=false;
   try {
-    final Boolean b=context.getSerializationService().toObject(f.get());
+    b=invokeCancelRequest(mayInterruptIfRunning);
+  }
+ catch (  InterruptedException e) {
+    Thread.currentThread().interrupt();
+  }
+  try {
     if (b != null && b) {
       setError(new CancellationException());
       cancelled=true;
