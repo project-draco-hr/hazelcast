@@ -1,0 +1,34 @@
+{
+  hazelcastFactory.newHazelcastInstance();
+  CountDownLatch countDownLatch=new CountDownLatch(1);
+  ClientConfig config=new ClientConfig();
+  WaitingCredentials credentials=new WaitingCredentials("dev","dev-pass",countDownLatch);
+  config.setCredentials(credentials);
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(config);
+  final IExecutorService executorService=client.getExecutorService(randomString());
+  credentials.waitFlag.set(true);
+  final HazelcastInstance secondInstance=hazelcastFactory.newHazelcastInstance();
+  final AtomicReference<Future> atomicReference=new AtomicReference<Future>();
+  Thread thread=new Thread(new Runnable(){
+    @Override public void run(){
+      Member secondMember=secondInstance.getCluster().getLocalMember();
+      Future future=executorService.submitToMember(new DummySerializableCallable(),secondMember);
+      atomicReference.set(future);
+    }
+  }
+);
+  thread.start();
+  try {
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertNotNull(atomicReference.get());
+      }
+    }
+,30);
+  }
+  finally {
+    thread.interrupt();
+    thread.join();
+    countDownLatch.countDown();
+  }
+}
