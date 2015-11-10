@@ -1,41 +1,39 @@
 {
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory();
-  Config config=new Config();
-  String mapName=randomMapName();
-  ReplicatedMapConfig replicatedMapConfig=config.getReplicatedMapConfig(mapName);
-  replicatedMapConfig.setAsyncFillup(true);
+  final int first=1000;
+  final int second=2000;
+  final int third=3000;
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap(mapName);
-  fillMap(map1,0,1000);
+  fillMap(map1,0,first);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap(mapName);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      assertEquals(1000,map1.size());
-      assertEquals(1000,map2.size());
+      assertMapSize("map1",first,map1);
+      assertMapSize("map2",first,map2);
     }
   }
 );
-  fillMap(map2,1000,2000);
+  fillMap(map2,first,second);
   HazelcastInstance instance3=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<Integer,Integer> map3=instance3.getReplicatedMap(mapName);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      assertEquals(2000,map1.size());
-      assertEquals(2000,map2.size());
-      assertEquals(2000,map3.size());
+      assertMapSize("map1",second,map1);
+      assertMapSize("map2",second,map2);
+      assertMapSize("map3",second,map3);
     }
   }
 );
-  fillMap(map3,2000,3000);
+  fillMap(map3,second,third);
   HazelcastInstance instance4=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<Integer,Integer> map4=instance4.getReplicatedMap(mapName);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      assertEquals(3000,map1.size());
-      assertEquals(3000,map2.size());
-      assertEquals(3000,map3.size());
-      assertEquals(3000,map4.size());
+      assertMapSize("map1",third,map1);
+      assertMapSize("map2",third,map2);
+      assertMapSize("map3",third,map3);
+      assertMapSize("map4",third,map4);
     }
   }
 );
