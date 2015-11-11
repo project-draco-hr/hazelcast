@@ -2,13 +2,12 @@
   expiryPolicy=getExpiryPolicy(expiryPolicy);
   final long now=Clock.currentTimeMillis();
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
-  Object obj=null;
   boolean replaced=false;
   R record=records.get(key);
   boolean isExpired=record != null && record.isExpiredAt(now);
   try {
-    obj=toValue(record);
-    if (record == null || isExpired) {
+    Object obj=toValue(record);
+    if (recordNotExistOrExpiredOrTombstone(record,now)) {
       obj=null;
       if (isEventsEnabled()) {
         publishEvent(createCacheCompleteEvent(toEventData(key),completionId));
