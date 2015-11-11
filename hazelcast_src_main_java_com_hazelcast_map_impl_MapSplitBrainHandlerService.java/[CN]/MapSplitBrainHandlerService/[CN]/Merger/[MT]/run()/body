@@ -13,13 +13,15 @@
   }
 ;
   for (  MapContainer mapContainer : recordMap.keySet()) {
+    String mapName=mapContainer.getName();
     Collection<Record> recordList=recordMap.get(mapContainer);
     String mergePolicyName=mapContainer.getMapConfig().getMergePolicy();
     final MapMergePolicy finalMergePolicy=mapServiceContext.getMergePolicyProvider().getMergePolicy(mergePolicyName);
+    MapOperationProvider operationProvider=mapServiceContext.getMapOperationProvider(mapName);
     for (    Record record : recordList) {
       recordCount++;
       EntryView entryView=EntryViews.createSimpleEntryView(record.getKey(),mapServiceContext.toData(record.getValue()),record);
-      MergeOperation operation=new MergeOperation(mapContainer.getName(),record.getKey(),entryView,finalMergePolicy);
+      MapOperation operation=operationProvider.createMergeOperation(mapName,record.getKey(),entryView,finalMergePolicy,false);
       try {
         int partitionId=nodeEngine.getPartitionService().getPartitionId(record.getKey());
         ICompletableFuture f=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
