@@ -1,6 +1,6 @@
 {
   HazelcastInstance instance=hazelcastFactory.newHazelcastInstance();
-  HazelcastInstance client=hazelcastFactory.newHazelcastClient();
+  final HazelcastInstance client=hazelcastFactory.newHazelcastClient();
   final CountDownLatch createdLatch=new CountDownLatch(1);
   final CountDownLatch destroyedLatch=new CountDownLatch(1);
   client.addDistributedObjectListener(new DistributedObjectListener(){
@@ -17,4 +17,11 @@
   assertOpenEventually(createdLatch,10);
   topic.destroy();
   assertOpenEventually(destroyedLatch,10);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      Collection<DistributedObject> distributedObjects=client.getDistributedObjects();
+      assertTrue(distributedObjects.isEmpty());
+    }
+  }
+,5);
 }
