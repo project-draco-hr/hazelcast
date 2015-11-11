@@ -1,19 +1,20 @@
 {
-  final IMap map=createMap();
+  IMap<Integer,Integer> map=createMap();
   map.put(1,1);
-  final CountDownLatch latch=new CountDownLatch(1);
   final AtomicInteger result=new AtomicInteger();
-  ExecutionCallback executionCallback=new ExecutionCallback(){
-    @Override public void onResponse(    Object response){
-      result.set((Integer)response);
+  final CountDownLatch latch=new CountDownLatch(1);
+  ExecutionCallback<Integer> executionCallback=new ExecutionCallback<Integer>(){
+    @Override public void onResponse(    Integer response){
+      result.set(response);
       latch.countDown();
     }
     @Override public void onFailure(    Throwable t){
     }
   }
 ;
-  map.submitToKey(1,new IncrementorEntryProcessor(),executionCallback);
+  map.submitToKey(1,new IncrementerEntryProcessor(),executionCallback);
   assertTrue(latch.await(5,TimeUnit.SECONDS));
   assertEquals(2,result.get());
-  assertEquals(2,map.get(1));
+  int actual=map.get(1);
+  assertEquals(2,actual);
 }
