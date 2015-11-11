@@ -1,0 +1,25 @@
+{
+  List<Future<Data>> futures=new ArrayList<Future<Data>>(partitionToKeyData.size());
+  List<MapEntries> responses=new ArrayList<MapEntries>(partitionToKeyData.size());
+  for (  final Map.Entry<Integer,List<Data>> entry : partitionToKeyData.entrySet()) {
+    int partitionId=entry.getKey();
+    List<Data> keyList=entry.getValue();
+    MapGetAllRequest request=new MapGetAllRequest(name,keyList,partitionId);
+    futures.add(new ClientInvocation(getClient(),request,partitionId).invoke());
+  }
+  for (  Future<Data> future : futures) {
+    try {
+      MapEntries entries=toObject(future.get());
+      for (      Entry<Data,Data> entry : entries.entries()) {
+        final V value=toObject(entry.getValue());
+        final K key=toObject(entry.getKey());
+        result.put(key,value);
+      }
+      responses.add(entries);
+    }
+ catch (    Exception e) {
+      ExceptionUtil.rethrow(e);
+    }
+  }
+  return responses;
+}

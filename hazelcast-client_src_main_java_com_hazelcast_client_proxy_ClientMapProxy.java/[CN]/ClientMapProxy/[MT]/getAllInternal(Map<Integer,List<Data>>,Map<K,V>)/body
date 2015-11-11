@@ -1,0 +1,26 @@
+{
+  List<Future<ClientMessage>> futures=new ArrayList<Future<ClientMessage>>(partitionToKeyData.size());
+  List<MapGetAllCodec.ResponseParameters> responses=new ArrayList<MapGetAllCodec.ResponseParameters>(partitionToKeyData.size());
+  for (  final Map.Entry<Integer,List<Data>> entry : partitionToKeyData.entrySet()) {
+    int partitionId=entry.getKey();
+    List<Data> keyList=entry.getValue();
+    ClientMessage request=MapGetAllCodec.encodeRequest(name,keyList);
+    futures.add(new ClientInvocation(getClient(),request,partitionId).invoke());
+  }
+  for (  Future<ClientMessage> future : futures) {
+    try {
+      ClientMessage response=future.get();
+      MapGetAllCodec.ResponseParameters resultParameters=MapGetAllCodec.decodeResponse(response);
+      for (      Entry<Data,Data> entry : resultParameters.entrySet) {
+        final V value=toObject(entry.getValue());
+        final K key=toObject(entry.getKey());
+        result.put(key,value);
+      }
+      responses.add(resultParameters);
+    }
+ catch (    Exception e) {
+      ExceptionUtil.rethrow(e);
+    }
+  }
+  return responses;
+}
