@@ -1,10 +1,12 @@
 {
+  waitForRequestToBeSend();
   ClientInvocation clientInvocation;
   final HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)context.getHazelcastInstance();
   ClientMessage request=ExecutorServiceCancelOnPartitionCodec.encodeRequest(uuid,partitionId,mayInterruptIfRunning);
   clientInvocation=new ClientInvocation(client,request,partitionId);
   try {
-    return clientInvocation.invoke();
+    ClientInvocationFuture f=clientInvocation.invoke();
+    return ExecutorServiceCancelOnPartitionCodec.decodeResponse(f.get()).response;
   }
  catch (  Exception e) {
     throw rethrow(e);
