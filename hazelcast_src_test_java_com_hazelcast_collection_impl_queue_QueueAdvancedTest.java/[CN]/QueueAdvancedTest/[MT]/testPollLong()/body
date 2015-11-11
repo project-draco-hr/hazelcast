@@ -1,14 +1,14 @@
 {
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance[] instances=factory.newInstances();
-  final HazelcastInstance h1=instances[0];
-  final HazelcastInstance h2=instances[1];
-  final IQueue q1=h1.getQueue("default");
-  final IQueue q2=h2.getQueue("default");
+  HazelcastInstance[] instances=factory.newInstances();
+  HazelcastInstance h1=instances[0];
+  HazelcastInstance h2=instances[1];
+  final IQueue<String> q1=h1.getQueue("default");
+  final IQueue<String> q2=h2.getQueue("default");
   final CountDownLatch offerLatch=new CountDownLatch(2 * 100);
   Thread.sleep(1000);
   new Thread(new Runnable(){
-    public void run(){
+    @Override public void run(){
       for (int i=0; i < 100; i++) {
         if (q1.offer("item")) {
           offerLatch.countDown();
@@ -21,14 +21,14 @@
   }
 ).start();
   assertOpenEventually(offerLatch);
-  final ExecutorService es=Executors.newFixedThreadPool(50);
+  ExecutorService es=Executors.newFixedThreadPool(50);
   final CountDownLatch latch=new CountDownLatch(200);
   Thread.sleep(3000);
   for (int i=0; i < 100; i++) {
     es.execute(new Runnable(){
-      public void run(){
+      @Override public void run(){
         try {
-          if ("item".equals(q1.poll(5,TimeUnit.SECONDS))) {
+          if ("item".equals(q1.poll(5,SECONDS))) {
             latch.countDown();
           }
         }
@@ -39,9 +39,9 @@
     }
 );
     es.execute(new Runnable(){
-      public void run(){
+      @Override public void run(){
         try {
-          if ("item".equals(q2.poll(5,TimeUnit.SECONDS))) {
+          if ("item".equals(q2.poll(5,SECONDS))) {
             latch.countDown();
           }
         }

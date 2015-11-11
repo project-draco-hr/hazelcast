@@ -3,12 +3,12 @@
   config.setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS,"1000");
   config.getQueueConfig("default").setMaxSize(1);
   HazelcastInstance instance=createHazelcastInstance(config);
-  final IQueue<Object> queue=instance.getQueue(randomName());
+  final IQueue<String> queue=instance.getQueue(randomName());
   final AtomicBoolean interrupted=new AtomicBoolean();
-  assertTrue(queue.offer("item"));
+  assertTrue("Expected queue.offer() to succeed",queue.offer("item"));
   final CountDownLatch latch=new CountDownLatch(1);
-  Thread t=new Thread(){
-    public void run(){
+  Thread thread=new Thread(){
+    @Override public void run(){
       try {
         latch.countDown();
         queue.put("item");
@@ -19,9 +19,9 @@
     }
   }
 ;
-  t.start();
-  latch.await(10,TimeUnit.SECONDS);
-  t.interrupt();
-  t.join(5000);
-  assertTrue(interrupted.get());
+  thread.start();
+  latch.await(10,SECONDS);
+  thread.interrupt();
+  thread.join(5000);
+  assertTrue("Expected queue.put() to be interrupted, but interrupted state is: " + interrupted,interrupted.get());
 }

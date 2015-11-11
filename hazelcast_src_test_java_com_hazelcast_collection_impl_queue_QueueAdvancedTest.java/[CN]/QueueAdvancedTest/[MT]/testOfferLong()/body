@@ -2,29 +2,29 @@
   Config config=new Config();
   config.getQueueConfig("default").setMaxSize(200);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance[] instances=factory.newInstances(config);
-  final HazelcastInstance h1=instances[0];
-  final HazelcastInstance h2=instances[1];
-  final IQueue q1=h1.getQueue("default");
-  final IQueue q2=h2.getQueue("default");
+  HazelcastInstance[] instances=factory.newInstances(config);
+  HazelcastInstance h1=instances[0];
+  HazelcastInstance h2=instances[1];
+  final IQueue<String> q1=h1.getQueue("default");
+  final IQueue<String> q2=h2.getQueue("default");
   for (int i=0; i < 100; i++) {
-    assertTrue(q1.offer("item" + i,100,TimeUnit.SECONDS));
-    assertTrue(q2.offer("item" + i,100,TimeUnit.SECONDS));
+    assertTrue("Expected q1.offer() to succeed",q1.offer("item" + i,100,SECONDS));
+    assertTrue("Expected q2.offer() to succeed",q2.offer("item" + i,100,SECONDS));
   }
   assertFalse(q1.offer("item"));
   assertFalse(q2.offer("item"));
-  assertFalse(q1.offer("item",2,TimeUnit.SECONDS));
-  assertFalse(q2.offer("item",2,TimeUnit.SECONDS));
+  assertFalse(q1.offer("item",2,SECONDS));
+  assertFalse(q2.offer("item",2,SECONDS));
   final CountDownLatch pollLatch=new CountDownLatch(200);
   new Thread(new Runnable(){
-    public void run(){
+    @Override public void run(){
       try {
         Thread.sleep(3000);
         for (int i=0; i < 100; i++) {
-          if (("item" + i).equals(q1.poll(2,TimeUnit.SECONDS))) {
+          if (("item" + i).equals(q1.poll(2,SECONDS))) {
             pollLatch.countDown();
           }
-          if (("item" + i).equals(q2.poll(2,TimeUnit.SECONDS))) {
+          if (("item" + i).equals(q2.poll(2,SECONDS))) {
             pollLatch.countDown();
           }
         }
@@ -36,13 +36,13 @@
   }
 ).start();
   assertOpenEventually(pollLatch);
-  final ExecutorService es=Executors.newFixedThreadPool(50);
+  ExecutorService es=Executors.newFixedThreadPool(50);
   final CountDownLatch latch=new CountDownLatch(200);
   for (int i=0; i < 100; i++) {
     es.execute(new Runnable(){
-      public void run(){
+      @Override public void run(){
         try {
-          if (q1.offer("item",30,TimeUnit.SECONDS)) {
+          if (q1.offer("item",30,SECONDS)) {
             latch.countDown();
           }
         }
@@ -53,9 +53,9 @@
     }
 );
     es.execute(new Runnable(){
-      public void run(){
+      @Override public void run(){
         try {
-          if (q2.offer("item",30,TimeUnit.SECONDS)) {
+          if (q2.offer("item",30,SECONDS)) {
             latch.countDown();
           }
         }
