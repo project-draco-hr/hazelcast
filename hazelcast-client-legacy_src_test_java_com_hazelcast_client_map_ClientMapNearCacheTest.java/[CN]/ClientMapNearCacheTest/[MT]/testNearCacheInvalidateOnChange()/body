@@ -1,24 +1,21 @@
 {
-  final String mapName=randomMapName(NEAR_CACHE_WITH_INVALIDATION);
-  final IMap nodeMap=server.getMap(mapName);
-  final IMap clientMap=client.getMap(mapName);
-  final int size=118;
+  String mapName=randomMapName(NEAR_CACHE_WITH_INVALIDATION);
+  IMap<Integer,Integer> serverMap=server.getMap(mapName);
+  final IMap<Integer,Integer> clientMap=client.getMap(mapName);
+  int size=118;
   for (int i=0; i < size; i++) {
-    nodeMap.put(i,i);
+    serverMap.put(i,i);
   }
   for (int i=0; i < size; i++) {
     clientMap.get(i);
   }
-  NearCacheStats stats=clientMap.getLocalMapStats().getNearCacheStats();
-  long OwnedEntryCountBeforeInvalidate=stats.getOwnedEntryCount();
+  assertThatOwnedEntryCountEquals(clientMap,size);
   for (int i=0; i < size; i++) {
-    nodeMap.put(i,i);
+    serverMap.put(i,i);
   }
-  assertEquals(size,OwnedEntryCountBeforeInvalidate);
   assertTrueEventually(new AssertTask(){
     public void run() throws Exception {
-      NearCacheStats stats=clientMap.getLocalMapStats().getNearCacheStats();
-      assertEquals(0,stats.getOwnedEntryCount());
+      assertThatOwnedEntryCountEquals(clientMap,0);
     }
   }
 );

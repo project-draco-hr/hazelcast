@@ -1,25 +1,19 @@
 {
   String mapName=randomMapName(NEAR_CACHE_WITH_LONG_MAX_IDLE_TIME);
-  IMap serverMap=server.getMap(mapName);
-  serverMap.put(1,1,6,TimeUnit.SECONDS);
-  final CountDownLatch expiredEventLatch=new CountDownLatch(1);
-  serverMap.addEntryListener(new EntryExpiredListener(){
+  IMap<Integer,Integer> serverMap=server.getMap(mapName);
+  IMap<Integer,Integer> clientMap=client.getMap(mapName);
+  final CountDownLatch expiredEventLatch=new CountDownLatch(2);
+  EntryExpiredListener listener=new EntryExpiredListener(){
     @Override public void entryExpired(    EntryEvent event){
       expiredEventLatch.countDown();
     }
   }
-,false);
-  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
-  final IMap clientMap=client.getMap(mapName);
+;
+  serverMap.addEntryListener(listener,false);
+  clientMap.addEntryListener(listener,false);
+  serverMap.put(1,23,3,TimeUnit.SECONDS);
   clientMap.get(1);
+  assertThatOwnedEntryCountEquals(clientMap,1);
   assertOpenEventually(expiredEventLatch);
-  sleepSeconds(2);
-  assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
-      LocalMapStats localMapStats=clientMap.getLocalMapStats();
-      NearCacheStats stats=localMapStats.getNearCacheStats();
-      assertEquals(1,stats.getOwnedEntryCount());
-    }
-  }
-);
+  assertThatOwnedEntryCountEquals(clientMap,1);
 }
