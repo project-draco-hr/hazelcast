@@ -1,0 +1,18 @@
+{
+  Config config=new Config();
+  long timeoutMs=3000;
+  config.setProperty("hazelcast.operation.call.timeout.millis",String.valueOf(timeoutMs));
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  CountDownLatch latch=new CountDownLatch(1);
+  Callback callback=new Callback(latch);
+  IExecutorService executorService=instance1.getExecutorService(randomName());
+  executorService.submitToAllMembers(new SleepingTask(),callback);
+  assertOpenEventually(latch);
+  for (  Object result : callback.values.values()) {
+    if (!result.equals("Success")) {
+      fail("Non-success result: " + result);
+    }
+  }
+}
