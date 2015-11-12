@@ -1,16 +1,12 @@
 {
   EventHandler handler=registrationKey.getHandler();
-  ClientRequest request=registrationKey.getRequest();
-  ClientInvocation invocation=new ClientInvocation(client,handler,request);
-  try {
-    ClientInvocationFuture future=invocation.invoke();
-    String registrationId=serializationService.toObject(future.get());
-    handler.onListenerRegister();
-    Address address=future.getInvocation().getSendConnection().getRemoteEndpoint();
-    ClientEventRegistration registration=new ClientEventRegistration(registrationId,request.getCallId(),address);
-    registrations.put(registrationKey,registration);
-  }
- catch (  Exception e) {
-    EmptyStatement.ignore(e);
-  }
+  handler.beforeListenerRegister();
+  ClientRequest addRequest=registrationKey.getAddRequest();
+  BaseClientRemoveListenerRequest removeRequest=registrationKey.getRemoveRequest();
+  ClientInvocation invocation=new ClientInvocation(client,handler,addRequest);
+  ClientInvocationFuture future=invocation.invoke();
+  String registrationId=serializationService.toObject(future.get());
+  handler.onListenerRegister();
+  Address address=future.getInvocation().getSendConnection().getRemoteEndpoint();
+  return new ClientEventRegistration(registrationId,addRequest.getCallId(),address,removeRequest);
 }

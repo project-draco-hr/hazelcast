@@ -1,7 +1,14 @@
 {
-  String userRegistrationId=UuidUtil.newUnsecureUuidString();
-  ClientMessage request=codec.encodeAddRequest(false);
-  ClientRegistrationKey registrationKey=new ClientRegistrationKey(userRegistrationId,request,handler,codec);
-  invoke(registrationKey);
-  return userRegistrationId;
+synchronized (listenerRegLock) {
+    String userRegistrationId=UuidUtil.newUnsecureUuidString();
+    ClientRegistrationKey registrationKey=new ClientRegistrationKey(userRegistrationId,handler,codec);
+    try {
+      ClientEventRegistration registration=invoke(registrationKey);
+      registrations.put(registrationKey,registration);
+    }
+ catch (    Exception e) {
+      throw new HazelcastException("Listener can not be added",e);
+    }
+    return userRegistrationId;
+  }
 }

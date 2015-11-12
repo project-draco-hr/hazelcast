@@ -1,0 +1,25 @@
+{
+  int clusterSize=factory.getAllHazelcastInstances().size();
+  assertClusterSizeEventually(clusterSize,client);
+  final AtomicInteger eventCount=new AtomicInteger();
+  final String registrationId=addListener(eventCount);
+  terminateRandomNode();
+  factory.newHazelcastInstance();
+  assertClusterSizeEventually(clusterSize,client);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNotEquals(0,getClientEventRegistrations(client,registrationId).size());
+    }
+  }
+);
+  for (int i=0; i < EVENT_COUNT; i++) {
+    produceEvent();
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(EVENT_COUNT,eventCount.get());
+    }
+  }
+);
+  assertTrue(removeListener(registrationId));
+}

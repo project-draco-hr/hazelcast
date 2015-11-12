@@ -1,8 +1,17 @@
 {
   executionService.executeInternal(new Runnable(){
     @Override public void run(){
-      for (      ClientRegistrationKey registrationKey : registrations.keySet()) {
-        invoke(registrationKey,membershipEvent.getMember().getAddress());
+synchronized (listenerRegLock) {
+        Member member=membershipEvent.getMember();
+        members.add(member);
+        for (        ClientRegistrationKey registrationKey : registrations.keySet()) {
+          try {
+            invoke(registrationKey,member.getAddress());
+          }
+ catch (          Exception e) {
+            logger.warning("Listener " + registrationKey + " can not added to new member "+ member);
+          }
+        }
       }
     }
   }

@@ -1,0 +1,28 @@
+{
+synchronized (listenerRegLock) {
+    ClientRegistrationKey key=new ClientRegistrationKey(userRegistrationId);
+    Map<Address,ClientEventRegistration> registrationMap=registrations.get(key);
+    if (registrationMap == null) {
+      return false;
+    }
+    boolean successful=true;
+    for (    ClientEventRegistration registration : registrationMap.values()) {
+      Address subscriber=registration.getSubscriber();
+      try {
+        removeEventHandler(registration.getCallId());
+        BaseClientRemoveListenerRequest request=registration.getRemoveRequest();
+        request.setRegistrationId(registration.getServerRegistrationId());
+        Future future=new ClientInvocation(client,request,subscriber).invoke();
+        future.get();
+      }
+ catch (      Exception e) {
+        successful=false;
+        logger.warning("Deregistration of listener with id " + userRegistrationId + " has failed to address "+ subscriber,e);
+      }
+    }
+    if (successful) {
+      registrations.remove(key);
+    }
+    return successful;
+  }
+}
