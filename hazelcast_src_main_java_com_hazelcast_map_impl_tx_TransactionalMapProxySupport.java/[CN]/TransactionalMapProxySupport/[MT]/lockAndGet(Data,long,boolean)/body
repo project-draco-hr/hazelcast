@@ -1,0 +1,22 @@
+{
+  VersionedValue versionedValue=valueMap.get(key);
+  if (versionedValue != null) {
+    return versionedValue;
+  }
+  NodeEngine nodeEngine=getNodeEngine();
+  MapOperation operation=operationProvider.createTxnLockAndGetOperation(name,key,timeout,timeout,tx.getOwnerUuid(),shouldLoad);
+  operation.setThreadId(ThreadUtil.getThreadId());
+  try {
+    int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+    Future<VersionedValue> future=nodeEngine.getOperationService().invokeOnPartition(MapService.SERVICE_NAME,operation,partitionId);
+    versionedValue=future.get();
+    if (versionedValue == null) {
+      throw new TransactionException("Transaction couldn't obtain lock for the key: " + getService().getMapServiceContext().toObject(key));
+    }
+    valueMap.put(key,versionedValue);
+    return versionedValue;
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}

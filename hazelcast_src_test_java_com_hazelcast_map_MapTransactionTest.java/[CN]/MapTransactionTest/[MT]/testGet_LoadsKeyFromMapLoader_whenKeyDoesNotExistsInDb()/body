@@ -1,0 +1,20 @@
+{
+  final String mapName=randomMapName();
+  final MapStoreAdapter mock=mock(MapStoreAdapter.class);
+  when(mock.load(anyObject())).thenReturn(null);
+  Config config=new Config();
+  MapStoreConfig storeConfig=new MapStoreConfig();
+  storeConfig.setEnabled(true).setImplementation(mock);
+  config.getMapConfig(mapName).setMapStoreConfig(storeConfig);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  instance.executeTransaction(new TransactionalTask<Object>(){
+    @Override public Object execute(    TransactionalTaskContext context) throws TransactionException {
+      TransactionalMap<Object,Object> map=context.getMap(mapName);
+      Object value=map.get(1);
+      assertNull("value should be null",value);
+      verify(mock,times(1)).load(anyObject());
+      return null;
+    }
+  }
+);
+}
