@@ -2,9 +2,12 @@
   final long now=Clock.currentTimeMillis();
   final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
   R record=records.get(key);
-  processExpiredEntry(key,record,now);
+  final boolean isExpired=processExpiredEntry(key,record,now);
+  if (isExpired) {
+    record=null;
+  }
   if (isStatisticsEnabled()) {
-    if (recordNotExistOrExpiredOrTombstone(record,now)) {
+    if (recordNotExistOrExpiredOrTombstone(record,isExpired)) {
       statistics.increaseCacheMisses(1);
     }
  else {
