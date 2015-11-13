@@ -1,7 +1,8 @@
 {
   String mapName=randomMapName(NEAR_CACHE_WITH_LONG_MAX_IDLE_TIME);
   IMap<Integer,Integer> serverMap=server.getMap(mapName);
-  final CountDownLatch expiredEventLatch=new CountDownLatch(1);
+  IMap<Integer,Integer> clientMap=client.getMap(mapName);
+  final CountDownLatch expiredEventLatch=new CountDownLatch(2);
   EntryExpiredListener listener=new EntryExpiredListener(){
     @Override public void entryExpired(    EntryEvent event){
       expiredEventLatch.countDown();
@@ -9,10 +10,13 @@
   }
 ;
   serverMap.addEntryListener(listener,false);
+  clientMap.addEntryListener(listener,false);
+  final CountDownLatch eventAddedLatch=new CountDownLatch(1);
+  addNearCacheInvalidateListener(clientMap,eventAddedLatch);
   serverMap.put(1,23,6,TimeUnit.SECONDS);
   assertNotNull(serverMap.get(1));
-  HazelcastInstance newClient=hazelcastFactory.newHazelcastClient(clientConfig);
-  IMap<Integer,Integer> clientMap=newClient.getMap(mapName);
+  assertOpenEventually(eventAddedLatch);
+  assertThatOwnedEntryCountEquals(clientMap,0);
   assertNotNull(clientMap.get(1));
   assertThatOwnedEntryCountEquals(clientMap,1);
   assertOpenEventually(expiredEventLatch);
