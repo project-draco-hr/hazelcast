@@ -1,14 +1,29 @@
 {
-  Object value=record.getCachedValue();
-  if (value == NOT_CACHED) {
-    value=record.getValue();
+  Object cachedValue=record.getCachedValueUnsafe();
+  if (cachedValue == NOT_CACHED) {
+    return record.getValue();
   }
- else   if (value == null) {
-    value=record.getValue();
-    if (shouldCache(record,value)) {
-      value=serializationService.toObject(value);
-      record.setCachedValue(value);
+  for (; ; ) {
+    if (cachedValue == null) {
+      Object valueBeforeCas=record.getValue();
+      if (!shouldCache(valueBeforeCas)) {
+        return valueBeforeCas;
+      }
+      Object fromCache=tryStoreIntoCache(record,valueBeforeCas,serializationService);
+      if (fromCache != null) {
+        return fromCache;
+      }
     }
+ else     if (cachedValue instanceof Thread) {
+      cachedValue=ThreadWrapper.unwrapOrNull(cachedValue);
+      if (cachedValue != null) {
+        return cachedValue;
+      }
+    }
+ else {
+      return cachedValue;
+    }
+    Thread.yield();
+    cachedValue=record.getCachedValueUnsafe();
   }
-  return value;
 }
