@@ -1,21 +1,21 @@
 {
   Config config=getConfig();
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
-  HazelcastInstance h2=nodeFactory.newHazelcastInstance(config);
-  IMap imap=h1.getMap("employees");
-  imap.addIndex("name",false);
-  imap.addIndex("age",true);
-  imap.addIndex("active",false);
-  QueryBasicTest.doFunctionalQueryTest(imap);
-  assertEquals(101,imap.size());
-  h2.getLifecycleService().shutdown();
-  assertEquals(101,imap.size());
-  Set<Map.Entry> entries=imap.entrySet(new SqlPredicate("active and age=23"));
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  IMap<String,Employee> map=instance1.getMap("employees");
+  map.addIndex("name",false);
+  map.addIndex("age",true);
+  map.addIndex("active",false);
+  QueryBasicTest.doFunctionalQueryTest(map);
+  assertEquals(101,map.size());
+  instance2.getLifecycleService().shutdown();
+  assertEquals(101,map.size());
+  Set<Map.Entry<String,Employee>> entries=map.entrySet(new SqlPredicate("active and age=23"));
   assertEquals(2,entries.size());
-  for (  Map.Entry entry : entries) {
-    Employee c=(Employee)entry.getValue();
-    assertEquals(c.getAge(),23);
-    assertTrue(c.isActive());
+  for (  Map.Entry<String,Employee> entry : entries) {
+    Employee employee=entry.getValue();
+    assertEquals(employee.getAge(),23);
+    assertTrue(employee.isActive());
   }
 }

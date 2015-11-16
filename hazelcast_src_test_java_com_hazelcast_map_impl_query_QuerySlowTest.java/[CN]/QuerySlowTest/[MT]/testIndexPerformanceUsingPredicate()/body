@@ -1,17 +1,17 @@
 {
-  HazelcastInstance h1=createHazelcastInstance(newConfig());
-  IMap imap=h1.getMap("employees");
-  fillMap(imap);
-  EntryObject e=new PredicateBuilder().getEntryObject();
-  Predicate predicate=e.is("active").and(e.get("age").equal(23));
-  long tookWithout=runQuery(imap,predicate);
-  imap.clear();
-  imap=h1.getMap("employees2");
-  imap.addIndex("name",false);
-  imap.addIndex("active",false);
-  imap.addIndex("age",true);
-  fillMap(imap);
-  waitAllForSafeState(h1);
-  long tookWithIndex=runQuery(imap,predicate);
+  HazelcastInstance instance=createHazelcastInstance(newConfig());
+  IMap<String,SampleObjects.Employee> map=instance.getMap("employees");
+  fillMap(map);
+  EntryObject entryObject=new PredicateBuilder().getEntryObject();
+  Predicate predicate=entryObject.is("active").and(entryObject.get("age").equal(23));
+  long tookWithout=runQuery(map,predicate);
+  map.clear();
+  map=instance.getMap("employees2");
+  map.addIndex("name",false);
+  map.addIndex("active",false);
+  map.addIndex("age",true);
+  fillMap(map);
+  waitAllForSafeState(instance);
+  long tookWithIndex=runQuery(map,predicate);
   assertTrue("withIndex: " + tookWithIndex + ", without: "+ tookWithout,tookWithIndex < (tookWithout / 2));
 }

@@ -1,11 +1,11 @@
 {
   Config cfg=new Config();
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(4);
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(cfg);
-  IMap imap=h1.getMap("employees");
-  fillMap(imap);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance(cfg);
+  IMap<String,SampleObjects.Employee> map=instance.getMap("employees");
+  fillMap(map);
   long start=Clock.currentTimeMillis();
-  Set<Map.Entry> entries=imap.entrySet(new SqlPredicate("active and salary between 4010.99 and 4032.01"));
+  Set<Map.Entry<String,SampleObjects.Employee>> entries=map.entrySet(new SqlPredicate("active and salary between 4010.99 and 4032.01"));
   long tookWithout=(Clock.currentTimeMillis() - start);
   assertEquals(11,entries.size());
   for (  Map.Entry entry : entries) {
@@ -13,16 +13,16 @@
     assertTrue(c.getAge() < 4033);
     assertTrue(c.isActive());
   }
-  imap.clear();
-  imap=h1.getMap("employees2");
-  imap.addIndex("name",false);
-  imap.addIndex("salary",false);
-  imap.addIndex("active",false);
-  fillMap(imap);
-  imap.put(String.valueOf(10),new SampleObjects.Employee("name" + 10,10,true,44010.99D));
-  imap.put(String.valueOf(11),new SampleObjects.Employee("name" + 11,11,true,44032.01D));
+  map.clear();
+  map=instance.getMap("employees2");
+  map.addIndex("name",false);
+  map.addIndex("salary",false);
+  map.addIndex("active",false);
+  fillMap(map);
+  map.put(String.valueOf(10),new SampleObjects.Employee("name" + 10,10,true,44010.99D));
+  map.put(String.valueOf(11),new SampleObjects.Employee("name" + 11,11,true,44032.01D));
   start=Clock.currentTimeMillis();
-  entries=imap.entrySet(new SqlPredicate("active and salary between 44010.99 and 44032.01"));
+  entries=map.entrySet(new SqlPredicate("active and salary between 44010.99 and 44032.01"));
   long tookWithIndex=(Clock.currentTimeMillis() - start);
   assertEquals(2,entries.size());
   boolean foundFirst=false;
@@ -42,9 +42,9 @@
   assertTrue(foundLast);
   assertTrue(tookWithIndex < (tookWithout / 2));
   for (int i=0; i < 50000; i++) {
-    imap.put(String.valueOf(i),new SampleObjects.Employee("name" + i,i % 60,((i & 1) == 1),100.25D));
+    map.put(String.valueOf(i),new SampleObjects.Employee("name" + i,i % 60,((i & 1) == 1),100.25D));
   }
-  entries=imap.entrySet(new SqlPredicate("salary between 99.99 and 100.25"));
+  entries=map.entrySet(new SqlPredicate("salary between 99.99 and 100.25"));
   assertEquals(50000,entries.size());
   for (  Map.Entry entry : entries) {
     SampleObjects.Employee c=(SampleObjects.Employee)entry.getValue();
