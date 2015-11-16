@@ -2,11 +2,9 @@
   if (listener == null) {
     throw new NullPointerException("listener can't be null");
   }
-  String id=UuidUtil.newUnsecureUuidString();
-  listeners.put(id,listener);
-  if (listener instanceof InitialMembershipListener) {
-    final Cluster cluster=client.getCluster();
-    ((InitialMembershipListener)listener).init(new InitialMembershipEvent(cluster,cluster.getMembers()));
+synchronized (initialMembershipListenerMutex) {
+    String id=addMembershipListenerWithoutInit(listener);
+    initMembershipListener(listener);
+    return id;
   }
-  return id;
 }

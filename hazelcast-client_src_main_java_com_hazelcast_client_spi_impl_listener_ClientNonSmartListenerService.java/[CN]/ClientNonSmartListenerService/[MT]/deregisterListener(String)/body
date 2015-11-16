@@ -1,16 +1,20 @@
 {
-  ClientEventRegistration registration=registrations.remove(new ClientRegistrationKey(userRegistrationId));
-  if (registration == null) {
-    return false;
+synchronized (listenerRegLock) {
+    ClientRegistrationKey key=new ClientRegistrationKey(userRegistrationId);
+    ClientEventRegistration registration=registrations.get(key);
+    if (registration == null) {
+      return false;
+    }
+    ClientMessage request=registration.getCodec().encodeRemoveRequest(registration.getServerRegistrationId());
+    try {
+      Future future=new ClientInvocation(client,request).invoke();
+      future.get();
+      removeEventHandler(registration.getCallId());
+      registrations.remove(key);
+    }
+ catch (    Exception e) {
+      throw new HazelcastException("Listener with id " + userRegistrationId + " could not be removed",e);
+    }
+    return true;
   }
-  removeEventHandler(registration.getCallId());
-  ClientMessage request=registration.getCodec().encodeRemoveRequest(registration.getServerRegistrationId());
-  try {
-    Future future=new ClientInvocation(client,request,registration.getSubscriber()).invoke();
-    future.get();
-  }
- catch (  Exception e) {
-    EmptyStatement.ignore(e);
-  }
-  return true;
 }
