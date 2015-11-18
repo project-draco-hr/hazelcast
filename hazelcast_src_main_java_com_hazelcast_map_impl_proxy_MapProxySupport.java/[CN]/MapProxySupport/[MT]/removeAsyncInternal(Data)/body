@@ -4,7 +4,11 @@
   RemoveOperation operation=new RemoveOperation(name,key);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
+    long startTime=System.currentTimeMillis();
     ICompletableFuture<Data> future=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    if (getMapConfig().isStatisticsEnabled()) {
+      future.andThen(new IncrementStatsExecutionCallback(operation,startTime));
+    }
     invalidateNearCache(key);
     return future;
   }

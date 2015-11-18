@@ -4,7 +4,11 @@
   PutOperation operation=new PutOperation(name,key,value,getTimeInMillis(ttl,timeunit));
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
+    long startTime=System.currentTimeMillis();
     ICompletableFuture<Data> future=nodeEngine.getOperationService().invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    if (getMapConfig().isStatisticsEnabled()) {
+      future.andThen(new IncrementStatsExecutionCallback(operation,startTime));
+    }
     invalidateNearCache(key);
     return future;
   }

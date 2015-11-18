@@ -16,6 +16,7 @@
   try {
     final OperationService operationService=nodeEngine.getOperationService();
     final InvocationBuilder invocationBuilder=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false);
+    final long startTime=System.currentTimeMillis();
     final InternalCompletableFuture<Data> future=invocationBuilder.invoke();
     future.andThen(new ExecutionCallback<Data>(){
       @Override public void onResponse(      Data response){
@@ -30,6 +31,9 @@
       }
     }
 );
+    if (getMapConfig().isStatisticsEnabled()) {
+      future.andThen(new IncrementStatsExecutionCallback(operation,startTime));
+    }
     return future;
   }
  catch (  Throwable t) {
