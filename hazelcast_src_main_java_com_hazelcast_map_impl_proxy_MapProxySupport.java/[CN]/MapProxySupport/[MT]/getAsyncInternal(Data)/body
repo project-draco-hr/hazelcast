@@ -2,7 +2,11 @@
   int partitionId=partitionService.getPartitionId(key);
   MapOperation operation=operationProvider.createGetOperation(name,key);
   try {
+    long startTime=System.currentTimeMillis();
     InternalCompletableFuture<Data> future=operationService.createInvocationBuilder(SERVICE_NAME,operation,partitionId).setResultDeserialized(false).invoke();
+    if (statisticsEnabled) {
+      future.andThen(new IncrementStatsExecutionCallback<Data>(operation,startTime));
+    }
     return future;
   }
  catch (  Throwable t) {

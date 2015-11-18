@@ -4,7 +4,12 @@
   MapOperation operation=operationProvider.createPutOperation(name,key,value,getTimeInMillis(ttl,timeunit));
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
-    return operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    final long startTime=System.currentTimeMillis();
+    InternalCompletableFuture<Data> future=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    if (statisticsEnabled) {
+      future.andThen(new IncrementStatsExecutionCallback<Data>(operation,startTime));
+    }
+    return future;
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);

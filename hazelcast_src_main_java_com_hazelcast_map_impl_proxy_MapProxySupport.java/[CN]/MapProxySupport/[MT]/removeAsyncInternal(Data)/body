@@ -4,7 +4,12 @@
   MapOperation operation=operationProvider.createRemoveOperation(name,key);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
-    return operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    long startTime=System.currentTimeMillis();
+    final InternalCompletableFuture<Data> future=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    if (statisticsEnabled) {
+      future.andThen(new IncrementStatsExecutionCallback<Data>(operation,startTime));
+    }
+    return future;
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
