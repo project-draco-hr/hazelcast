@@ -3,10 +3,16 @@
     resultSet=new ReadResultSetImpl(minSize,maxSize,getNodeEngine().getHazelcastInstance(),filter);
     sequence=startSequence;
   }
+  RingbufferContainer ringbuffer=getRingBufferContainer();
+  if (minSize == 0) {
+    if (!ringbuffer.shouldWait(sequence)) {
+      sequence=ringbuffer.readMany(sequence,resultSet);
+    }
+    return false;
+  }
   if (resultSet.isMinSizeReached()) {
     return false;
   }
-  RingbufferContainer ringbuffer=getRingBufferContainer();
   if (ringbuffer.shouldWait(sequence)) {
     return true;
   }
