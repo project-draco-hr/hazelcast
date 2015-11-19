@@ -1,0 +1,39 @@
+{
+  Config config=createConfig();
+  config.setProperty(GroupProperties.PROP_CACHE_INVALIDATION_MESSAGE_BATCH_SIZE,String.valueOf(Integer.MAX_VALUE));
+  config.setProperty(GroupProperties.PROP_CACHE_INVALIDATION_MESSAGE_BATCH_FREQUENCY_SECONDS,String.valueOf(Integer.MAX_VALUE));
+  HazelcastInstance instanceToShutdown=hazelcastFactory.newHazelcastInstance(config);
+  warmUpPartitions(serverInstance,instanceToShutdown);
+  waitAllForSafeState(serverInstance,instanceToShutdown);
+  NearCacheConfig nearCacheConfig=createNearCacheConfig(inMemoryFormat);
+  nearCacheConfig.setInvalidateOnChange(true);
+  nearCacheConfig.setLocalUpdatePolicy(NearCacheConfig.LocalUpdatePolicy.CACHE);
+  final NearCacheTestContext nearCacheTestContext1=createNearCacheTest(DEFAULT_CACHE_NAME,nearCacheConfig);
+  final NearCacheTestContext nearCacheTestContext2=createNearCacheTest(DEFAULT_CACHE_NAME,nearCacheConfig);
+  Map<String,String> keyAndValues=new HashMap<String,String>();
+  for (int i=0; i < DEFAULT_RECORD_COUNT; i++) {
+    final String key=generateKeyOwnedBy(instanceToShutdown);
+    final String value=generateValueFromKey(i);
+    nearCacheTestContext1.cache.put(key,value);
+    keyAndValues.put(key,value);
+  }
+  for (  Map.Entry<String,String> entry : keyAndValues.entrySet()) {
+    final String key=entry.getKey();
+    final String exceptedValue=entry.getValue();
+    final String actualValue=nearCacheTestContext1.nearCache.get(nearCacheTestContext1.serializationService.toData(key));
+    assertEquals(exceptedValue,actualValue);
+  }
+  for (  Map.Entry<String,String> entry : keyAndValues.entrySet()) {
+    nearCacheTestContext2.cache.remove(entry.getKey());
+  }
+  ((LifecycleServiceImpl)instanceToShutdown.getLifecycleService()).fireLifecycleEvent(LifecycleEvent.LifecycleState.SHUTTING_DOWN);
+  for (  Map.Entry<String,String> entry : keyAndValues.entrySet()) {
+    final String key=entry.getKey();
+    HazelcastTestSupport.assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertNull(nearCacheTestContext1.nearCache.get(nearCacheTestContext1.serializationService.toData(key)));
+      }
+    }
+);
+  }
+}
