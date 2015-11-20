@@ -1,17 +1,17 @@
 {
-  final String mapName="default";
-  final Config config=getConfig();
+  String mapName="default";
+  Config config=getConfig();
   config.getSerializationConfig().addPortableFactory(666,new PortableFactory(){
     public Portable create(    int classId){
-      return new SampleObjects.PortableEmployee();
+      return new PortableEmployee();
     }
   }
 );
   config.getMapConfig(mapName).addMapIndexConfig(new MapIndexConfig("notExist",false)).addMapIndexConfig(new MapIndexConfig("n",false));
   HazelcastInstance hazelcastInstance=createHazelcastInstance(config);
-  final IMap map=hazelcastInstance.getMap(mapName);
+  IMap<Integer,PortableEmployee> map=hazelcastInstance.getMap(mapName);
   for (int i=0; i < 5; i++) {
-    map.put(i,new SampleObjects.PortableEmployee(i,"name_" + i));
+    map.put(i,new PortableEmployee(i,"name_" + i));
   }
   Collection values=map.values(new SqlPredicate("n = name_2 OR notExist = name_0"));
   assertEquals(1,values.size());

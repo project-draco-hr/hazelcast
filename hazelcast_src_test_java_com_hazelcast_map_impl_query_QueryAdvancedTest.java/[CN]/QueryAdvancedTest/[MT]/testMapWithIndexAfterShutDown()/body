@@ -1,35 +1,35 @@
 {
-  Config cfg=getConfig();
+  Config config=getConfig();
   String mapName="default";
-  cfg.getMapConfig(mapName).addMapIndexConfig(new MapIndexConfig("typeName",false));
-  HazelcastInstance[] instances=createHazelcastInstanceFactory(3).newInstances(cfg);
-  final IMap map=instances[0].getMap(mapName);
-  final int SAMPLE_SIZE_1=100;
-  final int SAMPLE_SIZE_2=30;
-  int TOTAL_SIZE=SAMPLE_SIZE_1 + SAMPLE_SIZE_2;
-  for (int i=0; i < SAMPLE_SIZE_1; i++) {
+  config.getMapConfig(mapName).addMapIndexConfig(new MapIndexConfig("typeName",false));
+  HazelcastInstance[] instances=createHazelcastInstanceFactory(3).newInstances(config);
+  final IMap<Integer,ValueType> map=instances[0].getMap(mapName);
+  final int sampleSize1=100;
+  final int sampleSize2=30;
+  int totalSize=sampleSize1 + sampleSize2;
+  for (int i=0; i < sampleSize1; i++) {
     map.put(i,new ValueType("type" + i));
   }
-  for (int i=SAMPLE_SIZE_1; i < TOTAL_SIZE; i++) {
+  for (int i=sampleSize1; i < totalSize; i++) {
     map.put(i,new ValueType("typex"));
   }
   Collection typexValues=map.values(new SqlPredicate("typeName = typex"));
-  assertEquals(SAMPLE_SIZE_2,typexValues.size());
+  assertEquals(sampleSize2,typexValues.size());
   instances[1].shutdown();
-  assertEquals(TOTAL_SIZE,map.size());
+  assertEquals(totalSize,map.size());
   assertTrueEventually(new AssertTask(){
     public void run(){
       final Collection values=map.values(new SqlPredicate("typeName = typex"));
-      assertEquals(SAMPLE_SIZE_2,values.size());
+      assertEquals(sampleSize2,values.size());
     }
   }
 );
   instances[2].shutdown();
-  assertEquals(TOTAL_SIZE,map.size());
+  assertEquals(totalSize,map.size());
   assertTrueEventually(new AssertTask(){
     public void run(){
       final Collection values=map.values(new SqlPredicate("typeName = typex"));
-      assertEquals(SAMPLE_SIZE_2,values.size());
+      assertEquals(sampleSize2,values.size());
     }
   }
 );

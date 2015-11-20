@@ -1,0 +1,39 @@
+{
+  map.put("1",new Employee("joe",33,false,14.56));
+  map.put("2",new Employee("ali",23,true,15.00));
+  for (int i=3; i < 103; i++) {
+    map.put(String.valueOf(i),new Employee("name" + i,i % 60,((i & 1) == 1),i));
+  }
+  Set<Map.Entry<String,Employee>> entries=map.entrySet();
+  assertEquals(102,entries.size());
+  int entryCount=0;
+  for (  Map.Entry entry : entries) {
+    Employee employee=(Employee)entry.getValue();
+    assertNotNull(employee);
+    entryCount++;
+  }
+  assertEquals(102,entryCount);
+  EntryObject entryObject=new PredicateBuilder().getEntryObject();
+  Predicate predicate=entryObject.is("active").and(entryObject.get("age").equal(23));
+  entries=map.entrySet(predicate);
+  for (  Map.Entry entry : entries) {
+    Employee employee=(Employee)entry.getValue();
+    assertEquals(employee.getAge(),23);
+    assertTrue(employee.isActive());
+  }
+  map.remove("2");
+  entries=map.entrySet(predicate);
+  assertEquals(2,entries.size());
+  for (  Map.Entry entry : entries) {
+    Employee employee=(Employee)entry.getValue();
+    assertEquals(employee.getAge(),23);
+    assertTrue(employee.isActive());
+  }
+  entries=map.entrySet(new SqlPredicate(" (age >= " + 30 + ") AND (age <= "+ 40+ ")"));
+  assertEquals(23,entries.size());
+  for (  Map.Entry entry : entries) {
+    Employee employee=(Employee)entry.getValue();
+    assertTrue(employee.getAge() >= 30);
+    assertTrue(employee.getAge() <= 40);
+  }
+}
