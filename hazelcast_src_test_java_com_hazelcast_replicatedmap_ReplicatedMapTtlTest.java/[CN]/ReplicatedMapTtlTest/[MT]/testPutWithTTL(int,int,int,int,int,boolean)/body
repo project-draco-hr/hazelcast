@@ -1,9 +1,4 @@
 {
-  int nodeCount=5;
-  int keyCount=20000;
-  int operationCount=20000;
-  int threadCount=15;
-  int ttl=500;
   TimeUnit timeUnit=TimeUnit.MILLISECONDS;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
   HazelcastInstance[] instances=factory.newInstances(null,nodeCount);
@@ -14,8 +9,16 @@
   for (  Thread thread : threads) {
     thread.start();
   }
+  HazelcastInstance instance=null;
+  if (causeMigration) {
+    instance=factory.newHazelcastInstance();
+  }
   for (  Thread thread : threads) {
     thread.join();
+  }
+  if (causeMigration) {
+    ReplicatedMap<Object,Object> map=instance.getReplicatedMap(mapName);
+    maps.add(map);
   }
   for (  ReplicatedMap map : maps) {
     assertSizeEventually(0,map,60);
