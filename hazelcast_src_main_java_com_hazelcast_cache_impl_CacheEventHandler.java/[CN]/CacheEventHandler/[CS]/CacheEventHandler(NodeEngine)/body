@@ -7,4 +7,12 @@
     int invalidationMessageBatchFreq=groupProperties.getInteger(CACHE_INVALIDATION_MESSAGE_BATCH_FREQUENCY_SECONDS);
     cacheBatchInvalidationMessageSenderScheduler=nodeEngine.getExecutionService().scheduleAtFixedRate(ICacheService.SERVICE_NAME + ":cacheBatchInvalidationMessageSender",new CacheBatchInvalidationMessageSender(),invalidationMessageBatchFreq,invalidationMessageBatchFreq,TimeUnit.SECONDS);
   }
+  nodeEngine.getHazelcastInstance().getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleEvent.LifecycleState.SHUTTING_DOWN) {
+        invalidateAllCaches();
+      }
+    }
+  }
+);
 }
