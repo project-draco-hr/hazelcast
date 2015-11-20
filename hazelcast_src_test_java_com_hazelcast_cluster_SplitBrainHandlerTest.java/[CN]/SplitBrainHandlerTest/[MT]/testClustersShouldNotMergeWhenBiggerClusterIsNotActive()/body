@@ -1,0 +1,25 @@
+{
+  String groupName=generateRandomString(10);
+  HazelcastInstance hz1=newHazelcastInstance(buildConfig(groupName,false),"hz1",new FirewallingNodeContext());
+  HazelcastInstance hz2=newHazelcastInstance(buildConfig(groupName,false),"hz2",new FirewallingNodeContext());
+  HazelcastInstance hz3=newHazelcastInstance(buildConfig(groupName,false),"hz3",new FirewallingNodeContext());
+  final CountDownLatch splitLatch=new CountDownLatch(2);
+  hz3.getCluster().addMembershipListener(new MemberRemovedMembershipListener(splitLatch));
+  block(hz1,hz3);
+  block(hz2,hz3);
+  disconnect(hz3,hz1);
+  disconnect(hz3,hz2);
+  disconnect(hz1,hz3);
+  disconnect(hz2,hz3);
+  assertOpenEventually(splitLatch,10);
+  assertClusterSize(2,hz1);
+  assertClusterSize(2,hz2);
+  assertClusterSize(1,hz3);
+  changeClusterStateEventually(hz1,FROZEN);
+  unblock(hz1,hz3);
+  unblock(hz2,hz3);
+  sleepAtLeastSeconds(10);
+  assertClusterSize(2,hz1);
+  assertClusterSize(2,hz2);
+  assertClusterSize(1,hz3);
+}

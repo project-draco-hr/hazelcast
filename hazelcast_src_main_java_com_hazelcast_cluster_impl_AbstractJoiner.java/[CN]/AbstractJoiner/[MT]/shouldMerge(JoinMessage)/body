@@ -20,6 +20,13 @@
       }
       return false;
     }
+    final ClusterState clusterState=clusterService.getClusterState();
+    if (clusterState != ClusterState.ACTIVE) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Should not merge to " + joinMessage.getAddress() + ", because this cluster is in "+ clusterState+ " state.");
+      }
+      return false;
+    }
     Collection<Address> targetMemberAddresses=joinMessage.getMemberAddresses();
     if (targetMemberAddresses.contains(node.getThisAddress())) {
       node.nodeEngine.getOperationService().send(new MemberRemoveOperation(node.getThisAddress()),joinMessage.getAddress());
