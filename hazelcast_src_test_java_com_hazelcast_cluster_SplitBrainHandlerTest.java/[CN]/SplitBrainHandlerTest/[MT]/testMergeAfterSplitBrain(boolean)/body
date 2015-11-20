@@ -1,8 +1,8 @@
 {
+  String groupName=generateRandomString(10);
   Config config=new Config();
   config.setProperty(GroupProperty.MERGE_FIRST_RUN_DELAY_SECONDS,"5");
   config.setProperty(GroupProperty.MERGE_NEXT_RUN_DELAY_SECONDS,"3");
-  String groupName=generateRandomString(10);
   config.getGroupConfig().setName(groupName);
   NetworkConfig networkConfig=config.getNetworkConfig();
   JoinConfig join=networkConfig.getJoin();
@@ -24,14 +24,7 @@
   }
 );
   final CountDownLatch mergeLatch=new CountDownLatch(1);
-  h3.getLifecycleService().addLifecycleListener(new LifecycleListener(){
-    public void stateChanged(    LifecycleEvent event){
-      if (event.getState() == LifecycleState.MERGED) {
-        mergeLatch.countDown();
-      }
-    }
-  }
-);
+  h3.getLifecycleService().addLifecycleListener(new MergedEventLifeCycleListener(mergeLatch));
   closeConnectionBetween(h1,h3);
   closeConnectionBetween(h2,h3);
   assertTrue(splitLatch.await(10,TimeUnit.SECONDS));

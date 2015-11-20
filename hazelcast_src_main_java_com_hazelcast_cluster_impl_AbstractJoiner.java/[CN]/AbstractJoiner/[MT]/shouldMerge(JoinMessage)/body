@@ -33,28 +33,29 @@
         return false;
       }
     }
-    int currentMemberCount=clusterService.getSize();
-    if (joinMessage.getMemberCount() > currentMemberCount) {
-      logger.info(node.getThisAddress() + " is merging to " + joinMessage.getAddress()+ ", because : joinMessage.getMemberCount() > currentMemberCount ["+ (joinMessage.getMemberCount() + " > " + currentMemberCount)+ ']');
+    int targetDataMemberCount=joinMessage.getDataMemberCount();
+    int currentDataMemberCount=clusterService.getSize(DATA_MEMBER_SELECTOR);
+    if (targetDataMemberCount > currentDataMemberCount) {
+      logger.info(node.getThisAddress() + " is merging to " + joinMessage.getAddress()+ ", because : joinMessage.getDataMemberCount() > currentDataMemberCount ["+ (targetDataMemberCount + " > " + currentDataMemberCount)+ ']');
       if (logger.isFinestEnabled()) {
         logger.finest(joinMessage.toString());
       }
       return true;
     }
- else     if (joinMessage.getMemberCount() == currentMemberCount) {
+ else     if (targetDataMemberCount == currentDataMemberCount) {
       if (node.getThisAddress().hashCode() > joinMessage.getAddress().hashCode()) {
-        logger.info(node.getThisAddress() + " is merging to " + joinMessage.getAddress()+ ", because : node.getThisAddress().hashCode() > joinMessage.address.hashCode() "+ ", this node member count: "+ currentMemberCount);
+        logger.info(node.getThisAddress() + " is merging to " + joinMessage.getAddress()+ ", because : node.getThisAddress().hashCode() > joinMessage.address.hashCode() "+ ", this node member count: "+ currentDataMemberCount);
         if (logger.isFinestEnabled()) {
           logger.finest(joinMessage.toString());
         }
         return true;
       }
  else {
-        logger.info(joinMessage.getAddress() + " should merge to this node " + ", because : node.getThisAddress().hashCode() < joinMessage.address.hashCode() "+ ", this node member count: "+ currentMemberCount);
+        logger.info(joinMessage.getAddress() + " should merge to this node " + ", because : node.getThisAddress().hashCode() < joinMessage.address.hashCode() "+ ", this node data member count: "+ currentDataMemberCount);
       }
     }
  else {
-      logger.info(joinMessage.getAddress() + " should merge to this node " + ", because : currentMemberCount > joinMessage.getMemberCount() ["+ (currentMemberCount + " > " + joinMessage.getMemberCount())+ ']');
+      logger.info(joinMessage.getAddress() + " should merge to this node " + ", because : currentDataMemberCount > joinMessage.getDataMemberCount() ["+ (currentDataMemberCount + " > " + targetDataMemberCount)+ ']');
     }
   }
  catch (  Throwable e) {

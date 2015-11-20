@@ -10,22 +10,8 @@
   c3.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterTwoMembers);
   c4.getNetworkConfig().getJoin().getTcpIpConfig().setMembers(clusterTwoMembers);
   final CountDownLatch latch=new CountDownLatch(2);
-  c3.addListenerConfig(new ListenerConfig(new LifecycleListener(){
-    public void stateChanged(    final LifecycleEvent event){
-      if (event.getState() == LifecycleState.MERGED) {
-        latch.countDown();
-      }
-    }
-  }
-));
-  c4.addListenerConfig(new ListenerConfig(new LifecycleListener(){
-    public void stateChanged(    final LifecycleEvent event){
-      if (event.getState() == LifecycleState.MERGED) {
-        latch.countDown();
-      }
-    }
-  }
-));
+  c3.addListenerConfig(new ListenerConfig(new MergedEventLifeCycleListener(latch)));
+  c4.addListenerConfig(new ListenerConfig(new MergedEventLifeCycleListener(latch)));
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(c1);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(c2);
   HazelcastInstance h3=Hazelcast.newHazelcastInstance(c3);
