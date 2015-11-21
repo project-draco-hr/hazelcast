@@ -1,0 +1,22 @@
+{
+  String mapName=randomMapName(NEAR_CACHE_WITH_INVALIDATION);
+  IMap<Integer,Integer> serverMap=server.getMap(mapName);
+  int size=118;
+  for (int i=0; i < size; i++) {
+    serverMap.put(i,i);
+  }
+  final IMap<Integer,Integer> clientMap=hazelcastFactory.newHazelcastClient(clientConfig).getMap(mapName);
+  for (int i=0; i < size; i++) {
+    clientMap.get(i);
+  }
+  assertThatOwnedEntryCountEquals(clientMap,size);
+  for (int i=0; i < size; i++) {
+    serverMap.put(i,i);
+  }
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      assertThatOwnedEntryCountEquals(clientMap,0);
+    }
+  }
+);
+}

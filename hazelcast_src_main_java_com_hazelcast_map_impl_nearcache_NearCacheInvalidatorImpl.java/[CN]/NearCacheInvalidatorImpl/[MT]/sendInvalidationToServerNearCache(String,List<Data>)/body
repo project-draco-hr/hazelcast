@@ -1,0 +1,15 @@
+{
+  Operation operation=new NearCacheKeySetInvalidationOperation(mapName,keys).setServiceName(SERVICE_NAME);
+  Collection<Member> members=nodeEngine.getClusterService().getMembers();
+  for (  Member member : members) {
+    try {
+      if (member.localMember()) {
+        continue;
+      }
+      nodeEngine.getOperationService().send(operation,member.getAddress());
+    }
+ catch (    Throwable throwable) {
+      nodeEngine.getLogger(getClass()).warning(throwable);
+    }
+  }
+}

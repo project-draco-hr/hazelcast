@@ -1,0 +1,29 @@
+{
+  Data dataKey=entry.getKey();
+  if (partitionId != partitionService.getPartitionId(dataKey)) {
+    return false;
+  }
+  Data dataValue=entry.getValue();
+  Data dataOldValue=null;
+  if (initialLoad) {
+    recordStore.putFromLoad(dataKey,dataValue,-1);
+  }
+ else {
+    dataOldValue=mapServiceContext.toData(recordStore.put(dataKey,dataValue,DEFAULT_TTL));
+  }
+  mapServiceContext.interceptAfterPut(name,dataValue);
+  EntryEventType eventType=dataOldValue == null ? ADDED : UPDATED;
+  MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
+  dataValue=getValueOrPostProcessedValue(dataKey,dataValue);
+  mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,dataOldValue,dataValue);
+  Record record=recordStore.getRecord(dataKey);
+  if (shouldWanReplicate()) {
+    EntryView entryView=createSimpleEntryView(dataKey,dataValue,record);
+    mapEventPublisher.publishWanReplicationUpdate(name,entryView);
+  }
+  backupEntries.add(entry);
+  RecordInfo replicationInfo=buildRecordInfo(record);
+  backupRecordInfos.add(replicationInfo);
+  evict();
+  return true;
+}

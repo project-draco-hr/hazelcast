@@ -1,0 +1,25 @@
+{
+  if (invalidationQueue == null) {
+    return;
+  }
+  if (!invalidationQueue.tryAcquire()) {
+    return;
+  }
+  try {
+    int size=invalidationQueue.size();
+    BatchNearCacheInvalidation batchNearCacheInvalidation=new BatchNearCacheInvalidation(mapName,size);
+    Data key;
+    for (int i=0; i < size; i++) {
+      key=invalidationQueue.poll();
+      if (key == null) {
+        break;
+      }
+      batchNearCacheInvalidation.add(key);
+    }
+    sendInvalidationToServerNearCache(mapName,batchNearCacheInvalidation.getDataList());
+    sendInvalidationToClientNearCache(mapName,batchNearCacheInvalidation);
+  }
+  finally {
+    invalidationQueue.release();
+  }
+}
