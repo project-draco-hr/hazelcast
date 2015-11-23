@@ -1,10 +1,11 @@
 {
   final List<MembershipEvent> events=new LinkedList<MembershipEvent>();
   final Set<Member> eventMembers=Collections.unmodifiableSet(new LinkedHashSet<Member>(members));
+  final List<Member> newMembers=new LinkedList<Member>();
   for (  Member member : members) {
     final Member former=prevMembers.remove(member.getUuid());
     if (former == null) {
-      events.add(new MembershipEvent(client.getCluster(),member,MembershipEvent.MEMBER_ADDED,eventMembers));
+      newMembers.add(member);
     }
   }
   for (  Member member : prevMembers.values()) {
@@ -16,6 +17,9 @@
         connectionManager.destroyConnection(connection);
       }
     }
+  }
+  for (  Member member : newMembers) {
+    events.add(new MembershipEvent(client.getCluster(),member,MembershipEvent.MEMBER_ADDED,eventMembers));
   }
   return events;
 }
