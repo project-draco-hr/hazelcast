@@ -35,27 +35,14 @@
   }
  catch (  Throwable ignored) {
   }
-  nodeExtension.beforeShutdown();
-  phoneHome.shutdown();
-  if (managementCenterService != null) {
-    managementCenterService.shutdown();
+  try {
+    shutdownServices(terminate);
+    state=NodeState.SHUT_DOWN;
+    logger.info("Hazelcast Shutdown is completed in " + (Clock.currentTimeMillis() - start) + " ms.");
   }
-  textCommandService.stop();
-  if (multicastService != null) {
-    logger.info("Shutting down multicast service...");
-    multicastService.stop();
+  finally {
+    if (state != NodeState.SHUT_DOWN) {
+      shuttingDown.compareAndSet(true,false);
+    }
   }
-  logger.info("Shutting down connection manager...");
-  connectionManager.shutdown();
-  logger.info("Shutting down node engine...");
-  nodeEngine.shutdown(terminate);
-  if (securityContext != null) {
-    securityContext.destroy();
-  }
-  logger.finest("Destroying serialization service...");
-  serializationService.destroy();
-  hazelcastThreadGroup.destroy();
-  nodeExtension.shutdown();
-  logger.info("Hazelcast Shutdown is completed in " + (Clock.currentTimeMillis() - start) + " ms.");
-  state=NodeState.SHUT_DOWN;
 }
