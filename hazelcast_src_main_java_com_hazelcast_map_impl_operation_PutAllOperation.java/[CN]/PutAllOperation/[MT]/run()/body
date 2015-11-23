@@ -1,14 +1,11 @@
 {
-  backupRecordInfos=new ArrayList<RecordInfo>();
-  backupEntrySet=new ArrayList<Map.Entry<Data,Data>>();
+  backupRecordInfos=new ArrayList<RecordInfo>(mapEntries.size());
+  backupEntries=new ArrayList<Map.Entry<Data,Data>>(mapEntries.size());
   int partitionId=getPartitionId();
-  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
-  this.recordStore=mapServiceContext.getRecordStore(partitionId,name);
-  RecordStore recordStore=this.recordStore;
+  recordStore=mapServiceContext.getRecordStore(partitionId,name);
   InternalPartitionService partitionService=getNodeEngine().getPartitionService();
-  Set<Data> keysToInvalidate=new HashSet<Data>();
   for (  Map.Entry<Data,Data> entry : mapEntries) {
-    put(partitionId,mapServiceContext,recordStore,partitionService,keysToInvalidate,entry);
+    put(partitionId,partitionService,entry);
   }
-  invalidateNearCaches(keysToInvalidate);
+  invalidateNearCaches(mapEntries);
 }
