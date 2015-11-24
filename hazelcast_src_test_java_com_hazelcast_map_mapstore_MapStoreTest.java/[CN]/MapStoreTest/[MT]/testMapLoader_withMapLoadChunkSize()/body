@@ -4,8 +4,8 @@
   final String mapName=randomString();
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   ChunkedLoader chunkedLoader=new ChunkedLoader(numberOfEntriesToLoad,false);
-  Config cfg=createChunkedMapLoaderConfig(mapName,chunkSize,chunkedLoader);
-  HazelcastInstance node=nodeFactory.newHazelcastInstance(cfg);
+  Config config=createChunkedMapLoaderConfig(mapName,chunkSize,chunkedLoader);
+  HazelcastInstance node=nodeFactory.newHazelcastInstance(config);
   IMap map=node.getMap(mapName);
   final CountDownLatch latch=new CountDownLatch(numberOfEntriesToLoad);
   map.addEntryListener(new EntryAdapter(){
@@ -14,7 +14,9 @@
     }
   }
 ,true);
-  map.size();
+  for (int i=0; i < numberOfEntriesToLoad; i++) {
+    map.get(i);
+  }
   assertOpenEventually(latch,240);
   final int expectedChunkCount=numberOfEntriesToLoad / chunkSize;
   final int actualChunkCount=chunkedLoader.numberOfChunks.get();

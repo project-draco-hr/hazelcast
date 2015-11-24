@@ -2,15 +2,18 @@
   int size=10000;
   String mapName=randomMapName();
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
-  Config cfg=new Config();
+  Config config=getConfig();
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
   mapStoreConfig.setImplementation(new SimpleMapLoader(size,true));
-  MapConfig mc=cfg.getMapConfig(mapName);
+  MapConfig mc=config.getMapConfig(mapName);
   mc.setMapStoreConfig(mapStoreConfig);
-  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
-  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   IMap map=instance1.getMap(mapName);
+  for (int i=0; i < size; i++) {
+    assertEquals(i,map.get(i));
+  }
   assertSizeEventually(size,map);
   for (int i=0; i < size; i++) {
     assertEquals(i,map.get(i));
@@ -18,7 +21,7 @@
   assertNull(map.put(size,size));
   assertEquals(size,map.remove(size));
   assertNull(map.get(size));
-  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(config);
   for (int i=0; i < size; i++) {
     assertEquals(i,map.get(i));
   }
