@@ -5,18 +5,21 @@
     map.put(i,i);
   }
   final IMap<Object,Object> liteMap=lite.getMap(mapName);
-  for (int i=0; i < count; i++) {
-    assertNotNull(liteMap.get(i));
-  }
   final NearCache nearCache=getNearCache(lite,mapName);
-  final int sizeAfterPut=nearCache.size();
-  assertTrue("lite member near cache size should be > 0 but was " + sizeAfterPut,sizeAfterPut > 0);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (int i=0; i < count; i++) {
+        liteMap.get(i);
+      }
+      assertEquals(count,nearCache.size());
+    }
+  }
+);
   map.clear();
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      final int sizeAfterClear=nearCache.size();
-      assertEquals("lite member near cache size should be 0 after clear but was " + sizeAfterClear,0,sizeAfterClear);
+      assertEquals(0,nearCache.size());
     }
   }
-,10);
+);
 }
