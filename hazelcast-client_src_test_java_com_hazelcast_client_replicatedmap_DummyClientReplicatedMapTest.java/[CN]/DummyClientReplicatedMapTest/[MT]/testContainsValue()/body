@@ -2,9 +2,14 @@
   HazelcastInstance instance1=hazelcastFactory.newHazelcastInstance();
   HazelcastInstance instance2=hazelcastFactory.newHazelcastInstance();
   HazelcastInstance client=hazelcastFactory.newHazelcastClient(dummyClientConfig);
-  ReplicatedMap<String,String> map=client.getReplicatedMap(randomMapName());
+  final ReplicatedMap<String,String> map=client.getReplicatedMap(randomMapName());
   String key=generateKeyOwnedBy(instance2);
-  String value=randomString();
+  final String value=randomString();
   map.put(key,value);
-  assertTrue(map.containsValue(value));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(map.containsValue(value));
+    }
+  }
+);
 }
