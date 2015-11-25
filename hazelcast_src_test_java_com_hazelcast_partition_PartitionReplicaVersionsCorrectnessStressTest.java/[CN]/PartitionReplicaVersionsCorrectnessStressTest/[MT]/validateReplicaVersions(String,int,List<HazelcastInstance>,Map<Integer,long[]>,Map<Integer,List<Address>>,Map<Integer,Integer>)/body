@@ -1,0 +1,32 @@
+{
+  for (  HazelcastInstance instance : survivingInstances) {
+    Node node=getNode(instance);
+    Address address=node.getThisAddress();
+    InternalPartitionService partitionService=node.getPartitionService();
+    for (    InternalPartition partition : partitionService.getPartitions()) {
+      if (address.equals(partition.getOwnerOrNull())) {
+        int partitionId=partition.getPartitionId();
+        long[] initialReplicaVersions=replicaVersionsByPartitionId.get(partitionId);
+        Integer minSurvivingReplicaIndex=minSurvivingReplicaIndexByPartitionId.get(partitionId);
+        long[] replicaVersions=TestPartitionUtils.getReplicaVersions(instance,partitionId);
+        List<Address> addresses=TestPartitionUtils.getReplicaAddresses(instance,partitionId);
+        String message=log + " PartitionId: " + partitionId+ " InitialReplicaVersions: "+ Arrays.toString(initialReplicaVersions)+ " ReplicaVersions: "+ Arrays.toString(replicaVersions)+ " SmallestSurvivingReplicaIndex: "+ minSurvivingReplicaIndex+ " InitialReplicaAddresses: "+ partitionReplicaAddresses.get(partitionId)+ " Instance: "+ address+ " CurrentReplicaAddresses: "+ addresses;
+        if (minSurvivingReplicaIndex <= 1) {
+          assertArrayEquals(message,initialReplicaVersions,replicaVersions);
+        }
+ else         if (numberOfNodesToCrash > 1) {
+          for (int i=minSurvivingReplicaIndex; i < replicaVersions.length; i++) {
+            assertEquals(message,initialReplicaVersions[i],replicaVersions[i]);
+          }
+          long duplicatedReplicaVersion=initialReplicaVersions[minSurvivingReplicaIndex - 1];
+          for (int i=0; i < minSurvivingReplicaIndex; i++) {
+            assertEquals(duplicatedReplicaVersion,replicaVersions[i]);
+          }
+        }
+ else {
+          fail(message);
+        }
+      }
+    }
+  }
+}

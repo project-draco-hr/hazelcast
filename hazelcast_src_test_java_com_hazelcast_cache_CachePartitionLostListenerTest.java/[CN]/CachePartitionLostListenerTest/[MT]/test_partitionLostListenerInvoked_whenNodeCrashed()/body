@@ -1,18 +1,18 @@
 {
-  final List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp(2);
-  final HazelcastInstance survivingInstance=instances.get(0);
-  final HazelcastInstance terminatingInstance=instances.get(1);
-  final EventCollectingCachePartitionLostListener listener=new EventCollectingCachePartitionLostListener(0);
-  final HazelcastServerCachingProvider cachingProvider=createCachingProvider(survivingInstance);
-  final CacheManager cacheManager=cachingProvider.getCacheManager();
-  final CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
+  List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp(2);
+  HazelcastInstance survivingInstance=instances.get(0);
+  HazelcastInstance terminatingInstance=instances.get(1);
+  HazelcastServerCachingProvider cachingProvider=createCachingProvider(survivingInstance);
+  CacheManager cacheManager=cachingProvider.getCacheManager();
+  CacheConfig<Integer,String> config=new CacheConfig<Integer,String>();
   config.setBackupCount(0);
-  final Cache<Integer,String> cache=cacheManager.createCache(getIthCacheName(0),config);
-  final ICache iCache=cache.unwrap(ICache.class);
+  Cache<Integer,String> cache=cacheManager.createCache(getIthCacheName(0),config);
+  ICache iCache=cache.unwrap(ICache.class);
+  final EventCollectingCachePartitionLostListener listener=new EventCollectingCachePartitionLostListener(0);
   iCache.addPartitionLostListener(listener);
   final Set<Integer> survivingPartitionIds=new HashSet<Integer>();
-  final Node survivingNode=getNode(survivingInstance);
-  final Address survivingAddress=survivingNode.getThisAddress();
+  Node survivingNode=getNode(survivingInstance);
+  Address survivingAddress=survivingNode.getThisAddress();
   for (  InternalPartition partition : survivingNode.getPartitionService().getPartitions()) {
     if (survivingAddress.equals(partition.getReplicaAddress(0))) {
       survivingPartitionIds.add(partition.getPartitionId());
