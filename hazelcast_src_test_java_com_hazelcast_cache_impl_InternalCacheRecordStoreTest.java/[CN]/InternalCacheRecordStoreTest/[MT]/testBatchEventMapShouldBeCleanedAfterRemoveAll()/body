@@ -1,7 +1,7 @@
 {
   String cacheName=randomString();
   CacheConfig<Integer,String> config=createCacheConfig();
-  final CacheFromDifferentNodesTest.SimpleEntryListener<Integer,String> listener=new CacheFromDifferentNodesTest.SimpleEntryListener<Integer,String>();
+  CacheFromDifferentNodesTest.SimpleEntryListener<Integer,String> listener=new CacheFromDifferentNodesTest.SimpleEntryListener<Integer,String>();
   MutableCacheEntryListenerConfiguration<Integer,String> listenerConfiguration=new MutableCacheEntryListenerConfiguration<Integer,String>(FactoryBuilder.factoryOf(listener),null,true,true);
   config.addCacheEntryListenerConfiguration(listenerConfiguration);
   Cache<Integer,String> cache=cacheManager.createCache(cacheName,config);
@@ -12,7 +12,9 @@
   HazelcastInstance instance=((HazelcastCacheManager)cacheManager).getHazelcastInstance();
   int partitionId=instance.getPartitionService().getPartition(key).getPartitionId();
   cache.removeAll();
-  ICacheService cacheService=TestUtil.getNode(instance).getNodeEngine().getService(ICacheService.SERVICE_NAME);
+  Node node=getNode(instance);
+  assertNotNull(node);
+  ICacheService cacheService=node.getNodeEngine().getService(ICacheService.SERVICE_NAME);
   AbstractCacheRecordStore recordStore=(AbstractCacheRecordStore)cacheService.getRecordStore("/hz/" + cacheName,partitionId);
   assertEquals(0,recordStore.batchEvent.size());
 }
