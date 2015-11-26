@@ -1,7 +1,9 @@
 {
+  String invalidatedOriginalSessionId=null;
   if (hazelcastSession != null && !hazelcastSession.isValid()) {
     LOGGER.finest("Session is invalid!");
     destroySession(hazelcastSession,true);
+    invalidatedOriginalSessionId=hazelcastSession.invalidatedOriginalSessionId;
     hazelcastSession=null;
   }
  else   if (hazelcastSession != null) {
@@ -17,8 +19,9 @@
       }
       return hazelcastSession;
     }
-    originalSessions.remove(originalSession.getId());
-    originalSession.invalidate();
+    if (!originalSession.getId().equals(invalidatedOriginalSessionId)) {
+      originalSession.invalidate();
+    }
   }
   if (clusteredSessionId != null) {
     hazelcastSession=sessions.get(clusteredSessionId);
