@@ -1,0 +1,29 @@
+{
+  NodeContext context=new NodeExtensionTest.DummyNodeContext(){
+    @Override public NodeExtension createNodeExtension(    Node node){
+      NodeExtension nodeExtension=super.createNodeExtension(node);
+      doAnswer(new Answer(){
+        final AtomicBoolean throwException=new AtomicBoolean(false);
+        @Override public Object answer(        InvocationOnMock invocation) throws Throwable {
+          if (throwException.compareAndSet(false,true)) {
+            throw new ExpectedRuntimeException();
+          }
+          return null;
+        }
+      }
+).when(nodeExtension).beforeShutdown();
+      return nodeExtension;
+    }
+  }
+;
+  Config config=new Config();
+  config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  HazelcastInstance instance=HazelcastInstanceFactory.newHazelcastInstance(config,randomString(),context);
+  try {
+    instance.getLifecycleService().terminate();
+  }
+ catch (  ExpectedRuntimeException expected) {
+    instance.getLifecycleService().terminate();
+    throw expected;
+  }
+}
