@@ -1,0 +1,19 @@
+{
+  NodeContext context=new NodeExtensionTest.DummyNodeContext(){
+    @Override public NodeExtension createNodeExtension(    final Node node){
+      NodeExtension nodeExtension=super.createNodeExtension(node);
+      doAnswer(new Answer(){
+        @Override public Object answer(        InvocationOnMock invocation) throws Throwable {
+          node.hazelcastInstance.shutdown();
+          return null;
+        }
+      }
+).when(nodeExtension).afterStart();
+      return nodeExtension;
+    }
+  }
+;
+  Config config=new Config();
+  config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  HazelcastInstanceFactory.newHazelcastInstance(config,randomString(),context);
+}
