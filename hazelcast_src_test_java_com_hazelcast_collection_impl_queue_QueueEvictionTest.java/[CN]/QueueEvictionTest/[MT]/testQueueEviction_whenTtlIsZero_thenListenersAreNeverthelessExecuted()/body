@@ -1,0 +1,20 @@
+{
+  String queueName=randomString();
+  Config config=new Config();
+  config.getQueueConfig(queueName).setEmptyQueueTtl(0);
+  HazelcastInstance hz=createHazelcastInstance(config);
+  final CountDownLatch latch=new CountDownLatch(2);
+  hz.addDistributedObjectListener(new DistributedObjectListener(){
+    public void distributedObjectCreated(    DistributedObjectEvent event){
+      latch.countDown();
+    }
+    public void distributedObjectDestroyed(    DistributedObjectEvent event){
+      latch.countDown();
+    }
+  }
+);
+  IQueue<Object> queue=hz.getQueue(queueName);
+  assertTrue(queue.offer("item"));
+  assertEquals("item",queue.poll());
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+}

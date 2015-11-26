@@ -1,0 +1,17 @@
+{
+  String queueName=randomString();
+  Config config=new Config();
+  config.getQueueConfig(queueName).setEmptyQueueTtl(2);
+  HazelcastInstance hz=createHazelcastInstance(config);
+  IQueue<Object> queue=hz.getQueue(queueName);
+  try {
+    assertTrue(queue.offer("item"));
+    assertEquals("item",queue.poll());
+    queue.take();
+    fail();
+  }
+ catch (  DistributedObjectDestroyedException expected) {
+    ignore(expected);
+  }
+  assertEquals(0,queue.size());
+}

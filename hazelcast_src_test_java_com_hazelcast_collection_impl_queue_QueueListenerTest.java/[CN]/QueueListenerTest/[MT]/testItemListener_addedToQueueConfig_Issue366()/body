@@ -1,18 +1,18 @@
 {
-  itemListenerConfig.setImplementation(simpleItemListener);
+  itemListenerConfig.setImplementation(countdownItemListener);
   itemListenerConfig.setIncludeValue(true);
-  qConfig.setName(Q_NAME);
-  qConfig.addItemListenerConfig(itemListenerConfig);
-  cfg.addQueueConfig(qConfig);
+  queueConfig.setName(QUEUE_NAME);
+  queueConfig.addItemListenerConfig(itemListenerConfig);
+  config.addQueueConfig(queueConfig);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  HazelcastInstance node1=factory.newHazelcastInstance(cfg);
-  IQueue<Integer> queue=node1.getQueue(Q_NAME);
-  for (int i=0; i < TOTAL_QPUT / 2; i++) {
+  HazelcastInstance instance=factory.newHazelcastInstance(config);
+  IQueue<Integer> queue=instance.getQueue(QUEUE_NAME);
+  for (int i=0; i < TOTAL_QUEUE_PUT / 2; i++) {
     queue.put(i);
   }
-  HazelcastInstance node2=factory.newHazelcastInstance(cfg);
-  for (int i=0; i < TOTAL_QPUT / 4; i++) {
+  factory.newHazelcastInstance(config);
+  for (int i=0; i < TOTAL_QUEUE_PUT / 4; i++) {
     queue.put(i);
   }
-  assertTrue(simpleItemListener.added.await(3,TimeUnit.SECONDS));
+  assertTrue(countdownItemListener.added.await(3,TimeUnit.SECONDS));
 }

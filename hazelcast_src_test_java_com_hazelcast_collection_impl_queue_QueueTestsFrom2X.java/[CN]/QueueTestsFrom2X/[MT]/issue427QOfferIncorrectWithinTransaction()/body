@@ -1,17 +1,17 @@
 {
   Config config=new Config();
   config.getQueueConfig("default").setMaxSize(100);
-  HazelcastInstance h=createHazelcastInstance(config);
-  final TransactionContext transactionContext=h.newTransactionContext();
+  HazelcastInstance instance=createHazelcastInstance(config);
+  TransactionContext transactionContext=instance.newTransactionContext();
   transactionContext.beginTransaction();
-  final TransactionalQueue q=transactionContext.getQueue("default");
+  TransactionalQueue<Integer> queue=transactionContext.getQueue("default");
   for (int i=0; i < 100; i++) {
-    q.offer(i);
+    queue.offer(i);
   }
-  boolean result=q.offer(100);
-  assertEquals(100,q.size());
+  boolean result=queue.offer(100);
+  assertEquals(100,queue.size());
   transactionContext.commitTransaction();
-  assertEquals(100,h.getQueue("default").size());
+  assertEquals(100,instance.getQueue("default").size());
   assertFalse(result);
-  h.shutdown();
+  instance.shutdown();
 }

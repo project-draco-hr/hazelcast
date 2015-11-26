@@ -1,19 +1,19 @@
 {
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  final HazelcastInstance instance1=factory.newHazelcastInstance();
-  final HazelcastInstance instance2=factory.newHazelcastInstance();
-  final TransactionContext context=instance1.newTransactionContext();
-  final IQueue<Object> q=instance1.getQueue("testQueuePollRollbackSize");
-  q.offer("item1");
-  q.offer("item2");
-  assertEquals(2,q.size());
+  HazelcastInstance instance=factory.newHazelcastInstance();
+  factory.newHazelcastInstance();
+  TransactionContext context=instance.newTransactionContext();
+  IQueue<Object> queue=instance.getQueue("testQueuePollRollbackSize");
+  queue.offer("item1");
+  queue.offer("item2");
+  assertEquals(2,queue.size());
   context.beginTransaction();
   TransactionalQueue txnQ1=context.getQueue("testQueuePollRollbackSize");
   assertEquals("item1",txnQ1.poll());
   assertEquals(1,txnQ1.size());
-  assertEquals(1,q.size());
+  assertEquals(1,queue.size());
   context.rollbackTransaction();
-  assertEquals(2,q.size());
-  assertEquals("item1",q.poll());
-  assertEquals("item2",q.poll());
+  assertEquals(2,queue.size());
+  assertEquals("item1",queue.poll());
+  assertEquals("item2",queue.poll());
 }

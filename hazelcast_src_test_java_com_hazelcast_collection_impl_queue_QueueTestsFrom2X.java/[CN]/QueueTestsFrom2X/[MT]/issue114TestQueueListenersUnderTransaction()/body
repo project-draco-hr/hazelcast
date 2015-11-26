@@ -1,7 +1,7 @@
 {
-  final HazelcastInstance hz=createHazelcastInstance();
-  final String name="issue99TestQueueTakeAndDuringRollback";
-  final IQueue testQueue=hz.getQueue(name);
+  String name="issue99TestQueueTakeAndDuringRollback";
+  HazelcastInstance hz=createHazelcastInstance();
+  IQueue<String> testQueue=hz.getQueue(name);
   final CountDownLatch offerLatch=new CountDownLatch(2);
   final CountDownLatch pollLatch=new CountDownLatch(2);
   testQueue.addItemListener(new ItemListener<String>(){
@@ -13,15 +13,15 @@
     }
   }
 ,true);
-  final TransactionContext context=hz.newTransactionContext();
+  TransactionContext context=hz.newTransactionContext();
   context.beginTransaction();
-  final TransactionalQueue<Object> queue=context.getQueue(name);
+  TransactionalQueue<Object> queue=context.getQueue(name);
   queue.offer("tx Hello");
   queue.offer("tx World");
   context.commitTransaction();
-  final TransactionContext context2=hz.newTransactionContext();
+  TransactionContext context2=hz.newTransactionContext();
   context2.beginTransaction();
-  final TransactionalQueue<Object> queue2=context2.getQueue(name);
+  TransactionalQueue<Object> queue2=context2.getQueue(name);
   assertEquals("tx Hello",queue2.poll());
   assertEquals("tx World",queue2.poll());
   context2.commitTransaction();

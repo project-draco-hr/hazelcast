@@ -1,0 +1,19 @@
+{
+  Config config=new Config();
+  config.getQueueConfig("queueWithTTL").setEmptyQueueTtl(0);
+  HazelcastInstance hz=createHazelcastInstance(config);
+  final CountDownLatch latch=new CountDownLatch(2);
+  hz.addDistributedObjectListener(new DistributedObjectListener(){
+    @Override public void distributedObjectCreated(    DistributedObjectEvent event){
+      latch.countDown();
+    }
+    @Override public void distributedObjectDestroyed(    DistributedObjectEvent event){
+      latch.countDown();
+    }
+  }
+);
+  IQueue<Object> queue=hz.getQueue("queueWithTTL");
+  queue.offer("item");
+  queue.poll();
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+}
