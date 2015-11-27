@@ -1,0 +1,44 @@
+{
+  final EntryStoringProcessor processor=new EntryStoringProcessor();
+  final SecondsBasedEntryTaskScheduler<Integer,Integer> scheduler=new SecondsBasedEntryTaskScheduler<Integer,Integer>(executorService,processor,ScheduleType.POSTPONE);
+  final int numberOfKeys=NUMBER_OF_THREADS;
+  final Object[] locks=new Object[numberOfKeys];
+  Arrays.fill(locks,new Object());
+  final Map<Integer,Integer> latestValues=new ConcurrentHashMap<Integer,Integer>();
+  for (int i=0; i < NUMBER_OF_THREADS; i++) {
+    final Thread thread=new Thread(){
+      final Random random=new Random();
+      @Override public void run(){
+        for (int j=0; j < NUMBER_OF_EVENTS_PER_THREAD; j++) {
+          int key=random.nextInt(numberOfKeys);
+synchronized (locks[key]) {
+            if (scheduler.schedule(getDelayMillis(),key,j)) {
+              latestValues.put(key,j);
+            }
+          }
+        }
+      }
+      private int getDelayMillis(){
+        return random.nextInt(5000) + 1;
+      }
+    }
+;
+    thread.start();
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(latestValues.size(),processor.values.size());
+      for (int key=0; key < numberOfKeys; key++) {
+        Integer expected=latestValues.get(key);
+        Integer actual=processor.get(key);
+        if (expected == null) {
+          assertNull(actual);
+        }
+ else {
+          assertEquals(expected,actual);
+        }
+      }
+    }
+  }
+);
+}
