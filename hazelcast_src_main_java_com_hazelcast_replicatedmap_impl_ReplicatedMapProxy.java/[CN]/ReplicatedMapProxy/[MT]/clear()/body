@@ -1,3 +1,15 @@
 {
-  service.clearLocalAndRemoteRecordStores(name);
+  OperationService operationService=nodeEngine.getOperationService();
+  try {
+    Map<Integer,Object> results=operationService.invokeOnAllPartitions(SERVICE_NAME,new ClearOperationFactory(name));
+    int deletedEntrySize=0;
+    for (    Object deletedEntryPerPartition : results.values()) {
+      deletedEntrySize+=(Integer)deletedEntryPerPartition;
+    }
+    ReplicatedMapEventPublishingService eventPublishingService=service.getEventPublishingService();
+    eventPublishingService.fireMapClearedEvent(deletedEntrySize,name);
+  }
+ catch (  Throwable t) {
+    ExceptionUtil.rethrow(t);
+  }
 }
