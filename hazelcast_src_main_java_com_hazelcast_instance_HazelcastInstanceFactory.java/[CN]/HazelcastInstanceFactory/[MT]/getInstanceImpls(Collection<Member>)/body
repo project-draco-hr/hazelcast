@@ -1,0 +1,21 @@
+{
+  Set<HazelcastInstanceImpl> set=new HashSet<HazelcastInstanceImpl>();
+  for (  InstanceFuture future : INSTANCE_MAP.values()) {
+    try {
+      if (future.isSet()) {
+        HazelcastInstanceProxy instanceProxy=future.get();
+        HazelcastInstanceImpl impl=instanceProxy.original;
+        if (impl != null) {
+          final MemberImpl localMember=impl.node.getLocalMember();
+          if (members.contains(localMember)) {
+            set.add(impl);
+          }
+        }
+      }
+    }
+ catch (    RuntimeException ignored) {
+      EmptyStatement.ignore(ignored);
+    }
+  }
+  return set;
+}
