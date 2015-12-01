@@ -14,12 +14,43 @@
   for (  Lang lang : Lang.values()) {
     boolean enabled=Boolean.getBoolean("hazelcast.generator." + lang.name().toLowerCase());
     if (enabled || lang == Lang.JAVA) {
-      try {
-        Template codecTemplate=cfg.getTemplate("codec-template-" + lang.name().toLowerCase() + ".ftl");
-        codecTemplateMap.put(lang,codecTemplate);
+      if (Lang.CPP == lang) {
+        try {
+          cppHeaderTemplate=cfg.getTemplate("codec-template-" + lang.name().toLowerCase() + "header.ftl");
+        }
+ catch (        IOException e) {
+          messager.printMessage(Diagnostic.Kind.ERROR,"Cannot find cpp header template.");
+        }
+        try {
+          cppTemplate=cfg.getTemplate("codec-template-" + lang.name().toLowerCase() + ".ftl");
+          codecTemplateMap.put(lang,cppTemplate);
+        }
+ catch (        IOException e) {
+          messager.printMessage(Diagnostic.Kind.ERROR,"Cannot find cpp template.");
+        }
+        try {
+          cppMessageTypeHeaderTemplate=cfg.getTemplate("messagetype-template-" + lang.name().toLowerCase() + "header.ftl");
+          messageTypeTemplateMap.put(lang,cppMessageTypeHeaderTemplate);
+        }
+ catch (        IOException e) {
+          messager.printMessage(Diagnostic.Kind.ERROR,"Cannot find cpp messagetype header template.");
+        }
       }
- catch (      IOException e) {
-        messager.printMessage(Diagnostic.Kind.ERROR,"Cannot find template for lang:" + lang);
+ else {
+        try {
+          Template codecTemplate=cfg.getTemplate("codec-template-" + lang.name().toLowerCase() + ".ftl");
+          codecTemplateMap.put(lang,codecTemplate);
+        }
+ catch (        IOException e) {
+          messager.printMessage(Diagnostic.Kind.ERROR,"Cannot find template for lang:" + lang);
+        }
+        try {
+          Template messageTypeTemplate=cfg.getTemplate("messagetype-template-" + lang.name().toLowerCase() + ".ftl");
+          messageTypeTemplateMap.put(lang,messageTypeTemplate);
+        }
+ catch (        IOException e) {
+          messager.printMessage(Diagnostic.Kind.WARNING,"Cannot find messagetype template for lang:" + lang);
+        }
       }
       try {
         Template messageTypeTemplate=cfg.getTemplate("messagetype-template-" + lang.name().toLowerCase() + ".ftl");
