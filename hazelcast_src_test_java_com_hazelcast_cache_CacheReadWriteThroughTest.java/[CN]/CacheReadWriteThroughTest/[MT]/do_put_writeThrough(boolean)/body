@@ -1,0 +1,26 @@
+{
+  final int ENTRY_COUNT=100;
+  final String cacheName=randomName();
+  CacheManager cacheManager=cachingProvider1.getCacheManager();
+  assertNotNull(cacheManager);
+  assertNull(cacheManager.getCache(cacheName));
+  PutCacheWriter putCacheWriter=new PutCacheWriter(acceptAll);
+  CacheConfig<Integer,Integer> config=createCacheConfig();
+  config.setWriteThrough(true);
+  config.setCacheWriterFactory(FactoryBuilder.factoryOf(putCacheWriter));
+  ICache<Integer,Integer> cache=cacheManager.createCache(cacheName,config).unwrap(ICache.class);
+  assertNotNull(cache);
+  List<Integer> bannedKeys=new ArrayList<Integer>();
+  for (int i=0; i < ENTRY_COUNT; i++) {
+    try {
+      cache.put(i,i);
+    }
+ catch (    CacheWriterException e) {
+      bannedKeys.add(i);
+    }
+  }
+  assertEquals(ENTRY_COUNT - bannedKeys.size(),cache.size());
+  for (  Integer bannedKey : bannedKeys) {
+    assertNull(cache.get(bannedKey));
+  }
+}
