@@ -1,0 +1,26 @@
+{
+  ClientConfig clientConfig=new ClientConfig();
+  ProxyFactoryConfig proxyFactoryConfig=new ProxyFactoryConfig();
+  proxyFactoryConfig.setService(SERVICE_NAME);
+  proxyFactoryConfig.setFactoryImpl(new ClientProxyFactory(){
+    @Override public ClientProxy create(    String id){
+      return new ClientProxy(SERVICE_NAME,id){
+        @Override protected void onInitialize(){
+          super.onInitialize();
+          throw new ExpectedError();
+        }
+      }
+;
+    }
+  }
+);
+  clientConfig.addProxyFactoryConfig(proxyFactoryConfig);
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
+  String objectName="custom-object";
+  try {
+    client.getDistributedObject(SERVICE_NAME,objectName);
+    fail("Client proxy initialization should fail!");
+  }
+ catch (  ExpectedError expected) {
+  }
+}
