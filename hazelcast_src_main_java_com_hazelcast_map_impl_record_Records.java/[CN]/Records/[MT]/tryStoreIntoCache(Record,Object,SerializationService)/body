@@ -1,0 +1,16 @@
+{
+  Thread currentThread=Thread.currentThread();
+  if (!record.casCachedValue(null,currentThread)) {
+    return null;
+  }
+  Object valueAfterCas=record.getValue();
+  Object object=serializationService.toObject(valueBeforeCas);
+  if (valueAfterCas == valueBeforeCas) {
+    Object wrappedObject=ThreadWrapper.wrapIfNeeded(object);
+    record.casCachedValue(currentThread,wrappedObject);
+  }
+ else {
+    record.casCachedValue(currentThread,null);
+  }
+  return object;
+}
