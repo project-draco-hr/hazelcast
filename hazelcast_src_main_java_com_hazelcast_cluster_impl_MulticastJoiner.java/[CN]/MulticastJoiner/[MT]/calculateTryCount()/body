@@ -1,8 +1,8 @@
 {
   final NetworkConfig networkConfig=config.getNetworkConfig();
   int timeoutSeconds=networkConfig.getJoin().getMulticastConfig().getMulticastTimeoutSeconds();
-  int tryCountCoefficient=1000 / PUBLISH_INTERVAL;
-  int tryCount=timeoutSeconds * tryCountCoefficient;
+  int avgPublishInterval=(PUBLISH_INTERVAL_MAX + PUBLISH_INTERVAL_MIN) / 2;
+  int tryCount=timeoutSeconds * 1000 / avgPublishInterval;
   String host=node.getThisAddress().getHost();
   int lastDigits;
   try {
@@ -11,8 +11,7 @@
  catch (  NumberFormatException e) {
     lastDigits=RandomPicker.getInt(512);
   }
-  lastDigits=lastDigits % 100;
   int portDiff=node.getThisAddress().getPort() - networkConfig.getPort();
-  tryCount+=lastDigits + portDiff * timeoutSeconds * 3;
+  tryCount+=(lastDigits + portDiff) % 10;
   return tryCount;
 }
