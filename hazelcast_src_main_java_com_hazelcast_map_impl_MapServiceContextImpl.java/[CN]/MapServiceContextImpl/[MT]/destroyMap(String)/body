@@ -1,22 +1,14 @@
 {
+  localMapStatsProvider.destroyLocalMapStatsImpl(mapName);
   final PartitionContainer[] containers=partitionContainers;
-  final List<Future> futures=new ArrayList<Future>(containers.length);
-  for (  PartitionContainer container : containers) {
-    if (container != null) {
-      int partitionId=container.getPartitionId();
-      InternalPartition partition=nodeEngine.getPartitionService().getPartition(partitionId);
-      if (partition.isLocal()) {
-        OperationService operationService=nodeEngine.getOperationService();
-        Operation operation=new MapPartitionDestroyOperation(container,mapName);
-        Future f=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
-        futures.add(f);
-      }
-    }
+  final Semaphore semaphore=new Semaphore(0);
+  InternalOperationService operationService=(InternalOperationService)nodeEngine.getOperationService();
+  for (  final PartitionContainer container : containers) {
+    MapPartitionDestroyTask partitionDestroyTask=new MapPartitionDestroyTask(container,mapName,semaphore);
+    operationService.execute(partitionDestroyTask);
   }
   try {
-    for (    Future f : futures) {
-      f.get(DESTROY_TIMEOUT_SECONDS,TimeUnit.SECONDS);
-    }
+    semaphore.tryAcquire(containers.length,DESTROY_TIMEOUT_SECONDS,TimeUnit.SECONDS);
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
