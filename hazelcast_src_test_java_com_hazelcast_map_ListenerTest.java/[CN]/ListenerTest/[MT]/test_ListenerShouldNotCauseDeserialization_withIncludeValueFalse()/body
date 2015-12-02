@@ -1,0 +1,19 @@
+{
+  String name=randomString();
+  String key=randomString();
+  Config config=new Config();
+  config.getMapConfig(name).setInMemoryFormat(InMemoryFormat.OBJECT);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<Object,Object> map=instance.getMap(name);
+  EntryAddedLatch latch=new EntryAddedLatch(1);
+  map.addEntryListener(latch,false);
+  map.executeOnKey(key,new AbstractEntryProcessor(){
+    @Override public Object process(    Map.Entry entry){
+      entry.setValue(new SerializeCheckerObject());
+      return null;
+    }
+  }
+);
+  assertOpenEventually(latch,10);
+  SerializeCheckerObject.assertNotSerialized();
+}

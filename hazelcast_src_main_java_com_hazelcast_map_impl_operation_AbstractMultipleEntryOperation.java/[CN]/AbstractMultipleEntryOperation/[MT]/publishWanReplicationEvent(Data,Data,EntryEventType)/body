@@ -1,0 +1,16 @@
+{
+  if (!isWanReplicationEnabled()) {
+    return;
+  }
+  final MapEventPublisher mapEventPublisher=getMapEventPublisher();
+  if (EntryEventType.REMOVED.equals(eventType)) {
+    mapEventPublisher.publishWanReplicationRemove(name,key,getNow());
+  }
+ else {
+    final Record record=recordStore.getRecord(key);
+    if (record != null) {
+      final EntryView entryView=createSimpleEntryView(key,dataValue,record);
+      mapEventPublisher.publishWanReplicationUpdate(name,entryView);
+    }
+  }
+}

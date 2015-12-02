@@ -1,0 +1,32 @@
+{
+  final Collection<EventRegistration> registrations=getRegistrations(mapName);
+  if (registrations.isEmpty()) {
+    return;
+  }
+  List<EventRegistration> registrationsWithValue=null;
+  List<EventRegistration> registrationsWithoutValue=null;
+  for (  final EventRegistration candidate : registrations) {
+    final EventFilter filter=candidate.getFilter();
+    final Result result=applyEventFilter(filter,syntheticEvent,dataKey,oldValue,value,eventType);
+    registrationsWithValue=initRegistrationsWithValue(registrationsWithValue,result);
+    registrationsWithoutValue=initRegistrationsWithoutValue(registrationsWithoutValue,result);
+    registerCandidate(result,candidate,registrationsWithValue,registrationsWithoutValue);
+  }
+  final boolean withValueRegistrationExists=isNotEmpty(registrationsWithValue);
+  final boolean withoutValueRegistrationExists=isNotEmpty(registrationsWithoutValue);
+  if (!withValueRegistrationExists && !withoutValueRegistrationExists) {
+    return;
+  }
+  final int orderKey=pickOrderKey(dataKey);
+  if (withValueRegistrationExists) {
+    Data dataOldValue=mapServiceContext.toData(oldValue);
+    Data dataValue=mapServiceContext.toData(value);
+    Data dataMergingValue=mapServiceContext.toData(mergingValue);
+    EntryEventData eventData=createEntryEventData(mapName,caller,dataKey,dataValue,dataOldValue,dataMergingValue,eventType.getType());
+    publishEventInternal(registrationsWithValue,eventData,orderKey);
+  }
+  if (withoutValueRegistrationExists) {
+    EntryEventData eventData=createEntryEventData(mapName,caller,dataKey,null,null,null,eventType.getType());
+    publishEventInternal(registrationsWithoutValue,eventData,orderKey);
+  }
+}
