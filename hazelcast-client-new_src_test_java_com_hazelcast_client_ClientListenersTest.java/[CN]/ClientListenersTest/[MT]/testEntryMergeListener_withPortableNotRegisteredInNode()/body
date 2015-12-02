@@ -1,0 +1,21 @@
+{
+  final IMap<Object,Object> map=client.getMap(randomMapName());
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryMergedListener<Object,Object>(){
+    @Override public void entryMerged(    EntryEvent<Object,Object> event){
+      latch.countDown();
+    }
+  }
+,true);
+  Node node=getNode(server);
+  NodeEngineImpl nodeEngine=node.nodeEngine;
+  OperationServiceImpl operationService=(OperationServiceImpl)nodeEngine.getOperationService();
+  SerializationService serializationService=getSerializationService(server);
+  Data key=serializationService.toData(1);
+  Data value=serializationService.toData(new ClientRegressionTest.SamplePortable(1));
+  EntryView entryView=EntryViews.createSimpleEntryView(key,value,Mockito.mock(Record.class));
+  MergeOperation op=new MergeOperation(map.getName(),key,entryView,new PassThroughMergePolicy());
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  operationService.invokeOnPartition(MapService.SERVICE_NAME,op,partitionId);
+  assertOpenEventually(latch);
+}
