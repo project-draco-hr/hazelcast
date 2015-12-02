@@ -1,0 +1,16 @@
+{
+  MapEventPublisher mapEventPublisher=getMapEventPublisher();
+  if (EntryEventType.REMOVED == eventType) {
+    mapEventPublisher.publishWanReplicationRemove(name,key,getNow());
+    wanEventList.add(new WanEventWrapper(key,null,EntryEventType.REMOVED));
+  }
+ else {
+    final Record record=recordStore.getRecord(key);
+    if (record != null) {
+      final Data dataValueAsData=toData(value);
+      final EntryView entryView=createSimpleEntryView(key,dataValueAsData,record);
+      mapEventPublisher.publishWanReplicationUpdate(name,entryView);
+      wanEventList.add(new WanEventWrapper(key,value,EntryEventType.UPDATED));
+    }
+  }
+}
