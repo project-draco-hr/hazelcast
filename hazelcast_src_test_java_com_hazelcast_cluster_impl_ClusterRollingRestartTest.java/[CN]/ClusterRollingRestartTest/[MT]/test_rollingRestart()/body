@@ -1,0 +1,24 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  final int nodeCount=3;
+  final HazelcastInstance[] instances=new HazelcastInstance[nodeCount];
+  instances[0]=factory.newHazelcastInstance();
+  if (partitionAssignmentType == PartitionAssignmentType.DURING_STARTUP) {
+    warmUpPartitions(instances[0]);
+  }
+  for (int i=1; i < nodeCount; i++) {
+    instances[i]=factory.newHazelcastInstance();
+  }
+  if (partitionAssignmentType == PartitionAssignmentType.AT_THE_END) {
+    warmUpPartitions(instances);
+  }
+  changeClusterStateEventually(instances[0],clusterState);
+  Address address=getNode(instances[0]).getThisAddress();
+  instances[0].shutdown();
+  instances[0]=factory.newHazelcastInstance(address);
+  for (  HazelcastInstance instance : instances) {
+    assertClusterSizeEventually(nodeCount,instance);
+    assertEquals(clusterState,instance.getCluster().getClusterState());
+  }
+  changeClusterStateEventually(instances[0],ClusterState.ACTIVE);
+}
