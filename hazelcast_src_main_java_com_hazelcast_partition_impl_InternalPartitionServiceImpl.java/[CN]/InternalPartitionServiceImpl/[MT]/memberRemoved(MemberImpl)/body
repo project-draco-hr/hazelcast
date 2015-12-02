@@ -12,16 +12,10 @@
       stateVersion.incrementAndGet();
     }
     migrationQueue.clear();
-    if (!activeMigrations.isEmpty()) {
-      if (node.isMaster()) {
-        rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
-      }
-      for (      MigrationInfo migrationInfo : activeMigrations.values()) {
-        if (deadAddress.equals(migrationInfo.getSource()) || deadAddress.equals(migrationInfo.getDestination())) {
-          migrationInfo.invalidate();
-        }
-      }
+    if (node.isMaster()) {
+      rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
     }
+    invalidateActiveMigrationsBelongingTo(deadAddress);
     pauseMigration();
     cancelReplicaSyncRequestsInternal(deadAddress);
     removeDeadAddress(deadAddress,thisAddress);
