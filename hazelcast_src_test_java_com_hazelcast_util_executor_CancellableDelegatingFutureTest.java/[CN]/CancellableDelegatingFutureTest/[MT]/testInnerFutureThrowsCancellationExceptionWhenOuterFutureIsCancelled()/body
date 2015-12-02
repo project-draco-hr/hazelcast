@@ -1,0 +1,16 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  final HazelcastInstance instance=factory.newHazelcastInstance();
+  IExecutorService executorService=instance.getExecutorService(randomString());
+  final CompletesOnInterruptionCallable callable=new CompletesOnInterruptionCallable();
+  final DelegatingFuture<Boolean> future=(DelegatingFuture<Boolean>)executorService.submit(callable);
+  if (future.cancel(true)) {
+    try {
+      future.getFuture().get();
+      fail();
+    }
+ catch (    ExecutionException expected) {
+      assertTrue(expected.getCause() instanceof CancellationException);
+    }
+  }
+}
