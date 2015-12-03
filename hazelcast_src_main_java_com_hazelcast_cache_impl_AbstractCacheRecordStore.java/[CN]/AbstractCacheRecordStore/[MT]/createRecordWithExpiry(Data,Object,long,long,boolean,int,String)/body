@@ -1,24 +1,6 @@
 {
   if (!isExpiredAt(expiryTime,now)) {
-    R record=createRecord(key,value,expiryTime,completionId,origin);
-    try {
-      doPutRecord(key,record);
-    }
- catch (    Throwable error) {
-      onCreateRecordWithExpiryError(key,value,expiryTime,now,disableWriteThrough,completionId,origin,record,error);
-      throw ExceptionUtil.rethrow(error);
-    }
-    try {
-      if (!disableWriteThrough) {
-        writeThroughCache(key,value);
-      }
-    }
- catch (    Throwable error) {
-      records.remove(key);
-      onCreateRecordWithExpiryError(key,value,expiryTime,now,disableWriteThrough,completionId,origin,record,error);
-      throw ExceptionUtil.rethrow(error);
-    }
-    return record;
+    return createRecord(key,value,expiryTime,now,disableWriteThrough,completionId,origin);
   }
   if (isEventsEnabled()) {
     publishEvent(createCacheCompleteEvent(toEventData(key),CacheRecord.EXPIRATION_TIME_NOT_AVAILABLE,origin,completionId));
