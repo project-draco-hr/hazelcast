@@ -1,0 +1,30 @@
+{
+  final String cacheName=randomName();
+  CacheManager cacheManager=cachingProvider.getCacheManager();
+  assertNotNull(cacheManager);
+  assertNull(cacheManager.getCache(cacheName));
+  CacheConfig<Integer,Integer> config=createCacheConfig();
+  config.setReadThrough(true);
+  config.setCacheLoaderFactory(FactoryBuilder.factoryOf(new GetAllAsyncCacheLoader(throwError)));
+  Cache<Integer,Integer> cache=cacheManager.createCache(cacheName,config);
+  assertNotNull(cache);
+  Set<Integer> keys=new HashSet<Integer>();
+  for (int i=0; i < 150; i++) {
+    keys.add(i);
+  }
+  final CountDownLatch latch=new CountDownLatch(1);
+  cache.loadAll(keys,false,new CompletionListener(){
+    @Override public void onCompletion(){
+      latch.countDown();
+    }
+    @Override public void onException(    Exception e){
+      e.printStackTrace();
+      latch.countDown();
+    }
+  }
+);
+  assertOpenEventually(latch);
+  if (!throwError) {
+    assertEquals(100,cache.unwrap(ICache.class).size());
+  }
+}
