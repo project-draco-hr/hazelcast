@@ -1,11 +1,15 @@
 {
-  String mapName=randomMapName(NEAR_CACHE_WITH_INVALIDATION);
+  String mapName=randomMapName();
+  HazelcastInstance server=hazelcastFactory.newHazelcastInstance(newConfig());
+  ClientConfig clientConfig=newClientConfig();
+  clientConfig.addNearCacheConfig(newInvalidationEnabledNearCacheConfig());
   IMap<Integer,Integer> serverMap=server.getMap(mapName);
   int size=118;
   for (int i=0; i < size; i++) {
     serverMap.put(i,i);
   }
-  final IMap<Integer,Integer> clientMap=hazelcastFactory.newHazelcastClient(clientConfig).getMap(mapName);
+  HazelcastInstance newHazelcastClient=hazelcastFactory.newHazelcastClient(clientConfig);
+  final IMap<Integer,Integer> clientMap=newHazelcastClient.getMap(mapName);
   for (int i=0; i < size; i++) {
     clientMap.get(i);
   }
