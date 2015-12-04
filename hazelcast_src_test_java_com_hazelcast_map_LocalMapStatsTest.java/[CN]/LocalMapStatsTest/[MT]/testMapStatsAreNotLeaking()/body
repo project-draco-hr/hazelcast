@@ -1,0 +1,15 @@
+{
+  HazelcastInstance instance=createHazelcastInstance();
+  for (int i=0; i < 1000; i++) {
+    IMap<Object,Object> map=instance.getMap(randomName());
+    map.destroy();
+  }
+  Node node=getNode(instance);
+  MapService service=node.getNodeEngine().getService(MapService.SERVICE_NAME);
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  LocalMapStatsProvider localMapStatsProvider=mapServiceContext.getLocalMapStatsProvider();
+  Field field=localMapStatsProvider.getClass().getDeclaredField("statsMap");
+  field.setAccessible(true);
+  ConcurrentMap statsMap=(ConcurrentMap)field.get(localMapStatsProvider);
+  assertEquals(0,statsMap.size());
+}
