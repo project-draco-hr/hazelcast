@@ -1,4 +1,13 @@
 {
   final ServiceInfo serviceInfo=serviceManager.getServiceInfo(serviceName);
-  return serviceInfo != null ? (T)serviceInfo.getService() : null;
+  T service=serviceInfo != null ? (T)serviceInfo.getService() : null;
+  if (service == null) {
+    if (!isActive()) {
+      throw new HazelcastException("Service with name '" + serviceName + "' not found!");
+    }
+ else {
+      throw new RetryableHazelcastException("HazelcastInstance[" + getThisAddress() + "] is not active!");
+    }
+  }
+  return service;
 }
