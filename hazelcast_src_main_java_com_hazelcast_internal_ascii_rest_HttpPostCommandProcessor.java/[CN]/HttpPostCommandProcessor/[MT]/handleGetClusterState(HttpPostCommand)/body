@@ -3,25 +3,23 @@
   String[] strList=bytesToString(data).split("&");
   String groupName=URLDecoder.decode(strList[0],"UTF-8");
   String groupPass=URLDecoder.decode(strList[1],"UTF-8");
-  String res="{\"status\":\"${STATUS}\"}";
+  String res="{\"status\":\"${STATUS}\",\"state\":\"${STATE}\"}";
   try {
     Node node=textCommandService.getNode();
     ClusterService clusterService=node.getClusterService();
     GroupConfig groupConfig=node.getConfig().getGroupConfig();
     if (!(groupConfig.getName().equals(groupName) && groupConfig.getPassword().equals(groupPass))) {
       res=res.replace("${STATUS}","forbidden");
+      res=res.replace("${STATE}","null");
     }
  else {
       res=res.replace("${STATUS}","success");
-      command.setResponse(HttpCommand.CONTENT_TYPE_JSON,stringToBytes(res));
-      textCommandService.sendResponse(command);
-      clusterService.shutdown();
-      return;
+      res=res.replace("${STATE}",clusterService.getClusterState().toString().toLowerCase());
     }
   }
  catch (  Throwable throwable) {
     res=res.replace("${STATUS}","fail");
+    res=res.replace("${STATE}","null");
   }
   command.setResponse(HttpCommand.CONTENT_TYPE_JSON,stringToBytes(res));
-  textCommandService.sendResponse(command);
 }
