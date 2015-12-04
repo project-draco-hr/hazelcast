@@ -1,0 +1,27 @@
+{
+  HttpURLConnection urlConnection=(HttpURLConnection)(new URL(url)).openConnection();
+  urlConnection.setRequestMethod("POST");
+  urlConnection.setDoOutput(true);
+  urlConnection.setDoInput(true);
+  urlConnection.setUseCaches(false);
+  urlConnection.setAllowUserInteraction(false);
+  urlConnection.setRequestProperty("Content-type","text/xml; charset=" + "UTF-8");
+  OutputStream out=urlConnection.getOutputStream();
+  Writer writer=new OutputStreamWriter(out,"UTF-8");
+  String data="";
+  for (  String param : params) {
+    data+=URLEncoder.encode(param,"UTF-8") + "&";
+  }
+  writer.write(data);
+  writer.close();
+  out.close();
+  try {
+    InputStream inputStream=urlConnection.getInputStream();
+    byte[] buffer=new byte[4096];
+    int readBytes=inputStream.read(buffer);
+    return readBytes == -1 ? "" : new String(buffer,0,readBytes);
+  }
+  finally {
+    urlConnection.disconnect();
+  }
+}

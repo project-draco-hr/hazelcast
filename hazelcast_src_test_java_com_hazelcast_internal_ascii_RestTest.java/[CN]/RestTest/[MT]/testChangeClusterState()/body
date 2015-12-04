@@ -1,0 +1,13 @@
+{
+  final HazelcastInstance instance1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance instance2=Hazelcast.newHazelcastInstance(config);
+  HTTPCommunicator communicator=new HTTPCommunicator(instance1);
+  assertEquals(HttpURLConnection.HTTP_OK,communicator.changeClusterState("dev","dev-pass","frozen"));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(ClusterState.FROZEN,instance1.getCluster().getClusterState());
+      assertEquals(ClusterState.FROZEN,instance2.getCluster().getClusterState());
+    }
+  }
+);
+}
