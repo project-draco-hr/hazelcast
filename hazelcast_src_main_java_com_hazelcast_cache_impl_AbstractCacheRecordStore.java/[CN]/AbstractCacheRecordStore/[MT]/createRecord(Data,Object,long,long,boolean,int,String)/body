@@ -1,0 +1,24 @@
+{
+  R record=createRecord(value,expiryTime);
+  try {
+    doPutRecord(key,record);
+  }
+ catch (  Throwable error) {
+    onCreateRecordError(key,value,expiryTime,now,disableWriteThrough,completionId,origin,record,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+  try {
+    if (!disableWriteThrough) {
+      writeThroughCache(key,value);
+    }
+  }
+ catch (  Throwable error) {
+    records.remove(key);
+    onCreateRecordError(key,value,expiryTime,now,disableWriteThrough,completionId,origin,record,error);
+    throw ExceptionUtil.rethrow(error);
+  }
+  if (isEventsEnabled()) {
+    publishEvent(createCacheCreatedEvent(toEventData(key),toEventData(value),expiryTime,origin,completionId));
+  }
+  return record;
+}
