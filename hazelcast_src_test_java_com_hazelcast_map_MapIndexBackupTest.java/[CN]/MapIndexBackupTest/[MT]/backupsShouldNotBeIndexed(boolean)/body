@@ -1,0 +1,26 @@
+{
+  TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=createNode(instanceFactory);
+  if (!migrationHappens) {
+    createNode(instanceFactory);
+  }
+  IMap bookMap=instance1.getMap("book");
+  bookMap.loadAll(true);
+  if (migrationHappens) {
+    HazelcastInstance instance2=createNode(instanceFactory);
+    waitAllForSafeState(instance1,instance2);
+  }
+  Set<Object> foundByPredicate=new TreeSet<Object>(bookMap.localKeySet(Predicates.and(Predicates.in("author","0","1","2","3","4","5","6"),Predicates.between("year",1990,2000))));
+  Map<Member,Set<Object>> foundByPredicateByMember=new HashMap<Member,Set<Object>>();
+  for (  Object key : foundByPredicate) {
+    Member owner=instance1.getPartitionService().getPartition(key).getOwner();
+    Set<Object> keys=foundByPredicateByMember.get(owner);
+    if (keys == null) {
+      keys=new HashSet<Object>();
+      foundByPredicateByMember.put(owner,keys);
+    }
+    keys.add(key);
+  }
+  assertEquals(1,foundByPredicateByMember.size());
+  assertTrue(foundByPredicateByMember.keySet().iterator().next().localMember());
+}
