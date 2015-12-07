@@ -1,0 +1,30 @@
+{
+  if (key == null || value == null) {
+    return null;
+  }
+  final long now=getNow();
+  if (shouldEvict(now)) {
+    return null;
+  }
+  markRecordStoreExpirable(ttl);
+  Record record=getRecordOrNull(key,now,false);
+  Object oldValue=null;
+  if (record == null) {
+    value=mapServiceContext.interceptPut(name,null,value);
+    record=createRecord(key,value,ttl,now);
+    records.put(key,record);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+  }
+ else {
+    oldValue=record.getValue();
+    value=mapServiceContext.interceptPut(name,record.getValue(),value);
+    updateSizeEstimator(-calculateRecordHeapCost(record));
+    updateRecord(record,value,now);
+    updateSizeEstimator(calculateRecordHeapCost(record));
+    updateExpiryTime(record,ttl,mapContainer.getMapConfig());
+  }
+  if (!backup) {
+    saveIndex(record);
+  }
+  return oldValue;
+}
