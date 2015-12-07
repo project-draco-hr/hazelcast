@@ -1,0 +1,34 @@
+{
+  HazelcastCacheManager hzCacheManager=(HazelcastCacheManager)cacheManager;
+  HazelcastInstance instance1=hzCacheManager.getHazelcastInstance();
+  Node node1=TestUtil.getNode(instance1);
+  NodeEngineImpl nodeEngine1=node1.getNodeEngine();
+  InternalPartitionService partitionService1=nodeEngine1.getPartitionService();
+  int partitionCount=partitionService1.getPartitionCount();
+  String cacheName=randomName();
+  CacheConfig cacheConfig=new CacheConfig().setName(cacheName);
+  Cache cache=cacheManager.createCache(cacheName,cacheConfig);
+  String fullCacheName=hzCacheManager.getCacheNameWithPrefix(cacheName);
+  for (int i=0; i < partitionCount; i++) {
+    String key=generateKeyForPartition(instance1,i);
+    cache.put(key,"Value");
+  }
+  for (int i=0; i < partitionCount; i++) {
+    verifyPrimaryState(node1,fullCacheName,i,true);
+  }
+  HazelcastInstance instance2=getHazelcastInstance();
+  Node node2=TestUtil.getNode(instance2);
+  warmUpPartitions(instance1,instance2);
+  waitAllForSafeState(instance1,instance2);
+  for (int i=0; i < partitionCount; i++) {
+    boolean ownedByNode1=partitionService1.isPartitionOwner(i);
+    if (ownedByNode1) {
+      verifyPrimaryState(node1,fullCacheName,i,true);
+      verifyPrimaryState(node2,fullCacheName,i,false);
+    }
+ else {
+      verifyPrimaryState(node1,fullCacheName,i,false);
+      verifyPrimaryState(node2,fullCacheName,i,true);
+    }
+  }
+}
