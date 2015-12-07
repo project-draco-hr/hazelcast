@@ -1,0 +1,25 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance();
+  HazelcastInstance remote=factory.newHazelcastInstance();
+  final String queueName=generateKeyOwnedBy(remote);
+  local.executeTransaction(new TransactionalTask<Object>(){
+    @Override public Object execute(    TransactionalTaskContext context) throws TransactionException {
+      TransactionalQueue<String> queue=context.getQueue(queueName);
+      queue.offer("item");
+      return null;
+    }
+  }
+);
+  TransactionContext firstCtxt=local.newTransactionContext();
+  firstCtxt.beginTransaction();
+  TransactionalQueue<String> queue=firstCtxt.getQueue(queueName);
+  queue.poll();
+  firstCtxt.rollbackTransaction();
+  remote.shutdown();
+  TransactionContext secondCtxt=local.newTransactionContext();
+  secondCtxt.beginTransaction();
+  queue=secondCtxt.getQueue(queueName);
+  String found=queue.poll();
+  assertEquals("item",found);
+}
