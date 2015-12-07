@@ -5,19 +5,18 @@
   if (!invalidationQueue.tryAcquire()) {
     return;
   }
-  try {
-    int size=invalidationQueue.size();
-    BatchNearCacheInvalidation batchNearCacheInvalidation=new BatchNearCacheInvalidation(mapName,size);
-    Data key;
-    for (int i=0; i < size; i++) {
-      key=invalidationQueue.poll();
-      if (key == null) {
-        break;
-      }
-      batchNearCacheInvalidation.add(key);
+  int size=invalidationQueue.size();
+  List<Data> keysToBeInvalidated=new ArrayList<Data>(size);
+  for (int i=0; i < size; i++) {
+    Data key=invalidationQueue.poll();
+    if (key == null) {
+      break;
     }
-    sendInvalidationToServerNearCache(mapName,batchNearCacheInvalidation.getDataList());
-    sendInvalidationToClientNearCache(mapName,batchNearCacheInvalidation);
+    keysToBeInvalidated.add(key);
+  }
+  try {
+    sendInvalidationToServerNearCaches(mapName,keysToBeInvalidated);
+    sendInvalidationToClientNearCaches(mapName,keysToBeInvalidated,null);
   }
   finally {
     invalidationQueue.release();
