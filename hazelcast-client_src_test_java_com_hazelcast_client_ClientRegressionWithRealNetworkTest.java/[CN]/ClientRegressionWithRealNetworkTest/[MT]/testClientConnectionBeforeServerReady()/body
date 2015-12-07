@@ -1,0 +1,20 @@
+{
+  ExecutorService executorService=Executors.newFixedThreadPool(2);
+  executorService.submit(new Runnable(){
+    @Override public void run(){
+      Hazelcast.newHazelcastInstance();
+    }
+  }
+);
+  final CountDownLatch clientLatch=new CountDownLatch(1);
+  executorService.submit(new Runnable(){
+    @Override public void run(){
+      ClientConfig config=new ClientConfig();
+      config.getNetworkConfig().setConnectionAttemptLimit(10);
+      HazelcastClient.newHazelcastClient(config);
+      clientLatch.countDown();
+    }
+  }
+);
+  assertOpenEventually(clientLatch);
+}
