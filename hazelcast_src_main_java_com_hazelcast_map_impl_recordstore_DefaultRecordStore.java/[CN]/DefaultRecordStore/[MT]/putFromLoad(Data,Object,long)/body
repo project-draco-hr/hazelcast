@@ -1,25 +1,3 @@
 {
-  if (!isKeyAndValueLoadable(key,value)) {
-    return null;
-  }
-  final long now=getNow();
-  if (shouldEvict(now)) {
-    return null;
-  }
-  markRecordStoreExpirable(ttl);
-  Record record=getRecordOrNull(key,now,false);
-  Object oldValue=null;
-  if (record == null) {
-    value=mapServiceContext.interceptPut(name,null,value);
-    record=createRecord(value,ttl,now);
-    storage.put(key,record);
-  }
- else {
-    oldValue=record.getValue();
-    value=mapServiceContext.interceptPut(name,oldValue,value);
-    updateRecord(key,record,value,now);
-    updateExpiryTime(record,ttl,mapContainer.getMapConfig());
-  }
-  saveIndex(record,oldValue);
-  return oldValue;
+  return putFromLoadInternal(key,value,ttl,false);
 }
