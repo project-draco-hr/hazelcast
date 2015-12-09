@@ -9,7 +9,7 @@
   final int initialPartitionStateVersion=partitionService.getPartitionStateVersion();
   final ClusterServiceImpl cluster=getNode(hz2).getClusterService();
   final ClusterState newState=ClusterState.PASSIVE;
-  Thread thread=new Thread(){
+  final Future future=spawn(new Runnable(){
     public void run(){
       try {
         cluster.changeClusterState(newState,initialPartitionStateVersion);
@@ -18,17 +18,22 @@
       }
     }
   }
-;
-  thread.start();
+);
   partitionService.firstArrangement();
-  thread.join(TimeUnit.MINUTES.toMillis(1));
+  future.get(2,TimeUnit.MINUTES);
   final ClusterState currentState=cluster.getClusterState();
   if (currentState == newState) {
     assertEquals(initialPartitionStateVersion,partitionService.getPartitionStateVersion());
   }
  else {
     assertEquals(ClusterState.ACTIVE,currentState);
-    final int partitionStateVersion=partitionService.getPartitionStateVersion();
-    assertTrue("Version should be positive: " + partitionService,partitionStateVersion > 0);
+    final InternalPartition partition=partitionService.getPartition(0,false);
+    if (partition.getOwnerOrNull() == null) {
+      assertEquals(initialPartitionStateVersion,partitionService.getPartitionStateVersion());
+    }
+ else {
+      final int partitionStateVersion=partitionService.getPartitionStateVersion();
+      assertTrue("Version should be positive: " + partitionService,partitionStateVersion > 0);
+    }
   }
 }
