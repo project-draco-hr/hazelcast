@@ -1,3 +1,15 @@
 {
-  return getConnection(address);
+  MockConnection conn=mapConnections.get(address);
+  if (conn == null || !conn.isAlive()) {
+    NodeEngineImpl nodeEngine=nodes.get(address);
+    if (nodeEngine != null && nodeEngine.isRunning()) {
+      MockConnection thisConnection=new MockConnection(address,node.getThisAddress(),node.nodeEngine);
+      conn=new MockConnection(node.getThisAddress(),address,nodeEngine);
+      conn.localConnection=thisConnection;
+      thisConnection.localConnection=conn;
+      mapConnections.put(address,conn);
+      logger.info("Created connection to endpoint: " + address + ", connection: "+ conn);
+    }
+  }
+  return conn;
 }
