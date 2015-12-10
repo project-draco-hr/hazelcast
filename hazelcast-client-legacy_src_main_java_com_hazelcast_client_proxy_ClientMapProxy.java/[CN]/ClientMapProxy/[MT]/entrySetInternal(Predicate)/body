@@ -1,0 +1,25 @@
+{
+  PagingPredicate pagingPredicate=null;
+  if (predicate instanceof PagingPredicate) {
+    pagingPredicate=(PagingPredicate)predicate;
+    pagingPredicate.setIterationType(IterationType.ENTRY);
+  }
+  MapQueryRequest request=new MapQueryRequest(name,predicate,IterationType.ENTRY);
+  QueryResult result=invoke(request);
+  if (pagingPredicate == null) {
+    SerializationService serializationService=getContext().getSerializationService();
+    InflatableSet.Builder<Entry<K,V>> setBuilder=InflatableSet.newBuilder(result.size());
+    for (    QueryResultRow row : result) {
+      LazyMapEntry entry=new LazyMapEntry(row.getKey(),row.getValue(),serializationService);
+      setBuilder.add(entry);
+    }
+    return setBuilder.build();
+  }
+  ArrayList<Map.Entry> resultList=new ArrayList<Map.Entry>();
+  for (  QueryResultRow data : result) {
+    K key=toObject(data.getKey());
+    V value=toObject(data.getValue());
+    resultList.add(new AbstractMap.SimpleEntry<K,V>(key,value));
+  }
+  return (Set)getSortedQueryResultSet(resultList,pagingPredicate,IterationType.ENTRY);
+}
