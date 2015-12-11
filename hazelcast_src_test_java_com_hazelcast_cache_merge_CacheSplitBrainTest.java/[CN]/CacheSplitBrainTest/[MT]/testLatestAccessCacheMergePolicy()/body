@@ -3,12 +3,14 @@
   Config config=newConfig();
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  warmUpPartitions(h1,h2);
   TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
   h2.getCluster().addMembershipListener(memberShipListener);
-  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  CountDownLatch mergeBlockingLatch=new CountDownLatch(1);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1,mergeBlockingLatch);
   h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
   closeConnectionBetween(h1,h2);
-  assertOpenEventually(memberShipListener.latch);
+  assertOpenEventually(memberShipListener.memberRemovedLatch);
   assertClusterSizeEventually(1,h1);
   assertClusterSizeEventually(1,h2);
   CachingProvider cachingProvider1=HazelcastServerCachingProvider.createCachingProvider(h1);
@@ -28,7 +30,8 @@
   sleepAtLeastMillis(1);
   cache1.put("key2","LatestUpdatedValue2");
   assertEquals("LatestUpdatedValue2",cache1.get("key2"));
-  assertOpenEventually(lifeCycleListener.latch);
+  mergeBlockingLatch.countDown();
+  assertOpenEventually(lifeCycleListener.mergeFinishedLatch);
   assertClusterSizeEventually(2,h1);
   assertClusterSizeEventually(2,h2);
   Cache cacheTest=cacheManager1.getCache(cacheName);

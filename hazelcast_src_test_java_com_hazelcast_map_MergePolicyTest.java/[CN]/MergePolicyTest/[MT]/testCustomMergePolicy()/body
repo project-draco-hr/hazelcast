@@ -3,12 +3,14 @@
   Config config=newConfig(CustomMergePolicy.class.getName(),mapName);
   HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
   HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  warmUpPartitions(h1,h2);
   TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
   h2.getCluster().addMembershipListener(memberShipListener);
-  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
+  CountDownLatch mergeBlockingLatch=new CountDownLatch(1);
+  TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1,mergeBlockingLatch);
   h2.getLifecycleService().addLifecycleListener(lifeCycleListener);
   closeConnectionBetween(h1,h2);
-  assertOpenEventually(memberShipListener.latch);
+  assertOpenEventually(memberShipListener.memberRemovedLatch);
   assertClusterSizeEventually(1,h1);
   assertClusterSizeEventually(1,h2);
   IMap<Object,Object> map1=h1.getMap(mapName);
@@ -16,7 +18,8 @@
   map1.put(key,"value");
   IMap<Object,Object> map2=h2.getMap(mapName);
   map2.put(key,Integer.valueOf(1));
-  assertOpenEventually(lifeCycleListener.latch);
+  mergeBlockingLatch.countDown();
+  assertOpenEventually(lifeCycleListener.mergeFinishedLatch);
   assertClusterSizeEventually(2,h1);
   assertClusterSizeEventually(2,h2);
   IMap<Object,Object> mapTest=h2.getMap(mapName);
