@@ -1,14 +1,20 @@
 {
-  ClientClusterService clusterService=client.getClientClusterService();
-  Address ownerAddress=clusterService.getOwnerConnectionAddress();
-  if (ownerAddress == null) {
+  Connection connection=getOwnerConnection();
+  if (connection == null) {
     return false;
   }
-  Connection connection=client.getConnectionManager().getConnection(ownerAddress);
-  PartitionsResponse response=getPartitionsFrom(connection);
-  if (response != null) {
-    processPartitionResponse(response);
-    return true;
+  try {
+    ClientInvocationFuture future=getPartitionsFrom(connection);
+    PartitionsResponse response=client.getSerializationService().toObject(future.get());
+    if (response == null) {
+      return false;
+    }
+    return processPartitionResponse(response);
+  }
+ catch (  Exception e) {
+    if (client.getLifecycleService().isRunning()) {
+      LOGGER.warning("Error while fetching cluster partition table!",e);
+    }
   }
   return false;
 }

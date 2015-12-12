@@ -1,9 +1,14 @@
 {
-  ClientExecutionServiceImpl executionService=(ClientExecutionServiceImpl)client.getClientExecutionService();
+  if (!updating.compareAndSet(false,true)) {
+    return;
+  }
+  ClientExecutionService executionService=client.getClientExecutionService();
   try {
-    executionService.executeInternal(new RefreshTask());
+    ICompletableFuture future=executionService.submit(new RefreshTask());
+    future.andThen(refreshTaskCallback);
   }
  catch (  RejectedExecutionException ignored) {
+    updating.set(false);
     EmptyStatement.ignore(ignored);
   }
 }
