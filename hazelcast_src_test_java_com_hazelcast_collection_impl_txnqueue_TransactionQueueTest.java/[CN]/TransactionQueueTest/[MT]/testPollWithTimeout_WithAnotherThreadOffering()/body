@@ -1,0 +1,22 @@
+{
+  final HazelcastInstance instance=createHazelcastInstance();
+  final String name=randomString();
+  final CountDownLatch offerReserveLatch=new CountDownLatch(1);
+  spawn(new Runnable(){
+    @Override public void run(){
+      TransactionContext context=instance.newTransactionContext();
+      context.beginTransaction();
+      context.getQueue(name).offer(randomString());
+      offerReserveLatch.countDown();
+      sleepAtLeastSeconds(2);
+      context.commitTransaction();
+    }
+  }
+);
+  assertOpenEventually(offerReserveLatch,10);
+  TransactionContext context=instance.newTransactionContext();
+  context.beginTransaction();
+  TransactionalQueue<Object> queue=context.getQueue(name);
+  Object item=queue.poll(30,TimeUnit.SECONDS);
+  assertNotNull(item);
+}
