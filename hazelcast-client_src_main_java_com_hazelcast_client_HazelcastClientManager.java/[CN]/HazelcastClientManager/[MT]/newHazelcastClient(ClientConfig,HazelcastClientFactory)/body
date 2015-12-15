@@ -1,0 +1,22 @@
+{
+  if (config == null) {
+    config=new XmlClientConfigBuilder().build();
+  }
+  final ClassLoader tccl=Thread.currentThread().getContextClassLoader();
+  HazelcastClientProxy proxy;
+  try {
+    Thread.currentThread().setContextClassLoader(HazelcastClient.class.getClassLoader());
+    ClientConnectionManagerFactory clientConnectionManagerFactory=new DefaultClientConnectionManagerFactory();
+    final HazelcastClientInstanceImpl client=hazelcastClientFactory.createHazelcastInstanceClient(config,clientConnectionManagerFactory);
+    client.start();
+    OutOfMemoryErrorDispatcher.registerClient(client);
+    proxy=hazelcastClientFactory.createProxy(client);
+    if (INSTANCE.clients.putIfAbsent(client.getName(),proxy) != null) {
+      throw new DuplicateInstanceNameException("HazelcastClientInstance with name '" + client.getName() + "' already exists!");
+    }
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(tccl);
+  }
+  return proxy;
+}
