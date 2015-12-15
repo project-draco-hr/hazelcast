@@ -7,9 +7,10 @@
   final byte[] bytes=ss.toBytes(invocation.getRequest());
   Packet packet=new Packet(bytes,invocation.getPartitionId());
   if (!isAllowedToSendRequest(connection,invocation.getRequest()) || !connection.write(packet)) {
-    int callId=invocation.getRequest().getCallId();
+    long callId=invocation.getRequest().getCallId();
     ClientInvocation clientInvocation=deRegisterCallId(callId);
     if (clientInvocation != null) {
+      callIdSequence.complete();
       throw new IOException("Packet not send to " + connection.getRemoteEndpoint());
     }
  else {
