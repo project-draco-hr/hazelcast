@@ -1,9 +1,11 @@
 {
   HazelcastInstance instance1=hazelcastFactory.newHazelcastInstance();
   HazelcastInstance instance2=hazelcastFactory.newHazelcastInstance();
-  HazelcastInstance client=hazelcastFactory.newHazelcastClient(dummyClientConfig);
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(getClientConfig(instance1));
   final ReplicatedMap<String,String> map=client.getReplicatedMap(randomMapName());
   final String key=generateKeyOwnedBy(instance2);
+  int partitionId=instance1.getPartitionService().getPartition(key).getPartitionId();
+  setPartitionId(map,partitionId);
   final String value=randomString();
   map.put(key,value);
   assertTrueEventually(new AssertTask(){
