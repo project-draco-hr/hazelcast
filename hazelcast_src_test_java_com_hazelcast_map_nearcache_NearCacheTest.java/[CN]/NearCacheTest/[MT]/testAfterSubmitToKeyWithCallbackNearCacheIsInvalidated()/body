@@ -1,0 +1,36 @@
+{
+  int mapSize=1000;
+  String mapName=randomMapName();
+  Random random=new Random();
+  Config config=createNearCachedMapConfig(mapName);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<Integer,Integer> map=instance.getMap(mapName);
+  for (int i=0; i < mapSize; i++) {
+    map.put(i,i);
+  }
+  for (int i=0; i < mapSize; i++) {
+    map.get(i);
+  }
+  final CountDownLatch latch=new CountDownLatch(10);
+  ExecutionCallback<Integer> callback=new ExecutionCallback<Integer>(){
+    @Override public void onResponse(    Integer response){
+      latch.countDown();
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+;
+  int randomKey=random.nextInt(mapSize);
+  map.submitToKey(randomKey,new AbstractEntryProcessor(){
+    @Override public Object process(    Map.Entry entry){
+      int currentValue=(Integer)entry.getValue();
+      int newValue=currentValue + 1;
+      entry.setValue(newValue);
+      return newValue;
+    }
+  }
+,callback);
+  latch.await(3,TimeUnit.SECONDS);
+  NearCacheStats nearCacheStats=map.getLocalMapStats().getNearCacheStats();
+  assertEquals(mapSize - 1,nearCacheStats.getOwnedEntryCount());
+}
