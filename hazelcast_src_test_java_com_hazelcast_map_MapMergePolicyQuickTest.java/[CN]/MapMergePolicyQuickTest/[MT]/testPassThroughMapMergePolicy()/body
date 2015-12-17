@@ -1,0 +1,14 @@
+{
+  HazelcastInstance instance=createHazelcastInstance(getConfig());
+  String name=randomString();
+  IMap<String,String> map=instance.getMap(name);
+  MapServiceContext mapServiceContext=getMapServiceContext(instance);
+  Data dataKey=mapServiceContext.toData("key");
+  RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(instance,"key"),name);
+  MapMergePolicy mergePolicy=mapServiceContext.getMergePolicyProvider().getMergePolicy(PassThroughMergePolicy.class.getName());
+  SimpleEntryView<String,String> initialEntry=new SimpleEntryView<String,String>("key","value1");
+  recordStore.merge(dataKey,initialEntry,mergePolicy);
+  SimpleEntryView<String,String> mergingEntry=new SimpleEntryView<String,String>("key","value2");
+  recordStore.merge(dataKey,mergingEntry,mergePolicy);
+  assertEquals("value2",map.get("key"));
+}
