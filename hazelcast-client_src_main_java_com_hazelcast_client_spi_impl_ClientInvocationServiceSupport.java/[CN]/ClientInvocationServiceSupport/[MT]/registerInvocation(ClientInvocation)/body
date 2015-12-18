@@ -1,6 +1,12 @@
 {
   short protocolVersion=client.getProtocolVersion();
-  final long correlationId=newCorrelationId();
+  long correlationId;
+  if (clientInvocation.isUrgent()) {
+    correlationId=callIdSequence.renew();
+  }
+ else {
+    correlationId=callIdSequence.next();
+  }
   clientInvocation.getClientMessage().setCorrelationId(correlationId).setVersion(protocolVersion);
   callIdMap.put(correlationId,clientInvocation);
   EventHandler handler=clientInvocation.getEventHandler();
