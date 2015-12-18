@@ -1,9 +1,12 @@
 {
-  final int delaySeconds=ceilToSecond(delayMillis);
-  final Integer newSecond=findRelativeSecond(delayMillis);
-  final long id=uniqueIdGenerator.incrementAndGet();
-  Object compositeKey=new CompositeKey(key,id);
-  secondsOfKeys.put(compositeKey,newSecond);
-  doSchedule(compositeKey,new ScheduledEntry<K,V>(key,value,delayMillis,delaySeconds,id),newSecond);
+  int delaySeconds=ceilToSecond(delayMillis);
+  Integer newSecond=findRelativeSecond(delayMillis);
+synchronized (mutex) {
+    long id=uniqueIdGenerator.incrementAndGet();
+    Object compositeKey=new CompositeKey(key,id);
+    secondsOfKeys.put(compositeKey,newSecond);
+    ScheduledEntry<K,V> scheduledEntry=new ScheduledEntry<K,V>(key,value,delayMillis,delaySeconds,id);
+    doSchedule(compositeKey,scheduledEntry,newSecond);
+  }
   return true;
 }

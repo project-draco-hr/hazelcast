@@ -1,15 +1,17 @@
 {
-  final ScheduledEntry<K,V> scheduledEntry=new ScheduledEntry<K,V>(key,value,0,0,0);
-  if (scheduleType.equals(ScheduleType.FOR_EACH)) {
-    return cancelByCompositeKey(key,scheduledEntry);
+synchronized (mutex) {
+    ScheduledEntry<K,V> scheduledEntry=new ScheduledEntry<K,V>(key,value,0,0,0);
+    if (scheduleType.equals(ScheduleType.FOR_EACH)) {
+      return cancelByCompositeKey(key,scheduledEntry);
+    }
+    Integer second=secondsOfKeys.remove(key);
+    if (second == null) {
+      return 0;
+    }
+    Map<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
+    if (entries == null) {
+      return 0;
+    }
+    return cancelAndCleanUpIfEmpty(second,entries,key,scheduledEntry) ? 1 : 0;
   }
-  final Integer second=secondsOfKeys.remove(key);
-  if (second == null) {
-    return 0;
-  }
-  final ConcurrentMap<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
-  if (entries == null) {
-    return 0;
-  }
-  return cancelAndCleanUpIfEmpty(second,entries,key,scheduledEntry) ? 1 : 0;
 }

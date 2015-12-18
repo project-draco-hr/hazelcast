@@ -1,14 +1,17 @@
 {
-  scheduledTaskMap.remove(second);
-  final Map<Object,ScheduledEntry<K,V>> entries=scheduledEntries.remove(second);
-  if (entries == null || entries.isEmpty()) {
-    return;
-  }
-  List<ScheduledEntry<K,V>> values=new ArrayList<ScheduledEntry<K,V>>(entries.size());
-  for (  Map.Entry<Object,ScheduledEntry<K,V>> entry : entries.entrySet()) {
-    Integer removed=secondsOfKeys.remove(entry.getKey());
-    if (removed != null) {
-      values.add(entry.getValue());
+  List<ScheduledEntry<K,V>> values;
+synchronized (mutex) {
+    scheduledTaskMap.remove(second);
+    Map<Object,ScheduledEntry<K,V>> entries=scheduledEntries.remove(second);
+    if (entries == null || entries.isEmpty()) {
+      return;
+    }
+    values=new ArrayList<ScheduledEntry<K,V>>(entries.size());
+    for (    Map.Entry<Object,ScheduledEntry<K,V>> entry : entries.entrySet()) {
+      Integer removed=secondsOfKeys.remove(entry.getKey());
+      if (removed != null) {
+        values.add(entry.getValue());
+      }
     }
   }
   entryProcessor.process(SecondsBasedEntryTaskScheduler.this,sortForEntryProcessing(values));
