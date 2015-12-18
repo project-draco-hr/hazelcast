@@ -1,0 +1,27 @@
+{
+  int mapSize=10;
+  String mapName=randomMapName();
+  Config config=createNearCachedMapConfig(mapName);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<Integer,SampleObjects.Employee> map=instance.getMap(mapName);
+  for (int i=0; i < mapSize; i++) {
+    map.put(i,new SampleObjects.Employee(i,"",0,true,0D));
+  }
+  for (int i=0; i < mapSize; i++) {
+    map.get(i);
+  }
+  EntryObject e=new PredicateBuilder().getEntryObject();
+  Predicate predicate=e.get("salary").equal(0);
+  map.executeOnEntries(new AbstractEntryProcessor(){
+    @Override public Object process(    Map.Entry entry){
+      SampleObjects.Employee employee=(SampleObjects.Employee)entry.getValue();
+      double currentSalary=employee.getSalary();
+      double newSalary=currentSalary + 10;
+      employee.setSalary(newSalary);
+      return newSalary;
+    }
+  }
+,predicate);
+  NearCacheStats nearCacheStats=map.getLocalMapStats().getNearCacheStats();
+  assertEquals(0,nearCacheStats.getOwnedEntryCount());
+}
