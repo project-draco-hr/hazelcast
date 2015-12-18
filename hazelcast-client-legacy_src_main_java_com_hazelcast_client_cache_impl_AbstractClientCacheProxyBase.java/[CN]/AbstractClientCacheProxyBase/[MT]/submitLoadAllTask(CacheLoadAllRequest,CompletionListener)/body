@@ -1,17 +1,35 @@
 {
-  final long start=System.nanoTime();
-  LoadAllTask loadAllTask=new LoadAllTask(request,completionListener);
-  ClientExecutionServiceImpl executionService=(ClientExecutionServiceImpl)clientContext.getExecutionService();
-  final ICompletableFuture<?> future=executionService.submitInternal(loadAllTask);
-  loadAllTasks.add(future);
-  future.andThen(new ExecutionCallback(){
-    @Override public void onResponse(    Object response){
-      loadAllTasks.remove(future);
-      onLoadAll(request.getKeys(),response,start,System.nanoTime());
+  try {
+    final long start=System.nanoTime();
+    ClientInvocationFuture future=new ClientInvocation((HazelcastClientInstanceImpl)clientContext.getHazelcastInstance(),request).invoke();
+    future.andThen(new ExecutionCallback<V>(){
+      @Override public void onResponse(      V response){
+        if (completionListener != null) {
+          completionListener.onCompletion();
+          onLoadAll(request.getKeys(),response,start,System.nanoTime());
+        }
+      }
+      @Override public void onFailure(      Throwable t){
+        if (completionListener != null) {
+          completionListener.onException(new CacheException(t));
+        }
+      }
     }
-    @Override public void onFailure(    Throwable t){
-      loadAllTasks.remove(future);
+);
+  }
+ catch (  Exception e) {
+    if (completionListener != null) {
+      completionListener.onException(e);
     }
   }
-);
+catch (  Throwable t) {
+    if (t instanceof OutOfMemoryError) {
+      ExceptionUtil.rethrow(t);
+    }
+ else {
+      if (completionListener != null) {
+        completionListener.onException(new CacheException(t));
+      }
+    }
+  }
 }

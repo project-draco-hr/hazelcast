@@ -2,13 +2,10 @@
   if (!updating.compareAndSet(false,true)) {
     return;
   }
-  try {
-    getPartitions();
+  Connection connection=getOwnerConnection();
+  if (connection == null) {
+    return;
   }
- catch (  HazelcastInstanceNotActiveException ignored) {
-    EmptyStatement.ignore(ignored);
-  }
- finally {
-    updating.set(false);
-  }
+  ClientInvocationFuture clientInvocationFuture=getPartitionsFrom(connection);
+  clientInvocationFuture.andThen(refreshTaskCallback);
 }
