@@ -1,14 +1,17 @@
 {
-  final int delaySeconds=ceilToSecond(delayMillis);
-  final Integer newSecond=findRelativeSecond(delayMillis);
-  final Integer existingSecond=secondsOfKeys.put(key,newSecond);
-  if (existingSecond != null) {
-    if (existingSecond.equals(newSecond)) {
-      return false;
+  int delaySeconds=ceilToSecond(delayMillis);
+  Integer newSecond=findRelativeSecond(delayMillis);
+synchronized (mutex) {
+    Integer existingSecond=secondsOfKeys.put(key,newSecond);
+    if (existingSecond != null) {
+      if (existingSecond.equals(newSecond)) {
+        return false;
+      }
+      removeKeyFromSecond(key,existingSecond);
     }
-    removeKeyFromSecond(key,existingSecond);
+    long id=uniqueIdGenerator.incrementAndGet();
+    ScheduledEntry<K,V> scheduledEntry=new ScheduledEntry<K,V>(key,value,delayMillis,delaySeconds,id);
+    doSchedule(key,scheduledEntry,newSecond);
   }
-  final long id=uniqueIdGenerator.incrementAndGet();
-  doSchedule(key,new ScheduledEntry<K,V>(key,value,delayMillis,delaySeconds,id),newSecond);
   return true;
 }
