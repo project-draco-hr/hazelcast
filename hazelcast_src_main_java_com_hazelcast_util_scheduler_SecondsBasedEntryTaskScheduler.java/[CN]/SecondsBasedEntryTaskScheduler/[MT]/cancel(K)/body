@@ -1,14 +1,16 @@
 {
-  if (scheduleType.equals(ScheduleType.FOR_EACH)) {
-    return cancelByCompositeKey(key);
+synchronized (mutex) {
+    if (scheduleType.equals(ScheduleType.FOR_EACH)) {
+      return cancelByCompositeKey(key);
+    }
+    Integer second=secondsOfKeys.remove(key);
+    if (second == null) {
+      return null;
+    }
+    Map<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
+    if (entries == null) {
+      return null;
+    }
+    return cancelAndCleanUpIfEmpty(second,entries,key);
   }
-  final Integer second=secondsOfKeys.remove(key);
-  if (second == null) {
-    return null;
-  }
-  final ConcurrentMap<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
-  if (entries == null) {
-    return null;
-  }
-  return cancelAndCleanUpIfEmpty(second,entries,key);
 }
