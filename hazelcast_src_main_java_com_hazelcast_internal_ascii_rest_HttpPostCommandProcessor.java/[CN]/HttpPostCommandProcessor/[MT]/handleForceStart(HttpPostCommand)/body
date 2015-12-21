@@ -1,0 +1,23 @@
+{
+  byte[] data=command.getData();
+  String[] strList=bytesToString(data).split("&");
+  String groupName=URLDecoder.decode(strList[0],"UTF-8");
+  String groupPass=URLDecoder.decode(strList[1],"UTF-8");
+  String res="{\"status\":\"${STATUS}\"}";
+  try {
+    Node node=textCommandService.getNode();
+    GroupConfig groupConfig=node.getConfig().getGroupConfig();
+    if (!(groupConfig.getName().equals(groupName) && groupConfig.getPassword().equals(groupPass))) {
+      res=res.replace("${STATUS}","forbidden");
+    }
+ else {
+      boolean success=node.getNodeExtension().triggerForceStart();
+      res=res.replace("${STATUS}",success ? "success" : "fail");
+    }
+  }
+ catch (  Throwable throwable) {
+    res=res.replace("${STATUS}","fail");
+  }
+  command.setResponse(HttpCommand.CONTENT_TYPE_JSON,stringToBytes(res));
+  textCommandService.sendResponse(command);
+}
