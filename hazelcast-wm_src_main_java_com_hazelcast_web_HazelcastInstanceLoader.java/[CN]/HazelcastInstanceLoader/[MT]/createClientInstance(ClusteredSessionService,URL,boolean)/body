@@ -1,0 +1,22 @@
+{
+  LOGGER.warning("Creating HazelcastClient for session replication...");
+  LOGGER.warning("make sure this client has access to an already running cluster...");
+  ClientConfig clientConfig;
+  if (configUrl == null) {
+    clientConfig=new ClientConfig();
+  }
+ else {
+    try {
+      clientConfig=new XmlClientConfigBuilder(configUrl).build();
+    }
+ catch (    IOException e) {
+      throw new ServletException(e);
+    }
+  }
+  if (isSticky) {
+    clientConfig.getNetworkConfig().setConnectionAttemptLimit(1);
+  }
+  ListenerConfig listenerConfig=new ListenerConfig(new ClientLifecycleListener(sessionService));
+  clientConfig.addListenerConfig(listenerConfig);
+  return HazelcastClient.newHazelcastClient(clientConfig);
+}

@@ -1,0 +1,24 @@
+{
+  final String instanceName=properties.getProperty(INSTANCE_NAME);
+  final String configLocation=properties.getProperty(CONFIG_LOCATION);
+  final String useClientProp=properties.getProperty(USE_CLIENT);
+  final String clientConfigLocation=properties.getProperty(CLIENT_CONFIG_LOCATION);
+  final boolean useClient=!isEmpty(useClientProp) && Boolean.parseBoolean(useClientProp);
+  URL configUrl=null;
+  if (useClient && !isEmpty(clientConfigLocation)) {
+    configUrl=getConfigURL(filterConfig,clientConfigLocation);
+  }
+ else   if (!isEmpty(configLocation)) {
+    configUrl=getConfigURL(filterConfig,configLocation);
+  }
+  String sessionTTLConfig=properties.getProperty(SESSION_TTL_CONFIG);
+  if (useClient) {
+    if (sessionTTLConfig != null) {
+      throw new InvalidConfigurationException("session-ttl-seconds cannot be used with client/server mode.");
+    }
+    boolean isSticky=Boolean.valueOf(properties.getProperty(STICKY_SESSION_CONFIG));
+    return createClientInstance(sessionService,configUrl,isSticky);
+  }
+  Config config=getServerConfig(mapName,configUrl,sessionTTLConfig);
+  return createHazelcastInstance(sessionService,instanceName,config);
+}
