@@ -1,0 +1,32 @@
+{
+  Config config=getConfig();
+  config.getManagementCenterConfig().setEnabled(true);
+  config.getManagementCenterConfig().setUrl("http://127.0.0.1:8090/mancenter");
+  MapConfig mapConfig=config.getMapConfig("foo");
+  final AtomicBoolean loadAllCalled=new AtomicBoolean();
+  MapLoader mapLoader=new MapLoader(){
+    @Override public Object load(    Object key){
+      return null;
+    }
+    @Override public Map loadAll(    Collection keys){
+      loadAllCalled.set(true);
+      return new HashMap();
+    }
+    @Override public Set loadAllKeys(){
+      return new HashSet(Arrays.asList(1));
+    }
+  }
+;
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setImplementation(mapLoader);
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance hz=createHazelcastInstance(config);
+  Map map=hz.getMap(mapConfig.getName());
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run(){
+      assertFalse("LoadAll should not have been called",loadAllCalled.get());
+    }
+  }
+,10);
+}
