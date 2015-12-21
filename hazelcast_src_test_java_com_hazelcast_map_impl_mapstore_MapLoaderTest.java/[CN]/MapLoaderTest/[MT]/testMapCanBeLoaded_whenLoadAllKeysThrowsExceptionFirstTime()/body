@@ -1,0 +1,18 @@
+{
+  Config config=getConfig();
+  MapLoader failingMapLoader=new FailingMapLoader();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig().setImplementation(failingMapLoader);
+  MapConfig mapConfig=config.getMapConfig(getClass().getName()).setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance[] hz=createHazelcastInstanceFactory(2).newInstances(config,2);
+  IMap map=hz[0].getMap(mapConfig.getName());
+  Throwable exception=null;
+  try {
+    map.get(generateKeyNotOwnedBy(hz[0]));
+  }
+ catch (  Throwable e) {
+    exception=e;
+  }
+  assertNotNull("Exception wasn't propagated",exception);
+  map.loadAll(true);
+  assertEquals(1,map.size());
+}
