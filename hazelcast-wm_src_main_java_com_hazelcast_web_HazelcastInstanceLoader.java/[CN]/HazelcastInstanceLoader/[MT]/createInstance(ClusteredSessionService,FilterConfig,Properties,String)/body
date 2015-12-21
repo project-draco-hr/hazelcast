@@ -11,21 +11,14 @@
  else   if (!isEmpty(configLocation)) {
     configUrl=getConfigURL(filterConfig,configLocation);
   }
+  String sessionTTLConfig=properties.getProperty(SESSION_TTL_CONFIG);
   if (useClient) {
+    if (sessionTTLConfig != null) {
+      throw new InvalidConfigurationException("session-ttl-seconds cannot be used with client/server mode.");
+    }
     boolean isSticky=Boolean.valueOf(properties.getProperty(STICKY_SESSION_CONFIG));
     return createClientInstance(sessionService,configUrl,isSticky);
   }
-  Config config;
-  if (configUrl == null) {
-    config=new XmlConfigBuilder().build();
-  }
- else {
-    try {
-      config=new UrlXmlConfig(configUrl);
-    }
- catch (    IOException e) {
-      throw new ServletException(e);
-    }
-  }
+  Config config=getServerConfig(mapName,configUrl,sessionTTLConfig);
   return createHazelcastInstance(sessionService,instanceName,config);
 }
