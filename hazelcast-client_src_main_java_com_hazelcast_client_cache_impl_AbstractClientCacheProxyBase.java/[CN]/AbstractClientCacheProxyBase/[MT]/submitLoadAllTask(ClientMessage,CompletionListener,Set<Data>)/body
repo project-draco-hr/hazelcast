@@ -1,37 +1,30 @@
 {
+  final CompletionListener compListener=completionListener != null ? completionListener : NULL_COMPLETION_LISTENER;
+  ClientDelegatingFuture<V> delegatingFuture=null;
   try {
     final long start=System.nanoTime();
-    ClientInvocationFuture future=new ClientInvocation((HazelcastClientInstanceImpl)clientContext.getHazelcastInstance(),request).invoke();
+    final ClientInvocationFuture future=new ClientInvocation((HazelcastClientInstanceImpl)clientContext.getHazelcastInstance(),request).invoke();
     SerializationService serializationService=clientContext.getSerializationService();
-    final ClientDelegatingFuture<V> delegatingFuture=new ClientDelegatingFuture(future,serializationService,LOAD_ALL_DECODER);
+    delegatingFuture=new ClientDelegatingFuture(future,serializationService,LOAD_ALL_DECODER);
+    final Future delFuture=delegatingFuture;
+    loadAllCalls.put(delegatingFuture,compListener);
     delegatingFuture.andThen(new ExecutionCallback<V>(){
       @Override public void onResponse(      V response){
-        if (completionListener != null) {
-          completionListener.onCompletion();
-          onLoadAll(keys,response,start,System.nanoTime());
-        }
+        loadAllCalls.remove(delFuture);
+        onLoadAll(keys,response,start,System.nanoTime());
+        compListener.onCompletion();
       }
       @Override public void onFailure(      Throwable t){
-        if (completionListener != null) {
-          completionListener.onException(new CacheException(t));
-        }
+        loadAllCalls.remove(delFuture);
+        handleFailureOnCompletionListener(compListener,t);
       }
     }
 );
   }
- catch (  Exception e) {
-    if (completionListener != null) {
-      completionListener.onException(e);
+ catch (  Throwable t) {
+    if (delegatingFuture != null) {
+      loadAllCalls.remove(delegatingFuture);
     }
-  }
-catch (  Throwable t) {
-    if (t instanceof OutOfMemoryError) {
-      ExceptionUtil.rethrow(t);
-    }
- else {
-      if (completionListener != null) {
-        completionListener.onException(new CacheException(t));
-      }
-    }
+    handleFailureOnCompletionListener(compListener,t);
   }
 }
