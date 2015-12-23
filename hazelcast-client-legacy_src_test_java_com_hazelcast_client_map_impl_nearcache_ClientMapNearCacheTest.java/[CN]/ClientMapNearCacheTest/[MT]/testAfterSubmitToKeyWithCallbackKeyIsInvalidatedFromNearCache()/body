@@ -1,0 +1,27 @@
+{
+  final int mapSize=1000;
+  String mapName=randomMapName();
+  Random random=new Random();
+  hazelcastFactory.newHazelcastInstance(newConfig());
+  HazelcastInstance client=getClient(hazelcastFactory,newInvalidationAndCacheLocalEntriesEnabledNearCacheConfig());
+  final IMap<Integer,Integer> clientMap=client.getMap(mapName);
+  populateNearCache(clientMap,mapSize);
+  final CountDownLatch latch=new CountDownLatch(1);
+  ExecutionCallback<Integer> callback=new ExecutionCallback<Integer>(){
+    @Override public void onResponse(    Integer response){
+      latch.countDown();
+    }
+    @Override public void onFailure(    Throwable t){
+    }
+  }
+;
+  int randomKey=random.nextInt(mapSize);
+  clientMap.submitToKey(randomKey,new IncrementEntryProcessor(),callback);
+  latch.await(3,TimeUnit.SECONDS);
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      assertThatOwnedEntryCountEquals(clientMap,mapSize - 1);
+    }
+  }
+);
+}

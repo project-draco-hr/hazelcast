@@ -1,0 +1,17 @@
+{
+  final int mapSize=1000;
+  String mapName=randomMapName();
+  Random random=new Random();
+  hazelcastFactory.newHazelcastInstance(newConfig());
+  HazelcastInstance client=getClient(hazelcastFactory,newInvalidationAndCacheLocalEntriesEnabledNearCacheConfig());
+  final IMap<Integer,Integer> clientMap=client.getMap(mapName);
+  populateNearCache(clientMap,mapSize);
+  int randomKey=random.nextInt(mapSize);
+  clientMap.executeOnKey(randomKey,new IncrementEntryProcessor());
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      assertThatOwnedEntryCountEquals(clientMap,mapSize - 1);
+    }
+  }
+);
+}
