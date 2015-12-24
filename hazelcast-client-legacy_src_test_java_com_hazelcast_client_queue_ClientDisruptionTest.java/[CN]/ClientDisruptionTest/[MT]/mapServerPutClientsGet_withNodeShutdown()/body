@@ -1,0 +1,36 @@
+{
+  final int initial=200, max=800;
+  for (int i=0; i < initial; i++) {
+    getNode(2).getMap("m").put(i,i);
+  }
+  int expectCount=0;
+  for (int i=initial; i < max; i++) {
+    if (i == max / 2) {
+      shutdownNode(1);
+    }
+    final int index=i;
+    assertExactlyOneSuccessfulRun(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertNull(getNode(2).getMap("m").put(index,index));
+      }
+    }
+);
+    final int expected=expectCount;
+    assertExactlyOneSuccessfulRun(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(expected,client1.getMap("m").get(expected));
+      }
+    }
+);
+    assertExactlyOneSuccessfulRun(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(expected,client2.getMap("m").get(expected));
+      }
+    }
+);
+    expectCount++;
+  }
+  for (int i=expectCount; i < max; i++) {
+    assertEquals(i,client1.getMap("m").get(i));
+  }
+}
