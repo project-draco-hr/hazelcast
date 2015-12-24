@@ -1,0 +1,13 @@
+{
+  int nodeCount=3;
+  String mapName=randomMapName();
+  final MapStoreWithCounter mapStore=new MapStoreWithCounter<Integer,String>();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
+  TestMapUsingMapStoreBuilder builder=TestMapUsingMapStoreBuilder.create().mapName(mapName).withMapStore(mapStore).withNodeCount(nodeCount).withBackupCount(2).withConfig(getConfig()).withNodeFactory(factory).withWriteDelaySeconds(300);
+  IMap map=builder.build();
+  for (int i=0; i < 1000; i++) {
+    map.put(i,i);
+  }
+  map.flush();
+  assertWriteBehindQueuesEmpty(mapName,builder.getNodes());
+}
