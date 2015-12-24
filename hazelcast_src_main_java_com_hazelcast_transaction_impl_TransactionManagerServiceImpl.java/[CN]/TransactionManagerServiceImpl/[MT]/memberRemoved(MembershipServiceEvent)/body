@@ -1,11 +1,16 @@
 {
   MemberImpl member=event.getMember();
   final String uuid=member.getUuid();
-  logger.info("Committing/rolling-back alive transactions of " + member + ", UUID: "+ uuid);
-  nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
-    @Override public void run(){
-      finalizeTransactionsOf(uuid);
+  if (nodeEngine.isRunning()) {
+    logger.info("Committing/rolling-back alive transactions of " + member + ", UUID: "+ uuid);
+    nodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
+      @Override public void run(){
+        finalizeTransactionsOf(uuid);
+      }
     }
-  }
 );
+  }
+ else   if (logger.isFinestEnabled()) {
+    logger.finest("Will not commit/roll-back transactions of " + member + ", UUID: "+ uuid+ " because this member is not running");
+  }
 }
