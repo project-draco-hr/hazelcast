@@ -1,0 +1,17 @@
+{
+  int mapSize=1000;
+  String mapName=randomMapName();
+  hazelcastFactory.newHazelcastInstance(newConfig());
+  NearCacheConfig nearCacheConfig=newInvalidationAndCacheLocalEntriesEnabledNearCacheConfig(mapName);
+  HazelcastInstance client=getClient(hazelcastFactory,nearCacheConfig);
+  IMap<Integer,Integer> clientMap=client.getMap(mapName);
+  populateNearCache(clientMap,mapSize);
+  clientMap.destroy();
+  final IMap<Integer,Integer> map=client.getMap(mapName);
+  assertTrueEventually(new AssertTask(){
+    public void run() throws Exception {
+      assertThatOwnedEntryCountEquals(map,0);
+    }
+  }
+);
+}
