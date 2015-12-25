@@ -1,26 +1,32 @@
 {
   super(managedObject,service);
+  totalEnabled=service.instance.node.groupProperties.ENABLE_JMX_DETAILED.getBoolean();
   objectName=service.createObjectName("IMap",managedObject.getName());
-  EntryListener entryListener=new EntryListener(){
-    public void entryAdded(    EntryEvent event){
-      totalAddedEntryCount.incrementAndGet();
+  if (totalEnabled) {
+    EntryListener entryListener=new EntryListener(){
+      public void entryAdded(      EntryEvent event){
+        totalAddedEntryCount.incrementAndGet();
+      }
+      public void entryRemoved(      EntryEvent event){
+        totalRemovedEntryCount.incrementAndGet();
+      }
+      public void entryUpdated(      EntryEvent event){
+        totalUpdatedEntryCount.incrementAndGet();
+      }
+      public void entryEvicted(      EntryEvent event){
+        totalEvictedEntryCount.incrementAndGet();
+      }
+      @Override public void mapEvicted(      MapEvent event){
+        totalEvictedEntryCount.addAndGet(event.getNumberOfEntriesAffected());
+      }
+      @Override public void mapCleared(      MapEvent event){
+        totalRemovedEntryCount.addAndGet(event.getNumberOfEntriesAffected());
+      }
     }
-    public void entryRemoved(    EntryEvent event){
-      totalRemovedEntryCount.incrementAndGet();
-    }
-    public void entryUpdated(    EntryEvent event){
-      totalUpdatedEntryCount.incrementAndGet();
-    }
-    public void entryEvicted(    EntryEvent event){
-      totalEvictedEntryCount.incrementAndGet();
-    }
-    @Override public void mapEvicted(    MapEvent event){
-      totalEvictedEntryCount.addAndGet(event.getNumberOfEntriesAffected());
-    }
-    @Override public void mapCleared(    MapEvent event){
-      totalRemovedEntryCount.addAndGet(event.getNumberOfEntriesAffected());
-    }
-  }
 ;
-  listenerId=managedObject.addEntryListener(entryListener,false);
+    listenerId=managedObject.addEntryListener(entryListener,false);
+  }
+ else {
+    listenerId=null;
+  }
 }
