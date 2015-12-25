@@ -1,9 +1,16 @@
 {
   int nodeCount=3;
-  final MapStoreWithCounter mapStore=new MapStoreWithCounter<Integer,String>();
+  String mapName=randomName();
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(nodeCount);
-  TestMapUsingMapStoreBuilder builder=TestMapUsingMapStoreBuilder.create().withMapStore(mapStore).withNodeCount(nodeCount).withNodeFactory(factory).withConfig(getConfig()).withWriteDelaySeconds(300);
-  IMap map=builder.build();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  final MapStoreWithCounter mapStore=new MapStoreWithCounter<Integer,String>();
+  mapStoreConfig.setImplementation(mapStore).setWriteDelaySeconds(3000);
+  Config config=getConfig();
+  config.getMapConfig(mapName).setBackupCount(0).setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance member=factory.newHazelcastInstance(config);
+  factory.newHazelcastInstance(config);
+  factory.newHazelcastInstance(config);
+  IMap map=member.getMap(mapName);
   for (int i=0; i < 1000; i++) {
     map.put(i,i);
   }
