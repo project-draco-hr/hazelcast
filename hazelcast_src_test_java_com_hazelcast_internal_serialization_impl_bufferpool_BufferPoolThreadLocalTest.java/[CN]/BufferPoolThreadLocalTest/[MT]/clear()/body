@@ -1,6 +1,11 @@
 {
-  BufferPool pool1=bufferPoolThreadLocal.get();
+  final WeakReference<BufferPool> poolRef=new WeakReference<BufferPool>(bufferPoolThreadLocal.get());
   bufferPoolThreadLocal.clear();
-  BufferPool pool2=bufferPoolThreadLocal.get();
-  assertNotSame(pool1,pool2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      System.gc();
+      assertNull(poolRef.get());
+    }
+  }
+);
 }
