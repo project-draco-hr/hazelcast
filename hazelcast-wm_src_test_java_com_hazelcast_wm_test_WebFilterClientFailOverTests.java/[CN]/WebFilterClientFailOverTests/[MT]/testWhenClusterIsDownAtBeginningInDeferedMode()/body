@@ -1,13 +1,14 @@
 {
-  if (!testName.contains("deferred"))   return;
-  if (!testName.contains("client"))   return;
-  Hazelcast.shutdownAll();
+  if (!testName.equals("client - not deferred")) {
+    return;
+  }
+  hz.shutdown();
   CookieStore cookieStore=new BasicCookieStore();
   assertEquals("true",executeRequest("write",serverPort1,cookieStore));
   assertEquals("value",executeRequest("read",serverPort1,cookieStore));
   hz=Hazelcast.newHazelcastInstance(new FileSystemXmlConfig(new File(sourceDir + "/WEB-INF/","hazelcast.xml")));
-  Thread.sleep(8000);
+  assertClusterSizeEventually(1,hz);
   assertEquals("value",executeRequest("read",serverPort1,cookieStore));
   IMap<String,Object> map=hz.getMap(DEFAULT_MAP_NAME);
-  assertEquals(1,map.size());
+  assertEquals(0,map.size());
 }
