@@ -1,0 +1,16 @@
+{
+  if (!isMemberNearCacheInvalidationEnabled(mapName)) {
+    return;
+  }
+  Operation operation=null;
+  Collection<Member> members=clusterService.getMembers();
+  for (  Member member : members) {
+    if (member.localMember() || member.getUuid().equals(sourceUuid)) {
+      continue;
+    }
+    if (operation == null) {
+      operation=createSingleOrBatchInvalidationOperation(mapName,key,keys);
+    }
+    operationService.send(operation,member.getAddress());
+  }
+}

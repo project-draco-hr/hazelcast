@@ -1,0 +1,24 @@
+{
+  if (invalidationQueue == null) {
+    return;
+  }
+  if (!invalidationQueue.tryAcquire()) {
+    return;
+  }
+  int size=Math.min(batchSize,invalidationQueue.size());
+  BatchNearCacheInvalidation batch=new BatchNearCacheInvalidation(mapName,size);
+  for (int i=0; i < size; i++) {
+    SingleNearCacheInvalidation invalidation=invalidationQueue.poll();
+    if (invalidation == null) {
+      break;
+    }
+    batch.add(invalidation);
+  }
+  try {
+    invalidateMember(batch);
+    invalidateClient(batch);
+  }
+  finally {
+    invalidationQueue.release();
+  }
+}

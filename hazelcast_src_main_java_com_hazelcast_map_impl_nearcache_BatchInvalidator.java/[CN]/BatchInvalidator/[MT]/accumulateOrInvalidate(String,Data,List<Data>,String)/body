@@ -1,0 +1,17 @@
+{
+  if (!mapServiceContext.getMapContainer(mapName).isInvalidationEnabled()) {
+    return;
+  }
+  InvalidationQueue invalidationQueue=getOrPutIfAbsent(invalidationQueues,mapName,invalidationQueueConstructor);
+  if (key != null) {
+    invalidationQueue.offer(new SingleNearCacheInvalidation(mapName,toHeapData(key),sourceUuid));
+  }
+  if (keys != null) {
+    for (    Data data : keys) {
+      invalidationQueue.offer(new SingleNearCacheInvalidation(mapName,toHeapData(data),sourceUuid));
+    }
+  }
+  if (invalidationQueue.size() >= batchSize) {
+    sendBatch(mapName,invalidationQueue);
+  }
+}

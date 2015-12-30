@@ -1,0 +1,17 @@
+{
+  String mapName=batch.getName();
+  if (!isMemberNearCacheInvalidationEnabled(mapName)) {
+    return;
+  }
+  Operation operation=null;
+  Collection<Member> members=clusterService.getMembers();
+  for (  Member member : members) {
+    if (member.localMember()) {
+      continue;
+    }
+    if (operation == null) {
+      operation=createSingleOrBatchInvalidationOperation(mapName,null,getKeys(batch));
+    }
+    operationService.send(operation,member.getAddress());
+  }
+}
