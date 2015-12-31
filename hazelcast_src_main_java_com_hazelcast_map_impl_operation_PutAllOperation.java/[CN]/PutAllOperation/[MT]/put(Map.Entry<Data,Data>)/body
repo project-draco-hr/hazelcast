@@ -1,0 +1,27 @@
+{
+  Data dataKey=entry.getKey();
+  Data dataValue=entry.getValue();
+  Object oldValue=null;
+  if (initialLoad) {
+    recordStore.putFromLoad(dataKey,dataValue,-1);
+  }
+ else {
+    oldValue=recordStore.put(dataKey,dataValue,DEFAULT_TTL);
+  }
+  mapServiceContext.interceptAfterPut(name,dataValue);
+  EntryEventType eventType=oldValue == null ? ADDED : UPDATED;
+  MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
+  dataValue=getValueOrPostProcessedValue(dataKey,dataValue);
+  mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,oldValue,dataValue);
+  Record record=recordStore.getRecord(dataKey);
+  if (shouldWanReplicate()) {
+    EntryView entryView=createSimpleEntryView(dataKey,dataValue,record);
+    mapEventPublisher.publishWanReplicationUpdate(name,entryView);
+  }
+  backupEntries.add(entry);
+  RecordInfo replicationInfo=buildRecordInfo(record);
+  backupRecordInfos.add(replicationInfo);
+  evict();
+  addInvalidation(dataKey);
+  return true;
+}
