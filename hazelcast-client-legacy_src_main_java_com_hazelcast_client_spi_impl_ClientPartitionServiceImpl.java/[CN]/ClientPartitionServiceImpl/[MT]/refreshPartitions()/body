@@ -1,14 +1,10 @@
 {
-  if (!updating.compareAndSet(false,true)) {
-    return;
-  }
-  ClientExecutionService executionService=client.getClientExecutionService();
+  ClientExecutionServiceImpl executionService=(ClientExecutionServiceImpl)client.getClientExecutionService();
   try {
-    ICompletableFuture future=executionService.submit(new RefreshTask());
-    future.andThen(refreshTaskCallback);
+    ExecutorService internalExecutor=executionService.getInternalExecutor();
+    executionService.submitInternal(new RefreshTask(internalExecutor));
   }
  catch (  RejectedExecutionException ignored) {
-    updating.set(false);
     EmptyStatement.ignore(ignored);
   }
 }
