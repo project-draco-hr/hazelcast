@@ -1,13 +1,15 @@
 {
-  if (scheduleType.equals(ScheduleType.FOR_EACH)) {
-    return getByCompositeKey(key);
-  }
-  final Integer second=secondsOfKeys.get(key);
-  if (second != null) {
-    final ConcurrentMap<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
-    if (entries != null) {
-      return entries.get(key);
+synchronized (mutex) {
+    if (scheduleType.equals(ScheduleType.FOR_EACH)) {
+      return getByCompositeKey(key);
     }
+    Integer second=secondsOfKeys.get(key);
+    if (second != null) {
+      Map<Object,ScheduledEntry<K,V>> entries=scheduledEntries.get(second);
+      if (entries != null) {
+        return entries.get(key);
+      }
+    }
+    return null;
   }
-  return null;
 }
