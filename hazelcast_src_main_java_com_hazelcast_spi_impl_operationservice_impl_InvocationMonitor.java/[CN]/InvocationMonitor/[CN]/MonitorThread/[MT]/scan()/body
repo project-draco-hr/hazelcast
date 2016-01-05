@@ -5,9 +5,18 @@
   long now=Clock.currentTimeMillis();
   int backupTimeouts=0;
   int invocationTimeouts=0;
-  for (  Invocation invocation : invocationRegistry.invocations()) {
+  Set<Map.Entry<Long,Invocation>> invocations=invocationRegistry.entrySet();
+  Iterator<Map.Entry<Long,Invocation>> iterator=invocations.iterator();
+  while (iterator.hasNext()) {
     if (shutdown) {
       return;
+    }
+    Map.Entry<Long,Invocation> entry=iterator.next();
+    Long callId=entry.getKey();
+    Invocation invocation=entry.getValue();
+    if (!callIdMatches(callId,invocation) && isDone(invocation)) {
+      iterator.remove();
+      continue;
     }
     detectSlowInvocation(now,invocation);
     if (checkInvocationTimeout(invocation)) {

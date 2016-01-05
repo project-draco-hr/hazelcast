@@ -1,0 +1,27 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS,"3000");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  NodeEngineImpl localNodeEngine=getNodeEngineImpl(local);
+  NodeEngineImpl remoteNodeEngine=getNodeEngineImpl(remote);
+  final OperationServiceImpl operationService=(OperationServiceImpl)localNodeEngine.getOperationService();
+  NonResponsiveOperation op=new NonResponsiveOperation();
+  op.setValidateTarget(false);
+  op.setPartitionId(1);
+  InvocationFuture future=(InvocationFuture)operationService.invokeOnTarget(null,op,remoteNodeEngine.getThisAddress());
+  Field invocationField=InvocationFuture.class.getDeclaredField("invocation");
+  invocationField.setAccessible(true);
+  Invocation invocation=(Invocation)invocationField.get(future);
+  invocation.notifyError(new RetryableHazelcastException());
+  invocation.notifyError(new RetryableHazelcastException());
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      Collection<Invocation> invocations=operationService.invocationsRegistry.invocations();
+      assertEquals(0,invocations.size());
+    }
+  }
+);
+}
