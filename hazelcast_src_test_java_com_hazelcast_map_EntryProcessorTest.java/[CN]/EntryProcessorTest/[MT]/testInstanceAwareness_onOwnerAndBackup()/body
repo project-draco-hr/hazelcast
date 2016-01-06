@@ -1,0 +1,14 @@
+{
+  String mapName="default";
+  Config cfg=getConfig();
+  cfg.getMapConfig(mapName).setReadBackupData(true);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
+  IMap map1=instance1.getMap(mapName);
+  IMap map2=instance2.getMap(mapName);
+  String keyOn1=generateKeyNotOwnedBy(instance1);
+  map1.executeOnKey(keyOn1,new UuidSetterEntryProcessor());
+  assertEquals(instance1.getCluster().getLocalMember().getUuid(),map1.get(keyOn1));
+  assertEquals(instance2.getCluster().getLocalMember().getUuid(),map2.get(keyOn1));
+}
