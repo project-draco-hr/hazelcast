@@ -5,9 +5,11 @@
   config.addReliableTopicConfig(new ReliableTopicConfig("whenDiscardOldest_*").setTopicOverloadPolicy(TopicOverloadPolicy.DISCARD_OLDEST));
   config.addReliableTopicConfig(new ReliableTopicConfig("whenDiscardNewest_*").setTopicOverloadPolicy(TopicOverloadPolicy.DISCARD_NEWEST));
   config.addReliableTopicConfig(new ReliableTopicConfig("whenBlock_*").setTopicOverloadPolicy(TopicOverloadPolicy.BLOCK));
-  HazelcastInstance hz=createHazelcastInstance(config);
+  HazelcastInstance[] hazelcastInstances=createHazelcastInstanceFactory(2).newInstances(config);
+  HazelcastInstance hz=hazelcastInstances[0];
+  warmUpPartitions(hazelcastInstances);
   serializationService=getSerializationService(hz);
   String topicName=getTestMethodName();
-  topic=(ReliableTopicProxy<String>)hz.<String>getReliableTopic(topicName);
-  ringbuffer=topic.ringbuffer;
+  topic=hz.<String>getReliableTopic(topicName);
+  ringbuffer=((ReliableTopicProxy<String>)topic).ringbuffer;
 }
