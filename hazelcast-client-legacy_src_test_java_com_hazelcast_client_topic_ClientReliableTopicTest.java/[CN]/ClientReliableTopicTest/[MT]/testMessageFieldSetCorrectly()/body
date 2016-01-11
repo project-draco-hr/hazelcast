@@ -1,15 +1,16 @@
 {
-  ITopic topic=client.getReliableTopic("foo");
+  ITopic topic=client.getReliableTopic(randomString());
   final ReliableMessageListenerMock listener=new ReliableMessageListenerMock();
   topic.addMessageListener(listener);
   final long beforePublishTime=Clock.currentTimeMillis();
-  topic.publish("foo");
+  final String messageStr=randomString();
+  topic.publish(messageStr);
   final long afterPublishTime=Clock.currentTimeMillis();
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
       assertEquals(1,listener.messages.size());
       Message<String> message=listener.messages.get(0);
-      assertEquals("foo",message.getMessageObject());
+      assertEquals(messageStr,message.getMessageObject());
       assertEquals(null,message.getPublishingMember());
       long actualPublishTime=message.getPublishTime();
       assertTrue(actualPublishTime >= beforePublishTime);

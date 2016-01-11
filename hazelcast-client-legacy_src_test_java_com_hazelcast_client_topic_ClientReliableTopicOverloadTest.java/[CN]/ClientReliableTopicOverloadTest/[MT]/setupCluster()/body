@@ -1,0 +1,15 @@
+{
+  Config config=new Config();
+  config.addRingBufferConfig(new RingbufferConfig("when*").setCapacity(100).setTimeToLiveSeconds(5));
+  hazelcastFactory.newHazelcastInstance(config);
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.addReliableTopicConfig(new ClientReliableTopicConfig("whenError_*").setTopicOverloadPolicy(TopicOverloadPolicy.ERROR));
+  clientConfig.addReliableTopicConfig(new ClientReliableTopicConfig("whenDiscardOldest_*").setTopicOverloadPolicy(TopicOverloadPolicy.DISCARD_OLDEST));
+  clientConfig.addReliableTopicConfig(new ClientReliableTopicConfig("whenDiscardNewest_*").setTopicOverloadPolicy(TopicOverloadPolicy.DISCARD_NEWEST));
+  clientConfig.addReliableTopicConfig(new ClientReliableTopicConfig("whenBlock_*").setTopicOverloadPolicy(TopicOverloadPolicy.BLOCK));
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
+  serializationService=((HazelcastClientProxy)client).getSerializationService();
+  String topicName=getTestMethodName();
+  topic=client.<String>getReliableTopic(topicName);
+  ringbuffer=((ClientReliableTopicProxy<String>)topic).getRingbuffer();
+}
