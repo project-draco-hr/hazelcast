@@ -3,7 +3,7 @@
   Config config=new Config();
   QuorumListenerConfig listenerConfig=new QuorumListenerConfig();
   listenerConfig.setImplementation(new QuorumListener(){
-    @Override public void onChange(    QuorumEvent quorumEvent){
+    public void onChange(    QuorumEvent quorumEvent){
       if (!quorumEvent.isPresent()) {
         countDownLatch.countDown();
       }
@@ -12,20 +12,14 @@
 );
   String mapName=randomMapName();
   String quorumName=randomString();
-  QuorumConfig quorumConfig=new QuorumConfig();
-  quorumConfig.setName(quorumName);
-  quorumConfig.setEnabled(true);
+  QuorumConfig quorumConfig=new QuorumConfig(quorumName,true,3);
   quorumConfig.addListenerConfig(listenerConfig);
-  quorumConfig.setQuorumFunctionImplementation(new QuorumFunction(){
-    @Override public boolean apply(    Collection<Member> members){
-      return false;
-    }
-  }
-);
   config.getMapConfig(mapName).setQuorumName(quorumName);
   config.addQuorumConfig(quorumConfig);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
-  HazelcastInstance instance=factory.newHazelcastInstance(config);
-  factory.newHazelcastInstance();
+  HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  HazelcastInstance instance3=factory.newHazelcastInstance();
+  instance3.shutdown();
   assertOpenEventually(countDownLatch,15);
 }
