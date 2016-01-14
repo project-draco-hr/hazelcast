@@ -1,0 +1,21 @@
+{
+  final int WORKER_COUNT=10;
+  final int ITEM_COUNT_PER_WORKER=100;
+  final InvalidationEventQueue queue=new InvalidationEventQueue();
+  List<Future> futureList=new ArrayList<Future>(WORKER_COUNT);
+  for (int i=0; i < WORKER_COUNT; i++) {
+    Future future=spawn(new Runnable(){
+      @Override public void run(){
+        for (int i=0; i < ITEM_COUNT_PER_WORKER; i++) {
+          queue.offer(new CacheSingleInvalidationMessage(null,null,null));
+        }
+      }
+    }
+);
+    futureList.add(future);
+  }
+  for (  Future future : futureList) {
+    future.get(30,TimeUnit.SECONDS);
+  }
+  assertEquals(WORKER_COUNT * ITEM_COUNT_PER_WORKER,queue.size());
+}
