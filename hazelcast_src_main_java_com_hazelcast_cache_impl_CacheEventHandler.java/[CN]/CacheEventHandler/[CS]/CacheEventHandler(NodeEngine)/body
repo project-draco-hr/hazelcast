@@ -5,9 +5,12 @@
   if (invalidationMessageBatchEnabled) {
     invalidationMessageBatchSize=groupProperties.getInteger(CACHE_INVALIDATION_MESSAGE_BATCH_SIZE);
     int invalidationMessageBatchFreq=groupProperties.getInteger(CACHE_INVALIDATION_MESSAGE_BATCH_FREQUENCY_SECONDS);
-    cacheBatchInvalidationMessageSenderScheduler=nodeEngine.getExecutionService().scheduleAtFixedRate(ICacheService.SERVICE_NAME + ":cacheBatchInvalidationMessageSender",new CacheBatchInvalidationMessageSender(),invalidationMessageBatchFreq,invalidationMessageBatchFreq,TimeUnit.SECONDS);
+    ExecutionService executionService=nodeEngine.getExecutionService();
+    CacheBatchInvalidationMessageSender batchInvalidationMessageSender=new CacheBatchInvalidationMessageSender();
+    cacheBatchInvalidationMessageSenderScheduler=executionService.scheduleAtFixedRate(ICacheService.SERVICE_NAME + ":cacheBatchInvalidationMessageSender",batchInvalidationMessageSender,invalidationMessageBatchFreq,invalidationMessageBatchFreq,TimeUnit.SECONDS);
   }
-  nodeEngine.getHazelcastInstance().getLifecycleService().addLifecycleListener(new LifecycleListener(){
+  LifecycleService lifecycleService=nodeEngine.getHazelcastInstance().getLifecycleService();
+  lifecycleService.addLifecycleListener(new LifecycleListener(){
     @Override public void stateChanged(    LifecycleEvent event){
       if (event.getState() == LifecycleEvent.LifecycleState.SHUTTING_DOWN) {
         invalidateAllCaches();
