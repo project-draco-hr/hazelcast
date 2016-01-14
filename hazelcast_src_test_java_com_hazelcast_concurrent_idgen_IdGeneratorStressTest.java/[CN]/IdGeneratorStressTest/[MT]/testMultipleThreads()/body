@@ -1,0 +1,18 @@
+{
+  pickIdGenerator().init(13013);
+  List<Future> futureList=new ArrayList<Future>(THREAD_COUNT);
+  for (int i=0; i < THREAD_COUNT; i++) {
+    IdGenerator idGenerator=pickIdGenerator();
+    IdGeneratorCallable callable=new IdGeneratorCallable(idGenerator);
+    Future<long[]> future=spawn(callable);
+    futureList.add(future);
+  }
+  Set totalGeneratedIds=new HashSet<Long>(TOTAL_ID_GENERATED);
+  for (  Future<long[]> future : futureList) {
+    long[] generatedIds=future.get();
+    for (    long generatedId : generatedIds) {
+      assertTrue("ID: " + generatedId,totalGeneratedIds.add(generatedId));
+    }
+  }
+  assertEquals(TOTAL_ID_GENERATED,totalGeneratedIds.size());
+}
