@@ -1,0 +1,29 @@
+{
+  handlerFactory=mock(OperationRunnerFactory.class);
+  OperationRunner handler=mock(OperationRunner.class);
+  when(handlerFactory.createGenericRunner()).thenReturn(handler);
+  when(handlerFactory.createPartitionRunner(anyInt())).thenReturn(handler);
+  initExecutor();
+  if (task instanceof Operation) {
+    executor.execute((Operation)task);
+  }
+ else   if (task instanceof PartitionSpecificRunnable) {
+    executor.execute((PartitionSpecificRunnable)task);
+  }
+ else   if (task instanceof Packet) {
+    executor.execute((Packet)task);
+  }
+ else {
+    fail("invalid task!");
+  }
+  final int threadCount=executor.getPartitionOperationThreadCount();
+  for (int i=0; i < threadCount; i++) {
+    executor.execute(new DummyPartitionOperation(i));
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,executor.getOperationExecutorQueueSize());
+    }
+  }
+);
+}
