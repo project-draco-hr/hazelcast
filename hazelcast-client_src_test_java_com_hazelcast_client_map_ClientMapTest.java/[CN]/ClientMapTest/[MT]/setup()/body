@@ -3,5 +3,12 @@
   config.getMapConfig("flushMap").setMapStoreConfig(new MapStoreConfig().setWriteDelaySeconds(1000).setImplementation(flushMapStore));
   config.getMapConfig("putTransientMap").setMapStoreConfig(new MapStoreConfig().setWriteDelaySeconds(1000).setImplementation(transientMapStore));
   server=hazelcastFactory.newHazelcastInstance(config);
-  client=hazelcastFactory.newHazelcastClient(null);
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.getSerializationConfig().addPortableFactory(TestSerializationConstants.PORTABLE_FACTORY_ID,new PortableFactory(){
+    public Portable create(    int classId){
+      return new NamedPortable();
+    }
+  }
+);
+  client=hazelcastFactory.newHazelcastClient(clientConfig);
 }
