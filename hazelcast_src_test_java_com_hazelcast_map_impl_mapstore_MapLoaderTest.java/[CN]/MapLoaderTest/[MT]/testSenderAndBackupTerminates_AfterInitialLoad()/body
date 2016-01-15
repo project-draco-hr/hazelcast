@@ -1,0 +1,20 @@
+{
+  String name=randomString();
+  Config config=new Config();
+  MapConfig mapConfig=config.getMapConfig(name);
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true);
+  mapStoreConfig.setImplementation(new DummyMapLoader());
+  mapStoreConfig.setInitialLoadMode(MapStoreConfig.InitialLoadMode.EAGER);
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(5);
+  HazelcastInstance[] instances=instanceFactory.newInstances(config);
+  IMap<Object,Object> map=instances[0].getMap(name);
+  map.clear();
+  HazelcastInstance[] ownerAndReplicas=findOwnerAndReplicas(instances,name);
+  ownerAndReplicas[0].getLifecycleService().terminate();
+  ownerAndReplicas[1].getLifecycleService().terminate();
+  map=ownerAndReplicas[3].getMap(name);
+  map.loadAll(false);
+  assertEquals(DummyMapLoader.SIZE,map.size());
+}
