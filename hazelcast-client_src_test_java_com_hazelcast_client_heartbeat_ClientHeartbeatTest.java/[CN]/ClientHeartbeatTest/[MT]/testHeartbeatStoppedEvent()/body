@@ -1,0 +1,20 @@
+{
+  HazelcastInstance instance=hazelcastFactory.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setProperty(ClientProperty.HEARTBEAT_TIMEOUT,"3000");
+  clientConfig.setProperty(ClientProperty.HEARTBEAT_INTERVAL,"500");
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
+  HazelcastClientInstanceImpl clientImpl=getHazelcastClientInstanceImpl(client);
+  ClientConnectionManager connectionManager=clientImpl.getConnectionManager();
+  final CountDownLatch countDownLatch=new CountDownLatch(1);
+  connectionManager.addConnectionHeartbeatListener(new ConnectionHeartbeatListener(){
+    @Override public void heartBeatStarted(    Connection connection){
+    }
+    @Override public void heartBeatStopped(    Connection connection){
+      countDownLatch.countDown();
+    }
+  }
+);
+  blockMessagesFromInstance(instance,client);
+  assertOpenEventually(countDownLatch);
+}
