@@ -1,0 +1,25 @@
+{
+  hazelcastFactory.newHazelcastInstance();
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setProperty(ClientProperty.HEARTBEAT_TIMEOUT,"3000");
+  clientConfig.setProperty(ClientProperty.HEARTBEAT_INTERVAL,"500");
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
+  HazelcastInstance instance2=hazelcastFactory.newHazelcastInstance();
+  IMap map=client.getMap(randomString());
+  String keyOwnedByInstance2=generateKeyOwnedBy(instance2);
+  map.put(keyOwnedByInstance2,randomString());
+  blockMessagesFromInstance(instance2,client);
+  ClientDelegatingFuture future=(ClientDelegatingFuture)map.putAsync(keyOwnedByInstance2,randomString());
+  final CountDownLatch countDownLatch=new CountDownLatch(1);
+  future.andThen(new ExecutionCallback(){
+    @Override public void onResponse(    Object response){
+    }
+    @Override public void onFailure(    Throwable t){
+      if (t.getCause() instanceof TargetDisconnectedException) {
+        countDownLatch.countDown();
+      }
+    }
+  }
+);
+  assertOpenEventually(countDownLatch);
+}
