@@ -4,7 +4,8 @@
   ThreadInfo[] threadInfos=threadMXBean.dumpAllThreads(true,true);
   long currentThreadId=Thread.currentThread().getId();
   for (  ThreadInfo threadInfo : threadInfos) {
-    if (threadInfo.getThreadId() == currentThreadId) {
+    long threadId=threadInfo.getThreadId();
+    if (threadId == currentThreadId) {
       continue;
     }
     dump.append('"');
@@ -14,11 +15,19 @@
     dump.append("\n\tjava.lang.Thread.State: ");
     dump.append(state);
     if (threadInfo.getLockName() != null) {
-      dump.append(" on lock=").append(threadInfo.getLockName());
+      dump.append(", on lock=").append(threadInfo.getLockName());
     }
     if (threadInfo.getLockOwnerName() != null) {
-      dump.append(" owned by ").append(threadInfo.getLockOwnerName());
-      dump.append(" id=").append(threadInfo.getLockOwnerId());
+      dump.append(", owned by ").append(threadInfo.getLockOwnerName());
+      dump.append(", id=").append(threadInfo.getLockOwnerId());
+    }
+    if (THREAD_CPU_TIME_INFO_AVAILABLE) {
+      dump.append(", cpu=").append(threadMXBean.getThreadCpuTime(threadId)).append(" nsecs");
+      dump.append(", usr=").append(threadMXBean.getThreadUserTime(threadId)).append(" nsecs");
+    }
+    if (THREAD_CONTENTION_INFO_AVAILABLE) {
+      dump.append(", blocked=").append(threadInfo.getBlockedTime()).append(" msecs");
+      dump.append(", waited=").append(threadInfo.getWaitedTime()).append(" msecs");
     }
     StackTraceElement[] stackTraceElements=threadInfo.getStackTrace();
     for (    StackTraceElement stackTraceElement : stackTraceElements) {
