@@ -1,0 +1,31 @@
+{
+  TcpIpConnection c=connect(connManagerA,addressB);
+  WriteThread thread1=new WriteThread(1,c);
+  WriteThread thread2=new WriteThread(2,c);
+  logger.info("Starting");
+  thread1.start();
+  thread2.start();
+  sleepAndStop(stop,WRITER_THREAD_RUNNING_TIME_IN_SECONDS);
+  logger.info("Done");
+  thread1.assertSucceedsEventually();
+  thread2.assertSucceedsEventually();
+  final long expectedNormalPackets=thread1.normalPackets + thread2.normalPackets + 1;
+  final long expectedUrgentPackets=thread1.urgentPackets + thread2.urgentPackets;
+  logger.info("expected normal packets: " + expectedNormalPackets);
+  logger.info("expected priority packets: " + expectedUrgentPackets);
+  final SocketWriter writer=c.getSocketWriter();
+  final SocketReader reader=((TcpIpConnection)connManagerB.getConnection(addressA)).getSocketReader();
+  long start=System.currentTimeMillis();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      logger.info("writer total frames pending   : " + writer.totalFramesPending());
+      logger.info("writer last write time millis : " + writer.getLastWriteTimeMillis());
+      logger.info("reader total frames handled   : " + reader.getNormalFramesReadCounter().get() + reader.getPriorityFramesReadCounter().get());
+      logger.info("reader last read time millis  : " + reader.getLastReadTimeMillis());
+      assertEquals(expectedNormalPackets,reader.getNormalFramesReadCounter().get());
+      assertEquals(expectedUrgentPackets,reader.getPriorityFramesReadCounter().get());
+    }
+  }
+,verifyTimeoutInMillis);
+  logger.info("Waiting for pending packets to be sent and received finished in " + (System.currentTimeMillis() - start) + " milliseconds");
+}
