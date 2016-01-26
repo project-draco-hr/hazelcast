@@ -3,10 +3,11 @@
   MapService service=getService();
   MapServiceContext mapServiceContext=service.getMapServiceContext();
   Data keyData=mapServiceContext.toData(key,partitionStrategy);
-  Object valueBeforeTxn=mapServiceContext.toObject(putInternal(keyData,mapServiceContext.toData(value),ttl,timeUnit));
+  Object valueBeforeTxn=toObjectIfNeeded(putInternal(keyData,mapServiceContext.toData(value),ttl,timeUnit));
   TxnValueWrapper currentValue=txMap.get(keyData);
   if (value != null) {
-    TxnValueWrapper wrapper=valueBeforeTxn == null ? new TxnValueWrapper(value,TxnValueWrapper.Type.NEW) : new TxnValueWrapper(value,TxnValueWrapper.Type.UPDATED);
+    Type type=valueBeforeTxn == null ? Type.NEW : Type.UPDATED;
+    TxnValueWrapper wrapper=new TxnValueWrapper(value,type);
     txMap.put(keyData,wrapper);
   }
   return currentValue == null ? valueBeforeTxn : checkIfRemoved(currentValue);
