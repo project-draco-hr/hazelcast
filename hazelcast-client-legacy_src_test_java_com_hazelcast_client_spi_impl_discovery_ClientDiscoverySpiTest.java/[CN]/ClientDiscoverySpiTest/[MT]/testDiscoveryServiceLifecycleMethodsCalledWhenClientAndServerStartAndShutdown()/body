@@ -1,0 +1,34 @@
+{
+  Config config=new Config();
+  config.setProperty("hazelcast.discovery.enabled","true");
+  config.getNetworkConfig().setPort(50001);
+  InterfacesConfig interfaces=config.getNetworkConfig().getInterfaces();
+  interfaces.clear();
+  interfaces.setEnabled(true);
+  interfaces.addInterface("127.0.0.1");
+  CountDownLatch startLatch=new CountDownLatch(2);
+  CountDownLatch stopLatch=new CountDownLatch(2);
+  List<DiscoveryNode> discoveryNodes=new CopyOnWriteArrayList<DiscoveryNode>();
+  DiscoveryStrategyFactory factory=new LifecycleDiscoveryStrategyFactory(startLatch,stopLatch,discoveryNodes);
+  JoinConfig join=config.getNetworkConfig().getJoin();
+  join.getTcpIpConfig().setEnabled(false);
+  join.getMulticastConfig().setEnabled(false);
+  DiscoveryConfig discoveryConfig=join.getDiscoveryConfig();
+  discoveryConfig.getDiscoveryStrategyConfigs().clear();
+  DiscoveryStrategyConfig strategyConfig=new DiscoveryStrategyConfig(factory,Collections.<String,Comparable>emptyMap());
+  discoveryConfig.addDiscoveryStrategyConfig(strategyConfig);
+  final HazelcastInstance hazelcastInstance=Hazelcast.newHazelcastInstance(config);
+  ClientConfig clientConfig=new ClientConfig();
+  clientConfig.setProperty("hazelcast.discovery.enabled","true");
+  discoveryConfig=clientConfig.getNetworkConfig().getDiscoveryConfig();
+  discoveryConfig.getDiscoveryStrategyConfigs().clear();
+  strategyConfig=new DiscoveryStrategyConfig(factory,Collections.<String,Comparable>emptyMap());
+  discoveryConfig.addDiscoveryStrategyConfig(strategyConfig);
+  final HazelcastInstance client=HazelcastClient.newHazelcastClient(clientConfig);
+  assertNotNull(hazelcastInstance);
+  assertNotNull(client);
+  HazelcastClient.shutdownAll();
+  Hazelcast.shutdownAll();
+  assertOpenEventually(startLatch);
+  assertOpenEventually(stopLatch);
+}
