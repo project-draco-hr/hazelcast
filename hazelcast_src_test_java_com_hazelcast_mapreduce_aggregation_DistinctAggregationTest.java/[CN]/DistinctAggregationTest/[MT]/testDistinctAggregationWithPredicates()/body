@@ -1,0 +1,14 @@
+{
+  String mapName=randomMapName();
+  IMap<Integer,Car> map=HAZELCAST_INSTANCE.getMap(mapName);
+  Car vw1999=Car.newCar(1999,"VW");
+  Car bmw2000=Car.newCar(2000,"BMW");
+  Car vw2000=Car.newCar(2000,"VW");
+  map.put(0,vw1999);
+  map.put(1,bmw2000);
+  map.put(2,vw2000);
+  Supplier<Integer,Car,Car> supplier=fromPredicate(equal("buildYear",2000));
+  Aggregation<Integer,Car,Set<Car>> aggregation=distinctValues();
+  Set<Car> cars=map.aggregate(supplier,aggregation);
+  assertThat(cars,containsInAnyOrder(bmw2000,vw2000));
+}
