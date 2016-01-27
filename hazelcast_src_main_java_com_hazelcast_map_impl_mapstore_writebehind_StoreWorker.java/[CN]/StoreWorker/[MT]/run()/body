@@ -1,22 +1,14 @@
 {
   long now=Clock.currentTimeMillis();
-  NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  int partitionCount=partitionService.getPartitionCount();
   List<DelayedEntry> entries=new ArrayList<DelayedEntry>(partitionCount);
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
-    InternalPartition partition=partitionService.getPartition(partitionId,false);
-    Address owner=partition.getOwnerOrNull();
-    if (owner == null) {
-      continue;
-    }
     RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
     if (recordStore == null) {
       continue;
     }
-    List<DelayedEntry> entriesToStore=getEntriesToStore(now,recordStore);
-    if (!partition.isLocal()) {
-      if (now > lastRunTime + backupRunIntervalTime) {
+    List<DelayedEntry> entriesToStore=getEntriesToStore(recordStore,now);
+    if (!isPartitionLocal(partitionId)) {
+      if (now > lastRunTimeMillis + backupRunIntervalMillis) {
         doInBackup(entriesToStore,partitionId);
       }
     }
@@ -24,11 +16,10 @@
       entries.addAll(entriesToStore);
     }
   }
-  if (entries.isEmpty()) {
-    return;
+  if (!entries.isEmpty()) {
+    Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(entries);
+    removeFinishedStoreOperationsFromQueues(mapName,entries);
+    readdFailedStoreOperationsToQueues(mapName,failuresPerPartition);
+    lastRunTimeMillis=now;
   }
-  Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(entries);
-  removeFinishedStoreOperationsFromQueues(mapName,entries);
-  readdFailedStoreOperationsToQueues(mapName,failuresPerPartition);
-  lastRunTime=now;
 }
