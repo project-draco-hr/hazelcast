@@ -1,0 +1,16 @@
+{
+  final IMap<Object,Object> trial=hz.getMap("trial");
+  final StatsSupplier<LocalMapStats> statsSupplier=new LocalMapStatsSupplier(trial);
+  final LocalStatsDelegate localStatsDelegate=new LocalStatsDelegate<LocalMapStats>(statsSupplier,5);
+  Thread mapStatsThread1=new Thread(new MapStatsThread(localStatsDelegate,done,true,100));
+  Thread mapStatsThread2=new Thread(new MapStatsThread(localStatsDelegate,done,true,80));
+  mapStatsThread1.start();
+  mapStatsThread2.start();
+  Thread mapPutThread=new Thread(new MapPutThread(trial,done));
+  mapPutThread.start();
+  sleepSeconds(60);
+  done.set(true);
+  mapStatsThread1.join();
+  mapStatsThread2.join();
+  mapPutThread.join();
+}
