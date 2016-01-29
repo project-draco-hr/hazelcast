@@ -1,0 +1,15 @@
+{
+  HazelcastInstance instance1=createHazelcastInstance(getConfig());
+  IMap<Integer,String> map=instance1.getMap(randomString());
+  map.addInterceptor(new SimpleInterceptor());
+  final EntryAddedLatch listener=new EntryAddedLatch();
+  map.addEntryListener(listener,true);
+  final String value="foo";
+  map.put(1,value);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(value.toUpperCase(),listener.value.get());
+    }
+  }
+,15);
+}
