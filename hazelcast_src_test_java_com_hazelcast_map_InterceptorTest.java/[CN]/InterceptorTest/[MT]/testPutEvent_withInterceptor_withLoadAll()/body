@@ -1,0 +1,21 @@
+{
+  String name=randomString();
+  Config config=getConfig();
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  mapStoreConfig.setEnabled(true).setImplementation(new DummyLoader());
+  config.getMapConfig(name).setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance instance1=createHazelcastInstance(config);
+  IMap<Integer,String> map=instance1.getMap(name);
+  map.addInterceptor(new SimpleInterceptor());
+  final EntryAddedLatch listener=new EntryAddedLatch();
+  map.addEntryListener(listener,true);
+  Set<Integer> keys=new HashSet<Integer>();
+  keys.add(1);
+  map.loadAll(keys,false);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals("FOO-1",listener.value.get());
+    }
+  }
+,15);
+}
