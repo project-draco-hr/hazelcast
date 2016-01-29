@@ -2,8 +2,9 @@
   final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
   final MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
   mapServiceContext.interceptAfterPut(name,dataValue);
-  publishEvent(mapEventPublisher);
+  Object value=isPostProcessing(recordStore) ? recordStore.getRecord(dataKey).getValue() : dataValue;
+  mapEventPublisher.publishEvent(getCallerAddress(),name,getEventType(),dataKey,dataOldValue,value);
   invalidateNearCache(dataKey);
-  publishWANReplicationEvent(mapServiceContext,mapEventPublisher);
+  publishWANReplicationEvent(mapServiceContext,mapEventPublisher,value);
   evict();
 }

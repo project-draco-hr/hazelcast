@@ -8,8 +8,12 @@
     Object value=hasInterceptor ? mapServiceContext.toObject(dataValue) : dataValue;
     Object previousValue=recordStore.putFromLoad(key,value);
     callAfterPutInterceptors(value);
-    publishEntryEvent(key,previousValue,dataValue);
-    publishWanReplicationEvent(key,dataValue,recordStore.getRecord(key));
+    Record record=recordStore.getRecord(key);
+    if (isPostProcessing(recordStore)) {
+      value=record.getValue();
+    }
+    publishEntryEvent(key,previousValue,value);
+    publishWanReplicationEvent(key,value,record);
     addInvalidation(key);
   }
 }
