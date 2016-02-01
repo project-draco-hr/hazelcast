@@ -1,9 +1,17 @@
 {
-  Thread t=Thread.currentThread();
-  BufferPool pool=pools.get(t);
-  if (pool == null) {
-    pool=bufferPoolFactory.create(serializationService);
-    pools.put(t,pool);
+  WeakReference<BufferPool> ref=threadLocal.get();
+  if (ref == null) {
+    BufferPool pool=bufferPoolFactory.create(serializationService);
+    ref=new WeakReference<BufferPool>(pool);
+    strongReferences.put(Thread.currentThread(),pool);
+    threadLocal.set(ref);
+    return pool;
   }
-  return pool;
+ else {
+    BufferPool pool=ref.get();
+    if (pool == null) {
+      throw new HazelcastInstanceNotActiveException();
+    }
+    return pool;
+  }
 }
