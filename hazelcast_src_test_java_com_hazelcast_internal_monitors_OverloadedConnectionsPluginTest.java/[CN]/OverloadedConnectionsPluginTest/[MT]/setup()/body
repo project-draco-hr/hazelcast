@@ -1,0 +1,14 @@
+{
+  Hazelcast.shutdownAll();
+  Config config=new Config();
+  config.setProperty(PERFORMANCE_MONITOR_OVERLOADED_CONNECTIONS_PERIOD_SECONDS,"1");
+  config.setProperty(PERFORMANCE_MONITOR_OVERLOADED_CONNECTIONS_SAMPLES,"10");
+  config.setProperty(PERFORMANCE_MONITOR_OVERLOADED_CONNECTIONS_THRESHOLD,"10");
+  local=Hazelcast.newHazelcastInstance(config);
+  serializationService=getSerializationService(local);
+  remote=Hazelcast.newHazelcastInstance(config);
+  plugin=new OverloadedConnectionsPlugin(getNodeEngineImpl(local));
+  plugin.onStart();
+  warmUpPartitions(local,remote);
+  remoteKey=generateKeyOwnedBy(remote);
+}
