@@ -1,0 +1,15 @@
+{
+  IMap<String,String> map=createMap();
+  final CountDownLatch latch=new CountDownLatch(1);
+  map.addEntryListener(new EntryEvictedListener<String,String>(){
+    public void entryEvicted(    EntryEvent<String,String> event){
+      latch.countDown();
+    }
+  }
+,true);
+  Future<Void> future=map.setAsync("key","value1",3,TimeUnit.SECONDS);
+  future.get();
+  assertEquals("value1",map.get("key"));
+  assertOpenEventually(latch);
+  assertNull(map.get("key"));
+}
