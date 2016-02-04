@@ -1,0 +1,18 @@
+{
+  try {
+    ClassLoader classLoader=client.getClientConfig().getClassLoader();
+    Iterator<Class<ClientProxyDescriptorProvider>> iter=com.hazelcast.util.ServiceLoader.classIterator(PROVIDER_ID,classLoader);
+    while (iter.hasNext()) {
+      Class<ClientProxyDescriptorProvider> clazz=iter.next();
+      Constructor<ClientProxyDescriptorProvider> constructor=clazz.getDeclaredConstructor();
+      ClientProxyDescriptorProvider provider=constructor.newInstance();
+      ClientProxyDescriptor[] services=provider.createClientProxyDescriptors();
+      for (      ClientProxyDescriptor serviceDescriptor : services) {
+        register(serviceDescriptor.getServiceName(),serviceDescriptor.getClientProxyClass());
+      }
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}
