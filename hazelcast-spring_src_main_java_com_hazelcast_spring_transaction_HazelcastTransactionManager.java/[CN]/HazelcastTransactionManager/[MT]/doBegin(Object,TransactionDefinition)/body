@@ -1,0 +1,20 @@
+{
+  HazelcastTransactionObject txObject=(HazelcastTransactionObject)transaction;
+  try {
+    if (txObject.getTransactionContextHolder() == null) {
+      TransactionContext transactionContext=hazelcastInstance.newTransactionContext();
+      if (logger.isDebugEnabled()) {
+        logger.debug("Opened new TransactionContext [" + transactionContext + "]");
+      }
+      txObject.setTransactionContextHolder(new TransactionContextHolder(transactionContext),true);
+    }
+    txObject.getTransactionContextHolder().beginTransaction();
+    if (txObject.isNewTransactionContextHolder()) {
+      TransactionSynchronizationManager.bindResource(hazelcastInstance,txObject.getTransactionContextHolder());
+    }
+  }
+ catch (  Throwable ex) {
+    closeTransactionContextAfterFailedBegin(txObject);
+    throw new CannotCreateTransactionException("Could not begin Hazelcast transaction",ex);
+  }
+}
