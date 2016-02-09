@@ -1,0 +1,18 @@
+{
+  Config config=getConfig();
+  MapConfig mapConfig=config.getMapConfig("default");
+  MapStoreConfig mapStoreConfig=new MapStoreConfig();
+  MapStoreWithCounter mapStore=new MapStoreWithCounter();
+  mapStoreConfig.setImplementation(mapStore);
+  mapConfig.setMapStoreConfig(mapStoreConfig);
+  HazelcastInstance member=createHazelcastInstance(config);
+  IMap map=member.getMap("default");
+  map.executeOnKey(1,new AbstractEntryProcessor(false){
+    @Override public Object process(    Map.Entry entry){
+      entry.setValue(2);
+      return null;
+    }
+  }
+);
+  assertEquals(1,mapStore.getLoadCount());
+}
