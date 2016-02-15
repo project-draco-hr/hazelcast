@@ -1,0 +1,33 @@
+{
+  try {
+    Address thisAddress=node.getThisAddress();
+    boolean source=thisAddress.equals(migrationInfo.getSource());
+    boolean destination=thisAddress.equals(migrationInfo.getDestination());
+    if (source || destination) {
+      int partitionId=migrationInfo.getPartitionId();
+      InternalPartitionImpl migratingPartition=getPartitionImpl(partitionId);
+      Address ownerAddress=migratingPartition.getOwnerOrNull();
+      boolean success=migrationInfo.getDestination().equals(ownerAddress);
+      MigrationParticipant participant=source ? MigrationParticipant.SOURCE : MigrationParticipant.DESTINATION;
+      if (success) {
+        internalMigrationListener.onMigrationCommit(participant,migrationInfo);
+      }
+ else {
+        internalMigrationListener.onMigrationRollback(participant,migrationInfo);
+      }
+      MigrationEndpoint endpoint=source ? MigrationEndpoint.SOURCE : MigrationEndpoint.DESTINATION;
+      FinalizeMigrationOperation op=new FinalizeMigrationOperation(endpoint,success);
+      op.setPartitionId(partitionId).setNodeEngine(nodeEngine).setValidateTarget(false).setService(this);
+      nodeEngine.getOperationService().executeOperation(op);
+    }
+ else {
+      logger.severe("Failed to finalize migration because this member " + thisAddress + " is not a participant of the migration: "+ migrationInfo);
+    }
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+ finally {
+    migrationInfo.doneProcessing();
+  }
+}

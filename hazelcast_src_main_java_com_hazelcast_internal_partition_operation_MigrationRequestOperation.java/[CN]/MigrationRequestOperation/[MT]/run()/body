@@ -19,9 +19,16 @@
     setFailed();
     return;
   }
+  if (!source.equals(owner)) {
+    getLogger().warning("Cannot migrate! This node is not owner of the partition => " + migrationInfo + " -> partitionId="+ partition.getPartitionId()+ " , "+ partition);
+    setFailed();
+    return;
+  }
+  if (!partitionService.addActiveMigration(migrationInfo)) {
+    setFailed();
+    return;
+  }
   try {
-    verifyOwner(source,partition,owner);
-    partitionService.addActiveMigration(migrationInfo);
     Collection<Operation> tasks=prepareMigrationTasks();
     long[] replicaVersions=partitionService.getPartitionReplicaVersions(migrationInfo.getPartitionId());
     invokeMigrationOperation(destination,replicaVersions,tasks);

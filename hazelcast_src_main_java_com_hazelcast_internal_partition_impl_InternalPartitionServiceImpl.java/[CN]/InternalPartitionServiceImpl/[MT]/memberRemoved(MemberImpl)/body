@@ -3,26 +3,32 @@
   updateMemberGroupsSize();
   final Address deadAddress=member.getAddress();
   final Address thisAddress=node.getThisAddress();
-  if (thisAddress.equals(deadAddress)) {
-    return;
-  }
   lock.lock();
   try {
     if (initialized && node.getClusterService().getClusterState() == ClusterState.ACTIVE) {
       stateVersion.incrementAndGet();
     }
     migrationQueue.clear();
-    if (node.isMaster()) {
-      rollbackActiveMigrationsFromPreviousMaster(node.getLocalMember().getUuid());
+    if (node.isMaster() && !thisAddress.equals(lastMaster)) {
+      Runnable runnable=new FixPartitionTableTask();
+      migrationQueue.add(runnable);
     }
-    invalidateActiveMigrationsBelongingTo(deadAddress);
-    pauseMigration();
+    lastMaster=node.getMasterAddress();
     cancelReplicaSyncRequestsInternal(deadAddress);
-    removeDeadAddress(deadAddress,thisAddress);
-    if (node.isMaster() && initialized) {
+    if (node.isMaster()) {
+      migrationQueue.add(new Runnable(){
+        @Override public void run(){
+          if (!initialized) {
+            return;
+          }
+          invalidateActiveMigrationsBelongingTo(deadAddress);
+          removeDeadAddress(deadAddress);
+          syncPartitionRuntimeState();
+        }
+      }
+);
       migrationQueue.add(new RepartitioningTask());
     }
-    resumeMigrationEventually();
   }
   finally {
     lock.unlock();

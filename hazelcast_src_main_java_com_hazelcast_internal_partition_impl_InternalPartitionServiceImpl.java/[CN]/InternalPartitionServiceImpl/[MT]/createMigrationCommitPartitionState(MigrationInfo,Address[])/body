@@ -1,0 +1,26 @@
+{
+  if (!initialized) {
+    return null;
+  }
+  Collection<MemberImpl> members=node.clusterService.getMemberImpls();
+  lock.lock();
+  try {
+    List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(members.size());
+    for (    MemberImpl member : members) {
+      MemberInfo memberInfo=new MemberInfo(member.getAddress(),member.getUuid(),member.getAttributes());
+      memberInfos.add(memberInfo);
+    }
+    ArrayList<MigrationInfo> completedMigrations=new ArrayList<MigrationInfo>(this.completedMigrations);
+    ILogger logger=node.getLogger(PartitionRuntimeState.class);
+    InternalPartitionImpl[] partitions=new InternalPartitionImpl[partitionCount];
+    for (int i=0; i < partitionCount; i++) {
+      partitions[i]=this.partitions[i].copy();
+    }
+    int partitionId=migrationInfo.getPartitionId();
+    partitions[partitionId].setReplicaAddresses(newAddresses);
+    return new PartitionRuntimeState(logger,memberInfos,partitions,completedMigrations,stateVersion.get() + 1);
+  }
+  finally {
+    lock.unlock();
+  }
+}
