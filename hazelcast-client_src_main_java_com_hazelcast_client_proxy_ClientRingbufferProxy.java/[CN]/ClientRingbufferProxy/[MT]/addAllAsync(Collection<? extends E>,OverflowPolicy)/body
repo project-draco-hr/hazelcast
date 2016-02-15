@@ -3,12 +3,8 @@
   checkNotNull(overflowPolicy,"overflowPolicy can't be null");
   checkFalse(collection.isEmpty(),"collection can't be empty");
   checkTrue(collection.size() <= MAX_BATCH_SIZE,"collection can't be larger than " + MAX_BATCH_SIZE);
-  final List<Data> valueList=new ArrayList<Data>(collection.size());
-  for (  E e : collection) {
-    throwExceptionIfNull(e);
-    valueList.add(toData(e));
-  }
-  ClientMessage request=RingbufferAddAllCodec.encodeRequest(name,valueList,overflowPolicy.getId());
+  Collection<Data> dataCollection=CollectionUtil.objectToDataCollection(collection,getSerializationService());
+  ClientMessage request=RingbufferAddAllCodec.encodeRequest(name,dataCollection,overflowPolicy.getId());
   try {
     ClientInvocationFuture invocationFuture=new ClientInvocation(getClient(),request,partitionId).invoke();
     return new ClientDelegatingFuture<Long>(invocationFuture,getContext().getSerializationService(),ADD_ALL_ASYNC_RESPONSE_DECODER);
