@@ -1,0 +1,17 @@
+{
+  int partitionId=getPartitionId();
+  InternalPartitionServiceImpl partitionService=getService();
+  InternalPartition partition=partitionService.getPartitionImpl(partitionId);
+  Address thisAddress=getNodeEngine().getThisAddress();
+  int currentReplicaIndex=partition.getReplicaIndex(thisAddress);
+  if (currentReplicaIndex == -1 || currentReplicaIndex > oldReplicaIndex) {
+    if (currentReplicaIndex == -1) {
+      partitionService.cancelReplicaSync(partitionId);
+    }
+    ILogger logger=getLogger();
+    if (logger.isFinestEnabled()) {
+      logger.finest("Clearing partition replica... partitionId=" + partitionId + ", old-replicaIndex="+ oldReplicaIndex+ ", current-replicaIndex="+ currentReplicaIndex);
+    }
+    clearPartition(partitionId,partitionService);
+  }
+}
