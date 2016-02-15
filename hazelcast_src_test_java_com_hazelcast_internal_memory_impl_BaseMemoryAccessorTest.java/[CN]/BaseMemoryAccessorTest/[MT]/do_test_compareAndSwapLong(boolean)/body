@@ -1,0 +1,23 @@
+{
+  long address=0;
+  try {
+    address=allocateMemory(16);
+    long accessAddress=aligned ? address : address + 1;
+    memoryAccessor.putLong(accessAddress,1L);
+    assertEquals(1L,memoryAccessor.getLong(accessAddress));
+    assertFalse(memoryAccessor.compareAndSwapLong(null,accessAddress,0L,2L));
+    assertTrue(memoryAccessor.compareAndSwapLong(null,accessAddress,1L,2L));
+    assertEquals(2L,memoryAccessor.getLong(accessAddress));
+    SampleObject obj=new SampleObject();
+    memoryAccessor.putLong(obj,SampleObject.LONG_VALUE_OFFSET,1L);
+    assertEquals(1L,memoryAccessor.getLong(obj,SampleObject.LONG_VALUE_OFFSET));
+    assertFalse(memoryAccessor.compareAndSwapLong(obj,SampleObject.LONG_VALUE_OFFSET,0L,2L));
+    assertTrue(memoryAccessor.compareAndSwapLong(obj,SampleObject.LONG_VALUE_OFFSET,1L,2L));
+    assertEquals(2L,memoryAccessor.getLong(obj,SampleObject.LONG_VALUE_OFFSET));
+  }
+  finally {
+    if (address != 0) {
+      freeMemory(address);
+    }
+  }
+}
