@@ -1,0 +1,26 @@
+{
+  final int COPY_LENGTH=8;
+  long sourceAddress=0;
+  long destinationAddress=0;
+  try {
+    sourceAddress=allocateMemory(2 * COPY_LENGTH);
+    destinationAddress=allocateMemory(2 * COPY_LENGTH);
+    long accessSourceAddress=aligned ? sourceAddress : sourceAddress + 1;
+    long accessDestinationAddress=aligned ? destinationAddress : destinationAddress + 1;
+    for (int i=0; i < COPY_LENGTH; i++) {
+      memoryAccessor.putByte(accessSourceAddress + i,(byte)(i * i));
+    }
+    memoryAccessor.copyMemory(accessSourceAddress,accessDestinationAddress,COPY_LENGTH);
+    for (int i=0; i < COPY_LENGTH; i++) {
+      assertEquals((byte)(i * i),memoryAccessor.getByte(accessDestinationAddress + i));
+    }
+  }
+  finally {
+    if (sourceAddress != 0) {
+      freeMemory(sourceAddress);
+    }
+    if (destinationAddress != 0) {
+      freeMemory(destinationAddress);
+    }
+  }
+}
