@@ -1,12 +1,10 @@
 {
-  if (keys == null || keys.size() == 0 || keys.contains(null)) {
-    throw new NullPointerException(NULL_KEY_IS_NOT_ALLOWED);
+  checkNotNull(keys,NULL_KEY_IS_NOT_ALLOWED);
+  if (keys.size() == 0) {
+    throw new IllegalArgumentException(EMPTY_COLLECTION_IS_NOT_ALLOWED);
   }
-  Set<Data> dataKeys=new HashSet<Data>(keys.size());
-  for (  K key : keys) {
-    dataKeys.add(toData(key));
-  }
-  ClientMessage request=MapExecuteOnKeysCodec.encodeRequest(name,toData(entryProcessor),dataKeys);
+  Collection<Data> dataCollection=objectToDataCollection(keys,getSerializationService());
+  ClientMessage request=MapExecuteOnKeysCodec.encodeRequest(name,toData(entryProcessor),dataCollection);
   ClientMessage response=invoke(request);
   MapExecuteOnKeysCodec.ResponseParameters resultParameters=MapExecuteOnKeysCodec.decodeResponse(response);
   return prepareResult(resultParameters.response);
