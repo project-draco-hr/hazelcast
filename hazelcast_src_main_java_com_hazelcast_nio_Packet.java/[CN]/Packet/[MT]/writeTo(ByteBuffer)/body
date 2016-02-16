@@ -1,19 +1,14 @@
 {
-  if (!writeVersion(dst)) {
-    return false;
+  if (!headComplete) {
+    if (dst.remaining() < HEAD_SIZE) {
+      return false;
+    }
+    dst.put(VERSION);
+    dst.putShort(header);
+    dst.putInt(partitionId);
+    size=totalSize();
+    dst.putInt(size);
+    headComplete=true;
   }
-  if (!writeHeader(dst)) {
-    return false;
-  }
-  if (!writePartition(dst)) {
-    return false;
-  }
-  if (!writeSize(dst)) {
-    return false;
-  }
-  if (!writeValue(dst)) {
-    return false;
-  }
-  setPersistStatus(PERSIST_COMPLETED);
-  return true;
+  return writeValue(dst);
 }
