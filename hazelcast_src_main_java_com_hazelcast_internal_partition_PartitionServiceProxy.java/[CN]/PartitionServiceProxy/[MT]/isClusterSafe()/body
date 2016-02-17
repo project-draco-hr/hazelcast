@@ -1,6 +1,5 @@
 {
-  final Node node=getNode();
-  final Collection<Member> memberList=node.clusterService.getMembers();
+  final Collection<Member> memberList=nodeEngine.getClusterService().getMembers();
   if (memberList == null || memberList.isEmpty() || memberList.size() < 2) {
     return true;
   }
@@ -8,10 +7,10 @@
   for (  Member member : memberList) {
     final Address target=member.getAddress();
     final Operation operation=new SafeStateCheckOperation();
-    final InternalCompletableFuture future=node.getNodeEngine().getOperationService().invokeOnTarget(InternalPartitionService.SERVICE_NAME,operation,target);
+    final InternalCompletableFuture future=nodeEngine.getOperationService().invokeOnTarget(InternalPartitionService.SERVICE_NAME,operation,target);
     futures.add(future);
   }
-  final int maxWaitTime=getMaxWaitTime(node);
+  final int maxWaitTime=getMaxWaitTime();
   for (  Future future : futures) {
     try {
       final Object result=future.get(maxWaitTime,TimeUnit.SECONDS);

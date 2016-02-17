@@ -1,0 +1,25 @@
+{
+  if (!preCheckShouldWaitMigrationOrBackups()) {
+    return false;
+  }
+  if (checkForActiveMigrations(level)) {
+    return true;
+  }
+  for (  InternalPartition partition : partitionStateManager.getPartitions()) {
+    if (partition.getReplicaAddress(1) == null) {
+      final boolean canTakeBackup=!partitionService.isClusterFormedByOnlyLiteMembers();
+      if (canTakeBackup && logger.isLoggable(level)) {
+        logger.log(level,"Should take backup of partitionId=" + partition.getPartitionId());
+      }
+      return canTakeBackup;
+    }
+  }
+  int replicaSyncProcesses=replicaManager.onGoingReplicationProcesses();
+  if (replicaSyncProcesses > 0) {
+    if (logger.isLoggable(level)) {
+      logger.log(level,"Processing replica sync requests: " + replicaSyncProcesses);
+    }
+    return true;
+  }
+  return false;
+}

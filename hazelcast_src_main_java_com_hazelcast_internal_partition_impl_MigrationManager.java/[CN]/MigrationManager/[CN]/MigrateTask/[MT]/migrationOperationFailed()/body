@@ -1,0 +1,17 @@
+{
+  internalMigrationListener.onMigrationComplete(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo,false);
+  partitionServiceLock.lock();
+  try {
+    addCompletedMigration(migrationInfo);
+    internalMigrationListener.onMigrationRollback(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo);
+    scheduleActiveMigrationFinalization(migrationInfo);
+    partitionService.syncPartitionRuntimeState();
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+  partitionService.getPartitionEventManager().sendMigrationEvent(migrationInfo,MigrationEvent.MigrationStatus.FAILED);
+  pauseMigration();
+  migrationQueue.add(new RepartitioningTask());
+  resumeMigrationEventually();
+}

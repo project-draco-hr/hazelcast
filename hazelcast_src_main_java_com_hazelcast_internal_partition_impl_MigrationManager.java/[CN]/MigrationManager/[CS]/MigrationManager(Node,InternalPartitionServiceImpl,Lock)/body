@@ -1,0 +1,21 @@
+{
+  this.node=node;
+  this.nodeEngine=node.nodeEngine;
+  this.partitionService=service;
+  this.logger=node.getLogger(getClass());
+  this.partitionServiceLock=partitionServiceLock;
+  partitionStateManager=partitionService.getPartitionStateManager();
+  ExecutionService executionService=nodeEngine.getExecutionService();
+  migrationThread=new MigrationThread(this,node.getHazelcastThreadGroup(),node.getLogger(MigrationThread.class));
+  long intervalMillis=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_INTERVAL);
+  partitionMigrationInterval=(intervalMillis > 0 ? intervalMillis : 0);
+  partitionMigrationTimeout=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_TIMEOUT);
+  long maxMigrationDelayMs=calculateMaxMigrationDelayOnMemberRemoved();
+  long minMigrationDelayMs=calculateMigrationDelayOnMemberRemoved(maxMigrationDelayMs);
+  this.delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,minMigrationDelayMs,maxMigrationDelayMs,new Runnable(){
+    @Override public void run(){
+      resumeMigration();
+    }
+  }
+);
+}

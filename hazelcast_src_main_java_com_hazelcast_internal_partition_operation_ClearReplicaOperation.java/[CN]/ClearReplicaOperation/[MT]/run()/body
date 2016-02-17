@@ -1,12 +1,13 @@
 {
   int partitionId=getPartitionId();
   InternalPartitionServiceImpl partitionService=getService();
-  InternalPartition partition=partitionService.getPartitionImpl(partitionId);
+  PartitionStateManager partitionStateManager=partitionService.getPartitionStateManager();
+  InternalPartitionImpl partition=partitionStateManager.getPartitionImpl(partitionId);
   Address thisAddress=getNodeEngine().getThisAddress();
   int currentReplicaIndex=partition.getReplicaIndex(thisAddress);
   if (currentReplicaIndex == -1 || currentReplicaIndex > oldReplicaIndex) {
     if (currentReplicaIndex == -1) {
-      partitionService.cancelReplicaSync(partitionId);
+      partitionService.getReplicaManager().cancelReplicaSync(partitionId);
     }
     ILogger logger=getLogger();
     if (logger.isFinestEnabled()) {

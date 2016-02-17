@@ -1,0 +1,20 @@
+{
+  Address masterAddress=node.getMasterAddress();
+  if (masterAddress == null) {
+    return node.joined();
+  }
+  Operation operation=new HasOngoingMigration();
+  OperationService operationService=nodeEngine.getOperationService();
+  InvocationBuilder invocationBuilder=operationService.createInvocationBuilder(SERVICE_NAME,operation,masterAddress);
+  Future future=invocationBuilder.setTryCount(100).setTryPauseMillis(100).invoke();
+  try {
+    return (Boolean)future.get(1,TimeUnit.MINUTES);
+  }
+ catch (  InterruptedException ie) {
+    Logger.getLogger(InternalPartitionServiceImpl.class).finest("Future wait interrupted",ie);
+  }
+catch (  Exception e) {
+    logger.log(level,"Could not get a response from master about migrations! -> " + e.toString());
+  }
+  return false;
+}

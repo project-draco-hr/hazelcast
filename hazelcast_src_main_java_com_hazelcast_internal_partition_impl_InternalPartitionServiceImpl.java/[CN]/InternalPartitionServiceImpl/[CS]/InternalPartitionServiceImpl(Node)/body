@@ -4,38 +4,14 @@
   this.node=node;
   this.nodeEngine=node.nodeEngine;
   this.logger=node.getLogger(InternalPartitionService.class);
+  partitionListener=new InternalPartitionListener(node,this);
+  partitionStateManager=new PartitionStateManager(node,this,partitionListener);
+  migrationManager=new MigrationManager(node,this,lock);
+  replicaManager=new PartitionReplicaManager(node,this);
+  partitionReplicaChecker=new PartitionReplicaChecker(node,this);
+  partitionEventManager=new PartitionEventManager(node,this);
   partitionStateSyncTimeoutHandler=logAllExceptions(logger,EXCEPTION_MSG_PARTITION_STATE_SYNC_TIMEOUT,Level.FINEST);
-  this.partitions=new InternalPartitionImpl[partitionCount];
-  partitionListener=new InternalPartitionListener(this,node.getThisAddress());
-  for (int i=0; i < partitionCount; i++) {
-    this.partitions[i]=new InternalPartitionImpl(i,partitionListener,node.getThisAddress());
-  }
-  replicaVersions=new PartitionReplicaVersions[partitionCount];
-  for (int i=0; i < replicaVersions.length; i++) {
-    replicaVersions[i]=new PartitionReplicaVersions(i);
-  }
-  memberGroupFactory=MemberGroupFactoryFactory.newMemberGroupFactory(node.getConfig().getPartitionGroupConfig());
-  partitionStateGenerator=new PartitionStateGeneratorImpl();
-  long intervalMillis=properties.getMillis(GroupProperty.PARTITION_MIGRATION_INTERVAL);
-  partitionMigrationInterval=(intervalMillis > 0 ? intervalMillis : 0);
   partitionMigrationTimeout=properties.getMillis(GroupProperty.PARTITION_MIGRATION_TIMEOUT);
-  migrationThread=new MigrationThread(node);
-  proxy=new PartitionServiceProxy(this);
-  ExecutionService executionService=nodeEngine.getExecutionService();
-  TaskScheduler globalScheduler=executionService.getGlobalTaskScheduler();
-  replicaSyncScheduler=EntryTaskSchedulerFactory.newScheduler(globalScheduler,new ReplicaSyncEntryProcessor(this),ScheduleType.POSTPONE);
-  replicaSyncRequests=new AtomicReferenceArray<ReplicaSyncInfo>(partitionCount);
-  long maxMigrationDelayMs=calculateMaxMigrationDelayOnMemberRemoved();
-  long minMigrationDelayMs=calculateMigrationDelayOnMemberRemoved(maxMigrationDelayMs);
-  this.delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,minMigrationDelayMs,maxMigrationDelayMs,new Runnable(){
-    @Override public void run(){
-      resumeMigration();
-    }
-  }
-);
-  long definedBackupSyncCheckInterval=properties.getSeconds(GroupProperty.PARTITION_BACKUP_SYNC_INTERVAL);
-  backupSyncCheckInterval=definedBackupSyncCheckInterval > 0 ? definedBackupSyncCheckInterval : 1;
-  maxParallelReplications=properties.getInteger(GroupProperty.PARTITION_MAX_PARALLEL_REPLICATIONS);
-  replicaSyncProcessLock=new Semaphore(maxParallelReplications);
+  proxy=new PartitionServiceProxy(nodeEngine,this);
   nodeEngine.getMetricsRegistry().scanAndRegister(this,"partitions");
 }

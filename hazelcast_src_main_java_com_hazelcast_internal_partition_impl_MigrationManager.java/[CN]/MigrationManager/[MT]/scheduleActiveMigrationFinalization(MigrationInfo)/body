@@ -1,0 +1,22 @@
+{
+  partitionServiceLock.lock();
+  try {
+    if (migrationInfo.equals(activeMigrationInfo)) {
+      if (activeMigrationInfo.startProcessing()) {
+        finalizeMigrationInfo(activeMigrationInfo);
+      }
+ else {
+        logger.info("Scheduling finalization of " + migrationInfo + ", because migration process is currently running.");
+        nodeEngine.getExecutionService().schedule(new Runnable(){
+          @Override public void run(){
+            scheduleActiveMigrationFinalization(migrationInfo);
+          }
+        }
+,3,TimeUnit.SECONDS);
+      }
+    }
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}

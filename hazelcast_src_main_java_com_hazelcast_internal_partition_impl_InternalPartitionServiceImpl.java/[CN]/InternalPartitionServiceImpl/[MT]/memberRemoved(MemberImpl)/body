@@ -1,34 +1,26 @@
 {
   logger.info("Removing " + member);
-  updateMemberGroupsSize();
+  partitionStateManager.updateMemberGroupsSize();
   final Address deadAddress=member.getAddress();
   final Address thisAddress=node.getThisAddress();
   lock.lock();
   try {
-    if (initialized && node.getClusterService().getClusterState() == ClusterState.ACTIVE) {
-      stateVersion.incrementAndGet();
+    if (partitionStateManager.isInitialized() && node.getClusterService().getClusterState() == ClusterState.ACTIVE) {
+      partitionStateManager.incrementVersion();
     }
-    migrationQueue.clear();
+    migrationManager.onMemberRemove(member);
     if (node.isMaster() && !thisAddress.equals(lastMaster)) {
-      Runnable runnable=new FixPartitionTableTask();
-      migrationQueue.add(runnable);
+      Runnable runnable=new FetchMostRecentPartitionTableTask();
+      migrationManager.execute(runnable);
     }
     lastMaster=node.getMasterAddress();
-    cancelReplicaSyncRequestsInternal(deadAddress);
+    migrationManager.pauseMigration();
+    replicaManager.cancelReplicaSyncRequestsTo(deadAddress);
     if (node.isMaster()) {
-      migrationQueue.add(new Runnable(){
-        @Override public void run(){
-          if (!initialized) {
-            return;
-          }
-          invalidateActiveMigrationsBelongingTo(deadAddress);
-          removeDeadAddress(deadAddress);
-          syncPartitionRuntimeState();
-        }
-      }
-);
-      migrationQueue.add(new RepartitioningTask());
+      migrationManager.execute(new RepairPartitionTableTask(deadAddress));
+      migrationManager.triggerRepartitioning();
     }
+    migrationManager.resumeMigrationEventually();
   }
   finally {
     lock.unlock();

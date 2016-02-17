@@ -1,0 +1,21 @@
+{
+  internalMigrationListener.onMigrationComplete(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo,true);
+  addCompletedMigration(migrationInfo);
+  boolean commitSuccessful=commitMigrationToDestination(migrationInfo,addresses);
+  partitionServiceLock.lock();
+  try {
+    if (commitSuccessful) {
+      partitionStateManager.updateReplicaAddresses(migrationInfo.getPartitionId(),addresses);
+      internalMigrationListener.onMigrationCommit(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo);
+    }
+ else {
+      internalMigrationListener.onMigrationRollback(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo);
+    }
+    scheduleActiveMigrationFinalization(migrationInfo);
+    partitionService.syncPartitionRuntimeState();
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+  partitionService.getPartitionEventManager().sendMigrationEvent(migrationInfo,MigrationEvent.MigrationStatus.COMPLETED);
+}

@@ -1,0 +1,29 @@
+{
+  if (partitionStateManager.isInitialized()) {
+    return;
+  }
+  if (!node.joined()) {
+    return;
+  }
+  ClusterState clusterState=node.getClusterService().getClusterState();
+  if (clusterState != ClusterState.ACTIVE) {
+    logger.warning("Partitions can't be assigned since cluster-state= " + clusterState);
+    return;
+  }
+  if (!triggerMasterFlag.compareAndSet(false,true)) {
+    return;
+  }
+  try {
+    final Address masterAddress=node.getMasterAddress();
+    if (masterAddress != null && !masterAddress.equals(node.getThisAddress())) {
+      Future f=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new AssignPartitions(),masterAddress).setTryCount(1).invoke();
+      f.get(1,TimeUnit.SECONDS);
+    }
+  }
+ catch (  Exception e) {
+    logger.finest(e);
+  }
+ finally {
+    triggerMasterFlag.set(false);
+  }
+}

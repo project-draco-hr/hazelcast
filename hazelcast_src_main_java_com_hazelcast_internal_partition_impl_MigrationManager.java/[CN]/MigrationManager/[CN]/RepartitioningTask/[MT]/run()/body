@@ -1,0 +1,24 @@
+{
+  if (!node.isMaster()) {
+    return;
+  }
+  partitionServiceLock.lock();
+  try {
+    if (!isMigrationAllowed()) {
+      return;
+    }
+    Address[][] newState=partitionStateManager.repartition();
+    if (newState == null) {
+      return;
+    }
+    if (!isMigrationAllowed()) {
+      return;
+    }
+    migrationQueue.clear();
+    processNewPartitionState(newState);
+    partitionService.syncPartitionRuntimeState();
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}
