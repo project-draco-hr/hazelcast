@@ -1,0 +1,25 @@
+{
+  final AtomicBoolean stop=new AtomicBoolean(false);
+  List<Thread> threads=new ArrayList<Thread>();
+  for (int i=0; i < 10; i++) {
+    Thread thread=new Thread(new Runnable(){
+      @Override public void run(){
+        TestMapInterceptor interceptor=new TestMapInterceptor();
+        while (!stop.get()) {
+          registry.register(interceptor.id,interceptor);
+          registry.deregister(interceptor.id);
+        }
+      }
+    }
+);
+    thread.start();
+    threads.add(thread);
+  }
+  sleepSeconds(10);
+  stop.set(true);
+  for (  Thread thread : threads) {
+    thread.join();
+  }
+  assertTrue("Id2Interceptor map should be empty",registry.getId2InterceptorMap().isEmpty());
+  assertTrue("Interceptor list should be empty",registry.getInterceptors().isEmpty());
+}
