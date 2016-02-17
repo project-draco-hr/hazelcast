@@ -1,32 +1,27 @@
 {
-  final TcpIpConfig tcpIpConfig=config.getNetworkConfig().getJoin().getTcpIpConfig();
-  final String host=tcpIpConfig.getRequiredMember();
+  TcpIpConfig tcpIpConfig=config.getNetworkConfig().getJoin().getTcpIpConfig();
+  String host=tcpIpConfig.getRequiredMember();
   try {
-    final AddressHolder addressHolder=AddressUtil.getAddressHolder(host,config.getNetworkConfig().getPort());
+    AddressHolder addressHolder=AddressUtil.getAddressHolder(host,config.getNetworkConfig().getPort());
     if (AddressUtil.isIpAddress(addressHolder.getAddress())) {
       return new Address(addressHolder.getAddress(),addressHolder.getPort());
     }
- else {
-      final InterfacesConfig interfaces=config.getNetworkConfig().getInterfaces();
-      if (interfaces.isEnabled()) {
-        final InetAddress[] inetAddresses=InetAddress.getAllByName(addressHolder.getAddress());
-        if (inetAddresses.length > 1) {
-          for (          InetAddress inetAddress : inetAddresses) {
-            if (AddressUtil.matchAnyInterface(inetAddress.getHostAddress(),interfaces.getInterfaces())) {
-              return new Address(inetAddress,addressHolder.getPort());
-            }
-          }
-        }
- else {
-          final InetAddress inetAddress=inetAddresses[0];
+    InterfacesConfig interfaces=config.getNetworkConfig().getInterfaces();
+    if (interfaces.isEnabled()) {
+      InetAddress[] inetAddresses=InetAddress.getAllByName(addressHolder.getAddress());
+      if (inetAddresses.length > 1) {
+        for (        InetAddress inetAddress : inetAddresses) {
           if (AddressUtil.matchAnyInterface(inetAddress.getHostAddress(),interfaces.getInterfaces())) {
-            return new Address(addressHolder.getAddress(),addressHolder.getPort());
+            return new Address(inetAddress,addressHolder.getPort());
           }
         }
       }
- else {
+ else       if (AddressUtil.matchAnyInterface(inetAddresses[0].getHostAddress(),interfaces.getInterfaces())) {
         return new Address(addressHolder.getAddress(),addressHolder.getPort());
       }
+    }
+ else {
+      return new Address(addressHolder.getAddress(),addressHolder.getPort());
     }
   }
  catch (  final Exception e) {
