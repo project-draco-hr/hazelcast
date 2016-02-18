@@ -9,5 +9,14 @@
   Data messageData=dataAwareMessage.getMessageData();
   String publisherUuid=message.getPublishingMember().getUuid();
   ClientMessage eventMessage=TopicAddMessageListenerCodec.encodeTopicEvent(messageData,message.getPublishTime(),publisherUuid);
-  sendClientMessage(partitionKey,eventMessage);
+  boolean isMultithreaded=nodeEngine.getConfig().getTopicConfig(parameters.name).isMultiThreadingEnabled();
+  if (isMultithreaded) {
+    int key=rand.nextInt();
+    int partitionId=hashToIndex(key,nodeEngine.getPartitionService().getPartitionCount());
+    eventMessage.setPartitionId(partitionId);
+    sendClientMessage(eventMessage);
+  }
+ else {
+    sendClientMessage(partitionKey,eventMessage);
+  }
 }
