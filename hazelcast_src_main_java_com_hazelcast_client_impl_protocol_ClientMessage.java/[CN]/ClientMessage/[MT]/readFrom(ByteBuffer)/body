@@ -1,9 +1,19 @@
 {
-  if (index() == 0) {
-    initFrameSize(src);
+  int frameLength=0;
+  if (this.buffer == null) {
+    final int remaining=src.remaining();
+    if (remaining < Bits.INT_SIZE_IN_BYTES) {
+      return false;
+    }
+    frameLength=Bits.readIntL(src.array(),0);
+    if (USE_UNSAFE) {
+      wrap(new UnsafeBuffer(new byte[frameLength]),0);
+    }
+ else {
+      wrap(new SafeBuffer(new byte[frameLength]),0);
+    }
   }
-  while (index() >= Bits.INT_SIZE_IN_BYTES && src.hasRemaining() && !isComplete()) {
-    accumulate(src,getFrameLength() - index());
-  }
+  frameLength=frameLength > 0 ? frameLength : getFrameLength();
+  accumulate(src,frameLength - index());
   return isComplete();
 }
