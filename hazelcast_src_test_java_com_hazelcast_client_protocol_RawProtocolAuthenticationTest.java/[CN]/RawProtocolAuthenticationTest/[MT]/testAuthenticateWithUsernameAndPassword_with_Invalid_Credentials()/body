@@ -3,14 +3,17 @@
   channel.write(initData);
   String username=GroupConfig.DEFAULT_GROUP_NAME;
   String pass="TheInvalidPassword";
-  final ClientMessage parameters=ClientAuthenticationCodec.encodeRequest(username,pass,null,null,true,ClientTypes.JAVA,SerializationService.VERSION_1);
-  parameters.setCorrelationId(1).addFlag(ClientMessage.BEGIN_AND_END_FLAGS);
-  final ClientProtocolBuffer byteBuffer=parameters.buffer();
-  channel.write(ByteBuffer.wrap(byteBuffer.byteArray()));
+  final ClientMessage authMessage=ClientAuthenticationCodec.encodeRequest(username,pass,null,null,true,ClientTypes.JAVA,SerializationService.VERSION_1);
+  authMessage.setCorrelationId(1).addFlag(ClientMessage.BEGIN_AND_END_FLAGS);
+  final ClientProtocolBuffer byteBuffer=authMessage.buffer();
+  channel.write(ByteBuffer.wrap(byteBuffer.byteArray(),0,authMessage.getFrameLength()));
   final ByteBuffer socketBuffer=ByteBuffer.allocate(4096);
   ClientMessage clientMessage=ClientMessage.create();
   do {
-    channel.read(socketBuffer);
+    int read=channel.read(socketBuffer);
+    if (read < 0) {
+      throw new EOFException();
+    }
     socketBuffer.flip();
     clientMessage.readFrom(socketBuffer);
     if (socketBuffer.hasRemaining()) {
