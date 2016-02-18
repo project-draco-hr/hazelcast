@@ -1,0 +1,20 @@
+{
+  final InternalPartitionServiceImpl partitionService=getNode(instance).partitionService;
+  final Map<Integer,List<Address>> partitionTable=new HashMap<Integer,List<Address>>();
+  for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
+    final InternalPartition partition=partitionService.getPartition(partitionId);
+    for (int replicaIndex=0; replicaIndex < InternalPartitionImpl.MAX_REPLICA_COUNT; replicaIndex++) {
+      Address replicaAddress=partition.getReplicaAddress(replicaIndex);
+      if (replicaAddress == null) {
+        break;
+      }
+      List<Address> replicaAddresses=partitionTable.get(partitionId);
+      if (replicaAddresses == null) {
+        replicaAddresses=new ArrayList<Address>();
+        partitionTable.put(partitionId,replicaAddresses);
+      }
+      replicaAddresses.add(replicaAddress);
+    }
+  }
+  return partitionTable;
+}
