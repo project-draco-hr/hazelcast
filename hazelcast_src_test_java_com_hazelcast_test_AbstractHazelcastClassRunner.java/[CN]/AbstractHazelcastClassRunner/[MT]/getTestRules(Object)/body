@@ -1,0 +1,36 @@
+{
+  List<TestRule> testRules=super.getTestRules(target);
+  Set<Class<? extends TestRule>> testRuleClasses=new HashSet<Class<? extends TestRule>>();
+  TestClass testClass=getTestClass();
+  Annotation[] classAnnotations=testClass.getAnnotations();
+  for (  Annotation annotation : classAnnotations) {
+    Class<? extends Annotation> annotationType=annotation.annotationType();
+    AutoRegisteredTestRule autoFilterRule=annotationType.getAnnotation(AutoRegisteredTestRule.class);
+    if (autoFilterRule != null) {
+      Class<? extends TestRule> testRuleClass=autoFilterRule.testRule();
+      testRuleClasses.add(testRuleClass);
+    }
+  }
+  List<FrameworkMethod> annotatedMethods=testClass.getAnnotatedMethods();
+  for (  FrameworkMethod annotatedMethod : annotatedMethods) {
+    Annotation[] methodAnnotations=annotatedMethod.getAnnotations();
+    for (    Annotation annotation : methodAnnotations) {
+      Class<? extends Annotation> annotationType=annotation.annotationType();
+      AutoRegisteredTestRule autoFilterRule=annotationType.getAnnotation(AutoRegisteredTestRule.class);
+      if (autoFilterRule != null) {
+        Class<? extends TestRule> testRuleClass=autoFilterRule.testRule();
+        testRuleClasses.add(testRuleClass);
+      }
+    }
+  }
+  for (  Class<? extends TestRule> testRuleClass : testRuleClasses) {
+    try {
+      TestRule testRule=testRuleClass.newInstance();
+      testRules.add(testRule);
+    }
+ catch (    Throwable t) {
+      System.err.println("Unable to create test rule instance of test rule class " + testRuleClass.getName() + " because of "+ t);
+    }
+  }
+  return testRules;
+}
