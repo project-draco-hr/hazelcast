@@ -1,5 +1,6 @@
 {
   String location=properties.getProperty(HazelcastCachingProvider.HAZELCAST_CONFIG_LOCATION);
+  String instanceName=properties.getProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME);
   if (location != null) {
     URI uri=new URI(location);
     String scheme=uri.getScheme();
@@ -18,16 +19,13 @@
       throw new URISyntaxException(location,"Unsupported protocol in configuration location URL");
     }
     try {
-      Config config=new XmlConfigBuilder(configURL).build();
-      config.setClassLoader(theClassLoader);
-      config.setInstanceName(configURL.toString());
+      Config config=getConfig(configURL,theClassLoader,instanceName);
       return HazelcastInstanceFactory.getOrCreateHazelcastInstance(config);
     }
  catch (    Exception e) {
       throw ExceptionUtil.rethrow(e);
     }
   }
-  String instanceName=properties.getProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME);
   if (instanceName != null) {
     return Hazelcast.getHazelcastInstanceByName(instanceName);
   }
