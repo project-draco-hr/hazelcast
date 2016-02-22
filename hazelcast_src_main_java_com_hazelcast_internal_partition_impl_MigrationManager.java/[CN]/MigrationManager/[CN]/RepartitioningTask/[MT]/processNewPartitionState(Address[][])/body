@@ -1,26 +1,56 @@
 {
-  int migrationCount=0;
-  int lostCount=0;
-  lastRepartitionTime.set(Clock.currentTimeMillis());
-  for (int partitionId=0; partitionId < newState.length; partitionId++) {
-    Address[] replicas=newState[partitionId];
-    InternalPartitionImpl currentPartition=partitionStateManager.getPartitionImpl(partitionId);
-    Address currentOwner=currentPartition.getOwnerOrNull();
-    Address newOwner=replicas[0];
-    if (currentOwner == null) {
-      lostCount++;
-      assignNewPartitionOwner(partitionId,replicas,currentPartition,newOwner);
+  System.out.println("");
+  for (int i=0; i < newState.length; i++) {
+    Address[] addresses=newState[i];
+    System.out.print("partitionId: " + i + " -> ");
+    for (    Address address : addresses) {
+      System.out.print(address + ", ");
     }
- else     if (newOwner != null && !currentOwner.equals(newOwner)) {
-      if (logger.isFinestEnabled()) {
-        logger.finest("PartitionToMigrate partitionId=" + partitionId + " replicas="+ Arrays.toString(replicas)+ " currentOwner="+ currentOwner+ " newOwner="+ newOwner);
-      }
-      migrationCount++;
-      migratePartitionToNewOwner(partitionId,replicas,currentOwner,newOwner);
-    }
- else {
-      currentPartition.setReplicaAddresses(replicas);
-    }
+    System.out.println();
   }
-  logMigrationStatistics(migrationCount,lostCount);
+  System.out.println("");
+  int lostCount=0;
+  if (node.getClusterService().getSize() == 5) {
+    System.out.println();
+  }
+  List<MigrationInfo> migrations=new ArrayList<MigrationInfo>();
+  for (int partitionId=0; partitionId < newState.length; partitionId++) {
+    InternalPartitionImpl currentPartition=partitionStateManager.getPartitionImpl(partitionId);
+    Address[] newReplicas=newState[partitionId];
+    for (int replicaIndex=0; replicaIndex < InternalPartition.MAX_REPLICA_COUNT; replicaIndex++) {
+      Address currentOwner=currentPartition.getReplicaAddress(replicaIndex);
+      Address newOwner=newReplicas[replicaIndex];
+      if (currentOwner == null && newOwner == null || currentOwner != null && currentOwner.equals(newOwner)) {
+        continue;
+      }
+      if (currentOwner == null) {
+        if (replicaIndex == 0) {
+          lostCount++;
+          assignNewPartitionOwner(partitionId,currentPartition,newOwner);
+          continue;
+        }
+        migrations.add(new MigrationInfo(partitionId,replicaIndex,null,newOwner,MigrationType.COPY));
+        continue;
+      }
+      if (newOwner == null) {
+        continue;
+      }
+      migrations.add(new MigrationInfo(partitionId,replicaIndex,currentOwner,newOwner,MigrationType.MOVE));
+    }
+    MigrationInfo current=null;
+    ListIterator<MigrationInfo> iter=migrations.listIterator(migrations.size());
+    while (iter.hasPrevious()) {
+      MigrationInfo prev=iter.previous();
+      if (current == null) {
+        current=prev;
+        continue;
+      }
+    }
+    for (    MigrationInfo migration : migrations) {
+      logger.severe("Scheduling " + migration);
+      scheduleMigration(migration,MigrateTaskReason.REPARTITIONING);
+    }
+    migrations.clear();
+  }
+  logMigrationStatistics(migrations.size(),lostCount);
 }

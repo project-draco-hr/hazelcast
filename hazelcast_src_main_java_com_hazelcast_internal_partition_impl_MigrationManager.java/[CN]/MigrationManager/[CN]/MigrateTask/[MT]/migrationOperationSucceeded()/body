@@ -1,15 +1,20 @@
 {
-  internalMigrationListener.onMigrationComplete(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo,true);
+  migrationInfo.setStatus(MigrationStatus.SUCCESS);
+  internalMigrationListener.onMigrationComplete(MigrationParticipant.MASTER,migrationInfo,true);
   addCompletedMigration(migrationInfo);
-  boolean commitSuccessful=commitMigrationToDestination(migrationInfo,addresses);
+  boolean commitSuccessful=commitMigrationToDestination(migrationInfo);
   partitionServiceLock.lock();
   try {
     if (commitSuccessful) {
-      partitionStateManager.updateReplicaAddresses(migrationInfo.getPartitionId(),addresses);
-      internalMigrationListener.onMigrationCommit(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo);
+      internalMigrationListener.onMigrationCommit(MigrationParticipant.MASTER,migrationInfo);
+      InternalPartitionImpl partition=partitionStateManager.getPartitionImpl(migrationInfo.getPartitionId());
+      partition.setReplicaAddress(migrationInfo.getReplicaIndex(),migrationInfo.getDestination());
+      if (migrationInfo.getKeepReplicaIndex() > -1) {
+        partition.setReplicaAddress(migrationInfo.getKeepReplicaIndex(),migrationInfo.getSource());
+      }
     }
  else {
-      internalMigrationListener.onMigrationRollback(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo);
+      internalMigrationListener.onMigrationRollback(MigrationParticipant.MASTER,migrationInfo);
     }
     scheduleActiveMigrationFinalization(migrationInfo);
     partitionService.syncPartitionRuntimeState();

@@ -2,14 +2,17 @@
   boolean migrating=false;
   for (; ; ) {
     if (!migrationManager.isMigrationAllowed()) {
+      MigrationRunnable runnable=queue.peek();
+      if (runnable == null || runnable.isPauseable()) {
+        break;
+      }
+    }
+    MigrationRunnable runnable=queue.poll(1,TimeUnit.SECONDS);
+    if (runnable == null) {
       break;
     }
-    Runnable r=queue.poll(1,TimeUnit.SECONDS);
-    if (r == null) {
-      break;
-    }
-    migrating|=r instanceof MigrationManager.MigrateTask;
-    processTask(r);
+    migrating|=runnable instanceof MigrationManager.MigrateTask;
+    processTask(runnable);
     if (partitionMigrationInterval > 0) {
       Thread.sleep(partitionMigrationInterval);
     }
@@ -19,7 +22,6 @@
     if (migrating) {
       logger.info("All migration tasks have been completed, queues are empty.");
     }
-    migrationManager.evictCompletedMigrations();
     Thread.sleep(sleepTime);
   }
  else   if (!migrationManager.isMigrationAllowed()) {

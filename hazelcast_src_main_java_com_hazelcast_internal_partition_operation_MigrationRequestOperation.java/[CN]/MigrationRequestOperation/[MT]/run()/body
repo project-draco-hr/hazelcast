@@ -9,28 +9,21 @@
     setFailed();
     return;
   }
-  verifyNotThisNode(nodeEngine,source);
-  InternalPartitionServiceImpl partitionService=getService();
-  InternalPartition partition=partitionService.getPartition(migrationInfo.getPartitionId());
-  Address owner=partition.getOwnerOrNull();
-  verifyOwnerExists(owner);
+  InternalPartition partition=getPartition();
+  verifySource(nodeEngine.getThisAddress(),partition);
   if (!migrationInfo.startProcessing()) {
     getLogger().warning("Migration is cancelled -> " + migrationInfo);
     setFailed();
     return;
   }
-  if (!source.equals(owner)) {
-    getLogger().warning("Cannot migrate! This node is not owner of the partition => " + migrationInfo + " -> partitionId="+ partition.getPartitionId()+ " , "+ partition);
-    setFailed();
-    return;
-  }
+  InternalPartitionServiceImpl partitionService=getService();
   MigrationManager migrationManager=partitionService.getMigrationManager();
   if (!migrationManager.addActiveMigration(migrationInfo)) {
     setFailed();
     return;
   }
   try {
-    Collection<Operation> tasks=prepareMigrationTasks();
+    Collection<Operation> tasks=prepareMigrationOperations();
     long[] replicaVersions=partitionService.getPartitionReplicaVersions(migrationInfo.getPartitionId());
     invokeMigrationOperation(destination,replicaVersions,tasks);
     returnResponse=false;

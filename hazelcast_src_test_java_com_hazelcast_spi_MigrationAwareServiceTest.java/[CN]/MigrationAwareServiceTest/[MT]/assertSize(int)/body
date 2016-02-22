@@ -4,12 +4,33 @@
       Collection<HazelcastInstance> instances=factory.getAllHazelcastInstances();
       int expectedSize=PARTITION_COUNT * Math.min(backupCount + 1,instances.size());
       int total=0;
+      StringBuilder s=new StringBuilder();
       for (      HazelcastInstance hz : instances) {
         SampleMigrationAwareService service=getService(hz);
         total+=service.size();
+        Node node=getNode(hz);
+        InternalPartitionService partitionService=node.getPartitionService();
+        InternalPartition[] partitions=partitionService.getInternalPartitions();
+        s.append("\nLEAK ").append(node.getThisAddress()).append("\n");
+        for (        Integer p : service.data.keySet()) {
+          int replicaIndex=partitions[p].getReplicaIndex(node.getThisAddress());
+          if (replicaIndex < 0 || replicaIndex > backupCount) {
+            s.append(p).append(": ").append(replicaIndex).append("\n");
+          }
+        }
+        s.append("\n");
+        s.append("MISSING ").append(node.getThisAddress()).append("\n");
+        for (        InternalPartition partition : partitions) {
+          int replicaIndex=partition.getReplicaIndex(node.getThisAddress());
+          if (replicaIndex >= 0 && replicaIndex <= backupCount) {
+            if (!service.data.containsKey(partition.getPartitionId())) {
+              s.append(partition.getPartitionId()).append(": ").append(replicaIndex).append("\n");
+            }
+          }
+        }
       }
-      assertEquals(expectedSize,total);
+      assertEquals(s.toString(),expectedSize,total);
     }
   }
-);
+,15);
 }

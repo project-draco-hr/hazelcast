@@ -5,9 +5,18 @@
     logger.severe("ERROR: partition owner is not set! -> partitionId=" + migrationInfo.getPartitionId() + " , "+ partition+ " -VS- "+ migrationInfo);
     return false;
   }
-  if (!owner.equals(migrationInfo.getSource())) {
-    logger.severe("ERROR: partition owner is not the source of migration! -> partitionId=" + migrationInfo.getPartitionId() + " , "+ partition+ " -VS- "+ migrationInfo+ " found owner="+ owner);
-    return false;
+  if (migrationInfo.getType() == MigrationType.MOVE) {
+    Address replica=partition.getReplicaAddress(migrationInfo.getReplicaIndex());
+    if (replica == null) {
+      logger.severe("ERROR: partition replica owner is not set! -> partitionId=" + migrationInfo.getPartitionId() + " , "+ partition+ " -VS- "+ migrationInfo);
+      return false;
+    }
+    if (!replica.equals(migrationInfo.getSource())) {
+      logger.severe("ERROR: partition replica owner is not the source of migration! -> partitionId=" + migrationInfo.getPartitionId() + " , "+ partition+ " -VS- "+ migrationInfo+ " found owner= "+ replica);
+      return false;
+    }
+  }
+  if (migrationInfo.getType() == MigrationType.COPY) {
   }
   return true;
 }

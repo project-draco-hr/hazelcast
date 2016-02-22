@@ -2,12 +2,8 @@
   InternalPartitionServiceImpl partitionService=getService();
   int partitionId=getPartitionId();
   MigrationManager migrationManager=partitionService.getMigrationManager();
-  MigrationInfo migrationInfo=migrationManager.getActiveMigration(partitionId);
-  if (migrationInfo == null) {
-    return;
-  }
   NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-  PartitionMigrationEvent event=new PartitionMigrationEvent(endpoint,partitionId);
+  PartitionMigrationEvent event=new PartitionMigrationEvent(endpoint,migrationInfo.getType(),partitionId,migrationInfo.getReplicaIndex(),migrationInfo.getKeepReplicaIndex());
   for (  MigrationAwareService service : nodeEngine.getServices(MigrationAwareService.class)) {
     finishMigration(event,service);
   }
@@ -17,7 +13,6 @@
  else   if (endpoint == MigrationEndpoint.DESTINATION && !success) {
     partitionService.clearPartitionReplicaVersions(partitionId);
   }
-  migrationManager.removeActiveMigration(partitionId);
   if (success) {
     nodeEngine.onPartitionMigrate(migrationInfo);
   }

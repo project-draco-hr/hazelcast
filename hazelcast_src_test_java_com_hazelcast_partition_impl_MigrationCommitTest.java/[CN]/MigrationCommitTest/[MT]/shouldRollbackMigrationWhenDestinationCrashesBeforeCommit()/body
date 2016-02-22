@@ -2,7 +2,7 @@
   final CountDownLatch migrationStartLatch=new CountDownLatch(1);
   final Config config1=createConfig();
   config1.setLiteMember(true);
-  final CrashOtherMemberWhenMigrationCompleteOnMaster masterListener=new CrashOtherMemberWhenMigrationCompleteOnMaster(migrationStartLatch);
+  final TerminateOtherMemberOnMigrationComplete masterListener=new TerminateOtherMemberOnMigrationComplete(migrationStartLatch);
   config1.addListenerConfig(new ListenerConfig(masterListener));
   final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(3);
   final HazelcastInstance hz1=factory.newHazelcastInstance(config1);
@@ -12,6 +12,7 @@
   final HazelcastInstance hz3=factory.newHazelcastInstance(createConfig());
   masterListener.other=hz3;
   migrationStartLatch.countDown();
+  sleepAtLeastSeconds(10);
   waitAllForSafeState(hz1,hz2);
   final InternalPartition partition0=getPartitionService(hz2).getPartition(0);
   final InternalPartition partition1=getPartitionService(hz2).getPartition(1);
@@ -19,5 +20,5 @@
   assertEquals(getAddress(hz2),partition1.getOwnerOrNull());
   assertFalse(partition0.isMigrating());
   assertFalse(partition1.isMigrating());
-  assertTrue(masterListener.rollback.get());
+  assertTrue(masterListener.rollback);
 }

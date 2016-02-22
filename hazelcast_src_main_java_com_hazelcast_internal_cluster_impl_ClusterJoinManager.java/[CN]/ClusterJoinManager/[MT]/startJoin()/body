@@ -16,7 +16,11 @@
       PostJoinOperation postJoinOp=(createPostJoinOperation ? new PostJoinOperation(postJoinOps) : null);
       int count=members.size() - 1 + setJoins.size();
       List<Future> calls=new ArrayList<Future>(count);
-      PartitionRuntimeState partitionState=node.partitionService.createPartitionState();
+      PartitionRuntimeState partitionState=null;
+      if (node.partitionService.getMigrationPauseCount() == 1) {
+        partitionState=node.partitionService.createPartitionState();
+        ;
+      }
       for (      MemberInfo member : setJoins) {
         long startTime=clusterClock.getClusterStartTime();
         Operation joinOperation=new FinalizeJoinOperation(memberInfos,postJoinOp,time,clusterService.getClusterId(),startTime,clusterStateManager.getState(),partitionState);

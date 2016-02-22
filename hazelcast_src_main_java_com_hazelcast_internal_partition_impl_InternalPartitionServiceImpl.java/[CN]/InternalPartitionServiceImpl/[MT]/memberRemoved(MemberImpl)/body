@@ -5,22 +5,24 @@
   final Address thisAddress=node.getThisAddress();
   lock.lock();
   try {
-    if (partitionStateManager.isInitialized() && node.getClusterService().getClusterState() == ClusterState.ACTIVE) {
+    final int partitionStateVersionBeforeMemberRemove=partitionStateManager.getVersion();
+    if (node.isMaster() && partitionStateManager.isInitialized() && node.getClusterService().getClusterState() == ClusterState.ACTIVE) {
       partitionStateManager.incrementVersion();
     }
     migrationManager.onMemberRemove(member);
-    if (node.isMaster() && !thisAddress.equals(lastMaster)) {
-      Runnable runnable=new FetchMostRecentPartitionTableTask();
-      migrationManager.execute(runnable);
+    boolean isThisNodeNewMaster=node.isMaster() && !thisAddress.equals(lastMaster);
+    if (isThisNodeNewMaster) {
+      migrationManager.schedule(new FetchMostRecentPartitionTableTask(partitionStateVersionBeforeMemberRemove));
     }
     lastMaster=node.getMasterAddress();
     migrationManager.pauseMigration();
     replicaManager.cancelReplicaSyncRequestsTo(deadAddress);
     if (node.isMaster()) {
-      migrationManager.execute(new RepairPartitionTableTask(deadAddress));
-      migrationManager.triggerRepartitioning();
+      migrationManager.schedule(new RepairPartitionTableTask(deadAddress));
     }
-    migrationManager.resumeMigrationEventually();
+    if (!isThisNodeNewMaster) {
+      migrationManager.resumeMigrationEventually();
+    }
   }
   finally {
     lock.unlock();

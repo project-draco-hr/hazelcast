@@ -8,10 +8,11 @@
     Future<PartitionRuntimeState> future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new FetchPartitionStateOperation(),m.getAddress()).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
     futures.add(future);
   }
-  int version=getPartitionStateVersion();
+  int version=this.version;
+  logger.info("Fetching most recent partition table! my version: " + version);
   PartitionRuntimeState newState=null;
-  Collection<MigrationInfo> activeMigrations=new ArrayList<MigrationInfo>();
   Collection<MigrationInfo> allCompletedMigrations=new HashSet<MigrationInfo>();
+  Collection<MigrationInfo> allActiveMigrations=new HashSet<MigrationInfo>();
   for (  Future<PartitionRuntimeState> future : futures) {
     try {
       PartitionRuntimeState state=future.get();
@@ -21,7 +22,7 @@
       }
       allCompletedMigrations.addAll(state.getCompletedMigrations());
       if (state.getActiveMigration() != null) {
-        activeMigrations.add(state.getActiveMigration());
+        allActiveMigrations.add(state.getActiveMigration());
       }
     }
  catch (    TargetNotMemberException e) {
@@ -35,21 +36,34 @@ catch (    ExecutionException e) {
       e.printStackTrace();
     }
   }
+  logger.info("Most recent partition table version: " + version);
   lock.lock();
   try {
-    if (migrationManager.getActiveMigration() != null) {
-      activeMigrations.add(migrationManager.getActiveMigration());
-    }
     allCompletedMigrations.addAll(migrationManager.getCompletedMigrations());
-    migrationManager.setCompletedMigrations(allCompletedMigrations);
+    if (migrationManager.getActiveMigration() != null) {
+      allActiveMigrations.add(migrationManager.getActiveMigration());
+    }
+    for (    MigrationInfo activeMigration : allActiveMigrations) {
+      activeMigration.setStatus(MigrationStatus.FAILED);
+      if (allCompletedMigrations.add(activeMigration)) {
+        logger.info("Marked active migration " + activeMigration + " as "+ MigrationStatus.FAILED);
+      }
+    }
     if (newState != null) {
+      newState.setCompletedMigrations(allCompletedMigrations);
+      logger.info("Applying the most recent of partition state...");
       applyNewState(newState,thisAddress);
     }
-    for (    MigrationInfo activeMigration : activeMigrations) {
-      migrationManager.addCompletedMigration(activeMigration);
+ else {
+      migrationManager.setCompletedMigrations(allCompletedMigrations);
+      for (      MigrationInfo migrationInfo : allCompletedMigrations) {
+        migrationManager.scheduleActiveMigrationFinalization(migrationInfo);
+      }
     }
   }
   finally {
     lock.unlock();
   }
+  syncPartitionRuntimeState();
+  migrationManager.resumeMigrationEventually();
 }

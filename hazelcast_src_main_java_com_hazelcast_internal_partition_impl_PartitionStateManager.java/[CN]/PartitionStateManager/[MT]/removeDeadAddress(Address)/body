@@ -2,6 +2,9 @@
   Collection<MigrationInfo> migrations=new ArrayList<MigrationInfo>();
   for (  InternalPartitionImpl partition : partitions) {
     final int index=partition.removeAddress(deadAddress);
+    if (index == -1) {
+      continue;
+    }
     if (index == 0) {
       partition.swapAddresses(0,1);
     }
@@ -9,11 +12,11 @@
     if ((owner=partition.getOwnerOrNull()) == null) {
       continue;
     }
-    Address destination=null;
+    Address destination;
     for (int i=InternalPartition.MAX_REPLICA_COUNT - 1; i > index; i--) {
       destination=partition.getReplicaAddress(i);
       if (destination != null) {
-        migrations.add(new MigrationInfo(partition.getPartitionId(),owner,destination));
+        migrations.add(new MigrationInfo(partition.getPartitionId(),index,owner,destination));
         break;
       }
     }

@@ -2,30 +2,30 @@
   if (!node.isMaster()) {
     return;
   }
-  final MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo);
   try {
     if (!checkPartitionOwner()) {
       return;
     }
-    internalMigrationListener.onMigrationStart(InternalMigrationListener.MigrationParticipant.MASTER,migrationInfo);
+    internalMigrationListener.onMigrationStart(MigrationParticipant.MASTER,migrationInfo);
     partitionService.getPartitionEventManager().sendMigrationEvent(migrationInfo,MigrationEvent.MigrationStatus.STARTED);
     Boolean result;
-    MemberImpl fromMember=partitionService.getMember(migrationInfo.getSource());
     if (logger.isFinestEnabled()) {
-      logger.finest("Starting Migration: " + migrationInfo);
+      logger.info("Starting Migration: " + migrationInfo);
     }
+    MemberImpl fromMember=getSourceMember();
     if (fromMember == null) {
       logger.warning("Partition is lost! Assign new owner and exit... partitionId=" + migrationInfo.getPartitionId());
       result=Boolean.TRUE;
     }
  else {
+      MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo,partitionService.getPartitionStateVersion());
       result=executeMigrateOperation(migrationRequestOp,fromMember);
     }
     processMigrationResult(result);
   }
  catch (  Throwable t) {
     final Level level=migrationEndpointsActive() ? Level.WARNING : Level.FINEST;
-    logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] while executing "+ migrationRequestOp);
+    logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] during "+ migrationInfo);
     logger.finest(t);
     migrationOperationFailed();
   }

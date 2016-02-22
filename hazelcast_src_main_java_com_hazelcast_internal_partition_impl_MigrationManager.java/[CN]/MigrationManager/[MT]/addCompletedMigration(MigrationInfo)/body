@@ -1,11 +1,14 @@
 {
-  completedMigrationCounter.incrementAndGet();
+  if (migrationInfo.getStatus() != MigrationStatus.SUCCESS && migrationInfo.getStatus() != MigrationStatus.FAILED) {
+    throw new IllegalArgumentException("Migration doesn't seem completed: " + migrationInfo);
+  }
   partitionServiceLock.lock();
   try {
-    if (completedMigrations.size() > 25) {
-      completedMigrations.removeFirst();
+    boolean added=completedMigrations.add(migrationInfo);
+    if (added) {
+      completedMigrationCounter.incrementAndGet();
     }
-    completedMigrations.add(migrationInfo);
+    return added;
   }
   finally {
     partitionServiceLock.unlock();
