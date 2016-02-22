@@ -1,0 +1,31 @@
+{
+  int size=in.readInt();
+  delayedEntries=new HashMap<String,List<DelayedEntry>>(size);
+  for (int i=0; i < size; i++) {
+    String mapName=in.readUTF();
+    int listSize=in.readInt();
+    List<DelayedEntry> delayedEntriesList=new ArrayList<DelayedEntry>(listSize);
+    for (int j=0; j < listSize; j++) {
+      Data key=in.readData();
+      Data value=in.readData();
+      long storeTime=in.readLong();
+      int partitionId=in.readInt();
+      long sequence=in.readLong();
+      DelayedEntry<Data,Data> entry=DelayedEntries.createDefault(key,value,storeTime,partitionId);
+      entry.setSequence(sequence);
+      delayedEntriesList.add(entry);
+    }
+    delayedEntries.put(mapName,delayedEntriesList);
+  }
+  int expectedSize=in.readInt();
+  flushSequences=new HashMap<String,Queue<WriteBehindStore.Sequence>>(expectedSize);
+  for (int i=0; i < expectedSize; i++) {
+    String mapName=in.readUTF();
+    int setSize=in.readInt();
+    Queue<WriteBehindStore.Sequence> queue=new ArrayDeque<WriteBehindStore.Sequence>(setSize);
+    for (int j=0; j < setSize; j++) {
+      queue.add(new WriteBehindStore.Sequence(in.readLong(),in.readBoolean()));
+    }
+    flushSequences.put(mapName,queue);
+  }
+}

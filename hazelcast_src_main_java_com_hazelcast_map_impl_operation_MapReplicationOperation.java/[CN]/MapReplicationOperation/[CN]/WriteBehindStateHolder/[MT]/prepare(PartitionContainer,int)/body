@@ -1,0 +1,22 @@
+{
+  int size=container.getMaps().size();
+  flushSequences=new HashMap<String,Queue<WriteBehindStore.Sequence>>(size);
+  delayedEntries=new HashMap<String,List<DelayedEntry>>(size);
+  for (  Entry<String,RecordStore> entry : container.getMaps().entrySet()) {
+    RecordStore recordStore=entry.getValue();
+    MapContainer mapContainer=recordStore.getMapContainer();
+    MapConfig mapConfig=mapContainer.getMapConfig();
+    if (mapConfig.getTotalBackupCount() < replicaIndex || !mapContainer.getMapStoreContext().isWriteBehindMapStoreEnabled()) {
+      continue;
+    }
+    WriteBehindStore mapDataStore=(WriteBehindStore)recordStore.getMapDataStore();
+    WriteBehindQueue<DelayedEntry> writeBehindQueue=mapDataStore.getWriteBehindQueue();
+    List<DelayedEntry> entries=writeBehindQueue.asList();
+    if (entries == null || entries.isEmpty()) {
+      continue;
+    }
+    String mapName=entry.getKey();
+    delayedEntries.put(mapName,entries);
+    flushSequences.put(mapName,new ArrayDeque<WriteBehindStore.Sequence>(mapDataStore.getFlushSequences()));
+  }
+}

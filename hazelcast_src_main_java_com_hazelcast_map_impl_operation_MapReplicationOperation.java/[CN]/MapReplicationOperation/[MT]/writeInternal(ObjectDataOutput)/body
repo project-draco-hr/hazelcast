@@ -1,32 +1,4 @@
 {
-  out.writeInt(data.size());
-  for (  Entry<String,Set<RecordReplicationInfo>> mapEntry : data.entrySet()) {
-    out.writeUTF(mapEntry.getKey());
-    Set<RecordReplicationInfo> recordReplicationInfos=mapEntry.getValue();
-    out.writeInt(recordReplicationInfos.size());
-    for (    RecordReplicationInfo recordReplicationInfo : recordReplicationInfos) {
-      out.writeObject(recordReplicationInfo);
-    }
-  }
-  final MapService mapService=getService();
-  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
-  out.writeInt(delayedEntries.size());
-  for (  Entry<String,Collection<DelayedEntry>> entry : delayedEntries.entrySet()) {
-    out.writeUTF(entry.getKey());
-    final Collection<DelayedEntry> delayedEntryList=entry.getValue();
-    out.writeInt(delayedEntryList.size());
-    for (    DelayedEntry e : delayedEntryList) {
-      final Data key=mapServiceContext.toData(e.getKey());
-      final Data value=mapServiceContext.toData(e.getValue());
-      out.writeData(key);
-      out.writeData(value);
-      out.writeLong(e.getStoreTime());
-      out.writeInt(e.getPartitionId());
-    }
-  }
-  out.writeInt(flushCounters.size());
-  for (  Entry<String,Integer> entry : flushCounters.entrySet()) {
-    out.writeUTF(entry.getKey());
-    out.writeInt(entry.getValue());
-  }
+  mapReplicationStateHolder.writeData(out);
+  writeBehindStateHolder.writeData(out);
 }

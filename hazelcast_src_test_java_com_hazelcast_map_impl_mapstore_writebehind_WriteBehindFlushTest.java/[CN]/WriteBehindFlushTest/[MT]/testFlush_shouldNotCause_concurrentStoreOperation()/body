@@ -1,10 +1,16 @@
 {
   int blockStoreOperationSeconds=5;
   TemporaryBlockerMapStore store=new TemporaryBlockerMapStore(blockStoreOperationSeconds);
-  Config config=newMapStoredConfig(store,2);
-  HazelcastInstance node=createHazelcastInstance(config);
-  IMap<String,String> map=node.getMap("default");
-  map.put("key","value");
+  Config config=newMapStoredConfig(store,2000);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance node1=factory.newHazelcastInstance(config);
+  HazelcastInstance node2=factory.newHazelcastInstance(config);
+  HazelcastInstance node3=factory.newHazelcastInstance(config);
+  IMap<String,String> map=node1.getMap("default");
+  int numberOfPuts=1000;
+  for (int i=0; i < numberOfPuts; i++) {
+    map.put(i + "",i + "");
+  }
   map.flush();
-  assertEquals("Expecting only one store after flush",1,store.getStoreOperationCount());
+  assertEquals("Expecting " + numberOfPuts + " store after flush",numberOfPuts,store.getStoreOperationCount());
 }

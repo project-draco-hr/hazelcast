@@ -1,10 +1,22 @@
 {
   try {
-    MapOperation operation=operationProvider.createMapFlushOperation(name);
-    operationService.invokeOnAllPartitions(SERVICE_NAME,new BinaryOperationFactory(operation,getNodeEngine()));
+    MapOperation mapFlushOperation=operationProvider.createMapFlushOperation(name);
+    BinaryOperationFactory operationFactory=new BinaryOperationFactory(mapFlushOperation,getNodeEngine());
+    Map<Integer,Object> results=operationService.invokeOnAllPartitions(SERVICE_NAME,operationFactory);
+    List<Future> futures=new ArrayList<Future>();
+    for (    Entry<Integer,Object> entry : results.entrySet()) {
+      Integer partitionId=entry.getKey();
+      Long count=((Long)entry.getValue());
+      if (count != 0) {
+        Operation operation=new AwaitMapFlushOperation(name,count);
+        futures.add(operationService.invokeOnPartition(MapService.SERVICE_NAME,operation,partitionId));
+      }
+    }
+    for (    Future future : futures) {
+      future.get();
+    }
   }
  catch (  Throwable t) {
     throw ExceptionUtil.rethrow(t);
   }
-  waitUntilFlushed();
 }

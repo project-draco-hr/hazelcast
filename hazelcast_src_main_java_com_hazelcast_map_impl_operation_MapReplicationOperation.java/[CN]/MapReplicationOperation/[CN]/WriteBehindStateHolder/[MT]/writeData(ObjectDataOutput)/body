@@ -1,0 +1,29 @@
+{
+  MapService mapService=getService();
+  MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  out.writeInt(delayedEntries.size());
+  for (  Entry<String,List<DelayedEntry>> entry : delayedEntries.entrySet()) {
+    out.writeUTF(entry.getKey());
+    List<DelayedEntry> delayedEntryList=entry.getValue();
+    out.writeInt(delayedEntryList.size());
+    for (    DelayedEntry e : delayedEntryList) {
+      Data key=mapServiceContext.toData(e.getKey());
+      Data value=mapServiceContext.toData(e.getValue());
+      out.writeData(key);
+      out.writeData(value);
+      out.writeLong(e.getStoreTime());
+      out.writeInt(e.getPartitionId());
+      out.writeLong(e.getSequence());
+    }
+  }
+  out.writeInt(flushSequences.size());
+  for (  Entry<String,Queue<WriteBehindStore.Sequence>> entry : flushSequences.entrySet()) {
+    out.writeUTF(entry.getKey());
+    Queue<WriteBehindStore.Sequence> queue=entry.getValue();
+    out.writeInt(queue.size());
+    for (    WriteBehindStore.Sequence sequence : queue) {
+      out.writeLong(sequence.getSequence());
+      out.writeBoolean(sequence.isFullFlush());
+    }
+  }
+}
