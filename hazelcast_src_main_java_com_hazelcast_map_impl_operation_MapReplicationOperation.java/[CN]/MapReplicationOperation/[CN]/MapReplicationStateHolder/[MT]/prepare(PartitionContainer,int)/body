@@ -1,0 +1,22 @@
+{
+  data=new HashMap<String,Set<RecordReplicationInfo>>(container.getMaps().size());
+  for (  Entry<String,RecordStore> entry : container.getMaps().entrySet()) {
+    RecordStore recordStore=entry.getValue();
+    MapContainer mapContainer=recordStore.getMapContainer();
+    MapConfig mapConfig=mapContainer.getMapConfig();
+    if (mapConfig.getTotalBackupCount() < replicaIndex) {
+      continue;
+    }
+    MapServiceContext mapServiceContext=mapContainer.getMapServiceContext();
+    String mapName=entry.getKey();
+    Set<RecordReplicationInfo> recordSet=new HashSet<RecordReplicationInfo>(recordStore.size());
+    final Iterator<Record> iterator=recordStore.iterator();
+    while (iterator.hasNext()) {
+      Record record=iterator.next();
+      Data key=record.getKey();
+      RecordReplicationInfo recordReplicationInfo=createRecordReplicationInfo(key,record,mapServiceContext);
+      recordSet.add(recordReplicationInfo);
+    }
+    data.put(mapName,recordSet);
+  }
+}

@@ -1,30 +1,4 @@
 {
-  MapService mapService=getService();
-  final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
-  if (data != null) {
-    for (    Entry<String,Set<RecordReplicationInfo>> dataEntry : data.entrySet()) {
-      Set<RecordReplicationInfo> recordReplicationInfos=dataEntry.getValue();
-      final String mapName=dataEntry.getKey();
-      RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),mapName);
-      recordStore.reset();
-      for (      RecordReplicationInfo recordReplicationInfo : recordReplicationInfos) {
-        Data key=recordReplicationInfo.getKey();
-        final Data value=recordReplicationInfo.getValue();
-        Record newRecord=recordStore.createRecord(value,-1L,Clock.currentTimeMillis());
-        applyRecordInfo(newRecord,recordReplicationInfo);
-        recordStore.putRecord(key,newRecord);
-      }
-    }
-  }
-  for (  Entry<String,Collection<DelayedEntry>> entry : delayedEntries.entrySet()) {
-    String mapName=entry.getKey();
-    RecordStore recordStore=mapServiceContext.getRecordStore(getPartitionId(),mapName);
-    WriteBehindStore mapDataStore=(WriteBehindStore)recordStore.getMapDataStore();
-    mapDataStore.clear();
-    mapDataStore.setNumberOfEntriesToFlush(flushCounters.get(mapName));
-    Collection<DelayedEntry> replicatedEntries=entry.getValue();
-    for (    DelayedEntry delayedEntry : replicatedEntries) {
-      mapDataStore.add(delayedEntry);
-    }
-  }
+  mapReplicationStateHolder.applyState();
+  writeBehindStateHolder.applyState();
 }

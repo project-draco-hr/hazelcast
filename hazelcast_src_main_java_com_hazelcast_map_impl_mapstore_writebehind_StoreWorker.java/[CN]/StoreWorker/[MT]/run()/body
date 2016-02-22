@@ -3,7 +3,7 @@
   List<DelayedEntry> entries=new ArrayList<DelayedEntry>(partitionCount);
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
-    if (recordStore == null) {
+    if (!hasEntryInWriteBehindQueue(recordStore)) {
       continue;
     }
     List<DelayedEntry> entriesToStore=getEntriesToStore(recordStore,now);
@@ -19,7 +19,8 @@
   if (!entries.isEmpty()) {
     Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(entries);
     removeFinishedStoreOperationsFromQueues(mapName,entries);
-    readdFailedStoreOperationsToQueues(mapName,failuresPerPartition);
+    reAddFailedStoreOperationsToQueues(mapName,failuresPerPartition);
     lastRunTimeMillis=now;
   }
+  notifyFlush();
 }
