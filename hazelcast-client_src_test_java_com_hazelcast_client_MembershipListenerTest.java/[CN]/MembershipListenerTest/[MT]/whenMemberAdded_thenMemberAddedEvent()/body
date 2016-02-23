@@ -1,11 +1,13 @@
 {
+  final HazelcastInstance server1=hazelcastFactory.newHazelcastInstance();
   final MemberShipEventLogger listener=new MemberShipEventLogger();
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient();
   client.getCluster().addMembershipListener(listener);
   final HazelcastInstance server2=hazelcastFactory.newHazelcastInstance();
   assertTrueEventually(new AssertTask(){
     @Override public void run(){
       assertNotEquals("Expecting one or more events",0,listener.events.size());
-      MembershipEvent event=listener.events.getLast();
+      MembershipEvent event=(MembershipEvent)listener.events.getLast();
       assertEquals("Last event should be member added",MembershipEvent.MEMBER_ADDED,event.getEventType());
       assertEquals(server2.getCluster().getLocalMember(),event.getMember());
       assertEquals(getMembers(server1,server2),event.getMembers());

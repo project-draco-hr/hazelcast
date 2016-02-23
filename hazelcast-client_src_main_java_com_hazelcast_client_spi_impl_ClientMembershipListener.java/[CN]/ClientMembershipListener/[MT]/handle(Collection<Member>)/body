@@ -10,10 +10,14 @@
   for (  Member initialMember : initialMembers) {
     members.add(initialMember);
   }
-  final List<MembershipEvent> events=detectMembershipEvents(prevMembers);
-  if (events.size() != 0) {
+  if (prevMembers.isEmpty()) {
     logger.info(membersString());
+    clusterService.handleInitialMembershipEvent(new InitialMembershipEvent(client.getCluster(),Collections.unmodifiableSet(members)));
+    initialListFetchedLatch.countDown();
+    return;
   }
+  List<MembershipEvent> events=detectMembershipEvents(prevMembers);
+  logger.info(membersString());
   fireMembershipEvent(events);
   initialListFetchedLatch.countDown();
 }
