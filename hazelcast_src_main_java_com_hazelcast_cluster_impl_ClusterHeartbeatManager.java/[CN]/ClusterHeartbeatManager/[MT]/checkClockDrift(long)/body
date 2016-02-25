@@ -6,7 +6,10 @@
     if (absoluteClockJump > CLOCK_JUMP_THRESHOLD) {
       SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
       logger.info(format("System clock apparently jumped from %s to %s since last heartbeat (%+d ms)",sdf.format(new Date(lastHeartBeat)),sdf.format(new Date(now)),clockJump));
-      clusterClock.setClusterTimeDiff(clusterClock.getClusterTimeDiff() - clockJump);
+      long currentClusterTimeDiff=clusterClock.getClusterTimeDiff();
+      if (Math.abs(lastClusterTimeDiff - currentClusterTimeDiff) < CLOCK_JUMP_THRESHOLD) {
+        clusterClock.setClusterTimeDiff(currentClusterTimeDiff - clockJump);
+      }
     }
     if (absoluteClockJump >= maxNoMasterConfirmationMillis / 2) {
       logger.warning(format("Resetting master confirmation timestamps because of huge system clock jump!" + " Clock-Jump: %d ms, Master-Confirmation-Timeout: %d ms",clockJump,maxNoMasterConfirmationMillis));
@@ -17,5 +20,6 @@
       resetHeartbeats();
     }
   }
+  lastClusterTimeDiff=clusterClock.getClusterTimeDiff();
   lastHeartBeat=now;
 }
