@@ -1,36 +1,3 @@
 {
-  final String mapName="testEvictionLFU_" + randomString();
-  final int size=10000;
-  Config cfg=getConfig();
-  cfg.setProperty(GroupProperty.PARTITION_COUNT,"1");
-  MapConfig mc=cfg.getMapConfig(mapName);
-  mc.setEvictionPolicy(EvictionPolicy.LFU);
-  mc.setEvictionPercentage(20);
-  mc.setMinEvictionCheckMillis(0);
-  MaxSizeConfig msc=new MaxSizeConfig();
-  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_NODE);
-  msc.setSize(size);
-  mc.setMaxSizeConfig(msc);
-  HazelcastInstance node=createHazelcastInstance(cfg);
-  IMap<Object,Object> map=node.getMap(mapName);
-  final int atLeastShouldEvict=size / 40;
-  final CountDownLatch latch=new CountDownLatch(atLeastShouldEvict);
-  map.addLocalEntryListener(new EntryAdapter<Object,Object>(){
-    @Override public void entryEvicted(    EntryEvent<Object,Object> event){
-      latch.countDown();
-    }
-  }
-);
-  for (int i=0; i < size / 2; i++) {
-    map.put(i,i);
-    map.get(i);
-  }
-  for (int i=size / 2; i < size + 1; i++) {
-    map.put(i,i);
-  }
-  assertOpenEventually(latch,120);
-  assertFalse("No eviction!?!?!?",map.size() == size);
-  for (int i=0; i < size / 2; i++) {
-    assertNotNull(map.get(i));
-  }
+  testEvictionLFUInternal(false);
 }
