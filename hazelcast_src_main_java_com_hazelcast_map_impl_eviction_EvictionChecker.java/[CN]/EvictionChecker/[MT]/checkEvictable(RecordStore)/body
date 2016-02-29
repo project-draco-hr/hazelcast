@@ -1,0 +1,26 @@
+{
+  if (recordStore.size() == 0 || !isEvictionEnabled(recordStore)) {
+    return false;
+  }
+  String mapName=recordStore.getName();
+  MapContainer mapContainer=recordStore.getMapContainer();
+  MaxSizeConfig maxSizeConfig=mapContainer.getMapConfig().getMaxSizeConfig();
+  MaxSizeConfig.MaxSizePolicy maxSizePolicy=maxSizeConfig.getMaxSizePolicy();
+switch (maxSizePolicy) {
+case PER_NODE:
+    return checkPerNodeEviction(recordStore);
+case PER_PARTITION:
+  int partitionId=recordStore.getPartitionId();
+return checkPerPartitionEviction(mapName,maxSizeConfig,partitionId);
+case USED_HEAP_PERCENTAGE:
+return checkHeapPercentageEviction(mapName,maxSizeConfig);
+case USED_HEAP_SIZE:
+return checkHeapSizeEviction(mapName,maxSizeConfig);
+case FREE_HEAP_PERCENTAGE:
+return checkFreeHeapPercentageEviction(maxSizeConfig);
+case FREE_HEAP_SIZE:
+return checkFreeHeapSizeEviction(maxSizeConfig);
+default :
+throw new IllegalArgumentException("Not an appropriate max size policy [" + maxSizePolicy + ']');
+}
+}

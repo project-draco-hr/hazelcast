@@ -2,7 +2,7 @@
   final MapProxyImpl mapProxy=(MapProxyImpl)map;
   final MapService mapService=(MapService)mapProxy.getService();
   final MapServiceContext mapServiceContext=mapService.getMapServiceContext();
-  EvictionCheckerImpl evictionChecker=new EvictionCheckerImpl(mapServiceContext);
+  EvictionChecker evictionChecker=new EvictionChecker(mapServiceContext);
   MemoryInfoAccessor memoryInfoAccessor=new MemoryInfoAccessor(){
     @Override public long getTotalMemory(){
       return MemoryUnit.MEGABYTES.toBytes(totalMemoryMB);
@@ -16,6 +16,9 @@
   }
 ;
   evictionChecker.setMemoryInfoAccessor(memoryInfoAccessor);
-  Evictor evictor=new EvictorImpl(evictionChecker,mapServiceContext);
+  MapContainer mapContainer=mapServiceContext.getMapContainer(map.getName());
+  MapEvictionPolicy evictionPolicy=getMapEvictionPolicy(mapContainer.getMapConfig().getEvictionPolicy());
+  IPartitionService partitionService=mapServiceContext.getNodeEngine().getPartitionService();
+  Evictor evictor=new TestEvictor(evictionChecker,evictionPolicy,partitionService);
   mapServiceContext.getMapContainer(map.getName()).setEvictor(evictor);
 }

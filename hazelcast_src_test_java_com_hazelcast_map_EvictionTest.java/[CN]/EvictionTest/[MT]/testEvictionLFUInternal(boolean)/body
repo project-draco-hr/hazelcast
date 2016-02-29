@@ -1,0 +1,20 @@
+{
+  int mapMaxSize=10000;
+  String mapName=randomMapName();
+  MaxSizeConfig msc=new MaxSizeConfig();
+  msc.setMaxSizePolicy(PER_NODE);
+  msc.setSize(mapMaxSize);
+  Config config=getConfig();
+  MapConfig mapConfig=config.getMapConfig(mapName);
+  mapConfig.setStatisticsEnabled(disableStats);
+  mapConfig.setEvictionPolicy(LFU);
+  mapConfig.setMinEvictionCheckMillis(0);
+  mapConfig.setMaxSizeConfig(msc);
+  HazelcastInstance node=createHazelcastInstance(config);
+  IMap<Object,Object> map=node.getMap(mapName);
+  for (int i=0; i < 2 * mapMaxSize; i++) {
+    map.put(i,i);
+  }
+  int mapSize=map.size();
+  assertTrue("Eviction did not work, map size " + mapSize + " should be smaller than allowed max size = "+ mapMaxSize,mapSize < mapMaxSize);
+}

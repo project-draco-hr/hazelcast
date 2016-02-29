@@ -4,6 +4,7 @@
   String currency="dollar";
   long amount=5L;
   Config config=new Config();
+  config.setProperty(GroupProperty.PARTITION_COUNT,"1");
   MapConfig mapConfig=config.getMapConfig(name);
   mapConfig.setEvictionPolicy(EvictionPolicy.LFU);
   mapConfig.setMinEvictionCheckMillis(0);
@@ -16,10 +17,11 @@
   IMap<String,Trade> map=instance.getMap(name);
   map.addIndex(attributeName,false);
   Trade trade=map.get(randomString());
-  assertEquals(0,map.size());
+  map.get(randomString());
+  assertEquals(1,map.size());
   assertEquals(5L,(long)trade.amount);
   assertEquals(currency,trade.currency);
   Index index=getIndexOfAttributeForMap(instance,name,attributeName);
   Set<QueryableEntry> dollars=index.getRecords(currency);
-  assertEquals(0,dollars.size());
+  assertEquals(1,dollars.size());
 }
