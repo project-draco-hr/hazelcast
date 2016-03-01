@@ -1,69 +1,12 @@
 {
-  Collection<MemberImpl> members=node.clusterService.getMemberImpls();
-  Collection<Future<PartitionRuntimeState>> futures=new ArrayList<Future<PartitionRuntimeState>>(members.size());
-  for (  MemberImpl m : members) {
-    if (m.localMember()) {
-      continue;
-    }
-    Future<PartitionRuntimeState> future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new FetchPartitionStateOperation(),m.getAddress()).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
-    futures.add(future);
-  }
-  int version=this.version;
-  logger.info("Fetching most recent partition table! my version: " + version);
-  PartitionRuntimeState newState=null;
+  Collection<Future<PartitionRuntimeState>> futures=invokeFetchPartitionStateOps();
+  logger.info("Fetching most recent partition table! my version: " + maxVersion);
   Collection<MigrationInfo> allCompletedMigrations=new HashSet<MigrationInfo>();
   Collection<MigrationInfo> allActiveMigrations=new HashSet<MigrationInfo>();
-  for (  Future<PartitionRuntimeState> future : futures) {
-    try {
-      PartitionRuntimeState state=future.get();
-      if (version < state.getVersion()) {
-        newState=state;
-        version=state.getVersion();
-      }
-      allCompletedMigrations.addAll(state.getCompletedMigrations());
-      if (state.getActiveMigration() != null) {
-        allActiveMigrations.add(state.getActiveMigration());
-      }
-    }
- catch (    TargetNotMemberException e) {
-    }
-catch (    MemberLeftException e) {
-    }
-catch (    InterruptedException e) {
-      e.printStackTrace();
-    }
-catch (    ExecutionException e) {
-      e.printStackTrace();
-    }
+  processResults(futures,allCompletedMigrations,allActiveMigrations);
+  logger.info("Most recent partition table version: " + maxVersion);
+  processNewState(allCompletedMigrations,allActiveMigrations);
+  if (!syncPartitionRuntimeState() && logger.isFinestEnabled()) {
+    logger.finest("All members not synced partition table after master fetch");
   }
-  logger.info("Most recent partition table version: " + version);
-  lock.lock();
-  try {
-    allCompletedMigrations.addAll(migrationManager.getCompletedMigrations());
-    if (migrationManager.getActiveMigration() != null) {
-      allActiveMigrations.add(migrationManager.getActiveMigration());
-    }
-    for (    MigrationInfo activeMigration : allActiveMigrations) {
-      activeMigration.setStatus(MigrationStatus.FAILED);
-      if (allCompletedMigrations.add(activeMigration)) {
-        logger.info("Marked active migration " + activeMigration + " as "+ MigrationStatus.FAILED);
-      }
-    }
-    if (newState != null) {
-      newState.setCompletedMigrations(allCompletedMigrations);
-      logger.info("Applying the most recent of partition state...");
-      applyNewState(newState,thisAddress);
-    }
- else {
-      migrationManager.setCompletedMigrations(allCompletedMigrations);
-      for (      MigrationInfo migrationInfo : allCompletedMigrations) {
-        migrationManager.scheduleActiveMigrationFinalization(migrationInfo);
-      }
-    }
-  }
-  finally {
-    lock.unlock();
-  }
-  syncPartitionRuntimeState();
-  migrationManager.resumeMigrationEventually();
 }

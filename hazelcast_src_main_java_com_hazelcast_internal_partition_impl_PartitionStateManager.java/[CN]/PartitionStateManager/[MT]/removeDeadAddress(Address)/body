@@ -1,25 +1,11 @@
 {
-  Collection<MigrationInfo> migrations=new ArrayList<MigrationInfo>();
   for (  InternalPartitionImpl partition : partitions) {
-    final int index=partition.removeAddress(deadAddress);
+    int index=partition.removeAddress(address);
     if (index == -1) {
       continue;
     }
-    if (index == 0) {
-      partition.swapAddresses(0,1);
-    }
-    Address owner;
-    if ((owner=partition.getOwnerOrNull()) == null) {
-      continue;
-    }
-    Address destination;
-    for (int i=InternalPartition.MAX_REPLICA_COUNT - 1; i > index; i--) {
-      destination=partition.getReplicaAddress(i);
-      if (destination != null) {
-        migrations.add(new MigrationInfo(partition.getPartitionId(),index,owner,destination));
-        break;
-      }
+ else     if (logger.isFinestEnabled()) {
+      logger.finest("partitionId=" + partition.getPartitionId() + " "+ address+ " is removed from replica index: "+ index+ " partition: "+ partition);
     }
   }
-  return migrations;
 }

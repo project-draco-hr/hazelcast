@@ -1,0 +1,25 @@
+{
+  final MigrationEventCollectingService service=getService(address);
+  final boolean shouldContainData=replicaIndex != -1 && replicaIndex <= BACKUP_COUNT;
+  assertEquals(msg,shouldContainData,service.containsDataForPartition(partitionId));
+  final long[] replicaVersions=getReplicaVersions(factory.getInstance(address),partitionId);
+  msg=msg + " , ReplicaVersions: " + Arrays.toString(replicaVersions);
+  if (shouldContainData) {
+    if (replicaIndex == 0) {
+      assertArrayEquals(msg,replicaVersions,new long[]{1,1,1,1,1,1});
+    }
+ else {
+      for (int i=1; i < InternalPartition.MAX_BACKUP_COUNT; i++) {
+        if (i < replicaIndex || i > BACKUP_COUNT) {
+          assertEquals(msg + " at index: " + i,0,replicaVersions[i - 1]);
+        }
+ else {
+          assertEquals(msg + " at index: " + i,1,replicaVersions[i - 1]);
+        }
+      }
+    }
+  }
+ else {
+    assertArrayEquals(msg,replicaVersions,new long[]{0,0,0,0,0,0});
+  }
+}

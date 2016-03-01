@@ -5,14 +5,14 @@
   this.logger=node.getLogger(getClass());
   this.partitionServiceLock=partitionServiceLock;
   partitionStateManager=partitionService.getPartitionStateManager();
-  ExecutionService executionService=nodeEngine.getExecutionService();
-  migrationThread=new MigrationThread(this,node.getHazelcastThreadGroup(),node.getLogger(MigrationThread.class));
+  ILogger migrationThreadLogger=node.getLogger(MigrationThread.class);
+  migrationThread=new MigrationThread(this,node.getHazelcastThreadGroup(),migrationThreadLogger,migrationQueue);
   long intervalMillis=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_INTERVAL);
   partitionMigrationInterval=(intervalMillis > 0 ? intervalMillis : 0);
   partitionMigrationTimeout=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_TIMEOUT);
-  long maxMigrationDelayMs=calculateMaxMigrationDelayOnMemberRemoved();
-  long minMigrationDelayMs=calculateMigrationDelayOnMemberRemoved(maxMigrationDelayMs);
-  this.delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,minMigrationDelayMs,maxMigrationDelayMs,new Runnable(){
+  long migrationPauseDelayMs=node.groupProperties.getMillis(GroupProperty.MIGRATION_MIN_DELAY_ON_MEMBER_REMOVED_SECONDS);
+  ExecutionService executionService=nodeEngine.getExecutionService();
+  delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,migrationPauseDelayMs,2 * migrationPauseDelayMs,new Runnable(){
     @Override public void run(){
       resumeMigration();
     }

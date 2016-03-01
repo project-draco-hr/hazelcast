@@ -6,14 +6,15 @@
     addCompletedMigration(migrationInfo);
     internalMigrationListener.onMigrationRollback(MigrationParticipant.MASTER,migrationInfo);
     scheduleActiveMigrationFinalization(migrationInfo);
-    partitionService.getPartitionStateManager().incrementVersion(2);
-    partitionService.syncPartitionRuntimeState();
+    int delta=PARTITION_STATE_VERSION_INCREMENT_DELTA_ON_MIGRATION_FAILURE;
+    partitionService.getPartitionStateManager().incrementVersion(delta);
+    if (partitionService.syncPartitionRuntimeState()) {
+      evictCompletedMigrations(migrationInfo);
+    }
+    triggerRepartitioningAfterMigrationFailure();
   }
   finally {
     partitionServiceLock.unlock();
   }
   partitionService.getPartitionEventManager().sendMigrationEvent(migrationInfo,MigrationEvent.MigrationStatus.FAILED);
-  pauseMigration();
-  migrationQueue.add(new RepartitioningTask());
-  resumeMigrationEventually();
 }

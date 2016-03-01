@@ -1,0 +1,15 @@
+{
+  final HazelcastInstance hz1=factory.newHazelcastInstance(createConfig());
+  warmUpPartitions(hz1);
+  final HazelcastInstance hz2=factory.newHazelcastInstance(createConfig());
+  warmUpPartitions(hz1,hz2);
+  waitAllForSafeState(hz1,hz2);
+  hz2.getLifecycleService().terminate();
+  waitAllForSafeState(hz1);
+  final InternalPartition partition0=getPartitionService(hz1).getPartition(0);
+  final InternalPartition partition1=getPartitionService(hz1).getPartition(1);
+  assertEquals(getAddress(hz1),partition0.getOwnerOrNull());
+  assertEquals(getAddress(hz1),partition1.getOwnerOrNull());
+  assertFalse(partition0.isMigrating());
+  assertFalse(partition1.isMigrating());
+}

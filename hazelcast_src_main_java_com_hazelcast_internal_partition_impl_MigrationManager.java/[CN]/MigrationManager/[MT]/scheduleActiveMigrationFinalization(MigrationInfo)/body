@@ -1,29 +1,2 @@
 {
-  partitionServiceLock.lock();
-  try {
-    final MigrationInfo activeMigrationInfo=this.activeMigrationInfo;
-    if (activeMigrationInfo != null && migrationInfo.equals(activeMigrationInfo)) {
-      if (activeMigrationInfo.startProcessing()) {
-        activeMigrationInfo.setStatus(migrationInfo.getStatus());
-        finalizeMigration(activeMigrationInfo);
-      }
- else {
-        logger.info("Scheduling finalization of " + migrationInfo + ", because migration process is currently running.");
-        nodeEngine.getExecutionService().schedule(new Runnable(){
-          @Override public void run(){
-            scheduleActiveMigrationFinalization(migrationInfo);
-          }
-        }
-,3,TimeUnit.SECONDS);
-      }
-    }
- else     if (migrationInfo.getReplicaIndex() > 0 && node.getThisAddress().equals(migrationInfo.getSource())) {
-      ClearReplicaOperation op=new ClearReplicaOperation(migrationInfo.getReplicaIndex());
-      op.setPartitionId(migrationInfo.getPartitionId()).setNodeEngine(nodeEngine).setService(partitionService);
-      nodeEngine.getOperationService().executeOperation(op);
-    }
-  }
-  finally {
-    partitionServiceLock.unlock();
-  }
 }

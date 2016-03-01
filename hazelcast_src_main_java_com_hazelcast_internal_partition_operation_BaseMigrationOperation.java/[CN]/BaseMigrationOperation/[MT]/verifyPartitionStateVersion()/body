@@ -2,6 +2,9 @@
   InternalPartitionService partitionService=getService();
   int localPartitionStateVersion=partitionService.getPartitionStateVersion();
   if (partitionStateVersion != localPartitionStateVersion) {
-    throw new RetryableHazelcastException("Partition state versions are not matching!" + " Local: " + localPartitionStateVersion + ", Master: "+ partitionStateVersion);
+    if (getNodeEngine().getThisAddress().equals(migrationInfo.getMaster())) {
+      return;
+    }
+    throw new PartitionStateVersionMismatchException(partitionStateVersion,localPartitionStateVersion);
   }
 }

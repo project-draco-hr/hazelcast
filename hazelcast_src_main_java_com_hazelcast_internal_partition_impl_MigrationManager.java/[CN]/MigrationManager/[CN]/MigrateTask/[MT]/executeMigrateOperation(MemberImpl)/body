@@ -1,0 +1,18 @@
+{
+  MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo,partitionService.getPartitionStateVersion());
+  Future future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,migrationRequestOp,fromMember.getAddress()).setCallTimeout(partitionMigrationTimeout).setTryCount(InternalPartitionService.MIGRATION_RETRY_COUNT).setTryPauseMillis(InternalPartitionService.MIGRATION_RETRY_PAUSE).invoke();
+  try {
+    Object response=future.get();
+    return (Boolean)nodeEngine.toObject(response);
+  }
+ catch (  Throwable e) {
+    Level level=nodeEngine.isRunning() && migrationInfo.isValid() ? Level.WARNING : Level.FINE;
+    if (e instanceof ExecutionException && e.getCause() instanceof PartitionStateVersionMismatchException) {
+      level=Level.FINE;
+    }
+    if (logger.isLoggable(level)) {
+      logger.log(level,"Failed migration from " + fromMember + " for "+ migrationRequestOp.getMigrationInfo(),e);
+    }
+  }
+  return Boolean.FALSE;
+}

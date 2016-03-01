@@ -1,56 +1,14 @@
 {
-  System.out.println("");
-  for (int i=0; i < newState.length; i++) {
-    Address[] addresses=newState[i];
-    System.out.print("partitionId: " + i + " -> ");
-    for (    Address address : addresses) {
-      System.out.print(address + ", ");
-    }
-    System.out.println();
-  }
-  System.out.println("");
-  int lostCount=0;
-  if (node.getClusterService().getSize() == 5) {
-    System.out.println();
-  }
-  List<MigrationInfo> migrations=new ArrayList<MigrationInfo>();
+  final MutableInteger lostCount=new MutableInteger();
+  final MutableInteger migrationCount=new MutableInteger();
+  final List<Queue<MigrationInfo>> migrations=new ArrayList<Queue<MigrationInfo>>();
   for (int partitionId=0; partitionId < newState.length; partitionId++) {
     InternalPartitionImpl currentPartition=partitionStateManager.getPartitionImpl(partitionId);
     Address[] newReplicas=newState[partitionId];
-    for (int replicaIndex=0; replicaIndex < InternalPartition.MAX_REPLICA_COUNT; replicaIndex++) {
-      Address currentOwner=currentPartition.getReplicaAddress(replicaIndex);
-      Address newOwner=newReplicas[replicaIndex];
-      if (currentOwner == null && newOwner == null || currentOwner != null && currentOwner.equals(newOwner)) {
-        continue;
-      }
-      if (currentOwner == null) {
-        if (replicaIndex == 0) {
-          lostCount++;
-          assignNewPartitionOwner(partitionId,currentPartition,newOwner);
-          continue;
-        }
-        migrations.add(new MigrationInfo(partitionId,replicaIndex,null,newOwner,MigrationType.COPY));
-        continue;
-      }
-      if (newOwner == null) {
-        continue;
-      }
-      migrations.add(new MigrationInfo(partitionId,replicaIndex,currentOwner,newOwner,MigrationType.MOVE));
-    }
-    MigrationInfo current=null;
-    ListIterator<MigrationInfo> iter=migrations.listIterator(migrations.size());
-    while (iter.hasPrevious()) {
-      MigrationInfo prev=iter.previous();
-      if (current == null) {
-        current=prev;
-        continue;
-      }
-    }
-    for (    MigrationInfo migration : migrations) {
-      logger.severe("Scheduling " + migration);
-      scheduleMigration(migration,MigrateTaskReason.REPARTITIONING);
-    }
-    migrations.clear();
+    final MigrationCollector migrationCollector=new MigrationCollector(currentPartition,migrationCount,lostCount);
+    migrationPlanner.planMigrations(currentPartition.getReplicaAddresses(),newReplicas,migrationCollector);
+    migrations.add(migrationCollector.migrations);
   }
-  logMigrationStatistics(migrations.size(),lostCount);
+  scheduleMigrations(migrations);
+  logMigrationStatistics(migrationCount.value,lostCount.value);
 }

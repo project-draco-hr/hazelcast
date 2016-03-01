@@ -1,0 +1,24 @@
+{
+  final CountDownLatch migrationStartLatch=new CountDownLatch(1);
+  final CountDownLatch migrationCommitLatch=new CountDownLatch(1);
+  final Config config1=createConfig();
+  config1.setLiteMember(true);
+  final AssertNonEmptyCompletedMigrationsOnSecondMigrationStart masterListener=new AssertNonEmptyCompletedMigrationsOnSecondMigrationStart();
+  config1.addListenerConfig(new ListenerConfig(masterListener));
+  final HazelcastInstance hz1=factory.newHazelcastInstance(config1);
+  final Config config2=createConfig();
+  config2.addListenerConfig(new ListenerConfig(new DelayMigrationCommit(migrationCommitLatch)));
+  final HazelcastInstance hz2=factory.newHazelcastInstance(config2);
+  warmUpPartitions(hz1,hz2);
+  waitAllForSafeState(hz1,hz2);
+  factory.newHazelcastInstance(createConfig());
+  migrationStartLatch.countDown();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertNotNull(masterListener.nonEmptyCompletedMigrationsVerified);
+      assertTrue(masterListener.nonEmptyCompletedMigrationsVerified);
+    }
+  }
+);
+  migrationCommitLatch.countDown();
+}

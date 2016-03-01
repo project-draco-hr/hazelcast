@@ -1,0 +1,23 @@
+{
+  final CountDownLatch migrationStartLatch=new CountDownLatch(1);
+  final Config config1=createConfig();
+  config1.setLiteMember(true);
+  final IncrementPartitionTableOnMigrationStart masterListener=new IncrementPartitionTableOnMigrationStart(migrationStartLatch);
+  config1.addListenerConfig(new ListenerConfig(masterListener));
+  final HazelcastInstance hz1=factory.newHazelcastInstance(config1);
+  final HazelcastInstance hz2=factory.newHazelcastInstance(createConfig());
+  warmUpPartitions(hz1,hz2);
+  waitAllForSafeState(hz1,hz2);
+  final Config config3=createConfig();
+  final InternalMigrationListenerImpl targetListener=new InternalMigrationListenerImpl();
+  config3.addListenerConfig(new ListenerConfig(targetListener));
+  final HazelcastInstance hz3=factory.newHazelcastInstance(config3);
+  migrationStartLatch.countDown();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(masterListener.failed);
+    }
+  }
+);
+  waitAllForSafeState(hz1,hz2,hz3);
+}

@@ -1,0 +1,19 @@
+{
+  final Address destination=clearReplicaIndex(partitionId,replicaIndexToClear);
+  final MigrationInfo migration=createMoveCopyBackMigration(partitionId,oldReplicaIndex,newReplicaIndex,destination);
+  migrateWithFailure(migration);
+  assertMigrationSourceRollback(migration);
+  assertMigrationDestinationRollback(migration);
+  final Address oldReplicaOwner=migration.getOldBackupReplicaOwner();
+  if (oldReplicaOwner != null) {
+    assertTrueAllTheTime(new AssertTask(){
+      @Override public void run() throws Exception {
+        final MigrationEventCollectingService service=getService(oldReplicaOwner);
+        final List<Integer> clearPartitionIds=service.getClearPartitionIds();
+        assertTrue(clearPartitionIds.isEmpty());
+      }
+    }
+,5);
+  }
+  assertPartitionDataAfterMigrations();
+}

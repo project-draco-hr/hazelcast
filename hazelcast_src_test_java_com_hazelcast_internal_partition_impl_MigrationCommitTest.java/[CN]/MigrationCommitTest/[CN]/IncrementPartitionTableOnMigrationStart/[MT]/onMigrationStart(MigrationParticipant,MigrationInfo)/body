@@ -1,0 +1,15 @@
+{
+  if (failed) {
+    System.err.println("Ignoring new migration start: " + migrationInfo + " as participant: "+ participant+ " since expected migration is already committed");
+    return;
+  }
+  assertOpenEventually(migrationStartLatch);
+  if (migrationInfoRef.compareAndSet(null,migrationInfo)) {
+    final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getPartitionService(instance);
+    final PartitionStateManager partitionStateManager=partitionService.getPartitionStateManager();
+    partitionStateManager.incrementVersion();
+  }
+ else {
+    System.err.println("COLLECT COMMIT START FAILED! curr: " + migrationInfoRef.get() + " new: "+ migrationInfo);
+  }
+}

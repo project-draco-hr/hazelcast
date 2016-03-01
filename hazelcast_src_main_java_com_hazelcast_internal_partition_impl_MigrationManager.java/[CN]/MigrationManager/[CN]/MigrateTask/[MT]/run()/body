@@ -3,28 +3,34 @@
     return;
   }
   try {
-    if (!checkPartitionOwner()) {
+    MemberImpl partitionOwner=getPartitionOwner();
+    if (partitionOwner == null) {
+      logger.fine("Partition owner is null. Ignoring " + migrationInfo);
+      triggerRepartitioningAfterMigrationFailure();
+      return;
+    }
+    if (migrationInfo.getSource() != null) {
+      if (node.getClusterService().getMember(migrationInfo.getSource()) == null) {
+        logger.fine("Source is not member anymore. Ignoring " + migrationInfo);
+        triggerRepartitioningAfterMigrationFailure();
+        return;
+      }
+    }
+    if (node.getClusterService().getMember(migrationInfo.getDestination()) == null) {
+      logger.fine("Destination is not member anymore. Ignoring " + migrationInfo);
+      triggerRepartitioningAfterMigrationFailure();
       return;
     }
     internalMigrationListener.onMigrationStart(MigrationParticipant.MASTER,migrationInfo);
     partitionService.getPartitionEventManager().sendMigrationEvent(migrationInfo,MigrationEvent.MigrationStatus.STARTED);
-    Boolean result;
-    if (logger.isFinestEnabled()) {
-      logger.info("Starting Migration: " + migrationInfo);
+    if (logger.isFineEnabled()) {
+      logger.fine("Starting Migration: " + migrationInfo);
     }
-    MemberImpl fromMember=getSourceMember();
-    if (fromMember == null) {
-      logger.warning("Partition is lost! Assign new owner and exit... partitionId=" + migrationInfo.getPartitionId());
-      result=Boolean.TRUE;
-    }
- else {
-      MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo,partitionService.getPartitionStateVersion());
-      result=executeMigrateOperation(migrationRequestOp,fromMember);
-    }
+    Boolean result=executeMigrateOperation(partitionOwner);
     processMigrationResult(result);
   }
  catch (  Throwable t) {
-    final Level level=migrationEndpointsActive() ? Level.WARNING : Level.FINEST;
+    final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
     logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] during "+ migrationInfo);
     logger.finest(t);
     migrationOperationFailed();

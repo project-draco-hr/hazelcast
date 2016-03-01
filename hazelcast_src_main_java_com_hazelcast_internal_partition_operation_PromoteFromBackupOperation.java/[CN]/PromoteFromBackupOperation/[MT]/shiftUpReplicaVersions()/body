@@ -1,0 +1,23 @@
+{
+  final int partitionId=getPartitionId();
+  try {
+    final InternalPartitionServiceImpl partitionService=getService();
+    final long[] versions=partitionService.getPartitionReplicaVersions(partitionId);
+    final int lostReplicaIndex=currentReplicaIndex - 1;
+    if (currentReplicaIndex > 1) {
+      final long[] versionsCopy=Arrays.copyOf(versions,versions.length);
+      final long version=versions[lostReplicaIndex];
+      Arrays.fill(versions,0,lostReplicaIndex,version);
+      if (logger.isFinestEnabled()) {
+        logger.finest("Partition replica is lost! partitionId=" + partitionId + " lost replicaIndex="+ lostReplicaIndex+ " replica versions before shift up="+ Arrays.toString(versionsCopy)+ " replica versions after shift up="+ Arrays.toString(versions));
+      }
+    }
+ else     if (logger.isFinestEnabled()) {
+      logger.finest("PROMOTE partitionId=" + getPartitionId() + " from currentReplicaIndex="+ currentReplicaIndex);
+    }
+    partitionService.sendPartitionLostEvent(partitionId,lostReplicaIndex);
+  }
+ catch (  Throwable e) {
+    logger.warning("Promotion failed. partitionId=" + partitionId + " replicaIndex="+ currentReplicaIndex,e);
+  }
+}

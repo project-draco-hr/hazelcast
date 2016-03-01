@@ -4,19 +4,24 @@
   }
   partitionServiceLock.lock();
   try {
-    if (!isMigrationAllowed()) {
+    if (!isAllowed()) {
       return;
     }
     Address[][] newState=partitionStateManager.repartition();
     if (newState == null) {
       return;
     }
-    if (!isMigrationAllowed()) {
+    if (!isAllowed()) {
       return;
     }
     lastRepartitionTime.set(Clock.currentTimeMillis());
     processNewPartitionState(newState);
-    partitionService.syncPartitionRuntimeState();
+    if (ASSERTION_ENABLED) {
+      migrationQueue.add(new CheckPartitionTableTask());
+    }
+    if (!partitionService.syncPartitionRuntimeState() && logger.isFinestEnabled()) {
+      logger.finest("All members not synced partition table after repartitioning");
+    }
   }
   finally {
     partitionServiceLock.unlock();
