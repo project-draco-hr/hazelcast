@@ -1,0 +1,20 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory();
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance();
+  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
+  HashMap<Integer,Integer> map=new HashMap<Integer,Integer>();
+  final int count=100;
+  for (int i=0; i < count; i++) {
+    map.put(i,i);
+  }
+  map1.putAll(map);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(count,map1.size());
+      assertEquals(count,map2.size());
+    }
+  }
+,15);
+}
