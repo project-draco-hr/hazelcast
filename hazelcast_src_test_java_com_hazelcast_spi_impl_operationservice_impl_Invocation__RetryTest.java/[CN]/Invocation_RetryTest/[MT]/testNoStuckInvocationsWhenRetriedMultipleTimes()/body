@@ -14,13 +14,13 @@
   InvocationFuture future=(InvocationFuture)operationService.invokeOnTarget(null,op,remoteNodeEngine.getThisAddress());
   Field invocationField=InvocationFuture.class.getDeclaredField("invocation");
   invocationField.setAccessible(true);
-  Invocation invocation=(Invocation)invocationField.get(future);
+  final Invocation invocation=(Invocation)invocationField.get(future);
   invocation.notifyError(new RetryableHazelcastException());
   invocation.notifyError(new RetryableHazelcastException());
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      Collection<Invocation> invocations=operationService.invocationsRegistry.invocations();
-      assertEquals(0,invocations.size());
+      Iterator<Invocation> invocations=operationService.invocationsRegistry.iterator();
+      assertFalse(invocations.hasNext());
     }
   }
 );
