@@ -1,7 +1,24 @@
 {
   Response response=serializationService.toObject(packet);
+  Address sender=packet.getConn().getEndPoint();
   try {
-    invocationRegistry.notify(response,packet.getConn().getEndPoint());
+    if (response instanceof NormalResponse) {
+      NormalResponse normalResponse=(NormalResponse)response;
+      invocationRegistry.notifyNormalResponse(normalResponse.getCallId(),normalResponse.getValue(),normalResponse.getBackupCount(),sender);
+    }
+ else     if (response instanceof BackupResponse) {
+      invocationRegistry.notifyBackupComplete(response.getCallId());
+    }
+ else     if (response instanceof CallTimeoutResponse) {
+      invocationRegistry.notifyCallTimeout(response.getCallId(),sender);
+    }
+ else     if (response instanceof ErrorResponse) {
+      ErrorResponse errorResponse=(ErrorResponse)response;
+      invocationRegistry.notifyErrorResponse(errorResponse.getCallId(),errorResponse.getCause(),sender);
+    }
+ else {
+      logger.severe("Unrecognized response: " + response);
+    }
   }
  catch (  Throwable e) {
     logger.severe("While processing response...",e);
