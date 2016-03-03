@@ -1,34 +1,31 @@
 {
-  long now=Clock.currentTimeMillis();
-  NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
-  InternalPartitionService partitionService=nodeEngine.getPartitionService();
-  int partitionCount=partitionService.getPartitionCount();
-  List<DelayedEntry> entries=new ArrayList<DelayedEntry>(partitionCount);
+  final long now=Clock.currentTimeMillis();
+  final long ownerHighestStoreTime=calculateHighestStoreTime(lastHighestStoreTime,now);
+  final long backupHighestStoreTime=ownerHighestStoreTime - backupDelayMillis;
+  lastHighestStoreTime=ownerHighestStoreTime;
+  List<DelayedEntry> ownersList=null;
+  List<DelayedEntry> backupsList=null;
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
-    InternalPartition partition=partitionService.getPartition(partitionId,false);
-    Address owner=partition.getOwnerOrNull();
-    if (owner == null) {
-      continue;
-    }
     RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
-    if (recordStore == null) {
+    if (!hasEntryInWriteBehindQueue(recordStore)) {
       continue;
     }
-    List<DelayedEntry> entriesToStore=getEntriesToStore(now,recordStore);
-    if (!partition.isLocal()) {
-      if (now > lastRunTime + backupRunIntervalTime) {
-        doInBackup(entriesToStore,partitionId);
-      }
+    boolean localPartition=isPartitionLocal(partitionId);
+    if (!localPartition) {
+      backupsList=initListIfNull(backupsList,partitionCount);
+      selectEntriesToStore(recordStore,backupsList,backupHighestStoreTime);
     }
  else {
-      entries.addAll(entriesToStore);
+      ownersList=initListIfNull(ownersList,partitionCount);
+      selectEntriesToStore(recordStore,ownersList,ownerHighestStoreTime);
     }
   }
-  if (entries.isEmpty()) {
-    return;
+  if (!isEmpty(ownersList)) {
+    Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(ownersList);
+    removeFinishedStoreOperationsFromQueues(mapName,ownersList);
+    reAddFailedStoreOperationsToQueues(mapName,failuresPerPartition);
   }
-  Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(entries);
-  removeFinishedStoreOperationsFromQueues(mapName,entries);
-  readdFailedStoreOperationsToQueues(mapName,failuresPerPartition);
-  lastRunTime=now;
+  if (!isEmpty(backupsList)) {
+    doInBackup(backupsList);
+  }
 }
