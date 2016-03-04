@@ -1,6 +1,22 @@
 {
   if (!RESPONSE_RECEIVED.compareAndSet(this,FALSE,TRUE)) {
-    throw new ResponseAlreadySentException("NormalResponse already responseReceived for callback: " + this + ", current-response: : "+ obj);
+    throw new ResponseAlreadySentException("NormalResponse already responseReceived for callback: " + this + ", current-response: : "+ response);
   }
-  notify(obj);
+  if (response == null) {
+    response=NULL_RESPONSE;
+  }
+  if (response instanceof CallTimeoutResponse) {
+    notifyCallTimeout();
+    return;
+  }
+  if (response instanceof ErrorResponse || response instanceof Throwable) {
+    notifyError(response);
+    return;
+  }
+  if (response instanceof NormalResponse) {
+    NormalResponse normalResponse=(NormalResponse)response;
+    notifyNormalResponse(normalResponse.getValue(),normalResponse.getBackupCount());
+    return;
+  }
+  invocationFuture.set(response);
 }
