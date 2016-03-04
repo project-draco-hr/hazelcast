@@ -1,0 +1,23 @@
+{
+  final int itemCount=200;
+  final HazelcastInstance instance=createHazelcastInstance();
+  final String name=randomString();
+  Future<Integer> f=spawn(new Callable<Integer>(){
+    @Override public Integer call() throws Exception {
+      IList<Object> set=instance.getList(name);
+      while (!set.remove("item-1")) {
+      }
+      return set.size();
+    }
+  }
+);
+  TransactionContext context=instance.newTransactionContext();
+  context.beginTransaction();
+  TransactionalList<Object> set=context.getList(name);
+  for (int i=0; i < itemCount; i++) {
+    set.add("item-" + i);
+  }
+  context.commitTransaction();
+  int size=f.get();
+  assertEquals(itemCount - 1,size);
+}
