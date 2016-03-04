@@ -1,26 +1,32 @@
 {
-  long now=Clock.currentTimeMillis();
-  List<DelayedEntry> entries=new ArrayList<DelayedEntry>(partitionCount);
+  final long now=Clock.currentTimeMillis();
+  final long ownerHighestStoreTime=calculateHighestStoreTime(lastHighestStoreTime,now);
+  final long backupHighestStoreTime=ownerHighestStoreTime - backupDelayMillis;
+  lastHighestStoreTime=ownerHighestStoreTime;
+  List<DelayedEntry> ownersList=null;
+  List<DelayedEntry> backupsList=null;
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     RecordStore recordStore=getRecordStoreOrNull(mapName,partitionId);
     if (!hasEntryInWriteBehindQueue(recordStore)) {
       continue;
     }
-    List<DelayedEntry> entriesToStore=getEntriesToStore(recordStore,now);
-    if (!isPartitionLocal(partitionId)) {
-      if (now > lastRunTimeMillis + backupRunIntervalMillis) {
-        doInBackup(entriesToStore,partitionId);
-      }
+    boolean localPartition=isPartitionLocal(partitionId);
+    if (!localPartition) {
+      backupsList=initListIfNull(backupsList,partitionCount);
+      selectEntriesToStore(recordStore,backupsList,backupHighestStoreTime);
     }
  else {
-      entries.addAll(entriesToStore);
+      ownersList=initListIfNull(ownersList,partitionCount);
+      selectEntriesToStore(recordStore,ownersList,ownerHighestStoreTime);
     }
   }
-  if (!entries.isEmpty()) {
-    Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(entries);
-    removeFinishedStoreOperationsFromQueues(mapName,entries);
+  if (!isEmpty(ownersList)) {
+    Map<Integer,List<DelayedEntry>> failuresPerPartition=writeBehindProcessor.process(ownersList);
+    removeFinishedStoreOperationsFromQueues(mapName,ownersList);
     reAddFailedStoreOperationsToQueues(mapName,failuresPerPartition);
-    lastRunTimeMillis=now;
+  }
+  if (!isEmpty(backupsList)) {
+    doInBackup(backupsList);
   }
   notifyFlush();
 }
