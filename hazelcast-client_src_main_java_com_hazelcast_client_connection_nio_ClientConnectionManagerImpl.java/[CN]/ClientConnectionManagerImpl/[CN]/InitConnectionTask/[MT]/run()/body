@@ -1,18 +1,22 @@
 {
-  final Object lock=getLock(target);
-synchronized (lock) {
-    ClientConnection connection=connections.get(target);
-    if (connection != null) {
+  ClientConnection connection=connections.get(target);
+  if (connection == null) {
+    try {
+      connection=createSocketConnection(target);
+    }
+ catch (    IOException e) {
+      LOGGER.finest(e);
+      callback.onFailure(e);
+      connectionsInProgress.remove(target);
       return;
     }
-    try {
-      initializeConnection(remoteAddress,authenticator);
-    }
- catch (    Exception e) {
-      LOGGER.finest(e);
-    }
- finally {
-      connectionsInProgress.remove(target);
-    }
+  }
+  try {
+    authenticate(target,connection,asOwner,callback);
+  }
+ catch (  Exception e) {
+    callback.onFailure(e);
+    destroyConnection(connection,e);
+    connectionsInProgress.remove(target);
   }
 }
