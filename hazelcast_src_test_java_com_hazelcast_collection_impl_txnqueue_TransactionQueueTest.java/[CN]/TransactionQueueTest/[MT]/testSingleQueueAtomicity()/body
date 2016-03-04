@@ -1,0 +1,22 @@
+{
+  final String name=randomString();
+  final int itemCount=200;
+  final HazelcastInstance instance=createHazelcastInstance();
+  Future<Integer> f=spawn(new Callable<Integer>(){
+    @Override public Integer call() throws Exception {
+      IQueue<Object> queue=instance.getQueue(name);
+      queue.take();
+      return queue.size();
+    }
+  }
+);
+  TransactionContext context=instance.newTransactionContext();
+  context.beginTransaction();
+  TransactionalQueue<Object> queue=context.getQueue(name);
+  for (int i=0; i < itemCount; i++) {
+    queue.offer("item-" + i);
+  }
+  context.commitTransaction();
+  int size=f.get();
+  assertEquals(itemCount - 1,size);
+}
