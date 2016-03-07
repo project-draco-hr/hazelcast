@@ -1,0 +1,23 @@
+{
+  checkNotNull(selector,"selector");
+  checkNotNull(logger,"logger");
+  try {
+    SelectionKeysSet set=new SelectionKeysSet();
+    Class<?> selectorImplClass=findOptimizableSelectorClass(selector);
+    if (selectorImplClass == null) {
+      return null;
+    }
+    Field selectedKeysField=selectorImplClass.getDeclaredField("selectedKeys");
+    selectedKeysField.setAccessible(true);
+    Field publicSelectedKeysField=selectorImplClass.getDeclaredField("publicSelectedKeys");
+    publicSelectedKeysField.setAccessible(true);
+    selectedKeysField.set(selector,set);
+    publicSelectedKeysField.set(selector,set);
+    logger.info("Optimized Selector: " + selector.getClass().getName());
+    return set;
+  }
+ catch (  Throwable t) {
+    logger.finest("Failed to optimize Selector: " + selector.getClass().getName(),t);
+    return null;
+  }
+}
