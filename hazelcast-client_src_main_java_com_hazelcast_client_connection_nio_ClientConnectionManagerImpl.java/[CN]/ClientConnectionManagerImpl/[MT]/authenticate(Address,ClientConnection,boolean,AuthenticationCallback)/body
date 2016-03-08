@@ -1,0 +1,54 @@
+{
+  SerializationService ss=client.getSerializationService();
+  final ClientClusterServiceImpl clusterService=(ClientClusterServiceImpl)client.getClientClusterService();
+  ClientPrincipal principal=clusterService.getPrincipal();
+  byte serializationVersion=client.getSerializationService().getVersion();
+  String uuid=null;
+  String ownerUuid=null;
+  if (principal != null) {
+    uuid=principal.getUuid();
+    ownerUuid=principal.getOwnerUuid();
+  }
+  ClientMessage clientMessage;
+  if (credentials.getClass().equals(UsernamePasswordCredentials.class)) {
+    UsernamePasswordCredentials cr=(UsernamePasswordCredentials)credentials;
+    clientMessage=ClientAuthenticationCodec.encodeRequest(cr.getUsername(),cr.getPassword(),uuid,ownerUuid,asOwner,ClientTypes.JAVA,serializationVersion);
+  }
+ else {
+    Data data=ss.toData(credentials);
+    clientMessage=ClientAuthenticationCustomCodec.encodeRequest(data,uuid,ownerUuid,asOwner,ClientTypes.JAVA,serializationVersion);
+  }
+  ClientInvocation clientInvocation=new ClientInvocation(client,clientMessage,connection);
+  ClientInvocationFuture future=clientInvocation.invokeUrgent();
+  future.andThen(new ExecutionCallback<ClientMessage>(){
+    @Override public void onResponse(    ClientMessage response){
+      ClientAuthenticationCodec.ResponseParameters result=ClientAuthenticationCodec.decodeResponse(response);
+      AuthenticationStatus authenticationStatus=AuthenticationStatus.getById(result.status);
+switch (authenticationStatus) {
+case AUTHENTICATED:
+        connection.setRemoteEndpoint(result.address);
+      if (asOwner) {
+        connection.setIsAuthenticatedAsOwner();
+        clusterService.setPrincipal(new ClientPrincipal(result.uuid,result.ownerUuid));
+      }
+    authenticated(target,connection);
+  callback.onSuccess(connection);
+break;
+case CREDENTIALS_FAILED:
+AuthenticationException e=new AuthenticationException("Invalid credentials!");
+failed(target,connection,e);
+callback.onFailure(e);
+break;
+default :
+AuthenticationException exception=new AuthenticationException("Authentication status code not supported. status:" + authenticationStatus);
+failed(target,connection,exception);
+callback.onFailure(exception);
+}
+}
+@Override public void onFailure(Throwable t){
+failed(target,connection,t);
+callback.onFailure(t);
+}
+}
+,executionService.getInternalExecutor());
+}
