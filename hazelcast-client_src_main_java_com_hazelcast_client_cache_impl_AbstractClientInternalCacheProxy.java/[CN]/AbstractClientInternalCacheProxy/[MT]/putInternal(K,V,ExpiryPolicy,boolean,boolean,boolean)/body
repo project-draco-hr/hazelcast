@@ -15,9 +15,9 @@
  catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
-  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder);
   if (!async) {
     try {
+      ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder);
       Object response=delegatingFuture.get();
       if (nearCache != null) {
         if (cacheOnUpdate) {
@@ -37,9 +37,10 @@
     }
   }
  else {
+    OneShotExecutionCallback oneShotExecutionCallback=null;
     if (nearCache != null || statisticsEnabled) {
-      delegatingFuture.andThen(new ExecutionCallback<Object>(){
-        @Override public void onResponse(        Object responseData){
+      oneShotExecutionCallback=new OneShotExecutionCallback(){
+        @Override protected void onResponseInternal(        Object responseData){
           if (nearCache != null) {
             if (cacheOnUpdate) {
               storeInNearCache(keyData,valueData,value);
@@ -52,10 +53,18 @@
             handleStatisticsOnPut(isGet,start,responseData);
           }
         }
-        @Override public void onFailure(        Throwable t){
+        @Override protected void onFailureInternal(        Throwable t){
         }
       }
-);
+;
+    }
+    ClientDelegatingFuture delegatingFuture;
+    if (oneShotExecutionCallback != null) {
+      delegatingFuture=new CallbackAwareClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder,oneShotExecutionCallback);
+      delegatingFuture.andThen(oneShotExecutionCallback);
+    }
+ else {
+      delegatingFuture=new ClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder);
     }
     return delegatingFuture;
   }

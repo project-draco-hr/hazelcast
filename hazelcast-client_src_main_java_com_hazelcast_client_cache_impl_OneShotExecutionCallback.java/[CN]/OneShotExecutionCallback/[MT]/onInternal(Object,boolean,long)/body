@@ -1,0 +1,25 @@
+{
+  if (callState != CALL_FINISHED) {
+    if (CALL_STATE_UPDATER.compareAndSet(this,NOT_CALLED,CALL_IN_PROGRESS)) {
+      try {
+        if (failure) {
+          onFailureInternal((Throwable)obj);
+        }
+ else {
+          onResponseInternal((V)obj);
+        }
+      }
+  finally {
+        callState=CALL_FINISHED;
+      }
+    }
+ else {
+      while (finishTime > Clock.currentTimeMillis()) {
+        if (callState == CALL_FINISHED) {
+          return;
+        }
+      }
+      sneakyThrow(new TimeoutException("Waiting for sync execution callback to finish has failed due to timeout!"));
+    }
+  }
+}
