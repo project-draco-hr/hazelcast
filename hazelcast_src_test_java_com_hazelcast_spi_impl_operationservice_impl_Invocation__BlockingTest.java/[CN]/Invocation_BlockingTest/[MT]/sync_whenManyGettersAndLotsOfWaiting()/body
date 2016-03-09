@@ -1,0 +1,29 @@
+{
+  int callTimeout=5000;
+  Config config=new Config().setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeout);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(local);
+  String key=generateKeyOwnedBy(remote);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  InternalOperationService opService=nodeEngine.getOperationService();
+  int otherThreadId=1;
+  opService.createInvocationBuilder(null,new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),otherThreadId,-1,-1),partitionId).setCallTimeout(callTimeout).invoke().join();
+  int thisThreadId=2;
+  final InternalCompletableFuture<Object> future=opService.createInvocationBuilder(null,new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),thisThreadId,-1,-1),partitionId).setCallTimeout(callTimeout).invoke();
+  final List<Future> futures=new LinkedList<Future>();
+  for (int k=0; k < 10; k++) {
+    futures.add(spawn(new Callable(){
+      @Override public Object call() throws Exception {
+        return future.join();
+      }
+    }
+));
+  }
+  sleepMillis(callTimeout * 5);
+  opService.createInvocationBuilder(null,new UnlockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),otherThreadId),partitionId).setCallTimeout(callTimeout).invoke().join();
+  for (  Future f : futures) {
+    assertEquals(Boolean.TRUE,f.get());
+  }
+}

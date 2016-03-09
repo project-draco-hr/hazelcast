@@ -8,17 +8,19 @@
   }
   operationService.invocationRegistry.deregister(this);
   if (future.interrupted) {
-    future.complete(INTERRUPTED_RESPONSE);
-  }
- else   if (!future.complete(WAIT_RESPONSE)) {
-    logger.finest("Cannot retry " + toString() + ", because a different response is already set: "+ future.response);
+    future.complete(INTERRUPTED);
   }
  else {
     if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
       operationService.asyncExecutor.execute(this);
     }
  else {
-      nodeEngine.getExecutionService().schedule(ASYNC_EXECUTOR,this,tryPauseMillis,MILLISECONDS);
+      if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
+        operationService.asyncExecutor.execute(this);
+      }
+ else {
+        nodeEngine.getExecutionService().schedule(ASYNC_EXECUTOR,this,tryPauseMillis,MILLISECONDS);
+      }
     }
   }
 }

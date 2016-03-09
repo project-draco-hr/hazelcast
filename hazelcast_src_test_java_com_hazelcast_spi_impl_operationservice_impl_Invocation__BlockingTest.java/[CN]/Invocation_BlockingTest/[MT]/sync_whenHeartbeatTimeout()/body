@@ -1,0 +1,24 @@
+{
+  int callTimeout=5000;
+  Config config=new Config().setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeout);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(factory.getAllHazelcastInstances());
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(local);
+  String key=generateKeyOwnedBy(remote);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  InternalOperationService opService=nodeEngine.getOperationService();
+  opService.invokeOnPartition(null,new SlowOperation(5 * callTimeout),partitionId);
+  LockOperation op=new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),1,-1,-1);
+  InternalCompletableFuture<Object> future=opService.createInvocationBuilder(null,op,partitionId).setCallTimeout(callTimeout).invoke();
+  try {
+    future.join();
+    fail("Invocation should failed with timeout!");
+  }
+ catch (  OperationTimeoutException expected) {
+  }
+  IsLockedOperation isLockedOperation=new IsLockedOperation(new InternalLockNamespace(key),nodeEngine.toData(key),1);
+  Boolean isLocked=(Boolean)opService.createInvocationBuilder(null,isLockedOperation,partitionId).setCallTimeout(10 * callTimeout).invoke().join();
+  assertFalse(isLocked);
+}

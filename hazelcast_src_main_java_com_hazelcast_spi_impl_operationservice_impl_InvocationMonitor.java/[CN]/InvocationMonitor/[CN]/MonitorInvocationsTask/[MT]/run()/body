@@ -1,0 +1,37 @@
+{
+  if (logger.isFinestEnabled()) {
+    logger.finest("Scanning all invocations");
+  }
+  if (invocationRegistry.size() == 0) {
+    return;
+  }
+  int backupTimeouts=0;
+  int normalTimeouts=0;
+  int invocationCount=0;
+  Set<Map.Entry<Long,Invocation>> invocations=invocationRegistry.entrySet();
+  Iterator<Map.Entry<Long,Invocation>> iterator=invocations.iterator();
+  while (iterator.hasNext()) {
+    invocationCount++;
+    Map.Entry<Long,Invocation> entry=iterator.next();
+    Long callId=entry.getKey();
+    Invocation inv=entry.getValue();
+    if (duplicate(inv,callId,iterator)) {
+      continue;
+    }
+    try {
+      if (inv.detectAndHandleTimeout(invocationTimeoutMillis)) {
+        normalTimeouts++;
+      }
+ else       if (inv.detectAndHandleBackupTimeout(backupTimeoutMillis)) {
+        backupTimeouts++;
+      }
+    }
+ catch (    Throwable t) {
+      inspectOutputMemoryError(t);
+      logger.severe("Failed to check invocation:" + inv,t);
+    }
+  }
+  backupTimeoutsCount.inc(backupTimeouts);
+  normalTimeoutsCount.inc(normalTimeouts);
+  log(invocationCount,backupTimeouts,normalTimeouts);
+}

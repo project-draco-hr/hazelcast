@@ -3,12 +3,16 @@
     executor.execute(new Runnable(){
       @Override public void run(){
         try {
-          Object resp=resolve(response);
-          if (resp == null || !(resp instanceof Throwable)) {
-            callback.onResponse((E)resp);
+          Object resolvedResponse=resolve(response);
+          if (resolvedResponse == null || !(resolvedResponse instanceof Throwable)) {
+            callback.onResponse((E)resolvedResponse);
           }
  else {
-            callback.onFailure((Throwable)resp);
+            Throwable error=(Throwable)resolvedResponse;
+            if (error instanceof ExecutionException) {
+              error=error.getCause();
+            }
+            callback.onFailure(error);
           }
         }
  catch (        Throwable cause) {

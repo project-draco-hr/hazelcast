@@ -11,12 +11,11 @@
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
   this.invocationRegistry=new InvocationRegistry(logger,backpressureRegulator.newCallIdSequence(),concurrencyLevel);
-  this.invocationMonitor=new InvocationMonitor(invocationRegistry,logger,groupProperties,node.getHazelcastThreadGroup(),nodeEngine.getExecutionService());
+  this.invocationMonitor=new InvocationMonitor(nodeEngine,node.getThisAddress(),node.getHazelcastThreadGroup(),node.getGroupProperties(),invocationRegistry,logger,(InternalSerializationService)nodeEngine.getSerializationService(),nodeEngine.getServiceManager());
   this.operationBackupHandler=new OperationBackupHandler(this);
   this.responseHandler=new ResponseHandler(logger,node.getSerializationService(),invocationRegistry,nodeEngine);
   this.asyncResponseHandler=new AsyncResponseHandler(node.getHazelcastThreadGroup(),logger,responseHandler);
   this.operationExecutor=new OperationExecutorImpl(groupProperties,node.loggingService,node.getThisAddress(),new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
-  this.isStillRunningService=new IsStillRunningService(operationExecutor,nodeEngine,logger);
   ExecutionService executionService=nodeEngine.getExecutionService();
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
   this.slowOperationDetector=initSlowOperationDetector();

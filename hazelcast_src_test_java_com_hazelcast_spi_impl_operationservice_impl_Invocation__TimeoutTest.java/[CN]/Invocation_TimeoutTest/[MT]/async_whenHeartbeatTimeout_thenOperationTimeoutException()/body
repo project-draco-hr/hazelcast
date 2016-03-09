@@ -1,0 +1,13 @@
+{
+  long callTimeoutMs=1000;
+  Config config=new Config().setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeoutMs);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  OperationService opService=getOperationService(local);
+  ICompletableFuture f=opService.invokeOnPartition(null,new VoidOperation(),getPartitionId(remote));
+  ExecutionCallback callback=mock(ExecutionCallback.class);
+  f.andThen(callback);
+  assertEventuallyFailsWithHeartbeatTimeout(callback);
+}

@@ -1,0 +1,21 @@
+{
+  long callTimeoutMs=5000;
+  Config config=new Config().setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeoutMs);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  OperationService opService=getOperationService(local);
+  int partitionId=getPartitionId(remote);
+  opService.invokeOnPartition(null,new SlowOperation(callTimeoutMs * 2),partitionId);
+  Future f=opService.invokeOnPartition(null,new DummyOperation(),partitionId);
+  try {
+    f.get(3 * callTimeoutMs,MILLISECONDS);
+    fail();
+  }
+ catch (  ExecutionException e) {
+    Throwable cause=e.getCause();
+    assertInstanceOf(OperationTimeoutException.class,cause);
+    assertTrue(cause.getMessage(),cause.getMessage().contains("operation-call-timeout"));
+  }
+}

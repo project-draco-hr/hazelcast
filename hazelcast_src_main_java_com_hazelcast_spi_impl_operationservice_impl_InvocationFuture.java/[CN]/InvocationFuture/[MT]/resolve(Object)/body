@@ -1,14 +1,17 @@
 {
-  if (unresolvedResponse == NULL_RESPONSE) {
+  if (unresolved == null) {
     return null;
   }
- else   if (unresolvedResponse == TIMEOUT_RESPONSE) {
-    return new TimeoutException("Call " + invocation + " encountered a timeout");
+ else   if (unresolved == INTERRUPTED) {
+    return new InterruptedException(invocation.op.getClass().getSimpleName() + " was interrupted. " + invocation);
   }
- else   if (unresolvedResponse == INTERRUPTED_RESPONSE) {
-    return new InterruptedException("Call " + invocation + " was interrupted");
+ else   if (unresolved == CALL_TIMEOUT) {
+    return newOperationTimeoutException(false);
   }
-  Object response=unresolvedResponse;
+ else   if (unresolved == HEARTBEAT_TIMEOUT) {
+    return newOperationTimeoutException(true);
+  }
+  Object response=unresolved;
   if (deserialize && response instanceof Data) {
     response=invocation.nodeEngine.toObject(response);
     if (response == null) {

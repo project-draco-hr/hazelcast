@@ -1,0 +1,22 @@
+{
+  StringBuilder sb=new StringBuilder();
+  if (heartbeatTimeout) {
+    sb.append(invocation.op.getClass().getSimpleName()).append(" invocation failed to complete due to operation-heartbeat-timeout. ");
+    sb.append("Total elapsed time: ").append(Clock.currentTimeMillis() - invocation.firstInvocationTimeMillis).append(" ms. ");
+    long lastHeartbeatMs=invocation.lastHeartbeatMillis;
+    sb.append("Last heartbeat: ");
+    if (lastHeartbeatMs == 0) {
+      sb.append("never. ");
+    }
+ else {
+      sb.append(new Date(lastHeartbeatMs)).append(". ");
+    }
+  }
+ else {
+    sb.append(invocation.op.getClass().getSimpleName()).append(" got rejected before execution due to not starting within the operation-call-timeout of: ").append(invocation.callTimeoutMillis).append(" ms. ");
+    sb.append("Total elapsed time: ").append(Clock.currentTimeMillis() - invocation.firstInvocationTimeMillis).append(" ms. ");
+  }
+  sb.append(invocation);
+  String msg=sb.toString();
+  return new ExecutionException(msg,new OperationTimeoutException(msg));
+}

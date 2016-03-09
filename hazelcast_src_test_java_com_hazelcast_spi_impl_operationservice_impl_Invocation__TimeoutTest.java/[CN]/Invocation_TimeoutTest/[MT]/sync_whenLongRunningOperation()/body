@@ -1,0 +1,12 @@
+{
+  long callTimeout=5000;
+  Config config=new Config().setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeout);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  OperationService opService=getOperationService(local);
+  Future f=opService.invokeOnPartition(null,new SlowOperation(6 * callTimeout,RESPONSE),getPartitionId(remote));
+  Object result=f.get(120,SECONDS);
+  assertEquals(RESPONSE,result);
+}
