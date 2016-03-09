@@ -1,0 +1,29 @@
+{
+  long slotPrev;
+  long slotOther;
+  while (true) {
+    slotCurr=((slotPrev=slotCurr) + 1) & mask;
+    while (isAssigned(slotCurr)) {
+      slotOther=maskedHash(key1OfSlot(slotCurr),key2OfSlot(slotCurr));
+      if (slotPrev <= slotCurr) {
+        if (slotPrev >= slotOther || slotOther > slotCurr) {
+          break;
+        }
+      }
+ else {
+        if (slotPrev >= slotOther && slotOther > slotCurr) {
+          break;
+        }
+      }
+      slotCurr=(slotCurr + 1) & mask;
+    }
+    if (!isAssigned(slotCurr)) {
+      break;
+    }
+    putKey(slotPrev,key1OfSlot(slotCurr),key2OfSlot(slotCurr));
+    mem.copyMemory(valueAddrOfSlot(slotCurr),valueAddrOfSlot(slotPrev),valueLength);
+  }
+  final long slotBase=slotBase(slotPrev);
+  mem.setMemory(slotBase,slotLength,(byte)0);
+  mem.putLong(slotBase + offsetOfUnassignedSentinel,unassignedSentinel);
+}

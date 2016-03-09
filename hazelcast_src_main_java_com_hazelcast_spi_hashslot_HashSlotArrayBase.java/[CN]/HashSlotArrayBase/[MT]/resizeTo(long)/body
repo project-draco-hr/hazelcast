@@ -1,0 +1,19 @@
+{
+  final long oldAddress=baseAddress;
+  final long oldCapacity=capacity;
+  allocateArrayAndAdjustFields(newCapacity);
+  for (long slot=oldCapacity; --slot >= 0; ) {
+    if (isAssigned(oldAddress,slot)) {
+      long key1=key1OfSlot(oldAddress,slot);
+      long key2=key2OfSlot(oldAddress,slot);
+      long valueAddress=slotBase(oldAddress,slot) + valueOffset;
+      long newSlot=maskedHash(key1,key2);
+      while (isAssigned(newSlot)) {
+        newSlot=(newSlot + 1) & mask;
+      }
+      putKey(newSlot,key1,key2);
+      mem.copyMemory(valueAddress,valueAddrOfSlot(newSlot),valueLength);
+    }
+  }
+  malloc.free(oldAddress,oldCapacity * slotLength);
+}
