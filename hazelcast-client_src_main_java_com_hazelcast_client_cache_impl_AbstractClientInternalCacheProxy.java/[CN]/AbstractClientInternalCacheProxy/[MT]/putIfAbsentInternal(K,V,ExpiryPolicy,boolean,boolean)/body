@@ -1,63 +1,23 @@
 {
-  final long start=System.nanoTime();
+  long start=System.nanoTime();
   ensureOpen();
   validateNotNull(key,value);
   CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
-  final Data keyData=toData(key);
-  final Data valueData=toData(value);
-  final Data expiryPolicyData=toData(expiryPolicy);
-  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  Data keyData=toData(key);
+  Data valueData=toData(value);
+  Data expiryPolicyData=toData(expiryPolicy);
+  int completionId=withCompletionEvent ? nextCompletionId() : -1;
   ClientMessage request=CachePutIfAbsentCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,completionId);
   ClientInvocationFuture future;
   try {
     future=invoke(request,keyData,completionId);
   }
  catch (  Exception e) {
-    throw ExceptionUtil.rethrow(e);
+    throw rethrow(e);
   }
-  ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture<Boolean>(future,clientContext.getSerializationService(),putIfAbsentResponseDecoder);
-  if (!async) {
-    try {
-      Object response=delegatingFuture.get();
-      if (nearCache != null) {
-        if (cacheOnUpdate) {
-          storeInNearCache(keyData,valueData,value);
-        }
- else {
-          invalidateNearCache(keyData);
-        }
-      }
-      if (statisticsEnabled) {
-        handleStatisticsOnPutIfAbsent(start,(Boolean)response);
-      }
-      return response;
-    }
- catch (    Throwable e) {
-      throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
-    }
+  ClientDelegatingFuture<Boolean> delegatingFuture=new ClientDelegatingFuture<Boolean>(future,clientContext.getSerializationService(),PUT_IF_ABSENT_RESPONSE_DECODER);
+  if (async) {
+    return putIfAbsentInternalAsync(value,start,keyData,valueData,delegatingFuture);
   }
- else {
-    if (nearCache != null || statisticsEnabled) {
-      delegatingFuture.andThen(new ExecutionCallback<Object>(){
-        @Override public void onResponse(        Object responseData){
-          if (nearCache != null) {
-            if (cacheOnUpdate) {
-              storeInNearCache(keyData,valueData,value);
-            }
- else {
-              invalidateNearCache(keyData);
-            }
-          }
-          if (statisticsEnabled) {
-            Object response=clientContext.getSerializationService().toObject(responseData);
-            handleStatisticsOnPutIfAbsent(start,(Boolean)response);
-          }
-        }
-        @Override public void onFailure(        Throwable t){
-        }
-      }
-);
-    }
-    return delegatingFuture;
-  }
+  return putIfAbsentInternalSync(value,start,keyData,valueData,delegatingFuture);
 }
