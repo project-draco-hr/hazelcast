@@ -1,13 +1,25 @@
 {
-  final long oldAddress=baseAddress;
-  final long oldCapacity=capacity;
-  allocateArrayAndAdjustFields(newCapacity);
+  final long oldCapacity=capacity();
+  final long oldAllocatedSize=HEADER_SIZE + oldCapacity * slotLength;
+  final MemoryAllocator oldMalloc;
+  final long oldAddress;
+  if (auxMalloc != null) {
+    oldAddress=move(baseAddress,oldCapacity,malloc,auxMalloc);
+    oldMalloc=auxMalloc;
+    auxAllocateAndAdjustFields(oldAddress,oldCapacity,newCapacity);
+  }
+ else {
+    oldMalloc=malloc;
+    oldAddress=baseAddress;
+    allocateArrayAndAdjustFields(size(),newCapacity);
+  }
+  final long mask=mask();
   for (long slot=oldCapacity; --slot >= 0; ) {
     if (isAssigned(oldAddress,slot)) {
       long key1=key1OfSlot(oldAddress,slot);
       long key2=key2OfSlot(oldAddress,slot);
       long valueAddress=slotBase(oldAddress,slot) + valueOffset;
-      long newSlot=maskedHash(key1,key2);
+      long newSlot=hash(key1,key2) & mask;
       while (isAssigned(newSlot)) {
         newSlot=(newSlot + 1) & mask;
       }
@@ -15,5 +27,5 @@
       mem.copyMemory(valueAddress,valueAddrOfSlot(newSlot),valueLength);
     }
   }
-  malloc.free(oldAddress,oldCapacity * slotLength);
+  oldMalloc.free(oldAddress - HEADER_SIZE,oldAllocatedSize);
 }
