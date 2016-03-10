@@ -12,27 +12,23 @@ synchronized (this) {
     if (wanReplicationConfig == null) {
       return null;
     }
-    List<WanTargetClusterConfig> targets=wanReplicationConfig.getTargetClusterConfigs();
-    WanReplicationEndpoint[] targetEndpoints=new WanReplicationEndpoint[targets.size()];
+    List<WanPublisherConfig> publisherConfigs=wanReplicationConfig.getWanPublisherConfigs();
+    WanReplicationEndpoint[] targetEndpoints=new WanReplicationEndpoint[publisherConfigs.size()];
     int count=0;
-    for (    WanTargetClusterConfig targetClusterConfig : targets) {
+    for (    WanPublisherConfig publisherConfig : publisherConfigs) {
       WanReplicationEndpoint target;
       try {
-        if (targetClusterConfig.getReplicationImplObject() != null) {
-          target=(WanReplicationEndpoint)targetClusterConfig.getReplicationImplObject();
+        if (publisherConfig.getImplementation() != null) {
+          target=(WanReplicationEndpoint)publisherConfig.getImplementation();
         }
  else {
-          target=ClassLoaderUtil.newInstance(node.getConfigClassLoader(),targetClusterConfig.getReplicationImpl());
+          target=ClassLoaderUtil.newInstance(node.getConfigClassLoader(),publisherConfig.getClassName());
         }
       }
  catch (      Exception e) {
         throw ExceptionUtil.rethrow(e);
       }
-      String groupName=targetClusterConfig.getGroupName();
-      String password=targetClusterConfig.getGroupPassword();
-      String[] addresses=new String[targetClusterConfig.getEndpoints().size()];
-      targetClusterConfig.getEndpoints().toArray(addresses);
-      target.init(node,groupName,password,addresses);
+      target.init(node,wanReplicationConfig,publisherConfig);
       targetEndpoints[count++]=target;
     }
     wr=new WanReplicationPublisherDelegate(name,targetEndpoints);
