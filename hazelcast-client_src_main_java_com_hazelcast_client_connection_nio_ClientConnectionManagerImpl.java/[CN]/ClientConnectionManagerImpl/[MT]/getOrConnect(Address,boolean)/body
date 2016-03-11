@@ -1,11 +1,19 @@
 {
-  BlockingCallback blockingCallback=new BlockingCallback();
-  Connection connection=getOrTriggerConnectInternal(address,asOwner,blockingCallback);
-  if (connection != null) {
-    return connection;
-  }
   try {
-    return blockingCallback.get();
+    while (true) {
+      Connection connection=getConnection(address,asOwner);
+      if (connection != null) {
+        return connection;
+      }
+      AuthenticationFuture firstCallback=triggerConnect(address,asOwner);
+      connection=firstCallback.get();
+      if (!asOwner) {
+        return connection;
+      }
+      if (firstCallback.authenticatedAsOwner) {
+        return connection;
+      }
+    }
   }
  catch (  Throwable e) {
     throw ExceptionUtil.rethrow(e);
