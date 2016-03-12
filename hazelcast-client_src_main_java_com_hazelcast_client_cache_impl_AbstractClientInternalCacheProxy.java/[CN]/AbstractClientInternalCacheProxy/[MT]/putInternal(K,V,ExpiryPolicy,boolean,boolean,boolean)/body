@@ -1,71 +1,22 @@
 {
-  final long start=System.nanoTime();
+  long start=System.nanoTime();
   ensureOpen();
   validateNotNull(key,value);
   CacheProxyUtil.validateConfiguredTypes(cacheConfig,key,value);
-  final Data keyData=toData(key);
-  final Data valueData=toData(value);
-  final Data expiryPolicyData=toData(expiryPolicy);
-  final int completionId=withCompletionEvent ? nextCompletionId() : -1;
+  Data keyData=toData(key);
+  Data valueData=toData(value);
+  Data expiryPolicyData=toData(expiryPolicy);
+  int completionId=withCompletionEvent ? nextCompletionId() : -1;
   ClientMessage request=CachePutCodec.encodeRequest(nameWithPrefix,keyData,valueData,expiryPolicyData,isGet,completionId);
   ClientInvocationFuture future;
   try {
     future=invoke(request,keyData,completionId);
   }
  catch (  Exception e) {
-    throw ExceptionUtil.rethrow(e);
+    throw rethrow(e);
   }
-  if (!async) {
-    try {
-      ClientDelegatingFuture delegatingFuture=new ClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder);
-      Object response=delegatingFuture.get();
-      if (nearCache != null) {
-        if (cacheOnUpdate) {
-          storeInNearCache(keyData,valueData,value);
-        }
- else {
-          invalidateNearCache(keyData);
-        }
-      }
-      if (statisticsEnabled) {
-        handleStatisticsOnPut(isGet,start,response);
-      }
-      return response;
-    }
- catch (    Throwable e) {
-      throw ExceptionUtil.rethrowAllowedTypeFirst(e,CacheException.class);
-    }
+  if (async) {
+    return putInternalAsync(value,isGet,start,keyData,valueData,future);
   }
- else {
-    OneShotExecutionCallback oneShotExecutionCallback=null;
-    if (nearCache != null || statisticsEnabled) {
-      oneShotExecutionCallback=new OneShotExecutionCallback(){
-        @Override protected void onResponseInternal(        Object responseData){
-          if (nearCache != null) {
-            if (cacheOnUpdate) {
-              storeInNearCache(keyData,valueData,value);
-            }
- else {
-              invalidateNearCache(keyData);
-            }
-          }
-          if (statisticsEnabled) {
-            handleStatisticsOnPut(isGet,start,responseData);
-          }
-        }
-        @Override protected void onFailureInternal(        Throwable t){
-        }
-      }
-;
-    }
-    ClientDelegatingFuture delegatingFuture;
-    if (oneShotExecutionCallback != null) {
-      delegatingFuture=new CallbackAwareClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder,oneShotExecutionCallback);
-      delegatingFuture.andThen(oneShotExecutionCallback);
-    }
- else {
-      delegatingFuture=new ClientDelegatingFuture(future,clientContext.getSerializationService(),putResponseDecoder);
-    }
-    return delegatingFuture;
-  }
+  return putInternalSync(value,isGet,start,keyData,valueData,future);
 }
