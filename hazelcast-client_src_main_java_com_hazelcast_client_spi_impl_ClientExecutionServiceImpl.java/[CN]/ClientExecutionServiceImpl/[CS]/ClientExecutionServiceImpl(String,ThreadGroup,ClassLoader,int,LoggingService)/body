@@ -4,15 +4,7 @@
     executorPoolSize=Runtime.getRuntime().availableProcessors();
   }
   logger=loggingService.getLogger(ClientExecutionService.class);
-  failureLoggingExecutionCallback=new ExecutionCallback(){
-    @Override public void onResponse(    Object response){
-    }
-    @Override public void onFailure(    Throwable t){
-      logger.warning("Rejected internal execution on scheduledExecutor",t);
-    }
-  }
-;
-  internalExecutor=new ThreadPoolExecutor(2,2,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(),new PoolExecutorThreadFactory(threadGroup,name + ".internal-",classLoader),new RejectedExecutionHandler(){
+  internalExecutor=new ScheduledThreadPoolExecutor(3,new PoolExecutorThreadFactory(threadGroup,name + ".internal-",classLoader),new RejectedExecutionHandler(){
     public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
       String message="Internal executor rejected task: " + r + ", because client is shutting down...";
       logger.finest(message);
@@ -28,5 +20,4 @@
     }
   }
 );
-  scheduledExecutor=Executors.newSingleThreadScheduledExecutor(new SingleExecutorThreadFactory(threadGroup,classLoader,name + ".scheduled"));
 }
