@@ -2,21 +2,18 @@
   if (!RESPONSE_RECEIVED.compareAndSet(this,FALSE,TRUE)) {
     throw new ResponseAlreadySentException("NormalResponse already responseReceived for callback: " + this + ", current-response: : "+ response);
   }
-  if (response == null) {
-    response=NULL_RESPONSE;
-  }
+  response=response == null ? NULL_RESPONSE : response;
   if (response instanceof CallTimeoutResponse) {
     notifyCallTimeout();
-    return;
   }
-  if (response instanceof ErrorResponse || response instanceof Throwable) {
+ else   if (response instanceof ErrorResponse || response instanceof Throwable) {
     notifyError(response);
-    return;
   }
-  if (response instanceof NormalResponse) {
+ else   if (response instanceof NormalResponse) {
     NormalResponse normalResponse=(NormalResponse)response;
     notifyNormalResponse(normalResponse.getValue(),normalResponse.getBackupCount());
-    return;
   }
-  future.complete(response);
+ else {
+    future.complete(response);
+  }
 }

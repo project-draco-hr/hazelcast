@@ -1,10 +1,5 @@
 {
-  Address thisAddress=nodeEngine.getThisAddress();
   ClusterService clusterService=nodeEngine.getClusterService();
-  if (!nodeEngine.isRunning()) {
-    notifyError(new HazelcastInstanceNotActiveException());
-    return;
-  }
   ClusterState clusterState=clusterService.getClusterState();
   if (clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE) {
     notifyError(new IllegalStateException("Partitions can't be assigned since cluster-state: " + clusterState));
@@ -14,5 +9,5 @@
     notifyError(new NoDataMemberInClusterException("Partitions can't be assigned since all nodes in the cluster are lite members"));
     return;
   }
-  notifyError(new WrongTargetException(thisAddress,null,op.getPartitionId(),op.getReplicaIndex(),op.getClass().getName(),op.getServiceName()));
+  notifyError(new WrongTargetException(nodeEngine.getThisAddress(),null,op.getPartitionId(),op.getReplicaIndex(),op.getClass().getName(),op.getServiceName()));
 }
