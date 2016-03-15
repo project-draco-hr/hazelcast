@@ -1,0 +1,14 @@
+{
+  int oldValue=111;
+  setValue(nodeEngine1,partitionId,oldValue);
+  long[] initialReplicaVersions=getReplicaVersions(nodeEngine1.getNode(),partitionId);
+  assertBackupReplicaVersions(nodeEngine2.getNode(),partitionId,initialReplicaVersions);
+  int newValue=222;
+  setValue(nodeEngine1,partitionId,newValue);
+  long[] lastReplicaVersions=getReplicaVersions(nodeEngine1.getNode(),partitionId);
+  assertBackupReplicaVersions(nodeEngine2.getNode(),partitionId,lastReplicaVersions);
+  runBackup(nodeEngine2,oldValue,initialReplicaVersions,nodeEngine1.getThisAddress());
+  long[] backupReplicaVersions=getReplicaVersions(nodeEngine2.getNode(),partitionId);
+  assertArrayEquals(lastReplicaVersions,backupReplicaVersions);
+  assertEquals(newValue,service.value.get());
+}
