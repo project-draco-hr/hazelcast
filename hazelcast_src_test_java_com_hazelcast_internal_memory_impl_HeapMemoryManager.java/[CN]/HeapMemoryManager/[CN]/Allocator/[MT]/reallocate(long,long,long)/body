@@ -3,17 +3,18 @@
   assertFitsInt(currentSize);
   assertFitsInt(newSize);
   validateBlock(address,currentSize);
-  final long sizeDelta=newSize - currentSize;
-  final long newAddress;
   if (address == lastAllocatedAddress) {
+    final long sizeDelta=newSize - currentSize;
+    assureEnoughMemoryLeft(sizeDelta);
+    allocatedAddrs.put(address,newSize);
     heapTop+=sizeDelta;
-    newAddress=address;
+    usedMemory+=sizeDelta;
+    return address;
   }
  else {
-    newAddress=allocate(newSize);
+    final long newAddress=allocate(newSize);
     System.arraycopy(storage,(int)address,storage,(int)newAddress,(int)Math.min(currentSize,newSize));
-    allocatedAddrs.remove(address);
+    free0(address,currentSize);
+    return newAddress;
   }
-  usedMemory+=sizeDelta;
-  return newAddress;
 }
