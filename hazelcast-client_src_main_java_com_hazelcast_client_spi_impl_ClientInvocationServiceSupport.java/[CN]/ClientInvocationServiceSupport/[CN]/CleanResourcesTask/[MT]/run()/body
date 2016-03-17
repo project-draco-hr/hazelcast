@@ -1,9 +1,34 @@
 {
-  waitForPacketsProcessed();
-  cleanResources(new ConstructorFunction<Object,Throwable>(){
-    @Override public Throwable createNew(    Object arg){
-      return new TargetDisconnectedException(connection.getRemoteEndpoint());
+  Iterator<Map.Entry<Long,ClientInvocation>> iter=callIdMap.entrySet().iterator();
+  Collection<ClientConnection> expiredConnections=null;
+  while (iter.hasNext()) {
+    Map.Entry<Long,ClientInvocation> entry=iter.next();
+    ClientInvocation invocation=entry.getValue();
+    ClientConnection connection=invocation.getSendConnection();
+    if (connection == null) {
+      continue;
     }
+    if (connection.isHeartBeating()) {
+      continue;
+    }
+    int pendingPacketCount=connection.getPendingPacketCount();
+    if (pendingPacketCount != 0) {
+      long closedTime=connection.getClosedTime();
+      long elapsed=System.currentTimeMillis() - closedTime;
+      if (elapsed < WAIT_TIME_FOR_PACKETS_TO_BE_CONSUMED_THRESHOLD) {
+        continue;
+      }
+ else {
+        if (expiredConnections == null) {
+          expiredConnections=new LinkedList<ClientConnection>();
+        }
+        expiredConnections.add(connection);
+      }
+    }
+    iter.remove();
+    invocation.notifyException(new TargetDisconnectedException(connection.getRemoteEndpoint()));
   }
-,connection);
+  if (expiredConnections != null) {
+    logExpiredConnections(expiredConnections);
+  }
 }
