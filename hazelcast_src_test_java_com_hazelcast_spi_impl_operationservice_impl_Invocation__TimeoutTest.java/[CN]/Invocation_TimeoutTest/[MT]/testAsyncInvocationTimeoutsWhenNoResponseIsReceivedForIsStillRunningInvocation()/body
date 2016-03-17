@@ -6,7 +6,7 @@
   HazelcastInstance local=factory.newHazelcastInstance(config);
   HazelcastInstance remote=factory.newHazelcastInstance(config);
   Address remoteAddress=getNode(remote).getThisAddress();
-  TargetInvocation orgInvocation=new TargetInvocation(getOperationServiceImpl(local),new IsStillRunningServiceTest.DummyOperation(60000),remoteAddress,0,0,-1,null,true);
+  TargetInvocation orgInvocation=new TargetInvocation(getOperationServiceImpl(local),new IsStillRunningServiceTest.DummyOperation(60000),remoteAddress,0,0,-1,true);
   InvocationFuture future=orgInvocation.invoke();
   final CountDownLatch timeoutLatch=new CountDownLatch(1);
   future.andThen(new ExecutionCallback(){
@@ -23,7 +23,7 @@
   }
 );
   long orgCallId=orgInvocation.op.getCallId();
-  TargetInvocation isStillExecutingInvocation=new TargetInvocation(getOperationServiceImpl(local),new SleepingIsStillExecutingOperation(orgCallId,60000),remoteAddress,0,0,-1,null,true);
+  TargetInvocation isStillExecutingInvocation=new TargetInvocation(getOperationServiceImpl(local),new SleepingIsStillExecutingOperation(orgCallId,60000),remoteAddress,0,0,-1,true);
   InvocationFuture isStillExecutingFuture=isStillExecutingInvocation.invoke();
   isStillExecutingFuture.andThen(new IsStillRunningService.IsOperationStillRunningCallback(orgInvocation));
   assertOpenEventually(timeoutLatch,30);
