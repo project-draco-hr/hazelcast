@@ -1,5 +1,6 @@
 {
   final Socket socket=socketChannelWrapper.socket();
+  this.client=client;
   this.connectionManager=client.getConnectionManager();
   this.lifecycleService=client.getLifecycleService();
   this.socketChannelWrapper=socketChannelWrapper;
@@ -9,4 +10,9 @@
   boolean directBuffer=client.getClientProperties().getBoolean(GroupProperty.SOCKET_CLIENT_BUFFER_DIRECT);
   this.readHandler=new ClientReadHandler(this,in,socket.getReceiveBufferSize(),directBuffer,clientLoggingService);
   this.writeHandler=new ClientWriteHandler(this,out,socket.getSendBufferSize(),directBuffer,clientLoggingService);
+  MetricsRegistryImpl metricsRegistry=client.getMetricsRegistry();
+  String connectionName="tcp.connection[" + socket.getLocalSocketAddress() + " -> "+ socket.getRemoteSocketAddress()+ "]";
+  metricsRegistry.scanAndRegister(this,connectionName);
+  metricsRegistry.scanAndRegister(readHandler,connectionName + ".in");
+  metricsRegistry.scanAndRegister(writeHandler,connectionName + ".out");
 }
