@@ -1,27 +1,24 @@
 {
   Node attName=node.getAttributes().getNamedItem("name");
   String name=getTextContent(attName);
-  Node attSnapshotEnabled=node.getAttributes().getNamedItem("snapshot-enabled");
-  boolean snapshotEnabled=getBooleanValue(getTextContent(attSnapshotEnabled));
   WanReplicationConfig wanReplicationConfig=new WanReplicationConfig();
   wanReplicationConfig.setName(name);
-  wanReplicationConfig.setSnapshotEnabled(snapshotEnabled);
   for (  Node nodeTarget : childElements(node)) {
     String nodeName=cleanNodeName(nodeTarget);
-    if ("target-cluster".equals(nodeName)) {
-      WanTargetClusterConfig wanTarget=new WanTargetClusterConfig();
-      String groupName=getAttribute(nodeTarget,"group-name");
-      String groupPassword=getAttribute(nodeTarget,"group-password");
-      if (groupName != null) {
-        wanTarget.setGroupName(groupName);
-      }
-      if (groupPassword != null) {
-        wanTarget.setGroupPassword(groupPassword);
-      }
+    if ("wan-publisher".equals(nodeName)) {
+      WanPublisherConfig publisherConfig=new WanPublisherConfig();
+      publisherConfig.setGroupName(getAttribute(nodeTarget,"group-name"));
       for (      Node targetChild : childElements(nodeTarget)) {
-        handleWanTargetConfig(wanTarget,targetChild);
+        handleWanPublisherConfig(publisherConfig,targetChild);
       }
-      wanReplicationConfig.addTargetClusterConfig(wanTarget);
+      wanReplicationConfig.addWanPublisherConfig(publisherConfig);
+    }
+ else     if ("wan-consumer".equals(nodeName)) {
+      WanConsumerConfig consumerConfig=new WanConsumerConfig();
+      for (      Node targetChild : childElements(nodeTarget)) {
+        handleWanConsumerConfig(consumerConfig,targetChild);
+      }
+      wanReplicationConfig.setWanConsumerConfig(consumerConfig);
     }
   }
   config.addWanReplicationConfig(wanReplicationConfig);
