@@ -9,17 +9,16 @@
   operationService.invocationRegistry.deregister(this);
   if (future.interrupted) {
     future.complete(INTERRUPTED_RESPONSE);
-    return;
   }
-  if (!future.complete(WAIT_RESPONSE)) {
+ else   if (!future.complete(WAIT_RESPONSE)) {
     logger.finest("Cannot retry " + toString() + ", because a different response is already set: "+ future.response);
-    return;
-  }
-  ExecutionService ex=nodeEngine.getExecutionService();
-  if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
-    operationService.asyncExecutor.execute(this);
   }
  else {
-    ex.schedule(ASYNC_EXECUTOR,this,tryPauseMillis,TimeUnit.MILLISECONDS);
+    if (invokeCount < MAX_FAST_INVOCATION_COUNT) {
+      operationService.asyncExecutor.execute(this);
+    }
+ else {
+      nodeEngine.getExecutionService().schedule(ASYNC_EXECUTOR,this,tryPauseMillis,MILLISECONDS);
+    }
   }
 }
