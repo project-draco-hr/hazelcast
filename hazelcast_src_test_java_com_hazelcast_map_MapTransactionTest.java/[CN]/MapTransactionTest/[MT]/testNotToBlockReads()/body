@@ -1,0 +1,16 @@
+{
+  final HazelcastInstance instance=createHazelcastInstance();
+  TransactionContext context=instance.newTransactionContext();
+  context.beginTransaction();
+  TransactionalMap<Object,Object> map=context.getMap("map");
+  map.put("key","value");
+  Future<Object> future=spawn(new Callable<Object>(){
+    @Override public Object call() throws Exception {
+      IMap<Object,Object> map=instance.getMap("map");
+      return map.get("key");
+    }
+  }
+);
+  assertNull(future.get());
+  context.commitTransaction();
+}

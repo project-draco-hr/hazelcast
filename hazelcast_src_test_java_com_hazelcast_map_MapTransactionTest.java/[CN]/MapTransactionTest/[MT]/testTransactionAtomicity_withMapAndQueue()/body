@@ -1,0 +1,23 @@
+{
+  final HazelcastInstance instance=createHazelcastInstance();
+  Future<Object> future=spawn(new Callable<Object>(){
+    @Override public Object call() throws Exception {
+      IQueue<Object> queue=instance.getQueue("queue");
+      IMap<Object,Object> map=instance.getMap("map");
+      Object item=queue.take();
+      return map.get(item);
+    }
+  }
+);
+  TransactionOptions options=new TransactionOptions().setTransactionType(TransactionOptions.TransactionType.ONE_PHASE);
+  TransactionContext context=instance.newTransactionContext(options);
+  context.beginTransaction();
+  TransactionalQueue<Object> queue=context.getQueue("queue");
+  TransactionalMap<Object,Object> map=context.getMap("map");
+  queue.offer("item-99");
+  for (int i=0; i < 100; i++) {
+    map.put("item-" + i,"value");
+  }
+  context.commitTransaction();
+  assertEquals("value",future.get());
+}
