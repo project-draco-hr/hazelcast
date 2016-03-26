@@ -1,18 +1,21 @@
 {
-  for (; ; ) {
-    Object task;
-    try {
-      task=scheduleQueue.take();
+  while (!shutdown) {
+    Object task=queue.take();
+    processedTotal.inc();
+    if (task.getClass() == Packet.class) {
+      processPacket((Packet)task);
     }
- catch (    InterruptedException e) {
-      if (shutdown) {
-        return;
-      }
-      continue;
+ else     if (task instanceof Operation) {
+      processOperation((Operation)task);
     }
-    if (shutdown) {
-      return;
+ else     if (task instanceof PartitionSpecificRunnable) {
+      processPartitionSpecificRunnable((PartitionSpecificRunnable)task);
     }
-    process(task);
+ else     if (task instanceof Runnable) {
+      processRunnable((Runnable)task);
+    }
+ else {
+      throw new IllegalStateException("Unhandled task type for task:" + task);
+    }
   }
 }
