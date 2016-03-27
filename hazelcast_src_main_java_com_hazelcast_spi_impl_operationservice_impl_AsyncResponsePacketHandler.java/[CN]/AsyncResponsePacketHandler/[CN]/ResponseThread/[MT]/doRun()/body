@@ -1,18 +1,12 @@
 {
-  for (; ; ) {
-    Packet responsePacket;
+  while (!shutdown) {
+    Packet responsePacket=workQueue.take();
     try {
-      responsePacket=workQueue.take();
+      responsePacketHandler.handle(responsePacket);
     }
- catch (    InterruptedException e) {
-      if (shutdown) {
-        return;
-      }
-      continue;
+ catch (    Throwable e) {
+      inspectOutputMemoryError(e);
+      logger.severe("Failed to process response: " + responsePacket + " on response thread:"+ getName(),e);
     }
-    if (shutdown) {
-      return;
-    }
-    process(responsePacket);
   }
 }
