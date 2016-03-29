@@ -4,26 +4,14 @@
   }
   partitionServiceLock.lock();
   try {
-    Collection<Address> addresses=new HashSet<Address>();
-    InternalPartition[] partitions=partitionStateManager.getPartitions();
-    ClusterServiceImpl clusterService=node.getClusterService();
-    for (    InternalPartition partition : partitions) {
-      for (int i=0; i < InternalPartition.MAX_REPLICA_COUNT; i++) {
-        Address address=partition.getReplicaAddress(i);
-        if (address != null && clusterService.getMember(address) == null) {
-          addresses.add(address);
-        }
-      }
-    }
+    Collection<Address> addresses=collectUnknownAddresses();
     for (    Address address : addresses) {
       partitionStateManager.removeDeadAddress(address);
     }
     for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
       repairPartition(partitionId);
     }
-    if (!partitionService.syncPartitionRuntimeState() && logger.isFinestEnabled()) {
-      logger.finest("All members not synced partition table after repair");
-    }
+    partitionService.syncPartitionRuntimeState();
     if (logger.isFinestEnabled()) {
       logger.finest("RepartitioningTask scheduled");
     }

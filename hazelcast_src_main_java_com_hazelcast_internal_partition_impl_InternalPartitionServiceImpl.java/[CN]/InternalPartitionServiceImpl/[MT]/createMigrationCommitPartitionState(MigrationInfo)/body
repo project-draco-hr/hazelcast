@@ -2,14 +2,9 @@
   if (!partitionStateManager.isInitialized()) {
     return null;
   }
-  Collection<MemberImpl> members=node.clusterService.getMemberImpls();
   lock.lock();
   try {
-    List<MemberInfo> memberInfos=new ArrayList<MemberInfo>(members.size());
-    for (    MemberImpl member : members) {
-      MemberInfo memberInfo=new MemberInfo(member.getAddress(),member.getUuid(),member.getAttributes());
-      memberInfos.add(memberInfo);
-    }
+    MemberInfo[] members=partitionStateManager.getPartitionTableMembers();
     List<MigrationInfo> completedMigrations=migrationManager.getCompletedMigrations();
     ILogger logger=node.getLogger(PartitionRuntimeState.class);
     InternalPartition[] partitions=partitionStateManager.getPartitionsCopy();
@@ -17,7 +12,7 @@
     InternalPartitionImpl partition=(InternalPartitionImpl)partitions[partitionId];
     migrationManager.applyMigration(partition,migrationInfo);
     int committedVersion=getPartitionStateVersion() + 1;
-    return new PartitionRuntimeState(logger,memberInfos,partitions,completedMigrations,committedVersion);
+    return new PartitionRuntimeState(logger,members,partitions,completedMigrations,committedVersion);
   }
   finally {
     lock.unlock();

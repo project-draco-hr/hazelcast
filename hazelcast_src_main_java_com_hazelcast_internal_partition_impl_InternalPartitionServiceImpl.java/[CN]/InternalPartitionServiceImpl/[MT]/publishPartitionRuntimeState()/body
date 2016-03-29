@@ -10,8 +10,7 @@
   }
   lock.lock();
   try {
-    Collection<MemberImpl> members=getCurrentMembersAndMembersRemovedWhileNotClusterNotActive();
-    PartitionRuntimeState partitionState=createPartitionState(members);
+    PartitionRuntimeState partitionState=createPartitionStateInternal();
     if (partitionState == null) {
       return;
     }
@@ -20,9 +19,9 @@
     }
     PartitionStateOperation op=new PartitionStateOperation(partitionState);
     OperationService operationService=nodeEngine.getOperationService();
-    final ClusterServiceImpl clusterService=node.clusterService;
+    Collection<MemberImpl> members=node.clusterService.getMemberImpls();
     for (    MemberImpl member : members) {
-      if (!(member.localMember() || clusterService.isMemberRemovedWhileClusterIsNotActive(member.getAddress()))) {
+      if (!member.localMember()) {
         try {
           operationService.send(op,member.getAddress());
         }
