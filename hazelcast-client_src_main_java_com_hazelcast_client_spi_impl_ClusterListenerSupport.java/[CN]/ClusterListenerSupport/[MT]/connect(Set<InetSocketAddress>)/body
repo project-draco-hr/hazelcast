@@ -1,6 +1,12 @@
 {
   final Collection<InetSocketAddress> socketAddresses=getSocketAddresses();
   for (  InetSocketAddress inetSocketAddress : socketAddresses) {
+    if (!client.getLifecycleService().isRunning()) {
+      if (LOGGER.isFinestEnabled()) {
+        LOGGER.finest("Giving up on retrying to connect to cluster since client is shutdown");
+      }
+      break;
+    }
     try {
       triedAddresses.add(inetSocketAddress);
       Address address=new Address(inetSocketAddress);
@@ -8,8 +14,9 @@
         LOGGER.finest("Trying to connect to " + address);
       }
       Connection connection=connectionManager.getOrConnect(address,true);
-      fireConnectionEvent(LifecycleEvent.LifecycleState.CLIENT_CONNECTED);
       ownerConnectionAddress=connection.getEndPoint();
+      clientMembershipListener.listenMembershipEvents(ownerConnectionAddress);
+      fireConnectionEvent(LifecycleEvent.LifecycleState.CLIENT_CONNECTED);
       return true;
     }
  catch (    Exception e) {
