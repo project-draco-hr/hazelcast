@@ -1,0 +1,20 @@
+{
+  initExecutor();
+  final AtomicReference<Thread> executingThead=new AtomicReference<Thread>();
+  PartitionSpecificRunnable task=new PartitionSpecificRunnable(){
+    @Override public void run(){
+      executingThead.set(Thread.currentThread());
+    }
+    @Override public int getPartitionId(){
+      return 0;
+    }
+  }
+;
+  executor.execute(task);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertInstanceOf(PartitionOperationThread.class,executingThead.get());
+    }
+  }
+);
+}

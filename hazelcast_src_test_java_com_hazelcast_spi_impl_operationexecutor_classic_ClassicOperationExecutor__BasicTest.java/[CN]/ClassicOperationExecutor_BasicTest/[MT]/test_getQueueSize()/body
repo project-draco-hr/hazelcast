@@ -1,0 +1,29 @@
+{
+  initExecutor();
+  for (int k=0; k < executor.getGenericThreadCount(); k++) {
+    executor.execute(new DummyOperation(Operation.GENERIC_PARTITION_ID).durationMs(2000));
+  }
+  for (int k=0; k < executor.getPartitionThreadCount(); k++) {
+    executor.execute(new DummyOperation(k).durationMs(2000));
+  }
+  int count=0;
+  for (int l=0; l < 3; l++) {
+    for (int k=0; k < executor.getGenericThreadCount(); k++) {
+      executor.execute(new DummyOperation(Operation.GENERIC_PARTITION_ID).durationMs(2000));
+      count++;
+    }
+  }
+  for (int l=0; l < 5; l++) {
+    for (int k=0; k < executor.getPartitionThreadCount(); k++) {
+      executor.execute(new DummyOperation(k).durationMs(2000));
+      count++;
+    }
+  }
+  final int expectedCount=count;
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(expectedCount,executor.getQueueSize());
+    }
+  }
+);
+}

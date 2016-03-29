@@ -1,0 +1,19 @@
+{
+  initExecutor();
+  final DummyPartitionOperation partitionOperation=new DummyPartitionOperation();
+  FutureTask<Boolean> futureTask=new FutureTask<Boolean>(new Callable<Boolean>(){
+    @Override public Boolean call() throws Exception {
+      try {
+        executor.run(partitionOperation);
+        return Boolean.FALSE;
+      }
+ catch (      IllegalThreadStateException e) {
+        return Boolean.TRUE;
+      }
+    }
+  }
+);
+  DummyOperationHostileThread thread=new DummyOperationHostileThread(futureTask);
+  thread.start();
+  assertEqualsEventually(futureTask,Boolean.TRUE);
+}

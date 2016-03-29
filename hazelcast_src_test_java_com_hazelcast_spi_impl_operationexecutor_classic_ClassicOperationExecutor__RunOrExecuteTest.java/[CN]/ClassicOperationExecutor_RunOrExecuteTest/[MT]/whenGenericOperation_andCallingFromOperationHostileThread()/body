@@ -1,0 +1,18 @@
+{
+  initExecutor();
+  final AtomicReference<Thread> executingThread=new AtomicReference<Thread>();
+  final Operation operation=new ThreadCapturingOperation(executingThread);
+  DummyOperationHostileThread thread=new DummyOperationHostileThread(new Runnable(){
+    @Override public void run(){
+      executor.runOrExecute(operation);
+    }
+  }
+);
+  thread.start();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertInstanceOf(GenericOperationThread.class,executingThread.get());
+    }
+  }
+);
+}

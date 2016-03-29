@@ -1,0 +1,20 @@
+{
+  initExecutor();
+  final AtomicReference<Thread> executingThread=new AtomicReference<Thread>();
+  final Operation operation=new ThreadCapturingOperation(executingThread).setPartitionId(0);
+  final PartitionSpecificCallable<Thread> task=new PartitionSpecificCallable<Thread>(operation.getPartitionId() + 1){
+    @Override public Thread call(){
+      executor.runOrExecute(operation);
+      return Thread.currentThread();
+    }
+  }
+;
+  executor.execute(task);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertInstanceOf(PartitionOperationThread.class,executingThread.get());
+      assertNotSame(task.getResult(),executingThread.get());
+    }
+  }
+);
+}
