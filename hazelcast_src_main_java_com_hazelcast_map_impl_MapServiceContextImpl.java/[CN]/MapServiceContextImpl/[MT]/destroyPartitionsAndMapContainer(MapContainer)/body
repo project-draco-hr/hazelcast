@@ -1,0 +1,14 @@
+{
+  Semaphore semaphore=new Semaphore(0);
+  InternalOperationService operationService=(InternalOperationService)nodeEngine.getOperationService();
+  for (  PartitionContainer container : partitionContainers) {
+    MapPartitionDestroyTask partitionDestroyTask=new MapPartitionDestroyTask(container,mapContainer,semaphore);
+    operationService.execute(partitionDestroyTask);
+  }
+  try {
+    semaphore.tryAcquire(partitionContainers.length,DESTROY_TIMEOUT_SECONDS,TimeUnit.SECONDS);
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
+}
