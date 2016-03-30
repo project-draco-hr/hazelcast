@@ -1,0 +1,17 @@
+{
+  Iterator<Entry<String,QueueContainer>> iterator=containerMap.entrySet().iterator();
+  IPartitionService partitionService=nodeEngine.getPartitionService();
+  while (iterator.hasNext()) {
+    final Entry<String,QueueContainer> entry=iterator.next();
+    final String name=entry.getKey();
+    final QueueContainer container=entry.getValue();
+    int containerPartitionId=partitionService.getPartitionId(StringPartitioningStrategy.getPartitionKey(name));
+    if (containerPartitionId != partitionId) {
+      continue;
+    }
+    if (thresholdReplicaIndex < 0 || thresholdReplicaIndex > container.getConfig().getTotalBackupCount()) {
+      container.destroy();
+      iterator.remove();
+    }
+  }
+}
