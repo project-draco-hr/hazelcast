@@ -1,0 +1,21 @@
+{
+  config.setProperty(GroupProperty.GENERIC_OPERATION_THREAD_COUNT.getName(),"1");
+  initExecutor();
+  final DummyOperationRunner genericOperationHandler=((DummyOperationRunnerFactory)handlerFactory).genericOperationHandlers.get(0);
+  final DummyGenericOperation genericOperation=new DummyGenericOperation();
+  PartitionSpecificCallable task=new PartitionSpecificCallable(Operation.GENERIC_PARTITION_ID){
+    @Override public Object call(){
+      executor.run(genericOperation);
+      return null;
+    }
+  }
+;
+  executor.execute(task);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      boolean contains=genericOperationHandler.operations.contains(genericOperation);
+      assertTrue("operation is not found in the generic operation handler",contains);
+    }
+  }
+);
+}

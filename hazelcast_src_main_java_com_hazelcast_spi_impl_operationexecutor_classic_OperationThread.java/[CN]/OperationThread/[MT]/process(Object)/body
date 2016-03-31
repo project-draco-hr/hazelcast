@@ -1,0 +1,39 @@
+{
+  try {
+    if (task.getClass() == Packet.class) {
+      Packet packet=(Packet)task;
+      currentRunner=getOperationRunner(packet.getPartitionId());
+      currentRunner.run(packet);
+      completedPacketCount.inc();
+    }
+ else     if (task instanceof Operation) {
+      Operation operation=(Operation)task;
+      currentRunner=getOperationRunner(operation.getPartitionId());
+      currentRunner.run(operation);
+      completedOperationCount.inc();
+    }
+ else     if (task instanceof PartitionSpecificRunnable) {
+      PartitionSpecificRunnable runnable=(PartitionSpecificRunnable)task;
+      currentRunner=getOperationRunner(runnable.getPartitionId());
+      currentRunner.run(runnable);
+      completedPartitionSpecificRunnableCount.inc();
+    }
+ else     if (task instanceof Runnable) {
+      Runnable runnable=(Runnable)task;
+      runnable.run();
+      completedRunnableCount.inc();
+    }
+ else {
+      throw new IllegalStateException("Unhandled task type for task:" + task);
+    }
+    completedTotalCount.inc();
+  }
+ catch (  Throwable t) {
+    errorCount.inc();
+    inspectOutputMemoryError(t);
+    logger.severe("Failed to process packet: " + task + " on "+ getName(),t);
+  }
+ finally {
+    currentRunner=null;
+  }
+}

@@ -1,0 +1,22 @@
+{
+  checkNotNull(op,"op can't be null");
+  Thread currentThread=Thread.currentThread();
+  if (currentThread instanceof OperationHostileThread) {
+    return false;
+  }
+  if (isAsync) {
+    return true;
+  }
+  if (op.getPartitionId() < 0) {
+    return true;
+  }
+  if (currentThread.getClass() != PartitionOperationThread.class) {
+    return true;
+  }
+  PartitionOperationThread partitionThread=(PartitionOperationThread)currentThread;
+  OperationRunner runner=partitionThread.currentRunner;
+  if (runner != null) {
+    return runner.getPartitionId() == op.getPartitionId();
+  }
+  return toPartitionThreadIndex(op.getPartitionId()) == partitionThread.threadId;
+}
