@@ -1,10 +1,11 @@
 {
   try {
     Operation operation=operationProvider.createEvictAllOperation(name);
-    Map<Integer,Object> resultMap=operationService.invokeOnAllPartitions(SERVICE_NAME,new BinaryOperationFactory(operation,getNodeEngine()));
+    BinaryOperationFactory factory=new BinaryOperationFactory(operation,getNodeEngine());
+    Map<Integer,Object> resultMap=operationService.invokeOnAllPartitions(SERVICE_NAME,factory);
     int numberOfAffectedEntries=0;
-    for (    Object o : resultMap.values()) {
-      numberOfAffectedEntries+=(Integer)o;
+    for (    Object object : resultMap.values()) {
+      numberOfAffectedEntries+=(Integer)object;
     }
     MemberSelector selector=MemberSelectors.and(LITE_MEMBER_SELECTOR,NON_LOCAL_MEMBER_SELECTOR);
     for (    Member member : getNodeEngine().getClusterService().getMembers(selector)) {
@@ -15,6 +16,6 @@
     }
   }
  catch (  Throwable t) {
-    throw ExceptionUtil.rethrow(t);
+    throw rethrow(t);
   }
 }

@@ -1,10 +1,9 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  int partitionId=getNodeEngine().getPartitionService().getPartitionId(key);
   MapOperation operation=operationProvider.createPutOperation(name,key,value,getTimeInMillis(ttl,timeunit));
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
-    final long startTime=System.currentTimeMillis();
+    long startTime=System.currentTimeMillis();
     InternalCompletableFuture<Data> future=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
     if (statisticsEnabled) {
       future.andThen(new IncrementStatsExecutionCallback<Data>(operation,startTime));
@@ -12,6 +11,6 @@
     return future;
   }
  catch (  Throwable t) {
-    throw ExceptionUtil.rethrow(t);
+    throw rethrow(t);
   }
 }
