@@ -2,7 +2,6 @@
   this.nodeEngine=nodeEngine;
   this.node=nodeEngine.getNode();
   this.logger=node.getLogger(OperationService.class);
-  this.metricsRegistry=nodeEngine.getMetricsRegistry();
   this.serializationService=(InternalSerializationService)nodeEngine.getSerializationService();
   this.invocationLogger=nodeEngine.getLogger(Invocation.class);
   GroupProperties groupProperties=node.getGroupProperties();
@@ -11,15 +10,14 @@
   int coreSize=Runtime.getRuntime().availableProcessors();
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
-  this.invocationRegistry=new InvocationRegistry(logger,backpressureRegulator.newCallIdSequence(),concurrencyLevel,nodeEngine.getMetricsRegistry());
-  this.invocationMonitor=new InvocationMonitor(invocationRegistry,logger,groupProperties,node.getHazelcastThreadGroup(),nodeEngine.getExecutionService(),nodeEngine.getMetricsRegistry());
+  this.invocationRegistry=new InvocationRegistry(logger,backpressureRegulator.newCallIdSequence(),concurrencyLevel);
+  this.invocationMonitor=new InvocationMonitor(invocationRegistry,logger,groupProperties,node.getHazelcastThreadGroup(),nodeEngine.getExecutionService());
   this.operationBackupHandler=new OperationBackupHandler(this);
   this.responseHandler=new ResponseHandler(logger,node.getSerializationService(),invocationRegistry,nodeEngine);
-  this.responsePacketExecutor=new AsyncResponseHandler(node.getHazelcastThreadGroup(),logger,responseHandler,metricsRegistry);
-  this.operationExecutor=new OperationExecutorImpl(groupProperties,node.loggingService,node.getThisAddress(),new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension(),metricsRegistry);
+  this.responsePacketExecutor=new AsyncResponseHandler(node.getHazelcastThreadGroup(),logger,responseHandler);
+  this.operationExecutor=new OperationExecutorImpl(groupProperties,node.loggingService,node.getThisAddress(),new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
   this.isStillRunningService=new IsStillRunningService(operationExecutor,nodeEngine,logger);
   ExecutionService executionService=nodeEngine.getExecutionService();
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
   this.slowOperationDetector=initSlowOperationDetector();
-  metricsRegistry.scanAndRegister(this,"operation");
 }
