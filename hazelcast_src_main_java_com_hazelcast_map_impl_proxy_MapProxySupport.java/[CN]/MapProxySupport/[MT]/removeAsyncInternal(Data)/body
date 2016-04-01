@@ -1,17 +1,16 @@
 {
-  final NodeEngine nodeEngine=getNodeEngine();
-  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  int partitionId=getNodeEngine().getPartitionService().getPartitionId(key);
   MapOperation operation=operationProvider.createRemoveOperation(name,key,false);
   operation.setThreadId(ThreadUtil.getThreadId());
   try {
     long startTime=System.currentTimeMillis();
-    final InternalCompletableFuture<Data> future=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
+    InternalCompletableFuture<Data> future=operationService.invokeOnPartition(SERVICE_NAME,operation,partitionId);
     if (statisticsEnabled) {
       future.andThen(new IncrementStatsExecutionCallback<Data>(operation,startTime));
     }
     return future;
   }
  catch (  Throwable t) {
-    throw ExceptionUtil.rethrow(t);
+    throw rethrow(t);
   }
 }
