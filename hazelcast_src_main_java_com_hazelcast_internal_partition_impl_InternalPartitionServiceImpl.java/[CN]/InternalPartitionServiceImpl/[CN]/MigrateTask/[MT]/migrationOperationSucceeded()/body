@@ -1,11 +1,13 @@
 {
+  internalMigrationListener.onMigrationComplete(MigrationParticipant.MASTER,migrationInfo,true);
   lock.lock();
   try {
-    int partitionId=migrationInfo.getPartitionId();
+    final int partitionId=migrationInfo.getPartitionId();
     InternalPartitionImpl partition=partitions[partitionId];
     partition.setReplicaAddresses(addresses);
     addCompletedMigration(migrationInfo);
     finalizeActiveMigration(migrationInfo);
+    internalMigrationListener.onMigrationCommit(MigrationParticipant.MASTER,migrationInfo);
     syncPartitionRuntimeState();
   }
   finally {

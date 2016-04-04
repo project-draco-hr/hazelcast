@@ -5,26 +5,26 @@
   if (!hasMultipleMemberGroups()) {
     return true;
   }
-  final Semaphore semaphore=new Semaphore(0);
+  final Address thisAddress=node.getThisAddress();
+  final Semaphore s=new Semaphore(0);
   final AtomicBoolean ok=new AtomicBoolean(true);
-  ExecutionCallback<Object> callback=new ExecutionCallback<Object>(){
+  final ExecutionCallback<Object> callback=new ExecutionCallback<Object>(){
     @Override public void onResponse(    Object response){
       if (Boolean.FALSE.equals(response)) {
         ok.compareAndSet(true,false);
       }
-      semaphore.release();
+      s.release();
     }
     @Override public void onFailure(    Throwable t){
       ok.compareAndSet(true,false);
     }
   }
 ;
-  Address thisAddress=node.getThisAddress();
-  int ownedCount=submitSyncReplicaOperations(thisAddress,semaphore,ok,callback);
+  int ownedCount=submitSyncReplicaOperations(thisAddress,s,ok,callback);
   try {
     if (ok.get()) {
       int permits=ownedCount * getMaxAllowedBackupCount();
-      return semaphore.tryAcquire(permits,REPLICA_SYNC_CHECK_TIMEOUT_SECONDS,TimeUnit.SECONDS) && ok.get();
+      return s.tryAcquire(permits,REPLICA_SYNC_CHECK_TIMEOUT_SECONDS,TimeUnit.SECONDS) && ok.get();
     }
  else {
       return false;

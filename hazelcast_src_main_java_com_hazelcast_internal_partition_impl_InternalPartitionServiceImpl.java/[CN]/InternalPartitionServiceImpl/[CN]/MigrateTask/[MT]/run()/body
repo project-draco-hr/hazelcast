@@ -2,7 +2,7 @@
   if (!node.isMaster()) {
     return;
   }
-  MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo);
+  final MigrationRequestOperation migrationRequestOp=new MigrationRequestOperation(migrationInfo);
   try {
     MigrationInfo info=migrationInfo;
     InternalPartitionImpl partition=partitions[info.getPartitionId()];
@@ -15,6 +15,7 @@
       logger.severe("ERROR: partition owner is not the source of migration! -> partitionId=" + info.getPartitionId() + " , "+ partition+ " -VS- "+ info+ " found owner="+ owner);
       return;
     }
+    internalMigrationListener.onMigrationStart(MigrationParticipant.MASTER,migrationInfo);
     sendMigrationEvent(migrationInfo,MigrationStatus.STARTED);
     Boolean result;
     MemberImpl fromMember=getMember(migrationInfo.getSource());
@@ -31,7 +32,7 @@
     processMigrationResult(result);
   }
  catch (  Throwable t) {
-    Level level=(migrationInfo.isValid() ? WARNING : FINEST);
+    final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINEST;
     logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] while executing "+ migrationRequestOp);
     logger.finest(t);
     migrationOperationFailed();
