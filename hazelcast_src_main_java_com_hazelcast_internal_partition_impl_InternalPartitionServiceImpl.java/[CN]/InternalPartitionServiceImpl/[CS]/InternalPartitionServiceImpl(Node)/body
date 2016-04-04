@@ -1,40 +1,28 @@
 {
-  this.partitionCount=node.groupProperties.getInteger(GroupProperty.PARTITION_COUNT);
+  GroupProperties properties=node.getGroupProperties();
   this.node=node;
   this.nodeEngine=node.nodeEngine;
   this.logger=node.getLogger(InternalPartitionService.class);
-  partitionStateSyncTimeoutHandler=logAllExceptions(logger,EXCEPTION_MSG_PARTITION_STATE_SYNC_TIMEOUT,Level.FINEST);
-  this.partitions=new InternalPartitionImpl[partitionCount];
-  partitionListener=new InternalPartitionListener(this,node.getThisAddress());
-  for (int i=0; i < partitionCount; i++) {
-    this.partitions[i]=new InternalPartitionImpl(i,partitionListener,node.getThisAddress());
-  }
-  replicaVersions=new PartitionReplicaVersions[partitionCount];
-  for (int i=0; i < replicaVersions.length; i++) {
-    replicaVersions[i]=new PartitionReplicaVersions(i);
-  }
-  memberGroupFactory=MemberGroupFactoryFactory.newMemberGroupFactory(node.getConfig().getPartitionGroupConfig());
-  partitionStateGenerator=new PartitionStateGeneratorImpl();
-  long intervalMillis=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_INTERVAL);
-  partitionMigrationInterval=(intervalMillis > 0 ? intervalMillis : 0);
-  partitionMigrationTimeout=node.groupProperties.getMillis(GroupProperty.PARTITION_MIGRATION_TIMEOUT);
-  migrationThread=new MigrationThread(node);
-  proxy=new PartitionServiceProxy(this);
+  this.partitionCount=properties.getInteger(GroupProperty.PARTITION_COUNT);
+  this.partitionStateSyncTimeoutHandler=logAllExceptions(logger,EXCEPTION_MSG_PARTITION_STATE_SYNC_TIMEOUT,FINEST);
+  this.partitionListener=new InternalPartitionListener(this,node.getThisAddress());
+  this.partitions=InternalPartitionImpl.createArray(partitionCount,partitionListener,node.getThisAddress());
+  this.replicaVersions=PartitionReplicaVersions.createArray(partitionCount);
+  this.memberGroupFactory=MemberGroupFactoryFactory.newMemberGroupFactory(node.getConfig().getPartitionGroupConfig());
+  this.partitionStateGenerator=new PartitionStateGeneratorImpl();
+  long intervalMillis=properties.getMillis(GroupProperty.PARTITION_MIGRATION_INTERVAL);
+  this.partitionMigrationInterval=(intervalMillis > 0 ? intervalMillis : 0);
+  this.partitionMigrationTimeout=properties.getMillis(GroupProperty.PARTITION_MIGRATION_TIMEOUT);
+  this.migrationThread=new MigrationThread(node);
+  this.proxy=new PartitionServiceProxy(this);
   ExecutionService executionService=nodeEngine.getExecutionService();
   TaskScheduler globalScheduler=executionService.getGlobalTaskScheduler();
-  replicaSyncScheduler=EntryTaskSchedulerFactory.newScheduler(globalScheduler,new ReplicaSyncEntryProcessor(this),ScheduleType.POSTPONE);
-  replicaSyncRequests=new AtomicReferenceArray<ReplicaSyncInfo>(partitionCount);
-  long maxMigrationDelayMs=calculateMaxMigrationDelayOnMemberRemoved();
-  long minMigrationDelayMs=calculateMigrationDelayOnMemberRemoved(maxMigrationDelayMs);
-  this.delayedResumeMigrationTrigger=new CoalescingDelayedTrigger(executionService,minMigrationDelayMs,maxMigrationDelayMs,new Runnable(){
-    @Override public void run(){
-      resumeMigration();
-    }
-  }
-);
-  long definedBackupSyncCheckInterval=node.groupProperties.getSeconds(GroupProperty.PARTITION_BACKUP_SYNC_INTERVAL);
-  backupSyncCheckInterval=definedBackupSyncCheckInterval > 0 ? definedBackupSyncCheckInterval : 1;
-  maxParallelReplications=node.groupProperties.getInteger(GroupProperty.PARTITION_MAX_PARALLEL_REPLICATIONS);
-  replicaSyncProcessLock=new Semaphore(maxParallelReplications);
+  ReplicaSyncEntryProcessor entryProcessor=new ReplicaSyncEntryProcessor(this);
+  this.replicaSyncScheduler=EntryTaskSchedulerFactory.newScheduler(globalScheduler,entryProcessor,POSTPONE);
+  this.replicaSyncRequests=new AtomicReferenceArray<ReplicaSyncInfo>(partitionCount);
+  this.maxParallelReplications=properties.getInteger(GroupProperty.PARTITION_MAX_PARALLEL_REPLICATIONS);
+  this.replicaSyncProcessLock=new Semaphore(maxParallelReplications);
+  this.delayedResumeMigrationTrigger=getMigrationTrigger(executionService);
+  this.backupSyncCheckInterval=getBackupSyncCheckInterval();
   nodeEngine.getMetricsRegistry().scanAndRegister(this,"partitions");
 }
