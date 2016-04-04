@@ -1,0 +1,22 @@
+{
+  long callTimeout=5000;
+  Config config=new Config().setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeout);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  OperationService opService=getOperationService(local);
+  final Future f=opService.invokeOnPartition(null,new SlowOperation(callTimeout * 3,RESPONSE),getPartitionId(remote));
+  List<Future> futures=new LinkedList<Future>();
+  for (int k=0; k < 10; k++) {
+    futures.add(spawn(new Callable<Object>(){
+      @Override public Object call() throws Exception {
+        return f.get();
+      }
+    }
+));
+  }
+  for (  Future sf : futures) {
+    assertEquals(RESPONSE,sf.get());
+  }
+}

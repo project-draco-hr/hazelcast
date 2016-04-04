@@ -1,9 +1,23 @@
 {
-  try {
-    return get(Long.MAX_VALUE,TimeUnit.MILLISECONDS);
+  if (response != VOID) {
+    return resolveAndThrow(response);
   }
- catch (  TimeoutException e) {
-    invocation.logger.severe("Unexpected timeout while processing " + this,e);
-    return null;
+  boolean threadInterrupted=false;
+  try {
+synchronized (this) {
+      while (response == VOID) {
+        try {
+          wait();
+        }
+ catch (        InterruptedException e) {
+          threadInterrupted=true;
+          interrupted=true;
+        }
+      }
+    }
+    return resolveAndThrow(response);
+  }
+  finally {
+    restoreInterrupt(threadInterrupted);
   }
 }

@@ -1,0 +1,11 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance();
+  HazelcastInstance remote=factory.newHazelcastInstance();
+  OperationService opService=getOperationService(local);
+  Operation operation=new SlowOperation(SECONDS.toMillis(60));
+  InvocationFuture f=(InvocationFuture)opService.invokeOnPartition(null,operation,getPartitionId(remote));
+  Invocation invocation=f.invocation;
+  assertEquals(NO_TIMEOUT__CALL_TIMEOUT_NOT_EXPIRED,invocation.detectTimeout(SECONDS.toMillis(1)));
+  assertFalse(f.isDone());
+}

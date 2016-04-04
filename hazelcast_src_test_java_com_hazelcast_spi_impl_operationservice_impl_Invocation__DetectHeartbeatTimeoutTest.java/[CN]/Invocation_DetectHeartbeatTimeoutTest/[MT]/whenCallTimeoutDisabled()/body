@@ -1,0 +1,15 @@
+{
+  Config config=new Config();
+  config.setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"1000");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance();
+  HazelcastInstance remote=factory.newHazelcastInstance();
+  OperationService opService=getOperationService(local);
+  Operation operation=new VoidOperation();
+  InvocationFuture f=(InvocationFuture)opService.createInvocationBuilder(null,operation,getPartitionId(remote)).setCallTimeout(Long.MAX_VALUE).invoke();
+  Invocation invocation=f.invocation;
+  assertEquals(Long.MAX_VALUE,invocation.op.getCallTimeout());
+  assertEquals(Long.MAX_VALUE,invocation.callTimeoutMillis);
+  assertEquals(NO_TIMEOUT__CALL_TIMEOUT_DISABLED,invocation.detectTimeout(SECONDS.toMillis(1)));
+  assertFalse(f.isDone());
+}

@@ -1,0 +1,20 @@
+{
+  final Config config=new Config().setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"3000");
+  final HazelcastInstance hz=createHazelcastInstance(config);
+  final CountDownLatch latch=new CountDownLatch(1);
+  final ILock lock=hz.getLock(randomName());
+  lock.lock();
+  spawn(new Runnable(){
+    @Override public void run(){
+      try {
+        boolean result=lock.tryLock(10,SECONDS);
+        latch.countDown();
+      }
+ catch (      Exception ignored) {
+        ignored.printStackTrace();
+      }
+    }
+  }
+);
+  assertTrue("latch failed to open",latch.await(20,SECONDS));
+}

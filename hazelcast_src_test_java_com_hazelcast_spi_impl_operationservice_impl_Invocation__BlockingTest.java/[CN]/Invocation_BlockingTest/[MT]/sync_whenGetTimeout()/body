@@ -1,0 +1,22 @@
+{
+  Config config=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(factory.getAllHazelcastInstances());
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(local);
+  String key=generateKeyOwnedBy(remote);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  InternalOperationService opService=nodeEngine.getOperationService();
+  opService.invokeOnPartition(null,new SlowOperation(SECONDS.toMillis(5)),partitionId);
+  LockOperation op=new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),1,-1,-1);
+  InternalCompletableFuture<Object> future=opService.createInvocationBuilder(null,op,partitionId).invoke();
+  try {
+    future.get(1,SECONDS);
+    fail();
+  }
+ catch (  TimeoutException expected) {
+  }
+  Object result=future.get(60,SECONDS);
+  assertEquals(Boolean.TRUE,result);
+}

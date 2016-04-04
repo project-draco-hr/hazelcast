@@ -1,0 +1,16 @@
+{
+  Config config=new Config();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(local,remote);
+  OperationService opService=getOperationService(local);
+  Future f=opService.invokeOnPartition(null,new SlowOperation(SECONDS.toMillis(10),RESPONSE),getPartitionId(remote));
+  try {
+    f.get(1,SECONDS);
+    fail();
+  }
+ catch (  TimeoutException expected) {
+  }
+  assertEquals(RESPONSE,f.get());
+}

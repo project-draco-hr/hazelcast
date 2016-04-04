@@ -1,0 +1,11 @@
+{
+  Config config=new Config();
+  config.setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"1000");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  OperationService opService=getOperationService(local);
+  Operation operation=new SlowOperation(SECONDS.toMillis(60));
+  InvocationFuture f=(InvocationFuture)opService.invokeOnPartition(null,operation,getPartitionId(remote));
+  assertDetectHeartbeatTimeoutEventually(f.invocation,NO_TIMEOUT__HEARTBEAT_TIMEOUT_NOT_EXPIRED);
+}

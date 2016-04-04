@@ -1,0 +1,25 @@
+{
+  int callTimeout=1000;
+  Config config=new Config().setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"" + callTimeout);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance(config);
+  HazelcastInstance remote=factory.newHazelcastInstance(config);
+  warmUpPartitions(factory.getAllHazelcastInstances());
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(local);
+  String key=generateKeyOwnedBy(remote);
+  int partitionId=nodeEngine.getPartitionService().getPartitionId(key);
+  InternalOperationService opService=nodeEngine.getOperationService();
+  int otherThreadId=2;
+  opService.invokeOnPartition(new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),otherThreadId,-1,-1).setPartitionId(partitionId)).join();
+  int threadId=1;
+  Operation op=new LockOperation(new InternalLockNamespace(key),nodeEngine.toData(key),threadId,-1,3 * callTimeout).setPartitionId(partitionId);
+  final InternalCompletableFuture<Object> future=opService.invokeOnPartition(op);
+  final ExecutionCallback callback=mock(ExecutionCallback.class);
+  future.andThen(callback);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      verify(callback).onResponse(Boolean.FALSE);
+    }
+  }
+);
+}
