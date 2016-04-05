@@ -1,0 +1,12 @@
+{
+  final List<String> messages=Arrays.asList("a","b","c","d","e");
+  final CountDownLatch cdl=new CountDownLatch(smallRBCapacity);
+  ITopic<String> rTopic=client.getReliableTopic(smallRB);
+  for (  String message : messages) {
+    rTopic.publish(message);
+  }
+  ReliableMessageListener<String> listener=new Issue7317MessageListener(messages,cdl);
+  String reg=rTopic.addMessageListener(listener);
+  assertTrue(cdl.await(5,TimeUnit.SECONDS));
+  rTopic.removeMessageListener(reg);
+}
