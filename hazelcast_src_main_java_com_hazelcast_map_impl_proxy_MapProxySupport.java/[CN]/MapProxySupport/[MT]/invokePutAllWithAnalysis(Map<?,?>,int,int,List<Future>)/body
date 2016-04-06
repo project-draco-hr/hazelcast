@@ -1,0 +1,38 @@
+{
+  int[] keyPartitionArray=new int[mapSize];
+  List<Data>[] keyDataArray=new List[partitionCount];
+  List<Data>[] valueDataArray=new List[partitionCount];
+  Iterator<?> keyIterator=map.keySet().iterator();
+  for (int i=0; i < mapSize; i++) {
+    Object key=keyIterator.next();
+    checkNotNull(key,NULL_KEY_IS_NOT_ALLOWED);
+    Data keyData=toData(key,partitionStrategy);
+    int partitionId=partitionService.getPartitionId(keyData);
+    List<Data> keys=keyDataArray[partitionId];
+    if (keys == null) {
+      keys=new LinkedList<Data>();
+      keyDataArray[partitionId]=keys;
+    }
+    keys.add(keyData);
+    keyPartitionArray[i]=partitionId;
+  }
+  Iterator<?> valueIterator=map.values().iterator();
+  for (int i=0; i < mapSize; i++) {
+    Object value=valueIterator.next();
+    checkNotNull(value,NULL_VALUE_IS_NOT_ALLOWED);
+    int partitionId=keyPartitionArray[i];
+    List<Data> values=valueDataArray[partitionId];
+    if (values == null) {
+      values=new ArrayList<Data>(keyDataArray[partitionId].size());
+      valueDataArray[partitionId]=values;
+    }
+    values.add(toData(value));
+  }
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    List<Data> keys=keyDataArray[partitionId];
+    if (keys != null) {
+      Future future=createPutAllOperationFuture(name,new MapEntries(keys,valueDataArray[partitionId]),partitionId);
+      futures.add(future);
+    }
+  }
+}
