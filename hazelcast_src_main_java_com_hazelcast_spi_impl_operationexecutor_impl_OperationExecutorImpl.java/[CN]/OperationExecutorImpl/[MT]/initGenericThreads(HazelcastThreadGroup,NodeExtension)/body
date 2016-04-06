@@ -1,12 +1,21 @@
 {
   int threadCount=genericOperationRunners.length;
   GenericOperationThread[] threads=new GenericOperationThread[threadCount];
-  for (int threadId=0; threadId < threads.length; threadId++) {
-    String threadName=threadGroup.getThreadPoolNamePrefix("generic-operation") + threadId;
-    OperationRunner operationRunner=genericOperationRunners[threadId];
-    GenericOperationThread genericThread=new GenericOperationThread(threadName,threadId,genericQueue,logger,threadGroup,nodeExtension,operationRunner);
-    threads[threadId]=genericThread;
-    operationRunner.setCurrentThread(genericThread);
+  int threadId=0;
+  for (int threadIndex=0; threadIndex < threads.length; threadIndex++) {
+    boolean priority=threadIndex < priorityThreadCount;
+    String baseName=priority ? "priority-generic-operation" : "generic-operation";
+    String threadName=threadGroup.getThreadPoolNamePrefix(baseName) + threadId;
+    OperationRunner operationRunner=genericOperationRunners[threadIndex];
+    GenericOperationThread operationThread=new GenericOperationThread(threadName,threadIndex,genericQueue,logger,threadGroup,nodeExtension,operationRunner,priority);
+    threads[threadIndex]=operationThread;
+    operationRunner.setCurrentThread(operationThread);
+    if (threadIndex == priorityThreadCount - 1) {
+      threadId=0;
+    }
+ else {
+      threadId++;
+    }
   }
   return threads;
 }
