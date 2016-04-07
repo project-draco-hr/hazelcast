@@ -1,27 +1,25 @@
 {
   Data dataKey=entry.getKey();
   Data dataValue=entry.getValue();
-  Object oldValue=null;
-  if (hasMapListener) {
-    oldValue=recordStore.put(dataKey,dataValue,DEFAULT_TTL);
-  }
- else {
-    recordStore.set(dataKey,dataValue,DEFAULT_TTL);
-  }
+  Object oldValue=putToRecordStore(dataKey,dataValue);
   dataValue=getValueOrPostProcessedValue(dataKey,dataValue);
   mapServiceContext.interceptAfterPut(name,dataValue);
   if (hasMapListener) {
-    EntryEventType eventType=oldValue == null ? ADDED : UPDATED;
+    EntryEventType eventType=(oldValue == null ? ADDED : UPDATED);
     mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,oldValue,dataValue);
   }
-  Record record=recordStore.getRecord(dataKey);
-  if (shouldWanReplicate) {
+  Record record=(hasWanReplication || hasBackups) ? recordStore.getRecord(dataKey) : null;
+  if (hasWanReplication) {
     EntryView entryView=createSimpleEntryView(dataKey,dataValue,record);
     mapEventPublisher.publishWanReplicationUpdate(name,entryView);
   }
-  backupEntries.add(entry);
-  RecordInfo replicationInfo=buildRecordInfo(record);
-  backupRecordInfos.add(replicationInfo);
+  if (hasBackups) {
+    backupEntries.add(entry);
+    RecordInfo replicationInfo=buildRecordInfo(record);
+    backupRecordInfos.add(replicationInfo);
+  }
   evict();
-  addInvalidation(dataKey);
+  if (hasInvalidation) {
+    invalidationKeys.add(dataKey);
+  }
 }
