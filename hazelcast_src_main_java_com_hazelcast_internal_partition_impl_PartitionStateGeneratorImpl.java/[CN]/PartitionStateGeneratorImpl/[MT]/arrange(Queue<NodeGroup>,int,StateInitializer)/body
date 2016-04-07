@@ -1,25 +1,16 @@
 {
-  Address[][] state=new Address[partitionCount][];
+  Address[][] state=new Address[partitionCount][InternalPartition.MAX_REPLICA_COUNT];
   stateInitializer.initialize(state);
-  TestResult result=null;
   int tryCount=0;
-  while (tryCount < MAX_RETRY_COUNT && result != TestResult.PASS) {
+  do {
     boolean aggressive=tryCount >= AGGRESSIVE_RETRY_THRESHOLD;
     tryArrange(state,groups,partitionCount,aggressive);
-    result=testArrangement(state,groups,partitionCount);
-    if (result == TestResult.FAIL) {
-      LOGGER.warning("Error detected on partition arrangement! Try-count: " + tryCount);
-      stateInitializer.initialize(state);
-    }
- else     if (result == TestResult.RETRY) {
-      tryCount++;
-      if (LOGGER.isFinestEnabled()) {
-        LOGGER.finest("Re-trying partition arrangement.. Count: " + tryCount);
+    if (tryCount++ > 0) {
+      if (LOGGER.isFineEnabled()) {
+        LOGGER.fine("Re-trying partition arrangement. Count: " + tryCount);
       }
     }
   }
-  if (result == TestResult.FAIL) {
-    LOGGER.severe("Failed to arrange partitions !!!");
-  }
+ while (tryCount < MAX_RETRY_COUNT && !areGroupsBalanced(groups,partitionCount));
   return state;
 }

@@ -1,0 +1,34 @@
+{
+  if (!node.isMaster()) {
+    return;
+  }
+  partitionServiceLock.lock();
+  try {
+    final int shutdownRequestCount=shutdownRequestedAddresses.size();
+    if (shutdownRequestCount > 0) {
+      if (shutdownRequestCount == nodeEngine.getClusterService().getSize(DATA_MEMBER_SELECTOR)) {
+        for (        Address address : shutdownRequestedAddresses) {
+          sendShutdownOperation(address);
+        }
+      }
+ else {
+        boolean present=false;
+        for (        Address address : shutdownRequestedAddresses) {
+          if (isAbsentInPartitionTable(address)) {
+            sendShutdownOperation(address);
+          }
+ else {
+            logger.warning(address + " requested to shutdown but still in partition table");
+            present=true;
+          }
+        }
+        if (present) {
+          triggerControlTask();
+        }
+      }
+    }
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}
