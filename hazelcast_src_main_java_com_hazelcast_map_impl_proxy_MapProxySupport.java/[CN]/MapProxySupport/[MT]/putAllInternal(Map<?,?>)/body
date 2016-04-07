@@ -2,12 +2,24 @@
   try {
     int mapSize=map.size();
     int partitionCount=partitionService.getPartitionCount();
+    int initialSize=getPutAllInitialSize(mapSize,partitionCount);
+    Map<Address,List<Integer>> memberPartitionsMap=partitionService.getMemberPartitionsMap();
     List<Future> futures=new ArrayList<Future>(partitionCount);
-    if (putAllInitialSizeFactor > 0) {
-      invokePutAllWithEstimation(map,mapSize,partitionCount,futures);
+    MapEntries[] entriesPerPartition=new MapEntries[partitionCount];
+    for (    Entry entry : map.entrySet()) {
+      checkNotNull(entry.getKey(),NULL_KEY_IS_NOT_ALLOWED);
+      checkNotNull(entry.getValue(),NULL_VALUE_IS_NOT_ALLOWED);
+      Data keyData=toData(entry.getKey(),partitionStrategy);
+      int partitionId=partitionService.getPartitionId(keyData);
+      MapEntries entries=entriesPerPartition[partitionId];
+      if (entries == null) {
+        entries=new MapEntries(initialSize);
+        entriesPerPartition[partitionId]=entries;
+      }
+      entries.add(keyData,toData(entry.getValue()));
     }
- else {
-      invokePutAllWithAnalysis(map,mapSize,partitionCount,futures);
+    for (    Entry<Address,List<Integer>> entry : memberPartitionsMap.entrySet()) {
+      invokePutAllOperation(entry.getKey(),entry.getValue(),futures,entriesPerPartition);
     }
     for (    Future future : futures) {
       future.get();

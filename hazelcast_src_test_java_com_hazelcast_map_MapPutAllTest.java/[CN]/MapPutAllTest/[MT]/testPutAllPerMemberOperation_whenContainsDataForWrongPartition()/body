@@ -1,0 +1,56 @@
+{
+  String mapName=randomMapName();
+  assertTrue(INSTANCE_COUNT > 2);
+  Config config=new Config();
+  config.setProperty(GroupProperty.PARTITION_COUNT.getName(),String.valueOf(INSTANCE_COUNT));
+  config.setProperty(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS.getName(),"3000");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(INSTANCE_COUNT);
+  HazelcastInstance[] instances=factory.newInstances(config);
+  warmUpPartitions(instances);
+  HazelcastInstance hz=instances[0];
+  HazelcastInstance randomHz=instances[1 + RANDOM.nextInt(INSTANCE_COUNT - 1)];
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
+  NodeEngineImpl randomNodeEngine=getNodeEngineImpl(randomHz);
+  SerializationService serializationService=nodeEngine.getSerializationService();
+  Map<Address,List<Integer>> memberPartitionsMap=nodeEngine.getPartitionService().getMemberPartitionsMap();
+  assertEquals(INSTANCE_COUNT,memberPartitionsMap.values().size());
+  for (  List<Integer> partitions : memberPartitionsMap.values()) {
+    assertEquals(1,partitions.size());
+  }
+  Map<String,String> map=hz.getMap(mapName);
+  assertEquals(0,map.size());
+  int[] partitions=new int[INSTANCE_COUNT];
+  MapEntries[] entries=new MapEntries[INSTANCE_COUNT];
+  for (int i=0; i < INSTANCE_COUNT; i++) {
+    String key=generateKeyForPartition(hz,i);
+    Data data=serializationService.toData(key);
+    MapEntries mapEntries=new MapEntries();
+    mapEntries.add(data,data);
+    partitions[i]=i;
+    entries[i]=mapEntries;
+  }
+  Operation op=new PutAllPerMemberOperation(mapName,partitions,entries);
+  final CountDownLatch latch=new CountDownLatch(1);
+  InternalOperationService operationService=nodeEngine.getOperationService();
+  InternalCompletableFuture<Object> future=operationService.invokeOnTarget(null,op,randomNodeEngine.getThisAddress());
+  future.andThen(new ExecutionCallback<Object>(){
+    @Override public void onResponse(    Object response){
+      System.out.println("Got response: " + response);
+      latch.countDown();
+    }
+    @Override public void onFailure(    Throwable t){
+      System.out.println("Got exception: " + t);
+      t.printStackTrace();
+      latch.countDown();
+    }
+  }
+);
+  latch.await();
+  for (int i=0; i < INSTANCE_COUNT; i++) {
+    map=instances[i].getMap(mapName);
+    assertEquals(INSTANCE_COUNT,map.size());
+    for (    Map.Entry<String,String> entry : map.entrySet()) {
+      assertEquals(entry.getKey(),entry.getValue());
+    }
+  }
+}
