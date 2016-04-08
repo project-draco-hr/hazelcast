@@ -1,0 +1,28 @@
+{
+  int partitionCount=currentState.length;
+  for (int partitionId=0; partitionId < partitionCount; partitionId++) {
+    InternalPartition p=currentState[partitionId];
+    Address[] replicas=state[partitionId];
+    boolean empty=true;
+    for (int index=0; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
+      replicas[index]=p.getReplicaAddress(index);
+      empty&=replicas[index] == null;
+    }
+    if (empty) {
+      continue;
+    }
+    int maxReplicaIndex=InternalPartition.MAX_REPLICA_COUNT - 1;
+    for (int index=0; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
+      if (replicas[index] == null) {
+        for (int k=maxReplicaIndex; k > index; k--) {
+          if (replicas[k] != null) {
+            replicas[index]=replicas[k];
+            replicas[k]=null;
+            maxReplicaIndex=k - 1;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
