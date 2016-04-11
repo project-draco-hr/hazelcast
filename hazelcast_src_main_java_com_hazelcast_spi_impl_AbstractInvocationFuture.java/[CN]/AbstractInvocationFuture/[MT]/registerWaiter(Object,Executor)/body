@@ -1,0 +1,23 @@
+{
+  WaitNode waitNode=null;
+  for (; ; ) {
+    final Object oldState=state;
+    if (isDone(oldState)) {
+      return oldState;
+    }
+    Object newState;
+    if (oldState == VOID && (executor == null || executor == defaultExecutor)) {
+      newState=waiter;
+    }
+ else {
+      if (waitNode == null) {
+        waitNode=new WaitNode(waiter,executor);
+      }
+      waitNode.next=oldState;
+      newState=waitNode;
+    }
+    if (compareAndSetState(oldState,newState)) {
+      return VOID;
+    }
+  }
+}
