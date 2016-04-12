@@ -8,30 +8,24 @@
   if (!isReplicaSyncAllowed()) {
     return;
   }
-  lock.lock();
-  try {
-    PartitionRuntimeState partitionState=createPartitionStateInternal();
-    if (partitionState == null) {
-      return;
-    }
-    if (logger.isFineEnabled()) {
-      logger.fine("Publishing partition state, version: " + partitionState.getVersion());
-    }
-    PartitionStateOperation op=new PartitionStateOperation(partitionState);
-    OperationService operationService=nodeEngine.getOperationService();
-    Collection<MemberImpl> members=node.clusterService.getMemberImpls();
-    for (    MemberImpl member : members) {
-      if (!member.localMember()) {
-        try {
-          operationService.send(op,member.getAddress());
-        }
- catch (        Exception e) {
-          logger.finest(e);
-        }
+  PartitionRuntimeState partitionState=createPartitionStateInternal();
+  if (partitionState == null) {
+    return;
+  }
+  if (logger.isFineEnabled()) {
+    logger.fine("Publishing partition state, version: " + partitionState.getVersion());
+  }
+  PartitionStateOperation op=new PartitionStateOperation(partitionState);
+  OperationService operationService=nodeEngine.getOperationService();
+  Collection<MemberImpl> members=node.clusterService.getMemberImpls();
+  for (  MemberImpl member : members) {
+    if (!member.localMember()) {
+      try {
+        operationService.send(op,member.getAddress());
+      }
+ catch (      Exception e) {
+        logger.finest(e);
       }
     }
-  }
-  finally {
-    lock.unlock();
   }
 }

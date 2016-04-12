@@ -3,13 +3,23 @@
     return false;
   }
   if (node.getThisAddress().equals(migrationInfo.getDestination())) {
-    return true;
+    final boolean result=node.isRunning();
+    if (logger.isFinestEnabled()) {
+      logger.finest("Shortcutting migration commit with result: " + result + " since destination is master: "+ migrationInfo);
+    }
+    return result;
   }
   try {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Sending commit operation for: " + migrationInfo);
+    }
     PartitionRuntimeState partitionState=partitionService.createMigrationCommitPartitionState(migrationInfo);
     MigrationCommitOperation operation=new MigrationCommitOperation(partitionState);
     Future<Boolean> future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,migrationInfo.getDestination()).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
-    future.get();
+    final Boolean result=future.get();
+    if (logger.isFinestEnabled()) {
+      logger.finest("Migration commit result: " + result + " for migration : "+ migrationInfo);
+    }
     return true;
   }
  catch (  Throwable t) {

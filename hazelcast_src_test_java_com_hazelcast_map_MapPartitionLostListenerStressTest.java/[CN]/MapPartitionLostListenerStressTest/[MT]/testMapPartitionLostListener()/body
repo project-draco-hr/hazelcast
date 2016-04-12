@@ -9,9 +9,21 @@
   }
   String log="Surviving: " + survivingInstances + " Terminating: "+ terminatingInstances;
   Map<Integer,Integer> survivingPartitions=getMinReplicaIndicesByPartitionId(survivingInstances);
-  terminateInstances(terminatingInstances);
+  stopInstances(terminatingInstances,nodeLeaveType);
   waitAllForSafeStateAndDumpPartitionServiceOnFailure(survivingInstances,300);
-  for (int i=0; i < getNodeCount(); i++) {
-    assertListenerInvocationsEventually(log,i,numberOfNodesToCrash,listeners.get(i),survivingPartitions);
+  if (shouldExpectPartitionLostEvents) {
+    for (int i=0; i < getNodeCount(); i++) {
+      assertListenerInvocationsEventually(log,i,numberOfNodesToCrash,listeners.get(i),survivingPartitions);
+    }
+  }
+ else {
+    for (    final EventCollectingMapPartitionLostListener listener : listeners) {
+      assertTrueAllTheTime(new AssertTask(){
+        @Override public void run() throws Exception {
+          assertTrue(listener.getEvents().isEmpty());
+        }
+      }
+,1);
+    }
   }
 }

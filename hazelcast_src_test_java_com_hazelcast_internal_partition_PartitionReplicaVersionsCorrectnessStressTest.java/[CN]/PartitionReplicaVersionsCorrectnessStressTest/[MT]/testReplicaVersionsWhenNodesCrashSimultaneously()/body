@@ -1,14 +1,14 @@
 {
   List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp();
   List<HazelcastInstance> instancesCopy=new ArrayList<HazelcastInstance>(instances);
-  List<HazelcastInstance> terminatingInstances=instancesCopy.subList(0,numberOfNodesToCrash);
-  List<HazelcastInstance> survivingInstances=instancesCopy.subList(numberOfNodesToCrash,instances.size());
+  List<HazelcastInstance> terminatingInstances=instancesCopy.subList(0,numberOfNodesToStop);
+  List<HazelcastInstance> survivingInstances=instancesCopy.subList(numberOfNodesToStop,instances.size());
   populateMaps(survivingInstances.get(0));
   String log="Surviving: " + survivingInstances + " Terminating: "+ terminatingInstances;
   Map<Integer,long[]> replicaVersionsByPartitionId=TestPartitionUtils.getAllReplicaVersions(instances);
   Map<Integer,List<Address>> partitionReplicaAddresses=TestPartitionUtils.getAllReplicaAddresses(instances);
   Map<Integer,Integer> minSurvivingReplicaIndexByPartitionId=getMinReplicaIndicesByPartitionId(survivingInstances);
-  terminateInstances(terminatingInstances);
+  stopInstances(terminatingInstances,nodeLeaveType);
   waitAllForSafeStateAndDumpPartitionServiceOnFailure(survivingInstances,300);
-  validateReplicaVersions(log,numberOfNodesToCrash,survivingInstances,replicaVersionsByPartitionId,partitionReplicaAddresses,minSurvivingReplicaIndexByPartitionId);
+  validateReplicaVersions(log,numberOfNodesToStop,survivingInstances,replicaVersionsByPartitionId,partitionReplicaAddresses,minSurvivingReplicaIndexByPartitionId);
 }
