@@ -1,0 +1,12 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  InternalPartitionServiceImpl partitionService=getNode(hz).partitionService;
+  partitionService.firstArrangement();
+  changeClusterStateEventually(hz2,ClusterState.FROZEN);
+  hz2.shutdown();
+  assertClusterSizeEventually(1,hz);
+  PartitionReplicaStateChecker replicaStateChecker=partitionService.getPartitionReplicaStateChecker();
+  assertEquals(PartitionServiceState.SAFE,replicaStateChecker.getPartitionServiceState());
+}

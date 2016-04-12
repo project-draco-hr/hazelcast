@@ -4,9 +4,13 @@
   final List<Queue<MigrationInfo>> migrations=new ArrayList<Queue<MigrationInfo>>(newState.length);
   for (int partitionId=0; partitionId < newState.length; partitionId++) {
     InternalPartitionImpl currentPartition=partitionStateManager.getPartitionImpl(partitionId);
+    Address[] currentReplicas=currentPartition.getReplicaAddresses();
     Address[] newReplicas=newState[partitionId];
-    final MigrationCollector migrationCollector=new MigrationCollector(currentPartition,migrationCount,lostCount);
-    migrationPlanner.planMigrations(currentPartition.getReplicaAddresses(),newReplicas,migrationCollector);
+    MigrationCollector migrationCollector=new MigrationCollector(currentPartition,migrationCount,lostCount);
+    if (logger.isFinestEnabled()) {
+      logger.finest("Planning migrations for partition: " + partitionId + ". Current replicas: "+ Arrays.toString(currentReplicas)+ ", New replicas: "+ Arrays.toString(newReplicas));
+    }
+    migrationPlanner.planMigrations(currentReplicas,newReplicas,migrationCollector);
     migrations.add(migrationCollector.migrations);
   }
   scheduleMigrations(migrations);

@@ -1,0 +1,14 @@
+{
+  Config config=getConfig(true,withAntiEntropy);
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
+  startNodes(config,nodeCount - 1);
+  Collection<HazelcastInstance> instances=factory.getAllHazelcastInstances();
+  warmUpPartitions(instances);
+  if (withAntiEntropy) {
+    for (    HazelcastInstance instance : instances) {
+      setBackupPacketDropFilter(instance,BLOCK_RATIO);
+    }
+  }
+  fillData(hz);
+  assertSafeEventually(instances);
+}

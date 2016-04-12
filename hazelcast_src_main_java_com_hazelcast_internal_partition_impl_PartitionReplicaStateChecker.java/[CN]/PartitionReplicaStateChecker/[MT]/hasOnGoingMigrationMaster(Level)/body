@@ -4,14 +4,12 @@
     return node.joined();
   }
   Operation operation=new HasOngoingMigration();
-  Future future=invokeOnTarget(operation,masterAddress);
+  OperationService operationService=nodeEngine.getOperationService();
+  InternalCompletableFuture<Boolean> future=operationService.createInvocationBuilder(SERVICE_NAME,operation,masterAddress).setTryCount(INVOCATION_TRY_COUNT).setTryPauseMillis(INVOCATION_TRY_PAUSE_MILLIS).invoke();
   try {
-    return (Boolean)future.get(1,TimeUnit.MINUTES);
+    return future.join();
   }
- catch (  InterruptedException ie) {
-    Logger.getLogger(InternalPartitionServiceImpl.class).finest("Future wait interrupted",ie);
-  }
-catch (  Exception e) {
+ catch (  Exception e) {
     logger.log(level,"Could not get a response from master about migrations! -> " + e.toString());
   }
   return false;

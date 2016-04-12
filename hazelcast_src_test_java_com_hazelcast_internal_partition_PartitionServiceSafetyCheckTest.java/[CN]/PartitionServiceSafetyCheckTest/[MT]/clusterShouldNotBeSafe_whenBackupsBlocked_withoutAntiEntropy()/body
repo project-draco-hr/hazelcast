@@ -1,0 +1,21 @@
+{
+  Config config=getConfig(true,false);
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
+  startNodes(config,nodeCount - 1);
+  final Collection<HazelcastInstance> instances=factory.getAllHazelcastInstances();
+  warmUpPartitions(instances);
+  for (  HazelcastInstance instance : instances) {
+    setBackupPacketDropFilter(instance,BLOCK_RATIO);
+  }
+  fillData(hz);
+  assertTrueFiveSeconds(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertFalse(isAllInSafeState(instances));
+      for (      HazelcastInstance instance : instances) {
+        PartitionService ps=instance.getPartitionService();
+        assertFalse(ps.isClusterSafe());
+      }
+    }
+  }
+);
+}
