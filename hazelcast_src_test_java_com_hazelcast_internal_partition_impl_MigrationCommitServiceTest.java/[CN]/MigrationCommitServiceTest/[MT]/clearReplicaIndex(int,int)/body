@@ -2,13 +2,11 @@
   final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getPartitionService(instances[0]);
   final InternalPartitionImpl partition=(InternalPartitionImpl)partitionService.getPartition(partitionId);
   final Address oldReplicaOwner=partition.getReplicaAddress(replicaIndexToClear);
+  ClearReplicaOperation op=new ClearReplicaOperation();
+  op.setPartitionId(partitionId).setReplicaIndex(replicaIndexToClear).setService(partitionService);
+  final InvocationBuilder builder=getOperationService(instances[0]).createInvocationBuilder(InternalPartitionService.SERVICE_NAME,op,partitionId);
+  builder.setReplicaIndex(replicaIndexToClear).invoke().get();
   partition.setReplicaAddress(replicaIndexToClear,null);
-  final MigrationInfo migration=new MigrationInfo(0,oldReplicaOwner,null,replicaIndexToClear,-1,-1,-1);
-  migration.setMaster(getAddress(instances[0]));
-  migration.setOldBackupReplicaOwner(oldReplicaOwner);
-  migration.setStatus(MigrationStatus.SUCCESS);
-  partitionService.getMigrationManager().addCompletedMigration(migration);
-  partitionService.getMigrationManager().scheduleActiveMigrationFinalization(migration);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
       assertTrue(partitionService.syncPartitionRuntimeState());
