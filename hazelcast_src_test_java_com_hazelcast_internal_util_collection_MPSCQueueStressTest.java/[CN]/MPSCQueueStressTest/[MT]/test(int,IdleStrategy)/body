@@ -1,0 +1,20 @@
+{
+  MPSCQueue<Item> queue=new MPSCQueue<Item>(idleStrategy);
+  ConsumerThread consumers=new ConsumerThread(queue,producerCount);
+  queue.setConsumerThread(consumers);
+  consumers.start();
+  List<ProducerThread> producers=new LinkedList<ProducerThread>();
+  for (int k=0; k < producerCount; k++) {
+    ProducerThread producer=new ProducerThread(queue,k);
+    producer.start();
+    producers.add(producer);
+  }
+  sleepAndStop(stop,DURATION_SECONDS);
+  long totalProduced=0;
+  for (  ProducerThread producer : producers) {
+    producer.assertSucceedsEventually();
+    totalProduced+=producer.itemCount;
+  }
+  consumers.assertSucceedsEventually();
+  assertEquals(totalProduced,consumers.itemCount);
+}

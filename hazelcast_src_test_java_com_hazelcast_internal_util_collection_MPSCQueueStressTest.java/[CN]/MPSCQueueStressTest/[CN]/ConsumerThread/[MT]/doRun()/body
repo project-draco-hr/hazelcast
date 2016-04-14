@@ -1,0 +1,28 @@
+{
+  Random random=new Random();
+  for (; ; ) {
+    Item item=queue.take();
+    if (item.value == -1) {
+      completedProducers++;
+      if (completedProducers == producerCount) {
+        break;
+      }
+    }
+ else {
+      itemCount++;
+      long last=producerSequence[item.producerId];
+      if (last + 1 != item.value) {
+        stop.set(true);
+        throw new RuntimeException();
+      }
+      producerSequence[item.producerId]=item.value;
+    }
+    if (itemCount % 10000 == 0) {
+      System.out.println(getName() + " at " + itemCount);
+    }
+    if (random.nextInt(1000) == 0) {
+      sleepMillis(random.nextInt(100));
+    }
+  }
+  System.out.println(getName() + " Done");
+}

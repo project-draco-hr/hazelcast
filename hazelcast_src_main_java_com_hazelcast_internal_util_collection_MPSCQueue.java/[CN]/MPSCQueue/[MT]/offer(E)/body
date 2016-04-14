@@ -1,0 +1,24 @@
+{
+  checkNotNull(item,"item can't be null");
+  AtomicReference<Node> putStack=this.putStack;
+  Node newHead=new Node();
+  newHead.item=item;
+  for (; ; ) {
+    Node oldHead=putStack.get();
+    if (oldHead == null || oldHead == BLOCKED) {
+      newHead.next=null;
+      newHead.size=1;
+    }
+ else {
+      newHead.next=oldHead;
+      newHead.size=oldHead.size + 1;
+    }
+    if (!putStack.compareAndSet(oldHead,newHead)) {
+      continue;
+    }
+    if (oldHead == BLOCKED) {
+      unpark(consumerThread);
+    }
+    return true;
+  }
+}
