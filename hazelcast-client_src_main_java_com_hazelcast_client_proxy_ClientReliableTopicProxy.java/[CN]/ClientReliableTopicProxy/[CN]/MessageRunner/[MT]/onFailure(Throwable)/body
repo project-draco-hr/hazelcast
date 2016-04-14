@@ -2,17 +2,17 @@
   if (cancelled) {
     return;
   }
-  if (t instanceof StaleSequenceException) {
-    StaleSequenceException staleSequenceException=(StaleSequenceException)t;
+  if (t instanceof ExecutionException && t.getCause() instanceof StaleSequenceException) {
+    long remoteHeadSeq=ringbuffer.headSequence();
     if (listener.isLossTolerant()) {
       if (logger.isFinestEnabled()) {
-        logger.finest("MessageListener " + listener + " on topic: "+ name+ " ran into a stale sequence. "+ "Jumping from oldSequence: "+ sequence+ " to sequence: "+ staleSequenceException.getHeadSeq());
+        logger.finest("MessageListener " + listener + " on topic: "+ name+ " ran into a stale sequence. "+ "Jumping from oldSequence: "+ sequence+ " to sequence: "+ remoteHeadSeq);
       }
-      sequence=staleSequenceException.getHeadSeq();
+      sequence=remoteHeadSeq;
       next();
       return;
     }
-    logger.warning("Terminating MessageListener:" + listener + " on topic: "+ name+ ". "+ "Reason: The listener was too slow or the retention period of the message has been violated. "+ "head: "+ staleSequenceException.getHeadSeq()+ " sequence:"+ sequence);
+    logger.warning("Terminating MessageListener:" + listener + " on topic: "+ name+ ". "+ "Reason: The listener was too slow or the retention period of the message has been violated. "+ "head: "+ remoteHeadSeq+ " sequence:"+ sequence);
   }
  else   if (t instanceof HazelcastInstanceNotActiveException) {
     if (logger.isFinestEnabled()) {
