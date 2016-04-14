@@ -1,0 +1,33 @@
+{
+  for (  Future<PartitionRuntimeState> future : futures) {
+    try {
+      PartitionRuntimeState state=future.get();
+      if (state == null) {
+        continue;
+      }
+      if (maxVersion < state.getVersion()) {
+        newState=state;
+        maxVersion=state.getVersion();
+      }
+      allCompletedMigrations.addAll(state.getCompletedMigrations());
+      if (state.getActiveMigration() != null) {
+        allActiveMigrations.add(state.getActiveMigration());
+      }
+    }
+ catch (    TargetNotMemberException e) {
+      EmptyStatement.ignore(e);
+    }
+catch (    MemberLeftException e) {
+      EmptyStatement.ignore(e);
+    }
+catch (    InterruptedException e) {
+      logger.fine("FetchMostRecentPartitionTableTask is interrupted.");
+    }
+catch (    ExecutionException e) {
+      Throwable cause=e.getCause();
+      if (!(cause instanceof TargetNotMemberException) && !(cause instanceof MemberLeftException)) {
+        logger.warning("Failed to fetch partition table!",e);
+      }
+    }
+  }
+}

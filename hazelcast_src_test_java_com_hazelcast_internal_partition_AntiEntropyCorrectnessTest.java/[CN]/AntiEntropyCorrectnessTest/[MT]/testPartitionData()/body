@@ -1,0 +1,13 @@
+{
+  HazelcastInstance[] instances=factory.newInstances(getConfig(backupCount,true,true),nodeCount);
+  for (  HazelcastInstance instance : instances) {
+    Node node=getNode(instance);
+    FirewallingMockConnectionManager cm=(FirewallingMockConnectionManager)node.getConnectionManager();
+    cm.setPacketFilter(new BackupPacketFilter(node.getSerializationService(),BACKUP_BLOCK_RATIO));
+  }
+  warmUpPartitions(instances);
+  for (  HazelcastInstance instance : instances) {
+    fillData(instance);
+  }
+  assertSizeAndData();
+}

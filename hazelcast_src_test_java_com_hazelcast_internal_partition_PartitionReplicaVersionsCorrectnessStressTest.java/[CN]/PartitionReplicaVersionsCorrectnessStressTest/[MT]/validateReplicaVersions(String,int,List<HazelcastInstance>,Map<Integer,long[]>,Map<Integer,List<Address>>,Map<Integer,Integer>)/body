@@ -3,24 +3,28 @@
     Node node=getNode(instance);
     Address address=node.getThisAddress();
     InternalPartitionService partitionService=node.getPartitionService();
-    for (    InternalPartition partition : partitionService.getPartitions()) {
+    for (    InternalPartition partition : partitionService.getInternalPartitions()) {
       if (address.equals(partition.getOwnerOrNull())) {
         int partitionId=partition.getPartitionId();
         long[] initialReplicaVersions=replicaVersionsByPartitionId.get(partitionId);
         Integer minSurvivingReplicaIndex=minSurvivingReplicaIndexByPartitionId.get(partitionId);
-        long[] replicaVersions=TestPartitionUtils.getReplicaVersions(instance,partitionId);
-        List<Address> addresses=TestPartitionUtils.getReplicaAddresses(instance,partitionId);
+        long[] replicaVersions=getReplicaVersions(instance,partitionId);
+        List<Address> addresses=getReplicaAddresses(instance,partitionId);
         String message=log + " PartitionId: " + partitionId+ " InitialReplicaVersions: "+ Arrays.toString(initialReplicaVersions)+ " ReplicaVersions: "+ Arrays.toString(replicaVersions)+ " SmallestSurvivingReplicaIndex: "+ minSurvivingReplicaIndex+ " InitialReplicaAddresses: "+ partitionReplicaAddresses.get(partitionId)+ " Instance: "+ address+ " CurrentReplicaAddresses: "+ addresses;
         if (minSurvivingReplicaIndex <= 1) {
           assertArrayEquals(message,initialReplicaVersions,replicaVersions);
         }
  else         if (numberOfNodesToCrash > 1) {
-          for (int i=minSurvivingReplicaIndex; i < replicaVersions.length; i++) {
-            assertEquals(message,initialReplicaVersions[i],replicaVersions[i]);
+          final long[] expected=Arrays.copyOf(initialReplicaVersions,initialReplicaVersions.length);
+          boolean verified;
+          int i=1;
+          do {
+            verified=Arrays.equals(expected,replicaVersions);
+            shiftLeft(expected,i,replicaVersions[i - 1]);
           }
-          long duplicatedReplicaVersion=initialReplicaVersions[minSurvivingReplicaIndex - 1];
-          for (int i=0; i < minSurvivingReplicaIndex; i++) {
-            assertEquals(duplicatedReplicaVersion,replicaVersions[i]);
+ while (i++ <= minSurvivingReplicaIndex && !verified);
+          if (!verified) {
+            fail(message);
           }
         }
  else {

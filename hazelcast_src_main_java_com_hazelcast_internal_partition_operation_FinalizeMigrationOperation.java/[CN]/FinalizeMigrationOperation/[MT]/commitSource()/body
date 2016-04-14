@@ -1,0 +1,19 @@
+{
+  int partitionId=getPartitionId();
+  InternalPartitionServiceImpl partitionService=getService();
+  PartitionReplicaManager replicaManager=partitionService.getReplicaManager();
+  ILogger logger=getLogger();
+  int sourceNewReplicaIndex=migrationInfo.getSourceNewReplicaIndex();
+  if (sourceNewReplicaIndex < 0) {
+    replicaManager.clearPartitionReplicaVersions(partitionId);
+    if (logger.isFinestEnabled()) {
+      logger.finest("Replica versions are cleared in source after migration. partitionId=" + partitionId);
+    }
+  }
+ else   if (migrationInfo.getSourceCurrentReplicaIndex() != sourceNewReplicaIndex && sourceNewReplicaIndex > 1) {
+    long[] versions=updatePartitionReplicaVersions(replicaManager,partitionId,sourceNewReplicaIndex - 1);
+    if (logger.isFinestEnabled()) {
+      logger.finest("Replica versions are set after SHIFT DOWN migration. partitionId=" + partitionId + " replica versions="+ Arrays.toString(versions));
+    }
+  }
+}

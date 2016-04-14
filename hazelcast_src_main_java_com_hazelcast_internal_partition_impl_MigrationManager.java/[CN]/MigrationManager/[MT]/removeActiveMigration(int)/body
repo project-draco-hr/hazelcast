@@ -1,0 +1,19 @@
+{
+  partitionServiceLock.lock();
+  try {
+    if (activeMigrationInfo != null) {
+      if (activeMigrationInfo.getPartitionId() == partitionId) {
+        partitionStateManager.setMigrating(partitionId,false);
+        activeMigrationInfo=null;
+        return true;
+      }
+      if (logger.isFinestEnabled()) {
+        logger.finest("Active migration is not removed, because it has different partitionId! " + "PartitionId=" + partitionId + ", Active migration="+ activeMigrationInfo);
+      }
+    }
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+  return false;
+}

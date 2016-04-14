@@ -1,13 +1,14 @@
 {
-  List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp();
-  HazelcastInstance survivingInstance=instances.get(0);
-  HazelcastInstance terminatingInstance=instances.get(1);
+  HazelcastInstance survivingInstance=instances[0];
+  HazelcastInstance terminatingInstance=instances[1];
+  warmUpPartitions(instances);
+  waitAllForSafeState(instances);
   final EventCollectingPartitionLostListener listener=new EventCollectingPartitionLostListener();
   survivingInstance.getPartitionService().addPartitionLostListener(listener);
   Node survivingNode=getNode(survivingInstance);
   final Address survivingAddress=survivingNode.getThisAddress();
   final Set<Integer> survivingPartitionIds=new HashSet<Integer>();
-  for (  InternalPartition partition : survivingNode.getPartitionService().getPartitions()) {
+  for (  InternalPartition partition : survivingNode.getPartitionService().getInternalPartitions()) {
     if (survivingAddress.equals(partition.getReplicaAddress(0))) {
       survivingPartitionIds.add(partition.getPartitionId());
     }

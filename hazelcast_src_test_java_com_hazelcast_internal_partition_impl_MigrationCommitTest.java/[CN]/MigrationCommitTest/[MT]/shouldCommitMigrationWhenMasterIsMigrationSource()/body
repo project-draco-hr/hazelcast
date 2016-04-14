@@ -1,0 +1,18 @@
+{
+  final HazelcastInstance hz1=factory.newHazelcastInstance(createConfig());
+  final Config config2=createConfig();
+  config2.setLiteMember(true);
+  final HazelcastInstance hz2=factory.newHazelcastInstance(config2);
+  warmUpPartitions(hz1,hz2);
+  waitAllForSafeState(hz1,hz2);
+  final HazelcastInstance hz3=factory.newHazelcastInstance(createConfig());
+  warmUpPartitions(hz3);
+  waitAllForSafeState(hz1,hz2,hz3);
+  final InternalPartition hz1Partition=getOwnedPartition(hz1);
+  final InternalPartition hz3Partition=getOwnedPartition(hz3);
+  assertNotNull(hz1Partition);
+  assertNotNull(hz3Partition);
+  assertNotEquals(hz1Partition,hz3Partition);
+  assertFalse(hz1Partition.isMigrating());
+  assertFalse(hz3Partition.isMigrating());
+}

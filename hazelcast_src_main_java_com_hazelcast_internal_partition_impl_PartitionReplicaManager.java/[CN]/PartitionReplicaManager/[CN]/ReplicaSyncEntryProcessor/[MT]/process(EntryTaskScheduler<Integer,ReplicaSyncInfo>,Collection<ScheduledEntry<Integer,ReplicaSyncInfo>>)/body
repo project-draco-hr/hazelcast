@@ -1,0 +1,14 @@
+{
+  for (  ScheduledEntry<Integer,ReplicaSyncInfo> entry : entries) {
+    ReplicaSyncInfo syncInfo=entry.getValue();
+    int partitionId=syncInfo.partitionId;
+    if (replicaSyncRequests.compareAndSet(partitionId,syncInfo,null)) {
+      releaseReplicaSyncPermit();
+    }
+    InternalPartitionImpl partition=partitionStateManager.getPartitionImpl(partitionId);
+    int currentReplicaIndex=partition.getReplicaIndex(node.getThisAddress());
+    if (currentReplicaIndex > 0) {
+      triggerPartitionReplicaSync(partitionId,currentReplicaIndex,0L);
+    }
+  }
+}

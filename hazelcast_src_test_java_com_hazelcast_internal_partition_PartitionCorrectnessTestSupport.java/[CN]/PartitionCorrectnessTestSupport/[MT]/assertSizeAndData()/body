@@ -1,0 +1,51 @@
+{
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      Collection<HazelcastInstance> instances=factory.getAllHazelcastInstances();
+      final int actualBackupCount=Math.min(backupCount,instances.size() - 1);
+      final int expectedSize=PARTITION_COUNT * (actualBackupCount + 1);
+      int total=0;
+      for (      HazelcastInstance hz : instances) {
+        TestMigrationAwareService service=getService(hz);
+        total+=service.size();
+        Node node=getNode(hz);
+        InternalPartitionService partitionService=node.getPartitionService();
+        InternalPartition[] partitions=partitionService.getInternalPartitions();
+        Address thisAddress=node.getThisAddress();
+        for (        Integer p : service.keys()) {
+          int replicaIndex=partitions[p].getReplicaIndex(thisAddress);
+          assertThat("Partition: " + p + " is leaking on "+ thisAddress,replicaIndex,allOf(greaterThanOrEqualTo(0),lessThanOrEqualTo(backupCount)));
+        }
+        for (        InternalPartition partition : partitions) {
+          int replicaIndex=partition.getReplicaIndex(thisAddress);
+          if (replicaIndex >= 0 && replicaIndex <= backupCount) {
+            assertTrue("Partition: " + partition.getPartitionId() + ", replica: "+ replicaIndex+ " data is missing on "+ thisAddress,service.contains(partition.getPartitionId()));
+          }
+        }
+        for (        InternalPartition partition : partitions) {
+          if (partition.isLocal()) {
+            int partitionId=partition.getPartitionId();
+            long[] replicaVersions=getReplicaVersions(node,partitionId);
+            for (int replica=1; replica <= actualBackupCount; replica++) {
+              Address address=partition.getReplicaAddress(replica);
+              assertNotNull("Replica: " + replica + " is not found in "+ partition,address);
+              HazelcastInstance backupInstance=factory.getInstance(address);
+              assertNotNull("Instance for " + address + " is not found! -> "+ partition,backupInstance);
+              Node backupNode=getNode(backupInstance);
+              assertNotNull(backupNode);
+              long[] backupReplicaVersions=getReplicaVersions(backupNode,partitionId);
+              assertNotNull("Versions null on " + backupNode.address + ", partitionId: "+ partitionId,backupReplicaVersions);
+              for (int i=replica - 1; i < actualBackupCount; i++) {
+                assertEquals("Replica version mismatch! Owner: " + thisAddress + ", Backup: "+ address+ ", Partition: "+ partition+ ", Replica: "+ (i + 1)+ " owner versions: "+ Arrays.toString(replicaVersions)+ " backup versions: "+ Arrays.toString(backupReplicaVersions),replicaVersions[i],backupReplicaVersions[i]);
+              }
+              TestMigrationAwareService backupService=getService(backupInstance);
+              assertEquals("Wrong data! Partition: " + partitionId + ", replica: "+ replica+ " on "+ address+ " has stale value! "+ Arrays.toString(backupReplicaVersions),service.get(partitionId),backupService.get(partitionId));
+            }
+          }
+        }
+      }
+      assertEquals("Missing data!",expectedSize,total);
+    }
+  }
+);
+}

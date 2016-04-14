@@ -1,0 +1,16 @@
+{
+  if (migrationInfo.getStatus() != MigrationStatus.SUCCESS && migrationInfo.getStatus() != MigrationStatus.FAILED) {
+    throw new IllegalArgumentException("Migration doesn't seem completed: " + migrationInfo);
+  }
+  partitionServiceLock.lock();
+  try {
+    boolean added=completedMigrations.add(migrationInfo);
+    if (added) {
+      completedMigrationCounter.incrementAndGet();
+    }
+    return added;
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}

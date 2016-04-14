@@ -1,19 +1,19 @@
 {
   if (!member.localMember()) {
-    updateMemberGroupsSize();
+    partitionStateManager.updateMemberGroupsSize();
   }
+  lastMaster=node.getMasterAddress();
   if (node.isMaster()) {
     lock.lock();
     try {
-      migrationQueue.clear();
-      if (initialized) {
-        ClusterState clusterState=nodeEngine.getClusterService().getClusterState();
+      if (partitionStateManager.isInitialized()) {
+        final ClusterState clusterState=nodeEngine.getClusterService().getClusterState();
         if (clusterState == ClusterState.ACTIVE) {
-          stateVersion.incrementAndGet();
-          migrationQueue.add(new RepartitioningTask());
+          migrationManager.triggerControlTask();
         }
-        PartitionStateOperation op=new PartitionStateOperation(createPartitionState());
-        nodeEngine.getOperationService().send(op,member.getAddress());
+ else         if (clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE) {
+          partitionStateManager.updateMemberUuidMap();
+        }
       }
     }
   finally {

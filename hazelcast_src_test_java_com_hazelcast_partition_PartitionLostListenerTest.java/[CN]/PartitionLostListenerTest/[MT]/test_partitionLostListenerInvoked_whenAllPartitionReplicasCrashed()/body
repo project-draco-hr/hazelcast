@@ -1,0 +1,18 @@
+{
+  HazelcastInstance lite=factory.newHazelcastInstance(new Config().setLiteMember(true));
+  warmUpPartitions(instances);
+  warmUpPartitions(lite);
+  waitAllForSafeState(instances);
+  waitInstanceForSafeState(lite);
+  final EventCollectingPartitionLostListener listener=new EventCollectingPartitionLostListener();
+  lite.getPartitionService().addPartitionLostListener(listener);
+  instances[0].getLifecycleService().terminate();
+  instances[1].getLifecycleService().terminate();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      List<PartitionLostEvent> events=listener.getEvents();
+      assertFalse(events.isEmpty());
+    }
+  }
+);
+}

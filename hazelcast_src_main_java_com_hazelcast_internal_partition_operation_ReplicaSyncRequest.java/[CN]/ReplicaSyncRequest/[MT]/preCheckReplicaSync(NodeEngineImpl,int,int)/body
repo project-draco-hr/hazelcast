@@ -1,6 +1,7 @@
 {
   InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)nodeEngine.getPartitionService();
-  InternalPartitionImpl partition=partitionService.getPartitionImpl(partitionId);
+  PartitionStateManager partitionStateManager=partitionService.getPartitionStateManager();
+  InternalPartitionImpl partition=partitionStateManager.getPartitionImpl(partitionId);
   Address owner=partition.getOwnerOrNull();
   long[] replicaVersions=partitionService.getPartitionReplicaVersions(partitionId);
   long currentVersion=replicaVersions[replicaIndex - 1];
@@ -19,7 +20,7 @@
     sendEmptyResponse();
     return false;
   }
-  if (!partitionService.tryToAcquireReplicaSyncPermit()) {
+  if (!partitionService.getReplicaManager().tryToAcquireReplicaSyncPermit()) {
     if (logger.isFinestEnabled()) {
       logger.finest("Max parallel replication process limit exceeded! Could not run replica sync -> " + toString());
     }

@@ -1,0 +1,12 @@
+{
+  Collection<MemberImpl> members=node.clusterService.getMemberImpls();
+  Collection<Future<PartitionRuntimeState>> futures=new ArrayList<Future<PartitionRuntimeState>>(members.size());
+  for (  MemberImpl m : members) {
+    if (m.localMember()) {
+      continue;
+    }
+    Future<PartitionRuntimeState> future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,new FetchPartitionStateOperation(),m.getAddress()).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
+    futures.add(future);
+  }
+  return futures;
+}

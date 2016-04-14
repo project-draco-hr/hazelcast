@@ -1,22 +1,12 @@
 {
-  InternalPartitionServiceImpl partitionService=getService();
-  int partitionId=getPartitionId();
-  MigrationInfo migrationInfo=partitionService.getActiveMigration(partitionId);
-  if (migrationInfo == null) {
-    return;
-  }
   NodeEngineImpl nodeEngine=(NodeEngineImpl)getNodeEngine();
-  PartitionMigrationEvent event=new PartitionMigrationEvent(endpoint,partitionId);
-  for (  MigrationAwareService service : nodeEngine.getServices(MigrationAwareService.class)) {
-    finishMigration(event,service);
-  }
+  notifyServices(nodeEngine);
   if (endpoint == MigrationEndpoint.SOURCE && success) {
-    partitionService.clearPartitionReplicaVersions(partitionId);
+    commitSource();
   }
  else   if (endpoint == MigrationEndpoint.DESTINATION && !success) {
-    partitionService.clearPartitionReplicaVersions(partitionId);
+    rollbackDestination();
   }
-  partitionService.removeActiveMigration(partitionId);
   if (success) {
     nodeEngine.onPartitionMigrate(migrationInfo);
   }

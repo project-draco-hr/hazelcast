@@ -1,20 +1,28 @@
 {
-  out.writeLong(0L);
   out.writeInt(version);
-  int memberSize=members.size();
+  int memberSize=members.length;
   out.writeInt(memberSize);
   for (  MemberInfo memberInfo : members) {
     memberInfo.writeData(out);
   }
-  out.writeInt(partitionInfos.size());
-  for (  ShortPartitionInfo spi : partitionInfos) {
-    spi.writeData(out);
+  out.writeInt(minimizedPartitionTable.length);
+  for (  int[] indexes : minimizedPartitionTable) {
+    for (int ix=0; ix < InternalPartition.MAX_REPLICA_COUNT; ix++) {
+      out.writeInt(indexes[ix]);
+    }
+  }
+  if (activeMigration != null) {
+    out.writeBoolean(true);
+    activeMigration.writeData(out);
+  }
+ else {
+    out.writeBoolean(false);
   }
   if (completedMigrations != null) {
     int k=completedMigrations.size();
     out.writeInt(k);
-    for (    MigrationInfo cm : completedMigrations) {
-      cm.writeData(out);
+    for (    MigrationInfo migrationInfo : completedMigrations) {
+      migrationInfo.writeData(out);
     }
   }
  else {

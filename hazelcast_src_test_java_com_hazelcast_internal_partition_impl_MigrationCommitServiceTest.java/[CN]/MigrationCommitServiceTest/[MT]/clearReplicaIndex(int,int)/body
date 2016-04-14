@@ -1,0 +1,32 @@
+{
+  final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getPartitionService(instances[0]);
+  final InternalPartitionImpl partition=(InternalPartitionImpl)partitionService.getPartition(partitionId);
+  final Address oldReplicaOwner=partition.getReplicaAddress(replicaIndexToClear);
+  partition.setReplicaAddress(replicaIndexToClear,null);
+  final MigrationInfo migration=new MigrationInfo(0,oldReplicaOwner,null,replicaIndexToClear,-1,-1,-1);
+  migration.setMaster(getAddress(instances[0]));
+  migration.setOldBackupReplicaOwner(oldReplicaOwner);
+  migration.setStatus(MigrationStatus.SUCCESS);
+  partitionService.getMigrationManager().addCompletedMigration(migration);
+  partitionService.getMigrationManager().scheduleActiveMigrationFinalization(migration);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(partitionService.syncPartitionRuntimeState());
+    }
+  }
+);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final TestMigrationAwareService service=getService(oldReplicaOwner);
+      assertFalse(service.contains(partitionId));
+      final long[] replicaVersions=TestPartitionUtils.getReplicaVersions(factory.getInstance(oldReplicaOwner),partitionId);
+      assertArrayEquals(new long[InternalPartition.MAX_BACKUP_COUNT],replicaVersions);
+    }
+  }
+);
+  for (  HazelcastInstance instance : instances) {
+    final TestMigrationAwareService service=getNodeEngineImpl(instance).getService(TestMigrationAwareService.SERVICE_NAME);
+    service.clearEvents();
+  }
+  return oldReplicaOwner;
+}

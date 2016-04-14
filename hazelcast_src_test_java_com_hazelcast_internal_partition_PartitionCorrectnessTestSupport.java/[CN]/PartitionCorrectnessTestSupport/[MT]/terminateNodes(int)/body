@@ -1,0 +1,28 @@
+{
+  List<HazelcastInstance> instances=new ArrayList<HazelcastInstance>(factory.getAllHazelcastInstances());
+  assertThat(instances.size(),greaterThanOrEqualTo(count));
+  Collections.shuffle(instances);
+  if (count == 1) {
+    HazelcastInstance hz=instances.get(0);
+    Address address=getNode(hz).getThisAddress();
+    TestUtil.terminateInstance(hz);
+    return Collections.singleton(address);
+  }
+ else {
+    final CountDownLatch latch=new CountDownLatch(count);
+    Collection<Address> addresses=new HashSet<Address>();
+    for (int i=0; i < count; i++) {
+      final HazelcastInstance hz=instances.get(i);
+      addresses.add(getNode(hz).getThisAddress());
+      new Thread(){
+        public void run(){
+          TestUtil.terminateInstance(hz);
+          latch.countDown();
+        }
+      }
+.start();
+    }
+    assertTrue(latch.await(2,TimeUnit.MINUTES));
+    return addresses;
+  }
+}

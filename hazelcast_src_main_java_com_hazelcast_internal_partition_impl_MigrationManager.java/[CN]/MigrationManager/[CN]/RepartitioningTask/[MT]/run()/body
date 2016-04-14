@@ -1,0 +1,22 @@
+{
+  if (!node.isMaster()) {
+    return;
+  }
+  partitionServiceLock.lock();
+  try {
+    Address[][] newState=repartition();
+    if (newState == null) {
+      return;
+    }
+    lastRepartitionTime.set(Clock.currentTimeMillis());
+    partitionStateManager.updateMemberUuidMap();
+    processNewPartitionState(newState);
+    if (ASSERTION_ENABLED) {
+      migrationQueue.add(new CheckPartitionTableTask());
+    }
+    partitionService.syncPartitionRuntimeState();
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}

@@ -1,0 +1,21 @@
+{
+  MemberImpl partitionOwner=getPartitionOwner();
+  if (partitionOwner == null) {
+    logger.fine("Partition owner is null. Ignoring " + migrationInfo);
+    triggerRepartitioningAfterMigrationFailure();
+    return null;
+  }
+  if (migrationInfo.getSource() != null) {
+    if (node.getClusterService().getMember(migrationInfo.getSource()) == null) {
+      logger.fine("Source is not member anymore. Ignoring " + migrationInfo);
+      triggerRepartitioningAfterMigrationFailure();
+      return null;
+    }
+  }
+  if (node.getClusterService().getMember(migrationInfo.getDestination()) == null) {
+    logger.fine("Destination is not member anymore. Ignoring " + migrationInfo);
+    triggerRepartitioningAfterMigrationFailure();
+    return null;
+  }
+  return partitionOwner;
+}

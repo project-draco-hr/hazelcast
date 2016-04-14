@@ -1,0 +1,18 @@
+{
+  if (addresses.size() == 1) {
+    factory.newHazelcastInstance(addresses.iterator().next(),config);
+  }
+ else {
+    final CountDownLatch latch=new CountDownLatch(addresses.size());
+    for (    final Address address : addresses) {
+      new Thread(){
+        public void run(){
+          factory.newHazelcastInstance(address,config);
+          latch.countDown();
+        }
+      }
+.start();
+    }
+    assertTrue(latch.await(2,TimeUnit.MINUTES));
+  }
+}

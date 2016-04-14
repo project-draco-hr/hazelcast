@@ -1,0 +1,14 @@
+{
+  if (node.isMaster() && node.getState() == NodeState.ACTIVE) {
+    MigrationManager migrationManager=partitionService.getMigrationManager();
+    final boolean migrationAllowed=migrationManager.isMigrationAllowed() && !partitionService.isFetchMostRecentPartitionTableTaskRequired();
+    if (!migrationAllowed) {
+      logger.fine("Not publishing partition runtime state since migration is not allowed.");
+      return;
+    }
+ else     if (migrationManager.hasOnGoingMigration()) {
+      logger.info("Remaining migration tasks in queue => " + partitionService.getMigrationQueueSize());
+    }
+    partitionService.publishPartitionRuntimeState();
+  }
+}

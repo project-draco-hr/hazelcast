@@ -1,0 +1,16 @@
+{
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final TestMigrationAwareService service=getService(migration.getSource());
+      final String msg=getAssertMessage(migration,service);
+      assertFalse(service.getBeforeEvents().isEmpty());
+      assertFalse(service.getRollbackEvents().isEmpty());
+      final PartitionMigrationEvent beforeEvent=service.getBeforeEvents().get(0);
+      final PartitionMigrationEvent rollbackEvent=service.getRollbackEvents().get(0);
+      assertSourcePartitionMigrationEvent(msg,beforeEvent,migration);
+      assertSourcePartitionMigrationEvent(msg,rollbackEvent,migration);
+      assertReplicaVersionsAndServiceData(msg,migration.getSource(),migration.getPartitionId(),migration.getSourceCurrentReplicaIndex());
+    }
+  }
+);
+}

@@ -1,0 +1,23 @@
+{
+  if (!partitionStateManager.isInitialized()) {
+    return;
+  }
+  partitionServiceLock.lock();
+  try {
+    Collection<Address> addresses=collectUnknownAddresses();
+    for (    Address address : addresses) {
+      partitionStateManager.removeDeadAddress(address);
+    }
+    for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
+      repairPartition(partitionId);
+    }
+    partitionService.syncPartitionRuntimeState();
+    if (logger.isFinestEnabled()) {
+      logger.finest("RepartitioningTask scheduled");
+    }
+    migrationQueue.add(new RepartitioningTask());
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}

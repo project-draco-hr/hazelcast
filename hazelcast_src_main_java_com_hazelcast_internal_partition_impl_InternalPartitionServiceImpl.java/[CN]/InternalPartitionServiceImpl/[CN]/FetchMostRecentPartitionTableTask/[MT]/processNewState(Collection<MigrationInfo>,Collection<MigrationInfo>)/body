@@ -1,0 +1,37 @@
+{
+  lock.lock();
+  try {
+    allCompletedMigrations.addAll(migrationManager.getCompletedMigrations());
+    if (migrationManager.getActiveMigration() != null) {
+      allActiveMigrations.add(migrationManager.getActiveMigration());
+    }
+    for (    MigrationInfo activeMigration : allActiveMigrations) {
+      activeMigration.setStatus(MigrationStatus.FAILED);
+      if (allCompletedMigrations.add(activeMigration)) {
+        logger.info("Marked active migration " + activeMigration + " as "+ MigrationStatus.FAILED);
+      }
+    }
+    if (newState != null) {
+      newState.setCompletedMigrations(allCompletedMigrations);
+      maxVersion=Math.max(maxVersion,getPartitionStateVersion()) + 1;
+      newState.setVersion(maxVersion);
+      logger.info("Applying the most recent of partition state...");
+      applyNewState(newState,thisAddress);
+    }
+ else {
+      partitionStateManager.incrementVersion();
+      for (      MigrationInfo migrationInfo : allCompletedMigrations) {
+        if (migrationManager.addCompletedMigration(migrationInfo)) {
+          if (logger.isFinestEnabled()) {
+            logger.finest("Scheduling migration finalization after finding most recent partition table: " + migrationInfo);
+          }
+          migrationManager.scheduleActiveMigrationFinalization(migrationInfo);
+        }
+      }
+    }
+    shouldFetchPartitionTables=false;
+  }
+  finally {
+    lock.unlock();
+  }
+}

@@ -1,0 +1,13 @@
+{
+  if (!getAddress(instances[0]).equals(migration.getDestination())) {
+    final HazelcastInstance destinationInstance=factory.getInstance(migration.getDestination());
+    final RejectMigrationOnComplete destinationListener=new RejectMigrationOnComplete(destinationInstance);
+    final InternalPartitionServiceImpl destinationPartitionService=(InternalPartitionServiceImpl)getPartitionService(destinationInstance);
+    destinationPartitionService.getMigrationManager().setInternalMigrationListener(destinationListener);
+  }
+  final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getPartitionService(instances[0]);
+  final CountDownMigrationRollbackOnMaster masterListener=new CountDownMigrationRollbackOnMaster(migration);
+  partitionService.getMigrationManager().setInternalMigrationListener(masterListener);
+  partitionService.getMigrationManager().scheduleMigration(migration);
+  assertOpenEventually(masterListener.latch);
+}
