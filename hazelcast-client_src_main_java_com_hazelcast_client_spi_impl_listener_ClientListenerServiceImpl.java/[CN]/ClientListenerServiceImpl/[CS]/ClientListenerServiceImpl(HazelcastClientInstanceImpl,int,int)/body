@@ -4,5 +4,10 @@
   invocationService=client.getInvocationService();
   serializationService=client.getSerializationService();
   logger=client.getLoggingService().getLogger(ClientListenerService.class);
-  eventExecutor=new StripedExecutor(logger,client.getName() + ".event",client.getThreadGroup(),eventThreadCount,eventQueueCapacity);
+  ThreadGroup threadGroup=client.getThreadGroup();
+  String name=client.getName();
+  eventExecutor=new StripedExecutor(logger,name + ".event",threadGroup,eventThreadCount,eventQueueCapacity);
+  ClassLoader classLoader=client.getClientConfig().getClassLoader();
+  ThreadFactory threadFactory=new SingleExecutorThreadFactory(threadGroup,classLoader,name + ".eventRegistration-");
+  registrationExecutor=Executors.newSingleThreadExecutor(threadFactory);
 }

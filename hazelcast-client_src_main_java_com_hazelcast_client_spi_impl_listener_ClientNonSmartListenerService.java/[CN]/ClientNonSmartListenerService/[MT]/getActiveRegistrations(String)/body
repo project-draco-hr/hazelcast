@@ -1,13 +1,22 @@
 {
-synchronized (listenerRegLock) {
-    ClientEventRegistration registration=registrations.get(new ClientRegistrationKey(uuid));
-    if (registration == null) {
-      return Collections.EMPTY_LIST;
+  Future<Collection<ClientEventRegistration>> future=registrationExecutor.submit(new Callable<Collection<ClientEventRegistration>>(){
+    @Override public Collection<ClientEventRegistration> call() throws Exception {
+      ClientEventRegistration registration=registrations.get(new ClientRegistrationKey(uuid));
+      if (registration == null) {
+        return Collections.EMPTY_LIST;
+      }
+      LinkedList<ClientEventRegistration> activeRegistrations=new LinkedList<ClientEventRegistration>();
+      if (getEventHandler(registration.getCallId()) != null) {
+        activeRegistrations.add(registration);
+      }
+      return activeRegistrations;
     }
-    LinkedList<ClientEventRegistration> activeRegistrations=new LinkedList<ClientEventRegistration>();
-    if (getEventHandler(registration.getCallId()) != null) {
-      activeRegistrations.add(registration);
-    }
-    return activeRegistrations;
+  }
+);
+  try {
+    return future.get();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }
