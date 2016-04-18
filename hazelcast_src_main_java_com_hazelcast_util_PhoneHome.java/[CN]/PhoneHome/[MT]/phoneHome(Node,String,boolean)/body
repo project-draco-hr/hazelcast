@@ -21,6 +21,7 @@
   String nativeMemoryParameter=(isEnterprise) ? Long.toString(MemoryUnit.BYTES.toGigaBytes(totalNativeMemorySize)) : "0";
   Map<ClientType,Integer> clusterClientStats=hazelcastNode.clientEngine.getConnectedClientStats();
   RuntimeMXBean runtimeMxBean=ManagementFactory.getRuntimeMXBean();
+  OperatingSystemMXBean osMxBean=ManagementFactory.getOperatingSystemMXBean();
   Long clusterUpTime=clusterService.getClusterClock().getClusterUpTime();
   PhoneHomeParameterCreator parameterCreator=new PhoneHomeParameterCreator();
   parameterCreator.addParam("version",version);
@@ -37,6 +38,18 @@
   parameterCreator.addParam("cjv",Integer.toString(clusterClientStats.get(ClientType.JAVA)));
   parameterCreator.addParam("cuptm",Long.toString(clusterUpTime));
   parameterCreator.addParam("nuptm",Long.toString(runtimeMxBean.getUptime()));
+  parameterCreator.addParam("jvmn",runtimeMxBean.getVmName());
+  parameterCreator.addParam("jvmv",System.getProperty("java.version"));
+  try {
+    parameterCreator.addParam("osn",osMxBean.getName());
+    parameterCreator.addParam("osa",osMxBean.getArch());
+    parameterCreator.addParam("osv",osMxBean.getVersion());
+  }
+ catch (  SecurityException e) {
+    parameterCreator.addParam("osn","N/A");
+    parameterCreator.addParam("osa","N/A");
+    parameterCreator.addParam("osv","N/A");
+  }
   String urlStr=BASE_PHONE_HOME_URL + parameterCreator.build();
   fetchWebService(urlStr);
   return parameterCreator.getParameters();
