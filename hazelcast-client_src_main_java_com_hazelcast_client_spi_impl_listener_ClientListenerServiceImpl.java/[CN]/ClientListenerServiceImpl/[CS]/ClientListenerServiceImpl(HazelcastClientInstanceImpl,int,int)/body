@@ -1,7 +1,12 @@
 {
   this.client=client;
-  this.executionService=(ClientExecutionServiceImpl)client.getClientExecutionService();
-  this.invocationService=client.getInvocationService();
-  this.serializationService=client.getSerializationService();
-  this.eventExecutor=new StripedExecutor(logger,client.getName() + ".event",client.getThreadGroup(),eventThreadCount,eventQueueCapacity);
+  executionService=(ClientExecutionServiceImpl)client.getClientExecutionService();
+  invocationService=client.getInvocationService();
+  serializationService=client.getSerializationService();
+  ThreadGroup threadGroup=client.getThreadGroup();
+  String name=client.getName();
+  eventExecutor=new StripedExecutor(logger,name + ".event",threadGroup,eventThreadCount,eventQueueCapacity);
+  ClassLoader classLoader=client.getClientConfig().getClassLoader();
+  ThreadFactory threadFactory=new SingleExecutorThreadFactory(threadGroup,classLoader,name + ".eventRegistration-");
+  registrationExecutor=Executors.newSingleThreadExecutor(threadFactory);
 }

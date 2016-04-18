@@ -1,9 +1,13 @@
 {
+  int internalPoolSize=properties.getInteger(ClientProperty.INTERNAL_EXECUTOR_POOL_SIZE);
+  if (internalPoolSize <= 0) {
+    internalPoolSize=Integer.parseInt(ClientProperty.INTERNAL_EXECUTOR_POOL_SIZE.getDefaultValue());
+  }
   int executorPoolSize=poolSize;
   if (executorPoolSize <= 0) {
     executorPoolSize=Runtime.getRuntime().availableProcessors();
   }
-  internalExecutor=new ScheduledThreadPoolExecutor(3,new PoolExecutorThreadFactory(threadGroup,name + ".internal-",classLoader),new RejectedExecutionHandler(){
+  internalExecutor=new ScheduledThreadPoolExecutor(internalPoolSize,new PoolExecutorThreadFactory(threadGroup,name + ".internal-",classLoader),new RejectedExecutionHandler(){
     public void rejectedExecution(    Runnable r,    ThreadPoolExecutor executor){
       String message="Internal executor rejected task: " + r + ", because client is shutting down...";
       LOGGER.finest(message);
