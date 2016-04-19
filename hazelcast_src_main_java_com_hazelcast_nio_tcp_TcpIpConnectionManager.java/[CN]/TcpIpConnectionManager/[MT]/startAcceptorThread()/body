@@ -2,8 +2,10 @@
   if (acceptorThread != null) {
     logger.warning("SocketAcceptor thread is already live! Shutting down old acceptor...");
     acceptorThread.shutdown();
+    metricsRegistry.deregister(acceptorThread);
     acceptorThread=null;
   }
   acceptorThread=new SocketAcceptorThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "Acceptor",serverSocketChannel,this);
   acceptorThread.start();
+  metricsRegistry.scanAndRegister(acceptorThread,"tcp." + acceptorThread.getName());
 }
