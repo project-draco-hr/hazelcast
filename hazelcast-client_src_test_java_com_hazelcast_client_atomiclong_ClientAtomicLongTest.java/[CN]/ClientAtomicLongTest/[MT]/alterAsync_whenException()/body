@@ -1,0 +1,16 @@
+{
+  IAtomicLong ref=client.getAtomicLong("alterAsync_whenException");
+  ref.set(10);
+  try {
+    ICompletableFuture<Void> future=ref.alterAsync(new FailingFunction());
+    future.get();
+  }
+ catch (  InterruptedException e) {
+    fail();
+  }
+catch (  ExecutionException e) {
+    assertEquals(e.getCause().getClass(),UndefinedErrorCodeException.class);
+    assertEquals(((UndefinedErrorCodeException)e.getCause()).getOriginClassName(),ExpectedRuntimeException.class.getName());
+  }
+  assertEquals(10,ref.get());
+}
