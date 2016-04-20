@@ -1,0 +1,22 @@
+{
+  int idleCount=0;
+  while (connectionManager.isLive()) {
+    long before=currentTimeMillis();
+    int keyCount=selector.select(SELECT_TIMEOUT_MILLIS);
+    if (isInterrupted()) {
+      break;
+    }
+    if (keyCount == 0) {
+      long selectTimeTaken=currentTimeMillis() - before;
+      idleCount=selectTimeTaken < SELECT_TIMEOUT_MILLIS ? idleCount + 1 : 0;
+      if (idleCount > SELECT_IDLE_COUNT_THRESHOLD) {
+        rebuildSelector();
+        idleCount=0;
+      }
+      continue;
+    }
+    idleCount=0;
+    Iterator<SelectionKey> it=selector.selectedKeys().iterator();
+    handleSelectionKeys(it);
+  }
+}
