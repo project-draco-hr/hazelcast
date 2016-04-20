@@ -17,15 +17,13 @@
   final long mask=mask();
   for (long slot=oldCapacity; --slot >= 0; ) {
     if (isAssigned(oldAddress,slot)) {
-      long key1=key1OfSlot(oldAddress,slot);
-      long key2=key2OfSlot(oldAddress,slot);
-      long valueAddress=slotBase(oldAddress,slot) + valueOffset;
-      long newSlot=hash(key1,key2) & mask;
+      long newSlot=slotHash(oldAddress,slot) & mask;
       while (isSlotAssigned(newSlot)) {
         newSlot=(newSlot + 1) & mask;
       }
-      putKey(baseAddress,newSlot,key1,key2);
-      mem.copyMemory(valueAddress,valueAddrOfSlot(newSlot),valueLength);
+      putKey(baseAddress,newSlot,key1OfSlot(oldAddress,slot),key2OfSlot(oldAddress,slot));
+      final long valueAddrOfOldSlot=slotBase(oldAddress,slot) + valueOffset;
+      mem.copyMemory(valueAddrOfOldSlot,valueAddrOfSlot(newSlot),valueLength);
     }
   }
   oldMalloc.free(oldAddress - HEADER_SIZE,oldAllocatedSize);
