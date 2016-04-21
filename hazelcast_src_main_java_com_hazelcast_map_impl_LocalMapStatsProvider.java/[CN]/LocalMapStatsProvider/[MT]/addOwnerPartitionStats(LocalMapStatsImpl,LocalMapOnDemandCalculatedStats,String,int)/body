@@ -3,25 +3,12 @@
   if (!hasRecords(recordStore)) {
     return;
   }
-  int lockedEntryCount=0;
-  long lastAccessTime=0;
-  long lastUpdateTime=0;
-  long hits=0;
-  Iterator<Record> iterator=recordStore.iterator();
-  while (iterator.hasNext()) {
-    Record record=iterator.next();
-    Data key=record.getKey();
-    hits+=record.getHits();
-    lockedEntryCount+=isLocked(key,recordStore);
-    lastAccessTime=Math.max(lastAccessTime,record.getLastAccessTime());
-    lastUpdateTime=Math.max(lastUpdateTime,record.getLastUpdateTime());
-  }
-  onDemandStats.incrementLockedEntryCount(lockedEntryCount);
-  onDemandStats.incrementHits(hits);
+  onDemandStats.incrementLockedEntryCount(recordStore.getLockedEntryCount());
+  onDemandStats.incrementHits(recordStore.getHits());
   onDemandStats.incrementDirtyEntryCount(recordStore.getMapDataStore().notFinishedOperationsCount());
   onDemandStats.incrementOwnedEntryMemoryCost(recordStore.getHeapCost());
   onDemandStats.incrementHeapCost(recordStore.getHeapCost());
   onDemandStats.incrementOwnedEntryCount(recordStore.size());
-  stats.setLastAccessTime(lastAccessTime);
-  stats.setLastUpdateTime(lastUpdateTime);
+  stats.setLastAccessTime(recordStore.getLastAccessTime());
+  stats.setLastUpdateTime(recordStore.getLastUpdateTime());
 }
