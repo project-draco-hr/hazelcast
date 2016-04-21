@@ -1,6 +1,20 @@
 {
+  if (logger.isFinestEnabled()) {
+    logger.finest("StartLoading invoked " + getStateMessage());
+  }
   if (mapStoreContext.isMapLoader() && !loadedOnCreate) {
-    loadedOnCreate=true;
-    loadingFutures.add(keyLoader.startInitialLoad(mapStoreContext,partitionId));
+    if (!loadedOnPreMigration) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Triggering load " + getStateMessage());
+      }
+      loadedOnCreate=true;
+      loadingFutures.add(keyLoader.startInitialLoad(mapStoreContext,partitionId));
+    }
+ else {
+      if (logger.isFinestEnabled()) {
+        logger.finest("Promoting to loaded on migration " + getStateMessage());
+      }
+      keyLoader.promoteToLoadedOnMigration();
+    }
   }
 }
