@@ -1,0 +1,27 @@
+{
+  Object response=registerWaiter(Thread.currentThread(),null);
+  if (response != VOID) {
+    return resolveAndThrow(response);
+  }
+  long deadlineNanos=System.nanoTime() + unit.toNanos(timeout);
+  boolean interrupted=false;
+  try {
+    long timeoutNanos=unit.toNanos(timeout);
+    while (timeoutNanos > 0) {
+      parkNanos(timeoutNanos);
+      timeoutNanos=deadlineNanos - System.nanoTime();
+      if (isDone()) {
+        return resolveAndThrow(state);
+      }
+ else       if (Thread.interrupted()) {
+        interrupted=true;
+        onInterruptDetected();
+      }
+    }
+  }
+  finally {
+    restoreInterrupt(interrupted);
+  }
+  unregisterWaiter(Thread.currentThread());
+  throw newTimeoutException(timeout,unit);
+}
