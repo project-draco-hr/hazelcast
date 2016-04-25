@@ -14,13 +14,13 @@
       logger.finest("Sending commit operation for: " + migrationInfo);
     }
     PartitionRuntimeState partitionState=partitionService.createMigrationCommitPartitionState(migrationInfo);
-    MigrationCommitOperation operation=new MigrationCommitOperation(partitionState);
+    MigrationCommitOperation operation=new MigrationCommitOperation(partitionState,migrationInfo);
     Future<Boolean> future=nodeEngine.getOperationService().createInvocationBuilder(SERVICE_NAME,operation,migrationInfo.getDestination()).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
     final Boolean result=future.get();
     if (logger.isFinestEnabled()) {
       logger.finest("Migration commit result: " + result + " for migration : "+ migrationInfo);
     }
-    return true;
+    return result;
   }
  catch (  Throwable t) {
     if (t instanceof MemberLeftException || t instanceof TargetNotMemberException) {
