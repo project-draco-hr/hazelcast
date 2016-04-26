@@ -1,0 +1,14 @@
+{
+  String mapName=randomName();
+  Config config=new Config();
+  config.getReplicatedMapConfig(mapName).setInMemoryFormat(InMemoryFormat.BINARY);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory();
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  ReplicatedMap<String,SerializationCountingData> map=instance1.getReplicatedMap(mapName);
+  String key=generateKeyOwnedBy(instance2);
+  SerializationCountingData value=new SerializationCountingData();
+  map.put(key,value);
+  map.put(key,value);
+  assertEquals(1,deSerializationCount.get());
+}
