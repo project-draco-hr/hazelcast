@@ -7,6 +7,9 @@
       partitions[index++]=partitionId;
     }
   }
+  if (index == 0) {
+    return;
+  }
   if (index < size) {
     partitions=Arrays.copyOf(partitions,index);
     size=index;
@@ -15,8 +18,14 @@
   MapEntries[] entries=new MapEntries[size];
   long totalSize=0;
   for (  int partitionId : partitions) {
+    int batchSize=entriesPerPartition[partitionId].size();
+    assert(putAllBatchSize == 0 || batchSize <= putAllBatchSize);
     entries[index++]=entriesPerPartition[partitionId];
-    totalSize+=entriesPerPartition[partitionId].size();
+    totalSize+=batchSize;
+    entriesPerPartition[partitionId]=null;
+  }
+  if (totalSize == 0) {
+    return;
   }
   Future future=createPutAllOperationFuture(name,totalSize,partitions,entries,address);
   futures.add(future);

@@ -1,0 +1,32 @@
+{
+  int expectedEntryCount=INSTANCE_COUNT * entriesPerPartition;
+  String mapName=randomMapName();
+  HazelcastInstance hz=instances[0];
+  HazelcastInstance randomHz=instances[1 + RANDOM.nextInt(INSTANCE_COUNT - 1)];
+  NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
+  NodeEngineImpl randomNodeEngine=getNodeEngineImpl(randomHz);
+  SerializationService serializationService=nodeEngine.getSerializationService();
+  Map<Address,List<Integer>> memberPartitionsMap=nodeEngine.getPartitionService().getMemberPartitionsMap();
+  Collection<List<Integer>> memberPartitions=memberPartitionsMap.values();
+  assertEquals(format("Expected %d members in the cluster",INSTANCE_COUNT),INSTANCE_COUNT,memberPartitions.size());
+  for (  List<Integer> partitions : memberPartitions) {
+    assertEquals("Expected a single partition per cluster member",1,partitions.size());
+  }
+  IMap<String,String> map=hz.getMap(mapName);
+  assertEquals("Expected an empty map",0,map.size());
+  Operation op=createPutAllPerMemberOperation(entriesPerPartition,mapName,hz,serializationService);
+  InternalOperationService operationService=nodeEngine.getOperationService();
+  InternalCompletableFuture<Object> future=operationService.invokeOnTarget(null,op,randomNodeEngine.getThisAddress());
+  future.get();
+  assertEquals(format("Expected %d entries in the map",expectedEntryCount),expectedEntryCount,map.size());
+  for (  Map.Entry<String,String> entry : map.entrySet()) {
+    assertEquals("Expected that key and value are the same",entry.getKey(),entry.getValue());
+  }
+  int totalBackups=0;
+  for (int i=0; i < INSTANCE_COUNT; i++) {
+    map=instances[i].getMap(mapName);
+    assertEquals(format("Each member should own %d entries of the map",entriesPerPartition),entriesPerPartition,map.getLocalMapStats().getOwnedEntryCount());
+    totalBackups+=map.getLocalMapStats().getBackupEntryCount();
+  }
+  assertEquals(format("Expected to find %d backups in the cluster",expectedEntryCount),expectedEntryCount,totalBackups);
+}
