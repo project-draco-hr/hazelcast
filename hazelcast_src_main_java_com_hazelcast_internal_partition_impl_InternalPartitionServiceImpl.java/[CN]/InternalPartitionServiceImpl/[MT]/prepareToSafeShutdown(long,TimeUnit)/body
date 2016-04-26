@@ -1,3 +1,31 @@
 {
-  return partitionReplicaStateChecker.prepareToSafeShutdown(timeout,unit);
+  if (!node.joined()) {
+    return true;
+  }
+  if (node.isLiteMember()) {
+    return true;
+  }
+  CountDownLatch latch=getShutdownLatch();
+  InternalOperationService operationService=nodeEngine.getOperationService();
+  long timeoutMillis=unit.toMillis(timeout);
+  long awaitStep=Math.min(SAFE_SHUTDOWN_MAX_AWAIT_STEP_MILLIS,timeoutMillis);
+  try {
+    do {
+      if (node.isMaster()) {
+        onShutdownRequest(node.getThisAddress());
+      }
+ else {
+        operationService.send(new ShutdownRequestOperation(),nodeEngine.getMasterAddress());
+      }
+      if (latch.await(awaitStep,TimeUnit.MILLISECONDS)) {
+        return true;
+      }
+      timeoutMillis-=awaitStep;
+    }
+ while (timeoutMillis > 0);
+  }
+ catch (  InterruptedException e) {
+    logger.info("Safe shutdown is interrupted!");
+  }
+  return false;
 }

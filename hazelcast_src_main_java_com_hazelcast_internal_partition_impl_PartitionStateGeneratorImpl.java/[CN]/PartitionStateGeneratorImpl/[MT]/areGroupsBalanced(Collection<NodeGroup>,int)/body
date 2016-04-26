@@ -1,0 +1,20 @@
+{
+  float ratio=RANGE_CHECK_RATIO;
+  int avgPartitionPerGroup=partitionCount / groups.size();
+  int replicaCount=Math.min(groups.size(),InternalPartition.MAX_REPLICA_COUNT);
+  for (  NodeGroup group : groups) {
+    for (int i=0; i < replicaCount; i++) {
+      int partitionCountOfGroup=group.getPartitionCount(i);
+      if (Math.abs(partitionCountOfGroup - avgPartitionPerGroup) <= MIN_AVG_OWNER_DIFF) {
+        continue;
+      }
+      if ((partitionCountOfGroup < avgPartitionPerGroup / ratio) || (partitionCountOfGroup > avgPartitionPerGroup * ratio)) {
+        if (LOGGER.isFineEnabled()) {
+          LOGGER.fine("Not well balanced! Replica: " + i + ", PartitionCount: "+ partitionCountOfGroup+ ", AvgPartitionCount: "+ avgPartitionPerGroup);
+        }
+        return false;
+      }
+    }
+  }
+  return true;
+}

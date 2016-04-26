@@ -7,9 +7,7 @@
     int memberCount=members[0];
     List<Member> memberList=createMembers(memberCount,maxSameHostCount);
     Collection<MemberGroup> groups=memberGroupFactory.createMemberGroups(memberList);
-    println("PARTITION-COUNT= " + partitionCount + ", MEMBER-COUNT= "+ members[0]+ ", GROUP-COUNT= "+ groups.size());
-    println();
-    Address[][] state=generator.initialize(memberGroupFactory.createMemberGroups(memberList),partitionCount);
+    Address[][] state=generator.arrange(groups,emptyPartitionArray(partitionCount));
     checkTestResult(state,groups,partitionCount);
     int previousMemberCount=memberCount;
     for (int j=1; j < members.length; j++) {
@@ -27,12 +25,12 @@
           memberList.addAll(extra);
         }
  else {
+          List<Member> removedMembers=memberList.subList(memberCount,memberList.size());
           memberList=memberList.subList(0,memberCount);
-          shift(state,memberList);
+          remove(state,removedMembers);
         }
         groups=memberGroupFactory.createMemberGroups(memberList);
-        println("PARTITION-COUNT= " + partitionCount + ", MEMBER-COUNT= "+ memberCount+ ", GROUP-COUNT= "+ groups.size());
-        state=generator.reArrange(memberGroupFactory.createMemberGroups(memberList),toPartitionView(state));
+        state=generator.arrange(groups,toPartitionArray(state));
         checkTestResult(state,groups,partitionCount);
         previousMemberCount=memberCount;
       }

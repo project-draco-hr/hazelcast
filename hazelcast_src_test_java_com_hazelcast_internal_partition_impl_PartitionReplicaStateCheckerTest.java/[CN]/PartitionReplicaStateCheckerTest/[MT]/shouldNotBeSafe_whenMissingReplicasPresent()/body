@@ -1,0 +1,14 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  InternalPartitionServiceImpl partitionService=getNode(hz).partitionService;
+  partitionService.firstArrangement();
+  PartitionStateManager partitionStateManager=partitionService.getPartitionStateManager();
+  InternalPartitionImpl partition=partitionStateManager.getPartitionImpl(0);
+  Address[] replicaAddresses=partition.getReplicaAddresses();
+  partition.setReplicaAddresses(new Address[replicaAddresses.length]);
+  PartitionReplicaStateChecker replicaStateChecker=partitionService.getPartitionReplicaStateChecker();
+  assertEquals(PartitionServiceState.REPLICA_NOT_SYNC,replicaStateChecker.getPartitionServiceState());
+  partition.setReplicaAddresses(replicaAddresses);
+  assertEquals(PartitionServiceState.SAFE,replicaStateChecker.getPartitionServiceState());
+}

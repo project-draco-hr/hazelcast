@@ -1,0 +1,27 @@
+{
+  long timeoutInMillis=unit.toMillis(timeout);
+  long sleep=DEFAULT_PAUSE_MILLIS;
+  while (timeoutInMillis > 0) {
+    timeoutInMillis=waitForMissingReplicaOwners(Level.FINE,timeoutInMillis,sleep);
+    if (timeoutInMillis <= 0) {
+      break;
+    }
+    timeoutInMillis=waitForOngoingMigrations(Level.FINE,timeoutInMillis,sleep);
+    if (timeoutInMillis <= 0) {
+      break;
+    }
+    long start=Clock.currentTimeMillis();
+    boolean syncResult=checkAndTriggerReplicaSync();
+    timeoutInMillis-=(Clock.currentTimeMillis() - start);
+    if (syncResult) {
+      logger.finest("Replica sync state is OK");
+      return true;
+    }
+    if (timeoutInMillis <= 0) {
+      break;
+    }
+    logger.info("Some backup replicas are inconsistent with primary, waiting for synchronization. Timeout: " + timeoutInMillis + "ms");
+    timeoutInMillis=sleepWithBusyWait(timeoutInMillis,sleep);
+  }
+  return false;
+}

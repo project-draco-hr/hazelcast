@@ -1,0 +1,42 @@
+{
+  if (!PRINT_STATE) {
+    return;
+  }
+  System.out.printf("%-20s","Owner");
+  for (int i=0; i < replicaCount; i++) {
+    System.out.printf("%-5s","R-" + i);
+  }
+  System.out.printf("%5s%n","Total");
+  System.out.println("_______________________________________________________________");
+  System.out.println();
+  int k=1;
+  for (  GroupPartitionState groupState : groupPartitionStates.values()) {
+    System.out.printf("%-20s%n","MemberGroup[" + (k++) + "]");
+    for (    Map.Entry<Address,Set<Integer>[]> entry : groupState.nodePartitionsMap.entrySet()) {
+      int total=0;
+      System.out.printf("%-20s",entry.getKey().getHost() + ":" + entry.getKey().getPort());
+      Collection<Integer>[] partitions=entry.getValue();
+      for (int i=0; i < replicaCount; i++) {
+        int count=partitions[i].size();
+        System.out.printf("%-5s",count);
+        total+=partitions[i].size();
+      }
+      System.out.printf("%-5s%n",total);
+    }
+    if (groupState.group.size() > 1) {
+      System.out.printf("%-20s","Total");
+      int total=0;
+      Collection<Integer>[] partitions=groupState.groupPartitions;
+      for (int i=0; i < replicaCount; i++) {
+        int count=partitions[i].size();
+        System.out.printf("%-5s",count);
+        total+=partitions[i].size();
+      }
+      System.out.printf("%-5s%n",total);
+    }
+    System.out.println("---------------------------------------------------------------");
+    System.out.println();
+  }
+  System.out.println();
+  System.out.println();
+}

@@ -1,26 +1,22 @@
 {
-  final Collection<Member> memberList=nodeEngine.getClusterService().getMembers();
-  if (memberList == null || memberList.isEmpty() || memberList.size() < 2) {
+  Collection<Member> members=nodeEngine.getClusterService().getMembers();
+  if (members == null || members.isEmpty()) {
     return true;
   }
-  final Collection<Future> futures=new ArrayList<Future>(memberList.size());
-  for (  Member member : memberList) {
+  final Collection<Future<Boolean>> futures=new ArrayList<Future<Boolean>>(members.size());
+  for (  Member member : members) {
     final Address target=member.getAddress();
     final Operation operation=new SafeStateCheckOperation();
-    final InternalCompletableFuture future=nodeEngine.getOperationService().invokeOnTarget(InternalPartitionService.SERVICE_NAME,operation,target);
+    final Future<Boolean> future=nodeEngine.getOperationService().invokeOnTarget(InternalPartitionService.SERVICE_NAME,operation,target);
     futures.add(future);
   }
   final int maxWaitTime=getMaxWaitTime();
-  for (  Future future : futures) {
-    try {
-      final Object result=future.get(maxWaitTime,TimeUnit.SECONDS);
-      final boolean safe=(Boolean)result;
-      if (!safe) {
-        return false;
-      }
-    }
- catch (    Exception e) {
-      logger.warning("Error while querying cluster's safe state",e);
+  Collection<Boolean> results=FutureUtil.returnWithDeadline(futures,maxWaitTime,TimeUnit.SECONDS,exceptionHandler);
+  if (results.size() != futures.size()) {
+    return false;
+  }
+  for (  Boolean result : results) {
+    if (!result) {
       return false;
     }
   }

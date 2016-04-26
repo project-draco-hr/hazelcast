@@ -10,12 +10,22 @@
   final EventCollectingPartitionLostListener listener=registerPartitionLostListener(survivingInstances.get(0));
   final Map<Integer,Integer> survivingPartitions=getMinReplicaIndicesByPartitionId(survivingInstances);
   final Map<Integer,List<Address>> partitionTables=TestPartitionUtils.getAllReplicaAddresses(survivingInstances);
-  terminateInstances(terminatingInstances);
+  stopInstances(terminatingInstances,nodeLeaveType);
   waitAllForSafeStateAndDumpPartitionServiceOnFailure(survivingInstances,300);
-  assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
-      assertLostPartitions(log,listener,survivingPartitions,partitionTables);
+  if (shouldExpectPartitionLostEvents) {
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertLostPartitions(log,listener,survivingPartitions,partitionTables);
+      }
     }
-  }
 );
+  }
+ else {
+    assertTrueAllTheTime(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertTrue(listener.getEvents().isEmpty());
+      }
+    }
+,1);
+  }
 }

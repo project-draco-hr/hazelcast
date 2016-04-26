@@ -1,0 +1,17 @@
+{
+  warmUpPartitions(instances);
+  final HazelcastInstance shuttingDownInstance=instances[shutdownIndex];
+  final CountDownLatch latch=new CountDownLatch(1);
+  new Thread(){
+    public void run(){
+      shuttingDownInstance.shutdown();
+      latch.countDown();
+    }
+  }
+.start();
+  Node shuttingDownNode=getNode(shuttingDownInstance);
+  while (shuttingDownNode.isRunning())   ;
+  terminateInstance(instances[terminateIndex]);
+  assertOpenEventually(latch);
+  assertPartitionAssignments();
+}

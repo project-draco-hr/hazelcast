@@ -1,0 +1,18 @@
+{
+  Config config=new Config();
+  HazelcastInstance master=factory.newHazelcastInstance(config);
+  HazelcastInstance[] slaves=factory.newInstances(config,3);
+  if (initializePartitions) {
+    warmUpPartitions(slaves);
+  }
+  changeClusterStateEventually(slaves[0],state);
+  InternalPartition[] partitionsBefore=getPartitionTable(master);
+  if (shutdownMaster) {
+    master.shutdown();
+  }
+ else {
+    slaves[0].shutdown();
+  }
+  InternalPartition[] partitionsAfter=getPartitionTable(slaves[slaves.length - 1]);
+  assertPartitionTableEquals(partitionsBefore,partitionsAfter);
+}

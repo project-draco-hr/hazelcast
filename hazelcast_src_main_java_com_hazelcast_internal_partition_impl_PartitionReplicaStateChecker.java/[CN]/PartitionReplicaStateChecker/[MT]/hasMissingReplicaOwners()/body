@@ -1,0 +1,28 @@
+{
+  if (!needsReplicaStateCheck()) {
+    return false;
+  }
+  int memberGroupsSize=partitionStateManager.getMemberGroupsSize();
+  int replicaCount=Math.min(InternalPartition.MAX_REPLICA_COUNT,memberGroupsSize);
+  ClusterServiceImpl clusterService=node.getClusterService();
+  ClusterState clusterState=clusterService.getClusterState();
+  boolean isClusterNotActive=clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE;
+  for (  InternalPartition partition : partitionStateManager.getPartitions()) {
+    for (int index=0; index < replicaCount; index++) {
+      Address address=partition.getReplicaAddress(index);
+      if (address == null) {
+        if (logger.isFinestEnabled()) {
+          logger.finest("Missing replica=" + index + " for partitionId="+ partition.getPartitionId());
+        }
+        return true;
+      }
+      if (clusterService.getMember(address) == null && (!isClusterNotActive || !clusterService.isMemberRemovedWhileClusterIsNotActive(address))) {
+        if (logger.isFinestEnabled()) {
+          logger.finest("Unknown replica owner= " + address + ", partitionId="+ partition.getPartitionId()+ ", replica="+ index);
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
