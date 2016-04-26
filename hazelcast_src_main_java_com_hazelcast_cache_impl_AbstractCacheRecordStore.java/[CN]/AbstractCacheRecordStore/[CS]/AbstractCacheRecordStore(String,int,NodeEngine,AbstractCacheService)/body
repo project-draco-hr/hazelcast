@@ -5,48 +5,47 @@
   this.partitionCount=nodeEngine.getPartitionService().getPartitionCount();
   this.cacheService=cacheService;
   this.cacheConfig=cacheService.getCacheConfig(name);
-  this.cacheContext=cacheService.getOrCreateCacheContext(name);
   if (cacheConfig == null) {
     throw new CacheNotExistsException("Cache " + name + " is already destroyed or not created yet, on "+ nodeEngine.getLocalMember());
   }
-  this.wanReplicationEnabled=cacheService.isWanReplicationEnabled(name);
-  this.disablePerEntryInvalidationEvents=cacheConfig.isDisablePerEntryInvalidationEvents();
-  this.evictionConfig=cacheConfig.getEvictionConfig();
+  evictionConfig=cacheConfig.getEvictionConfig();
   if (evictionConfig == null) {
-    throw new IllegalStateException("Eviction config cannot be null");
+    throw new IllegalStateException("Eviction config cannot be null!");
+  }
+  wanReplicationEnabled=cacheService.isWanReplicationEnabled(name);
+  disablePerEntryInvalidationEvents=cacheConfig.isDisablePerEntryInvalidationEvents();
+  if (cacheConfig.isStatisticsEnabled()) {
+    statistics=cacheService.createCacheStatIfAbsent(name);
   }
   if (cacheConfig.getCacheLoaderFactory() != null) {
-    final Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
-    if (cacheLoaderFactory instanceof HazelcastInstanceAware) {
-      ((HazelcastInstanceAware)cacheLoaderFactory).setHazelcastInstance(nodeEngine.getHazelcastInstance());
-    }
+    Factory<CacheLoader> cacheLoaderFactory=cacheConfig.getCacheLoaderFactory();
+    injectDependencies(cacheLoaderFactory);
     cacheLoader=cacheLoaderFactory.create();
+    injectDependencies(cacheLoader);
   }
   if (cacheConfig.getCacheWriterFactory() != null) {
-    final Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
-    if (cacheWriterFactory instanceof HazelcastInstanceAware) {
-      ((HazelcastInstanceAware)cacheWriterFactory).setHazelcastInstance(nodeEngine.getHazelcastInstance());
-    }
+    Factory<CacheWriter> cacheWriterFactory=cacheConfig.getCacheWriterFactory();
+    injectDependencies(cacheWriterFactory);
     cacheWriter=cacheWriterFactory.create();
+    injectDependencies(cacheWriter);
   }
-  if (cacheConfig.isStatisticsEnabled()) {
-    this.statistics=cacheService.createCacheStatIfAbsent(name);
+  if (cacheConfig.getExpiryPolicyFactory() != null) {
+    Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
+    injectDependencies(expiryPolicyFactory);
+    defaultExpiryPolicy=expiryPolicyFactory.create();
+    injectDependencies(defaultExpiryPolicy);
   }
-  final Factory<ExpiryPolicy> expiryPolicyFactory=cacheConfig.getExpiryPolicyFactory();
-  this.defaultExpiryPolicy=expiryPolicyFactory.create();
-  this.records=createRecordCacheMap();
-  this.maxSizeChecker=createCacheMaxSizeChecker(evictionConfig.getSize(),evictionConfig.getMaximumSizePolicy());
-  this.evictionPolicyEvaluator=createEvictionPolicyEvaluator(evictionConfig);
-  this.evictionChecker=createEvictionChecker(evictionConfig);
-  this.evictionStrategy=createEvictionStrategy(evictionConfig);
-  if (cacheWriter instanceof Closeable) {
-    cacheService.addCacheResource(name,(Closeable)cacheWriter);
+ else {
+    throw new IllegalStateException("Expiry policy factory cannot be null!");
   }
-  if (cacheLoader instanceof Closeable) {
-    cacheService.addCacheResource(name,(Closeable)cacheLoader);
-  }
-  if (defaultExpiryPolicy instanceof Closeable) {
-    cacheService.addCacheResource(name,(Closeable)defaultExpiryPolicy);
-  }
+  cacheContext=cacheService.getOrCreateCacheContext(name);
+  records=createRecordCacheMap();
+  maxSizeChecker=createCacheMaxSizeChecker(evictionConfig.getSize(),evictionConfig.getMaximumSizePolicy());
+  evictionPolicyEvaluator=createEvictionPolicyEvaluator(evictionConfig);
+  evictionChecker=createEvictionChecker(evictionConfig);
+  evictionStrategy=createEvictionStrategy(evictionConfig);
+  registerResourceIfItIsClosable(cacheWriter);
+  registerResourceIfItIsClosable(cacheLoader);
+  registerResourceIfItIsClosable(defaultExpiryPolicy);
   init();
 }

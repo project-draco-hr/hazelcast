@@ -1,0 +1,11 @@
+{
+  NodeEngine nodeEngine=getNodeEngine();
+  OperationService operationService=nodeEngine.getOperationService();
+  Collection<Member> members=nodeEngine.getClusterService().getMembers();
+  for (  Member member : members) {
+    if (!member.localMember() && !member.getUuid().equals(callerUuid)) {
+      CacheDestroyOperation op=new CacheDestroyOperation(name,true);
+      operationService.invokeOnTarget(ICacheService.SERVICE_NAME,op,member.getAddress());
+    }
+  }
+}
