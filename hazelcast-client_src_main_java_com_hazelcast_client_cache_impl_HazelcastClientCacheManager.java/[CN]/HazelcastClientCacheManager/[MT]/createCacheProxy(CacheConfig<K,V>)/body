@@ -1,3 +1,12 @@
 {
-  return new ClientCacheProxy<K,V>(cacheConfig,clientContext,this);
+  clientCacheProxyFactory.addCacheConfig(cacheConfig.getNameWithPrefix(),cacheConfig);
+  try {
+    ClientCacheProxy<K,V> clientCacheProxy=(ClientCacheProxy<K,V>)client.getCacheByFullName(cacheConfig.getNameWithPrefix());
+    clientCacheProxy.setCacheManager(this);
+    return clientCacheProxy;
+  }
+ catch (  Throwable t) {
+    clientCacheProxyFactory.removeCacheConfig(cacheConfig.getNameWithPrefix());
+    throw ExceptionUtil.rethrow(t);
+  }
 }

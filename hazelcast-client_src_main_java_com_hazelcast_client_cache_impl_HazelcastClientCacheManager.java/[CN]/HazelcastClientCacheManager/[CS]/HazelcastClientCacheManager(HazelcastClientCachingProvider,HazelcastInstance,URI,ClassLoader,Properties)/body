@@ -1,5 +1,10 @@
 {
   super(cachingProvider,hazelcastInstance,uri,classLoader,properties);
-  final ClientCacheDistributedObject setupRef=hazelcastInstance.getDistributedObject(CacheService.SERVICE_NAME,"setupRef");
-  this.clientContext=setupRef.getClientContext();
+  if (hazelcastInstance instanceof HazelcastClientProxy) {
+    client=((HazelcastClientProxy)hazelcastInstance).client;
+  }
+ else {
+    client=((HazelcastClientInstanceImpl)hazelcastInstance);
+  }
+  clientCacheProxyFactory=(ClientCacheProxyFactory)client.getProxyManager().getClientProxyFactory(ICacheService.SERVICE_NAME);
 }

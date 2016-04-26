@@ -1,0 +1,17 @@
+{
+  Collection<Member> members=client.getClientClusterService().getMemberList();
+  Collection<Future> futures=new ArrayList<Future>();
+  for (  Member member : members) {
+    try {
+      Address address=member.getAddress();
+      ClientMessage request=CacheManagementConfigCodec.encodeRequest(cacheName,statOrMan,enabled,address);
+      ClientInvocation clientInvocation=new ClientInvocation(client,request,address);
+      Future<ClientMessage> future=clientInvocation.invoke();
+      futures.add(future);
+    }
+ catch (    Exception e) {
+      ExceptionUtil.sneakyThrow(e);
+    }
+  }
+  FutureUtil.waitWithDeadline(futures,CacheProxyUtil.AWAIT_COMPLETION_TIMEOUT_SECONDS,TimeUnit.SECONDS);
+}
