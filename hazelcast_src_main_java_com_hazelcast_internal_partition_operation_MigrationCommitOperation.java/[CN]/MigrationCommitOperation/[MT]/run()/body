@@ -1,13 +1,8 @@
 {
   NodeEngine nodeEngine=getNodeEngine();
-  if (!nodeEngine.isRunning()) {
-    throw new HazelcastInstanceNotActiveException("This node is shutting down!");
-  }
- else {
-    final Member localMember=nodeEngine.getLocalMember();
-    if (!localMember.getUuid().equals(migrationInfo.getDestinationUuid())) {
-      throw new IllegalStateException("This member " + localMember + " is migration destination but it is restarted. Migration: "+ migrationInfo);
-    }
+  final Member localMember=nodeEngine.getLocalMember();
+  if (!localMember.getUuid().equals(expectedMemberUuid)) {
+    throw new IllegalStateException("This " + localMember + " is migration commit destination but most probably it's restarted "+ "and not the expected target.");
   }
   partitionState.setEndpoint(getCallerAddress());
   InternalPartitionServiceImpl partitionService=getService();
