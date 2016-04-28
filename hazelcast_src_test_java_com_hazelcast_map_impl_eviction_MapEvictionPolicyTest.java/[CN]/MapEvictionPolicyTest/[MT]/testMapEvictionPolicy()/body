@@ -1,0 +1,21 @@
+{
+  int sampleCount=SAMPLE_COUNT;
+  Config config=getConfig();
+  config.setProperty(PARTITION_COUNT.getName(),"1");
+  config.getMapConfig(mapName).setMapEvictionPolicy(new OddEvictor()).getMaxSizeConfig().setMaxSizePolicy(PER_PARTITION).setSize(sampleCount);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  IMap<Integer,Integer> map=instance.getMap(mapName);
+  final Queue<Integer> evictedKeys=new ConcurrentLinkedQueue<Integer>();
+  map.addEntryListener(new EntryEvictedListener<Integer,Integer>(){
+    @Override public void entryEvicted(    EntryEvent<Integer,Integer> event){
+      evictedKeys.add(event.getKey());
+    }
+  }
+,false);
+  for (int i=0; i < 2 * sampleCount; i++) {
+    map.put(i,i);
+  }
+  for (  Integer key : evictedKeys) {
+    assertTrue("Key cannot be an odd number :" + key,key % 2 != 0);
+  }
+}
