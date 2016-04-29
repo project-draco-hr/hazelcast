@@ -6,25 +6,24 @@
     for (int i=index; i < InternalPartition.MAX_REPLICA_COUNT; i++) {
       destination=partition.getReplicaAddress(i);
       if (destination != null) {
-        partition.swapAddresses(0,i);
         index=i;
         break;
       }
     }
     if (logger.isFinestEnabled()) {
       if (destination != null) {
-        logger.finest("partitionId=" + partition.getPartitionId() + " owner is removed. replicaIndex="+ index+ " is shifted up to 0. "+ partition);
+        logger.finest("partitionId=" + partition.getPartitionId() + " owner is removed. replicaIndex="+ index+ " will be shifted up to 0. "+ partition);
       }
  else {
         logger.finest("partitionId=" + partition.getPartitionId() + " owner is removed. there is no other replica to shift up. "+ partition);
       }
     }
     if (destination != null) {
-      MigrationInfo migration=new MigrationInfo(partition.getPartitionId(),null,destination,-1,-1,index,0);
+      String destinationUuid=partitionStateManager.getMemberUuid(destination);
+      MigrationInfo migration=new MigrationInfo(partitionId,null,null,destination,destinationUuid,-1,-1,index,0);
       migration.setMaster(node.getThisAddress());
       migration.setStatus(MigrationInfo.MigrationStatus.SUCCESS);
-      partitionService.getMigrationManager().addCompletedMigration(migration);
-      partitionService.getMigrationManager().scheduleActiveMigrationFinalization(migration);
+      return migration;
     }
   }
   if (partition.getOwnerOrNull() == null) {
@@ -32,4 +31,5 @@
     PartitionEventManager partitionEventManager=partitionService.getPartitionEventManager();
     partitionEventManager.sendPartitionLostEvent(partitionId,InternalPartition.MAX_BACKUP_COUNT);
   }
+  return null;
 }

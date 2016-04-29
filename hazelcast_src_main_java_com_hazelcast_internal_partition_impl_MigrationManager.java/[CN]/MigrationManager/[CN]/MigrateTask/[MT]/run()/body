@@ -2,16 +2,15 @@
   if (!node.isMaster()) {
     return;
   }
+  if (migrationInfo.getSource() == null && migrationInfo.getDestinationCurrentReplicaIndex() > 0 && migrationInfo.getDestinationNewReplicaIndex() == 0) {
+    throw new AssertionError("Promotion migrations should be handled by " + RepairPartitionTableTask.class.getSimpleName() + "! -> "+ migrationInfo);
+  }
   try {
     MemberImpl partitionOwner=checkMigrationParticipantsAndGetPartitionOwner();
     if (partitionOwner == null) {
       return;
     }
-    internalMigrationListener.onMigrationStart(MigrationParticipant.MASTER,migrationInfo);
-    partitionService.getPartitionEventManager().sendMigrationEvent(migrationInfo,MigrationEvent.MigrationStatus.STARTED);
-    if (logger.isFineEnabled()) {
-      logger.fine("Starting Migration: " + migrationInfo);
-    }
+    beforeMigration();
     Boolean result=executeMigrateOperation(partitionOwner);
     processMigrationResult(result);
   }
