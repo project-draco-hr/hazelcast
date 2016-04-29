@@ -13,10 +13,18 @@
     lockClusterState(newState,nodeEngine,options.getTimeoutMillis(),txnId,members,partitionStateVersion);
     checkMemberListChange(members);
     tx.prepare();
-    tx.commit();
   }
  catch (  Throwable e) {
     tx.rollback();
+    throw ExceptionUtil.rethrow(e);
+  }
+  try {
+    tx.commit();
+  }
+ catch (  Throwable e) {
+    if (e instanceof TargetNotMemberException || e instanceof MemberLeftException) {
+      return;
+    }
     throw ExceptionUtil.rethrow(e);
   }
 }
