@@ -1,10 +1,16 @@
 {
   Collection<Member> dataMembers=node.getClusterService().getMembers(DATA_MEMBER_SELECTOR);
   int dataMembersSize=dataMembers.size();
+  int partitionsPerMember=(int)ceil((float)partitionCount / dataMembersSize);
   Map<Address,List<Integer>> memberPartitions=new HashMap<Address,List<Integer>>(dataMembersSize);
   for (int partitionId=0; partitionId < partitionCount; partitionId++) {
     Address owner=getPartitionOwnerOrWait(partitionId);
-    addToValueList(memberPartitions,owner,partitionId);
+    List<Integer> ownedPartitions=memberPartitions.get(owner);
+    if (ownedPartitions == null) {
+      ownedPartitions=new ArrayList<Integer>(partitionsPerMember);
+      memberPartitions.put(owner,ownedPartitions);
+    }
+    ownedPartitions.add(partitionId);
   }
   return memberPartitions;
 }

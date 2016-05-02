@@ -1,0 +1,18 @@
+{
+  InternalPartition[] partitions=partitionStateManager.getPartitions();
+  ClusterServiceImpl clusterService=node.getClusterService();
+  Collection<Address> addresses=new HashSet<Address>();
+  for (  InternalPartition partition : partitions) {
+    for (int i=0; i < InternalPartition.MAX_REPLICA_COUNT; i++) {
+      Address address=partition.getReplicaAddress(i);
+      if (address == null) {
+        continue;
+      }
+      MemberImpl member=clusterService.getMember(address);
+      if (member == null || !partitionStateManager.isKnownMemberUuid(address,member.getUuid())) {
+        addresses.add(address);
+      }
+    }
+  }
+  return addresses;
+}

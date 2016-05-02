@@ -1,0 +1,33 @@
+{
+  final CountDownLatch cdl=new CountDownLatch(1);
+  final IAtomicLong ref=client.getAtomicLong("apply");
+  ICompletableFuture<Void> incAndGetFuture=ref.setAsync(1);
+  final AtomicBoolean failed=new AtomicBoolean(true);
+  incAndGetFuture.andThen(new ExecutionCallback<Void>(){
+    @Override public void onResponse(    Void response){
+      ICompletableFuture<Boolean> future=ref.applyAsync(new FilterOnesFunction());
+      try {
+        assertEquals(Boolean.TRUE,future.get());
+        failed.set(false);
+        cdl.countDown();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+catch (      ExecutionException e) {
+        e.printStackTrace();
+      }
+    }
+    @Override public void onFailure(    Throwable t){
+      t.printStackTrace();
+    }
+  }
+);
+  if (cdl.await(15,TimeUnit.SECONDS)) {
+    assertEquals(1,ref.get());
+    assertEquals(false,failed.get());
+  }
+ else {
+    fail("Timeout after 15 seconds");
+  }
+}

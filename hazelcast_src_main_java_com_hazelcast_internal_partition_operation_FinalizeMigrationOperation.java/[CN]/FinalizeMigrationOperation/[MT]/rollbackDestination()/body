@@ -1,0 +1,20 @@
+{
+  int partitionId=getPartitionId();
+  InternalPartitionServiceImpl partitionService=getService();
+  PartitionReplicaManager replicaManager=partitionService.getReplicaManager();
+  ILogger logger=getLogger();
+  int destinationCurrentReplicaIndex=migrationInfo.getDestinationCurrentReplicaIndex();
+  if (destinationCurrentReplicaIndex == -1) {
+    replicaManager.clearPartitionReplicaVersions(partitionId);
+    if (logger.isFinestEnabled()) {
+      logger.finest("Replica versions are cleared in destination after failed migration. partitionId=" + partitionId);
+    }
+  }
+ else {
+    int replicaOffset=migrationInfo.getDestinationCurrentReplicaIndex() <= 1 ? 1 : migrationInfo.getDestinationCurrentReplicaIndex();
+    long[] versions=updatePartitionReplicaVersions(replicaManager,partitionId,replicaOffset - 1);
+    if (logger.isFinestEnabled()) {
+      logger.finest("Replica versions are rolled back in destination after failed migration. partitionId=" + partitionId + " replica versions="+ Arrays.toString(versions));
+    }
+  }
+}

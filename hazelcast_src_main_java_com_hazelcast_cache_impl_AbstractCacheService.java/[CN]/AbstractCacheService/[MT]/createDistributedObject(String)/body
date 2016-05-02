@@ -1,3 +1,18 @@
 {
-  return new CacheDistributedObject(objectName,nodeEngine,this);
+  try {
+    CacheConfig cacheConfig=getCacheConfig(fullCacheName);
+    if (cacheConfig == null) {
+      String cacheName=fullCacheName.substring(HazelcastCacheManager.CACHE_MANAGER_PREFIX.length());
+      CacheSimpleConfig cacheSimpleConfig=findCacheConfig(cacheName);
+      checkCacheSimpleConfig(cacheName,cacheSimpleConfig);
+      cacheConfig=new CacheConfig(cacheSimpleConfig);
+      cacheConfig.setManagerPrefix(HazelcastCacheManager.CACHE_MANAGER_PREFIX);
+    }
+    checkCacheConfig(fullCacheName,cacheConfig);
+    putCacheConfigIfAbsent(cacheConfig);
+    return new CacheProxy(cacheConfig,nodeEngine,this);
+  }
+ catch (  Throwable t) {
+    throw ExceptionUtil.rethrow(t);
+  }
 }

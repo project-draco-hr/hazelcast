@@ -1,0 +1,34 @@
+{
+  Address thisAddress=node.getThisAddress();
+  ExecutionCallback<Object> callback=new ReplicaSyncResponseCallback(result,semaphore);
+  ClusterServiceImpl clusterService=node.clusterService;
+  ClusterState clusterState=clusterService.getClusterState();
+  boolean isClusterActive=clusterState == ClusterState.ACTIVE || clusterState == ClusterState.IN_TRANSITION;
+  int ownedCount=0;
+  for (  InternalPartition partition : partitionStateManager.getPartitions()) {
+    Address owner=partition.getOwnerOrNull();
+    if (owner == null) {
+      result.set(false);
+      continue;
+    }
+    if (!thisAddress.equals(owner)) {
+      continue;
+    }
+    ownedCount++;
+    for (int index=1; index <= maxBackupCount; index++) {
+      Address replicaAddress=partition.getReplicaAddress(index);
+      if (replicaAddress == null) {
+        result.set(false);
+        semaphore.release();
+        continue;
+      }
+      if (!isClusterActive && clusterService.isMemberRemovedWhileClusterIsNotActive(replicaAddress)) {
+        semaphore.release();
+        continue;
+      }
+      CheckReplicaVersionTask task=new CheckReplicaVersionTask(nodeEngine,partitionService,partition.getPartitionId(),index,callback);
+      nodeEngine.getOperationService().execute(task);
+    }
+  }
+  return ownedCount;
+}

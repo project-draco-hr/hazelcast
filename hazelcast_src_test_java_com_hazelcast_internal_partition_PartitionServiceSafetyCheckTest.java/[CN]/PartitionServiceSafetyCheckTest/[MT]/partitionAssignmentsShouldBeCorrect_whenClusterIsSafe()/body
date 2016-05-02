@@ -1,0 +1,17 @@
+{
+  Config config=getConfig(false,false);
+  HazelcastInstance hz1=factory.newHazelcastInstance(config);
+  warmUpPartitions(hz1);
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  HazelcastInstance hz3=factory.newHazelcastInstance(config);
+  waitAllForSafeState(hz1,hz2,hz3);
+  hz2.getLifecycleService().terminate();
+  assertClusterSizeEventually(2,hz1);
+  assertClusterSizeEventually(2,hz3);
+  waitAllForSafeState(hz1,hz3);
+  assertPartitionAssignments(factory);
+  hz1.getLifecycleService().terminate();
+  assertClusterSizeEventually(1,hz3);
+  waitAllForSafeState(hz3);
+  assertPartitionAssignments(factory);
+}

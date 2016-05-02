@@ -1,37 +1,31 @@
 {
-  long timeoutInMillis=unit.toMillis(timeout);
-  long sleep=DEFAULT_PAUSE_MILLIS;
-  while (timeoutInMillis > 0) {
-    while (timeoutInMillis > 0 && shouldWaitMigrationOrBackups(Level.INFO)) {
-      timeoutInMillis=sleepWithBusyWait(timeoutInMillis,sleep);
-    }
-    if (timeoutInMillis <= 0) {
-      break;
-    }
-    if (node.isMaster()) {
-      List<MemberImpl> members=getCurrentMembersAndMembersRemovedWhileNotClusterNotActive();
-      syncPartitionRuntimeState(members);
-    }
- else {
-      timeoutInMillis=waitForOngoingMigrations(timeoutInMillis,sleep);
-      if (timeoutInMillis <= 0) {
-        break;
+  if (!node.joined()) {
+    return true;
+  }
+  if (node.isLiteMember()) {
+    return true;
+  }
+  CountDownLatch latch=getShutdownLatch();
+  InternalOperationService operationService=nodeEngine.getOperationService();
+  long timeoutMillis=unit.toMillis(timeout);
+  long awaitStep=Math.min(SAFE_SHUTDOWN_MAX_AWAIT_STEP_MILLIS,timeoutMillis);
+  try {
+    do {
+      if (node.isMaster()) {
+        onShutdownRequest(node.getThisAddress());
       }
-    }
-    long start=Clock.currentTimeMillis();
-    boolean ok=checkReplicaSyncState();
-    timeoutInMillis-=(Clock.currentTimeMillis() - start);
-    if (ok) {
-      logger.finest("Replica sync state before shutdown is OK");
-      return true;
-    }
  else {
-      if (timeoutInMillis <= 0) {
-        break;
+        operationService.send(new ShutdownRequestOperation(),nodeEngine.getMasterAddress());
       }
-      logger.info("Some backup replicas are inconsistent with primary, waiting for synchronization. Timeout: " + timeoutInMillis + "ms");
-      timeoutInMillis=sleepWithBusyWait(timeoutInMillis,sleep);
+      if (latch.await(awaitStep,TimeUnit.MILLISECONDS)) {
+        return true;
+      }
+      timeoutMillis-=awaitStep;
     }
+ while (timeoutMillis > 0);
+  }
+ catch (  InterruptedException e) {
+    logger.info("Safe shutdown is interrupted!");
   }
   return false;
 }

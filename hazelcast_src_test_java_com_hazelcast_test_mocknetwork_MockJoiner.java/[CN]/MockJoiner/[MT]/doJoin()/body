@@ -1,21 +1,20 @@
 {
 synchronized (joinerLock) {
-    Address master;
-    final ClusterJoinManager clusterJoinManager=node.clusterService.getClusterJoinManager();
-    for (int i=0; !node.joined() && node.isRunning() && i < 2000; i++) {
+    ClusterJoinManager clusterJoinManager=node.clusterService.getClusterJoinManager();
+    long joinStartTime=Clock.currentTimeMillis();
+    long maxJoinMillis=getMaxJoinMillis();
+    while (node.isRunning() && !node.joined() && (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
       try {
-        master=node.getMasterAddress();
-        if (master == null) {
-          master=findCurrentMasterAddress();
-          node.setMasterAddress(master);
-        }
-        Assert.assertNotNull(master);
-        if (master.equals(node.getThisAddress())) {
+        lookupMasterAddress();
+        if (node.getThisAddress().equals(masterAddress)) {
           node.setJoined();
           node.setAsMaster();
           break;
         }
-        clusterJoinManager.sendJoinRequest(master,true);
+        if (masterAddress != null) {
+          node.setMasterAddress(masterAddress);
+          clusterJoinManager.sendJoinRequest(masterAddress,true);
+        }
         Thread.sleep(50);
       }
  catch (      InterruptedException e) {

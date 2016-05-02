@@ -1,8 +1,8 @@
 {
-  final long now=Clock.currentTimeMillis();
-  final long start=isStatisticsEnabled() ? System.nanoTime() : 0;
+  long now=Clock.currentTimeMillis();
+  long start=isStatisticsEnabled() ? System.nanoTime() : 0;
   R record=records.get(key);
-  final boolean isExpired=processExpiredEntry(key,record,now);
+  boolean isExpired=processExpiredEntry(key,record,now);
   if (isExpired) {
     record=null;
   }
@@ -16,7 +16,8 @@
     statistics.addGetTimeNanos(System.nanoTime() - start);
   }
   CacheEntryProcessorEntry entry=createCacheEntryProcessorEntry(key,record,now,completionId);
-  final Object result=entryProcessor.process(entry,arguments);
+  injectDependencies(entryProcessor);
+  Object result=entryProcessor.process(entry,arguments);
   entry.applyChanges();
   return result;
 }

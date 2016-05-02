@@ -1,0 +1,23 @@
+{
+  if (!node.isMaster()) {
+    return;
+  }
+  if (migrationInfo.getSource() == null && migrationInfo.getDestinationCurrentReplicaIndex() > 0 && migrationInfo.getDestinationNewReplicaIndex() == 0) {
+    throw new AssertionError("Promotion migrations should be handled by " + RepairPartitionTableTask.class.getSimpleName() + "! -> "+ migrationInfo);
+  }
+  try {
+    MemberImpl partitionOwner=checkMigrationParticipantsAndGetPartitionOwner();
+    if (partitionOwner == null) {
+      return;
+    }
+    beforeMigration();
+    Boolean result=executeMigrateOperation(partitionOwner);
+    processMigrationResult(result);
+  }
+ catch (  Throwable t) {
+    final Level level=migrationInfo.isValid() ? Level.WARNING : Level.FINE;
+    logger.log(level,"Error [" + t.getClass() + ": "+ t.getMessage()+ "] during "+ migrationInfo);
+    logger.finest(t);
+    migrationOperationFailed();
+  }
+}

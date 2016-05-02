@@ -1,0 +1,21 @@
+{
+  Queue<NodeGroup> groups=createNodeGroups(memberGroups);
+  if (groups.isEmpty()) {
+    return null;
+  }
+  int partitionCount=currentState.length;
+  Address[][] state=new Address[partitionCount][InternalPartition.MAX_REPLICA_COUNT];
+  initialize(currentState,state);
+  int tryCount=0;
+  do {
+    boolean aggressive=tryCount >= AGGRESSIVE_RETRY_THRESHOLD;
+    tryArrange(state,groups,partitionCount,aggressive);
+    if (tryCount++ > 0) {
+      if (LOGGER.isFineEnabled()) {
+        LOGGER.fine("Re-trying partition arrangement. Count: " + tryCount);
+      }
+    }
+  }
+ while (tryCount < MAX_RETRY_COUNT && !areGroupsBalanced(groups,partitionCount));
+  return state;
+}

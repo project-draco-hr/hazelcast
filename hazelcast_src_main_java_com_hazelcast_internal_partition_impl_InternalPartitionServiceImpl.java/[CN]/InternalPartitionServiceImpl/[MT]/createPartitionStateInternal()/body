@@ -1,0 +1,18 @@
+{
+  if (!partitionStateManager.isInitialized()) {
+    return null;
+  }
+  lock.lock();
+  try {
+    MemberInfo[] members=partitionStateManager.getPartitionTableMembers();
+    List<MigrationInfo> completedMigrations=migrationManager.getCompletedMigrations();
+    ILogger logger=node.getLogger(PartitionRuntimeState.class);
+    InternalPartition[] partitions=partitionStateManager.getPartitions();
+    PartitionRuntimeState state=new PartitionRuntimeState(logger,members,partitions,completedMigrations,getPartitionStateVersion());
+    state.setActiveMigration(migrationManager.getActiveMigration());
+    return state;
+  }
+  finally {
+    lock.unlock();
+  }
+}

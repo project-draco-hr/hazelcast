@@ -1,14 +1,23 @@
 {
-synchronized (listenerRegLock) {
-    String userRegistrationId=UuidUtil.newUnsecureUuidString();
-    ClientRegistrationKey registrationKey=new ClientRegistrationKey(userRegistrationId,handler,codec);
-    try {
-      ClientEventRegistration registration=invoke(registrationKey);
-      registrations.put(registrationKey,registration);
+  Future<String> future=registrationExecutor.submit(new Callable<String>(){
+    @Override public String call() throws Exception {
+      String userRegistrationId=UuidUtil.newUnsecureUuidString();
+      ClientRegistrationKey registrationKey=new ClientRegistrationKey(userRegistrationId,handler,codec);
+      try {
+        ClientEventRegistration registration=invoke(registrationKey);
+        registrations.put(registrationKey,registration);
+      }
+ catch (      Exception e) {
+        throw new HazelcastException("Listener can not be added",e);
+      }
+      return userRegistrationId;
     }
- catch (    Exception e) {
-      throw new HazelcastException("Listener can not be added",e);
-    }
-    return userRegistrationId;
+  }
+);
+  try {
+    return future.get();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }

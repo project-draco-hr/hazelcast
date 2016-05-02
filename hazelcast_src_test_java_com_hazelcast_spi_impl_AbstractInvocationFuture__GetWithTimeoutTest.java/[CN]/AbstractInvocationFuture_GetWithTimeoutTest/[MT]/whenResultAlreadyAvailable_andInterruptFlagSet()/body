@@ -1,0 +1,16 @@
+{
+  future.complete(value);
+  final AtomicBoolean interrupted=new AtomicBoolean();
+  Future getFuture=spawn(new Callable<Object>(){
+    @Override public Object call() throws Exception {
+      Thread.currentThread().interrupt();
+      Object value=future.get(1,SECONDS);
+      interrupted.set(Thread.currentThread().isInterrupted());
+      return value;
+    }
+  }
+);
+  assertCompletesEventually(getFuture);
+  assertSame(value,future.get());
+  assertTrue(interrupted.get());
+}

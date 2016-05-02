@@ -1,17 +1,18 @@
 {
-  if (initialized) {
+  if (partitionStateManager.isInitialized()) {
     return;
   }
   if (!node.isMaster()) {
-    notifyMasterToAssignPartitions();
+    triggerMasterToAssignPartitions();
     return;
   }
   lock.lock();
   try {
-    if (initialized) {
+    if (partitionStateManager.isInitialized()) {
       return;
     }
-    if (!initializePartitionAssignments()) {
+    Set<Address> excludedAddresses=migrationManager.getShutdownRequestedAddresses();
+    if (!partitionStateManager.initializePartitionAssignments(excludedAddresses)) {
       return;
     }
     publishPartitionRuntimeState();

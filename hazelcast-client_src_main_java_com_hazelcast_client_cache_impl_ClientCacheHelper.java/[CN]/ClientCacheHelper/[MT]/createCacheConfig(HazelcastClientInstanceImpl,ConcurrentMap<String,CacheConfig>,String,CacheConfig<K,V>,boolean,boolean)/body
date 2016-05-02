@@ -1,0 +1,21 @@
+{
+  try {
+    CacheConfig<K,V> currentCacheConfig=configs.get(cacheName);
+    int partitionId=client.getClientPartitionService().getPartitionId(newCacheConfig.getNameWithPrefix());
+    Data newCacheConfigData=client.getSerializationService().toData(newCacheConfig);
+    ClientMessage request=CacheCreateConfigCodec.encodeRequest(newCacheConfigData,createAlsoOnOthers);
+    ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionId);
+    Future<ClientMessage> future=clientInvocation.invoke();
+    if (syncCreate) {
+      final ClientMessage response=future.get();
+      final Data data=CacheCreateConfigCodec.decodeResponse(response).response;
+      return (CacheConfig<K,V>)client.getSerializationService().toObject(data);
+    }
+ else {
+      return currentCacheConfig;
+    }
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
+  }
+}

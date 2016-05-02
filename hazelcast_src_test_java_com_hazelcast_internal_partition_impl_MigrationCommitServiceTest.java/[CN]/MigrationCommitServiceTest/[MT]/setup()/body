@@ -1,0 +1,31 @@
+{
+  blockMigrationStartLatch=new CountDownLatch(1);
+  factory=createHazelcastInstanceFactory(NODE_COUNT);
+  instances=factory.newInstances(createConfig(),NODE_COUNT);
+  warmUpPartitions(instances);
+  waitAllForSafeState(instances);
+  final InternalOperationService operationService=getOperationService(instances[0]);
+  for (int partitionId=0; partitionId < PARTITION_COUNT; partitionId++) {
+    operationService.invokeOnPartition(null,new TestIncrementOperation(),partitionId).get();
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (int partitionId=0; partitionId < PARTITION_COUNT; partitionId++) {
+        final InternalPartitionService partitionService=getPartitionService(instances[0]);
+        final InternalPartition partition=partitionService.getPartition(partitionId);
+        for (int i=0; i <= BACKUP_COUNT; i++) {
+          final Address replicaAddress=partition.getReplicaAddress(i);
+          if (replicaAddress != null) {
+            final TestMigrationAwareService service=getService(replicaAddress);
+            assertNotNull(service.get(partitionId));
+          }
+        }
+      }
+    }
+  }
+);
+  for (  HazelcastInstance instance : instances) {
+    final TestMigrationAwareService service=getNodeEngineImpl(instance).getService(TestMigrationAwareService.SERVICE_NAME);
+    service.clearEvents();
+  }
+}

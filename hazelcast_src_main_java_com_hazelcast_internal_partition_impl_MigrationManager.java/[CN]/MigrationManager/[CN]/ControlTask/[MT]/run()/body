@@ -1,0 +1,20 @@
+{
+  partitionServiceLock.lock();
+  try {
+    migrationQueue.clear();
+    if (partitionService.scheduleFetchMostRecentPartitionTableTaskIfRequired()) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("FetchMostRecentPartitionTableTask scheduled");
+      }
+      migrationQueue.add(new ControlTask());
+      return;
+    }
+    if (logger.isFinestEnabled()) {
+      logger.finest("RepairPartitionTableTask scheduled");
+    }
+    migrationQueue.add(new RepairPartitionTableTask());
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}

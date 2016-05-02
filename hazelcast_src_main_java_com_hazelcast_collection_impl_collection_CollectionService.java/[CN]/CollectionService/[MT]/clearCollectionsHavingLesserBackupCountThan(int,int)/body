@@ -1,0 +1,18 @@
+{
+  Set<? extends Map.Entry<String,? extends CollectionContainer>> entrySet=getContainerMap().entrySet();
+  Iterator<? extends Map.Entry<String,? extends CollectionContainer>> iterator=entrySet.iterator();
+  IPartitionService partitionService=nodeEngine.getPartitionService();
+  while (iterator.hasNext()) {
+    Map.Entry<String,? extends CollectionContainer> entry=iterator.next();
+    String name=entry.getKey();
+    CollectionContainer container=entry.getValue();
+    int containerPartitionId=partitionService.getPartitionId(StringPartitioningStrategy.getPartitionKey(name));
+    if (containerPartitionId != partitionId) {
+      continue;
+    }
+    if (thresholdReplicaIndex < 0 || thresholdReplicaIndex > container.getConfig().getTotalBackupCount()) {
+      container.destroy();
+      iterator.remove();
+    }
+  }
+}

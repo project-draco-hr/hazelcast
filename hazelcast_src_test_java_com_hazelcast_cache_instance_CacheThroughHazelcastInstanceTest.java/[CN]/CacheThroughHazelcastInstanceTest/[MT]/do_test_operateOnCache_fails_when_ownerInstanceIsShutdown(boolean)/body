@@ -1,0 +1,20 @@
+{
+  Config config=createConfig();
+  config.addCacheConfig(createCacheSimpleConfig(CACHE_NAME));
+  HazelcastInstance instance=createInstance(config);
+  Cache cache=retrieveCache(instance,getCache);
+  assertNotNull(cache);
+  cache.put(1,1);
+  shutdownOwnerInstance(instance);
+  try {
+    cache.put(2,2);
+    fail("Operation on cache must fails because owner instance is not active!");
+  }
+ catch (  Throwable t) {
+    Class<? extends Exception> expectedExceptionType=getInstanceNotActiveExceptionType();
+    Class<? extends Throwable> actualExceptionType=t.getClass();
+    if (!expectedExceptionType.isAssignableFrom(actualExceptionType)) {
+      fail("Expected exception type: " + expectedExceptionType + ", but actual exception type: "+ actualExceptionType);
+    }
+  }
+}

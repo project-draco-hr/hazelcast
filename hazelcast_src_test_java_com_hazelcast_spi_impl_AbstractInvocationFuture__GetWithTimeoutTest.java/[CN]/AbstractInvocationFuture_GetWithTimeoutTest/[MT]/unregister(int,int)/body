@@ -1,0 +1,18 @@
+{
+  TestFuture future=new TestFuture();
+  Thread[] threads=createThread(length);
+  for (int k=0; k < length; k++) {
+    if (k == 0) {
+      future.compareAndSetState(VOID,threads[k]);
+    }
+ else {
+      WaitNode node=new WaitNode(threads[k],null);
+      node.next=future.getState();
+      future.compareAndSetState(future.getState(),node);
+    }
+  }
+  future.unregisterWaiter(threads[position]);
+  for (int k=0; k < length; k++) {
+    assertContains(future.getState(),threads[k],k != position);
+  }
+}

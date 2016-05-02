@@ -1,0 +1,20 @@
+{
+  if (!needsReplicaStateCheck()) {
+    return true;
+  }
+  final Semaphore semaphore=new Semaphore(0);
+  final AtomicBoolean ok=new AtomicBoolean(true);
+  int maxBackupCount=partitionService.getMaxAllowedBackupCount();
+  int ownedPartitionCount=invokeReplicaSyncOperations(maxBackupCount,semaphore,ok);
+  try {
+    if (!ok.get()) {
+      return false;
+    }
+    int permits=ownedPartitionCount * maxBackupCount;
+    boolean receivedAllResponses=semaphore.tryAcquire(permits,REPLICA_SYNC_CHECK_TIMEOUT_SECONDS,TimeUnit.SECONDS);
+    return receivedAllResponses && ok.get();
+  }
+ catch (  InterruptedException ignored) {
+    return false;
+  }
+}

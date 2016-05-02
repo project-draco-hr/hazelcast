@@ -1,0 +1,17 @@
+{
+  Config config=getConfig(true,false);
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
+  fillData(hz);
+  assertSizeAndDataEventually();
+  Collection<Address> addresses=Collections.emptySet();
+  int size=1;
+  while (size < (nodeCount + 1)) {
+    int startCount=(backupCount + 1) - addresses.size();
+    startNodes(config,addresses);
+    startNodes(config,startCount);
+    size+=(backupCount + 1);
+    assertSizeAndDataEventually();
+    addresses=terminateNodes(backupCount);
+    size-=backupCount;
+  }
+}

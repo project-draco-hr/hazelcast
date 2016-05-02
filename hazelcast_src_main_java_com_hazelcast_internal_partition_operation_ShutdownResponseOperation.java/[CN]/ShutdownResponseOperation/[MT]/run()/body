@@ -1,0 +1,22 @@
+{
+  InternalPartitionServiceImpl partitionService=getService();
+  final ILogger logger=getLogger();
+  final Address caller=getCallerAddress();
+  final NodeEngine nodeEngine=getNodeEngine();
+  final ClusterService clusterService=nodeEngine.getClusterService();
+  final Address masterAddress=clusterService.getMasterAddress();
+  if (nodeEngine.isRunning()) {
+    logger.severe("Received a shutdown response from " + caller + ", but this node is not shutting down!");
+    return;
+  }
+  boolean fromMaster=masterAddress.equals(caller);
+  if (fromMaster) {
+    if (logger.isFinestEnabled()) {
+      logger.finest("Received shutdown response from " + caller);
+    }
+    partitionService.onShutdownResponse();
+  }
+ else {
+    logger.warning("Received shutdown response from " + caller + " but known master is: "+ masterAddress);
+  }
+}

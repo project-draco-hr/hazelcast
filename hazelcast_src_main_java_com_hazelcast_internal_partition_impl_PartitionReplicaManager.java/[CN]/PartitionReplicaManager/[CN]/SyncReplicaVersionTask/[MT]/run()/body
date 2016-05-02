@@ -1,0 +1,16 @@
+{
+  if (!node.nodeEngine.isRunning() || !partitionService.isReplicaSyncAllowed()) {
+    return;
+  }
+  for (  InternalPartition partition : partitionStateManager.getPartitions()) {
+    if (!partition.isLocal()) {
+      continue;
+    }
+    for (int index=1; index < InternalPartition.MAX_REPLICA_COUNT; index++) {
+      if (partition.getReplicaAddress(index) != null) {
+        CheckReplicaVersionTask task=new CheckReplicaVersionTask(nodeEngine,partitionService,partition.getPartitionId(),index,null);
+        nodeEngine.getOperationService().execute(task);
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  final MultiMapPartitionContainer partitionContainer=partitionContainers[partitionId];
+  if (partitionContainer == null) {
+    return;
+  }
+  ConcurrentMap<String,MultiMapContainer> containerMap=partitionContainer.containerMap;
+  if (thresholdReplicaIndex < 0) {
+    for (    MultiMapContainer container : containerMap.values()) {
+      container.destroy();
+    }
+    containerMap.clear();
+    return;
+  }
+  Iterator<MultiMapContainer> iter=containerMap.values().iterator();
+  while (iter.hasNext()) {
+    MultiMapContainer container=iter.next();
+    if (thresholdReplicaIndex > container.getConfig().getTotalBackupCount()) {
+      container.destroy();
+      iter.remove();
+    }
+  }
+}

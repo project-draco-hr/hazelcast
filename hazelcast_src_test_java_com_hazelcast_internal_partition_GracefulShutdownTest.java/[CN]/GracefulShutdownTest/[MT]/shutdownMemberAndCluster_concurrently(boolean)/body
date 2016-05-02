@@ -1,0 +1,23 @@
+{
+  Config config=new Config();
+  final HazelcastInstance master=factory.newHazelcastInstance(config);
+  final HazelcastInstance[] slaves=factory.newInstances(config,3);
+  if (initializePartitions) {
+    warmUpPartitions(master);
+  }
+  Future f1=spawn(new Runnable(){
+    @Override public void run(){
+      master.shutdown();
+    }
+  }
+);
+  Future f2=spawn(new Runnable(){
+    @Override public void run(){
+      changeClusterStateEventually(slaves[0],ClusterState.PASSIVE);
+      slaves[0].getCluster().shutdown();
+    }
+  }
+);
+  f1.get();
+  f2.get();
+}

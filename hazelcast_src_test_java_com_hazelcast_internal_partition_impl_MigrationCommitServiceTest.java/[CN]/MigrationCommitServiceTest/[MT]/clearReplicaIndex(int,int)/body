@@ -1,0 +1,29 @@
+{
+  final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getPartitionService(instances[0]);
+  final InternalPartitionImpl partition=(InternalPartitionImpl)partitionService.getPartition(partitionId);
+  final Address oldReplicaOwner=partition.getReplicaAddress(replicaIndexToClear);
+  partition.setReplicaAddress(replicaIndexToClear,null);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(partitionService.syncPartitionRuntimeState());
+    }
+  }
+);
+  final HazelcastInstance oldReplicaOwnerInstance=factory.getInstance(oldReplicaOwner);
+  ClearReplicaRunnable op=new ClearReplicaRunnable(partitionId,getNodeEngineImpl(oldReplicaOwnerInstance));
+  getOperationService(oldReplicaOwnerInstance).execute(op);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      final long[] replicaVersions=TestPartitionUtils.getReplicaVersions(factory.getInstance(oldReplicaOwner),partitionId);
+      assertArrayEquals(new long[InternalPartition.MAX_BACKUP_COUNT],replicaVersions);
+    }
+  }
+);
+  TestMigrationAwareService migrationAwareService=getService(oldReplicaOwner);
+  migrationAwareService.clearPartitionReplica(partitionId);
+  for (  HazelcastInstance instance : instances) {
+    final TestMigrationAwareService service=getNodeEngineImpl(instance).getService(TestMigrationAwareService.SERVICE_NAME);
+    service.clearEvents();
+  }
+  return oldReplicaOwner;
+}

@@ -1,30 +1,38 @@
 {
-synchronized (listenerRegLock) {
-    ClientRegistrationKey key=new ClientRegistrationKey(userRegistrationId);
-    Map<Address,ClientEventRegistration> registrationMap=registrations.get(key);
-    if (registrationMap == null) {
-      return false;
-    }
-    boolean successful=true;
-    for (    ClientEventRegistration registration : registrationMap.values()) {
-      Address subscriber=registration.getSubscriber();
-      try {
-        ListenerMessageCodec listenerMessageCodec=registration.getCodec();
-        String serverRegistrationId=registration.getServerRegistrationId();
-        ClientMessage request=listenerMessageCodec.encodeRemoveRequest(serverRegistrationId);
-        Future future=new ClientInvocation(client,request,subscriber).invoke();
-        future.get();
-        removeEventHandler(registration.getCallId());
-        registrationMap.remove(subscriber);
+  Future<Boolean> future=registrationExecutor.submit(new Callable<Boolean>(){
+    @Override public Boolean call() throws Exception {
+      ClientRegistrationKey key=new ClientRegistrationKey(userRegistrationId);
+      Map<Address,ClientEventRegistration> registrationMap=registrations.get(key);
+      if (registrationMap == null) {
+        return false;
       }
- catch (      Exception e) {
-        successful=false;
-        logger.warning("Deregistration of listener with id " + userRegistrationId + " has failed to address "+ subscriber,e);
+      boolean successful=true;
+      for (      ClientEventRegistration registration : registrationMap.values()) {
+        Address subscriber=registration.getSubscriber();
+        try {
+          ListenerMessageCodec listenerMessageCodec=registration.getCodec();
+          String serverRegistrationId=registration.getServerRegistrationId();
+          ClientMessage request=listenerMessageCodec.encodeRemoveRequest(serverRegistrationId);
+          new ClientInvocation(client,request,subscriber).invoke().get();
+          removeEventHandler(registration.getCallId());
+          registrationMap.remove(subscriber);
+        }
+ catch (        Exception e) {
+          successful=false;
+          logger.warning("Deregistration of listener with id " + userRegistrationId + " has failed to address "+ subscriber,e);
+        }
       }
+      if (successful) {
+        registrations.remove(key);
+      }
+      return successful;
     }
-    if (successful) {
-      registrations.remove(key);
-    }
-    return successful;
+  }
+);
+  try {
+    return future.get();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }

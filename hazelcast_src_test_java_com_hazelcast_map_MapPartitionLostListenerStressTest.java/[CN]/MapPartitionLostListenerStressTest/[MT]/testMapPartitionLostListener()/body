@@ -1,0 +1,29 @@
+{
+  List<HazelcastInstance> instances=getCreatedInstancesShuffledAfterWarmedUp();
+  List<HazelcastInstance> survivingInstances=new ArrayList<HazelcastInstance>(instances);
+  List<HazelcastInstance> terminatingInstances=survivingInstances.subList(0,numberOfNodesToCrash);
+  survivingInstances=survivingInstances.subList(numberOfNodesToCrash,instances.size());
+  List<EventCollectingMapPartitionLostListener> listeners=registerListeners(survivingInstances.get(0));
+  if (withData) {
+    populateMaps(survivingInstances.get(0));
+  }
+  String log="Surviving: " + survivingInstances + " Terminating: "+ terminatingInstances;
+  Map<Integer,Integer> survivingPartitions=getMinReplicaIndicesByPartitionId(survivingInstances);
+  stopInstances(terminatingInstances,nodeLeaveType);
+  waitAllForSafeStateAndDumpPartitionServiceOnFailure(survivingInstances,300);
+  if (shouldExpectPartitionLostEvents) {
+    for (int i=0; i < getNodeCount(); i++) {
+      assertListenerInvocationsEventually(log,i,numberOfNodesToCrash,listeners.get(i),survivingPartitions);
+    }
+  }
+ else {
+    for (    final EventCollectingMapPartitionLostListener listener : listeners) {
+      assertTrueAllTheTime(new AssertTask(){
+        @Override public void run() throws Exception {
+          assertTrue(listener.getEvents().isEmpty());
+        }
+      }
+,1);
+    }
+  }
+}

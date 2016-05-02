@@ -1,0 +1,17 @@
+{
+  long[] currentVersions=partitionService.getPartitionReplicaVersions(partitionId);
+  long currentReplicaVersion=currentVersions[replicaIndex - 1];
+  if (currentReplicaVersion <= 0) {
+    notifyCallback(true);
+    return;
+  }
+  CheckReplicaVersion op=new CheckReplicaVersion(currentReplicaVersion,shouldInvoke());
+  op.setPartitionId(partitionId).setReplicaIndex(replicaIndex).setServiceName(SERVICE_NAME);
+  OperationService operationService=nodeEngine.getOperationService();
+  if (shouldInvoke()) {
+    operationService.createInvocationBuilder(SERVICE_NAME,op,target).setExecutionCallback(callback).setTryCount(OPERATION_TRY_COUNT).setTryPauseMillis(OPERATION_TRY_PAUSE_MILLIS).invoke();
+  }
+ else {
+    operationService.send(op,target);
+  }
+}

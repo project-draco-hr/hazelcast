@@ -1,20 +1,29 @@
 {
-synchronized (listenerRegLock) {
-    ClientRegistrationKey key=new ClientRegistrationKey(userRegistrationId);
-    ClientEventRegistration registration=registrations.get(key);
-    if (registration == null) {
-      return false;
+  Future<Boolean> future=registrationExecutor.submit(new Callable<Boolean>(){
+    @Override public Boolean call() throws Exception {
+      ClientRegistrationKey key=new ClientRegistrationKey(userRegistrationId);
+      ClientEventRegistration registration=registrations.get(key);
+      if (registration == null) {
+        return false;
+      }
+      ClientMessage request=registration.getCodec().encodeRemoveRequest(registration.getServerRegistrationId());
+      try {
+        Future future=new ClientInvocation(client,request).invoke();
+        future.get();
+        removeEventHandler(registration.getCallId());
+        registrations.remove(key);
+      }
+ catch (      Exception e) {
+        throw new HazelcastException("Listener with id " + userRegistrationId + " could not be removed",e);
+      }
+      return true;
     }
-    ClientMessage request=registration.getCodec().encodeRemoveRequest(registration.getServerRegistrationId());
-    try {
-      Future future=new ClientInvocation(client,request).invoke();
-      future.get();
-      removeEventHandler(registration.getCallId());
-      registrations.remove(key);
-    }
- catch (    Exception e) {
-      throw new HazelcastException("Listener with id " + userRegistrationId + " could not be removed",e);
-    }
-    return true;
+  }
+);
+  try {
+    return future.get();
+  }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }

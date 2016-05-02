@@ -15,7 +15,9 @@
       mapConfig.setAsyncBackupCount(getIntegerValue("async-backup-count",value));
     }
  else     if ("eviction-policy".equals(nodeName)) {
-      mapConfig.setEvictionPolicy(EvictionPolicy.valueOf(upperCaseInternal(value)));
+      if (mapConfig.getMapEvictionPolicy() == null) {
+        mapConfig.setEvictionPolicy(EvictionPolicy.valueOf(upperCaseInternal(value)));
+      }
     }
  else     if ("max-size".equals(nodeName)) {
       MaxSizeConfig msc=mapConfig.getMaxSizeConfig();
@@ -87,6 +89,16 @@
     }
  else     if ("query-caches".equals(nodeName)) {
       mapQueryCacheHandler(node,mapConfig);
+    }
+ else     if ("map-eviction-policy-class-name".equals(nodeName)) {
+      String className=checkHasText(getTextContent(node),"map-eviction-policy-class-name cannot be null or empty");
+      try {
+        MapEvictionPolicy mapEvictionPolicy=ClassLoaderUtil.newInstance(config.getClassLoader(),className);
+        mapConfig.setMapEvictionPolicy(mapEvictionPolicy);
+      }
+ catch (      Exception e) {
+        throw ExceptionUtil.rethrow(e);
+      }
     }
   }
   this.config.addMapConfig(mapConfig);

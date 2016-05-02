@@ -1,28 +1,31 @@
 {
-  in.readLong();
   version=in.readInt();
   int size=in.readInt();
-  final Map<Address,Integer> addressIndexes=new HashMap<Address,Integer>(size);
-  int memberIndex=0;
-  while (size-- > 0) {
+  members=new MemberInfo[size];
+  for (int memberIndex=0; memberIndex < size; memberIndex++) {
     MemberInfo memberInfo=new MemberInfo();
     memberInfo.readData(in);
-    addMemberInfo(memberInfo,addressIndexes,memberIndex);
-    memberIndex++;
+    members[memberIndex]=memberInfo;
   }
   int partitionCount=in.readInt();
+  minimizedPartitionTable=new int[partitionCount][InternalPartition.MAX_REPLICA_COUNT];
   for (int i=0; i < partitionCount; i++) {
-    ShortPartitionInfo spi=new ShortPartitionInfo();
-    spi.readData(in);
-    partitionInfos.add(spi);
+    int[] indexes=minimizedPartitionTable[i];
+    for (int ix=0; ix < InternalPartition.MAX_REPLICA_COUNT; ix++) {
+      indexes[ix]=in.readInt();
+    }
+  }
+  if (in.readBoolean()) {
+    activeMigration=new MigrationInfo();
+    activeMigration.readData(in);
   }
   int k=in.readInt();
   if (k > 0) {
     completedMigrations=new ArrayList<MigrationInfo>(k);
     for (int i=0; i < k; i++) {
-      MigrationInfo cm=new MigrationInfo();
-      cm.readData(in);
-      completedMigrations.add(cm);
+      MigrationInfo migrationInfo=new MigrationInfo();
+      migrationInfo.readData(in);
+      completedMigrations.add(migrationInfo);
     }
   }
 }

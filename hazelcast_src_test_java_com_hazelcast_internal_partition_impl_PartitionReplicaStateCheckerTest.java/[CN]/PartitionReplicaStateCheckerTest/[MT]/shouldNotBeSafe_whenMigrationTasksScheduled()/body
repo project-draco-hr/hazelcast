@@ -1,0 +1,27 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz=factory.newHazelcastInstance();
+  InternalPartitionServiceImpl partitionService=getNode(hz).partitionService;
+  final CountDownLatch latch=new CountDownLatch(1);
+  MigrationManager migrationManager=partitionService.getMigrationManager();
+  migrationManager.schedule(new MigrationRunnable(){
+    @Override public void run(){
+      try {
+        latch.await();
+      }
+ catch (      InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+);
+  final PartitionReplicaStateChecker replicaStateChecker=partitionService.getPartitionReplicaStateChecker();
+  assertEquals(PartitionServiceState.MIGRATION_LOCAL,replicaStateChecker.getPartitionServiceState());
+  latch.countDown();
+  assertEqualsEventually(new Callable<PartitionServiceState>(){
+    @Override public PartitionServiceState call() throws Exception {
+      return replicaStateChecker.getPartitionServiceState();
+    }
+  }
+,PartitionServiceState.SAFE);
+}

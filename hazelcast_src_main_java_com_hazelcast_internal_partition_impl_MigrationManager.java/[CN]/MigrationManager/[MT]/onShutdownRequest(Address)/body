@@ -1,0 +1,15 @@
+{
+  if (!partitionStateManager.isInitialized()) {
+    sendShutdownOperation(address);
+    return;
+  }
+  ClusterState clusterState=node.getClusterService().getClusterState();
+  if (clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE) {
+    sendShutdownOperation(address);
+    return;
+  }
+  if (shutdownRequestedAddresses.add(address)) {
+    logger.info("Shutdown request of " + address + " is handled");
+    triggerControlTask();
+  }
+}

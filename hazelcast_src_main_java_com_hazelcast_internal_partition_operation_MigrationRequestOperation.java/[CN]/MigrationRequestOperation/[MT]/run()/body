@@ -6,30 +6,31 @@
   verifyExistingTarget(nodeEngine,destination);
   if (destination.equals(source)) {
     getLogger().warning("Source and destination addresses are the same! => " + toString());
-    success=false;
+    setFailed();
     return;
   }
-  verifyNotThisNode(nodeEngine,source);
-  InternalPartitionServiceImpl partitionService=getService();
-  InternalPartition partition=partitionService.getPartition(migrationInfo.getPartitionId());
-  Address owner=partition.getOwnerOrNull();
-  verifyOwnerExists(owner);
+  InternalPartition partition=getPartition();
+  verifySource(nodeEngine.getThisAddress(),partition);
   if (!migrationInfo.startProcessing()) {
     getLogger().warning("Migration is cancelled -> " + migrationInfo);
-    success=false;
+    setFailed();
+    return;
+  }
+  InternalPartitionServiceImpl partitionService=getService();
+  MigrationManager migrationManager=partitionService.getMigrationManager();
+  if (!migrationManager.addActiveMigration(migrationInfo)) {
+    setFailed();
     return;
   }
   try {
-    verifyOwner(source,partition,owner);
-    partitionService.addActiveMigration(migrationInfo);
-    Collection<Operation> tasks=prepareMigrationTasks();
+    Collection<Operation> tasks=prepareMigrationOperations();
     long[] replicaVersions=partitionService.getPartitionReplicaVersions(migrationInfo.getPartitionId());
     invokeMigrationOperation(destination,replicaVersions,tasks);
     returnResponse=false;
   }
  catch (  Throwable e) {
     logThrowable(e);
-    success=false;
+    setFailed();
   }
  finally {
     migrationInfo.doneProcessing();

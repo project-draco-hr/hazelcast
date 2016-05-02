@@ -1,0 +1,23 @@
+{
+  NamedNodeMap attributes=childNode.getAttributes();
+  Node implementationNode=attributes.getNamedItem("implementation");
+  Node classNameNode=attributes.getNamedItem("class-name");
+  String implementation=implementationNode != null ? getTextContent(implementationNode) : null;
+  String className=classNameNode != null ? getTextContent(classNameNode) : null;
+  if (implementation != null) {
+    mapConfigBuilder.addPropertyReference("mapEvictionPolicy",implementation);
+  }
+ else   if (className != null) {
+    className=checkHasText(className,"map-eviction-policy `className` cannot be null or empty");
+    try {
+      MapEvictionPolicy mapEvictionPolicy=ClassLoaderUtil.newInstance(getClass().getClassLoader(),className);
+      mapConfigBuilder.addPropertyValue("mapEvictionPolicy",mapEvictionPolicy);
+    }
+ catch (    Exception e) {
+      throw ExceptionUtil.rethrow(e);
+    }
+  }
+ else {
+    throw new IllegalArgumentException("One of `className` or `implementation`" + " attributes is required to create map-eviction-policy");
+  }
+}
