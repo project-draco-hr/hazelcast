@@ -1,0 +1,15 @@
+{
+  ClassLoader current=getClass().getClassLoader();
+  DynamicProxyTestClassLoader cl=new DynamicProxyTestClassLoader(current);
+  SerializationService ss=new DefaultSerializationServiceBuilder().setClassLoader(cl).build();
+  IObjectA oa=(IObjectA)Proxy.newProxyInstance(current,new Class[]{IObjectA.class},DummyInvocationHandler.INSTANCE);
+  Data data=ss.toData(oa);
+  Object o=ss.toObject(data);
+  Assert.assertSame("configured classloader is not used",cl,o.getClass().getClassLoader());
+  try {
+    IObjectA.class.cast(o);
+    Assert.fail("the serialized object should not be castable");
+  }
+ catch (  ClassCastException e) {
+  }
+}

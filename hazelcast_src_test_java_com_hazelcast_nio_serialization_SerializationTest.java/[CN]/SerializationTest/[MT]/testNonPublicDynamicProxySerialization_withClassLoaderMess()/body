@@ -1,0 +1,14 @@
+{
+  ClassLoader current=getClass().getClassLoader();
+  DynamicProxyTestClassLoader cl1=new DynamicProxyTestClassLoader(current,IPrivateObjectC.class.getName());
+  DynamicProxyTestClassLoader cl2=new DynamicProxyTestClassLoader(cl1,IPrivateObjectD.class.getName());
+  SerializationService ss=new DefaultSerializationServiceBuilder().setClassLoader(cl2).build();
+  Object ocd=Proxy.newProxyInstance(current,new Class[]{IPrivateObjectC.class,IPrivateObjectD.class},DummyInvocationHandler.INSTANCE);
+  Data data=ss.toData(ocd);
+  try {
+    ss.toObject(data);
+    Assert.fail("the object should not be deserializable");
+  }
+ catch (  IllegalAccessError e) {
+  }
+}
