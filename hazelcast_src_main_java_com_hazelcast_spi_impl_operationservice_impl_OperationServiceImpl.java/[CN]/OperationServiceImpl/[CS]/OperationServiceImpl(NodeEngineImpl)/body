@@ -1,6 +1,7 @@
 {
   this.nodeEngine=nodeEngine;
   this.node=nodeEngine.getNode();
+  this.thisAddress=node.getThisAddress();
   this.logger=node.getLogger(OperationService.class);
   this.serializationService=(InternalSerializationService)nodeEngine.getSerializationService();
   this.invocationLogger=nodeEngine.getLogger(Invocation.class);
@@ -11,11 +12,11 @@
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
   this.invocationRegistry=new InvocationRegistry(logger,backpressureRegulator.newCallIdSequence(),concurrencyLevel);
-  this.invocationMonitor=new InvocationMonitor(nodeEngine,node.getThisAddress(),node.getHazelcastThreadGroup(),node.getProperties(),invocationRegistry,logger,(InternalSerializationService)nodeEngine.getSerializationService(),nodeEngine.getServiceManager());
+  this.invocationMonitor=new InvocationMonitor(nodeEngine,thisAddress,node.getHazelcastThreadGroup(),node.getProperties(),invocationRegistry,logger,(InternalSerializationService)nodeEngine.getSerializationService(),nodeEngine.getServiceManager());
   this.operationBackupHandler=new OperationBackupHandler(this);
   this.responseHandler=new ResponseHandler(logger,node.getSerializationService(),invocationRegistry,nodeEngine);
   this.asyncResponseHandler=new AsyncResponseHandler(node.getHazelcastThreadGroup(),logger,responseHandler);
-  this.operationExecutor=new OperationExecutorImpl(hazelcastProperties,node.loggingService,node.getThisAddress(),new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
+  this.operationExecutor=new OperationExecutorImpl(hazelcastProperties,node.loggingService,thisAddress,new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
   ExecutionService executionService=nodeEngine.getExecutionService();
   this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
   this.slowOperationDetector=initSlowOperationDetector();
