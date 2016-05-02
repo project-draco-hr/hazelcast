@@ -1,6 +1,7 @@
 {
   NodeEngineImpl nodeEngine=findAliveNodeEngine();
   if (nodeEngine == null) {
+    logger.fine("Picking this node as master, no other running NodeEngine has been detected.");
     masterAddress=node.getThisAddress();
     return;
   }
@@ -12,11 +13,23 @@
     master=nodeEngine.getMasterAddress();
   }
   if (master == null) {
+    logger.fine("Picking this node as master, found NodeEngine has no master information.");
     masterAddress=node.getThisAddress();
     return;
   }
   NodeEngineImpl masterNodeEngine=nodes.get(master);
-  if (masterNodeEngine != null && masterNodeEngine.isRunning() && masterNodeEngine.getNode().joined()) {
-    masterAddress=master;
+  if (masterNodeEngine == null) {
+    logger.fine("NodeEngine for discovered master " + master + " is null.");
+    return;
   }
+  if (!masterNodeEngine.isRunning()) {
+    logger.fine("NodeEngine for discovered master " + master + " is not running. -> "+ masterNodeEngine.getNode().getState());
+    return;
+  }
+  if (!masterNodeEngine.getNode().joined()) {
+    logger.fine("NodeEngine for discovered master " + master + " is not joined.");
+    return;
+  }
+  logger.fine("Found possible master. Will try to connect to " + master);
+  masterAddress=master;
 }

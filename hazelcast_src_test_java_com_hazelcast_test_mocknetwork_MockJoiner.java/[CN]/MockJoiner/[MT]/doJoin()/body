@@ -5,17 +5,24 @@ synchronized (joinerLock) {
     long maxJoinMillis=getMaxJoinMillis();
     while (node.isRunning() && !node.joined() && (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
       try {
-        lookupMasterAddress();
+        if (masterAddress == null) {
+          lookupMasterAddress();
+        }
         if (node.getThisAddress().equals(masterAddress)) {
+          logger.fine("This node is found as master, no need to join.");
           node.setJoined();
           node.setAsMaster();
           break;
         }
         if (masterAddress != null) {
+          logger.fine("Sending join request to master " + masterAddress);
           node.setMasterAddress(masterAddress);
-          clusterJoinManager.sendJoinRequest(masterAddress,true);
+          if (!clusterJoinManager.sendJoinRequest(masterAddress,true)) {
+            logger.fine("Could not send join request to " + masterAddress);
+            masterAddress=null;
+          }
         }
-        Thread.sleep(50);
+        Thread.sleep(500);
       }
  catch (      InterruptedException e) {
         e.printStackTrace();
