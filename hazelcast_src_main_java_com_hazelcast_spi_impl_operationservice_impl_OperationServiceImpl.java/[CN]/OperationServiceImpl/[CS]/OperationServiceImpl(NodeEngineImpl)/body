@@ -4,10 +4,7 @@
   this.thisAddress=node.getThisAddress();
   this.logger=node.getLogger(OperationService.class);
   this.serializationService=(InternalSerializationService)nodeEngine.getSerializationService();
-  this.invocationLogger=nodeEngine.getLogger(Invocation.class);
-  HazelcastProperties hazelcastProperties=node.getProperties();
-  this.defaultCallTimeoutMillis=hazelcastProperties.getMillis(GroupProperty.OPERATION_CALL_TIMEOUT_MILLIS);
-  this.backpressureRegulator=new BackpressureRegulator(hazelcastProperties,logger);
+  this.backpressureRegulator=new BackpressureRegulator(node.getProperties(),logger);
   int coreSize=Runtime.getRuntime().availableProcessors();
   boolean reallyMultiCore=coreSize >= CORE_SIZE_CHECK;
   int concurrencyLevel=reallyMultiCore ? coreSize * CORE_SIZE_FACTOR : CONCURRENCY_LEVEL;
@@ -16,8 +13,6 @@
   this.operationBackupHandler=new OperationBackupHandler(this);
   this.responseHandler=new ResponseHandler(logger,node.getSerializationService(),invocationRegistry,nodeEngine);
   this.asyncResponseHandler=new AsyncResponseHandler(node.getHazelcastThreadGroup(),logger,responseHandler);
-  this.operationExecutor=new OperationExecutorImpl(hazelcastProperties,node.loggingService,thisAddress,new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
-  ExecutionService executionService=nodeEngine.getExecutionService();
-  this.asyncExecutor=executionService.register(ExecutionService.ASYNC_EXECUTOR,coreSize,ASYNC_QUEUE_CAPACITY,ExecutorType.CONCRETE);
-  this.slowOperationDetector=initSlowOperationDetector();
+  this.operationExecutor=new OperationExecutorImpl(node.getProperties(),node.loggingService,thisAddress,new OperationRunnerFactoryImpl(this),node.getHazelcastThreadGroup(),node.getNodeExtension());
+  this.slowOperationDetector=new SlowOperationDetector(node.loggingService,operationExecutor.getGenericOperationRunners(),operationExecutor.getPartitionOperationRunners(),node.getProperties(),node.getHazelcastThreadGroup());
 }
