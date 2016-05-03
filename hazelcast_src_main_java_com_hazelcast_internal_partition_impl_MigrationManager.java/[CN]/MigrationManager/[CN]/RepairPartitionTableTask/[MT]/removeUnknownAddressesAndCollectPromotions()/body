@@ -1,0 +1,26 @@
+{
+  partitionServiceLock.lock();
+  try {
+    Collection<Address> addresses=collectUnknownAddresses();
+    for (    Address address : addresses) {
+      partitionStateManager.removeDeadAddress(address);
+    }
+    Map<Address,Collection<MigrationInfo>> promotions=new HashMap<Address,Collection<MigrationInfo>>();
+    for (int partitionId=0; partitionId < partitionService.getPartitionCount(); partitionId++) {
+      MigrationInfo migration=createPromotionMigrationIfOwnerIsNull(partitionId);
+      if (migration == null) {
+        continue;
+      }
+      Collection<MigrationInfo> migrations=promotions.get(migration.getDestination());
+      if (migrations == null) {
+        migrations=new ArrayList<MigrationInfo>();
+        promotions.put(migration.getDestination(),migrations);
+      }
+      migrations.add(migration);
+    }
+    return promotions;
+  }
+  finally {
+    partitionServiceLock.unlock();
+  }
+}
