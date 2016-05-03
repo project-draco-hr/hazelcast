@@ -2,20 +2,19 @@
   if (!partitionStateManager.isInitialized()) {
     return;
   }
+  Map<Address,Collection<MigrationInfo>> promotions=removeUnknownAddressesAndCollectPromotions();
+  boolean success=promoteBackupsForMissingOwners(promotions);
   partitionServiceLock.lock();
   try {
-    Collection<Address> addresses=collectUnknownAddresses();
-    for (    Address address : addresses) {
-      partitionStateManager.removeDeadAddress(address);
+    if (success) {
+      if (logger.isFinestEnabled()) {
+        logger.finest("RepartitioningTask scheduled");
+      }
+      migrationQueue.add(new RepartitioningTask());
     }
-    if (!promoteBackupsForMissingOwners()) {
+ else {
       triggerControlTask();
-      return;
     }
-    if (logger.isFinestEnabled()) {
-      logger.finest("RepartitioningTask scheduled");
-    }
-    migrationQueue.add(new RepartitioningTask());
   }
   finally {
     partitionServiceLock.unlock();
