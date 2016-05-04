@@ -1,26 +1,23 @@
 {
-synchronized (joinerLock) {
+synchronized (registry) {
+    registry.registerNode(node);
     ClusterJoinManager clusterJoinManager=node.clusterService.getClusterJoinManager();
-    long joinStartTime=Clock.currentTimeMillis();
-    long maxJoinMillis=getMaxJoinMillis();
+    final long joinStartTime=Clock.currentTimeMillis();
+    final long maxJoinMillis=getMaxJoinMillis();
     while (node.isRunning() && !node.joined() && (Clock.currentTimeMillis() - joinStartTime < maxJoinMillis)) {
       try {
-        if (masterAddress == null) {
-          lookupMasterAddress();
-        }
-        if (node.getThisAddress().equals(masterAddress)) {
+        Address joinAddress=getJoinAddress();
+        assertNotNull(joinAddress);
+        if (node.getThisAddress().equals(joinAddress)) {
           logger.fine("This node is found as master, no need to join.");
           node.setJoined();
           node.setAsMaster();
           break;
         }
-        if (masterAddress != null) {
-          logger.fine("Sending join request to master " + masterAddress);
-          node.setMasterAddress(masterAddress);
-          if (!clusterJoinManager.sendJoinRequest(masterAddress,true)) {
-            logger.fine("Could not send join request to " + masterAddress);
-            masterAddress=null;
-          }
+        logger.fine("Sending join request to " + joinAddress);
+        if (!clusterJoinManager.sendJoinRequest(joinAddress,true)) {
+          logger.fine("Could not send join request to " + joinAddress);
+          node.setMasterAddress(null);
         }
         Thread.sleep(500);
       }
@@ -29,9 +26,10 @@ synchronized (joinerLock) {
         break;
       }
     }
-    if (!node.joined()) {
-      logger.severe("Node[" + node.getThisAddress() + "] should have been joined to "+ node.getMasterAddress());
-      node.shutdown(true);
-    }
   }
+  final boolean joined=node.joined();
+  if (!joined) {
+    node.shutdown(true);
+  }
+  assertTrue(node.getThisAddress() + " should have been joined to " + node.getMasterAddress(),joined);
 }

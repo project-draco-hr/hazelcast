@@ -1,0 +1,23 @@
+{
+  Collection<Address> joinAddresses=registry.getJoinAddresses();
+  logger.fine("Searching possible addresses for master " + joinAddresses);
+  for (  Address address : joinAddresses) {
+    Node foundNode=registry.getNode(address);
+    if (foundNode == null) {
+      logger.fine("Node for " + address + " is null.");
+      continue;
+    }
+    Assert.assertEquals(address,foundNode.getThisAddress());
+    if (!foundNode.isRunning()) {
+      logger.fine("Node for " + address + " is not running. -> "+ foundNode.getState());
+      continue;
+    }
+    if (!foundNode.joined()) {
+      logger.fine("Node for " + address + " is not joined yet.");
+      continue;
+    }
+    logger.fine("Found an alive node. Will ask master of " + address);
+    return foundNode;
+  }
+  return null;
+}

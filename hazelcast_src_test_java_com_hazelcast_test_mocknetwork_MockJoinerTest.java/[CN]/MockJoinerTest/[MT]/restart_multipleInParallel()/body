@@ -1,0 +1,21 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  final HazelcastInstance[] instances=factory.newInstances(new Config(),nodeCount);
+  assertClusterSizeEventually(instances);
+  int restartCount=nodeCount / 2;
+  final CountDownLatch latch=new CountDownLatch(restartCount);
+  for (int i=0; i < restartCount; i++) {
+    final int ix=i;
+    new Thread(){
+      public void run(){
+        Address address=getAddress(instances[ix]);
+        instances[ix].getLifecycleService().terminate();
+        instances[ix]=factory.newHazelcastInstance(address,new Config());
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  assertOpenEventually(latch);
+  assertClusterSizeEventually(instances);
+}

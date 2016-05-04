@@ -1,0 +1,20 @@
+{
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  final Collection<HazelcastInstance> instances=Collections.synchronizedCollection(new ArrayList<HazelcastInstance>());
+  final CountDownLatch latch=new CountDownLatch(nodeCount);
+  for (int i=0; i < nodeCount; i++) {
+    new Thread(){
+      public void run(){
+        HazelcastInstance hz=factory.newHazelcastInstance();
+        instances.add(hz);
+        latch.countDown();
+      }
+    }
+.start();
+  }
+  assertOpenEventually(latch);
+  assertEquals(nodeCount,instances.size());
+  for (  HazelcastInstance instance : instances) {
+    assertClusterSizeEventually(nodeCount,instance);
+  }
+}
