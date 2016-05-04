@@ -1,19 +1,19 @@
 {
   logger.fine("Stopping connection manager");
   live=false;
-  for (  Address address : nodes.keySet()) {
+  for (  Address address : registry.getAddresses()) {
     if (address.equals(node.getThisAddress())) {
       continue;
     }
-    final NodeEngineImpl otherNodeEngine=nodes.get(address);
-    if (otherNodeEngine != null && otherNodeEngine.getNode().getState() != NodeState.SHUT_DOWN) {
-      if (otherNodeEngine.getClusterService().getMember(node.getThisAddress()) == null) {
+    final Node otherNode=registry.getNode(address);
+    if (otherNode != null && otherNode.getState() != NodeState.SHUT_DOWN) {
+      if (otherNode.getClusterService().getMember(node.getThisAddress()) == null) {
         continue;
       }
-      logger.fine(otherNodeEngine.getThisAddress() + " is instructed to remove this node.");
-      otherNodeEngine.getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
+      logger.fine(otherNode.getThisAddress() + " is instructed to remove this node.");
+      otherNode.getNodeEngine().getExecutionService().execute(ExecutionService.SYSTEM_EXECUTOR,new Runnable(){
         public void run(){
-          ClusterServiceImpl clusterService=(ClusterServiceImpl)otherNodeEngine.getClusterService();
+          ClusterServiceImpl clusterService=(ClusterServiceImpl)otherNode.getClusterService();
           clusterService.removeAddress(node.getThisAddress());
         }
       }
