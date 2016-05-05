@@ -1,0 +1,22 @@
+{
+  String xmlFileName="test-hazelcast-discovery-spi-metadata.xml";
+  InputStream xmlResource=DiscoverySpiTest.class.getClassLoader().getResourceAsStream(xmlFileName);
+  Config config=new XmlConfigBuilder(xmlResource).build();
+  TestHazelcastInstanceFactory instanceFactory=createHazelcastInstanceFactory(1);
+  try {
+    final HazelcastInstance hazelcastInstance1=instanceFactory.newHazelcastInstance(config);
+    assertNotNull(hazelcastInstance1);
+    Member localMember=hazelcastInstance1.getCluster().getLocalMember();
+    assertEquals(Byte.MAX_VALUE,(byte)localMember.getByteAttribute("test-byte"));
+    assertEquals(Short.MAX_VALUE,(short)localMember.getShortAttribute("test-short"));
+    assertEquals(Integer.MAX_VALUE,(int)localMember.getIntAttribute("test-int"));
+    assertEquals(Long.MAX_VALUE,(long)localMember.getLongAttribute("test-long"));
+    assertEquals(Float.MAX_VALUE,localMember.getFloatAttribute("test-float"),0);
+    assertEquals(Double.MAX_VALUE,localMember.getDoubleAttribute("test-double"),0);
+    assertTrue(localMember.getBooleanAttribute("test-boolean"));
+    assertEquals("TEST",localMember.getStringAttribute("test-string"));
+  }
+  finally {
+    instanceFactory.shutdownAll();
+  }
+}
