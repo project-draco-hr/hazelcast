@@ -1,15 +1,26 @@
 {
-  String configValue=properties.getProperty(property.getName());
-  if (configValue != null) {
-    return configValue;
+  String value=properties.getProperty(property.getName());
+  if (value != null) {
+    return value;
   }
-  String systemProperty=property.getSystemProperty();
-  if (systemProperty != null) {
-    return systemProperty;
+  value=property.getSystemProperty();
+  if (value != null) {
+    return value;
   }
   HazelcastProperty parent=property.getParent();
   if (parent != null) {
     return getString(parent);
+  }
+  String deprecatedName=property.getDeprecatedName();
+  if (deprecatedName != null) {
+    value=get(deprecatedName);
+    if (value == null) {
+      value=System.getProperty(deprecatedName);
+    }
+    if (value != null) {
+      System.err.print("Don't use deprecated '" + deprecatedName + "' "+ "but use '"+ property.getName()+ "' instead. "+ "The former name will be removed in the next Hazelcast release.");
+      return value;
+    }
   }
   return property.getDefaultValue();
 }
