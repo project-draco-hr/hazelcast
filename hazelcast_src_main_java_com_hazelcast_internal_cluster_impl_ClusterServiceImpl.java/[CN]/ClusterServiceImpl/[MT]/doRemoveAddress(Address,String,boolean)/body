@@ -1,0 +1,26 @@
+{
+  if (!ensureMemberIsRemovable(deadAddress)) {
+    return;
+  }
+  lock.lock();
+  try {
+    if (deadAddress.equals(node.getMasterAddress())) {
+      assignNewMaster();
+    }
+    if (node.isMaster()) {
+      clusterJoinManager.removeJoin(new MemberInfo(deadAddress));
+    }
+    Connection conn=node.connectionManager.getConnection(deadAddress);
+    if (destroyConnection && conn != null) {
+      conn.close(reason,null);
+    }
+    MemberImpl deadMember=getMember(deadAddress);
+    if (deadMember != null) {
+      removeMember(deadMember);
+      logger.info(membersString());
+    }
+  }
+  finally {
+    lock.unlock();
+  }
+}

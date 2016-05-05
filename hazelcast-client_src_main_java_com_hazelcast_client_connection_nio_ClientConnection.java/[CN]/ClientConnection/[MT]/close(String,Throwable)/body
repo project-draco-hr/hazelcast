@@ -1,0 +1,27 @@
+{
+  if (!live.compareAndSet(true,false)) {
+    return;
+  }
+  closeCause=cause;
+  closeReason=reason;
+  closedTime=System.currentTimeMillis();
+  String message="Connection [" + getRemoteSocketAddress() + "] lost. Reason: ";
+  if (cause != null) {
+    message+=cause.getClass().getName() + '[' + cause.getMessage()+ ']';
+  }
+ else {
+    message+="Socket explicitly closed";
+  }
+  try {
+    innerClose();
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+  if (lifecycleService.isRunning()) {
+    logger.warning(message);
+  }
+ else {
+    logger.finest(message);
+  }
+}

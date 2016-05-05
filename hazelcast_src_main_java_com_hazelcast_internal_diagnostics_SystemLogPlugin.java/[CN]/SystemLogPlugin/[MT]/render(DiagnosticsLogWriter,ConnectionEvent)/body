@@ -1,0 +1,31 @@
+{
+  if (event.added) {
+    writer.startSection("ConnectionAdded");
+  }
+ else {
+    writer.startSection("ConnectionRemoved");
+  }
+  Connection connection=event.connection;
+  writer.writeEntry(connection.toString());
+  writer.writeKeyValueEntry("type",connection.getType().name());
+  writer.writeKeyValueEntry("isAlive",connection.isAlive());
+  if (!event.added) {
+    String closeReason=connection.getCloseReason();
+    Throwable closeCause=connection.getCloseCause();
+    if (closeReason == null && closeCause != null) {
+      closeReason=closeCause.getMessage();
+    }
+    writer.writeKeyValueEntry("closeReason",closeReason == null ? "Unknown" : closeReason);
+    if (closeCause != null) {
+      writer.startSection("CloseCause");
+      String s=closeCause.getClass().getName();
+      String message=closeCause.getMessage();
+      writer.writeEntry((message != null) ? (s + ": " + message) : s);
+      for (      StackTraceElement element : closeCause.getStackTrace()) {
+        writer.writeEntry(element.toString());
+      }
+      writer.endSection();
+    }
+  }
+  writer.endSection();
+}

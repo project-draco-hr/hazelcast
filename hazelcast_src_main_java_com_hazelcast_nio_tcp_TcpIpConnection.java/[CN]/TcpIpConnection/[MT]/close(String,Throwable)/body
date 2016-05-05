@@ -1,0 +1,34 @@
+{
+  if (!alive.compareAndSet(true,false)) {
+    return;
+  }
+  this.closeCause=cause;
+  this.closeReason=reason;
+  try {
+    if (socketChannel != null && socketChannel.isOpen()) {
+      socketReader.close();
+      socketWriter.close();
+      socketChannel.close();
+    }
+  }
+ catch (  Exception e) {
+    logger.warning(e);
+  }
+  Object connAddress=getConnectionAddress();
+  String message="Connection [" + connAddress + "] lost. Reason: ";
+  if (closeReason != null) {
+    message=closeReason;
+  }
+ else   if (cause == null) {
+    message+="Socket explicitly closed";
+  }
+ else {
+    message+=cause.getClass().getName() + "[" + cause.getMessage()+ "]";
+  }
+  logger.info(message);
+  connectionManager.onClose(this);
+  connectionManager.getIoService().onDisconnect(endPoint);
+  if (cause != null && monitor != null) {
+    monitor.onError(cause);
+  }
+}
