@@ -1,0 +1,14 @@
+{
+  initExecutor();
+  for (int k=0; k < executor.getGenericThreadCount() * 10; k++) {
+    executor.execute(new DummyOperation(GENERIC_PARTITION_ID).durationMs(20000000));
+  }
+  final CountDownLatch open=new CountDownLatch(1);
+  executor.execute(new UrgentDummyOperation(GENERIC_PARTITION_ID){
+    public void run(){
+      open.countDown();
+    }
+  }
+);
+  assertOpenEventually(open);
+}
