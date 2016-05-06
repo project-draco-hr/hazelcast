@@ -1,4 +1,6 @@
 {
+  InputStreamReader is=null;
+  BufferedReader reader=null;
   if (!awsConfig.getIamRole().equals("DEFAULT")) {
     return;
   }
@@ -6,11 +8,19 @@
     String query="latest/meta-data/iam/security-credentials/";
     URL url;
     url=new URL("http",IAM_ROLE_ENDPOINT,query);
-    InputStreamReader is=new InputStreamReader(url.openStream(),"UTF-8");
-    BufferedReader reader=new BufferedReader(is);
+    is=new InputStreamReader(url.openStream(),"UTF-8");
+    reader=new BufferedReader(is);
     awsConfig.setIamRole(reader.readLine());
   }
- catch (  Exception e) {
+ catch (  IOException e) {
     throw new InvalidConfigurationException("Invalid Aws Configuration");
+  }
+ finally {
+    if (is != null) {
+      is.close();
+    }
+    if (reader != null) {
+      reader.close();
+    }
   }
 }
