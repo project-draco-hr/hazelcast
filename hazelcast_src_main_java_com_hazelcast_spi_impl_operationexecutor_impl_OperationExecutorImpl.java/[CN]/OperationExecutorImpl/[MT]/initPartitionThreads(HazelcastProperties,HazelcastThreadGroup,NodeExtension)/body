@@ -7,9 +7,11 @@
   PartitionOperationThread[] threads=new PartitionOperationThread[threadCount];
   for (int threadId=0; threadId < threads.length; threadId++) {
     String threadName=threadGroup.getThreadPoolNamePrefix("partition-operation") + threadId;
-    OperationQueue operationQueue=new DefaultOperationQueue();
+    MPSCQueue<Object> normalQueue=new MPSCQueue<Object>(null);
+    OperationQueue operationQueue=new DefaultOperationQueue(normalQueue,new ConcurrentLinkedQueue<Object>());
     PartitionOperationThread partitionThread=new PartitionOperationThread(threadName,threadId,operationQueue,logger,threadGroup,nodeExtension,partitionOperationRunners);
     threads[threadId]=partitionThread;
+    normalQueue.setConsumerThread(partitionThread);
   }
   for (int partitionId=0; partitionId < partitionOperationRunners.length; partitionId++) {
     int threadId=partitionId % threadCount;

@@ -1,0 +1,32 @@
+{
+  long iteration=0;
+  AtomicReference<Node> putStack=this.putStack;
+  for (; ; ) {
+    if (consumerThread.isInterrupted()) {
+      putStack.compareAndSet(BLOCKED,null);
+      throw new InterruptedException();
+    }
+    Node currentPutStackHead=putStack.get();
+    if (currentPutStackHead == null) {
+      if (idleStrategy != null) {
+        idleStrategy.idle(iteration);
+        continue;
+      }
+      if (!putStack.compareAndSet(null,BLOCKED)) {
+        continue;
+      }
+      park();
+    }
+ else     if (currentPutStackHead == BLOCKED) {
+      park();
+    }
+ else {
+      if (!putStack.compareAndSet(currentPutStackHead,null)) {
+        continue;
+      }
+      copyIntoTakeStack(currentPutStackHead);
+      break;
+    }
+    iteration++;
+  }
+}
