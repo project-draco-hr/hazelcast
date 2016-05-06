@@ -1,0 +1,29 @@
+{
+  if (evictionConfig == null) {
+    return null;
+  }
+  EvictionPolicyComparator evictionPolicyComparator=null;
+  String evictionPolicyComparatorClassName=evictionConfig.getComparatorClassName();
+  if (!StringUtil.isNullOrEmpty(evictionPolicyComparatorClassName)) {
+    try {
+      evictionPolicyComparator=ClassLoaderUtil.newInstance(classLoader,evictionPolicyComparatorClassName);
+    }
+ catch (    Exception e) {
+      ExceptionUtil.rethrow(e);
+    }
+  }
+ else {
+    EvictionPolicyComparator comparator=evictionConfig.getComparator();
+    if (comparator != null) {
+      evictionPolicyComparator=comparator;
+    }
+ else {
+      EvictionPolicyType evictionPolicyType=evictionConfig.getEvictionPolicyType();
+      if (evictionPolicyType == null) {
+        return null;
+      }
+      evictionPolicyComparator=createEvictionPolicyComparator(evictionPolicyType);
+    }
+  }
+  return new DefaultEvictionPolicyEvaluator(evictionPolicyComparator);
+}
