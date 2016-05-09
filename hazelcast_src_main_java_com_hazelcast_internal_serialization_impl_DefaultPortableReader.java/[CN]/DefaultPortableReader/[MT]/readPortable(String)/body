@@ -1,23 +1,14 @@
 {
+  validateNotAnyQuantifier(path);
   final int currentPos=in.position();
   try {
-    FieldDefinition fd=cd.getField(fieldName);
-    if (fd == null) {
-      throw throwUnknownFieldException(fieldName);
+    PortablePosition position=findPositionForReading(path);
+    if (position.isNullOrEmpty()) {
+      return null;
     }
-    if (fd.getType() != FieldType.PORTABLE) {
-      throw new HazelcastSerializationException("Not a Portable field: " + fieldName);
-    }
-    int pos=readPosition(fd);
-    in.position(pos);
-    boolean isNull=in.readBoolean();
-    int factoryId=in.readInt();
-    int classId=in.readInt();
-    checkFactoryAndClass(fd,factoryId,classId);
-    if (!isNull) {
-      return serializer.readAndInitialize(in,factoryId,classId);
-    }
-    return null;
+    validateType(position,FieldType.PORTABLE);
+    in.position(position.getStreamPosition());
+    return serializer.readAndInitialize(in,position.getFactoryId(),position.getClassId());
   }
   finally {
     in.position(currentPos);

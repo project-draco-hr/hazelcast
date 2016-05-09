@@ -1,13 +1,26 @@
 {
   setup(query);
-  if (expected.throwable != null) {
-    this.expected.expect(expected.throwable);
+  Collection<?> values=null;
+  try {
+    doWithMap();
+    putTestDataToMap(input.objects);
+    values=map.values(query.predicate);
   }
-  putTestDataToMap(input.objects);
-  Collection<?> values=map.values(query.predicate);
-  if (expected.throwable == null) {
+ catch (  Exception ex) {
+    if (expected.throwables != null) {
+      for (      Class throwable : expected.throwables) {
+        if (throwable.equals(ex.getClass())) {
+          return;
+        }
+      }
+    }
+    ex.printStackTrace();
+    fail("Unexpected exception " + ex.getClass());
+  }
+  if (expected.throwables == null) {
     assertThat(values,hasSize(expected.objects.length));
     if (expected.objects.length > 0) {
+      translate(expected.objects);
       assertThat(values,containsInAnyOrder(expected.objects));
     }
   }

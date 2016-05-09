@@ -1,12 +1,17 @@
 {
   FieldDefinition fd=classDef.getField(name);
   if (fd == null) {
-    String[] fieldNames=NESTED_FIELD_PATTERN.split(name);
-    if (fieldNames.length > 1) {
+    if (name.contains(".")) {
+      String[] fieldNames=NESTED_FIELD_PATTERN.split(name);
+      if (fieldNames.length <= 1) {
+        return fd;
+      }
       ClassDefinition currentClassDef=classDef;
       for (int i=0; i < fieldNames.length; i++) {
-        name=fieldNames[i];
-        fd=currentClassDef.getField(name);
+        fd=currentClassDef.getField(fieldNames[i]);
+        if (fd == null) {
+          fd=currentClassDef.getField(extractAttributeNameNameWithoutArguments(fieldNames[i]));
+        }
         if (i == fieldNames.length - 1) {
           break;
         }
@@ -18,6 +23,9 @@
           throw new IllegalArgumentException("Not a registered Portable field: " + fd);
         }
       }
+    }
+ else {
+      fd=classDef.getField(extractAttributeNameNameWithoutArguments(name));
     }
   }
   return fd;

@@ -1,0 +1,49 @@
+{
+  List<Object[]> scenarios=new ArrayList<Object[]>();
+  for (  String token : asList("0","1","2","any")) {
+    String tokenToReplace="primitive_";
+    if (pathToExplode.contains("primitiveUTF_")) {
+      tokenToReplace="primitiveUTF_";
+    }
+    String path=pathToExplode.replace("portableArray","portables[" + token + "]");
+    if (token.equals("any")) {
+      for (      Method method : getPrimitives(tokenToReplace.contains("UTF"))) {
+        List resultToMatch=new ArrayList();
+        int portableCount=0;
+        try {
+          portableCount=result.portables.length;
+        }
+ catch (        NullPointerException ex) {
+        }
+        for (int i=0; i < portableCount; i++) {
+          PrimitivePortable portable=(PrimitivePortable)result.portables[i];
+          resultToMatch.add(portable.getPrimitive(method));
+        }
+        if (result == null || result.portables == null || result.portables.length == 0) {
+          resultToMatch=null;
+        }
+        scenarios.addAll(asList(scenario(input,resultToMatch,getArrayMethodFor(method),path.replace(tokenToReplace,method.field),parent),scenario(input,resultToMatch,Generic,path.replace(tokenToReplace,method.field),parent)));
+      }
+    }
+ else {
+      for (      Method method : getPrimitives(tokenToReplace.contains("UTF"))) {
+        Object resultToMatch=null;
+        try {
+          PrimitivePortable portable=(PrimitivePortable)result.portables[Integer.parseInt(token)];
+          resultToMatch=portable.getPrimitive(method);
+        }
+ catch (        NullPointerException ex) {
+        }
+catch (        IndexOutOfBoundsException ex) {
+        }
+        if (method != UTF) {
+          if (result == null || result.portables == null || result.portables.length == 0) {
+            resultToMatch=IllegalArgumentException.class;
+          }
+        }
+        scenarios.addAll(asList(scenario(input,resultToMatch,method,path.replace(tokenToReplace,method.field),parent),scenario(input,resultToMatch == IllegalArgumentException.class ? null : resultToMatch,Generic,path.replace(tokenToReplace,method.field),parent)));
+      }
+    }
+  }
+  return scenarios;
+}
