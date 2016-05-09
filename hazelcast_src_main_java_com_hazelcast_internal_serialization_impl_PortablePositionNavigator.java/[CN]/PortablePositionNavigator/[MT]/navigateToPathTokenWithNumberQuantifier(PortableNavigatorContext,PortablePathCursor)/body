@@ -1,0 +1,23 @@
+{
+  validateArrayType(ctx.getCurrentClassDefinition(),ctx.getCurrentFieldDefinition(),path.path());
+  int index=validateAndGetArrayQuantifierFromCurrentToken(path.token(),path.path());
+  int len=getArrayLengthOfTheField(ctx);
+  if (len == 0) {
+    return emptyAnyPosition(path.isLastToken());
+  }
+ else   if (len == Bits.NULL_ARRAY_LENGTH) {
+    return nilAnyPosition(path.isLastToken());
+  }
+ else   if (index >= len) {
+    return nilAnyPosition(path.isLastToken());
+  }
+ else {
+    if (path.isLastToken()) {
+      return createPositionForReadAccess(ctx,path,index);
+    }
+ else     if (ctx.isCurrentFieldOfType(FieldType.PORTABLE_ARRAY)) {
+      navigateContextToNextPortableTokenFromPortableArrayCell(ctx,path,index);
+    }
+  }
+  return null;
+}

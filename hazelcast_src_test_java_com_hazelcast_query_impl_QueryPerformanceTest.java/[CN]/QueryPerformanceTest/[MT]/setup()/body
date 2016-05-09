@@ -1,0 +1,43 @@
+{
+  Config config=new Config();
+  config.getSerializationConfig().addPortableFactory(DefaultPortableReaderQuickTest.TestPortableFactory.ID,new DefaultPortableReaderQuickTest.TestPortableFactory());
+  MapAttributeConfig nameWithExtractor=new MapAttributeConfig();
+  nameWithExtractor.setName("nameWithExtractor");
+  nameWithExtractor.setExtractor("com.hazelcast.query.impl.QueryPerformanceTest$NameExtractor");
+  MapAttributeConfig limbNameWithExtractor=new MapAttributeConfig();
+  limbNameWithExtractor.setName("limbNameWithExtractor");
+  limbNameWithExtractor.setExtractor("com.hazelcast.query.impl.QueryPerformanceTest$LimbNameExtractor");
+  MapConfig objectMapConfig=new MapConfig();
+  objectMapConfig.setInMemoryFormat(InMemoryFormat.OBJECT);
+  objectMapConfig.setName("objectMap");
+  MapConfig objectMapWithExtractorConfig=new MapConfig();
+  objectMapWithExtractorConfig.setInMemoryFormat(InMemoryFormat.OBJECT);
+  objectMapWithExtractorConfig.setName("objectMapWithExtractor");
+  objectMapWithExtractorConfig.addMapAttributeConfig(nameWithExtractor);
+  objectMapWithExtractorConfig.addMapAttributeConfig(limbNameWithExtractor);
+  MapAttributeConfig portableNameWithExtractor=new MapAttributeConfig();
+  portableNameWithExtractor.setName("nameWithExtractor");
+  portableNameWithExtractor.setExtractor("com.hazelcast.query.impl.QueryPerformanceTest$PortableNameExtractor");
+  MapAttributeConfig portableLimbNameWithExtractor=new MapAttributeConfig();
+  portableLimbNameWithExtractor.setName("limbNameWithExtractor");
+  portableLimbNameWithExtractor.setExtractor("com.hazelcast.query.impl.QueryPerformanceTest$PortableLimbNameExtractor");
+  MapConfig portableMapConfig=new MapConfig();
+  portableMapConfig.setName("portableMapWithExtractor");
+  portableMapConfig.addMapAttributeConfig(portableNameWithExtractor);
+  portableMapConfig.addMapAttributeConfig(portableLimbNameWithExtractor);
+  config.addMapConfig(objectMapConfig);
+  config.addMapConfig(objectMapWithExtractorConfig);
+  config.addMapConfig(portableMapConfig);
+  hz=(HazelcastInstanceProxy)createHazelcastInstance(config);
+  portableMap=hz.getMap("portableMap");
+  objectMap=hz.getMap("objectMap");
+  objectMapWithExtractor=hz.getMap("objectMapWithExtractor");
+  portableMapWithExtractor=hz.getMap("portableMapWithExtractor");
+  ComplexDataStructure.Person BOND=person("Bond",limb("left-hand",tattoos(),finger("thumb"),finger(null)),limb("right-hand",tattoos("knife"),finger("middle"),finger("index")));
+  for (int i=0; i <= 1000; i++) {
+    portableMap.put(String.valueOf(i),BOND.getPortable());
+    portableMapWithExtractor.put(String.valueOf(i),BOND.getPortable());
+    objectMap.put(String.valueOf(i),BOND);
+    objectMapWithExtractor.put(String.valueOf(i),BOND);
+  }
+}
