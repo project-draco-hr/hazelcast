@@ -1,0 +1,43 @@
+{
+  if (a == b) {
+    return true;
+  }
+  if (a == null || b == null) {
+    return false;
+  }
+  if (a.getClass().isArray() && b.getClass().isArray()) {
+    int length=Array.getLength(a);
+    if (length > 0 && !a.getClass().getComponentType().equals(b.getClass().getComponentType())) {
+      return false;
+    }
+    if (Array.getLength(b) != length) {
+      return false;
+    }
+    for (int i=0; i < length; i++) {
+      Object aElement=Array.get(a,i);
+      Object bElement=Array.get(b,i);
+      if (aElement instanceof StackTraceElement && bElement instanceof StackTraceElement) {
+        if (!isEqualStackTrace((StackTraceElement)aElement,(StackTraceElement)bElement)) {
+          return false;
+        }
+      }
+      if (!isEqual(aElement,bElement)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (a instanceof List && b instanceof List) {
+    ListIterator e1=((List)a).listIterator();
+    ListIterator e2=((List)b).listIterator();
+    while (e1.hasNext() && e2.hasNext()) {
+      Object o1=e1.next();
+      Object o2=e2.next();
+      if (!isEqual(o1,o2)) {
+        return false;
+      }
+    }
+    return !(e1.hasNext() || e2.hasNext());
+  }
+  return a.equals(b);
+}
