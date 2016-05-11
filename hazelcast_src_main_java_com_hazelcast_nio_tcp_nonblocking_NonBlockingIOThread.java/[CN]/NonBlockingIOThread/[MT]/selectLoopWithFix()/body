@@ -1,0 +1,23 @@
+{
+  int idleCount=0;
+  while (!isInterrupted()) {
+    processTaskQueue();
+    long before=currentTimeMillis();
+    int selectedKeys=selector.select(SELECT_WAIT_TIME_MILLIS);
+    if (selectedKeys > 0) {
+      idleCount=0;
+      handleSelectionKeys();
+    }
+ else     if (!taskQueue.isEmpty()) {
+      idleCount=0;
+    }
+ else {
+      long selectTimeTaken=currentTimeMillis() - before;
+      idleCount=selectTimeTaken < SELECT_WAIT_TIME_MILLIS ? idleCount + 1 : 0;
+      if (selectorBugDetected(idleCount)) {
+        rebuildSelector();
+        idleCount=0;
+      }
+    }
+  }
+}
