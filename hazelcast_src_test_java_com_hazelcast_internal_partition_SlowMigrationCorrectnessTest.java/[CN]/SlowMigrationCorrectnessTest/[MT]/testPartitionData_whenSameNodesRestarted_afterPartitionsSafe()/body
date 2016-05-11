@@ -1,5 +1,7 @@
 {
+  partitionCount=14;
   Config config=getConfig(true,false);
+  config.setProperty(GroupProperty.PARTITION_MIGRATION_INTERVAL.getName(),"1");
   HazelcastInstance[] instances=factory.newInstances(config,nodeCount);
   fillData(instances[instances.length - 1]);
   assertSizeAndDataEventually();
@@ -7,11 +9,8 @@
   for (int i=0; i < backupCount; i++) {
     restartingAddresses[i]=getAddress(instances[i]);
   }
-  for (int i=0; i < 10; i++) {
-    for (    Address address : restartingAddresses) {
-      TestUtil.terminateInstance(factory.getInstance(address));
-    }
-    startNodes(config,Arrays.asList(restartingAddresses));
+  for (int i=0; i < 5; i++) {
+    restartNodes(config,restartingAddresses);
   }
   assertSizeAndDataEventually();
 }
