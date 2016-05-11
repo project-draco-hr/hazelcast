@@ -1,0 +1,29 @@
+{
+  MigrationInfo migration=migrations.get(i);
+  log("Trying to prioritize migration: %s",migration);
+  if (migration.getSourceCurrentReplicaIndex() != -1) {
+    log("Skipping non-copy migration: %s",migration);
+    return;
+  }
+  int k=i - 1;
+  for (; k >= 0; k--) {
+    MigrationInfo other=migrations.get(k);
+    if (other.getSourceCurrentReplicaIndex() == -1) {
+      log("Cannot prioritize against a copy / shift up. other: %s",other);
+      break;
+    }
+    if (migration.getDestination().equals(other.getSource()) || migration.getDestination().equals(other.getDestination())) {
+      log("Cannot prioritize against a conflicting migration. other: %s",other);
+      break;
+    }
+    if (other.getSourceNewReplicaIndex() != -1 && other.getSourceNewReplicaIndex() < migration.getDestinationNewReplicaIndex()) {
+      log("Cannot prioritize against a hotter shift down. other: %s",other);
+      break;
+    }
+  }
+  if ((k + 1) != i) {
+    log("Prioritizing migration to: %d",(k + 1));
+    migrations.remove(i);
+    migrations.add(k + 1,migration);
+  }
+}
