@@ -1,0 +1,26 @@
+{
+  if (addresses.length == 1) {
+    HazelcastInstance hz=factory.getInstance(addresses[0]);
+    assertNotNull("No instance known for address: " + addresses[0],hz);
+    TestUtil.terminateInstance(hz);
+    sleepMillis(RandomPicker.getInt(1,3000));
+    factory.newHazelcastInstance(addresses[0],config);
+  }
+ else {
+    final CountDownLatch latch=new CountDownLatch(addresses.length);
+    for (    final Address address : addresses) {
+      final HazelcastInstance hz=factory.getInstance(address);
+      assertNotNull("No instance known for address: " + address,hz);
+      new Thread(){
+        public void run(){
+          TestUtil.terminateInstance(hz);
+          sleepMillis(RandomPicker.getInt(1,3000));
+          factory.newHazelcastInstance(address,config);
+          latch.countDown();
+        }
+      }
+.start();
+    }
+    assertTrue(latch.await(2,TimeUnit.MINUTES));
+  }
+}
