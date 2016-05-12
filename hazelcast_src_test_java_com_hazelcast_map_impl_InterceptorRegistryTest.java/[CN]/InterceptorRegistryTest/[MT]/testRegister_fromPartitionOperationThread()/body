@@ -1,0 +1,23 @@
+{
+  OperationQueue queue=new DefaultOperationQueue();
+  PartitionOperationThread thread=getPartitionOperationThread(queue);
+  thread.start();
+  final CountDownLatch latch=new CountDownLatch(1);
+  Object task=new Runnable(){
+    @Override public void run(){
+      try {
+        registry.register(interceptor.id,interceptor);
+      }
+ catch (      AssertionError e) {
+        e.printStackTrace();
+        latch.countDown();
+      }
+    }
+  }
+;
+  queue.add(task,false);
+  latch.await();
+  thread.shutdown();
+  thread.join();
+  assertInterceptorRegistryContainsNotInterceptor();
+}
