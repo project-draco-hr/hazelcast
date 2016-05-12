@@ -1,0 +1,24 @@
+{
+  selectorRebuildCount.inc();
+  Selector newSelector=newSelector();
+  Selector oldSelector=this.selector;
+  for (  SelectionKey key : oldSelector.keys()) {
+    AbstractHandler handler=(AbstractHandler)key.attachment();
+    SelectableChannel channel=key.channel();
+    try {
+      int ops=key.interestOps();
+      SelectionKey newSelectionKey=channel.register(newSelector,ops,handler);
+      handler.setSelectionKey(newSelectionKey);
+    }
+ catch (    ClosedChannelException e) {
+      logger.info("Channel was closed while trying to register with new selector.");
+    }
+catch (    CancelledKeyException e) {
+      EmptyStatement.ignore(e);
+    }
+    key.cancel();
+  }
+  closeSelector();
+  this.selector=newSelector;
+  logger.warning("Recreated Selector because of possible java/network stack bug.");
+}

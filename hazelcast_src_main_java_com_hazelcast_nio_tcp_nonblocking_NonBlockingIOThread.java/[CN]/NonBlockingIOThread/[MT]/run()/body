@@ -2,29 +2,36 @@
   try {
     for (; ; ) {
       try {
-        if (selectNow) {
-          runSelectNowLoop();
-        }
- else {
-          runSelectLoop();
-        }
+switch (selectMode) {
+case SELECT_WITH_FIX:
+          selectLoopWithFix();
         break;
-      }
- catch (      IOException nonFatalException) {
-        selectorIOExceptionCount.inc();
-        logger.warning(getName() + " " + nonFatalException.toString(),nonFatalException);
-        coolDown();
-      }
-    }
-  }
- catch (  OutOfMemoryError e) {
-    oomeHandler.handle(e);
-  }
-catch (  Throwable e) {
-    logger.warning("Unhandled exception in " + getName(),e);
-  }
+case SELECT_NOW:
+      selectNowLoop();
+    break;
+case SELECT:
+  selectLoop();
+break;
+default :
+throw new IllegalArgumentException("Selector.select mode not set, use -Dhazelcast.io.selectorMode=" + "{select|selectnow|selectwithfix} to explicitly specify select mode or leave empty for " + "default select mode.");
+}
+break;
+}
+ catch (IOException nonFatalException) {
+selectorIOExceptionCount.inc();
+logger.warning(getName() + " " + nonFatalException.toString(),nonFatalException);
+coolDown();
+}
+}
+}
+ catch (OutOfMemoryError e) {
+oomeHandler.handle(e);
+}
+catch (Throwable e) {
+logger.warning("Unhandled exception in " + getName(),e);
+}
  finally {
-    closeSelector();
-  }
-  logger.finest(getName() + " finished");
+closeSelector();
+}
+logger.finest(getName() + " finished");
 }

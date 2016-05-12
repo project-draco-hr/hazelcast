@@ -2,12 +2,16 @@
   if (logger.isFinestEnabled()) {
     logger.finest("Starting SocketAcceptor on " + serverSocketChannel);
   }
-  Selector selector=null;
   try {
     selector=Selector.open();
     serverSocketChannel.configureBlocking(false);
-    serverSocketChannel.register(selector,SelectionKey.OP_ACCEPT);
-    acceptLoop(selector);
+    selectionKey=serverSocketChannel.register(selector,SelectionKey.OP_ACCEPT);
+    if (selectorWorkaround) {
+      acceptLoopWithSelectorFix();
+    }
+ else {
+      acceptLoop();
+    }
   }
  catch (  OutOfMemoryError e) {
     OutOfMemoryErrorDispatcher.onOutOfMemory(e);
@@ -16,6 +20,6 @@ catch (  IOException e) {
     logger.severe(e.getClass().getName() + ": " + e.getMessage(),e);
   }
  finally {
-    closeSelector(selector);
+    closeSelector();
   }
 }
