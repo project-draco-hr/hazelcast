@@ -7,17 +7,18 @@
       node.getPartitionService().pauseMigration();
       Collection<MemberImpl> members=clusterService.getMemberImpls();
       Collection<MemberInfo> memberInfos=createMemberInfoList(members);
-      for (      MemberInfo memberJoining : setJoins) {
+      for (      MemberInfo memberJoining : joiningMembers.values()) {
         memberInfos.add(memberJoining);
       }
       long time=clusterClock.getClusterTime();
       Operation[] postJoinOps=nodeEngine.getPostJoinOperations();
       boolean createPostJoinOperation=(postJoinOps != null && postJoinOps.length > 0);
       PostJoinOperation postJoinOp=(createPostJoinOperation ? new PostJoinOperation(postJoinOps) : null);
-      int count=members.size() - 1 + setJoins.size();
+      clusterService.updateMembers(memberInfos);
+      int count=members.size() - 1 + joiningMembers.size();
       List<Future> calls=new ArrayList<Future>(count);
       PartitionRuntimeState partitionState=node.getPartitionService().createPartitionState();
-      for (      MemberInfo member : setJoins) {
+      for (      MemberInfo member : joiningMembers.values()) {
         long startTime=clusterClock.getClusterStartTime();
         Operation joinOperation=new FinalizeJoinOperation(memberInfos,postJoinOp,time,clusterService.getClusterId(),startTime,clusterStateManager.getState(),partitionState);
         calls.add(invokeClusterOperation(joinOperation,member.getAddress()));
@@ -28,11 +29,11 @@
           calls.add(invokeClusterOperation(infoUpdateOperation,member.getAddress()));
         }
       }
-      clusterService.updateMembers(memberInfos);
       int timeout=Math.min(calls.size() * FINALIZE_JOIN_TIMEOUT_FACTOR,FINALIZE_JOIN_MAX_TIMEOUT);
       waitWithDeadline(calls,timeout,TimeUnit.SECONDS,whileFinalizeJoinsExceptionHandler);
     }
   finally {
+      reset();
       node.getPartitionService().resumeMigration();
     }
   }
