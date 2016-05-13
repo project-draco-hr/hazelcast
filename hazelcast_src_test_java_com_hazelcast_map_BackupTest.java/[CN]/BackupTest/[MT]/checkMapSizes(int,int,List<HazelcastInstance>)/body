@@ -1,0 +1,23 @@
+{
+  final int nodeCount=instances.size();
+  if (nodeCount == 0) {
+    return;
+  }
+  final IMap[] maps=new IMap[instances.size()];
+  int i=0;
+  for (  HazelcastInstance hz : instances) {
+    IMap map=hz.getMap(mapName);
+    assertEquals(expectedSize,map.size());
+    maps[i++]=map;
+  }
+  final int expectedBackupSize=Math.min(nodeCount - 1,backupCount) * expectedSize;
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      long ownedSize=getTotalOwnedEntryCount(maps);
+      assertEquals("Missing owned entries, node-count: " + nodeCount,expectedSize,ownedSize);
+      long backupSize=getTotalBackupEntryCount(maps);
+      assertEquals("Missing owned entries, node-count: " + nodeCount + ", backup-count: "+ backupCount,expectedBackupSize,backupSize);
+    }
+  }
+);
+}

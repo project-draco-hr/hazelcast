@@ -1,66 +1,39 @@
 {
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   Config config=getConfig();
-  final HazelcastInstance hz=nodeFactory.newHazelcastInstance(config);
+  final HazelcastInstance hz1=nodeFactory.newHazelcastInstance(config);
   final HazelcastInstance hz2=nodeFactory.newHazelcastInstance(config);
-  final IMap<Integer,Integer> map=hz2.getMap(MAP_NAME);
-  final int size=100000;
-  final int threads=100;
-  ExecutorService ex=Executors.newFixedThreadPool(threads);
-  final int loadCount=10;
-  final CountDownLatch loadLatch=new CountDownLatch(loadCount);
-  for (int i=0; i < loadCount; i++) {
-    final int n=i;
-    ex.execute(new Runnable(){
-      public void run(){
-        int chunk=size / loadCount;
-        for (int j=(n * chunk); j < (n + 1) * chunk; j++) {
-          map.put(j,j);
-        }
-        loadLatch.countDown();
-      }
-    }
-);
+  final IMap<Object,Object> map=hz2.getMap(mapName);
+  final int threads=16;
+  final int perThreadSize=1000;
+  final int size=threads * perThreadSize;
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
   }
-  loadLatch.await();
   new Thread(){
     public void run(){
-      while (hz.getMap(MAP_NAME).size() > size / 2) {
-        try {
-          sleep(5);
-        }
- catch (        InterruptedException ignored) {
-          return;
-        }
+      IMap<Object,Object> m=hz1.getMap(mapName);
+      while (m.size() > size / 2) {
+        sleepMillis(5);
       }
-      TestUtil.terminateInstance(hz);
+      TestUtil.terminateInstance(hz1);
     }
   }
 .start();
-  final int chunk=size / threads;
   final CountDownLatch latch=new CountDownLatch(threads);
   for (int i=0; i < threads; i++) {
-    final int n=i;
-    ex.execute(new Runnable(){
+    final int index=i;
+    new Thread(){
       public void run(){
-        for (int j=(n * chunk); j < (n + 1) * chunk; j++) {
-          map.remove(j);
-          try {
-            Thread.sleep(1);
-          }
- catch (          InterruptedException ignored) {
-          }
+        for (int k=(index * perThreadSize); k < (index + 1) * perThreadSize; k++) {
+          map.remove(k);
+          sleepMillis(1);
         }
         latch.countDown();
       }
     }
-);
+.start();
   }
-  try {
-    assertTrue(latch.await(5,TimeUnit.MINUTES));
-    assertEquals("Remove failed!",0,map.size());
-  }
-  finally {
-    ex.shutdown();
-  }
+  assertTrue(latch.await(5,TimeUnit.MINUTES));
+  assertEquals("Remove failed!",0,map.size());
 }

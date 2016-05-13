@@ -1,22 +1,29 @@
 {
-  int size=50000;
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(4);
+  final int nodeCount=6;
+  final int size=10000;
   Config config=getConfig();
-  HazelcastInstance h1=nodeFactory.newHazelcastInstance(config);
-  IMap<Integer,Integer> m1=h1.getMap(MAP_NAME);
-  for (int i=0; i < size; i++) {
-    m1.put(i,i);
+  config.getMapConfig(mapName).setBackupCount(0);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  Collection<HazelcastInstance> instances=new ArrayList<HazelcastInstance>(nodeCount);
+  for (int i=0; i < nodeCount; i++) {
+    HazelcastInstance hz=factory.newHazelcastInstance(config);
+    instances.add(hz);
+    IMap<Integer,Integer> map=hz.getMap(mapName);
+    if (i == 0) {
+      for (int k=0; k < size; k++) {
+        map.put(k,k);
+      }
+    }
+    checkSize(size,map);
   }
-  HazelcastInstance h2=nodeFactory.newHazelcastInstance(config);
-  IMap<Integer,Integer> m2=h2.getMap(MAP_NAME);
-  h1.shutdown();
-  checkSizeEventually(size,m2);
-  HazelcastInstance h3=nodeFactory.newHazelcastInstance(config);
-  IMap<Integer,Integer> m3=h3.getMap(MAP_NAME);
-  h2.shutdown();
-  checkSizeEventually(size,m3);
-  HazelcastInstance h4=nodeFactory.newHazelcastInstance(config);
-  IMap<Integer,Integer> m4=h4.getMap(MAP_NAME);
-  h3.shutdown();
-  checkSizeEventually(size,m4);
+  Iterator<HazelcastInstance> iterator=instances.iterator();
+  while (iterator.hasNext()) {
+    HazelcastInstance hz=iterator.next();
+    iterator.remove();
+    hz.shutdown();
+    for (    HazelcastInstance instance : instances) {
+      IMap<Integer,Integer> map=instance.getMap(mapName);
+      checkSize(size,map);
+    }
+  }
 }

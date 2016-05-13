@@ -1,58 +1,46 @@
 {
-  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(10);
+  final int nodeCount=6;
+  final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory();
   final Config config=getConfig();
-  config.getMapConfig(MAP_NAME).setBackupCount(1).setStatisticsEnabled(true);
+  config.setProperty(GroupProperty.PARTITION_BACKUP_SYNC_INTERVAL.getName(),"1");
+  config.getMapConfig(mapName).setBackupCount(1).setStatisticsEnabled(true);
   final Random rand=new Random();
-  final AtomicReferenceArray<HazelcastInstance> instances=new AtomicReferenceArray<HazelcastInstance>(10);
+  final AtomicReferenceArray<HazelcastInstance> instances=new AtomicReferenceArray<HazelcastInstance>(nodeCount);
   final int count=10000;
-  final int totalCount=count * (instances.length() - 1);
-  final CountDownLatch latch=new CountDownLatch(instances.length());
-  for (int i=0; i < instances.length(); i++) {
-    final int finalI=i;
-    Thread thread=new Thread(){
+  final int totalCount=count * (nodeCount - 1);
+  final CountDownLatch latch=new CountDownLatch(nodeCount);
+  for (int i=0; i < nodeCount; i++) {
+    final int index=i;
+    new Thread(){
       public void run(){
-        try {
-          Thread.sleep(3000 * finalI);
-          HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
-          instances.set(finalI,instance);
-          Thread.sleep(rand.nextInt(100));
-          if (finalI != 0) {
-            for (int j=0; j < 10000; j++) {
-              instance.getMap(MAP_NAME).put(getName() + "-" + j,"value");
-            }
+        sleepMillis(index * rand.nextInt(1000));
+        HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
+        instances.set(index,instance);
+        if (index != 0) {
+          IMap<Object,Object> map=instance.getMap(mapName);
+          for (int j=0; j < count; j++) {
+            map.put(getName() + "-" + j,"value");
           }
         }
- catch (        InterruptedException e) {
-          e.printStackTrace();
-        }
- finally {
-          latch.countDown();
-        }
+        latch.countDown();
       }
     }
-;
-    thread.start();
+.start();
   }
   assertTrue(latch.await(5,TimeUnit.MINUTES));
-  final int trials=50;
-  for (int i=0; i < trials; i++) {
-    long totalOwned=0L;
-    long totalBackup=0L;
-    for (int j=0; j < instances.length(); j++) {
-      HazelcastInstance hz=instances.get(j);
-      LocalMapStats stats=hz.getMap(MAP_NAME).getLocalMapStats();
-      totalOwned+=stats.getOwnedEntryCount();
-      totalBackup+=stats.getBackupEntryCount();
-    }
-    assertEquals("Owned entry count is wrong! ",totalCount,totalOwned);
-    if (i < trials - 1) {
-      if (totalBackup == totalCount) {
-        break;
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      long totalOwned=0L;
+      long totalBackup=0L;
+      for (int i=0; i < instances.length(); i++) {
+        HazelcastInstance hz=instances.get(i);
+        LocalMapStats stats=hz.getMap(mapName).getLocalMapStats();
+        totalOwned+=stats.getOwnedEntryCount();
+        totalBackup+=stats.getBackupEntryCount();
       }
-      Thread.sleep(1000);
-    }
- else {
+      assertEquals("Owned entry count is wrong! ",totalCount,totalOwned);
       assertEquals("Backup entry count is wrong! ",totalCount,totalBackup);
     }
   }
+);
 }
