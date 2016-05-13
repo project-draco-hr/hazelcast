@@ -1,0 +1,19 @@
+{
+  int size=10000;
+  int nodeCount=4;
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  Config config=getConfig();
+  config.getMapConfig(mapName).setBackupCount(0);
+  HazelcastInstance master=factory.newHazelcastInstance(config);
+  IMap<Integer,Integer> map=master.getMap(mapName);
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  for (int i=0; i < nodeCount; i++) {
+    HazelcastInstance slave=factory.newHazelcastInstance(config);
+    map=slave.getMap(mapName);
+    master.shutdown();
+    checkSize(size,map);
+    master=slave;
+  }
+}
