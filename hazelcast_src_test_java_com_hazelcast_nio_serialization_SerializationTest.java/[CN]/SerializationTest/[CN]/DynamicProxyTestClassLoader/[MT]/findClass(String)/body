@@ -1,0 +1,24 @@
+{
+  if (!wellKnownClasses.contains(name)) {
+    return super.findClass(name);
+  }
+  String path=name.replace('.','/') + ".class";
+  InputStream in=null;
+  try {
+    in=getParent().getResourceAsStream(path);
+    ByteArrayOutputStream bout=new ByteArrayOutputStream();
+    byte[] buf=new byte[1024];
+    int read=0;
+    while ((read=in.read(buf)) != -1) {
+      bout.write(buf,0,read);
+    }
+    byte[] code=bout.toByteArray();
+    return defineClass(name,code,0,code.length);
+  }
+ catch (  IOException e) {
+    return super.findClass(name);
+  }
+ finally {
+    IOUtil.closeResource(in);
+  }
+}

@@ -1,0 +1,22 @@
+{
+  ClassLoader oldContextLoader=Thread.currentThread().getContextClassLoader();
+  try {
+    ClassLoader current=getClass().getClassLoader();
+    DynamicProxyTestClassLoader cl=new DynamicProxyTestClassLoader(current);
+    Thread.currentThread().setContextClassLoader(cl);
+    SerializationService ss=new DefaultSerializationServiceBuilder().setClassLoader(cl).build();
+    IObjectA oa=(IObjectA)Proxy.newProxyInstance(current,new Class[]{IObjectA.class},DummyInvocationHandler.INSTANCE);
+    Data data=ss.toData(oa);
+    Object o=ss.toObject(data);
+    Assert.assertSame("context classloader is not used",cl,o.getClass().getClassLoader());
+    try {
+      IObjectA.class.cast(o);
+      Assert.fail("the serialized object should not be castable");
+    }
+ catch (    ClassCastException e) {
+    }
+  }
+  finally {
+    Thread.currentThread().setContextClassLoader(oldContextLoader);
+  }
+}

@@ -1,0 +1,28 @@
+{
+  ClassLoader theClassLoader=getClassLoader();
+  if (theClassLoader == null) {
+    return super.resolveProxyClass(interfaces);
+  }
+  ClassLoader nonPublicLoader=null;
+  Class<?>[] classObjs=new Class<?>[interfaces.length];
+  for (int i=0; i < interfaces.length; i++) {
+    Class<?> cl=ClassLoaderUtil.loadClass(theClassLoader,interfaces[i]);
+    if ((cl.getModifiers() & Modifier.PUBLIC) == 0) {
+      if (nonPublicLoader != null) {
+        if (nonPublicLoader != cl.getClassLoader()) {
+          throw new IllegalAccessError("conflicting non-public interface class loaders");
+        }
+      }
+ else {
+        nonPublicLoader=cl.getClassLoader();
+      }
+    }
+    classObjs[i]=cl;
+  }
+  try {
+    return Proxy.getProxyClass(nonPublicLoader != null ? nonPublicLoader : theClassLoader,classObjs);
+  }
+ catch (  IllegalArgumentException e) {
+    throw new ClassNotFoundException(null,e);
+  }
+}
