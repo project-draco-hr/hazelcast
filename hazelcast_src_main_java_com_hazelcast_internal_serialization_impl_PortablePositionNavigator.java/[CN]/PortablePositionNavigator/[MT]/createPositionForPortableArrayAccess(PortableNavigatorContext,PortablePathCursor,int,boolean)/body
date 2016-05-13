@@ -1,0 +1,20 @@
+{
+  BufferObjectDataInput in=ctx.getIn();
+  in.position(getStreamPositionOfTheField(ctx));
+  int len=in.readInt();
+  int factoryId=in.readInt();
+  int classId=in.readInt();
+  int streamPosition=in.position();
+  validateFactoryAndClass(ctx.getCurrentFieldDefinition(),factoryId,classId,path.path());
+  if (singleCellAccess) {
+    if (index < len) {
+      int offset=in.position() + index * Bits.INT_SIZE_IN_BYTES;
+      in.position(offset);
+      streamPosition=in.readInt();
+    }
+ else {
+      return PortablePositionFactory.nil(path.isLastToken());
+    }
+  }
+  return PortablePositionFactory.createSinglePortablePosition(ctx.getCurrentFieldDefinition(),streamPosition,factoryId,classId,index,len,path.isLastToken());
+}
