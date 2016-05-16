@@ -1,0 +1,20 @@
+{
+  Config config=new Config();
+  config.getSerializationConfig().addPortableFactory(TestPortableFactory.ID,new TestPortableFactory());
+  HazelcastInstanceProxy hz=(HazelcastInstanceProxy)createHazelcastInstance(config);
+  IMap map=hz.getMap("stealingMap");
+  if (portable instanceof PrimitivePortable) {
+    map.put(P_NON_EMPTY.toString(),P_NON_EMPTY);
+  }
+  if (portable instanceof GroupPortable) {
+    map.put(G_NON_EMPTY.toString(),G_NON_EMPTY);
+  }
+  if (portable instanceof NestedGroupPortable) {
+    map.put(N_NON_EMPTY.toString(),N_NON_EMPTY);
+  }
+  map.put(portable.toString(),portable);
+  EntryStealingProcessor processor=new EntryStealingProcessor(portable.toString());
+  map.executeOnEntries(processor);
+  SerializationServiceV1 ss=(SerializationServiceV1)hz.getSerializationService();
+  return ss.createPortableReader(processor.stolenEntryData);
+}

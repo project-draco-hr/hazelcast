@@ -1,0 +1,29 @@
+{
+  List<Object[]> scenarios=new ArrayList<Object[]>();
+  for (  Method method : getPrimitiveArrays()) {
+    String path=pathToExplode.replace("primitiveArray",method.field);
+    Object resultToMatch=result != null ? result.getPrimitiveArray(method) : null;
+    Object resultToMatchAny=resultToMatch;
+    if (resultToMatchAny != null && Array.getLength(resultToMatchAny) == 0) {
+      resultToMatchAny=null;
+    }
+    scenarios.addAll(asList(scenario(input,resultToMatch,method,path,parent),scenario(input,resultToMatchAny,method,path + "[any]",parent)));
+    scenarios.addAll(asList(scenario(input,resultToMatch,Generic,path,parent),scenario(input,resultToMatchAny,Generic,path + "[any]",parent)));
+  }
+  for (  Method method : getPrimitives(true)) {
+    String path=pathToExplode.replace("primitiveArray",method.field).replace("_","s");
+    if (result == null || result.getPrimitiveArray(method) == null || Array.getLength(result.getPrimitiveArray(method)) == 0) {
+      if (method.equals(UTF)) {
+        scenarios.addAll(asList(scenario(input,null,method,path + "[0]",parent),scenario(input,null,Generic,path + "[0]",parent)));
+      }
+ else {
+        scenarios.addAll(asList(scenario(input,IllegalArgumentException.class,method,path + "[0]",parent),scenario(input,null,Generic,path + "[0]",parent)));
+      }
+    }
+ else {
+      scenarios.addAll(asList(scenario(input,Array.get(result.getPrimitiveArray(method),0),method,path + "[0]",parent),scenario(input,Array.get(result.getPrimitiveArray(method),1),method,path + "[1]",parent),scenario(input,Array.get(result.getPrimitiveArray(method),2),method,path + "[2]",parent)));
+      scenarios.addAll(asList(scenario(input,Array.get(result.getPrimitiveArray(method),0),Generic,path + "[0]",parent),scenario(input,Array.get(result.getPrimitiveArray(method),1),Generic,path + "[1]",parent),scenario(input,Array.get(result.getPrimitiveArray(method),2),Generic,path + "[2]",parent)));
+    }
+  }
+  return scenarios;
+}
