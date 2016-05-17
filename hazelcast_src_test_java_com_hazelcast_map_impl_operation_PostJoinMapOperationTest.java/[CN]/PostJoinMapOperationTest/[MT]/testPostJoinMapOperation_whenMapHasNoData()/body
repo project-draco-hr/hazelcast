@@ -1,0 +1,19 @@
+{
+  TestHazelcastInstanceFactory hzFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=hzFactory.newHazelcastInstance();
+  IMap<String,Person> map=hz1.getMap("map");
+  map.addIndex("age",true);
+  map.addInterceptor(new FixedReturnInterceptor());
+  assertEquals(RETURNED_FROM_INTERCEPTOR,map.get("foo"));
+  HazelcastInstance hz2=hzFactory.newHazelcastInstance();
+  waitAllForSafeState(hz1,hz2);
+  MapService mapService=getNodeEngineImpl(hz2).getService(MapService.SERVICE_NAME);
+  MapContainer mapContainerOnNode2=mapService.getMapServiceContext().getMapContainer("map");
+  assertEquals(1,mapContainerOnNode2.getIndexes().getIndexes().length);
+  assertEquals(1,mapContainerOnNode2.getInterceptorRegistry().getInterceptors().size());
+  assertEquals(Person.class,mapContainerOnNode2.getInterceptorRegistry().getInterceptors().get(0).interceptGet("anything").getClass());
+  assertEquals(RETURNED_FROM_INTERCEPTOR.getAge(),((Person)mapContainerOnNode2.getInterceptorRegistry().getInterceptors().get(0).interceptGet("anything")).getAge());
+  IMap<String,Person> mapOnNode2=hz2.getMap("map");
+  assertEquals(RETURNED_FROM_INTERCEPTOR,mapOnNode2.get("whatever"));
+  hzFactory.terminateAll();
+}
