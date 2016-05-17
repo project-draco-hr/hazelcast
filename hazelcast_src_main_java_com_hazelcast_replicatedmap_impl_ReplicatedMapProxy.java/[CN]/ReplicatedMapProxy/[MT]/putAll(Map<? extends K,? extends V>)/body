@@ -1,6 +1,11 @@
 {
   checkNotNull(entries,"entries cannot be null");
+  int mapSize=entries.size();
+  if (mapSize == 0) {
+    return;
+  }
   int partitionCount=partitionService.getPartitionCount();
+  int initialSize=getPutAllInitialSize(mapSize,partitionCount);
   try {
     List<Future> futures=new ArrayList<Future>(partitionCount);
     ReplicatedMapEntries[] entrySetPerPartition=new ReplicatedMapEntries[partitionCount];
@@ -8,20 +13,20 @@
       isNotNull(entry.getKey(),"key must not be null!");
       isNotNull(entry.getValue(),"value must not be null!");
       int partitionId=partitionService.getPartitionId(entry.getKey());
-      ReplicatedMapEntries entrySet=entrySetPerPartition[partitionId];
-      if (entrySet == null) {
-        entrySet=new ReplicatedMapEntries();
-        entrySetPerPartition[partitionId]=entrySet;
+      ReplicatedMapEntries mapEntries=entrySetPerPartition[partitionId];
+      if (mapEntries == null) {
+        mapEntries=new ReplicatedMapEntries(initialSize);
+        entrySetPerPartition[partitionId]=mapEntries;
       }
       Data keyData=serializationService.toData(entry.getKey());
       Data valueData=serializationService.toData(entry.getValue());
-      entrySet.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(keyData,valueData));
+      mapEntries.add(keyData,valueData);
     }
     for (int partitionId=0; partitionId < partitionCount; partitionId++) {
       ReplicatedMapEntries entrySet=entrySetPerPartition[partitionId];
       if (entrySet != null) {
-        Future f=createPutAllOperationFuture(name,entrySet,partitionId);
-        futures.add(f);
+        Future future=createPutAllOperationFuture(name,entrySet,partitionId);
+        futures.add(future);
       }
     }
     for (    Future future : futures) {
