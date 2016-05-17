@@ -1,0 +1,41 @@
+{
+  final String[] keys=new String[]{"a","b","c"};
+  final Map<String,Integer> timesAcquired=new HashMap<String,Integer>();
+  int concurrency=Runtime.getRuntime().availableProcessors() * 3;
+  final CyclicBarrier cyc=new CyclicBarrier(concurrency + 1);
+  for (int i=0; i < concurrency; i++) {
+    new Thread(new Runnable(){
+      @Override public void run(){
+        await(cyc);
+        for (        String key : keys) {
+          ContextMutexFactory.Mutex mutex=contextMutexFactory.mutexFor(key);
+          try {
+synchronized (mutex) {
+              Integer value=timesAcquired.get(key);
+              if (value == null) {
+                timesAcquired.put(key,1);
+              }
+ else {
+                timesAcquired.put(key,value + 1);
+              }
+            }
+          }
+  finally {
+            mutex.close();
+          }
+        }
+        await(cyc);
+      }
+    }
+).start();
+  }
+  await(cyc);
+  await(cyc);
+  for (  String key : keys) {
+    assertEquals(concurrency,timesAcquired.get(key).longValue());
+  }
+  assertEquals(0,contextMutexFactory.mutexMap.size());
+  if (testFailed.get()) {
+    fail("Failure due to exception while waiting on cyclic barrier.");
+  }
+}
