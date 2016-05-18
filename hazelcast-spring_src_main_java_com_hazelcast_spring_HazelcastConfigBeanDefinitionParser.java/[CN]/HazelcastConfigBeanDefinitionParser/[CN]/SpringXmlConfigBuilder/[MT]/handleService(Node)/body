@@ -2,6 +2,7 @@
   BeanDefinitionBuilder serviceConfigBuilder=createBeanBuilder(ServiceConfig.class);
   final AbstractBeanDefinition beanDefinition=serviceConfigBuilder.getBeanDefinition();
   fillAttributeValues(node,serviceConfigBuilder);
+  boolean classNameSet=false;
   for (  Node child : childElements(node)) {
     final String nodeName=cleanNodeName(child);
     if ("name".equals(nodeName)) {
@@ -9,6 +10,7 @@
     }
  else     if ("class-name".equals(nodeName)) {
       serviceConfigBuilder.addPropertyValue(xmlToJavaName(nodeName),getTextContent(child));
+      classNameSet=true;
     }
  else     if ("properties".equals(nodeName)) {
       handleProperties(child,serviceConfigBuilder);
@@ -26,5 +28,15 @@
       }
     }
   }
+  final NamedNodeMap attrs=node.getAttributes();
+  Node classNameNode=attrs.getNamedItem("class-name");
+  if (classNameNode != null) {
+    serviceConfigBuilder.addPropertyValue("className",getTextContent(classNameNode));
+  }
+  Node implNode=attrs.getNamedItem("implementation");
+  if (implNode != null) {
+    serviceConfigBuilder.addPropertyReference("implementation",getTextContent(implNode));
+  }
+  Assert.isTrue(classNameSet || classNameNode != null || implNode != null,"One of 'class-name' or 'implementation' " + "attributes is required to create ServiceConfig!");
   return beanDefinition;
 }
