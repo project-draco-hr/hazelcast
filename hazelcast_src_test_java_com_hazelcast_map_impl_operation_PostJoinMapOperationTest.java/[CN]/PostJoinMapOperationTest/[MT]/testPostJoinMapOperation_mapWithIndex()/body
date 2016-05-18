@@ -1,0 +1,22 @@
+{
+  TestHazelcastInstanceFactory hzFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=hzFactory.newHazelcastInstance();
+  IMap<String,Person> map=hz1.getMap("map");
+  map.put("foo",new Person("foo",32));
+  map.put("bar",new Person("bar",70));
+  map.addIndex("age",true);
+  HazelcastInstance hz2=hzFactory.newHazelcastInstance();
+  waitAllForSafeState(hz1,hz2);
+  hzFactory.terminate(hz1);
+  waitAllForSafeState(hz1,hz2);
+  IMap<String,Person> mapOnNode2=hz2.getMap("map");
+  Collection<Person> personsWithAgePredicate=mapOnNode2.values(new AgePredicate());
+  assertEqualsEventually(new Callable<Integer>(){
+    @Override public Integer call() throws Exception {
+      return isIndexedInvoked.get();
+    }
+  }
+,1);
+  assertEquals(1,personsWithAgePredicate.size());
+  hzFactory.terminate(hz2);
+}

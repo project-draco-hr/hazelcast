@@ -1,0 +1,17 @@
+{
+  TestHazelcastInstanceFactory hzFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=hzFactory.newHazelcastInstance();
+  IMap<String,Person> map=hz1.getMap("map");
+  map.put("foo",new Person("foo",32));
+  map.put("bar",new Person("bar",35));
+  map.addInterceptor(new FixedReturnInterceptor());
+  assertEquals(RETURNED_FROM_INTERCEPTOR,map.get("foo"));
+  HazelcastInstance hz2=hzFactory.newHazelcastInstance();
+  waitAllForSafeState(hz1,hz2);
+  IMap<String,Person> mapOnNode2=hz2.getMap("map");
+  assertEquals(RETURNED_FROM_INTERCEPTOR,mapOnNode2.get("whatever"));
+  String keyOwnedByNode2=generateKeyOwnedBy(hz2);
+  map.put(keyOwnedByNode2,new Person("not to be returned",39));
+  assertEquals(RETURNED_FROM_INTERCEPTOR,map.get(keyOwnedByNode2));
+  hzFactory.terminateAll();
+}
