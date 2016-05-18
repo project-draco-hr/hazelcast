@@ -4,16 +4,17 @@
   HazelcastInstance client=hazelcastFactory.newHazelcastClient(getClientConfig(instance1));
   final ReplicatedMap<String,String> map=client.getReplicatedMap(randomMapName());
   final String key=generateKeyOwnedBy(instance2);
+  final String value=randomString();
   int partitionId=instance1.getPartitionService().getPartition(key).getPartitionId();
   setPartitionId(map,partitionId);
-  final String value=randomString();
   map.put(key,value);
   assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
+    @Override public void run(){
       Set<Map.Entry<String,String>> entries=map.entrySet();
       assertEquals(1,entries.size());
-      assertEquals(key,entries.iterator().next().getKey());
-      assertEquals(value,entries.iterator().next().getValue());
+      Map.Entry<String,String> entry=entries.iterator().next();
+      assertEquals(key,entry.getKey());
+      assertEquals(value,entry.getValue());
     }
   }
 );
