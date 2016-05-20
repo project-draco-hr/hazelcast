@@ -1,0 +1,23 @@
+{
+  if (predicate == TruePredicate.INSTANCE) {
+    return;
+  }
+  MapService mapService=nodeEngine.getService(SERVICE_NAME);
+  MapServiceContext mapServiceContext=mapService.getMapServiceContext();
+  Indexes indexes=mapServiceContext.getMapContainer(name).getIndexes();
+  QueryOptimizer queryOptimizer=mapServiceContext.getQueryOptimizer();
+  predicate=queryOptimizer.optimize(predicate,indexes);
+  Set<QueryableEntry> querySet=indexes.query(predicate);
+  if (querySet == null) {
+    return;
+  }
+  List<Data> keys=null;
+  for (  QueryableEntry e : querySet) {
+    if (keys == null) {
+      keys=new ArrayList<Data>(querySet.size());
+    }
+    keys.add(e.getKeyData());
+  }
+  hasIndex=true;
+  keySet=keys == null ? Collections.<Data>emptySet() : InflatableSet.newBuilder(keys).build();
+}

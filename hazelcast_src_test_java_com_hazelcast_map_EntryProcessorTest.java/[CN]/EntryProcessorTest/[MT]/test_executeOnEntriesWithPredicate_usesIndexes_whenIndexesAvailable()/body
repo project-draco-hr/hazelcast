@@ -1,0 +1,16 @@
+{
+  HazelcastInstance node=createHazelcastInstance(getConfig());
+  IMap<Integer,Integer> map=node.getMap("test");
+  map.addIndex("__key",true);
+  for (int i=0; i < 10; i++) {
+    map.put(i,i);
+  }
+  AtomicBoolean indexCalled=new AtomicBoolean(false);
+  map.executeOnEntries(new AbstractEntryProcessor(){
+    @Override public Object process(    Map.Entry entry){
+      return null;
+    }
+  }
+,new IndexedTestPredicate(indexCalled));
+  assertTrue("isIndexed method of IndexAwarePredicate should be called",indexCalled.get());
+}

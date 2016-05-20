@@ -1,21 +1,23 @@
 {
-  final long now=getNow();
-  final Set<Data> keys=this.keys;
-  for (  Data dataKey : keys) {
-    if (keyNotOwnedByThisPartition(dataKey)) {
+  long now=getNow();
+  for (  Data key : keys) {
+    if (!isKeyProcessable(key)) {
       continue;
     }
-    final Object oldValue=recordStore.get(dataKey,false);
-    final Map.Entry entry=createMapEntry(dataKey,oldValue);
-    final Data response=process(entry);
-    addToResponses(dataKey,response);
-    if (noOp(entry,oldValue)) {
+    Object value=recordStore.get(key,false);
+    Map.Entry entry=createMapEntry(key,value);
+    if (!isEntryProcessable(entry)) {
       continue;
     }
-    if (entryRemoved(entry,dataKey,oldValue,now)) {
+    Data response=process(entry);
+    addToResponses(key,response);
+    if (noOp(entry,value)) {
       continue;
     }
-    entryAddedOrUpdated(entry,dataKey,oldValue,now);
+    if (entryRemoved(entry,key,value,now)) {
+      continue;
+    }
+    entryAddedOrUpdated(entry,key,value,now);
     evict();
   }
 }
