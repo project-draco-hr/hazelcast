@@ -1,0 +1,16 @@
+{
+  InputStream xmlResource=DiscoverySpiTest.class.getClassLoader().getResourceAsStream(xmlFileName);
+  Config config=new XmlConfigBuilder(xmlResource).build();
+  config.getNetworkConfig().setPort(50001);
+  InterfacesConfig interfaces=config.getNetworkConfig().getInterfaces();
+  interfaces.clear();
+  interfaces.setEnabled(true);
+  interfaces.addInterface("127.0.0.1");
+  List<DiscoveryNode> discoveryNodes=new CopyOnWriteArrayList<DiscoveryNode>();
+  DiscoveryStrategyFactory factory=new CollectingDiscoveryStrategyFactory(discoveryNodes);
+  DiscoveryConfig discoveryConfig=config.getNetworkConfig().getJoin().getDiscoveryConfig();
+  discoveryConfig.getDiscoveryStrategyConfigs().clear();
+  DiscoveryStrategyConfig strategyConfig=new DiscoveryStrategyConfig(factory,Collections.<String,Comparable>emptyMap());
+  discoveryConfig.addDiscoveryStrategyConfig(strategyConfig);
+  return config;
+}

@@ -1,0 +1,32 @@
+{
+  Set<MemberGroup> memberGroups=new HashSet<MemberGroup>();
+  for (  Member member : allMembers) {
+    try {
+      if (member.localMember()) {
+        DefaultDiscoveryService defaultDiscoveryService=(DefaultDiscoveryService)discoveryService;
+        if (!defaultDiscoveryService.getDiscoveryStrategies().iterator().hasNext()) {
+          throw new RuntimeException("Could not load any Discovery Strategy, please " + "check service definitions under META_INF.services folder. ");
+        }
+ else {
+          for (          DiscoveryStrategy discoveryStrategy : defaultDiscoveryService.getDiscoveryStrategies()) {
+            checkNotNull(discoveryStrategy.getPartitionGroupStrategy());
+            Iterable<MemberGroup> spiGroupsIterator=discoveryStrategy.getPartitionGroupStrategy().getMemberGroups();
+            for (            MemberGroup group : spiGroupsIterator) {
+              memberGroups.add(group);
+            }
+            return memberGroups;
+          }
+        }
+      }
+    }
+ catch (    Exception e) {
+      if (e instanceof ValidationException) {
+        throw new InvalidConfigurationException("Invalid configuration",e);
+      }
+ else {
+        throw new RuntimeException("Failed to configure discovery strategies",e);
+      }
+    }
+  }
+  return memberGroups;
+}
