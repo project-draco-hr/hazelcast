@@ -1,0 +1,30 @@
+{
+  TestHazelcastInstanceFactory instanceFactory1=new TestHazelcastInstanceFactory();
+  TestHazelcastInstanceFactory instanceFactory2=new TestHazelcastInstanceFactory();
+  try {
+    final HazelcastInstance instance11=instanceFactory1.newHazelcastInstance();
+    final HazelcastInstance instance12=instanceFactory1.newHazelcastInstance();
+    final HazelcastInstance instance13=instanceFactory1.newHazelcastInstance();
+    final HazelcastInstance instance21=instanceFactory2.newHazelcastInstance();
+    final HazelcastInstance instance22=instanceFactory2.newHazelcastInstance();
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(2,instance21.getCluster().getMembers().size());
+        assertEquals(2,instance22.getCluster().getMembers().size());
+      }
+    }
+);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run() throws Exception {
+        assertEquals(3,instance11.getCluster().getMembers().size());
+        assertEquals(3,instance12.getCluster().getMembers().size());
+        assertEquals(3,instance13.getCluster().getMembers().size());
+      }
+    }
+);
+  }
+  finally {
+    instanceFactory1.terminateAll();
+    instanceFactory2.terminateAll();
+  }
+}
