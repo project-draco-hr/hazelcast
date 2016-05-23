@@ -1,0 +1,22 @@
+{
+  Object oldValue=putToRecordStore(dataKey,dataValue);
+  dataValue=getValueOrPostProcessedValue(dataKey,dataValue);
+  mapServiceContext.interceptAfterPut(name,dataValue);
+  if (hasMapListener) {
+    EntryEventType eventType=(oldValue == null ? ADDED : UPDATED);
+    mapEventPublisher.publishEvent(getCallerAddress(),name,eventType,dataKey,oldValue,dataValue);
+  }
+  Record record=(hasWanReplication || hasBackups) ? recordStore.getRecord(dataKey) : null;
+  if (hasWanReplication) {
+    EntryView entryView=createSimpleEntryView(dataKey,dataValue,record);
+    mapEventPublisher.publishWanReplicationUpdate(name,entryView);
+  }
+  if (hasBackups) {
+    RecordInfo replicationInfo=buildRecordInfo(record);
+    backupRecordInfos.add(replicationInfo);
+  }
+  evict();
+  if (hasInvalidation) {
+    invalidationKeys.add(dataKey);
+  }
+}

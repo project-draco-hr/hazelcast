@@ -1,7 +1,28 @@
 {
-  int partitionCount=partitionService.getPartitionCount();
   try {
-    List<Future> futures=new ArrayList<Future>(partitionCount);
+    int mapSize=map.size();
+    if (mapSize == 0) {
+      return;
+    }
+    boolean useBatching=isPutAllUseBatching(mapSize);
+    int partitionCount=partitionService.getPartitionCount();
+    int initialSize=getPutAllInitialSize(useBatching,mapSize,partitionCount);
+    Map<Address,List<Integer>> memberPartitionsMap=partitionService.getMemberPartitionsMap();
+    List<Future> futures=new ArrayList<Future>(getPutAllFutureSize(mapSize,useBatching,partitionCount));
+    Long[] counterPerMember=null;
+    Address[] addresses=null;
+    if (useBatching) {
+      counterPerMember=new Long[partitionCount];
+      addresses=new Address[partitionCount];
+      for (      Entry<Address,List<Integer>> addressListEntry : memberPartitionsMap.entrySet()) {
+        Long counter=new Long(0);
+        Address address=addressListEntry.getKey();
+        for (        int partitionId : addressListEntry.getValue()) {
+          counterPerMember[partitionId]=counter;
+          addresses[partitionId]=address;
+        }
+      }
+    }
     MapEntries[] entriesPerPartition=new MapEntries[partitionCount];
     for (    Entry entry : map.entrySet()) {
       checkNotNull(entry.getKey(),NULL_KEY_IS_NOT_ALLOWED);
@@ -10,17 +31,20 @@
       int partitionId=partitionService.getPartitionId(keyData);
       MapEntries entries=entriesPerPartition[partitionId];
       if (entries == null) {
-        entries=new MapEntries();
+        entries=new MapEntries(initialSize);
         entriesPerPartition[partitionId]=entries;
       }
-      entries.add(new AbstractMap.SimpleImmutableEntry<Data,Data>(keyData,toData(entry.getValue())));
-    }
-    for (int partitionId=0; partitionId < entriesPerPartition.length; partitionId++) {
-      MapEntries entries=entriesPerPartition[partitionId];
-      if (entries != null) {
-        Future future=createPutAllOperationFuture(name,entries,partitionId);
-        futures.add(future);
+      entries.add(keyData,toData(entry.getValue()));
+      if (useBatching) {
+        long currentSize=++counterPerMember[partitionId];
+        if (currentSize % putAllBatchSize == 0) {
+          List<Integer> partitions=memberPartitionsMap.get(addresses[partitionId]);
+          invokePutAllOperation(addresses[partitionId],partitions,futures,entriesPerPartition);
+        }
       }
+    }
+    for (    Entry<Address,List<Integer>> entry : memberPartitionsMap.entrySet()) {
+      invokePutAllOperation(entry.getKey(),entry.getValue(),futures,entriesPerPartition);
     }
     for (    Future future : futures) {
       future.get();
