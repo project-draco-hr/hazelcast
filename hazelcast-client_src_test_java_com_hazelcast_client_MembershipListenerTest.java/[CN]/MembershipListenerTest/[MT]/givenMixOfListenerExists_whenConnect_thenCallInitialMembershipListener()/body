@@ -1,0 +1,18 @@
+{
+  hazelcastFactory.newHazelcastInstance();
+  final ClientConfig config=new ClientConfig();
+  config.addListenerConfig(new ListenerConfig().setImplementation(new MemberShipEventLogger()));
+  config.addListenerConfig(new ListenerConfig().setImplementation(new MemberShipEventLogger()));
+  config.addListenerConfig(new ListenerConfig().setImplementation(new MemberShipEventLogger()));
+  final InitialMemberShipEventLogger initialListener=new InitialMemberShipEventLogger();
+  config.addListenerConfig(new ListenerConfig().setImplementation(initialListener));
+  hazelcastFactory.newHazelcastClient(config);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals("Expecting one event",1,initialListener.events.size());
+      InitialMembershipEvent event=(InitialMembershipEvent)initialListener.events.getLast();
+      assertEquals(1,event.getMembers().size());
+    }
+  }
+);
+}
