@@ -1,0 +1,24 @@
+{
+  lock.lock();
+  try {
+    ClusterState clusterState=node.getClusterService().getClusterState();
+    if (clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE) {
+      return true;
+    }
+    if (partitionStateManager.isPresentInPartitionTable(address)) {
+      return false;
+    }
+    final MigrationRunnable activeTask=migrationManager.getActiveTask();
+    if (activeTask instanceof MigrationManager.MigrateTask) {
+      final MigrationManager.MigrateTask migrateTask=(MigrationManager.MigrateTask)activeTask;
+      final MigrationInfo migrationInfo=migrateTask.migrationInfo;
+      if (address.equals(migrationInfo.getSource()) || address.equals(migrationInfo.getDestination())) {
+        return false;
+      }
+    }
+    return true;
+  }
+  finally {
+    lock.unlock();
+  }
+}
