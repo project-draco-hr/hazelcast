@@ -1,0 +1,23 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  Config config=getConfig();
+  HazelcastInstance node1=factory.newHazelcastInstance(config);
+  HazelcastInstance node2=factory.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map=node1.getMap("test");
+  map.addIndex("__key",true);
+  AssertTask task=new AssertTask(){
+    @Override public void run() throws Exception {
+      try {
+        map.set(1,1);
+        ApplyCountAwareIndexedTestPredicate predicate=new ApplyCountAwareIndexedTestPredicate("__key",1);
+        map.executeOnEntries(new DeleterEP(),predicate);
+        assertEquals("Expecting two predicate#apply method call one on owner, other one on backup",2,predicateApplyCount.get());
+      }
+  finally {
+        predicateApplyCount.set(0);
+      }
+    }
+  }
+;
+  assertTrueEventually(task);
+}
