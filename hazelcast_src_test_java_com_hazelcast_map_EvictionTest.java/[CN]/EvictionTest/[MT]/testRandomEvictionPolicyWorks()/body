@@ -1,0 +1,13 @@
+{
+  Config config=getConfig();
+  int maxSize=300;
+  config.getMapConfig("test").setEvictionPolicy(RANDOM).getMaxSizeConfig().setSize(maxSize).setMaxSizePolicy(PER_NODE);
+  HazelcastInstance node=createHazelcastInstance(config);
+  IMap map=node.getMap("test");
+  for (int i=0; i < 500; i++) {
+    map.put(i,i);
+  }
+  int size=map.size();
+  String message="map-size should be smaller than max-size but found [map-size = %d and max-size = %d]";
+  assertTrue(format(message,size,maxSize),size <= maxSize);
+}
