@@ -2,9 +2,7 @@
   int expectedEntryCount=INSTANCE_COUNT * entriesPerPartition;
   String mapName=randomMapName();
   HazelcastInstance hz=instances[0];
-  HazelcastInstance randomHz=instances[1 + RANDOM.nextInt(INSTANCE_COUNT - 1)];
   NodeEngineImpl nodeEngine=getNodeEngineImpl(hz);
-  NodeEngineImpl randomNodeEngine=getNodeEngineImpl(randomHz);
   SerializationService serializationService=nodeEngine.getSerializationService();
   Map<Address,List<Integer>> memberPartitionsMap=nodeEngine.getPartitionService().getMemberPartitionsMap();
   Collection<List<Integer>> memberPartitions=memberPartitionsMap.values();
@@ -14,10 +12,9 @@
   }
   IMap<String,String> map=hz.getMap(mapName);
   assertEquals("Expected an empty map",0,map.size());
-  Operation op=createPutAllPerMemberOperation(entriesPerPartition,mapName,hz,serializationService);
+  PartitionAwareOperationFactory factory=createPutAllOperationFactory(entriesPerPartition,mapName,hz,serializationService);
   InternalOperationService operationService=nodeEngine.getOperationService();
-  InternalCompletableFuture<Object> future=operationService.invokeOnTarget(null,op,randomNodeEngine.getThisAddress());
-  future.get();
+  operationService.invokeOnPartitions(MapService.SERVICE_NAME,factory,factory.getPartitions());
   assertEquals(format("Expected %d entries in the map",expectedEntryCount),expectedEntryCount,map.size());
   for (  Map.Entry<String,String> entry : map.entrySet()) {
     assertEquals("Expected that key and value are the same",entry.getKey(),entry.getValue());

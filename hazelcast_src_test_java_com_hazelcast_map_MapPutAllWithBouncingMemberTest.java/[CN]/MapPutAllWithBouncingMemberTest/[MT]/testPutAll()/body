@@ -1,0 +1,38 @@
+{
+  HazelcastInstance instance=factory.newHazelcastInstance(config);
+  final IMap<Integer,Integer> map=instance.getMap(randomMapName());
+  final AtomicBoolean done=new AtomicBoolean(false);
+  Thread bouncingThread=new Thread(){
+    public void run(){
+      while (!done.get()) {
+        HazelcastInstance newInstance=factory.newHazelcastInstance(config);
+        sleepSeconds(5);
+        factory.terminate(newInstance);
+      }
+    }
+  }
+;
+  bouncingThread.start();
+  HashMap<Integer,Integer> batch=new HashMap<Integer,Integer>();
+  for (int i=0; i < MAP_SIZE; i++) {
+    batch.put(i,i);
+  }
+  long started=System.nanoTime();
+  long elapsed;
+  int i=0;
+  do {
+    map.clear();
+    map.putAll(batch);
+    sleepMillis(3);
+    elapsed=NANOSECONDS.toSeconds(System.nanoTime() - started);
+    if (++i % 500 == 0) {
+      System.out.println(elapsed + " sec (" + i+ " iterations)");
+    }
+  }
+ while (elapsed < DURATION_SECONDS);
+  System.out.println(elapsed + " sec (" + i+ " iterations)");
+  done.set(true);
+  assertJoinable(bouncingThread);
+  assertEquals("The map size should be " + MAP_SIZE,MAP_SIZE,map.size());
+  assertTrue("There should have been multiple iterations, but was " + i,i > 1);
+}
