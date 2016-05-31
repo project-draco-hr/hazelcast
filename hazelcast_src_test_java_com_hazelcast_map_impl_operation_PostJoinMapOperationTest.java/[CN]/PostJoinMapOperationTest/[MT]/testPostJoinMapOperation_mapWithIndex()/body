@@ -10,13 +10,9 @@
   hzFactory.terminate(hz1);
   waitAllForSafeState(hz1,hz2);
   IMap<String,Person> mapOnNode2=hz2.getMap("map");
-  Collection<Person> personsWithAgePredicate=mapOnNode2.values(new AgePredicate());
-  assertEqualsEventually(new Callable<Integer>(){
-    @Override public Integer call() throws Exception {
-      return isIndexedInvoked.get();
-    }
-  }
-,1);
-  assertEquals(1,personsWithAgePredicate.size());
+  final AtomicInteger invocationCounter=new AtomicInteger(0);
+  Collection<Person> personsWithAgePredicate=mapOnNode2.values(new AgePredicate(invocationCounter));
+  assertEquals("isIndexed should have located an index",1,invocationCounter.get());
+  assertEquals("index should return 1 match",1,personsWithAgePredicate.size());
   hzFactory.terminate(hz2);
 }
