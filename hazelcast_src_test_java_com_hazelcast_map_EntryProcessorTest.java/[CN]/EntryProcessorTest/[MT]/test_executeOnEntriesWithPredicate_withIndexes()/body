@@ -1,0 +1,14 @@
+{
+  Config config=getConfig();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance node=factory.newHazelcastInstance(config);
+  factory.newHazelcastInstance(config);
+  factory.newHazelcastInstance(config);
+  IMap<Integer,Integer> map=node.getMap("test");
+  map.addIndex("__key",true);
+  for (int i=0; i < 1000; i++) {
+    map.put(i,i);
+  }
+  map.executeOnEntries(new DeleterEP(),new SqlPredicate("__key >=0"));
+  assertSizeEventually(0,map);
+}
