@@ -1,0 +1,23 @@
+{
+  long now=Clock.currentTimeMillis();
+  if (logger.isFinestEnabled()) {
+    String timeToStart=(timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
+    logger.finest(format("Handling join from %s, joinInProgress: %b%s",memberInfo.getAddress(),joinInProgress,timeToStart));
+  }
+  if (firstJoinRequest == 0) {
+    firstJoinRequest=now;
+  }
+  final MemberInfo existing=joiningMembers.put(memberInfo.getAddress(),memberInfo);
+  if (existing == null) {
+    sendMasterAnswer(memberInfo.getAddress());
+    if (now - firstJoinRequest < maxWaitMillisBeforeJoin) {
+      timeToStartJoin=now + waitMillisBeforeJoin;
+    }
+  }
+ else   if (!existing.getUuid().equals(memberInfo.getUuid())) {
+    logger.warning("Received a new join request from " + memberInfo.getAddress() + " with a new uuid "+ memberInfo.getUuid()+ ". Previous uuid was "+ existing.getUuid());
+  }
+  if (now >= timeToStartJoin) {
+    startJoin();
+  }
+}

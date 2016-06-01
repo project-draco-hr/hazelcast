@@ -1,23 +1,21 @@
 {
-  if (!member.localMember()) {
-    partitionStateManager.updateMemberGroupsSize();
-  }
-  lastMaster=node.getMasterAddress();
-  if (node.isMaster()) {
-    lock.lock();
-    try {
+  logger.fine("Adding " + member);
+  lock.lock();
+  try {
+    if (!member.localMember()) {
+      partitionStateManager.updateMemberGroupsSize();
+    }
+    lastMaster=node.getMasterAddress();
+    if (node.isMaster()) {
       if (partitionStateManager.isInitialized()) {
         final ClusterState clusterState=nodeEngine.getClusterService().getClusterState();
         if (clusterState == ClusterState.ACTIVE) {
           migrationManager.triggerControlTask();
         }
- else         if (clusterState == ClusterState.FROZEN || clusterState == ClusterState.PASSIVE) {
-          partitionStateManager.updateMemberUuidMap();
-        }
       }
     }
+  }
   finally {
-      lock.unlock();
-    }
+    lock.unlock();
   }
 }

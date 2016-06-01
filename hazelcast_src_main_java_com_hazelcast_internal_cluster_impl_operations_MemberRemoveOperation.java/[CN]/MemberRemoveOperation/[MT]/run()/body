@@ -1,17 +1,18 @@
 {
-  final ClusterServiceImpl clusterService=getService();
-  final Address caller=getCallerAddress();
+  ClusterServiceImpl clusterService=getService();
+  Address caller=getCallerAddress();
   ILogger logger=getLogger();
-  if (caller != null && (caller.equals(deadAddress) || caller.equals(clusterService.getMasterAddress()))) {
-    String msg="Removing dead member " + deadAddress + ", called from "+ caller;
-    if (logger.isFinestEnabled()) {
-      logger.finest(msg);
-    }
-    clusterService.removeAddress(deadAddress,msg);
+  if (!isCallerValid(caller)) {
+    return;
+  }
+  String msg="Removing member " + address + (memberUuid != null ? ", uuid: " + memberUuid : "")+ ", requested by: "+ caller;
+  if (logger.isFineEnabled()) {
+    logger.fine(msg);
+  }
+  if (memberUuid != null) {
+    clusterService.removeAddress(address,memberUuid,msg);
   }
  else {
-    if (logger.isFinestEnabled()) {
-      logger.finest("Ignoring removal request of " + deadAddress + ", because sender is neither dead-member "+ "nor master, called from "+ caller);
-    }
+    clusterService.removeAddress(address,msg);
   }
 }

@@ -8,19 +8,17 @@
     if (checkClusterStateBeforeJoin(target)) {
       return;
     }
-    long now=Clock.currentTimeMillis();
-    if (logger.isFinestEnabled()) {
-      String timeToStart=(timeToStartJoin > 0 ? ", timeToStart: " + (timeToStartJoin - now) : "");
-      logger.finest(format("Handling join from %s, joinInProgress: %b%s",target,joinInProgress,timeToStart));
+    if (!node.getPartitionService().isMemberAllowedToJoin(target)) {
+      logger.warning(format("%s not allowed to join right now, it seems restarted.",target));
+      return;
     }
-    MemberInfo memberInfo=getMemberInfo(joinRequest);
-    if (memberInfo == null) {
+    if (!authenticate(joinRequest)) {
       return;
     }
     if (!validateJoinRequest(target)) {
       return;
     }
-    startJoinRequest(now,memberInfo);
+    startJoinRequest(joinRequest.toMemberInfo());
   }
   finally {
     clusterServiceLock.unlock();
