@@ -1,0 +1,18 @@
+{
+  TestHazelcastInstanceFactory factory=new TestHazelcastInstanceFactory(1);
+  HazelcastInstance hazelcastInstance=factory.newHazelcastInstance();
+  IMap<Integer,Integer> map=hazelcastInstance.getMap(randomString());
+  for (int i=0; i < 8000; i++) {
+    map.put(i,i);
+  }
+  StringBuilder sb=new StringBuilder();
+  for (int i=0; i < 8000; i++) {
+    sb.append("intValue() == " + i);
+    sb.append(" or ");
+  }
+  sb.append(" intValue() == -1");
+  SqlPredicate predicate=new SqlPredicate(sb.toString());
+  Set<Map.Entry<Integer,Integer>> entries=map.entrySet(predicate);
+  assertEquals(map.size(),entries.size());
+  factory.terminateAll();
+}
