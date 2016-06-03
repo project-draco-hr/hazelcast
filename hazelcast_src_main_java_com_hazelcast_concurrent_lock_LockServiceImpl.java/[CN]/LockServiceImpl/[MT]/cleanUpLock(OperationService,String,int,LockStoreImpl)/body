@@ -1,0 +1,11 @@
+{
+  Collection<LockResource> locks=lockStore.getLocks();
+  for (  LockResource lock : locks) {
+    Data key=lock.getKey();
+    if (uuid.equals(lock.getOwner()) && !lock.isTransactional()) {
+      UnlockOperation op=createLockCleanupOperation(partitionId,lockStore.getNamespace(),key,uuid);
+      operationService.runOperationOnCallingThread(op);
+    }
+    lockStore.cleanWaitersAndSignalsFor(key,uuid);
+  }
+}
