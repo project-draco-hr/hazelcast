@@ -3,7 +3,15 @@
     final Future future=new ClientInvocation(getClient(),clientMessage,partitionId).invoke();
     return (T)future.get();
   }
- catch (  Exception e) {
+ catch (  ExecutionException e) {
+    if (e.getCause() instanceof StaleSequenceException) {
+      StaleSequenceException se=(StaleSequenceException)e.getCause();
+      long l=headSequence();
+      throw new StaleSequenceException(se.getMessage(),l);
+    }
+    throw ExceptionUtil.rethrow(e);
+  }
+catch (  Exception e) {
     throw ExceptionUtil.rethrow(e);
   }
 }
