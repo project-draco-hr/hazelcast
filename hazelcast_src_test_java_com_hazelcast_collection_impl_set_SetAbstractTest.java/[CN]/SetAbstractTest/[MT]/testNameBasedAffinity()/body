@@ -1,0 +1,26 @@
+{
+  newInstances(config);
+  newInstances(config);
+  int numberOfSets=100;
+  ISet[] localSets=new ISet[numberOfSets];
+  ISet[] targetSets=new ISet[numberOfSets];
+  for (int i=0; i < numberOfSets; i++) {
+    String name=randomName() + "@" + i;
+    localSets[i]=local.getSet(name);
+    targetSets[i]=target.getSet(name);
+  }
+  for (  final ISet set : localSets) {
+    TransactionalTask task=new TransactionalTask(){
+      @Override public Object execute(      TransactionalTaskContext context) throws TransactionException {
+        TransactionalSet<String> txSet=context.getSet(set.getName());
+        txSet.add("Hello");
+        return null;
+      }
+    }
+;
+    local.executeTransaction(task);
+  }
+  for (  ISet set : localSets) {
+    assertEquals(1,set.size());
+  }
+}
