@@ -1,0 +1,22 @@
+{
+  int lockCount=10;
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance lockOwner=nodeFactory.newHazelcastInstance();
+  final HazelcastInstance instance1=nodeFactory.newHazelcastInstance();
+  final String[] names=generateKeysBelongingToSamePartitionsOwnedBy(instance1,lockCount);
+  final ILock[] locks=getLocks(lockOwner,names);
+  lockAll(locks);
+  assertAllLocked(locks);
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread t=new Thread(new Runnable(){
+    public void run(){
+      final ILock[] locks=getLocks(instance1,names);
+      lockAll(locks);
+      latch.countDown();
+    }
+  }
+);
+  t.start();
+  lockOwner.shutdown();
+  assertTrue(latch.await(10,TimeUnit.SECONDS));
+}
