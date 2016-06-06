@@ -1,0 +1,22 @@
+{
+  Config config=getConfig();
+  config.setProperty(GroupProperty.PARTITION_COUNT.getName(),"1");
+  config.getMapConfig("test").setEvictionPolicy(LFU).getMaxSizeConfig().setSize(1).setMaxSizePolicy(PER_PARTITION);
+  HazelcastInstance node=createHazelcastInstance(config);
+  IMap map=node.getMap("test");
+  final AtomicReference evictedKey=new AtomicReference(null);
+  map.addEntryListener(new EntryEvictedListener(){
+    @Override public void entryEvicted(    EntryEvent event){
+      evictedKey.set(event.getKey());
+    }
+  }
+,false);
+  map.put(1,1);
+  map.put(2,1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals("Eviction impl. cannot evict latest added key 2",1,evictedKey.get());
+    }
+  }
+);
+}
