@@ -1,0 +1,25 @@
+{
+  Config config=new Config();
+  config.setProperty(GroupProperty.PARTITION_COUNT.getName(),"1");
+  config.getMapConfig("test").setEvictionPolicy(LFU).getMaxSizeConfig().setSize(90).setMaxSizePolicy(FREE_HEAP_PERCENTAGE);
+  HazelcastInstance node=createHazelcastInstance(config);
+  IMap map=node.getMap("test");
+  final AtomicReference evictedKey=new AtomicReference(null);
+  map.addEntryListener(new EntryEvictedListener(){
+    @Override public void entryEvicted(    EntryEvent event){
+      evictedKey.set(event.getKey());
+    }
+  }
+,false);
+  int totalMemoryMB=90;
+  int freeMemoryMB=0;
+  int maxMemoryMB=100;
+  setMockRuntimeMemoryInfoAccessor(map,totalMemoryMB,freeMemoryMB,maxMemoryMB);
+  map.put(1,1);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals("Eviction impl. should evict latest added key when heap based max-size-policy is used",1,evictedKey.get());
+    }
+  }
+);
+}
