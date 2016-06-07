@@ -1,20 +1,6 @@
 {
-  final IExecutorService executorService=createSingleNodeExecutorService("testExecutorServiceStats");
   final int k=10;
-  LatchRunnable.latch=new CountDownLatch(k);
-  for (int i=0; i < k; i++) {
-    executorService.execute(new LatchRunnable());
-  }
-  assertOpenEventually(LatchRunnable.latch);
-  final Future<Boolean> f=executorService.submit(new SleepingTask(10));
-  Thread.sleep(1000);
-  f.cancel(true);
-  try {
-    f.get();
-  }
- catch (  CancellationException e) {
-  }
-  final LocalExecutorStats stats=executorService.getLocalExecutorStats();
+  LocalExecutorStats stats=executeTasksForStats("testExecutorServiceStats",k,true);
   assertEquals(k + 1,stats.getStartedTaskCount());
   assertEquals(k,stats.getCompletedTaskCount());
   assertEquals(0,stats.getPendingTaskCount());

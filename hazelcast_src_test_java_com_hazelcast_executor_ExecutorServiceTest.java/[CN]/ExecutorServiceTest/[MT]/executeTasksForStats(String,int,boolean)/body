@@ -1,0 +1,17 @@
+{
+  final IExecutorService executorService=createSingleNodeExecutorService(executorName,DEFAULT_POOL_SIZE,statsEnabled);
+  LatchRunnable.latch=new CountDownLatch(tasksToExecute);
+  for (int i=0; i < tasksToExecute; i++) {
+    executorService.execute(new LatchRunnable());
+  }
+  assertOpenEventually(LatchRunnable.latch);
+  final Future<Boolean> f=executorService.submit(new SleepingTask(10));
+  Thread.sleep(1000);
+  f.cancel(true);
+  try {
+    f.get();
+  }
+ catch (  CancellationException e) {
+  }
+  return executorService.getLocalExecutorStats();
+}

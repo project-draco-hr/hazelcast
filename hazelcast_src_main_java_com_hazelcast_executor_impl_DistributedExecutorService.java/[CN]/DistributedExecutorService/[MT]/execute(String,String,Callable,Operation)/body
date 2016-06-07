@@ -1,6 +1,9 @@
 {
-  startPending(name);
-  CallableProcessor processor=new CallableProcessor(name,uuid,callable,op);
+  ExecutorConfig cfg=getOrFindExecutorConfig(name);
+  if (cfg.isStatisticsEnabled()) {
+    startPending(name);
+  }
+  CallableProcessor processor=new CallableProcessor(name,uuid,callable,op,cfg.isStatisticsEnabled());
   if (uuid != null) {
     submittedTasks.put(uuid,processor);
   }
@@ -8,7 +11,9 @@
     executionService.execute(name,processor);
   }
  catch (  RejectedExecutionException e) {
-    rejectExecution(name);
+    if (cfg.isStatisticsEnabled()) {
+      rejectExecution(name);
+    }
     logger.warning("While executing " + callable + " on Executor["+ name+ "]",e);
     if (uuid != null) {
       submittedTasks.remove(uuid);
