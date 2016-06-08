@@ -1,0 +1,56 @@
+{
+  if (timeout && error) {
+    throw new IllegalArgumentException("Only one of the `timeout` and `error` parameters can be enabled at the same time!");
+  }
+  int timeoutMillis=timeout ? 5000 : -1;
+  createCache(timeoutMillis,error);
+  ClientMessage getRequest=createGetRequest(1);
+  ClientMessageDecoder decoder=CACHE_GET_RESPONSE_DECODER;
+  ClientInvocation invocation=new ClientInvocation(client,getRequest,0);
+  ClientInvocationFuture invocationFuture=invocation.invoke();
+  final AtomicBoolean responseCalled=new AtomicBoolean();
+  final AtomicBoolean failureCalled=new AtomicBoolean();
+  OneShotExecutionCallback callback=new OneShotExecutionCallback(){
+    @Override protected void onResponseInternal(    Object response){
+      responseCalled.set(true);
+    }
+    @Override protected void onFailureInternal(    Throwable t){
+      failureCalled.set(true);
+    }
+  }
+;
+  CallbackAwareClientDelegatingFuture callbackAwareInvocationFuture=new CallbackAwareClientDelegatingFuture(invocationFuture,client.getSerializationService(),decoder,callback);
+  if (timeoutMillis > 0) {
+    try {
+      callbackAwareInvocationFuture.get(timeoutMillis / 2,TimeUnit.MILLISECONDS);
+      fail("Timeout expected!");
+    }
+ catch (    TimeoutException e) {
+      assertTrue(failureCalled.get());
+      assertFalse(responseCalled.get());
+    }
+  }
+ else {
+    if (error) {
+      try {
+        callbackAwareInvocationFuture.get();
+        fail("CacheLoaderException expected!");
+      }
+ catch (      ExecutionException e) {
+        assertTrue(e.getCause() instanceof CacheLoaderException);
+        assertTrue(failureCalled.get());
+        assertFalse(responseCalled.get());
+      }
+    }
+ else {
+      try {
+        callbackAwareInvocationFuture.get();
+        assertTrue(responseCalled.get());
+        assertFalse(failureCalled.get());
+      }
+ catch (      CacheLoaderException e) {
+        fail("CacheLoaderException not expected!");
+      }
+    }
+  }
+}
