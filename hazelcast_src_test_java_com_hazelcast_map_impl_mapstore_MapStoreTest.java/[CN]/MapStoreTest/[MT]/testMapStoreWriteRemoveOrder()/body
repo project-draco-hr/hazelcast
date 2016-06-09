@@ -1,19 +1,19 @@
 {
-  final String mapName=randomMapName("testMapStoreWriteDeleteOrder");
-  final int numIterations=10;
-  final int writeDelaySeconds=3;
-  final RecordingMapStore store=new RecordingMapStore(0,1);
-  final Config config=newConfig(mapName,store,writeDelaySeconds);
-  final HazelcastInstance hzInstance=createHazelcastInstance(config);
-  final IMap<String,String> map=hzInstance.getMap(mapName);
-  for (int k=0; k < numIterations; k++) {
-    String key=String.valueOf(k + 10);
-    String value="v:" + key;
-    map.put(key,value);
-    sleepMillis(1);
+  String mapName=randomMapName("testMapStoreWriteDeleteOrder");
+  final SimpleMapStore store=new SimpleMapStore();
+  Config config=newConfig(mapName,store,3);
+  HazelcastInstance hzInstance=createHazelcastInstance(config);
+  IMap map=hzInstance.getMap(mapName);
+  for (int key=0; key < 10; key++) {
+    map.put(key,key);
+    sleepMillis(10);
     map.remove(key);
   }
-  store.awaitStores();
-  store.awaitRemoves();
-  assertEquals(0,store.getStore().size());
+  assertWriteBehindQueuesEmpty(mapName,Arrays.asList(hzInstance));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(0,store.store.size());
+    }
+  }
+);
 }
