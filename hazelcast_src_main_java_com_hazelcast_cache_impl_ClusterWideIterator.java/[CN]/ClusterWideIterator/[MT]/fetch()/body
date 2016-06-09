@@ -1,6 +1,17 @@
 {
-  Operation operation=cacheProxy.operationProvider.createKeyIteratorOperation(lastTableIndex,fetchSize);
   final OperationService operationService=cacheProxy.getNodeEngine().getOperationService();
-  final InternalCompletableFuture<CacheKeyIteratorResult> f=operationService.invokeOnPartition(CacheService.SERVICE_NAME,operation,partitionIndex);
-  return f.join();
+  if (prefetchValues) {
+    Operation operation=cacheProxy.operationProvider.createEntryIteratorOperation(lastTableIndex,fetchSize);
+    final InternalCompletableFuture<CacheEntryIterationResult> f=operationService.invokeOnPartition(CacheService.SERVICE_NAME,operation,partitionIndex);
+    CacheEntryIterationResult iteratorResult=f.join();
+    setLastTableIndex(iteratorResult.getEntries(),iteratorResult.getTableIndex());
+    return iteratorResult.getEntries();
+  }
+ else {
+    Operation operation=cacheProxy.operationProvider.createKeyIteratorOperation(lastTableIndex,fetchSize);
+    final InternalCompletableFuture<CacheKeyIterationResult> f=operationService.invokeOnPartition(CacheService.SERVICE_NAME,operation,partitionIndex);
+    CacheKeyIterationResult iteratorResult=f.join();
+    setLastTableIndex(iteratorResult.getKeys(),iteratorResult.getTableIndex());
+    return iteratorResult.getKeys();
+  }
 }
