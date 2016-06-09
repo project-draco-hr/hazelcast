@@ -1,29 +1,13 @@
 {
+  ClientMessage request=CacheIterateCodec.encodeRequest(cacheProxy.getPrefixedName(),partitionIndex,lastTableIndex,fetchSize);
   HazelcastClientInstanceImpl client=(HazelcastClientInstanceImpl)context.getHazelcastInstance();
-  if (prefetchValues) {
-    ClientMessage request=CacheIterateEntriesCodec.encodeRequest(cacheProxy.getPrefixedName(),partitionIndex,lastTableIndex,fetchSize);
-    try {
-      ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionIndex);
-      ClientInvocationFuture f=clientInvocation.invoke();
-      CacheIterateEntriesCodec.ResponseParameters responseParameters=CacheIterateEntriesCodec.decodeResponse(f.get());
-      setLastTableIndex(responseParameters.entries,responseParameters.tableIndex);
-      return responseParameters.entries;
-    }
- catch (    Exception e) {
-      throw ExceptionUtil.rethrow(e);
-    }
+  try {
+    ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionIndex);
+    ClientInvocationFuture f=clientInvocation.invoke();
+    CacheIterateCodec.ResponseParameters responseParameters=CacheIterateCodec.decodeResponse(f.get());
+    return new CacheKeyIteratorResult(responseParameters.keys,responseParameters.tableIndex);
   }
- else {
-    ClientMessage request=CacheIterateCodec.encodeRequest(cacheProxy.getPrefixedName(),partitionIndex,lastTableIndex,fetchSize);
-    try {
-      ClientInvocation clientInvocation=new ClientInvocation(client,request,partitionIndex);
-      ClientInvocationFuture f=clientInvocation.invoke();
-      CacheIterateCodec.ResponseParameters responseParameters=CacheIterateCodec.decodeResponse(f.get());
-      setLastTableIndex(responseParameters.keys,responseParameters.tableIndex);
-      return responseParameters.keys;
-    }
- catch (    Exception e) {
-      throw ExceptionUtil.rethrow(e);
-    }
+ catch (  Exception e) {
+    throw ExceptionUtil.rethrow(e);
   }
 }
