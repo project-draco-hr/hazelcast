@@ -1,14 +1,14 @@
 {
   checkTransactionState();
+  checkNotNull(key,"key can't be null");
+  checkNotNull(value,"value can't be null");
   MapService service=getService();
   MapServiceContext mapServiceContext=service.getMapServiceContext();
   Data keyData=mapServiceContext.toData(key,partitionStrategy);
   Object valueBeforeTxn=toObjectIfNeeded(putInternal(keyData,mapServiceContext.toData(value),ttl,timeUnit));
   TxnValueWrapper currentValue=txMap.get(keyData);
-  if (value != null) {
-    Type type=valueBeforeTxn == null ? Type.NEW : Type.UPDATED;
-    TxnValueWrapper wrapper=new TxnValueWrapper(value,type);
-    txMap.put(keyData,wrapper);
-  }
+  Type type=valueBeforeTxn == null ? Type.NEW : Type.UPDATED;
+  TxnValueWrapper wrapper=new TxnValueWrapper(value,type);
+  txMap.put(keyData,wrapper);
   return currentValue == null ? valueBeforeTxn : checkIfRemoved(currentValue);
 }
