@@ -1,0 +1,31 @@
+{
+  while (!Thread.currentThread().isInterrupted()) {
+    try {
+      TransactionContext transactionContext=hazelcastInstance.newTransactionContext();
+      transactionContext.beginTransaction();
+      try {
+        final Object item=transactionContext.getQueue(inQueueName).poll();
+        if (item != null && !transactionContext.getQueue(outQueueName).offer(item)) {
+          throw new RuntimeException("Out Queue wouldn't accept item");
+        }
+        transactionContext.commitTransaction();
+        if (item != null) {
+          counter.incrementAndGet();
+        }
+      }
+ catch (      HazelcastInstanceNotActiveException e) {
+        throw e;
+      }
+catch (      Exception e) {
+        try {
+          transactionContext.rollbackTransaction();
+        }
+ catch (        HazelcastInstanceNotActiveException ignored) {
+        }
+      }
+    }
+ catch (    HazelcastInstanceNotActiveException e) {
+      break;
+    }
+  }
+}
