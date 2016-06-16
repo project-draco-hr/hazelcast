@@ -6,12 +6,20 @@
   MapServiceContext mapServiceContext=service.getMapServiceContext();
   Data keyData=mapServiceContext.toData(key,partitionStrategy);
   TxnValueWrapper wrapper=txMap.get(keyData);
-  if (wrapper != null && !isEquals(wrapper.value,value)) {
+  if (wrapper == null) {
+    boolean removed=removeIfSameInternal(keyData,value);
+    if (removed) {
+      txMap.put(keyData,new TxnValueWrapper(value,Type.REMOVED));
+    }
+    return removed;
+  }
+  if (wrapper.type == Type.REMOVED) {
     return false;
   }
-  boolean removed=removeIfSameInternal(keyData,value);
-  if (removed) {
-    txMap.put(keyData,new TxnValueWrapper(value,Type.REMOVED));
+  if (!isEquals(wrapper.value,value)) {
+    return false;
   }
-  return removed;
+  removeInternal(keyData);
+  txMap.put(keyData,new TxnValueWrapper(value,Type.REMOVED));
+  return true;
 }
