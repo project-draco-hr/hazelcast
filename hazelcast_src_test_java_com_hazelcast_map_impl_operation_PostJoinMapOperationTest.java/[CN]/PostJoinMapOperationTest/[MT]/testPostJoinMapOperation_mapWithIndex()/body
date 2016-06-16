@@ -10,6 +10,13 @@
   hzFactory.terminate(hz1);
   waitAllForSafeState(hz1,hz2);
   IMap<String,Person> mapOnNode2=hz2.getMap("map");
+  MapService mapService=getNodeEngineImpl(hz2).getService(MapService.SERVICE_NAME);
+  while (true) {
+    Thread.sleep(100);
+    if (mapService.getOwnerMigrationsInFlight() == 0) {
+      break;
+    }
+  }
   final AtomicInteger invocationCounter=new AtomicInteger(0);
   Collection<Person> personsWithAgePredicate=mapOnNode2.values(new AgePredicate(invocationCounter));
   assertEquals("isIndexed should have located an index",1,invocationCounter.get());
