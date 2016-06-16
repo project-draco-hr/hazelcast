@@ -5,12 +5,15 @@
   }
   OperationService operationService=node.nodeEngine.getOperationService();
   Collection<Member> memberList=clusterService.getMembers();
+  Collection<Future> futures=new ArrayList<Future>(memberList.size());
   for (  Member member : memberList) {
     if (!member.localMember()) {
       Operation op=new MergeClustersOperation(targetAddress);
-      operationService.invokeOnTarget(ClusterServiceImpl.SERVICE_NAME,op,member.getAddress());
+      Future<Object> future=operationService.invokeOnTarget(ClusterServiceImpl.SERVICE_NAME,op,member.getAddress());
+      futures.add(future);
     }
   }
+  waitWithDeadline(futures,SPLIT_BRAIN_MERGE_TIMEOUT_SECONDS,TimeUnit.SECONDS,splitBrainMergeExceptionHandler);
   Operation mergeClustersOperation=new MergeClustersOperation(targetAddress);
   mergeClustersOperation.setNodeEngine(node.nodeEngine).setService(clusterService).setOperationResponseHandler(createEmptyResponseHandler());
   operationService.runOperationOnCallingThread(mergeClustersOperation);
