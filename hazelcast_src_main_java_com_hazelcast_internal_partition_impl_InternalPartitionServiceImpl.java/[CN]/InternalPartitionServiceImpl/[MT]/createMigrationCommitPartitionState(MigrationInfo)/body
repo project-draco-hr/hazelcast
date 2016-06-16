@@ -4,16 +4,14 @@
     if (!partitionStateManager.isInitialized()) {
       return null;
     }
-    List<MigrationInfo> completedMigrations=new ArrayList<MigrationInfo>(migrationManager.getCompletedMigrations());
+    List<MigrationInfo> completedMigrations=migrationManager.getCompletedMigrationsCopy();
     InternalPartition[] partitions=partitionStateManager.getPartitionsCopy();
-    for (    MigrationInfo migrationInfo : migrationInfos) {
-      int partitionId=migrationInfo.getPartitionId();
-      InternalPartitionImpl partition=(InternalPartitionImpl)partitions[partitionId];
-      migrationManager.applyMigration(partition,migrationInfo);
-      migrationInfo.setStatus(MigrationStatus.SUCCESS);
-      completedMigrations.add(migrationInfo);
-    }
-    int committedVersion=getPartitionStateVersion() + migrationInfos.length;
+    int partitionId=migrationInfo.getPartitionId();
+    InternalPartitionImpl partition=(InternalPartitionImpl)partitions[partitionId];
+    migrationManager.applyMigration(partition,migrationInfo);
+    migrationInfo.setStatus(MigrationStatus.SUCCESS);
+    completedMigrations.add(migrationInfo);
+    int committedVersion=getPartitionStateVersion() + 1;
     return new PartitionRuntimeState(partitions,completedMigrations,committedVersion);
   }
   finally {
