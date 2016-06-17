@@ -1,10 +1,14 @@
 {
-  SortedProbesInstances sortedProbeInstances=this.sortedProbeInstance.get();
-  int lastModCount=modCount.get();
-  if (lastModCount == sortedProbeInstances.modCount) {
-    return sortedProbeInstances;
+  for (; ; ) {
+    SortedProbeInstances current=sortedProbeInstancesRef.get();
+    if (current.probeInstances != null) {
+      return current.probeInstances;
+    }
+    List<ProbeInstance> probeInstanceList=new ArrayList<ProbeInstance>(probeInstances.values());
+    Collections.sort(probeInstanceList,COMPARATOR);
+    SortedProbeInstances update=new SortedProbeInstances(current.mod,probeInstanceList);
+    if (sortedProbeInstancesRef.compareAndSet(current,update)) {
+      return update.probeInstances;
+    }
   }
-  SortedProbesInstances newSortedProbeInstances=new SortedProbesInstances(probeInstances.values(),lastModCount);
-  this.sortedProbeInstance.compareAndSet(sortedProbeInstances,newSortedProbeInstances);
-  return sortedProbeInstance.get();
 }
