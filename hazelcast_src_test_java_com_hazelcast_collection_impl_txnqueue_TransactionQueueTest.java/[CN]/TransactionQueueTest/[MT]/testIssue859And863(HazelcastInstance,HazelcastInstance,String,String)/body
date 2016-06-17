@@ -1,0 +1,34 @@
+{
+  final int numberOfMessages=3000;
+  final AtomicInteger counter=new AtomicInteger();
+  final IQueue<Object> inQueue=instance1.getQueue(inQueueName);
+  for (int i=0; i < numberOfMessages; i++) {
+    if (!inQueue.offer(i)) {
+      throw new RuntimeException("initial put did not work");
+    }
+  }
+  Thread[] instance1Threads=createThreads(instance1,3,inQueueName,outQueueName,counter);
+  Thread[] instance2Threads=createThreads(instance2,3,inQueueName,outQueueName,counter);
+  try {
+    startThreads(instance1Threads);
+    startThreads(instance2Threads);
+    while (counter.get() < numberOfMessages / 2) {
+      LockSupport.parkNanos(1000);
+    }
+    instance2.getLifecycleService().shutdown();
+    interruptThreads(instance2Threads);
+    jointThreads(instance2Threads,15);
+    jointThreads(instance1Threads,15);
+    assertTrueEventually(new AssertTask(){
+      @Override public void run(){
+        assertEquals(numberOfMessages,instance1.getQueue(outQueueName).size());
+        assertTrue(instance1.getQueue(inQueueName).isEmpty());
+      }
+    }
+);
+  }
+  finally {
+    interruptThreads(instance1Threads);
+    interruptThreads(instance2Threads);
+  }
+}
