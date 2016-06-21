@@ -1,6 +1,7 @@
 {
   final int RECORD_COUNT=100;
   final int EXPECTED_EVICTED_RECORD_VALUE=RECORD_COUNT / 2;
+  final int EXPECTED_EXPIRED_RECORD_VALUE=useExpiredEntry ? RECORD_COUNT / 4 : -1;
   EvictionConfiguration evictionConfig=new EvictionConfiguration(){
     @Override public EvictionStrategyType getEvictionStrategyType(){
       return null;
@@ -25,11 +26,15 @@
     if (i == EXPECTED_EVICTED_RECORD_VALUE) {
       record.setAccessTime(baseTime - 1000);
     }
+ else     if (i == EXPECTED_EXPIRED_RECORD_VALUE) {
+      record.setExpirationTime(System.currentTimeMillis());
+    }
  else {
       record.setAccessTime(creationTime + 1000);
     }
     records.add(new SimpleEvictionCandidate<Integer,CacheObjectRecord>(i,record));
   }
+  sleepAtLeastMillis(1);
   Iterable<EvictionCandidate<Integer,CacheObjectRecord>> evictedRecords=evictionPolicyEvaluator.evaluate(records);
   assertNotNull(evictedRecords);
   Iterator<EvictionCandidate<Integer,CacheObjectRecord>> evictedRecordsIterator=evictedRecords.iterator();
@@ -39,5 +44,10 @@
   assertFalse(evictedRecordsIterator.hasNext());
   CacheObjectRecord evictedRecord=candidateEvictedRecord.getEvictable();
   assertNotNull(evictedRecord);
-  assertEquals(EXPECTED_EVICTED_RECORD_VALUE,evictedRecord.getValue());
+  if (useExpiredEntry) {
+    assertEquals(EXPECTED_EXPIRED_RECORD_VALUE,evictedRecord.getValue());
+  }
+ else {
+    assertEquals(EXPECTED_EVICTED_RECORD_VALUE,evictedRecord.getValue());
+  }
 }
