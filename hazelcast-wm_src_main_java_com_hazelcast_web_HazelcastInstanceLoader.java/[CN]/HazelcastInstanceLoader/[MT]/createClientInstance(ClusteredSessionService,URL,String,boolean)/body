@@ -18,5 +18,18 @@
   }
   ListenerConfig listenerConfig=new ListenerConfig(new ClientLifecycleListener(sessionService));
   clientConfig.addListenerConfig(listenerConfig);
+  if (!isEmpty(instanceName)) {
+    HazelcastInstance instance=HazelcastClient.getHazelcastClientByName(instanceName);
+    if (instance != null) {
+      return instance;
+    }
+    clientConfig.setInstanceName(instanceName);
+    try {
+      return HazelcastClient.newHazelcastClient(clientConfig);
+    }
+ catch (    DuplicateInstanceNameException e) {
+      return HazelcastClient.getHazelcastClientByName(instanceName);
+    }
+  }
   return HazelcastClient.newHazelcastClient(clientConfig);
 }
