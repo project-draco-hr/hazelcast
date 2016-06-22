@@ -1,10 +1,10 @@
 {
   final String mapName="testOneMemberWriteBehindWithEvictions";
-  final TestEventBasedMapStore testMapStore=new TestEventBasedMapStore();
+  final EventBasedMapStore testMapStore=new EventBasedMapStore();
   testMapStore.loadAllLatch=new CountDownLatch(1);
   final Config config=newConfig(testMapStore,2,InitialLoadMode.EAGER);
-  final HazelcastInstance node1=createHazelcastInstance(config);
-  final IMap map=node1.getMap(mapName);
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  final IMap<Integer,String> map=instance.getMap(mapName);
   assertTrue("map store loadAllKeys must be called",testMapStore.loadAllLatch.await(10,TimeUnit.SECONDS));
   final int populationCount=100;
   testMapStore.storeLatch=new CountDownLatch(populationCount);
@@ -14,7 +14,7 @@
   assertOpenEventually(testMapStore.storeLatch);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
-      assertEquals(0,writeBehindQueueSize(node1,mapName));
+      assertEquals(0,writeBehindQueueSize(instance,mapName));
     }
   }
 );

@@ -2,14 +2,14 @@
   final Config config=new XmlConfigBuilder().build();
   config.setProperty("hazelcast.logging.type","log4j");
   config.setProperty("hazelcast.jmx","false");
-  MapConfig mapConfig=config.getMapConfig(mapName);
+  MapConfig mapConfig=config.getMapConfig(MAP_NAME);
   final CountDownLatch halfOfKeysAreLoaded=new CountDownLatch(1);
-  final InMemoryMapStore store=new InMemoryMapStore(msPerLoad,false,halfOfKeysAreLoaded);
-  store.preload(preloadSize);
+  final InMemoryMapStore store=new InMemoryMapStore(halfOfKeysAreLoaded,MS_PER_LOAD,false);
+  store.preload(PRELOAD_SIZE);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
   mapStoreConfig.setInitialLoadMode(InitialLoadMode.LAZY);
-  mapStoreConfig.setWriteDelaySeconds(writeDelaySeconds);
+  mapStoreConfig.setWriteDelaySeconds(WRITE_DELAY_SECONDS);
   mapStoreConfig.setClassName(null);
   mapStoreConfig.setImplementation(store);
   mapConfig.setMapStoreConfig(mapStoreConfig);
@@ -21,7 +21,7 @@
       HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
       node1Started.countDown();
       try {
-        IMap<String,String> map=hcInstance.getMap(mapName);
+        IMap<String,String> map=hcInstance.getMap(MAP_NAME);
         map.size();
         node1FinishedLoading.countDown();
       }
@@ -38,11 +38,12 @@
     @Override public void run(){
       HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
       try {
-        hcInstance.getMap(mapName);
-        final int loadTimeMillis=msPerLoad * preloadSize;
+        hcInstance.getMap(MAP_NAME);
+        final int loadTimeMillis=MS_PER_LOAD * PRELOAD_SIZE;
         node1FinishedLoading.await(loadTimeMillis,TimeUnit.MILLISECONDS);
       }
  catch (      InterruptedException e) {
+        EmptyStatement.ignore(e);
       }
  finally {
         thread2Shutdown.set(System.currentTimeMillis());

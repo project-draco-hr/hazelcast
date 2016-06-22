@@ -2,14 +2,14 @@
   final Config config=new XmlConfigBuilder().build();
   config.setProperty("hazelcast.logging.type","log4j");
   config.setProperty("hazelcast.jmx","false");
-  MapConfig mapConfig=config.getMapConfig(mapName);
+  MapConfig mapConfig=config.getMapConfig(MAP_NAME);
   final CountDownLatch halfOfKeysAreLoaded=new CountDownLatch(1);
-  final InMemoryMapStore store=new InMemoryMapStore(300,false,halfOfKeysAreLoaded);
-  store.preload(preloadSize);
+  final InMemoryMapStore store=new InMemoryMapStore(halfOfKeysAreLoaded,300,false);
+  store.preload(PRELOAD_SIZE);
   MapStoreConfig mapStoreConfig=new MapStoreConfig();
   mapStoreConfig.setEnabled(true);
   mapStoreConfig.setInitialLoadMode(InitialLoadMode.LAZY);
-  mapStoreConfig.setWriteDelaySeconds(writeDelaySeconds);
+  mapStoreConfig.setWriteDelaySeconds(WRITE_DELAY_SECONDS);
   mapStoreConfig.setClassName(null);
   mapStoreConfig.setImplementation(store);
   mapConfig.setMapStoreConfig(mapStoreConfig);
@@ -18,21 +18,21 @@
   final CountDownLatch node1FinishedLoading=new CountDownLatch(1);
   Thread thread1=new Thread(new Runnable(){
     @Override public void run(){
-      HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
+      HazelcastInstance instance=factory.newHazelcastInstance(config);
       node1Started.countDown();
       try {
-        final IMap<String,String> map=hcInstance.getMap(mapName);
+        final IMap<String,String> map=instance.getMap(MAP_NAME);
         mapSize.set(map.size());
         node1FinishedLoading.countDown();
         assertTrueEventually(new AssertTask(){
           @Override public void run() throws Exception {
-            assertEquals(preloadSize,map.size());
+            assertEquals(PRELOAD_SIZE,map.size());
           }
         }
 ,5);
       }
   finally {
-        hcInstance.getLifecycleService().shutdown();
+        instance.getLifecycleService().shutdown();
       }
     }
   }
@@ -41,25 +41,26 @@
   node1Started.await();
   Thread thread2=new Thread(new Runnable(){
     @Override public void run(){
-      HazelcastInstance hcInstance=factory.newHazelcastInstance(config);
+      HazelcastInstance instance=factory.newHazelcastInstance(config);
       try {
-        hcInstance.getMap(mapName);
-        final int loadTimeMillis=msPerLoad * preloadSize;
+        instance.getMap(MAP_NAME);
+        final int loadTimeMillis=MS_PER_LOAD * PRELOAD_SIZE;
         node1FinishedLoading.await(loadTimeMillis,TimeUnit.MILLISECONDS);
       }
  catch (      InterruptedException e) {
+        EmptyStatement.ignore(e);
       }
  finally {
-        hcInstance.getLifecycleService().shutdown();
+        instance.getLifecycleService().shutdown();
       }
     }
   }
 ,"Thread 2");
-  if (simulateSecondNode) {
+  if (SIMULATE_SECOND_NODE) {
     thread2.start();
   }
   thread1.join();
-  if (simulateSecondNode) {
+  if (SIMULATE_SECOND_NODE) {
     thread2.join();
   }
 }
