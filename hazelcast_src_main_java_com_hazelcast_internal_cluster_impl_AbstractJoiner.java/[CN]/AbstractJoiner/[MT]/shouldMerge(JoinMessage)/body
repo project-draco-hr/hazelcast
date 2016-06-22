@@ -5,25 +5,25 @@
   try {
     boolean validJoinRequest=clusterJoinManager.validateJoinMessage(joinMessage);
     if (!validJoinRequest) {
-      logger.finest("Cannot process split brain merge message from " + joinMessage.getAddress() + ", since join-message could not be validated.");
+      logger.fine("Cannot process split brain merge message from " + joinMessage.getAddress() + ", since join-message could not be validated.");
       return false;
     }
   }
  catch (  Exception e) {
-    logger.finest(e.getMessage());
+    logger.log(Level.FINE,"failure during validating join message",e);
     return false;
   }
   try {
     if (clusterService.getMember(joinMessage.getAddress()) != null) {
-      if (logger.isFinestEnabled()) {
-        logger.finest("Should not merge to " + joinMessage.getAddress() + ", because it is already member of this cluster.");
+      if (logger.isFineEnabled()) {
+        logger.fine("Should not merge to " + joinMessage.getAddress() + ", because it is already member of this cluster.");
       }
       return false;
     }
     final ClusterState clusterState=clusterService.getClusterState();
     if (clusterState != ClusterState.ACTIVE) {
-      if (logger.isFinestEnabled()) {
-        logger.finest("Should not merge to " + joinMessage.getAddress() + ", because this cluster is in "+ clusterState+ " state.");
+      if (logger.isFineEnabled()) {
+        logger.fine("Should not merge to " + joinMessage.getAddress() + ", because this cluster is in "+ clusterState+ " state.");
       }
       return false;
     }
@@ -44,16 +44,16 @@
     int currentDataMemberCount=clusterService.getSize(DATA_MEMBER_SELECTOR);
     if (targetDataMemberCount > currentDataMemberCount) {
       logger.info(node.getThisAddress() + " is merging to " + joinMessage.getAddress()+ ", because : joinMessage.getDataMemberCount() > currentDataMemberCount ["+ (targetDataMemberCount + " > " + currentDataMemberCount)+ ']');
-      if (logger.isFinestEnabled()) {
-        logger.finest(joinMessage.toString());
+      if (logger.isFineEnabled()) {
+        logger.fine(joinMessage.toString());
       }
       return true;
     }
  else     if (targetDataMemberCount == currentDataMemberCount) {
       if (node.getThisAddress().hashCode() > joinMessage.getAddress().hashCode()) {
         logger.info(node.getThisAddress() + " is merging to " + joinMessage.getAddress()+ ", because : node.getThisAddress().hashCode() > joinMessage.address.hashCode() "+ ", this node member count: "+ currentDataMemberCount);
-        if (logger.isFinestEnabled()) {
-          logger.finest(joinMessage.toString());
+        if (logger.isFineEnabled()) {
+          logger.fine(joinMessage.toString());
         }
         return true;
       }
