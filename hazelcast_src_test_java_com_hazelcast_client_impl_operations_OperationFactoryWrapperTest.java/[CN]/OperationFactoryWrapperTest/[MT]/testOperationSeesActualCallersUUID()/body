@@ -1,0 +1,11 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  OperationServiceImpl operationService=getOperationServiceImpl(hz);
+  String expectedCallersUUID=UUID.randomUUID().toString();
+  GetCallersUUIDOperationFactory operationFactory=new GetCallersUUIDOperationFactory();
+  OperationFactoryWrapper wrapper=new OperationFactoryWrapper(operationFactory,expectedCallersUUID);
+  int partitionID=0;
+  Map<Integer,Object> responses=operationService.invokeOnPartitions(SERVICE_NAME,wrapper,asList(partitionID));
+  String actualCallersUUID=(String)responses.get(partitionID);
+  assertEquals("Callers UUID should not be changed",expectedCallersUUID,actualCallersUUID);
+}
