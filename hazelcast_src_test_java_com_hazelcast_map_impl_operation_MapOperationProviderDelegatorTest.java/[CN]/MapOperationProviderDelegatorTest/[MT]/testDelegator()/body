@@ -1,0 +1,19 @@
+{
+  Method[] methods=MapOperationProviderDelegator.class.getDeclaredMethods();
+  for (  Method method : methods) {
+    Object[] parameters=getParameters(method);
+    method.invoke(delegator,parameters);
+  }
+  List<String> methodsCalled=new ArrayList<String>();
+  MockingDetails mockingDetails=Mockito.mockingDetails(operationProvider);
+  Collection<Invocation> invocations=mockingDetails.getInvocations();
+  for (  Invocation invocation : invocations) {
+    methodsCalled.add(invocation.getMethod().getName());
+  }
+  for (  Method method : methods) {
+    if (isAbstract(method.getModifiers())) {
+      continue;
+    }
+    assertTrue(format("Method %s() should have been called",method.getName()),methodsCalled.contains(method.getName()));
+  }
+}
