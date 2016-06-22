@@ -1,25 +1,21 @@
 {
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  HazelcastInstance instance1=factory.newHazelcastInstance(getConfig());
-  HazelcastInstance instance2=factory.newHazelcastInstance(getConfig());
-  IMap<Object,Object> map=instance1.getMap("dummy-wan-entryprocessor-test-map");
+  initInstancesAndMap("wan-replication-test-entry-processor");
   for (int i=0; i < 10; i++) {
     map.put(i,i);
   }
-  DummyWanReplication impl1=getWanReplicationImpl(instance1);
-  DummyWanReplication impl2=getWanReplicationImpl(instance2);
-  assertTotalQueueSize(10,impl1.eventQueue,impl2.eventQueue);
+  assertTotalQueueSize(10);
   impl1.eventQueue.clear();
   impl2.eventQueue.clear();
-  Set keySet=new HashSet();
+  InternalSerializationService serializationService=getSerializationService(instance1);
+  Set<Data> keySet=new HashSet<Data>();
   for (int i=0; i < 10; i++) {
-    keySet.add(getSerializationService(instance1).toData(i));
+    keySet.add(serializationService.toData(i));
   }
   OperationFactory operationFactory=getOperationProvider(map).createMultipleEntryOperationFactory(map.getName(),keySet,new UpdatingEntryProcessor());
   InternalOperationService operationService=getOperationService(instance1);
   operationService.invokeOnAllPartitions(MapService.SERVICE_NAME,operationFactory);
-  assertTotalQueueSize(10,impl1.eventQueue,impl2.eventQueue);
+  assertTotalQueueSize(10);
   OperationFactory deletingOperationFactory=getOperationProvider(map).createMultipleEntryOperationFactory(map.getName(),keySet,new DeletingEntryProcessor());
   operationService.invokeOnAllPartitions(MapService.SERVICE_NAME,deletingOperationFactory);
-  assertTotalQueueSize(20,impl1.eventQueue,impl2.eventQueue);
+  assertTotalQueueSize(20);
 }
