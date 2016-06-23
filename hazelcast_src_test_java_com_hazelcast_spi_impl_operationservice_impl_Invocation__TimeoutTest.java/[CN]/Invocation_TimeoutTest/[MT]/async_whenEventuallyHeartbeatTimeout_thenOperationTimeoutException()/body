@@ -6,8 +6,8 @@
   HazelcastInstance remote=factory.newHazelcastInstance(config);
   warmUpPartitions(local,remote);
   OperationService opService=getOperationService(local);
-  ICompletableFuture f=opService.invokeOnPartition(null,new VoidOperation(callTimeoutMs * 5),getPartitionId(remote));
-  final ExecutionCallback callback=mock(ExecutionCallback.class);
-  f.andThen(callback);
+  ICompletableFuture<Object> future=opService.invokeOnPartition(null,new VoidOperation(callTimeoutMs * 5),getPartitionId(remote));
+  final ExecutionCallback<Object> callback=getExecutionCallbackMock();
+  future.andThen(callback);
   assertEventuallyFailsWithHeartbeatTimeout(callback);
 }

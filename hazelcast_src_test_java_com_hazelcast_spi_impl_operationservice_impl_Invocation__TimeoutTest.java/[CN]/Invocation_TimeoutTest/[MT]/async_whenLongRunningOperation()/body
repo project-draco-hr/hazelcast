@@ -6,9 +6,9 @@
   HazelcastInstance remote=factory.newHazelcastInstance(config);
   warmUpPartitions(local,remote);
   OperationService opService=getOperationService(local);
-  ICompletableFuture f=opService.invokeOnPartition(null,new SlowOperation(6 * callTimeout,RESPONSE),getPartitionId(remote));
-  final ExecutionCallback callback=mock(ExecutionCallback.class);
-  f.andThen(callback);
+  ICompletableFuture<Object> future=opService.invokeOnPartition(null,new SlowOperation(6 * callTimeout,RESPONSE),getPartitionId(remote));
+  final ExecutionCallback<Object> callback=getExecutionCallbackMock();
+  future.andThen(callback);
   assertTrueEventually(new AssertTask(){
     @Override public void run() throws Exception {
       verify(callback).onResponse(RESPONSE);
