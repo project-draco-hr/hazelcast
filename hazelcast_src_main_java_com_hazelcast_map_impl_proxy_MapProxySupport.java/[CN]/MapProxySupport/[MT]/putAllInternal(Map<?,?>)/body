@@ -9,13 +9,13 @@
     int initialSize=getPutAllInitialSize(useBatching,mapSize,partitionCount);
     Map<Address,List<Integer>> memberPartitionsMap=partitionService.getMemberPartitionsMap();
     List<Future> futures=new ArrayList<Future>(getPutAllFutureSize(mapSize,useBatching,partitionCount));
-    Long[] counterPerMember=null;
+    MutableLong[] counterPerMember=null;
     Address[] addresses=null;
     if (useBatching) {
-      counterPerMember=new Long[partitionCount];
+      counterPerMember=new MutableLong[partitionCount];
       addresses=new Address[partitionCount];
       for (      Entry<Address,List<Integer>> addressListEntry : memberPartitionsMap.entrySet()) {
-        Long counter=new Long(0);
+        MutableLong counter=new MutableLong();
         Address address=addressListEntry.getKey();
         for (        int partitionId : addressListEntry.getValue()) {
           counterPerMember[partitionId]=counter;
@@ -36,7 +36,7 @@
       }
       entries.add(keyData,toData(entry.getValue()));
       if (useBatching) {
-        long currentSize=++counterPerMember[partitionId];
+        long currentSize=++counterPerMember[partitionId].value;
         if (currentSize % putAllBatchSize == 0) {
           List<Integer> partitions=memberPartitionsMap.get(addresses[partitionId]);
           invokePutAllOperation(addresses[partitionId],partitions,futures,entriesPerPartition);
