@@ -1,11 +1,18 @@
 {
-  TcpIpConnection connection=new TcpIpConnection(this,connectionIdGen.incrementAndGet(),channel,ioThreadingModel);
-  connection.setEndPoint(endpoint);
-  activeConnections.add(connection);
-  acceptedSockets.remove(channel);
-  connection.start();
-  ioThreadingModel.onConnectionAdded(connection);
-  logger.info("Established socket connection between " + channel.socket().getLocalSocketAddress() + " and "+ channel.socket().getRemoteSocketAddress());
-  openedCount.inc();
-  return connection;
+  try {
+    if (!live) {
+      throw new IllegalStateException("connection manager is not live!");
+    }
+    TcpIpConnection connection=new TcpIpConnection(this,connectionIdGen.incrementAndGet(),channel,ioThreadingModel);
+    connection.setEndPoint(endpoint);
+    activeConnections.add(connection);
+    connection.start();
+    ioThreadingModel.onConnectionAdded(connection);
+    logger.info("Established socket connection between " + channel.socket().getLocalSocketAddress() + " and "+ channel.socket().getRemoteSocketAddress());
+    openedCount.inc();
+    return connection;
+  }
+  finally {
+    acceptedSockets.remove(channel);
+  }
 }
