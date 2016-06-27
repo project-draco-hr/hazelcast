@@ -1,12 +1,17 @@
 {
   getCachedValue(keys,resultingKeyValuePairs);
+  Map<Data,Boolean> keyStates=createHashMap(keys.size());
+  for (  Data key : keys) {
+    keyStates.put(key,keyStateMarker.tryMark(key));
+  }
   int currentSize=resultingKeyValuePairs.size();
   super.getAllObjectInternal(keys,resultingKeyValuePairs);
   for (int i=currentSize; i < resultingKeyValuePairs.size(); ) {
     Data key=toData(resultingKeyValuePairs.get(i++));
     Data value=toData(resultingKeyValuePairs.get(i++));
-    if (!isOwn(key) || cacheLocalEntries) {
-      nearCache.put(key,value);
+    boolean marked=keyStates.get(key);
+    if (marked) {
+      tryToPutNearCache(key,value);
     }
   }
 }

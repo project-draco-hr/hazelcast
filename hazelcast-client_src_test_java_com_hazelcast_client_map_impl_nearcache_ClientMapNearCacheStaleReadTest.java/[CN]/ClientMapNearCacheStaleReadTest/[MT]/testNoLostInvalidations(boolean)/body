@@ -1,0 +1,34 @@
+{
+  ClientConfig clientConfig=getClientConfig(mapName);
+  member=Hazelcast.newHazelcastInstance();
+  client=HazelcastClient.newHazelcastClient(clientConfig);
+  map=client.getMap(mapName);
+  runTestInternal();
+  Thread.sleep(5000);
+  int valuePutLast=valuePut.get();
+  String valueMapStr=map.get(key);
+  int valueMap=Integer.parseInt(valueMapStr);
+  String msg=null;
+  if (valueMap < valuePutLast) {
+    msg="Near cache did *not* become consistent. (valueMap = " + valueMap + ", valuePut = "+ valuePutLast+ ").";
+    flushNearCache(client);
+    String valueMap2Str=map.get(key);
+    int valueMap2=Integer.parseInt(valueMap2Str);
+    if (valueMap2 < valuePutLast) {
+      msg+=" Unexpected inconsistency! (valueMap2 = " + valueMap2 + ", valuePut = "+ valuePutLast+ ").";
+    }
+ else {
+      msg+=" Flushing the near cache cleared the inconsistency. (valueMap2 = " + valueMap2 + ", valuePut = "+ valuePutLast+ ").";
+    }
+  }
+  client.getLifecycleService().terminate();
+  if (msg != null) {
+    logger.warn(msg);
+    fail(msg);
+  }
+  if (strict && assertionViolationCount.get() > 0) {
+    msg="Assertion violated " + assertionViolationCount.get() + " times.";
+    logger.warn(msg);
+    fail(msg);
+  }
+}

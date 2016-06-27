@@ -6,11 +6,12 @@
     }
     return new CompletedFuture<Data>(getNodeEngine().getSerializationService(),value,getNodeEngine().getExecutionService().getExecutor(ExecutionService.ASYNC_EXECUTOR));
   }
+  final boolean marked=keyStateMarker.tryMark(key);
   ICompletableFuture<Data> future=super.getAsyncInternal(key);
   future.andThen(new ExecutionCallback<Data>(){
     @Override public void onResponse(    Data response){
-      if (!isOwn(key) || cacheLocalEntries) {
-        nearCache.put(key,response);
+      if (marked) {
+        tryToPutNearCache(key,response);
       }
     }
     @Override public void onFailure(    Throwable t){

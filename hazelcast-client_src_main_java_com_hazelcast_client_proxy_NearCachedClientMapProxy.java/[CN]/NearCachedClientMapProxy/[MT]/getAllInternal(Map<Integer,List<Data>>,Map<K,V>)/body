@@ -1,4 +1,5 @@
 {
+  Map<Data,Boolean> markers=EMPTY_MAP;
   for (  Entry<Integer,List<Data>> partitionKeyEntry : pIdToKeyData.entrySet()) {
     List<Data> keyList=partitionKeyEntry.getValue();
     Iterator<Data> iterator=keyList.iterator();
@@ -9,12 +10,26 @@
         result.put((K)toObject(key),(V)cached);
         iterator.remove();
       }
+ else       if (invalidateOnChange) {
+        if (markers == EMPTY_MAP) {
+          markers=new HashMap<Data,Boolean>();
+        }
+        markers.put(key,keyStateMarker.tryMark(key));
+      }
     }
   }
   List<MapGetAllCodec.ResponseParameters> responses=super.getAllInternal(pIdToKeyData,result);
   for (  MapGetAllCodec.ResponseParameters resultParameters : responses) {
     for (    Entry<Data,Data> entry : resultParameters.response) {
-      nearCache.put(entry.getKey(),entry.getValue());
+      Data key=entry.getKey();
+      Data value=entry.getValue();
+      Boolean marked=markers.get(key);
+      if ((null != marked && marked)) {
+        tryToPutNearCache(key,value);
+      }
+ else       if (!invalidateOnChange) {
+        nearCache.put(key,value);
+      }
     }
   }
   return responses;
