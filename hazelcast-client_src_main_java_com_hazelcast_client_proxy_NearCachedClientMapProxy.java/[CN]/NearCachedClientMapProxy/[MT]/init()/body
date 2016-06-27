@@ -1,7 +1,12 @@
 {
-  NearCacheConfig nearCacheConfig=getContext().getClientConfig().getNearCacheConfig(name);
-  this.nearCache=new ClientHeapNearCache<Data>(name,getContext(),nearCacheConfig);
-  if (this.nearCache.isInvalidateOnChange()) {
+  ClientContext context=getContext();
+  NearCacheConfig nearCacheConfig=context.getClientConfig().getNearCacheConfig(name);
+  int partitionCount=context.getPartitionService().getPartitionCount();
+  ClientHeapNearCache<Data> clientHeapNearCache=new ClientHeapNearCache<Data>(name,getContext(),nearCacheConfig);
+  nearCache=wrapAsStaleReadPreventerNearCache(clientHeapNearCache,partitionCount);
+  keyStateMarker=getKeyStateMarker();
+  invalidateOnChange=this.nearCache.isInvalidateOnChange();
+  if (invalidateOnChange) {
     addNearCacheInvalidateListener();
   }
 }

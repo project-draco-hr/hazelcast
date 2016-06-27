@@ -1,12 +1,15 @@
 {
-  Object cached=nearCache.get(keyData);
+  Object cached=nearCache.get(key);
   if (cached != null) {
     if (NULL_OBJECT == cached) {
       return null;
     }
     return (V)cached;
   }
-  V response=super.getInternal(keyData);
-  nearCache.put(keyData,response);
-  return response;
+  boolean marked=keyStateMarker.tryMark(key);
+  V value=super.getInternal(key);
+  if (marked) {
+    tryToPutNearCache(key,value);
+  }
+  return value;
 }
