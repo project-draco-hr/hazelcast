@@ -1,0 +1,20 @@
+{
+  final HazelcastInstance instance=Hazelcast.newHazelcastInstance(config);
+  HTTPCommunicator communicator=new HTTPCommunicator(instance);
+  final CountDownLatch shutdownLatch=new CountDownLatch(1);
+  instance.getLifecycleService().addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleEvent.LifecycleState.SHUTDOWN) {
+        shutdownLatch.countDown();
+      }
+    }
+  }
+);
+  try {
+    assertEquals("{\"status\":\"success\"}",communicator.shutdownMember("dev","dev-pass"));
+  }
+ catch (  ConnectException ignored) {
+  }
+  assertOpenEventually(shutdownLatch);
+  assertFalse(instance.getLifecycleService().isRunning());
+}
