@@ -1,0 +1,33 @@
+{
+  Config config=new Config();
+  ServiceConfig serviceConfig=TestMigrationAwareService.createServiceConfig(1);
+  config.getServicesConfig().addServiceConfig(serviceConfig);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz=factory.newHazelcastInstance(config);
+  HazelcastInstance hz2=factory.newHazelcastInstance(config);
+  InternalPartitionServiceImpl partitionService1=getNode(hz).partitionService;
+  InternalPartitionServiceImpl partitionService2=getNode(hz2).partitionService;
+  drainAllReplicaSyncPermits(partitionService1);
+  drainAllReplicaSyncPermits(partitionService2);
+  warmUpPartitions(hz,hz2);
+  setBackupPacketDropFilter(hz,100);
+  setBackupPacketDropFilter(hz2,100);
+  NodeEngine nodeEngine=getNode(hz).nodeEngine;
+  for (int i=0; i < nodeEngine.getPartitionService().getPartitionCount(); i++) {
+    Operation op=new TestPutOperationWithAsyncBackup(i);
+    nodeEngine.getOperationService().invokeOnPartition(null,op,i).join();
+  }
+  final PartitionReplicaStateChecker replicaStateChecker1=partitionService1.getPartitionReplicaStateChecker();
+  final PartitionReplicaStateChecker replicaStateChecker2=partitionService2.getPartitionReplicaStateChecker();
+  assertEquals(PartitionServiceState.REPLICA_NOT_SYNC,replicaStateChecker1.getPartitionServiceState());
+  assertEquals(PartitionServiceState.REPLICA_NOT_SYNC,replicaStateChecker2.getPartitionServiceState());
+  addReplicaSyncPermits(partitionService1,100);
+  addReplicaSyncPermits(partitionService2,100);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(PartitionServiceState.SAFE,replicaStateChecker1.getPartitionServiceState());
+      assertEquals(PartitionServiceState.SAFE,replicaStateChecker2.getPartitionServiceState());
+    }
+  }
+);
+}
