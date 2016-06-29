@@ -1,0 +1,12 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(NODE_COUNT);
+  HazelcastInstance[] instances=factory.newInstances();
+  for (int i=0; i < NODE_COUNT; i++) {
+    DurableExecutorService service=instances[i].getDurableExecutorService("testExecuteMultipleNode");
+    int rand=new Random().nextInt(100);
+    Future<Integer> future=service.submit(new IncrementAtomicLongRunnable("count"),rand);
+    assertEquals(Integer.valueOf(rand),future.get(10,TimeUnit.SECONDS));
+  }
+  IAtomicLong count=instances[0].getAtomicLong("count");
+  assertEquals(NODE_COUNT,count.get());
+}

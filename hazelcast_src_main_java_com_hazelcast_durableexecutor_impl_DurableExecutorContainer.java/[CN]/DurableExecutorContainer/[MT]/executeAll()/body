@@ -1,0 +1,19 @@
+{
+  TaskRingBuffer.DurableIterator iterator=ringBuffer.iterator();
+  while (iterator.hasNext()) {
+    Object item=iterator.next();
+    boolean isCallable=iterator.isTask();
+    if (!isCallable) {
+      continue;
+    }
+    Callable callable=(Callable)item;
+    int sequence=iterator.getSequence();
+    TaskProcessor processor=new TaskProcessor(sequence,callable);
+    try {
+      executionService.executeDurable(name,processor);
+    }
+ catch (    RejectedExecutionException e) {
+      logger.warning("While executing " + callable + " on Executor["+ name+ "]",e);
+    }
+  }
+}

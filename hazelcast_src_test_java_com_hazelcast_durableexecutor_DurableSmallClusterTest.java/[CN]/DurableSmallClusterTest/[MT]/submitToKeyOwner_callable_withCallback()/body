@@ -1,0 +1,11 @@
+{
+  BooleanSuccessResponseCountingCallback callback=new BooleanSuccessResponseCountingCallback(instances.length);
+  for (  HazelcastInstance instance : instances) {
+    DurableExecutorService service=instance.getDurableExecutorService("testSubmitToKeyOwnerCallable");
+    Member localMember=instance.getCluster().getLocalMember();
+    int key=findNextKeyForMember(instance,localMember);
+    service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key).andThen(callback);
+  }
+  assertOpenEventually(callback.getResponseLatch());
+  assertEquals(instances.length,callback.getSuccessResponseCount());
+}

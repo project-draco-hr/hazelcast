@@ -1,0 +1,14 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(NODE_COUNT);
+  HazelcastInstance[] instances=factory.newInstances();
+  BooleanSuccessResponseCountingCallback callback=new BooleanSuccessResponseCountingCallback(NODE_COUNT);
+  for (int i=0; i < NODE_COUNT; i++) {
+    HazelcastInstance instance=instances[i];
+    DurableExecutorService service=instance.getDurableExecutorService("testSubmitToKeyOwnerCallable");
+    Member localMember=instance.getCluster().getLocalMember();
+    int key=findNextKeyForMember(instance,localMember);
+    service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key).andThen(callback);
+  }
+  assertOpenEventually(callback.getResponseLatch());
+  assertEquals(NODE_COUNT,callback.getSuccessResponseCount());
+}
