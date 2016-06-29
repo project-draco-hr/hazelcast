@@ -4,51 +4,55 @@
   cfg.getMapConfig("default").setInMemoryFormat(InMemoryFormat.OBJECT);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
-  IMap<Integer,Integer> map=instance1.getMap("testMapEntryProcessor");
-  final AtomicInteger addCount=new AtomicInteger(0);
-  final AtomicInteger updateCount=new AtomicInteger(0);
-  final AtomicInteger removeCount=new AtomicInteger(0);
-  final CountDownLatch latch=new CountDownLatch(300);
-  map.addEntryListener(new EntryAdapter<Integer,Integer>(){
-    @Override public void entryAdded(    EntryEvent<Integer,Integer> event){
-      addCount.incrementAndGet();
-      latch.countDown();
+  try {
+    IMap<Integer,Integer> map=instance1.getMap("testMapEntryProcessor");
+    final AtomicInteger addCount=new AtomicInteger(0);
+    final AtomicInteger updateCount=new AtomicInteger(0);
+    final AtomicInteger removeCount=new AtomicInteger(0);
+    final CountDownLatch latch=new CountDownLatch(300);
+    map.addEntryListener(new EntryAddedListener<Integer,Integer>(){
+      @Override public void entryAdded(      EntryEvent<Integer,Integer> event){
+        addCount.incrementAndGet();
+        latch.countDown();
+      }
     }
-    @Override public void entryRemoved(    EntryEvent<Integer,Integer> event){
-      removeCount.incrementAndGet();
-      latch.countDown();
-    }
-    @Override public void entryUpdated(    EntryEvent<Integer,Integer> event){
-      updateCount.incrementAndGet();
-      latch.countDown();
-    }
-    @Override public void entryEvicted(    EntryEvent<Integer,Integer> event){
-    }
-    @Override public void mapEvicted(    MapEvent event){
-    }
-    @Override public void mapCleared(    MapEvent event){
-    }
-  }
 ,true);
-  int size=100;
-  for (int i=0; i < size; i++) {
-    map.put(i,i);
+    map.addEntryListener(new EntryRemovedListener<Integer,Integer>(){
+      @Override public void entryRemoved(      EntryEvent<Integer,Integer> event){
+        removeCount.incrementAndGet();
+        latch.countDown();
+      }
+    }
+,true);
+    map.addEntryListener(new EntryUpdatedListener<Integer,Integer>(){
+      @Override public void entryUpdated(      EntryEvent<Integer,Integer> event){
+        updateCount.incrementAndGet();
+        latch.countDown();
+      }
+    }
+,true);
+    int size=100;
+    for (int i=0; i < size; i++) {
+      map.put(i,i);
+    }
+    EntryProcessor entryProcessor=new IncrementorEntryProcessor();
+    Map<Integer,Object> res=map.executeOnEntries(entryProcessor);
+    for (int i=0; i < size; i++) {
+      assertEquals(map.get(i),(Object)(i + 1));
+    }
+    for (int i=0; i < size; i++) {
+      assertEquals(map.get(i),res.get(i));
+    }
+    RemoveEntryProcessor removeEntryProcessor=new RemoveEntryProcessor();
+    map.executeOnEntries(removeEntryProcessor);
+    assertEquals(0,map.size());
+    assertTrue(latch.await(100,TimeUnit.SECONDS));
+    assertEquals(100,addCount.get());
+    assertEquals(100,removeCount.get());
+    assertEquals(100,updateCount.get());
   }
-  final EntryProcessor entryProcessor=new IncrementorEntryProcessor();
-  Map<Integer,Object> res=map.executeOnEntries(entryProcessor);
-  for (int i=0; i < size; i++) {
-    assertEquals(map.get(i),(Object)(i + 1));
+  finally {
+    instance1.shutdown();
+    instance2.shutdown();
   }
-  for (int i=0; i < size; i++) {
-    assertEquals(map.get(i),res.get(i));
-  }
-  final RemoveEntryProcessor removeEntryProcessor=new RemoveEntryProcessor();
-  map.executeOnEntries(removeEntryProcessor);
-  assertEquals(0,map.size());
-  assertTrue(latch.await(100,TimeUnit.SECONDS));
-  assertEquals(100,addCount.get());
-  assertEquals(100,removeCount.get());
-  assertEquals(100,updateCount.get());
-  instance1.shutdown();
-  instance2.shutdown();
 }

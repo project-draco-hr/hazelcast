@@ -1,19 +1,22 @@
 {
+  String mapName=randomMapName();
   Config cfg=getConfig();
-  cfg.getMapConfig("test").setInMemoryFormat(InMemoryFormat.OBJECT);
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
-  HazelcastInstance instance1=factory.newHazelcastInstance(cfg);
-  HazelcastInstance instance2=factory.newHazelcastInstance(cfg);
+  cfg.getMapConfig(mapName).setInMemoryFormat(InMemoryFormat.OBJECT);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=factory.newHazelcastInstance(cfg);
   try {
-    IMap<String,Issue1764Data> map=instance1.getMap("test");
+    IMap<String,Issue1764Data> map=instance.getMap(mapName);
     map.put("a",new Issue1764Data("foo","bar"));
     map.put("b",new Issue1764Data("abc","123"));
     Set<String> keys=new HashSet<String>();
     keys.add("a");
-    map.executeOnKeys(keys,new Issue1764UpdatingEntryProcessor("test"));
+    map.executeOnKeys(keys,new Issue1764UpdatingEntryProcessor(mapName));
   }
  catch (  ClassCastException e) {
     e.printStackTrace();
     fail("ClassCastException must not happen!");
+  }
+ finally {
+    instance.shutdown();
   }
 }

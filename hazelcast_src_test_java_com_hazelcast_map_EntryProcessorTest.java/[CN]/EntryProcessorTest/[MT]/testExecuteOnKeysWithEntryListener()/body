@@ -1,22 +1,22 @@
 {
   HazelcastInstance instance=createHazelcastInstance(getConfig());
-  final IMap<String,String> map=instance.getMap("map");
+  IMap<String,String> map=instance.getMap("map");
   map.put("key","value");
   final CountDownLatch latch=new CountDownLatch(1);
-  map.addEntryListener(new EntryAdapter<String,String>(){
-    @Override public void onEntryEvent(    EntryEvent<String,String> event){
-      final String val=event.getValue();
-      final String oldValue=event.getOldValue();
+  map.addEntryListener(new EntryUpdatedListener<String,String>(){
+    @Override public void entryUpdated(    EntryEvent<String,String> event){
+      String val=event.getValue();
+      String oldValue=event.getOldValue();
       if ("newValue".equals(val) && "value".equals(oldValue)) {
         latch.countDown();
       }
     }
   }
 ,true);
-  final HashSet<String> keys=new HashSet<String>();
+  HashSet<String> keys=new HashSet<String>();
   keys.add("key");
-  map.executeOnKeys(keys,new AbstractEntryProcessor(){
-    @Override public Object process(    Map.Entry entry){
+  map.executeOnKeys(keys,new AbstractEntryProcessor<String,String>(){
+    @Override public Object process(    Map.Entry<String,String> entry){
       entry.setValue("newValue");
       return 5;
     }

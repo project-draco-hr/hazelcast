@@ -1,12 +1,17 @@
 {
-  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   Config cfg=getConfig();
   cfg.getMapConfig("default").setInMemoryFormat(InMemoryFormat.OBJECT);
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
-  IMap<Integer,Integer> map=instance1.getMap("testMapEntryProcessor");
-  map.put(1,1);
+  String instance1Key=generateKeyOwnedBy(instance1);
+  String instance2Key=generateKeyOwnedBy(instance2);
+  IMap<String,Integer> map=instance1.getMap("testMapEntryProcessor");
+  map.put(instance1Key,23);
+  map.put(instance2Key,42);
   EntryProcessor entryProcessor=new IncrementorEntryProcessor();
-  assertEquals(2,map.executeOnKey(1,entryProcessor));
-  assertEquals((Integer)2,map.get(1));
+  assertEquals(24,map.executeOnKey(instance1Key,entryProcessor));
+  assertEquals(43,map.executeOnKey(instance2Key,entryProcessor));
+  assertEquals((Integer)24,map.get(instance1Key));
+  assertEquals((Integer)43,map.get(instance2Key));
 }

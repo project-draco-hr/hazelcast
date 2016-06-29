@@ -4,13 +4,13 @@
   cfg.getMapConfig("test").setBackupCount(1);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
-  IMap<String,TempData> map=instance1.getMap("test");
   try {
+    IMap<String,TempData> map=instance1.getMap("test");
     map.put("a",new TempData("foo","bar"));
     map.executeOnEntries(new LoggingEntryProcessor(),Predicates.equal("attr1","foo"));
-    map.executeOnEntries(new DeleteEntryProcessor(),Predicates.equal("attr1","foo"));
-    String a_member_uiid=instance1.getPartitionService().getPartition("a").getOwner().getUuid();
+    map.executeOnEntries(new TempData.DeleteEntryProcessor(),Predicates.equal("attr1","foo"));
     HazelcastInstance newPrimary;
+    String a_member_uiid=instance1.getPartitionService().getPartition("a").getOwner().getUuid();
     if (a_member_uiid.equals(instance1.getCluster().getLocalMember().getUuid())) {
       instance1.shutdown();
       newPrimary=instance2;
