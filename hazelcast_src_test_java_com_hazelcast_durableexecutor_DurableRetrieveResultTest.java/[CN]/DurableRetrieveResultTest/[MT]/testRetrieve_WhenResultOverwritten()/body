@@ -1,0 +1,19 @@
+{
+  String name=randomString();
+  Config config=new Config();
+  config.getDurableExecutorConfig(name).setCapacity(1);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  DurableExecutorService executorService=instance.getDurableExecutorService(name);
+  DurableExecutorServiceFuture<String> future=executorService.submitToKeyOwner(new BasicTestCallable(),name);
+  long taskId=future.getTaskId();
+  future.get();
+  executorService.submitToKeyOwner(new BasicTestCallable(),name);
+  Future<Object> f=executorService.retrieveResult(taskId);
+  try {
+    f.get();
+    fail();
+  }
+ catch (  ExecutionException e) {
+    assertTrue(e.getCause() instanceof StaleTaskIdException);
+  }
+}

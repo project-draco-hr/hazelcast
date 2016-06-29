@@ -1,0 +1,20 @@
+{
+  checkNotNull(task,"task can't be null");
+  SerializationService serializationService=getNodeEngine().getSerializationService();
+  Data taskData=serializationService.toData(task);
+  TaskOperation operation=new TaskOperation(name,taskData);
+  operation.setPartitionId(partitionId);
+  InternalCompletableFuture<Integer> future=invokeOnPartition(operation);
+  int sequence;
+  try {
+    sequence=future.get();
+  }
+ catch (  Throwable t) {
+    CompletedFuture<T> completedFuture=new CompletedFuture<T>(serializationService,t,getAsyncExecutor());
+    return new DurableExecutorServiceDelegateFuture<T>(completedFuture,serializationService,null,-1);
+  }
+  Operation op=new RetrieveResultOperation(name,sequence).setPartitionId(partitionId);
+  InternalCompletableFuture<T> internalCompletableFuture=invokeOnPartition(op);
+  long taskId=Bits.combineToLong(partitionId,sequence);
+  return new DurableExecutorServiceDelegateFuture<T>(internalCompletableFuture,serializationService,defaultValue,taskId);
+}

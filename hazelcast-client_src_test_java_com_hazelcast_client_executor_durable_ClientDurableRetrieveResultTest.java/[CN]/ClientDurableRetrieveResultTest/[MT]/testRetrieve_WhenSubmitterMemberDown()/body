@@ -1,0 +1,11 @@
+{
+  String name=randomString();
+  DurableExecutorService executorService=client.getDurableExecutorService(name);
+  SleepingTask task=new SleepingTask(4);
+  long taskId=executorService.submit(task).getTaskId();
+  client.shutdown();
+  client=hazelcastFactory.newHazelcastClient();
+  executorService=client.getDurableExecutorService(name);
+  Future<Boolean> future=executorService.retrieveResult(taskId);
+  assertTrue(future.get());
+}

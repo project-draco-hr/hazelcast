@@ -1,0 +1,19 @@
+{
+  final Config config=new Config();
+  config.addDurableExecutorConfig(new DurableExecutorConfig("test").setPoolSize(1));
+  final AtomicBoolean initialized=new AtomicBoolean();
+  config.setManagedContext(new ManagedContext(){
+    @Override public Object initialize(    Object obj){
+      if (obj instanceof RunnableWithManagedContext) {
+        initialized.set(true);
+      }
+      return obj;
+    }
+  }
+);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  DurableExecutorService executor=instance.getDurableExecutorService("test");
+  RunnableWithManagedContext task=new RunnableWithManagedContext();
+  executor.submit(task).get();
+  assertTrue("The task should have been initialized by the ManagedContext",initialized.get());
+}

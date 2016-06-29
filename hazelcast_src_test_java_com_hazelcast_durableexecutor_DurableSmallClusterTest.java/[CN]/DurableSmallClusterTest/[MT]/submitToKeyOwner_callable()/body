@@ -1,0 +1,13 @@
+{
+  List<Future> futures=new ArrayList<Future>();
+  for (  HazelcastInstance instance : instances) {
+    DurableExecutorService service=instance.getDurableExecutorService("testSubmitToKeyOwnerCallable");
+    Member localMember=instance.getCluster().getLocalMember();
+    int key=findNextKeyForMember(instance,localMember);
+    Future future=service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key);
+    futures.add(future);
+  }
+  for (  Future future : futures) {
+    assertTrue((Boolean)future.get(60,TimeUnit.SECONDS));
+  }
+}

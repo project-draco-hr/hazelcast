@@ -1,0 +1,24 @@
+{
+  Config config=new Config();
+  String name="testStatsIssue2039";
+  config.addDurableExecutorConfig(new DurableExecutorConfig(name).setPoolSize(1).setCapacity(1));
+  HazelcastInstance instance=createHazelcastInstance(config);
+  DurableExecutorService executorService=instance.getDurableExecutorService(name);
+  executorService.execute(new SleepLatchRunnable());
+  assertOpenEventually(SleepLatchRunnable.startLatch,30);
+  Future waitingInQueue=executorService.submit(new EmptyRunnable());
+  Future rejected=executorService.submit(new EmptyRunnable());
+  try {
+    rejected.get(1,TimeUnit.MINUTES);
+  }
+ catch (  Exception e) {
+    boolean isRejected=e.getCause() instanceof RejectedExecutionException;
+    if (!isRejected) {
+      fail(e.toString());
+    }
+  }
+ finally {
+    SleepLatchRunnable.sleepLatch.countDown();
+  }
+  waitingInQueue.get(1,TimeUnit.MINUTES);
+}

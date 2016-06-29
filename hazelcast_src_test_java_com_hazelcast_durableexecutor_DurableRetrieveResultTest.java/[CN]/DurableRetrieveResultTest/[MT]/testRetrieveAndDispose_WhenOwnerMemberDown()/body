@@ -1,0 +1,16 @@
+{
+  String name=randomString();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=factory.newHazelcastInstance();
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  String key=generateKeyOwnedBy(instance1);
+  DurableExecutorService executorService=instance1.getDurableExecutorService(name);
+  SleepingTask task=new SleepingTask(4);
+  long taskId=executorService.submitToKeyOwner(task,key).getTaskId();
+  instance1.shutdown();
+  executorService=instance2.getDurableExecutorService(name);
+  Future<Boolean> future=executorService.retrieveAndDisposeResult(taskId);
+  assertTrue(future.get());
+  Future<Object> f=executorService.retrieveResult(taskId);
+  assertNull(f.get());
+}

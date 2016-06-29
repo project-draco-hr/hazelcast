@@ -1,0 +1,17 @@
+{
+  checkNotNull(task,"task should not be null");
+  SerializationService serService=getSerializationService();
+  ClientMessage request=DurableExecutorSubmitToPartitionCodec.encodeRequest(name,serService.toData(task));
+  int sequence;
+  try {
+    ClientMessage response=invokeOnPartition(request,partitionId);
+    sequence=DurableExecutorSubmitToPartitionCodec.decodeResponse(response).response;
+  }
+ catch (  Throwable t) {
+    return new ClientDurableExecutorServiceCompletedFuture<T>(t,getAsyncExecutor());
+  }
+  ClientMessage clientMessage=DurableExecutorRetrieveResultCodec.encodeRequest(name,sequence);
+  ClientInvocationFuture future=new ClientInvocation(getClient(),clientMessage,partitionId).invoke();
+  long taskId=Bits.combineToLong(partitionId,sequence);
+  return new ClientDurableExecutorServiceDelegatingFuture<T>(future,serService,RETRIEVE_RESPONSE_DECODER,result,taskId);
+}
