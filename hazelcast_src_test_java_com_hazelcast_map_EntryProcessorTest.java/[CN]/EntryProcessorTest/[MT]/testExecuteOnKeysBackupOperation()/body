@@ -4,10 +4,10 @@
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(cfg);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(cfg);
-  IMap<String,TempData> map=instance1.getMap("test");
-  map.put("a",new TempData("foo","bar"));
-  map.put("b",new TempData("foo","bar"));
-  map.executeOnKeys(map.keySet(),new TempData.DeleteEntryProcessor());
+  IMap<String,TestData> map=instance1.getMap("test");
+  map.put("a",new TestData("foo","bar"));
+  map.put("b",new TestData("foo","bar"));
+  map.executeOnKeys(map.keySet(),new TestDeleteEntryProcessor());
   HazelcastInstance newPrimary;
   String aMemberUiid=instance1.getPartitionService().getPartition("a").getOwner().getUuid();
   if (aMemberUiid.equals(instance1.getCluster().getLocalMember().getUuid())) {
@@ -18,7 +18,7 @@
     instance2.shutdown();
     newPrimary=instance1;
   }
-  IMap<String,TempData> map2=newPrimary.getMap("test");
-  Map<String,Object> executedEntries=map2.executeOnEntries(new LoggingEntryProcessor());
+  IMap<String,TestData> map2=newPrimary.getMap("test");
+  Map<String,Object> executedEntries=map2.executeOnEntries(new TestLoggingEntryProcessor());
   assertEquals(0,executedEntries.size());
 }
