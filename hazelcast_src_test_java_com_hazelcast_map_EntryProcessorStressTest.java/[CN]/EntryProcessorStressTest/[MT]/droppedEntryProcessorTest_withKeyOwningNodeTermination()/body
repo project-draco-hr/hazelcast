@@ -1,0 +1,26 @@
+{
+  String mapName=randomString();
+  Config config=new Config();
+  config.getMapConfig(mapName).setInMemoryFormat(InMemoryFormat.OBJECT);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(MAX_ITERATIONS + 1);
+  HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  for (int iteration=0; iteration < MAX_ITERATIONS; iteration++) {
+    HazelcastInstance instance2=factory.newHazelcastInstance(config);
+    final Object key=generateKeyOwnedBy(instance2);
+    final IMap<Object,List<Integer>> processorMap=instance1.getMap(mapName);
+    processorMap.put(key,new ArrayList<Integer>());
+    for (int i=0; i < MAX_TASKS; i++) {
+      processorMap.submitToKey(key,new SimpleEntryProcessor(i));
+      if (i == MAX_TASKS / 2) {
+        instance2.shutdown();
+      }
+    }
+    assertTrueEventually(new AssertTask(){
+      public void run() throws Exception {
+        List<Integer> actualOrder=processorMap.get(key);
+        assertTrue("failed to execute all entry processor tasks at iteration",actualOrder.size() >= MAX_TASKS);
+      }
+    }
+,30);
+  }
+}
