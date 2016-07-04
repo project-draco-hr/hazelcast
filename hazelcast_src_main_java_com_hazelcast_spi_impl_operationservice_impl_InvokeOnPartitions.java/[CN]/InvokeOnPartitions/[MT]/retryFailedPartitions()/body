@@ -8,12 +8,19 @@
     }
   }
   for (  Integer failedPartition : failedPartitions) {
-    Future f=operationService.createInvocationBuilder(serviceName,operationFactory.createOperation(),failedPartition).invoke();
-    partitionResults.put(failedPartition,f);
+    Operation operation;
+    if (operationFactory instanceof PartitionAwareOperationFactory) {
+      operation=((PartitionAwareOperationFactory)operationFactory).createPartitionOperation(failedPartition);
+    }
+ else {
+      operation=operationFactory.createOperation();
+    }
+    Future future=operationService.createInvocationBuilder(serviceName,operation,failedPartition).invoke();
+    partitionResults.put(failedPartition,future);
   }
   for (  Integer failedPartition : failedPartitions) {
-    Future f=(Future)partitionResults.get(failedPartition);
-    Object result=f.get();
+    Future future=(Future)partitionResults.get(failedPartition);
+    Object result=future.get();
     partitionResults.put(failedPartition,result);
   }
 }
