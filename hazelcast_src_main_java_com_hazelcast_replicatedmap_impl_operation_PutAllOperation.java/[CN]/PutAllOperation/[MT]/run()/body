@@ -1,17 +1,18 @@
 {
+  ReplicatedMapService service=getService();
+  ReplicatedRecordStore store=service.getReplicatedRecordStore(name,true,getPartitionId());
   int partitionId=getPartitionId();
-  service=getService();
-  store=service.getReplicatedRecordStore(name,true,getPartitionId());
   IPartitionService partitionService=getNodeEngine().getPartitionService();
-  for (  Map.Entry<Data,Data> entry : entries.getEntries()) {
-    Data key=entry.getKey();
-    Data value=entry.getValue();
+  ReplicatedMapEventPublishingService eventPublishingService=service.getEventPublishingService();
+  for (int i=0; i < entries.size(); i++) {
+    Data key=entries.getKey(i);
+    Data value=entries.getValue(i);
     if (partitionId != partitionService.getPartitionId(key)) {
       continue;
     }
     Object putResult=store.put(key,value);
     Data oldValue=getNodeEngine().toData(putResult);
-    publishEvent(key,value,oldValue);
+    eventPublishingService.fireEntryListenerEvent(key,oldValue,value,name,getCallerAddress());
     VersionResponsePair response=new VersionResponsePair(putResult,store.getVersion());
     publishReplicationMessage(key,value,response);
   }
