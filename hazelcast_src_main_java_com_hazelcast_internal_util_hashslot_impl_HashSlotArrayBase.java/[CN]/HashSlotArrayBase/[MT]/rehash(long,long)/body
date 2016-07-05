@@ -1,0 +1,15 @@
+{
+  final long mask=mask();
+  for (long slot=oldCapacity; --slot >= 0; ) {
+    if (!isAssigned(oldAddress,slot)) {
+      continue;
+    }
+    long newSlot=slotHash(oldAddress,slot) & mask;
+    while (isSlotAssigned(newSlot)) {
+      newSlot=(newSlot + 1) & mask;
+    }
+    putKey(baseAddress,newSlot,key1OfSlot(oldAddress,slot),key2OfSlot(oldAddress,slot));
+    final long valueAddrOfOldSlot=slotBase(oldAddress,slot) + valueOffset;
+    mem.copyMemory(valueAddrOfOldSlot,valueAddrOfSlot(newSlot),valueLength);
+  }
+}
