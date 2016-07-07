@@ -1,0 +1,23 @@
+{
+  if (filter instanceof MapPartitionLostEventFilter) {
+    return FILTER_DOES_NOT_MATCH;
+  }
+  if (filter instanceof EventListenerFilter) {
+    if (!filter.eval(eventType.getType())) {
+      return FILTER_DOES_NOT_MATCH;
+    }
+ else {
+      filter=((EventListenerFilter)filter).getEventFilter();
+    }
+  }
+  if (filter instanceof TrueEventFilter) {
+    return eventType.getType();
+  }
+  if (filter instanceof QueryEventFilter) {
+    return processQueryEventFilter(filter,eventType,dataKey,dataOldValue,dataValue,mapNameOrNull) ? eventType.getType() : FILTER_DOES_NOT_MATCH;
+  }
+  if (filter instanceof EntryEventFilter) {
+    return processEntryEventFilter(filter,dataKey) ? eventType.getType() : FILTER_DOES_NOT_MATCH;
+  }
+  throw new IllegalArgumentException("Unknown EventFilter type = [" + filter.getClass().getCanonicalName() + "]");
+}

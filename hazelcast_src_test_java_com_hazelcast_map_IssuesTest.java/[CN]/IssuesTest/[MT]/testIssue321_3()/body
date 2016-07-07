@@ -2,10 +2,16 @@
   int n=1;
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
   final IMap<Integer,Integer> imap=factory.newHazelcastInstance(getConfig()).getMap("testIssue321_3");
-  final BlockingQueue<com.hazelcast.core.EntryEvent<Integer,Integer>> events=new LinkedBlockingQueue<com.hazelcast.core.EntryEvent<Integer,Integer>>();
+  final List<EntryEvent<Integer,Integer>> eventsWithValues=new ArrayList<EntryEvent<Integer,Integer>>();
+  final List<EntryEvent<Integer,Integer>> eventsWithoutValues=new ArrayList<EntryEvent<Integer,Integer>>();
   final EntryAdapter<Integer,Integer> listener=new EntryAdapter<Integer,Integer>(){
     @Override public void entryAdded(    com.hazelcast.core.EntryEvent<Integer,Integer> event){
-      events.add(event);
+      if (event.getValue() == null) {
+        eventsWithoutValues.add(event);
+      }
+ else {
+        eventsWithValues.add(event);
+      }
     }
   }
 ;
@@ -13,10 +19,16 @@
   Thread.sleep(50L);
   imap.addEntryListener(listener,false);
   imap.put(1,1);
-  final com.hazelcast.core.EntryEvent<Integer,Integer> event1=events.poll(10,TimeUnit.SECONDS);
-  final com.hazelcast.core.EntryEvent<Integer,Integer> event2=events.poll(10,TimeUnit.SECONDS);
-  assertNotNull(event1);
-  assertNotNull(event2);
-  assertNotNull(event1.getValue());
-  assertNull(event2.getValue());
+  assertEqualsEventually(new Callable<Integer>(){
+    @Override public Integer call() throws Exception {
+      return eventsWithValues.size();
+    }
+  }
+,1);
+  assertEqualsEventually(new Callable<Integer>(){
+    @Override public Integer call() throws Exception {
+      return eventsWithoutValues.size();
+    }
+  }
+,1);
 }

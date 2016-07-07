@@ -1,0 +1,22 @@
+{
+  if (eventType == UPDATED) {
+    boolean newValueMatches=evaluateQueryEventFilter(filter,dataKey,dataValue,mapNameOrNull);
+    boolean oldValueMatches=evaluateQueryEventFilter(filter,dataKey,dataOldValue,mapNameOrNull);
+    if (oldValueMatches) {
+      return newValueMatches ? UPDATED.getType() : REMOVED.getType();
+    }
+ else {
+      return newValueMatches ? ADDED.getType() : FILTER_DOES_NOT_MATCH;
+    }
+  }
+ else {
+    Object testValue;
+    if (eventType == REMOVED || eventType == EVICTED || eventType == EXPIRED) {
+      testValue=dataOldValue;
+    }
+ else {
+      testValue=dataValue;
+    }
+    return evaluateQueryEventFilter(filter,dataKey,testValue,mapNameOrNull) ? eventType.getType() : FILTER_DOES_NOT_MATCH;
+  }
+}

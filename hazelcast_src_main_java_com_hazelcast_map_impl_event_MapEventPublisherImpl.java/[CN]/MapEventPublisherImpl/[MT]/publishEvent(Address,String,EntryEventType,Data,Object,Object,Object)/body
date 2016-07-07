@@ -3,33 +3,5 @@
   if (isEmpty(registrations)) {
     return;
   }
-  List<EventRegistration> includeValueRegistrations=null;
-  List<EventRegistration> nullValueRegistrations=null;
-  for (  EventRegistration registration : registrations) {
-    EventFilter filter=registration.getFilter();
-    if (!doFilter(filter,dataKey,oldValue,value,eventType,mapName)) {
-      continue;
-    }
-    if (isIncludeValue(filter)) {
-      includeValueRegistrations=getOrCreateList(includeValueRegistrations);
-      includeValueRegistrations.add(registration);
-    }
- else {
-      nullValueRegistrations=getOrCreateList(nullValueRegistrations);
-      nullValueRegistrations.add(registration);
-    }
-  }
-  if (!isEmpty(includeValueRegistrations)) {
-    Data dataOldValue=mapServiceContext.toData(oldValue);
-    Data dataValue=mapServiceContext.toData(value);
-    Data dataMergingValue=mapServiceContext.toData(mergingValue);
-    EntryEventData eventData=createEntryEventData(mapName,caller,dataKey,dataValue,dataOldValue,dataMergingValue,eventType.getType());
-    int orderKey=pickOrderKey(dataKey);
-    publishEventInternal(includeValueRegistrations,eventData,orderKey);
-  }
-  if (!isEmpty(nullValueRegistrations)) {
-    EntryEventData eventData=createEntryEventData(mapName,caller,dataKey,null,null,null,eventType.getType());
-    int orderKey=pickOrderKey(dataKey);
-    publishEventInternal(nullValueRegistrations,eventData,orderKey);
-  }
+  publishEvent(registrations,caller,mapName,eventType,dataKey,oldValue,value,mergingValue);
 }

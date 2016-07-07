@@ -1,0 +1,18 @@
+{
+  Config config=new Config();
+  config.setInstanceName("hz-maplistener");
+  config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+  config.getNetworkConfig().getInterfaces().setInterfaces(Arrays.asList(new String[]{"127.0.0.1"}));
+  HazelcastInstance hz=Hazelcast.newHazelcastInstance(config);
+  IMap<String,Person> map=hz.getMap("map");
+  MapListener listener=new AllListener();
+  map.addEntryListener(listener,new SqlPredicate("age > " + AGE_THRESHOLD),true);
+  MapRandomizer mapRandomizer=new MapRandomizer(map);
+  Thread t=new Thread(mapRandomizer);
+  t.start();
+  Thread.sleep(60000);
+  mapRandomizer.setRunning(false);
+  assertCount(ENTRIES,ENTRIES_OBSERVED,"entries");
+  assertCount(EXITS,EXITS_OBSERVED,"exits");
+  hz.shutdown();
+}

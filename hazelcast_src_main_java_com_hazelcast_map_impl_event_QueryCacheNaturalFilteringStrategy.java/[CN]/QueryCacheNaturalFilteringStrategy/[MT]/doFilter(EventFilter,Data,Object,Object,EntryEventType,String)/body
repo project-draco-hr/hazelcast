@@ -1,0 +1,33 @@
+{
+  if (filter instanceof MapPartitionLostEventFilter) {
+    return FILTER_DOES_NOT_MATCH;
+  }
+  EventListenerFilter filterAsEventListenerFilter=null;
+  boolean originalFilterEventTypeMatches=true;
+  if (filter instanceof EventListenerFilter) {
+    originalFilterEventTypeMatches=filter.eval(eventType.getType());
+    filterAsEventListenerFilter=((EventListenerFilter)filter);
+    filter=((EventListenerFilter)filter).getEventFilter();
+  }
+  if (originalFilterEventTypeMatches && filter instanceof TrueEventFilter) {
+    return eventType.getType();
+  }
+  if (filter instanceof QueryEventFilter) {
+    int effectiveEventType=processQueryEventFilterWithAlternativeEventType(filter,eventType,dataKey,dataOldValue,dataValue,mapNameOrNull);
+    if (effectiveEventType == FILTER_DOES_NOT_MATCH) {
+      return FILTER_DOES_NOT_MATCH;
+    }
+ else {
+      if (filterAsEventListenerFilter != null && effectiveEventType != eventType.getType()) {
+        return filterAsEventListenerFilter.eval(effectiveEventType) ? effectiveEventType : FILTER_DOES_NOT_MATCH;
+      }
+ else {
+        return effectiveEventType;
+      }
+    }
+  }
+  if (filter instanceof EntryEventFilter) {
+    return (originalFilterEventTypeMatches && processEntryEventFilter(filter,dataKey)) ? eventType.getType() : FILTER_DOES_NOT_MATCH;
+  }
+  throw new IllegalArgumentException("Unknown EventFilter type = [" + filter.getClass().getCanonicalName() + "]");
+}

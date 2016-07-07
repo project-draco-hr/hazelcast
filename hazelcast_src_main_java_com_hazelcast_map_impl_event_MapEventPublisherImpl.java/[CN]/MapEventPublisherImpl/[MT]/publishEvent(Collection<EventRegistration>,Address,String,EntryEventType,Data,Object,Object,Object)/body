@@ -1,0 +1,16 @@
+{
+  EntryEventDataCache eventDataCache=filteringStrategy.getEntryEventDataCache();
+  int orderKey=pickOrderKey(dataKey);
+  for (  EventRegistration registration : registrations) {
+    EventFilter filter=registration.getFilter();
+    int eventTypeForPublishing=filteringStrategy.doFilter(filter,dataKey,oldValue,value,eventType,mapName);
+    if (eventTypeForPublishing == FILTER_DOES_NOT_MATCH) {
+      continue;
+    }
+    EntryEventData eventDataToBePublished=eventDataCache.getOrCreateEventData(mapName,caller,dataKey,value,oldValue,mergingValue,eventTypeForPublishing,isIncludeValue(filter));
+    eventService.publishEvent(SERVICE_NAME,registration,eventDataToBePublished,orderKey);
+  }
+  if (!eventDataCache.isEmpty()) {
+    postPublishEvent(eventDataCache.eventDataIncludingValues(),eventDataCache.eventDataExcludingValues());
+  }
+}
