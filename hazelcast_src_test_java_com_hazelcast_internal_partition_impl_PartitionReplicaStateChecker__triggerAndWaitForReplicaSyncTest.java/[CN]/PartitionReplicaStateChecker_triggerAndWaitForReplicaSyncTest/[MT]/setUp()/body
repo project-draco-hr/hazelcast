@@ -1,0 +1,22 @@
+{
+  setLoggingLog4j();
+  setLogLevel(Level.TRACE);
+  ILogger logger=getLogger(PartitionReplicaStateChecker_triggerAndWaitForReplicaSyncTest.class);
+  ClusterServiceImpl clusterService=mock(ClusterServiceImpl.class);
+  node=mock(Node.class);
+  when(node.getLogger(any(Class.class))).thenReturn(logger);
+  when(node.getClusterService()).thenReturn(clusterService);
+  partitionStateManager=mock(PartitionStateManager.class);
+  when(partitionStateManager.getPartitions()).thenAnswer(new Answer<InternalPartition[]>(){
+    @Override public InternalPartition[] answer(    InvocationOnMock invocationOnMock) throws Throwable {
+      InternalPartition[] partitionsArray=new InternalPartition[partitions.size()];
+      return partitions.toArray(partitionsArray);
+    }
+  }
+);
+  migrationManager=mock(MigrationManager.class);
+  InternalPartitionServiceImpl partitionService=mock(InternalPartitionServiceImpl.class);
+  when(partitionService.getPartitionStateManager()).thenReturn(partitionStateManager);
+  when(partitionService.getMigrationManager()).thenReturn(migrationManager);
+  replicaStateChecker=new PartitionReplicaStateChecker(node,partitionService);
+}
