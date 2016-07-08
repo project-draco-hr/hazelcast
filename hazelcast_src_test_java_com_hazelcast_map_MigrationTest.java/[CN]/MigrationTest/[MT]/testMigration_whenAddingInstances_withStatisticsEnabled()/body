@@ -1,0 +1,28 @@
+{
+  int size=1000;
+  String name=randomString();
+  Config config=getConfig();
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
+  HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
+  Map<Integer,Integer> map=instance1.getMap(name);
+  for (int i=0; i < size; i++) {
+    map.put(i,i);
+  }
+  HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
+  waitAllForSafeState();
+  assertEquals("Some records have been lost.",size,map.values().size());
+  for (int i=0; i < size; i++) {
+    assertEquals(i,map.get(i).intValue());
+  }
+  HazelcastInstance instance3=nodeFactory.newHazelcastInstance(config);
+  waitAllForSafeState();
+  assertEquals("Some records have been lost.",size,map.values().size());
+  for (int i=0; i < size; i++) {
+    assertEquals(i,map.get(i).intValue());
+  }
+  List<HazelcastInstance> list=new ArrayList<HazelcastInstance>(3);
+  list.add(instance1);
+  list.add(instance2);
+  list.add(instance3);
+  assertThatMigrationIsDoneAndReplicasAreIntact(list);
+}
