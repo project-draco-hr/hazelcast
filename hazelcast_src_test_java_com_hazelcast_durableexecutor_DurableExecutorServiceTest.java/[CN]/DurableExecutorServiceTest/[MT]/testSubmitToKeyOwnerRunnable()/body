@@ -1,9 +1,8 @@
 {
-  final int k=NODE_COUNT;
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(NODE_COUNT);
   HazelcastInstance[] instances=factory.newInstances();
   final AtomicInteger nullResponseCount=new AtomicInteger(0);
-  final CountDownLatch responseLatch=new CountDownLatch(k);
+  final CountDownLatch responseLatch=new CountDownLatch(NODE_COUNT);
   final ExecutionCallback callback=new ExecutionCallback(){
     public void onResponse(    Object response){
       if (response == null) {
@@ -15,7 +14,7 @@
     }
   }
 ;
-  for (int i=0; i < k; i++) {
+  for (int i=0; i < NODE_COUNT; i++) {
     HazelcastInstance instance=instances[i];
     DurableExecutorService service=instance.getDurableExecutorService("testSubmitToKeyOwnerRunnable");
     Member localMember=instance.getCluster().getLocalMember();
@@ -24,5 +23,5 @@
   }
   assertOpenEventually(responseLatch);
   assertEquals(0,instances[0].getAtomicLong("testSubmitToKeyOwnerRunnable").get());
-  assertEquals(k,nullResponseCount.get());
+  assertEquals(NODE_COUNT,nullResponseCount.get());
 }
