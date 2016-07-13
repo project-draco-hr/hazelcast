@@ -1,8 +1,8 @@
 {
-  String mapName=randomMapName();
+  final String mapName=randomMapName();
   Config config=newConfig(testCase.getMergePolicyClassName(),mapName);
-  HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
-  HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h1=Hazelcast.newHazelcastInstance(config);
+  final HazelcastInstance h2=Hazelcast.newHazelcastInstance(config);
   TestMemberShipListener memberShipListener=new TestMemberShipListener(1);
   h2.getCluster().addMembershipListener(memberShipListener);
   TestLifeCycleListener lifeCycleListener=new TestLifeCycleListener(1);
@@ -14,12 +14,17 @@
   assertClusterSizeEventually(1,h2);
   ReplicatedMap<Object,Object> map1=h1.getReplicatedMap(mapName);
   ReplicatedMap<Object,Object> map2=h2.getReplicatedMap(mapName);
-  Map<Object,Object> expectedValues=testCase.populateMaps(map1,map2,h1);
+  final Map<Object,Object> expectedValues=testCase.populateMaps(map1,map2,h1);
   assertOpenEventually(lifeCycleListener.latch);
   assertClusterSizeEventually(2,h1);
   assertClusterSizeEventually(2,h2);
-  ReplicatedMap<Object,Object> mapTest=h1.getReplicatedMap(mapName);
-  for (  Map.Entry<Object,Object> entry : expectedValues.entrySet()) {
-    assertEquals(entry.getValue(),mapTest.get(entry.getKey()));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      ReplicatedMap<Object,Object> mapTest=h1.getReplicatedMap(mapName);
+      for (      Map.Entry<Object,Object> entry : expectedValues.entrySet()) {
+        assertEquals(entry.getValue(),mapTest.get(entry.getKey()));
+      }
+    }
   }
+);
 }

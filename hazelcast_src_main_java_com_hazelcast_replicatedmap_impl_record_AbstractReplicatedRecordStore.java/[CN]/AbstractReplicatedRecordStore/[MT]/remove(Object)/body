@@ -1,19 +1,6 @@
 {
-  isNotNull(key,"key");
-  long time=Clock.currentTimeMillis();
-  V oldValue;
-  K marshalledKey=(K)marshall(key);
-  final ReplicatedRecord current=getStorage().get(marshalledKey);
-  if (current == null) {
-    oldValue=null;
-  }
- else {
-    oldValue=(V)current.getValueInternal();
-    getStorage().remove(marshalledKey,current);
-  }
-  Object unmarshalledOldValue=unmarshall(oldValue);
-  if (replicatedMapConfig.isStatisticsEnabled()) {
-    getStats().incrementRemoves(Clock.currentTimeMillis() - time);
-  }
-  return unmarshalledOldValue;
+  final InternalReplicatedMapStorage<K,V> storage=getStorage();
+  final Object old=remove(storage,key);
+  storage.incrementVersion();
+  return old;
 }

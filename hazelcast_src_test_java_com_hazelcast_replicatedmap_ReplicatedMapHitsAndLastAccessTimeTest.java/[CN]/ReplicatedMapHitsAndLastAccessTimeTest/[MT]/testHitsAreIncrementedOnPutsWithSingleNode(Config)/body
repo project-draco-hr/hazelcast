@@ -1,25 +1,18 @@
 {
   final TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(1);
   final HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
-  final ReplicatedMap<Integer,Integer> map=instance1.getReplicatedMap(randomMapName());
-  final int operations=100;
-  execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map.put(i,i);
-      }
-    }
+  final ReplicatedMap<String,String> map=instance1.getReplicatedMap(randomMapName());
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  for (  String key : keys) {
+    map.put(key,"bar");
   }
-,ADDED,operations,1,map);
-  execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map.put(i,i);
-      }
-    }
+  for (  String key : keys) {
+    map.put(key,"bar");
   }
-,UPDATED,operations,1,map);
-  for (int i=0; i < operations; i++) {
-    assertEquals(1,getReplicatedRecord(map,i).getHits());
+  for (  String key : keys) {
+    final ReplicatedRecord<String,String> record=getReplicatedRecord(map,key);
+    assertNotNull(record);
+    assertEquals(1,record.getHits());
   }
 }

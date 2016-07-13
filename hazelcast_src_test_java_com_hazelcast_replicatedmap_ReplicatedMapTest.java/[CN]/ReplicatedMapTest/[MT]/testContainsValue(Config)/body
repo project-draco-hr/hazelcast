@@ -2,32 +2,22 @@
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
-  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
-  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
-  final AbstractMap.SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      int half=testValues.length / 2;
-      for (int i=0; i < testValues.length; i++) {
-        final ReplicatedMap<Integer,Integer> map=i < half ? map1 : map2;
-        final AbstractMap.SimpleEntry<Integer,Integer> entry=testValues[i];
-        map.put(entry.getKey(),entry.getValue());
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  int half=keys.size() / 2, i=0;
+  for (  String key : keys) {
+    final ReplicatedMap<String,String> map=i++ < half ? map1 : map2;
+    map.put(key,key);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertTrue(map1.containsValue(key));
+        assertTrue(map2.containsValue(key));
       }
     }
   }
-,60,EntryEventType.ADDED,testValues.length,1,map1,map2);
-  int map2Contains=0;
-  for (  AbstractMap.SimpleEntry<Integer,Integer> testValue : testValues) {
-    if (map2.containsValue(testValue.getValue())) {
-      map2Contains++;
-    }
-  }
-  int map1Contains=0;
-  for (  AbstractMap.SimpleEntry<Integer,Integer> testValue : testValues) {
-    if (map1.containsValue(testValue.getValue())) {
-      map1Contains++;
-    }
-  }
-  assertMatchSuccessfulOperationQuota(1,testValues.length,map1Contains,map2Contains);
+);
 }

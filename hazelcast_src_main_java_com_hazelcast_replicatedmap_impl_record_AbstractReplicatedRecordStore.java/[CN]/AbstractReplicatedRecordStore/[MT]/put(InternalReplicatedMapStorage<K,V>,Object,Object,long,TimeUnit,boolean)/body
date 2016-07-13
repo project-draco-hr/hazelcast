@@ -1,0 +1,39 @@
+{
+  isNotNull(key,"key");
+  isNotNull(value,"value");
+  isNotNull(timeUnit,"timeUnit");
+  if (ttl < 0) {
+    throw new IllegalArgumentException("ttl must be a positive integer");
+  }
+  long time=Clock.currentTimeMillis();
+  V oldValue=null;
+  K marshalledKey=(K)marshall(key);
+  V marshalledValue=(V)marshall(value);
+  final long ttlMillis=ttl == 0 ? 0 : timeUnit.toMillis(ttl);
+  final ReplicatedRecord<K,V> old=storage.get(marshalledKey);
+  ReplicatedRecord<K,V> record;
+  if (old == null) {
+    record=buildReplicatedRecord(marshalledKey,marshalledValue,ttlMillis);
+    storage.put(marshalledKey,record);
+  }
+ else {
+    oldValue=old.getValueInternal();
+    if (incrementHits) {
+      old.setValue(marshalledValue,ttlMillis);
+    }
+ else {
+      old.setValueInternal(marshalledValue,ttlMillis);
+    }
+    storage.put(marshalledKey,old);
+  }
+  if (ttlMillis > 0) {
+    scheduleTtlEntry(ttlMillis,marshalledKey,marshalledValue);
+  }
+ else {
+    cancelTtlEntry(marshalledKey);
+  }
+  if (replicatedMapConfig.isStatisticsEnabled()) {
+    getStats().incrementPuts(Clock.currentTimeMillis() - time);
+  }
+  return oldValue;
+}
