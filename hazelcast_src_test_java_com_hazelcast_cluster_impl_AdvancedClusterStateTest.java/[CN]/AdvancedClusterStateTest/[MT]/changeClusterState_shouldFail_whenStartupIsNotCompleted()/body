@@ -1,0 +1,34 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  TestNodeRegistry registry=factory.getRegistry();
+  final NodeContext nodeContext=registry.createNodeContext(new Address("127.0.0.1",5555));
+  final AtomicBoolean startupDone=new AtomicBoolean(false);
+  HazelcastInstance instance=HazelcastInstanceFactory.newHazelcastInstance(new Config(),randomName(),new NodeContext(){
+    @Override public AddressPicker createAddressPicker(    Node node){
+      return nodeContext.createAddressPicker(node);
+    }
+    @Override public Joiner createJoiner(    Node node){
+      return nodeContext.createJoiner(node);
+    }
+    @Override public ConnectionManager createConnectionManager(    Node node,    ServerSocketChannel serverSocketChannel){
+      return nodeContext.createConnectionManager(node,serverSocketChannel);
+    }
+    @Override public NodeExtension createNodeExtension(    Node node){
+      return new DefaultNodeExtension(node){
+        @Override public boolean isStartCompleted(){
+          return startupDone.get() && super.isStartCompleted();
+        }
+      }
+;
+    }
+  }
+);
+  try {
+    instance.getCluster().changeClusterState(ClusterState.FROZEN);
+    fail("Should not be able to change cluster state when startup is not completed yet!");
+  }
+ catch (  IllegalStateException expected) {
+  }
+  startupDone.set(true);
+  instance.getCluster().changeClusterState(ClusterState.FROZEN);
+}
