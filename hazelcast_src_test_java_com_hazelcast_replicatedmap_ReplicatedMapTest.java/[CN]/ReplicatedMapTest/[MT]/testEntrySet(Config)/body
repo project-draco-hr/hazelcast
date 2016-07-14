@@ -2,37 +2,28 @@
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
-  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
-  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
-  final AbstractMap.SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      int half=testValues.length / 2;
-      for (int i=0; i < testValues.length; i++) {
-        final ReplicatedMap<Integer,Integer> map=i < half ? map1 : map2;
-        final AbstractMap.SimpleEntry<Integer,Integer> entry=testValues[i];
-        map.put(entry.getKey(),entry.getValue());
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  int half=keys.size() / 2, i=0;
+  for (  String key : keys) {
+    final ReplicatedMap<String,String> map=i++ < half ? map1 : map2;
+    map.put(key,key);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      List<Entry<String,String>> entrySet1=new ArrayList<Entry<String,String>>(map1.entrySet());
+      List<Entry<String,String>> entrySet2=new ArrayList<Entry<String,String>>(map2.entrySet());
+      assertEquals(keys.size(),entrySet1.size());
+      assertEquals(keys.size(),entrySet2.size());
+      for (      Entry<String,String> e : entrySet1) {
+        assertTrue(keys.contains(e.getKey()));
+      }
+      for (      Entry<String,String> e : entrySet2) {
+        assertTrue(keys.contains(e.getKey()));
       }
     }
   }
-,60,EntryEventType.ADDED,100,1,map1,map2);
-  List<Entry<Integer,Integer>> entrySet1=copyToList(map1.entrySet());
-  List<Entry<Integer,Integer>> entrySet2=copyToList(map2.entrySet());
-  int map2Contains=0;
-  for (  Entry<Integer,Integer> entry : entrySet2) {
-    System.out.println("Entry: " + entry);
-    Integer value=findValue(entry.getKey(),testValues);
-    if (value.equals(entry.getValue())) {
-      map2Contains++;
-    }
-  }
-  int map1Contains=0;
-  for (  Entry<Integer,Integer> entry : entrySet1) {
-    Integer value=findValue(entry.getKey(),testValues);
-    if (value.equals(entry.getValue())) {
-      map1Contains++;
-    }
-  }
-  assertMatchSuccessfulOperationQuota(1,testValues.length,map1Contains,map2Contains);
+);
 }

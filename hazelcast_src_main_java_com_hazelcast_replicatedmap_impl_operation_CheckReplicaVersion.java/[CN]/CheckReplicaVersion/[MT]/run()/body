@@ -1,4 +1,5 @@
 {
+  final ILogger logger=getLogger();
   ReplicatedMapService service=getService();
   PartitionContainer container=service.getPartitionContainer(getPartitionId());
   ConcurrentMap<String,ReplicatedRecordStore> stores=container.getStores();
@@ -10,8 +11,8 @@
       logger.finest("Missing store on the replica ! Owner version -> " + version);
       requestDataFromOwner(name);
     }
- else     if (!version.equals(store.getVersion())) {
-      logger.finest("Version mismatch on the replica ! Owner version ->  " + version + ", Replica version -> "+ store.getVersion());
+ else     if (store.isStale(version)) {
+      logger.finest("Stale replica! Owner version ->  " + version + ", Replica version -> "+ store.getVersion());
       requestDataFromOwner(name);
     }
   }

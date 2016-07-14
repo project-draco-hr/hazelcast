@@ -4,27 +4,18 @@
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
-  final int operations=100;
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map1.put("foo-" + i,"bar");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  for (  String key : keys) {
+    map1.put(key,"bar");
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertTrue(map1.containsKey(key));
+        assertTrue(map2.containsKey(key));
       }
     }
   }
-,60,EntryEventType.ADDED,operations,1,map1,map2);
-  int map2Contains=0;
-  for (int i=0; i < operations; i++) {
-    if (map2.containsKey("foo-" + i)) {
-      map2Contains++;
-    }
-  }
-  int map1Contains=0;
-  for (int i=0; i < operations; i++) {
-    if (map1.containsKey("foo-" + i)) {
-      map1Contains++;
-    }
-  }
-  assertMatchSuccessfulOperationQuota(1,operations,map1Contains,map2Contains);
+);
 }

@@ -1,0 +1,53 @@
+{
+  final int nodeCount=4;
+  final int keyCount=10000;
+  final int threadCount=2;
+  updateFactory();
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  final Config config=new Config();
+  config.setProperty("hazelcast.logging.type","log4j");
+  final HazelcastInstance[] instances=factory.newInstances(config,nodeCount);
+  warmUpPartitions(instances);
+  final int partitionId=randomPartitionOwnedBy(instances[0]).getPartitionId();
+  final String mapName=randomMapName();
+  final NodeEngineImpl nodeEngine=getNodeEngineImpl(instances[0]);
+  final Thread[] threads=new Thread[threadCount];
+  for (int i=0; i < threadCount; i++) {
+    final int startIndex=i;
+    threads[i]=new Thread(new Runnable(){
+      @Override public void run(){
+        for (int j=startIndex; j < keyCount; j+=threadCount) {
+          put(nodeEngine,mapName,partitionId,j,j);
+        }
+      }
+    }
+);
+  }
+  for (  Thread thread : threads) {
+    thread.start();
+  }
+  for (  Thread thread : threads) {
+    thread.join();
+  }
+  final ReplicatedRecordStore[] stores=new ReplicatedRecordStore[nodeCount];
+  for (int i=0; i < nodeCount; i++) {
+    ReplicatedMapService service=getNodeEngineImpl(instances[i]).getService(ReplicatedMapService.SERVICE_NAME);
+    service.triggerAntiEntropy();
+    stores[i]=service.getReplicatedRecordStore(mapName,false,partitionId);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      long version=stores[0].getVersion();
+      for (      ReplicatedRecordStore store : stores) {
+        assertEquals(version,store.getVersion());
+        assertFalse(store.isStale(version));
+      }
+    }
+  }
+);
+  for (int i=0; i < keyCount; i++) {
+    for (    ReplicatedRecordStore store : stores) {
+      assertTrue(store.containsKey(i));
+    }
+  }
+}

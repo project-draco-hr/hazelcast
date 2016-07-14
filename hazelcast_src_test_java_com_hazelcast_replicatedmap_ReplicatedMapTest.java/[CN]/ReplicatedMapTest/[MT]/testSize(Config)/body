@@ -2,20 +2,22 @@
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
   HazelcastInstance instance1=nodeFactory.newHazelcastInstance(config);
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
-  final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
-  final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
-  final AbstractMap.SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      int half=testValues.length / 2;
-      for (int i=0; i < testValues.length; i++) {
-        final ReplicatedMap<Integer,Integer> map=i < half ? map1 : map2;
-        final AbstractMap.SimpleEntry<Integer,Integer> entry=testValues[i];
-        map.put(entry.getKey(),entry.getValue());
-      }
+  final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
+  final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  final SimpleEntry<String,String>[] testValues=buildTestValues(keys);
+  int half=testValues.length / 2;
+  for (int i=0; i < testValues.length; i++) {
+    final ReplicatedMap<String,String> map=i < half ? map1 : map2;
+    final SimpleEntry<String,String> entry=testValues[i];
+    map.put(entry.getKey(),entry.getValue());
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(keys.size(),map1.size());
+      assertEquals(keys.size(),map2.size());
     }
   }
-,60,EntryEventType.ADDED,100,1,map1,map2);
-  assertMatchSuccessfulOperationQuota(1,map1.size(),map2.size());
+);
 }

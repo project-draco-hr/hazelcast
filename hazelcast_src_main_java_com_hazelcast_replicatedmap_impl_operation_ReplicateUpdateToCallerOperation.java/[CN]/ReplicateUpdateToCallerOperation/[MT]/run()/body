@@ -1,4 +1,5 @@
 {
+  ILogger logger=getLogger();
   ReplicatedMapService service=getService();
   ReplicatedRecordStore store=service.getReplicatedRecordStore(name,true,getPartitionId());
   long currentVersion=store.getVersion();
@@ -10,10 +11,10 @@
   Object key=store.marshall(dataKey);
   Object value=store.marshall(dataValue);
   if (isRemove) {
-    store.remove(key);
+    store.removeWithVersion(key,updateVersion);
   }
  else {
-    store.put(key,value,ttl,TimeUnit.MILLISECONDS,true);
+    store.putWithVersion(key,value,ttl,TimeUnit.MILLISECONDS,true,updateVersion);
   }
-  store.setVersion(updateVersion);
+  publishEvent();
 }

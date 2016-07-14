@@ -4,20 +4,15 @@
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
   SimpleEntryListener listener=new SimpleEntryListener(0,100);
   map2.addEntryListener(listener);
   SimpleEntryListener listenerKey=new SimpleEntryListener(0,1);
-  map1.addEntryListener(listenerKey,"foo-54");
-  final int operations=100;
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map1.put("foo-" + i,"bar",3,TimeUnit.SECONDS);
-      }
-    }
+  map1.addEntryListener(listenerKey,keys.iterator().next());
+  for (  String key : keys) {
+    map1.put(key,"bar",3,TimeUnit.SECONDS);
   }
-,60,EntryEventType.ADDED,operations,1,map1,map2);
   assertOpenEventually(listener.evictLatch);
   assertOpenEventually(listenerKey.evictLatch);
 }

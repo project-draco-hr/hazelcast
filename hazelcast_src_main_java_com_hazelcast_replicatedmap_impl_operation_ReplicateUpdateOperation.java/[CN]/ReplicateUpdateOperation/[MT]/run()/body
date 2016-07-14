@@ -4,16 +4,16 @@
   long currentVersion=store.getVersion();
   long updateVersion=response.getVersion();
   if (currentVersion >= updateVersion) {
-    logger.finest("Stale update received for replicated map -> " + name + ",  partitionId -> "+ getPartitionId()+ " , current version -> "+ currentVersion+ ", update version -> "+ updateVersion+ ", rejecting update!");
+    getLogger().finest("Stale update received for replicated map -> " + name + ",  partitionId -> "+ getPartitionId()+ " , current version -> "+ currentVersion+ ", update version -> "+ updateVersion+ ", rejecting update!");
     return;
   }
   Object key=store.marshall(dataKey);
   Object value=store.marshall(dataValue);
   if (isRemove) {
-    store.remove(key);
+    store.removeWithVersion(key,updateVersion);
   }
  else {
-    store.put(key,value,ttl,TimeUnit.MILLISECONDS,false);
+    store.putWithVersion(key,value,ttl,TimeUnit.MILLISECONDS,false,updateVersion);
   }
-  store.setVersion(updateVersion);
+  publishEvent();
 }

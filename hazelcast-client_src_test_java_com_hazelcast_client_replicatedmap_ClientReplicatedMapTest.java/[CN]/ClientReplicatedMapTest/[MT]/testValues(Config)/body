@@ -3,32 +3,17 @@
   HazelcastInstance instance2=hazelcastFactory.newHazelcastClient();
   final ReplicatedMap<Integer,Integer> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<Integer,Integer> map2=instance2.getReplicatedMap("default");
-  final AbstractMap.SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
-  final List<Integer> valuesTestValues=new ArrayList<Integer>(testValues.length);
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      int half=testValues.length / 2;
-      for (int i=0; i < testValues.length; i++) {
-        ReplicatedMap<Integer,Integer> map=i < half ? map1 : map2;
-        AbstractMap.SimpleEntry<Integer,Integer> entry=testValues[i];
-        map.put(entry.getKey(),entry.getValue());
-        valuesTestValues.add(entry.getValue());
-      }
-    }
+  final SimpleEntry<Integer,Integer>[] testValues=buildTestValues();
+  int half=testValues.length / 2;
+  for (int i=0; i < testValues.length; i++) {
+    ReplicatedMap<Integer,Integer> map=i < half ? map1 : map2;
+    SimpleEntry<Integer,Integer> entry=testValues[i];
+    map.put(entry.getKey(),entry.getValue());
   }
-,2,EntryEventType.ADDED,100,1,map1,map2);
-  List<Integer> values1=copyToList(map1.values());
-  List<Integer> values2=copyToList(map2.values());
-  int map1Contains=0;
-  int map2Contains=0;
-  for (  Integer value : valuesTestValues) {
-    if (values2.contains(value)) {
-      map2Contains++;
-    }
-    if (values1.contains(value)) {
-      map1Contains++;
-    }
+  Set<Integer> values1=new HashSet<Integer>(map1.values());
+  Set<Integer> values2=new HashSet<Integer>(map2.values());
+  for (  SimpleEntry<Integer,Integer> e : testValues) {
+    assertTrue(values1.contains(e.getValue()));
+    assertTrue(values2.contains(e.getValue()));
   }
-  assertMatchSuccessfulOperationQuota(1,testValues.length,map1Contains,map2Contains);
 }

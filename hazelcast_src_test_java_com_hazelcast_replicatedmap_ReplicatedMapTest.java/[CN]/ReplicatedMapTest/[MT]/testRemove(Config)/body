@@ -4,45 +4,30 @@
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
-  final int operations=100;
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map1.put("foo-" + i,"bar");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  for (  String key : keys) {
+    map1.put(key,"bar");
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertEquals("bar",map1.get(key));
+        assertEquals("bar",map2.get(key));
       }
     }
   }
-,60,EntryEventType.ADDED,operations,1,map1,map2);
-  for (  Entry<String,String> entry : map2.entrySet()) {
-    assertStartsWith("foo-",entry.getKey());
-    assertEquals("bar",entry.getValue());
+);
+  for (  String key : keys) {
+    map2.remove(key);
   }
-  for (  Entry<String,String> entry : map1.entrySet()) {
-    assertStartsWith("foo-",entry.getKey());
-    assertEquals("bar",entry.getValue());
-  }
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map2.remove("foo-" + i);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertFalse(map1.containsKey(key));
+        assertFalse(map2.containsKey(key));
       }
     }
   }
-,60,EntryEventType.REMOVED,operations,1,map1,map2);
-  int map2Updated=0;
-  for (int i=0; i < operations; i++) {
-    Object value=map2.get("foo-" + i);
-    if (value == null) {
-      map2Updated++;
-    }
-  }
-  int map1Updated=0;
-  for (int i=0; i < operations; i++) {
-    Object value=map1.get("foo-" + i);
-    if (value == null) {
-      map1Updated++;
-    }
-  }
-  assertMatchSuccessfulOperationQuota(1,operations,map1Updated,map2Updated);
+);
 }

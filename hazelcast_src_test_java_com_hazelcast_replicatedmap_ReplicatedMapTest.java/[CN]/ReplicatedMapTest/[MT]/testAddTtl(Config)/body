@@ -4,45 +4,31 @@
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
-  final int operations=100;
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      for (int i=0; i < operations; i++) {
-        map1.put("foo-" + i,"bar",10,TimeUnit.MINUTES);
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
+  for (  String key : keys) {
+    map1.put(key,"bar",10,TimeUnit.MINUTES);
+  }
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertEquals("bar",map1.get(key));
+        ReplicatedRecord<String,String> record=getReplicatedRecord(map1,key);
+        assertNotNull(record);
+        assertNotEquals(0,record.getTtlMillis());
       }
     }
   }
-,60,EntryEventType.ADDED,operations,1,map1,map2);
-  TimeUnit.SECONDS.sleep(2);
-  Set<Entry<String,String>> map2entries=map2.entrySet();
-  for (  Entry<String,String> entry : map2entries) {
-    assertStartsWith("foo-",entry.getKey());
-    assertEquals("bar",entry.getValue());
-    ReplicatedRecord<String,String> record=getReplicatedRecord(map2,entry.getKey());
-    assertNotEquals(0,record.getTtlMillis());
-    record.setValue(record.getValue(),1);
-  }
-  Set<Entry<String,String>> map1entries=map1.entrySet();
-  for (  Entry<String,String> entry : map1entries) {
-    assertStartsWith("foo-",entry.getKey());
-    assertEquals("bar",entry.getValue());
-    ReplicatedRecord<String,String> record=getReplicatedRecord(map1,entry.getKey());
-    assertNotEquals(0,record.getTtlMillis());
-    record.setValue(record.getValue(),1);
-  }
-  TimeUnit.SECONDS.sleep(1);
-  int map2Updated=0;
-  for (  Entry<String,String> entry : map2entries) {
-    if (map2.get(entry.getKey()) == null) {
-      map2Updated++;
+);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertEquals("bar",map2.get(key));
+        ReplicatedRecord<String,String> record=getReplicatedRecord(map2,key);
+        assertNotNull(record);
+        assertNotEquals(0,record.getTtlMillis());
+      }
     }
   }
-  int map1Updated=0;
-  for (  Entry<String,String> entry : map1entries) {
-    if (map1.get(entry.getKey()) == null) {
-      map1Updated++;
-    }
-  }
-  assertMatchSuccessfulOperationQuota(1,operations,map1Updated,map2Updated);
+);
 }

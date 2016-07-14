@@ -4,23 +4,20 @@
   HazelcastInstance instance2=nodeFactory.newHazelcastInstance(config);
   final ReplicatedMap<String,String> map1=instance1.getReplicatedMap("default");
   final ReplicatedMap<String,String> map2=instance2.getReplicatedMap("default");
+  final int partitionCount=getPartitionService(instance1).getPartitionCount();
+  final Set<String> keys=generateRandomKeys(instance1,partitionCount);
   final Map<String,String> mapTest=new HashMap<String,String>();
-  for (int i=0; i < 100; i++) {
-    mapTest.put("foo-" + i,"bar");
+  for (  String key : keys) {
+    mapTest.put(key,"bar");
   }
-  WatchedOperationExecutor executor=new WatchedOperationExecutor();
-  executor.execute(new Runnable(){
-    @Override public void run(){
-      map1.putAll(mapTest);
+  map1.putAll(mapTest);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      String key : keys) {
+        assertEquals("bar",map1.get(key));
+        assertEquals("bar",map2.get(key));
+      }
     }
   }
-,60,EntryEventType.ADDED,map1,map2);
-  for (  Entry<String,String> entry : map2.entrySet()) {
-    assertStartsWith("foo-",entry.getKey());
-    assertEquals("bar",entry.getValue());
-  }
-  for (  Entry<String,String> entry : map1.entrySet()) {
-    assertStartsWith("foo-",entry.getKey());
-    assertEquals("bar",entry.getValue());
-  }
+);
 }
