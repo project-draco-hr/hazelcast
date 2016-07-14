@@ -1,0 +1,18 @@
+{
+  Config config=new Config();
+  DurableExecutorConfig durableExecutorConfig=config.getDurableExecutorConfig(randomString());
+  DurableExecutorConfig readOnly=durableExecutorConfig.getAsReadOnly();
+  Method[] methods=DurableExecutorConfig.class.getMethods();
+  for (  Method method : methods) {
+    if (method.getName().startsWith("set")) {
+      try {
+        Object param=newParameter(method);
+        method.invoke(readOnly,param);
+        fail();
+      }
+ catch (      InvocationTargetException e) {
+        assertTrue(e.getCause() instanceof UnsupportedOperationException);
+      }
+    }
+  }
+}
