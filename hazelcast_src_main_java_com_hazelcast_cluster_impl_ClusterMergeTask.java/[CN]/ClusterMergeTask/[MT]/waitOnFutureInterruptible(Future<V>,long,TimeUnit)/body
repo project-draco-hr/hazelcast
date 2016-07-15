@@ -1,14 +1,14 @@
 {
   isNotNull(timeUnit,"timeUnit");
-  long deadline=Clock.currentTimeMillis() + timeUnit.toMillis(timeout);
+  long totalTimeoutMs=timeUnit.toMillis(timeout);
   while (true) {
-    long localTimeoutMs=Math.min(MIN_WAIT_ON_FUTURE_TIMEOUT_MILLIS,deadline);
+    long timeoutStepMs=Math.min(MIN_WAIT_ON_FUTURE_TIMEOUT_MILLIS,totalTimeoutMs);
     try {
-      return future.get(localTimeoutMs,TimeUnit.MILLISECONDS);
+      return future.get(timeoutStepMs,TimeUnit.MILLISECONDS);
     }
  catch (    TimeoutException t) {
-      deadline-=localTimeoutMs;
-      if (deadline <= 0) {
+      totalTimeoutMs-=timeoutStepMs;
+      if (totalTimeoutMs <= 0) {
         throw t;
       }
       if (!node.isRunning()) {
