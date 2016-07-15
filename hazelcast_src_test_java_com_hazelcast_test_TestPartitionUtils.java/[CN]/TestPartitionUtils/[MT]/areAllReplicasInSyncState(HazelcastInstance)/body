@@ -1,0 +1,27 @@
+{
+  final List<Future> futures=new ArrayList<Future>();
+  final InternalPartitionServiceImpl partitionService=(InternalPartitionServiceImpl)getPartitionService(instance);
+  for (  InternalPartition partition : partitionService.getPartitions()) {
+    for (int replicaIndex=1; replicaIndex < InternalPartition.MAX_REPLICA_COUNT; replicaIndex++) {
+      Future future=partitionService.invokeCheckReplicaSyncOperationIfOwnPartition(partition.getPartitionId(),replicaIndex);
+      if (future != null) {
+        futures.add(future);
+      }
+    }
+  }
+  if (futures.isEmpty()) {
+    return true;
+  }
+  for (  Future future : futures) {
+    try {
+      boolean sync=(Boolean)future.get(10,TimeUnit.SECONDS);
+      if (!sync) {
+        return false;
+      }
+    }
+ catch (    Exception e) {
+      return false;
+    }
+  }
+  return true;
+}

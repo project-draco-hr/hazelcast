@@ -1,6 +1,15 @@
 {
-  List<HazelcastInstance> instances=createInstances(nodeCount);
+  final List<HazelcastInstance> instances=createInstances(nodeCount);
   warmUpPartitions(instances);
+  waitAllForSafeState(instances);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      HazelcastInstance instance : instances) {
+        assertTrue(areAllReplicasInSyncState(instance));
+      }
+    }
+  }
+);
   Collections.shuffle(instances);
   return instances;
 }
