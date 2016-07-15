@@ -1,0 +1,13 @@
+{
+  String key=randomString();
+  DurableExecutorService service=client.getDurableExecutorService(SINGLE_TASK + randomString());
+  service.submitToKeyOwner(new SleepingTask(100),key);
+  DurableExecutorServiceFuture<String> future=service.submitToKeyOwner(new BasicTestCallable(),key);
+  try {
+    future.get();
+    fail();
+  }
+ catch (  ExecutionException e) {
+    assertTrue(e.getCause() instanceof RejectedExecutionException);
+  }
+}

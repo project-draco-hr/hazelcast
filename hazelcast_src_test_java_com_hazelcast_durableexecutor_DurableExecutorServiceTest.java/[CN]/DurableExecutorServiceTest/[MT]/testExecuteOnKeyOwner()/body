@@ -1,0 +1,12 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance instance1=factory.newHazelcastInstance();
+  HazelcastInstance instance2=factory.newHazelcastInstance();
+  String key=generateKeyOwnedBy(instance2);
+  String instanceName=instance2.getName();
+  ICountDownLatch latch=instance2.getCountDownLatch(instanceName);
+  latch.trySetCount(1);
+  DurableExecutorService durableExecutorService=instance1.getDurableExecutorService(randomString());
+  durableExecutorService.executeOnKeyOwner(new InstanceAsserterRunnable(instanceName),key);
+  latch.await(30,TimeUnit.SECONDS);
+}

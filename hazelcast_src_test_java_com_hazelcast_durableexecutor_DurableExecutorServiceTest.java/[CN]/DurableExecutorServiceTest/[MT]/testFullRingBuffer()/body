@@ -1,0 +1,17 @@
+{
+  String name=randomString();
+  String key=randomString();
+  Config config=new Config();
+  config.getDurableExecutorConfig(name).setCapacity(1);
+  HazelcastInstance instance=createHazelcastInstance(config);
+  DurableExecutorService service=instance.getDurableExecutorService(name);
+  service.submitToKeyOwner(new SleepingTask(100),key);
+  DurableExecutorServiceFuture<String> future=service.submitToKeyOwner(new BasicTestCallable(),key);
+  try {
+    future.get();
+    fail();
+  }
+ catch (  ExecutionException e) {
+    assertTrue(e.getCause() instanceof RejectedExecutionException);
+  }
+}
