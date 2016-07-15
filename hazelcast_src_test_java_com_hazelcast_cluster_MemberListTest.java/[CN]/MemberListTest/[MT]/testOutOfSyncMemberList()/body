@@ -3,9 +3,9 @@
   final HazelcastInstance h1=instanceList.get(0);
   final HazelcastInstance h2=instanceList.get(1);
   final HazelcastInstance h3=instanceList.get(2);
-  assertEquals(3,h1.getCluster().getMembers().size());
-  assertEquals(3,h2.getCluster().getMembers().size());
-  assertEquals(3,h3.getCluster().getMembers().size());
+  assertClusterSizeEventually(3,h1);
+  assertClusterSizeEventually(3,h2);
+  assertClusterSizeEventually(3,h3);
   final HazelcastInstance[] instances=new HazelcastInstance[]{h1,h2,h3};
   final AtomicBoolean doingWork=new AtomicBoolean(true);
   Thread[] workThreads=new Thread[instances.length];
@@ -28,12 +28,7 @@ catch (            Exception e) {
               e.printStackTrace();
             }
           }
-          try {
-            Thread.sleep(2000);
-          }
- catch (          InterruptedException e) {
-            e.printStackTrace();
-          }
+          sleepSeconds(2);
         }
       }
     }
@@ -42,12 +37,12 @@ catch (            Exception e) {
   }
   final Node n3=TestUtil.getNode(h3);
   n3.clusterService.removeAddress(h1.getCluster().getLocalMember().getAddress(),null);
-  Thread.sleep(30 * 1000);
+  sleepSeconds(30);
   doingWork.set(false);
   for (  Thread t : workThreads) {
     t.join();
   }
-  assertEquals(3,h1.getCluster().getMembers().size());
-  assertEquals(3,h2.getCluster().getMembers().size());
-  assertEquals(3,h3.getCluster().getMembers().size());
+  assertClusterSize(3,h1);
+  assertClusterSize(3,h2);
+  assertClusterSize(3,h3);
 }
