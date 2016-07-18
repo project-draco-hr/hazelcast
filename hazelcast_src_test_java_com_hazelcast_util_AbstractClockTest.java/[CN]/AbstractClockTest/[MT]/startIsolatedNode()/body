@@ -1,0 +1,24 @@
+{
+  if (isolatedNode != null) {
+    throw new IllegalStateException("There is already an isolated node running!");
+  }
+  Thread thread=Thread.currentThread();
+  ClassLoader tccl=thread.getContextClassLoader();
+  try {
+    FilteringClassLoader cl=new FilteringClassLoader(Collections.<String>emptyList(),"com.hazelcast");
+    thread.setContextClassLoader(cl);
+    Class<?> configClazz=cl.loadClass("com.hazelcast.config.Config");
+    Object config=configClazz.newInstance();
+    Method setClassLoader=configClazz.getDeclaredMethod("setClassLoader",ClassLoader.class);
+    setClassLoader.invoke(config,cl);
+    Class<?> hazelcastClazz=cl.loadClass("com.hazelcast.core.Hazelcast");
+    Method newHazelcastInstance=hazelcastClazz.getDeclaredMethod("newHazelcastInstance",configClazz);
+    isolatedNode=newHazelcastInstance.invoke(hazelcastClazz,config);
+  }
+ catch (  Exception e) {
+    throw new RuntimeException("Could not start isolated Hazelcast instance",e);
+  }
+ finally {
+    thread.setContextClassLoader(tccl);
+  }
+}
