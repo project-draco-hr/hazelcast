@@ -4,17 +4,10 @@
   }
   final int replicaIndex=1;
   final List<Future> futures=new ArrayList<Future>();
-  final Address thisAddress=node.getThisAddress();
   for (  InternalPartitionImpl partition : partitions) {
-    final Address owner=partition.getOwnerOrNull();
-    if (thisAddress.equals(owner)) {
-      if (partition.getReplicaAddress(replicaIndex) != null) {
-        final int partitionId=partition.getPartitionId();
-        final long replicaVersion=getCurrentReplicaVersion(replicaIndex,partitionId);
-        final Operation operation=createReplicaSyncStateOperation(replicaVersion,partitionId);
-        final Future future=invoke(operation,replicaIndex,partitionId);
-        futures.add(future);
-      }
+    Future future=invokeCheckReplicaSyncOperationIfOwnPartition(partition.getPartitionId(),replicaIndex);
+    if (future != null) {
+      futures.add(future);
     }
   }
   if (futures.isEmpty()) {

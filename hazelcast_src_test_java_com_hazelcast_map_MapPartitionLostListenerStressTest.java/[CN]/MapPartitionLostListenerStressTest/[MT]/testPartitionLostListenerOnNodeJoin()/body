@@ -1,0 +1,48 @@
+{
+  final Config config1=new Config();
+  config1.setProperty(PARTITION_MAX_PARALLEL_REPLICATIONS.getName(),"0");
+  final HazelcastInstance instance1=hazelcastInstanceFactory.newHazelcastInstance(config1);
+  final IMap<Integer,Integer> map=instance1.getMap(mapName);
+  final EventCollectingMapPartitionLostListener listener=new EventCollectingMapPartitionLostListener(1);
+  map.addPartitionLostListener(listener);
+  for (int i=0; i < getMapEntryCount(); i++) {
+    map.put(i,i);
+  }
+  final AtomicInteger migratedPartitionId=new AtomicInteger(-1);
+  final MigrationListener migrationListener=new MigrationListener(){
+    @Override public void migrationStarted(    MigrationEvent migrationEvent){
+    }
+    @Override public void migrationCompleted(    MigrationEvent migrationEvent){
+      if (migrationEvent.getOldOwner().getAddress().equals(getAddress(instance1))) {
+        migratedPartitionId.compareAndSet(-1,migrationEvent.getPartitionId());
+      }
+    }
+    @Override public void migrationFailed(    MigrationEvent migrationEvent){
+    }
+  }
+;
+  instance1.getPartitionService().addMigrationListener(migrationListener);
+  final Thread thread2=new Thread(new Runnable(){
+    @Override public void run(){
+      final Config config2=new Config();
+      config2.setProperty(PARTITION_MAX_PARALLEL_REPLICATIONS.getName(),"0");
+      final HazelcastInstance instance2=hazelcastInstanceFactory.newHazelcastInstance(config2);
+      assertTrueEventually(new AssertTask(){
+        @Override public void run() throws Exception {
+          final int partitionId=migratedPartitionId.get();
+          assertNotEquals(-1,partitionId);
+          final long[] versions=TestPartitionUtils.getReplicaVersions(instance1,partitionId);
+          assertEquals(-1,versions[0]);
+        }
+      }
+);
+      instance2.getLifecycleService().terminate();
+    }
+  }
+);
+  thread2.start();
+  thread2.join();
+  assertClusterSizeEventually(1,instance1);
+  assertTrue(map.size() < getMapEntryCount());
+  assertFalse(listener.getEvents().isEmpty());
+}

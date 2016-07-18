@@ -4,17 +4,16 @@
   final Address newAddress=event.getNewAddress();
   final Address oldAddress=event.getOldAddress();
   final PartitionReplicaChangeReason reason=event.getReason();
-  final boolean initialAssignment=event.getOldAddress() == null;
   if (replicaIndex > 0) {
     if (thisAddress.equals(oldAddress)) {
       clearPartition(partitionId,replicaIndex);
     }
  else     if (thisAddress.equals(newAddress)) {
-      synchronizePartition(partitionId,replicaIndex,reason,initialAssignment);
+      synchronizePartition(partitionId,replicaIndex,reason);
     }
   }
  else {
-    if (!initialAssignment && thisAddress.equals(newAddress)) {
+    if (event.getOldAddress() != null && thisAddress.equals(newAddress)) {
       promoteFromBackups(partitionId,reason,oldAddress);
     }
     partitionService.cancelReplicaSync(partitionId);
