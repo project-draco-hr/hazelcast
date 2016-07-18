@@ -1,17 +1,17 @@
 {
+  int executeCount=10;
   DurableExecutorService executorService=createSingleNodeDurableExecutorService("testExecutorServiceStats");
-  final int k=10;
-  LatchRunnable.latch=new CountDownLatch(k);
-  for (int i=0; i < k; i++) {
+  LatchRunnable.latch=new CountDownLatch(executeCount);
+  for (int i=0; i < executeCount; i++) {
     executorService.execute(new LatchRunnable());
   }
   assertOpenEventually(LatchRunnable.latch);
-  final Future<Boolean> f=executorService.submit(new SleepingTask(10));
-  Thread.sleep(1000);
-  f.cancel(true);
+  Future<Boolean> future=executorService.submit(new SleepingTask(10));
+  sleepSeconds(1);
+  future.cancel(true);
   try {
-    f.get();
+    future.get();
   }
- catch (  CancellationException e) {
+ catch (  CancellationException ignored) {
   }
 }

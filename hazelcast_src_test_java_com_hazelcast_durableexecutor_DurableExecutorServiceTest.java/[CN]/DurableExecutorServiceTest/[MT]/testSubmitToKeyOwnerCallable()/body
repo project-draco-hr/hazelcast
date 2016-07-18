@@ -1,16 +1,16 @@
 {
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(NODE_COUNT);
   HazelcastInstance[] instances=factory.newInstances();
-  final List<Future> futures=new ArrayList<Future>();
+  List<Future> futures=new ArrayList<Future>();
   for (int i=0; i < NODE_COUNT; i++) {
     HazelcastInstance instance=instances[i];
     DurableExecutorService service=instance.getDurableExecutorService("testSubmitToKeyOwnerCallable");
     Member localMember=instance.getCluster().getLocalMember();
     int key=findNextKeyForMember(instance,localMember);
-    Future f=service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key);
-    futures.add(f);
+    Future future=service.submitToKeyOwner(new MemberUUIDCheckCallable(localMember.getUuid()),key);
+    futures.add(future);
   }
-  for (  Future f : futures) {
-    assertTrue((Boolean)f.get(10,TimeUnit.SECONDS));
+  for (  Future future : futures) {
+    assertTrue((Boolean)future.get(10,TimeUnit.SECONDS));
   }
 }

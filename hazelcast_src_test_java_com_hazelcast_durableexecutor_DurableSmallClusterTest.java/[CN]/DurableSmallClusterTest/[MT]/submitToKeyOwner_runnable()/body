@@ -3,8 +3,10 @@
   for (  HazelcastInstance instance : instances) {
     DurableExecutorService service=instance.getDurableExecutorService("testSubmitToKeyOwnerRunnable");
     Member localMember=instance.getCluster().getLocalMember();
+    String uuid=localMember.getUuid();
+    Runnable runnable=new IncrementAtomicLongIfMemberUUIDNotMatchRunnable(uuid,"testSubmitToKeyOwnerRunnable");
     int key=findNextKeyForMember(instance,localMember);
-    service.submitToKeyOwner(new IncrementAtomicLongIfMemberUUIDNotMatchRunnable(localMember.getUuid(),"testSubmitToKeyOwnerRunnable"),key).andThen(callback);
+    service.submitToKeyOwner(runnable,key).andThen(callback);
   }
   assertOpenEventually(callback.getResponseLatch());
   assertEquals(0,instances[0].getAtomicLong("testSubmitToKeyOwnerRunnable").get());
