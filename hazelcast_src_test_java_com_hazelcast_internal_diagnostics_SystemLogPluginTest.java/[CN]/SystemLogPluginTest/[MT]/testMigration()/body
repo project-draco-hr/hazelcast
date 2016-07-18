@@ -1,0 +1,15 @@
+{
+  warmUpPartitions(hz);
+  HazelcastInstance instance=hzFactory.newHazelcastInstance(config);
+  warmUpPartitions(instance);
+  waitAllForSafeState();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      logWriter.clean();
+      plugin.run(logWriter);
+      assertContains("MigrationStarted");
+      assertContains("MigrationCompleted");
+    }
+  }
+);
+}
