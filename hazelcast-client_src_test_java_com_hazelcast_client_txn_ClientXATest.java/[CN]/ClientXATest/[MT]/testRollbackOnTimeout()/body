@@ -1,0 +1,22 @@
+{
+  Hazelcast.newHazelcastInstance();
+  HazelcastInstance client=HazelcastClient.newHazelcastClient();
+  String name=randomString();
+  IQueue<Object> queue=client.getQueue(name);
+  queue.offer(randomString());
+  HazelcastXAResource xaResource=client.getXAResource();
+  tm.setTransactionTimeout(3);
+  tm.begin();
+  Transaction transaction=tm.getTransaction();
+  transaction.enlistResource(xaResource);
+  TransactionContext context=xaResource.getTransactionContext();
+  try {
+    context.getQueue(name).take();
+    sleepAtLeastSeconds(5);
+    tm.commit();
+    fail();
+  }
+ catch (  RollbackException ignored) {
+  }
+  assertEquals("Queue size should be 1",1,queue.size());
+}
