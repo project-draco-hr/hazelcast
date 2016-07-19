@@ -1,12 +1,12 @@
 {
   final String queueName=randomString();
-  final TransactionContext context=hz.newTransactionContext();
+  final TransactionContext context=client.newTransactionContext();
   CountDownLatch txnRollbackLatch=new CountDownLatch(1);
   final CountDownLatch memberRemovedLatch=new CountDownLatch(1);
   context.beginTransaction();
   final TransactionalQueue queue=context.getQueue(queueName);
   queue.offer(randomString());
-  hz.getCluster().addMembershipListener(new MembershipAdapter(){
+  client.getCluster().addMembershipListener(new MembershipAdapter(){
     @Override public void memberRemoved(    MembershipEvent membershipEvent){
       memberRemovedLatch.countDown();
     }
@@ -23,7 +23,7 @@
   }
   assertOpenEventually(txnRollbackLatch);
   assertOpenEventually(memberRemovedLatch);
-  final IQueue<Object> q=hz.getQueue(queueName);
+  final IQueue<Object> q=client.getQueue(queueName);
   assertNull(q.poll());
   assertEquals(0,q.size());
 }
