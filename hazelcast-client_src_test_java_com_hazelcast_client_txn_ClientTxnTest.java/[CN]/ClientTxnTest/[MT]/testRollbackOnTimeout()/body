@@ -1,0 +1,18 @@
+{
+  String name=randomString();
+  IQueue<Object> queue=client.getQueue(name);
+  queue.offer(randomString());
+  TransactionOptions options=new TransactionOptions().setTimeout(3,TimeUnit.SECONDS);
+  TransactionContext context=client.newTransactionContext(options);
+  context.beginTransaction();
+  try {
+    context.getQueue(name).take();
+    sleepAtLeastSeconds(5);
+    context.commitTransaction();
+    fail();
+  }
+ catch (  Exception e) {
+    context.rollbackTransaction();
+  }
+  assertEquals("Queue size should be 1",1,queue.size());
+}

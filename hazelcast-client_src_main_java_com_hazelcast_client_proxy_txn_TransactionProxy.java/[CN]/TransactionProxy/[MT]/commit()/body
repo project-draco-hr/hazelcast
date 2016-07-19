@@ -3,6 +3,7 @@
     if (state != ACTIVE) {
       throw new TransactionNotActiveException("Transaction is not active");
     }
+    state=COMMITTING;
     checkThread();
     checkTimeout();
     ClientMessage request=TransactionCommitCodec.encodeRequest(txnId,threadId);
@@ -10,7 +11,7 @@
     state=COMMITTED;
   }
  catch (  Exception e) {
-    state=ROLLING_BACK;
+    state=COMMIT_FAILED;
     throw ExceptionUtil.rethrow(e);
   }
  finally {
