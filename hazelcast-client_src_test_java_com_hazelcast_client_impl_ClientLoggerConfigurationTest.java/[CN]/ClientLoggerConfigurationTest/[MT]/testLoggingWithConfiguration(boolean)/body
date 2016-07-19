@@ -1,0 +1,35 @@
+{
+  hazelcastFactory=new TestHazelcastFactory();
+  Config cg=new Config();
+  cg.setProperty("hazelcast.logging.type","jdk");
+  hazelcastFactory.newHazelcastInstance(cg);
+  Properties props=new Properties();
+  props.setProperty("log4j.rootLogger","INFO, FILE");
+  props.setProperty("log4j.appender.FILE","org.apache.log4j.FileAppender");
+  props.setProperty("log4j.appender.FILE.layout","org.apache.log4j.PatternLayout");
+  props.setProperty("log4j.appender.FILE.layout.ConversionPattern",RANDOM_STRING + "\n");
+  props.setProperty("log4j.appender.FILE.File","./" + LOG_FILENAME);
+  props.setProperty("log4j.appender.FILE.ImmediateFlush","true");
+  PropertyConfigurator.configure(props);
+  ClientConfig config=new ClientConfig();
+  if (programmaticConfiguration) {
+    config.setProperty("hazelcast.logging.type","log4j");
+  }
+ else {
+    System.setProperty("hazelcast.logging.type","log4j");
+  }
+  client=hazelcastFactory.newHazelcastClient(config);
+  client.shutdown();
+  hazelcastFactory.shutdownAll();
+  boolean matchFound=false;
+  logFile=new File("./" + LOG_FILENAME);
+  Scanner scanner=new Scanner(logFile);
+  while (scanner.hasNextLine()) {
+    String line=scanner.nextLine();
+    if (line.contains(RANDOM_STRING)) {
+      matchFound=true;
+      break;
+    }
+  }
+  assertTrue(matchFound);
+}
