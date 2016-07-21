@@ -1,0 +1,35 @@
+{
+  final AtomicBoolean onResponse=new AtomicBoolean();
+  final CountDownLatch onFailureLatch=new CountDownLatch(1);
+  String key=randomString();
+  DurableExecutorService service=client.getDurableExecutorService(SINGLE_TASK + randomString());
+  service.submitToKeyOwner(new SleepingTask(100),key);
+  DurableExecutorServiceFuture<String> future=service.submitToKeyOwner(new BasicTestCallable(),key);
+  future.andThen(new ExecutionCallback<String>(){
+    @Override public void onResponse(    String response){
+      onResponse.set(true);
+    }
+    @Override public void onFailure(    Throwable t){
+      onFailureLatch.countDown();
+    }
+  }
+);
+  try {
+    future.get(1,TimeUnit.HOURS);
+    fail("We expected that future.get() throws an ExecutionException!");
+  }
+ catch (  ExecutionException ignored) {
+  }
+  try {
+    future.getTaskId();
+    fail("We expected that future.getTaskId() throws an IllegalStateException!");
+  }
+ catch (  IllegalStateException ignored) {
+  }
+  assertFalse(future.cancel(false));
+  assertFalse(future.cancel(true));
+  assertFalse(future.isCancelled());
+  assertTrue(future.isDone());
+  onFailureLatch.await();
+  assertFalse(onResponse.get());
+}
