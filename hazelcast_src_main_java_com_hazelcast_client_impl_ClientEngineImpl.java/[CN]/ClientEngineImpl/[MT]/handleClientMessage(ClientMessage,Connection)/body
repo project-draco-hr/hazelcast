@@ -1,11 +1,16 @@
 {
   int partitionId=clientMessage.getPartitionId();
-  final MessageTask messageTask=messageTaskFactory.create(clientMessage,connection);
+  MessageTask messageTask=messageTaskFactory.create(clientMessage,connection);
+  InternalOperationService operationService=nodeEngine.getOperationService();
   if (partitionId < 0) {
-    executor.execute(messageTask);
+    if (isUrgent(messageTask)) {
+      operationService.execute(new PriorityPartitionSpecificRunnable(messageTask));
+    }
+ else {
+      executor.execute(messageTask);
+    }
   }
  else {
-    InternalOperationService operationService=nodeEngine.getOperationService();
     operationService.execute(messageTask);
   }
 }
