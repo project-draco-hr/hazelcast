@@ -1,0 +1,21 @@
+{
+  String key=randomString();
+  DurableExecutorService service=client.getDurableExecutorService(SINGLE_TASK + randomString());
+  service.submitToKeyOwner(new SleepingTask(100),key);
+  DurableExecutorServiceFuture<String> future=service.submitToKeyOwner(new BasicTestCallable(),key);
+  final CountDownLatch latch=new CountDownLatch(1);
+  future.andThen(new ExecutionCallback<String>(){
+    @Override public void onResponse(    String response){
+    }
+    @Override public void onFailure(    Throwable t){
+      if (t.getCause() instanceof RejectedExecutionException) {
+        latch.countDown();
+      }
+    }
+  }
+);
+  assertOpenEventually(latch,10);
+  assertTrue(future.isDone());
+  assertFalse(future.cancel(true));
+  assertFalse(future.isCancelled());
+}
