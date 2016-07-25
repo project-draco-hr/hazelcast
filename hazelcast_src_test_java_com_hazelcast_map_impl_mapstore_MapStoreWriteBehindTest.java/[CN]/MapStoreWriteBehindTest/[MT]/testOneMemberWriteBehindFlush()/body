@@ -1,14 +1,20 @@
 {
   TestMapStore testMapStore=new TestMapStore(1,1,1);
   testMapStore.setLoadAllKeys(false);
-  Config config=newConfig(testMapStore,2);
+  int writeDelaySeconds=2;
+  Config config=newConfig(testMapStore,writeDelaySeconds);
   TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(3);
   HazelcastInstance instance=nodeFactory.newHazelcastInstance(config);
   IMap<String,String> map=instance.getMap("default");
   assertEquals(0,map.size());
-  assertEquals(null,map.put("1","value1"));
-  assertEquals("value1",map.get("1"));
-  assertEquals(null,testMapStore.getStore().get("1"));
+  long timeBeforePut=System.nanoTime();
+  assertEquals("Map produced a value out of thin air",null,map.put("1","value1"));
+  assertEquals("Map did not return a previously stored value","value1",map.get("1"));
+  String mapStoreValue=(String)testMapStore.getStore().get("1");
+  if (mapStoreValue != null) {
+    assertMapStoreDidNotFlushValueTooSoon(testMapStore,writeDelaySeconds,timeBeforePut);
+    assertEquals("value1",mapStoreValue);
+  }
   assertEquals(1,map.size());
   map.flush();
   assertEquals("value1",testMapStore.getStore().get("1"));
