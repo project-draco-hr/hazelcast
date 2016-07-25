@@ -1,17 +1,24 @@
 {
-  HazelcastInstance instance=hazelcastFactory.newHazelcastInstance();
+  hazelcastFactory.newHazelcastInstance();
   HazelcastInstance client=hazelcastFactory.newHazelcastClient(getClientConfig());
+  final HazelcastInstance instance2=hazelcastFactory.newHazelcastInstance();
+  String keyOwnedByInstance2=generateKeyOwnedBy(instance2);
+  IMap<String,String> map=client.getMap(randomString());
+  map.put(keyOwnedByInstance2,randomString());
   HazelcastClientInstanceImpl clientImpl=getHazelcastClientInstanceImpl(client);
   ClientConnectionManager connectionManager=clientImpl.getConnectionManager();
   final CountDownLatch countDownLatch=new CountDownLatch(1);
   connectionManager.addConnectionHeartbeatListener(new ConnectionHeartbeatListener(){
     @Override public void heartbeatResumed(    Connection connection){
+      assertEquals(instance2.getCluster().getLocalMember().getAddress(),connection.getEndPoint());
+      countDownLatch.countDown();
     }
     @Override public void heartbeatStopped(    Connection connection){
-      countDownLatch.countDown();
     }
   }
 );
-  blockMessagesFromInstance(instance,client);
+  blockMessagesFromInstance(instance2,client);
+  sleepMillis(HEARTBEAT_TIMEOUT_MILLIS * 2);
+  unblockMessagesFromInstance(instance2,client);
   assertOpenEventually(countDownLatch);
 }
