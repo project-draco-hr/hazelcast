@@ -1,25 +1,17 @@
 {
   hazelcastFactory.newHazelcastInstance();
-  ClientConfig clientConfig=new ClientConfig();
-  clientConfig.setProperty(ClientProperty.HEARTBEAT_TIMEOUT.getName(),"3000");
-  clientConfig.setProperty(ClientProperty.HEARTBEAT_INTERVAL.getName(),"500");
-  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(getClientConfig());
   HazelcastInstance instance2=hazelcastFactory.newHazelcastInstance();
-  IMap map=client.getMap(randomString());
+  IMap<String,String> map=client.getMap(randomString());
   String keyOwnedByInstance2=generateKeyOwnedBy(instance2);
   map.put(keyOwnedByInstance2,randomString());
   blockMessagesFromInstance(instance2,client);
-  ClientDelegatingFuture future=(ClientDelegatingFuture)map.putAsync(keyOwnedByInstance2,randomString());
-  final CountDownLatch countDownLatch=new CountDownLatch(1);
-  future.andThen(new ExecutionCallback(){
-    @Override public void onResponse(    Object response){
-    }
-    @Override public void onFailure(    Throwable t){
-      if (t.getCause() instanceof TargetDisconnectedException) {
-        countDownLatch.countDown();
-      }
-    }
+  expectedException.expect(TargetDisconnectedException.class);
+  expectedException.expectMessage(containsString("heartbeat problems"));
+  try {
+    map.putAsync(keyOwnedByInstance2,randomString()).get();
   }
-);
-  assertOpenEventually(countDownLatch);
+ catch (  ExecutionException e) {
+    throw e.getCause();
+  }
 }
