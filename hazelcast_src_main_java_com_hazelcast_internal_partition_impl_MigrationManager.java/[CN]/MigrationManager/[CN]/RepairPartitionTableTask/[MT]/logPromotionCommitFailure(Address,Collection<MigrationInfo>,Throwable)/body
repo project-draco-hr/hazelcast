@@ -1,19 +1,23 @@
 {
   boolean memberLeft=t instanceof MemberLeftException || t.getCause() instanceof TargetNotMemberException || t.getCause() instanceof HazelcastInstanceNotActiveException;
+  int migrationsSize=migrations.size();
   if (memberLeft) {
+    if (node.getThisAddress().equals(destination)) {
+      logger.fine("Promotion commit failed for " + migrationsSize + " migrations"+ " since this node is shutting down.");
+      return;
+    }
     if (logger.isFinestEnabled()) {
       logger.warning("Promotion commit failed for " + migrations + " since destination "+ destination+ " left the cluster");
     }
  else {
-      logger.warning("Promotion commit failed for " + (migrations.size() == 1 ? migrations.iterator().next() : "multiple migrations") + " since destination "+ destination+ " left the cluster");
+      logger.warning("Promotion commit failed for " + (migrationsSize == 1 ? migrations.iterator().next() : migrationsSize + " migrations") + " since destination "+ destination+ " left the cluster");
     }
+    return;
+  }
+  if (logger.isFinestEnabled()) {
+    logger.severe("Promotion commit to " + destination + " failed for "+ migrations,t);
   }
  else {
-    if (logger.isFinestEnabled()) {
-      logger.severe("Promotion commit to " + destination + " failed for "+ migrations,t);
-    }
- else {
-      logger.severe("Promotion commit to " + destination + " failed for "+ (migrations.size() == 1 ? migrations.iterator().next() : "multiple migrations"),t);
-    }
+    logger.severe("Promotion commit to " + destination + " failed for "+ (migrationsSize == 1 ? migrations.iterator().next() : migrationsSize + " migrations"),t);
   }
 }

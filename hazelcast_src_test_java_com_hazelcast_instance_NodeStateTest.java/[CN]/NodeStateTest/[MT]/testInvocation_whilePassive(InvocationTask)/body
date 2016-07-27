@@ -1,18 +1,9 @@
 {
-  CountDownLatch latch=new CountDownLatch(1);
-  Config config=new Config();
-  config.getServicesConfig().addServiceConfig(new ServiceConfig().setEnabled(true).setName("bs").setImplementation(new BlockingService(latch)));
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
-  final HazelcastInstance hz=factory.newHazelcastInstance(config);
+  final HazelcastInstance hz=factory.newHazelcastInstance();
   final Node node=getNode(hz);
-  final Thread shutdownThread=new Thread(){
-    public void run(){
-      hz.shutdown();
-    }
-  }
-;
-  shutdownThread.start();
-  waitNodeStateToBePassive(node);
+  changeClusterStateEventually(hz,ClusterState.PASSIVE);
+  assertEquals(NodeState.PASSIVE,node.getState());
   try {
     invocationTask.invoke(getNodeEngineImpl(hz));
   }
@@ -20,8 +11,4 @@
     latch.countDown();
     throw ExceptionUtil.rethrow(e);
   }
-  assertEquals(NodeState.PASSIVE,node.getState());
-  latch.countDown();
-  shutdownThread.join(TimeUnit.MINUTES.toMillis(1));
-  assertEquals(NodeState.SHUT_DOWN,node.getState());
 }

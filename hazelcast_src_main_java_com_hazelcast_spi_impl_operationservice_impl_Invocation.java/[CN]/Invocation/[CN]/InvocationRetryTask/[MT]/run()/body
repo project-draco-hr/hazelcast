@@ -6,7 +6,12 @@
     if (context.logger.isFinestEnabled()) {
       context.logger.finest("Node is not joined. Re-scheduling " + this + " to be executed in "+ tryPauseMillis+ " ms.");
     }
-    context.executionService.schedule(ASYNC_EXECUTOR,this,tryPauseMillis,MILLISECONDS);
+    try {
+      context.executionService.schedule(ASYNC_EXECUTOR,this,tryPauseMillis,MILLISECONDS);
+    }
+ catch (    RejectedExecutionException e) {
+      completeWhenRetryRejected(e);
+    }
     return;
   }
   doInvoke(false);
