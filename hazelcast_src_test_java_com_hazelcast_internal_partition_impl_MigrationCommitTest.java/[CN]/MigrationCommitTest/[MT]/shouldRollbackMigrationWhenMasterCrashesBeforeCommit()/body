@@ -1,12 +1,14 @@
 {
+  final CountDownLatch migrationStartLatch=new CountDownLatch(1);
   final Config config1=createConfig();
   config1.setLiteMember(true);
-  config1.addListenerConfig(new ListenerConfig(new TerminateOnMigrationComplete()));
   final HazelcastInstance hz1=factory.newHazelcastInstance(config1);
-  final CollectMigrationTaskOnRollback listener2=new CollectMigrationTaskOnRollback();
+  final TerminateOtherMemberOnMigrationComplete listener2=new TerminateOtherMemberOnMigrationComplete(migrationStartLatch);
   final Config config2=createConfig();
   config2.addListenerConfig(new ListenerConfig(listener2));
   final HazelcastInstance hz2=factory.newHazelcastInstance(config2);
+  listener2.other=hz1;
+  migrationStartLatch.countDown();
   warmUpPartitions(hz1,hz2);
   waitAllForSafeState(hz1,hz2);
   final CollectMigrationTaskOnRollback listener3=new CollectMigrationTaskOnRollback();

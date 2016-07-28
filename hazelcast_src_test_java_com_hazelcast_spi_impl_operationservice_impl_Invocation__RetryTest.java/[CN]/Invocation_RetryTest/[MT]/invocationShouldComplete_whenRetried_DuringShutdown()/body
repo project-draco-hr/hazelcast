@@ -1,0 +1,28 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  HazelcastInstance hz1=factory.newHazelcastInstance();
+  HazelcastInstance hz2=factory.newHazelcastInstance();
+  final int numberOfInvocations=100;
+  Future[] futures=new Future[numberOfInvocations];
+  HazelcastInstance hz3=factory.newHazelcastInstance();
+  waitAllForSafeState(hz1,hz2,hz3);
+  InternalOperationService operationService=getNodeEngineImpl(hz1).getOperationService();
+  for (int k=0; k < numberOfInvocations; k++) {
+    int partitionId=getRandomPartitionId(hz2);
+    Future<Object> future=operationService.createInvocationBuilder(null,new RetryingOperation(),partitionId).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
+    futures[k]=future;
+  }
+  hz3.getLifecycleService().terminate();
+  hz1.getLifecycleService().terminate();
+  for (int k=0; k < numberOfInvocations; k++) {
+    Future future=futures[k];
+    try {
+      future.get(2,TimeUnit.MINUTES);
+    }
+ catch (    ExecutionException ignored) {
+    }
+catch (    TimeoutException e) {
+      Assert.fail(e.getMessage());
+    }
+  }
+}
