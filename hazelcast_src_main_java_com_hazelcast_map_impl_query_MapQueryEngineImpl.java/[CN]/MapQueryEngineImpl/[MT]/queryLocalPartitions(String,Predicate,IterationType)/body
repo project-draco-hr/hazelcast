@@ -5,9 +5,12 @@
   predicate=queryOptimizer.optimize(predicate,mapContainer.getIndexes());
   QueryResult result=tryQueryUsingIndexes(predicate,initialPartitions,mapContainer,iterationType,initialPartitionStateVersion);
   if (result == null) {
-    result=queryUsingFullTableScan(mapName,predicate,initialPartitions,iterationType);
+    result=querySafelyUsingFullTableScan(mapName,predicate,initialPartitions,iterationType,initialPartitionStateVersion);
   }
-  if (hasPartitionVersion(initialPartitionStateVersion,predicate)) {
+  if (result == null) {
+    result=newQueryResult(initialPartitions.size(),iterationType);
+  }
+ else   if (hasPartitionVersion(initialPartitionStateVersion,predicate)) {
     result.setPartitionIds(initialPartitions);
   }
   updateStatistics(mapContainer);

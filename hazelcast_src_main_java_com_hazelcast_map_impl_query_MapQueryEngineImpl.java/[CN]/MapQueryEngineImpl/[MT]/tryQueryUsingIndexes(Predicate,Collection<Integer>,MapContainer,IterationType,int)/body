@@ -1,5 +1,5 @@
 {
-  if (mapServiceContext.getService().getOwnerMigrationsInFlight() > 0) {
+  if (hasOwnerMigrationsInFlight()) {
     return null;
   }
   Set<QueryableEntry> entries=mapContainer.getIndexes().query(predicate);
@@ -7,9 +7,11 @@
     return null;
   }
   QueryResult result=newQueryResult(partitions.size(),iterationType);
-  if (initialPartitionStateVersion != partitionService.getPartitionStateVersion()) {
+  if (isResultSafe(initialPartitionStateVersion)) {
+    result.addAll(entries);
+    return result;
+  }
+ else {
     return null;
   }
-  result.addAll(entries);
-  return result;
 }
