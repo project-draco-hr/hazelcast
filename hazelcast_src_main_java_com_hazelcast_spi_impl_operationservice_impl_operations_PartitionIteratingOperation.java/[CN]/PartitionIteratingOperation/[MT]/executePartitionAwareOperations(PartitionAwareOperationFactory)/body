@@ -1,14 +1,14 @@
 {
-  partitionAwareFactory.init(getNodeEngine());
+  PartitionAwareOperationFactory factory=givenFactory.createFactoryOnRunner(getNodeEngine());
   NodeEngine nodeEngine=getNodeEngine();
-  int[] operationFactoryPartitions=partitionAwareFactory.getPartitions();
+  int[] operationFactoryPartitions=factory.getPartitions();
   partitions=operationFactoryPartitions == null ? partitions : operationFactoryPartitions;
   Object[] responses=new Object[partitions.length];
   for (int i=0; i < partitions.length; i++) {
     ResponseQueue responseQueue=new ResponseQueue();
     responses[i]=responseQueue;
     int partition=partitions[i];
-    Operation operation=partitionAwareFactory.createPartitionOperation(partition);
+    Operation operation=factory.createPartitionOperation(partition);
     operation.setNodeEngine(nodeEngine).setPartitionId(partition).setReplicaIndex(getReplicaIndex()).setOperationResponseHandler(responseQueue).setServiceName(getServiceName()).setService(getService()).setCallerUuid(extractCallerUuid());
     OperationAccessor.setCallerAddress(operation,getCallerAddress());
     nodeEngine.getOperationService().execute(operation);
