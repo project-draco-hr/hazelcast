@@ -1,0 +1,64 @@
+{
+  CountDownLatch startLatch=new CountDownLatch(1);
+  AtomicBoolean isRunning=new AtomicBoolean(true);
+  HazelcastInstance instance=newInstance(withPredicate);
+  HazelcastInstance instance2=newInstance(withPredicate);
+  HazelcastInstance instance3=newInstance(withPredicate);
+  final IMap<Integer,ListHolder> map=instance.getMap(MAP_NAME);
+  final ListHolder expected=new ListHolder();
+  InitMapProcessor initProcessor=new InitMapProcessor();
+  for (int i=0; i < ENTRIES; ++i) {
+    map.executeOnKey(i,initProcessor);
+  }
+  assertEquals(ENTRIES,map.size());
+  Runnable runnable=new TwoNodesRestartingRunnable(startLatch,isRunning,withPredicate,instance2,instance3);
+  Thread bounceThread=new Thread(runnable);
+  bounceThread.start();
+  int iteration=0;
+  while (iteration < ITERATIONS) {
+    if (iteration == 30) {
+      startLatch.countDown();
+    }
+    IncrementProcessor processor=new IncrementProcessor(iteration);
+    expected.add(iteration);
+    for (int i=0; i < ENTRIES; ++i) {
+      if (withPredicate) {
+        EntryObject eo=new PredicateBuilder().getEntryObject();
+        Predicate keyPredicate=eo.key().equal(i);
+        map.executeOnEntries(processor,keyPredicate);
+      }
+ else {
+        map.executeOnKey(i,processor);
+      }
+    }
+    ++iteration;
+  }
+  isRunning.set(false);
+  assertJoinable(bounceThread);
+  final CountDownLatch latch=new CountDownLatch(ENTRIES);
+  for (int i=0; i < ENTRIES; ++i) {
+    final int id=i;
+    new Thread(new Runnable(){
+      @Override public void run(){
+        assertTrueEventually(new AssertTask(){
+          @Override public void run() throws Exception {
+            assertTrue(expected.size() <= map.get(id).size());
+          }
+        }
+);
+        latch.countDown();
+      }
+    }
+).start();
+  }
+  assertOpenEventually(latch);
+  if (withPredicate) {
+    for (int index=0; index < ENTRIES; ++index) {
+      ListHolder holder=map.get(index);
+      assertEquals("The ListHolder should contain ITERATIONS entries",ITERATIONS,holder.size());
+      for (int i=0; i < ITERATIONS; i++) {
+        assertEquals(i,holder.get(i));
+      }
+    }
+  }
+}
