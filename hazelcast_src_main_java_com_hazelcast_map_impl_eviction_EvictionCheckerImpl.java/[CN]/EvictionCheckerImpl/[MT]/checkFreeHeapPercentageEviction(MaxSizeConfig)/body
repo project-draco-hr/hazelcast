@@ -1,6 +1,21 @@
 {
-  final long currentFreeHeapSize=getAvailableMemory();
-  final double freeHeapPercentage=maxSizeConfig.getSize();
-  final long total=getMaxMemory();
-  return freeHeapPercentage > (1D * ONE_HUNDRED_PERCENT * currentFreeHeapSize / total);
+  long totalMemory=getTotalMemory();
+  long freeMemory=getFreeMemory();
+  long maxMemory=getMaxMemory();
+  long availableMemory=freeMemory + (maxMemory - totalMemory);
+  boolean evictable;
+  double actualFreePercentage=0;
+  double configuredFreePercentage=0;
+  if (totalMemory <= 0 || freeMemory <= 0 || maxMemory <= 0 || availableMemory <= 0) {
+    evictable=true;
+  }
+ else {
+    actualFreePercentage=ONE_HUNDRED_PERCENT * availableMemory / maxMemory;
+    configuredFreePercentage=maxSizeConfig.getSize();
+    evictable=configuredFreePercentage > actualFreePercentage;
+  }
+  if (evictable && logger.isFinestEnabled()) {
+    logger.finest(format("runtime.max=%s, runtime.used=%s, configuredFree%%=%.2f, actualFree%%=%.2f",toPrettyString(maxMemory),toPrettyString(totalMemory - freeMemory),configuredFreePercentage,actualFreePercentage));
+  }
+  return evictable;
 }
