@@ -3,13 +3,13 @@
   final int size=10;
   final String mapName="testEvictionPerPartition";
   Config cfg=getConfig();
-  cfg.setProperty(GroupProperty.PARTITION_COUNT,"1");
+  cfg.setProperty(GroupProperty.PARTITION_COUNT.getName(),"1");
   final MapConfig mc=cfg.getMapConfig(mapName);
   mc.setEvictionPolicy(EvictionPolicy.LRU);
   mc.setEvictionPercentage(50);
   mc.setMinEvictionCheckMillis(0);
   final MaxSizeConfig msc=new MaxSizeConfig();
-  msc.setMaxSizePolicy(MaxSizeConfig.MaxSizePolicy.PER_PARTITION);
+  msc.setMaxSizePolicy(PER_PARTITION);
   msc.setSize(size);
   mc.setMaxSizeConfig(msc);
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(k);
@@ -18,15 +18,9 @@
   int insertCount=size * pnum * 2;
   final Map map=instances[0].getMap(mapName);
   for (int i=0; i < insertCount; i++) {
-    if (i == insertCount - 1) {
-      sleepMillis(1100);
-    }
     map.put(i,i);
   }
-  assertTrueEventually(new AssertTask(){
-    @Override public void run() throws Exception {
-      assertTrue(map.size() < size);
-    }
-  }
-);
+  int mapSize=map.size();
+  String message=format("mapSize : %d should be <= max-size : %d ",mapSize,size);
+  assertTrue(message,mapSize <= size);
 }
