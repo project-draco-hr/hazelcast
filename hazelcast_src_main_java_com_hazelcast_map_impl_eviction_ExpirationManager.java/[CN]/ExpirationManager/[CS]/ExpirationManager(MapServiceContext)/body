@@ -1,0 +1,16 @@
+{
+  this.mapServiceContext=mapServiceContext;
+  NodeEngine nodeEngine=mapServiceContext.getNodeEngine();
+  this.partitionService=nodeEngine.getPartitionService();
+  this.executionService=nodeEngine.getExecutionService();
+  this.operationService=(InternalOperationService)nodeEngine.getOperationService();
+  this.thisAddress=nodeEngine.getThisAddress();
+  this.partitionCount=partitionService.getPartitionCount();
+  this.taskPeriodSeconds=getInteger(SYS_PROP_EXPIRATION_TASK_PERIOD_SECONDS,DEFAULT_EXPIRATION_TASK_PERIOD_SECONDS);
+  checkPositive(taskPeriodSeconds,"taskPeriodSeconds should be a positive number");
+  this.cleanupPercentage=getInteger(SYS_PROP_EXPIRATION_CLEANUP_PERCENTAGE,DEFAULT_EXPIRATION_CLEANUP_PERCENTAGE);
+  checkTrue(cleanupPercentage > 0 && cleanupPercentage <= 100,"cleanupPercentage should be in range (0,100]");
+  int defaultCleanupOpCount=calculateCleanupOperationCount(partitionCount,operationService.getPartitionThreadCount());
+  this.cleanupOperationCount=getInteger(SYS_PROP_EXPIRATION_CLEANUP_OPERATION_COUNT,defaultCleanupOpCount);
+  checkPositive(cleanupOperationCount,"cleanupOperationCount should be a positive number");
+}
