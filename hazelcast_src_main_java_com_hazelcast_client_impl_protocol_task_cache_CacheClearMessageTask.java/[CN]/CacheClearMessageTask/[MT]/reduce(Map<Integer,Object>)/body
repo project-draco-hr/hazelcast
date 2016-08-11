@@ -1,13 +1,19 @@
 {
-  for (  Map.Entry<Integer,Object> entry : map.entrySet()) {
-    if (entry.getValue() == null) {
-      continue;
+  try {
+    for (    Map.Entry<Integer,Object> entry : map.entrySet()) {
+      if (entry.getValue() == null) {
+        continue;
+      }
+      final CacheClearResponse cacheClearResponse=(CacheClearResponse)nodeEngine.toObject(entry.getValue());
+      final Object response=cacheClearResponse.getResponse();
+      if (response instanceof CacheException) {
+        throw (CacheException)response;
+      }
     }
-    final CacheClearResponse cacheClearResponse=(CacheClearResponse)nodeEngine.toObject(entry.getValue());
-    final Object response=cacheClearResponse.getResponse();
-    if (response instanceof CacheException) {
-      throw (CacheException)response;
-    }
+  }
+  finally {
+    final CacheService cacheService=getService(CacheService.SERVICE_NAME);
+    cacheService.sendInvalidationEvent(getDistributedObjectName(),null,AbstractCacheRecordStore.SOURCE_NOT_AVAILABLE);
   }
   return null;
 }

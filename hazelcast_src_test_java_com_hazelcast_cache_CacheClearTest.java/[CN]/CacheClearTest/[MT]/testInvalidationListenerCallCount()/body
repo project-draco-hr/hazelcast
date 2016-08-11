@@ -1,0 +1,39 @@
+{
+  final ICache<String,String> cache=createCache();
+  Map<String,String> entries=createAndFillEntries();
+  for (  Map.Entry<String,String> entry : entries.entrySet()) {
+    cache.put(entry.getKey(),entry.getValue());
+  }
+  for (  Map.Entry<String,String> entry : entries.entrySet()) {
+    String key=entry.getKey();
+    String expectedValue=entries.get(key);
+    String actualValue=cache.get(key);
+    assertEquals(expectedValue,actualValue);
+  }
+  final AtomicInteger counter=new AtomicInteger(0);
+  final CacheConfig config=cache.getConfiguration(CacheConfig.class);
+  registerInvalidationListener(new CacheEventListener(){
+    @Override public void handleEvent(    Object eventObject){
+      if (eventObject instanceof CacheSingleInvalidationMessage) {
+        CacheSingleInvalidationMessage event=(CacheSingleInvalidationMessage)eventObject;
+        if (null == event.getKey() && config.getNameWithPrefix().equals(event.getName())) {
+          counter.incrementAndGet();
+        }
+      }
+    }
+  }
+,config.getNameWithPrefix());
+  cache.clear();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals(1,counter.get());
+    }
+  }
+,2);
+  assertTrueAllTheTime(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertTrue(counter.get() <= 1);
+    }
+  }
+,3);
+}
