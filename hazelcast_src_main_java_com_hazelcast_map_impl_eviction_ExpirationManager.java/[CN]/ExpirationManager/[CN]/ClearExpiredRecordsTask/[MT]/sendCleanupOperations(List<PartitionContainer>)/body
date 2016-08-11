@@ -1,14 +1,13 @@
 {
-  final int maxCleanupOperationCountInOneRound=getMaxCleanupOperationCountInOneRound();
   final int start=0;
-  int end=maxCleanupOperationCountInOneRound;
+  int end=cleanupOperationCount;
   if (end > partitionContainers.size()) {
     end=partitionContainers.size();
   }
-  final List<PartitionContainer> partitionIds=partitionContainers.subList(start,end);
+  List<PartitionContainer> partitionIds=partitionContainers.subList(start,end);
   for (  PartitionContainer container : partitionIds) {
     container.setHasRunningCleanup(true);
-    OperationService operationService=ExpirationManager.this.nodeEngine.getOperationService();
-    operationService.executeOperation(createExpirationOperation(EXPIRATION_PERCENTAGE,container.getPartitionId()));
+    Operation operation=createExpirationOperation(cleanupPercentage,container.getPartitionId());
+    operationService.execute(operation);
   }
 }
