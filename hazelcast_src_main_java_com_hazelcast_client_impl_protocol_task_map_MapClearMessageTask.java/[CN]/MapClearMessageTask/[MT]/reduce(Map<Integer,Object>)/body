@@ -1,12 +1,15 @@
 {
-  int totalAffectedEntries=0;
+  int clearedTotal=0;
   for (  Object affectedEntries : map.values()) {
-    totalAffectedEntries+=(Integer)affectedEntries;
+    clearedTotal+=(Integer)affectedEntries;
   }
-  final MapService service=getService(MapService.SERVICE_NAME);
-  final Address thisAddress=service.getMapServiceContext().getNodeEngine().getThisAddress();
-  if (totalAffectedEntries > 0) {
-    service.getMapServiceContext().getMapEventPublisher().publishMapEvent(thisAddress,parameters.name,EntryEventType.CLEAR_ALL,totalAffectedEntries);
+  MapService service=getService(MapService.SERVICE_NAME);
+  MapServiceContext mapServiceContext=service.getMapServiceContext();
+  if (clearedTotal > 0) {
+    Address thisAddress=nodeEngine.getThisAddress();
+    MapEventPublisher mapEventPublisher=mapServiceContext.getMapEventPublisher();
+    mapEventPublisher.publishMapEvent(thisAddress,parameters.name,CLEAR_ALL,clearedTotal);
+    sendClientNearCacheClearEvent(parameters.name);
   }
   return null;
 }

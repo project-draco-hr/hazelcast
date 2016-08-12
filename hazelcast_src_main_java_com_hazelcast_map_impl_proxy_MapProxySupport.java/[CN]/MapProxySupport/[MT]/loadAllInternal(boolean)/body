@@ -4,9 +4,15 @@
   Future loadMapFuture=operationService.invokeOnPartition(SERVICE_NAME,operation,mapNamePartition);
   try {
     loadMapFuture.get();
+    waitUntilLoaded();
   }
  catch (  Throwable t) {
     throw rethrow(t);
   }
-  waitUntilLoaded();
+ finally {
+    if (replaceExistingValues) {
+      sendClientNearCacheClearEvent();
+      runOnLiteMembers(new ClearOperation(name));
+    }
+  }
 }

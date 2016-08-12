@@ -4,17 +4,15 @@
     clearOperation.setServiceName(SERVICE_NAME);
     BinaryOperationFactory factory=new BinaryOperationFactory(clearOperation,getNodeEngine());
     Map<Integer,Object> resultMap=operationService.invokeOnAllPartitions(SERVICE_NAME,factory);
-    int numberOfAffectedEntries=0;
+    int clearedCount=0;
     for (    Object object : resultMap.values()) {
-      numberOfAffectedEntries+=(Integer)object;
+      clearedCount+=(Integer)object;
     }
-    MemberSelector selector=MemberSelectors.and(LITE_MEMBER_SELECTOR,NON_LOCAL_MEMBER_SELECTOR);
-    for (    Member member : getNodeEngine().getClusterService().getMembers(selector)) {
-      operationService.invokeOnTarget(SERVICE_NAME,new ClearOperation(name),member.getAddress());
+    if (clearedCount > 0) {
+      publishMapEvent(clearedCount,EntryEventType.CLEAR_ALL);
+      sendClientNearCacheClearEvent();
     }
-    if (numberOfAffectedEntries > 0) {
-      publishMapEvent(numberOfAffectedEntries,EntryEventType.CLEAR_ALL);
-    }
+    runOnLiteMembers(new ClearOperation(name));
   }
  catch (  Throwable t) {
     throw rethrow(t);
