@@ -1,0 +1,16 @@
+{
+  IMap<Integer,Integer> clientMap=getNearCachedMapFromClient(newNearCacheConfig());
+  populateNearCache(clientMap,1000);
+  HazelcastInstance member=hazelcastFactory.newHazelcastInstance();
+  final ClearEventCounterEventHandler handler=new ClearEventCounterEventHandler();
+  ((NearCachedClientMapProxy)clientMap).addNearCacheInvalidateListener(handler);
+  IMap memberMap=member.getMap(clientMap.getName());
+  memberMap.evictAll();
+  sleepSeconds(2);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      assertEquals("Expecting only 1 clear event",1,handler.getClearEventCount());
+    }
+  }
+);
+}
