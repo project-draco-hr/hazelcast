@@ -1,0 +1,17 @@
+{
+  for (int isolatedIndex=0; isolatedIndex < firstHalfSize; isolatedIndex++) {
+    HazelcastInstance isolatedInstance=instances[isolatedIndex];
+    FirewallingMockConnectionManager isolatedCM=getFireWalledConnectionManager(isolatedInstance);
+    for (int i=firstHalfSize; i < instances.length; i++) {
+      HazelcastInstance currentInstance=instances[i];
+      Node currentNode=getNode(currentInstance);
+      isolatedCM.block(currentNode.getThisAddress());
+    }
+    Node isolatedNode=getNode(isolatedInstance);
+    for (int i=firstHalfSize; i < instances.length; i++) {
+      HazelcastInstance currentInstance=instances[i];
+      FirewallingMockConnectionManager currentCM=getFireWalledConnectionManager(currentInstance);
+      currentCM.block(isolatedNode.getThisAddress());
+    }
+  }
+}

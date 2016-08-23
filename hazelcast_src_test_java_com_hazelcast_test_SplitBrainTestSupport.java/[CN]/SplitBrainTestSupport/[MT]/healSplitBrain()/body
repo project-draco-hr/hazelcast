@@ -1,0 +1,25 @@
+{
+  int firstHalfSize=brains[0];
+  for (int isolatedIndex=0; isolatedIndex < firstHalfSize; isolatedIndex++) {
+    HazelcastInstance isolatedInstance=instances[isolatedIndex];
+    FirewallingMockConnectionManager isolatedCM=getFireWalledConnectionManager(isolatedInstance);
+    for (int i=1; i < instances.length; i++) {
+      HazelcastInstance currentInstance=instances[i];
+      Node currentNode=getNode(currentInstance);
+      isolatedCM.unblock(currentNode.getThisAddress());
+    }
+  }
+  for (int isolatedIndex=0; isolatedIndex < firstHalfSize; isolatedIndex++) {
+    HazelcastInstance isolatedInstance=instances[isolatedIndex];
+    Node isolatedNode=getNode(isolatedInstance);
+    for (int i=1; i < instances.length; i++) {
+      HazelcastInstance currentInstance=instances[i];
+      FirewallingMockConnectionManager currentCM=getFireWalledConnectionManager(currentInstance);
+      currentCM.unblock(isolatedNode.getThisAddress());
+    }
+  }
+  for (  HazelcastInstance hz : instances) {
+    assertClusterSizeEventually(instances.length,hz);
+  }
+  waitAllForSafeState(instances);
+}
