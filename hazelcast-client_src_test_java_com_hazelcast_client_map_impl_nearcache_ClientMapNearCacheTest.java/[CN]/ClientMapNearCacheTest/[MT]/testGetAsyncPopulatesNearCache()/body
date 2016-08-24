@@ -2,16 +2,12 @@
   NearCacheConfig nearCacheConfig=newNearCacheConfig().setInvalidateOnChange(false);
   IMap<Integer,Integer> map=getNearCachedMapFromClient(nearCacheConfig);
   int size=1239;
+  populateMap(map,size);
   for (int i=0; i < size; i++) {
-    map.put(i,i);
+    Future future=map.getAsync(i);
+    future.get();
   }
-  for (int i=0; i < size; i++) {
-    Future async=map.getAsync(i);
-    async.get();
-  }
-  for (int i=0; i < size; i++) {
-    map.get(i);
-  }
-  long ownedEntryCount=getOwnedEntryCount(map);
+  populateNearCache(map,size);
+  long ownedEntryCount=getNearCacheStats(map).getOwnedEntryCount();
   assertTrue("Near Cache must have some entries but current size is = " + ownedEntryCount,ownedEntryCount > 0);
 }

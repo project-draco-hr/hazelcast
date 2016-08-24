@@ -6,21 +6,19 @@
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   HazelcastInstance[] instances=factory.newInstances(config);
   IMap<Integer,Integer> map=instances[0].getMap(mapName);
-  for (int i=0; i < mapSize; i++) {
-    map.put(i,i);
-  }
-  for (int i=0; i < mapSize; i++) {
-    map.get(i);
-  }
+  populateMap(map,mapSize);
+  populateNearCache(map,mapSize);
   NearCacheStats stats=getNearCacheStats(map);
-  assertTrue(format("Near Cache misses should be > %d but were %d",400,stats.getOwnedEntryCount()),stats.getOwnedEntryCount() > 400);
-  assertEquals(format("Near Cache misses should be %d but were %d",mapSize,stats.getMisses()),mapSize,stats.getMisses());
-  for (int i=0; i < mapSize; i++) {
-    map.get(i);
-  }
+  long ownedEntryCount=stats.getOwnedEntryCount();
+  long misses=stats.getMisses();
+  assertTrue(format("Near Cache entry count should be > %d but were %d",400,ownedEntryCount),ownedEntryCount > 400);
+  assertEquals(format("Near Cache misses should be %d but were %d",mapSize,misses),mapSize,misses);
+  populateNearCache(map,mapSize);
   stats=getNearCacheStats(map);
-  assertTrue(format("Near Cache hits should be > %d but were %d",400,stats.getHits()),stats.getHits() > 400);
-  assertTrue(format("Near Cache misses should be > %d but were %d",400,stats.getMisses()),stats.getMisses() > 400);
-  long hitsAndMisses=stats.getHits() + stats.getMisses();
+  long hits=stats.getHits();
+  misses=stats.getMisses();
+  long hitsAndMisses=hits + misses;
+  assertTrue(format("Near Cache hits should be > %d but were %d",400,hits),hits > 400);
+  assertTrue(format("Near Cache misses should be > %d but were %d",400,misses),misses > 400);
   assertEquals(format("Near Cache hits + misses should be %s but were %d",mapSize * 2,hitsAndMisses),mapSize * 2,hitsAndMisses);
 }

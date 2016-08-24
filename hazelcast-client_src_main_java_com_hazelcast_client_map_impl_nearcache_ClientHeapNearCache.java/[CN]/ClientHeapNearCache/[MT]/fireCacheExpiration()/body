@@ -1,0 +1,32 @@
+{
+  if (Clock.currentTimeMillis() < (lastExpiration + EXPIRATION_CLEANUP_INTERVAL_MILLIS)) {
+    return;
+  }
+  if (canExpire.compareAndSet(true,false)) {
+    try {
+      executionService.executeInternal(new Runnable(){
+        public void run(){
+          try {
+            lastExpiration=Clock.currentTimeMillis();
+            for (            Map.Entry<K,NearCacheRecord> entry : cache.entrySet()) {
+              if (entry.getValue().isExpired(maxIdleMillis,timeToLiveMillis)) {
+                cache.remove(entry.getKey());
+                stats.incrementExpirations();
+              }
+            }
+          }
+  finally {
+            canExpire.set(true);
+          }
+        }
+      }
+);
+    }
+ catch (    RejectedExecutionException e) {
+      canExpire.set(true);
+    }
+catch (    Exception e) {
+      throw rethrow(e);
+    }
+  }
+}

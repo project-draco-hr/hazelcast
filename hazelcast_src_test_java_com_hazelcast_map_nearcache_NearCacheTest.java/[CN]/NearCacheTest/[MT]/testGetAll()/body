@@ -1,6 +1,5 @@
 {
   int mapSize=1000;
-  int expectedNearCacheHits=0;
   String mapName="testGetAllWithNearCache";
   Config config=getConfig();
   NearCacheConfig nearCacheConfig=newNearCacheConfig();
@@ -10,25 +9,22 @@
   HazelcastInstance[] instances=hazelcastInstanceFactory.newInstances(config);
   warmUpPartitions(instances);
   HazelcastInstance hazelcastInstance=instances[0];
-  Node node=TestUtil.getNode(hazelcastInstance);
-  InternalPartitionService partitionService=node.getNodeEngine().getPartitionService();
+  InternalPartitionService partitionService=getPartitionService(hazelcastInstance);
   IMap<Integer,Integer> map=hazelcastInstance.getMap(mapName);
-  HashSet<Integer> keys=new HashSet<Integer>();
-  for (int i=0; i < mapSize; i++) {
-    map.put(i,i);
-    keys.add(i);
-  }
+  populateMap(map,mapSize);
+  Set<Integer> keys=map.keySet();
+  int expectedHits=0;
   for (int i=0; i < mapSize; i++) {
     map.get(i);
     int partitionId=partitionService.getPartitionId(i);
     if (!partitionService.isPartitionOwner(partitionId)) {
-      expectedNearCacheHits++;
+      expectedHits++;
     }
   }
   Map<Integer,Integer> allEntries=map.getAll(keys);
   for (int i=0; i < mapSize; i++) {
     assertEquals(i,(int)allEntries.get(i));
   }
-  NearCacheStats stats=getNearCacheStats(map);
-  assertEquals(format("Near Cache hits should be %d but were %d",expectedNearCacheHits,stats.getHits()),expectedNearCacheHits,stats.getHits());
+  long hits=getNearCacheStats(map).getHits();
+  assertEquals(format("Near Cache hits should be %d but were %d",expectedHits,hits),expectedHits,hits);
 }

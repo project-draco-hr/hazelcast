@@ -1,0 +1,19 @@
+{
+  populateMap(map,size);
+  populateNearCache(map,size);
+  final NearCacheStats statsBeforeExpiration=getNearCacheStats(map);
+  assertEquals(format("we expected to have all map entries in the Near Cache (%s)",statsBeforeExpiration),size,statsBeforeExpiration.getOwnedEntryCount() + statsBeforeExpiration.getExpirations());
+  sleepSeconds(expireSeconds + 1);
+  assertTrueEventually(new AssertTask(){
+    public void run(){
+      map.get(0);
+      NearCacheStats stats=getNearCacheStats(map);
+      assertEquals("we expect the same hits",statsBeforeExpiration.getHits(),stats.getHits());
+      assertEquals("we expect the same misses",statsBeforeExpiration.getMisses(),stats.getMisses());
+      assertEquals("we expect all entries beside the 'trigger entry' to be deleted from the Near Cache",1,stats.getOwnedEntryCount());
+      assertEquals("we did not expect any entries to be evicted from the Near Cache",0,stats.getEvictions());
+      assertTrue(format("we expect at least %d entries to be expired from the Near Cache",size),stats.getExpirations() >= size);
+    }
+  }
+);
+}

@@ -1,28 +1,26 @@
 {
-  int n=3;
+  int clusterSize=3;
+  int mapSize=5000;
   String mapName="test";
   Config config=getConfig();
   config.getMapConfig(mapName).setNearCacheConfig(newNearCacheConfig().setInvalidateOnChange(true));
-  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(n);
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(clusterSize);
   HazelcastInstance[] instances=factory.newInstances(config);
-  IMap<Object,Object> map=instances[0].getMap(mapName);
-  int count=5000;
-  for (int i=0; i < count; i++) {
-    map.put(i,i);
-  }
+  IMap<Integer,Integer> map=instances[0].getMap(mapName);
+  populateMap(map,mapSize);
   for (  HazelcastInstance instance : instances) {
-    IMap<Object,Object> m=instance.getMap(mapName);
-    for (int i=0; i < count; i++) {
-      Assert.assertNotNull(m.get(i));
+    IMap<Integer,Integer> instanceMap=instance.getMap(mapName);
+    for (int i=0; i < mapSize; i++) {
+      assertNotNull(instanceMap.get(i));
     }
   }
-  for (int i=0; i < count; i++) {
+  for (int i=0; i < mapSize; i++) {
     map.put(i,i * 2);
   }
   for (  HazelcastInstance instance : instances) {
     IMap<Object,Object> m=instance.getMap(mapName);
-    for (int i=0; i < count; i++) {
-      Assert.assertNotNull(m.get(i));
+    for (int i=0; i < mapSize; i++) {
+      assertNotNull(m.get(i));
     }
   }
   for (  HazelcastInstance instance : instances) {

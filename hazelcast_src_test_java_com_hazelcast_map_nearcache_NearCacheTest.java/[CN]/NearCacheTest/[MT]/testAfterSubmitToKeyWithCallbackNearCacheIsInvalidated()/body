@@ -5,12 +5,8 @@
   Config config=createNearCachedMapConfig(mapName);
   HazelcastInstance instance=createHazelcastInstance(config);
   IMap<Integer,Integer> map=instance.getMap(mapName);
-  for (int i=0; i < mapSize; i++) {
-    map.put(i,i);
-  }
-  for (int i=0; i < mapSize; i++) {
-    map.get(i);
-  }
+  populateMap(map,mapSize);
+  populateNearCache(map,mapSize);
   final CountDownLatch latch=new CountDownLatch(10);
   ExecutionCallback<Integer> callback=new ExecutionCallback<Integer>(){
     @Override public void onResponse(    Integer response){
@@ -31,6 +27,5 @@
   }
 ,callback);
   latch.await(3,TimeUnit.SECONDS);
-  NearCacheStats nearCacheStats=getNearCacheStats(map);
-  assertEquals(mapSize - 1,nearCacheStats.getOwnedEntryCount());
+  assertEquals(mapSize - 1,getNearCacheStats(map).getOwnedEntryCount());
 }
