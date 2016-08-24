@@ -1,11 +1,22 @@
 {
+  LoggerFactory loggerFactoryToUse=loggerFactory;
   if (loggerFactory == null) {
 synchronized (FACTORY_LOCK) {
       if (loggerFactory == null) {
+        String loggerClass=System.getProperty("hazelcast.logging.class");
+        if (!StringUtil.isNullOrEmpty(loggerClass)) {
+          loggerFactory=loadLoggerFactory(loggerClass);
+          loggerFactoryToUse=loggerFactory;
+        }
+      }
+      if (loggerFactory == null) {
         String loggerType=System.getProperty("hazelcast.logging.type");
-        loggerFactory=newLoggerFactory(loggerType);
+        loggerFactoryToUse=newLoggerFactory(loggerType);
+        if (!StringUtil.isNullOrEmpty(loggerType)) {
+          loggerFactory=loggerFactoryToUse;
+        }
       }
     }
   }
-  return loggerFactory.getLogger(name);
+  return loggerFactoryToUse.getLogger(name);
 }
