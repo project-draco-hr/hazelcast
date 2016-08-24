@@ -3,36 +3,36 @@
   config.setProperty("hazelcast.logging.type","log4j");
   config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
   NearCacheConfig nearCacheConfig=getNearCacheConfig();
-  MapConfig mapConfig=config.getMapConfig(mapName);
+  MapConfig mapConfig=config.getMapConfig(MAP_NAME);
   mapConfig.setNearCacheConfig(nearCacheConfig);
-  HazelcastInstance hcInstance=Hazelcast.newHazelcastInstance(config);
-  map=hcInstance.getMap(mapName);
+  HazelcastInstance hzInstance=Hazelcast.newHazelcastInstance(config);
+  map=hzInstance.getMap(MAP_NAME);
   runTestInternal();
   Thread.sleep(5000);
   int valuePutLast=valuePut.get();
-  String valueMapStr=map.get(key);
-  int valueMap=Integer.parseInt(valueMapStr);
+  String valueMapStr=map.get(KEY);
+  int valueMap=parseInt(valueMapStr);
   String msg=null;
   if (valueMap < valuePutLast) {
-    msg="Near cache did *not* become consistent. (valueMap = " + valueMap + ", valuePut = "+ valuePutLast+ ").";
+    msg="Near Cache did *not* become consistent. (valueMap = " + valueMap + ", valuePut = "+ valuePutLast+ ").";
     ((NearCachedMapProxyImpl)map).getNearCache().clear();
-    String valueMap2Str=map.get(key);
-    int valueMap2=Integer.parseInt(valueMap2Str);
+    String valueMap2Str=map.get(KEY);
+    int valueMap2=parseInt(valueMap2Str);
     if (valueMap2 < valuePutLast) {
       msg+=" Unexpected inconsistency! (valueMap2 = " + valueMap2 + ", valuePut = "+ valuePutLast+ ").";
     }
  else {
-      msg+=" Flushing the near cache cleared the inconsistency. (valueMap2 = " + valueMap2 + ", valuePut = "+ valuePutLast+ ").";
+      msg+=" Flushing the Near Cache cleared the inconsistency. (valueMap2 = " + valueMap2 + ", valuePut = "+ valuePutLast+ ").";
     }
   }
-  hcInstance.getLifecycleService().terminate();
+  hzInstance.getLifecycleService().terminate();
   if (msg != null) {
-    logger.warn(msg);
+    LOGGER.warn(msg);
     fail(msg);
   }
   if (strict && assertionViolationCount.get() > 0) {
     msg="Assertion violated " + assertionViolationCount.get() + " times.";
-    logger.warn(msg);
+    LOGGER.warn(msg);
     fail(msg);
   }
 }

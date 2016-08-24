@@ -3,22 +3,20 @@
   int expectedNearCacheHits=1000;
   String mapName="testGetAsyncWithNearCacheIssue1863";
   Config config=getConfig();
-  final NearCacheConfig nearCacheConfig=newNearCacheConfig();
+  NearCacheConfig nearCacheConfig=newNearCacheConfig();
   nearCacheConfig.setCacheLocalEntries(true);
   config.getMapConfig(mapName).setNearCacheConfig(nearCacheConfig);
-  final TestHazelcastInstanceFactory hazelcastInstanceFactory=createHazelcastInstanceFactory(2);
-  HazelcastInstance instance1=hazelcastInstanceFactory.newHazelcastInstance(config);
-  HazelcastInstance instance2=hazelcastInstanceFactory.newHazelcastInstance(config);
-  IMap<Integer,Integer> map=instance1.getMap(mapName);
-  HashSet keys=new HashSet();
+  TestHazelcastInstanceFactory hazelcastInstanceFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz=hazelcastInstanceFactory.newHazelcastInstance(config);
+  hazelcastInstanceFactory.newHazelcastInstance(config);
+  IMap<Integer,Integer> map=hz.getMap(mapName);
   for (int i=0; i < mapSize; i++) {
     map.get(i);
-    keys.add(i);
   }
   for (int i=0; i < mapSize; i++) {
     final Future<Integer> async=map.getAsync(i);
     assertNull(async.get());
   }
   NearCacheStats stats=map.getLocalMapStats().getNearCacheStats();
-  assertEquals(format("Near cache hits should be %d but were %d",expectedNearCacheHits,stats.getHits()),expectedNearCacheHits,stats.getHits());
+  assertEquals(format("Near Cache hits should be %d but were %d",expectedNearCacheHits,stats.getHits()),expectedNearCacheHits,stats.getHits());
 }
