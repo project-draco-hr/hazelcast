@@ -1,22 +1,21 @@
 {
-  final MyQueueStore store=new MyQueueStore();
-  final Config config=new Config();
-  final QueueConfig qConfig=config.getQueueConfig("test");
-  qConfig.setMaxSize(10);
-  final QueueStoreConfig queueStoreConfig=new QueueStoreConfig();
-  queueStoreConfig.setStoreImplementation(store);
+  QueueStoreConfig queueStoreConfig=new QueueStoreConfig();
+  queueStoreConfig.setStoreImplementation(new MyQueueStore());
   queueStoreConfig.setEnabled(true);
   queueStoreConfig.setProperty("binary","false");
   queueStoreConfig.setProperty("memory-limit","0");
   queueStoreConfig.setProperty("bulk-load","100");
-  qConfig.setQueueStoreConfig(queueStoreConfig);
+  Config config=new Config();
+  QueueConfig queueConfig=config.getQueueConfig("test");
+  queueConfig.setMaxSize(10);
+  queueConfig.setQueueStoreConfig(queueStoreConfig);
   HazelcastInstance instance=createHazelcastInstance(config);
   for (int i=0; i < 10; i++) {
     TransactionContext context=instance.newTransactionContext();
     context.beginTransaction();
     TransactionalQueue<String> queue=context.getQueue("test");
-    String queue_data=queue.poll();
-    assertNotNull(queue_data);
+    String queueData=queue.poll();
+    assertNotNull(queueData);
     context.commitTransaction();
   }
 }

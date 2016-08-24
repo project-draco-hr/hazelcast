@@ -1,0 +1,24 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(1);
+  HazelcastInstance instance=factory.newHazelcastInstance(new Config());
+  final IQueue<String> queue=instance.getQueue("testInterruption");
+  final CountDownLatch latch=new CountDownLatch(1);
+  Thread thread=new Thread(new Runnable(){
+    public void run(){
+      try {
+        queue.poll(5,TimeUnit.SECONDS);
+        fail();
+      }
+ catch (      InterruptedException e) {
+        latch.countDown();
+      }
+    }
+  }
+);
+  thread.start();
+  sleep(2000);
+  thread.interrupt();
+  assertTrue(latch.await(100,TimeUnit.SECONDS));
+  queue.offer("message");
+  assertEquals(1,queue.size());
+}

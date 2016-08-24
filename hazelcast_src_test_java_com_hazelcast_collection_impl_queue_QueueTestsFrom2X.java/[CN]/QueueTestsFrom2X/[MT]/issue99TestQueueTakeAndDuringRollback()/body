@@ -1,14 +1,14 @@
 {
-  final HazelcastInstance hz=createHazelcastInstance();
   final String name="issue99TestQueueTakeAndDuringRollback";
-  final IQueue q=hz.getQueue(name);
+  final HazelcastInstance hz=createHazelcastInstance();
+  IQueue<String> q=hz.getQueue(name);
   q.offer("item");
   Thread t1=new Thread(){
     public void run(){
-      final TransactionContext context=hz.newTransactionContext();
+      TransactionContext context=hz.newTransactionContext();
       try {
         context.beginTransaction();
-        final Object polled=context.getQueue(name).poll(1,TimeUnit.DAYS);
+        context.getQueue(name).poll(1,TimeUnit.DAYS);
         sleep(1000);
         throw new RuntimeException();
       }
@@ -24,7 +24,7 @@ catch (      Exception e) {
   final AtomicBoolean fail=new AtomicBoolean(false);
   Thread t2=new Thread(){
     public void run(){
-      final TransactionContext context=hz.newTransactionContext();
+      TransactionContext context=hz.newTransactionContext();
       try {
         context.beginTransaction();
         context.getQueue(name).poll(1,TimeUnit.DAYS);
@@ -40,7 +40,7 @@ catch (      Exception e) {
   }
 ;
   t1.start();
-  Thread.sleep(500);
+  sleep(500);
   t2.start();
   t2.join();
   assertFalse("Queue take failed after rollback!",fail.get());
