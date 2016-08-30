@@ -1,0 +1,26 @@
+{
+  hazelcastFactory=new TestHazelcastFactory();
+  member=hazelcastFactory.newHazelcastInstance(getConfig());
+  if (MEMBER_COUNT > 1) {
+    HazelcastInstance[] allMembers=new HazelcastInstance[MEMBER_COUNT];
+    allMembers[0]=member;
+    for (int i=1; i < MEMBER_COUNT; i++) {
+      allMembers[i]=hazelcastFactory.newHazelcastInstance(getConfig());
+    }
+    waitAllForSafeState(allMembers);
+  }
+  ClientConfig clientConfig=createClientConfig();
+  clientConfig.addNearCacheConfig(createNearCacheConfig(inMemoryFormat));
+  HazelcastClientProxy client=(HazelcastClientProxy)hazelcastFactory.newHazelcastClient(clientConfig);
+  NearCacheManager nearCacheManager=client.client.getNearCacheManager();
+  CachingProvider provider=HazelcastClientCachingProvider.createCachingProvider(client);
+  HazelcastClientCacheManager cacheManager=(HazelcastClientCacheManager)provider.getCacheManager();
+  HazelcastServerCacheManager memberCacheManager=(HazelcastServerCacheManager)HazelcastServerCachingProvider.createCachingProvider(member).getCacheManager();
+  ICache<Object,String> cache=cacheManager.createCache(DEFAULT_CACHE_NAME,createCacheConfig(inMemoryFormat));
+  ICache<Object,String> memberCache=member.getCacheManager().getCache(CacheUtil.getPrefixedCacheName(DEFAULT_CACHE_NAME,null,null));
+  NearCache<Data,String> nearCache=nearCacheManager.getNearCache(cacheManager.getCacheNameWithPrefix(DEFAULT_CACHE_NAME));
+  testContext=new NearCacheTestContext(client,member,cacheManager,memberCacheManager,nearCacheManager,cache,memberCache,nearCache);
+  for (int i=0; i < 1000; i++) {
+    testContext.memberCache.put(Integer.toString(i),Integer.toString(i));
+  }
+}
