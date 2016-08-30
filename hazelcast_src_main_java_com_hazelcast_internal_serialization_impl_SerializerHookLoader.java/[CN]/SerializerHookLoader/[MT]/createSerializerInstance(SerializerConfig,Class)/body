@@ -1,20 +1,14 @@
 {
-  Serializer serializer;
   try {
-    Class<?> clazz=ClassLoaderUtil.loadClass(classLoader,serializerConfig.getClassName());
-    try {
-      Constructor<?> constructor=clazz.getDeclaredConstructor(Class.class);
-      constructor.setAccessible(true);
-      serializer=(Serializer)constructor.newInstance(serializationType);
+    String className=serializerConfig.getClassName();
+    if (useDefaultConstructorOnly) {
+      return ClassLoaderUtil.newInstance(classLoader,className);
     }
- catch (    NoSuchMethodException e) {
-      Constructor<?> constructor=clazz.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      serializer=(Serializer)constructor.newInstance();
+ else {
+      return createSerializerInstanceWithFallback(serializationType,className);
     }
   }
  catch (  Exception e) {
     throw new HazelcastSerializationException(e);
   }
-  return serializer;
 }
