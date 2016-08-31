@@ -1,17 +1,17 @@
 {
-  if (Clock.currentTimeMillis() < (lastCleanup + CLEANUP_INTERVAL)) {
+  if (Clock.currentTimeMillis() < (lastCleanup + TTL_CLEANUP_INTERVAL_MILLS)) {
     return;
   }
   if (canCleanUp.compareAndSet(true,false)) {
     try {
-      nodeEngine.getExecutionService().execute(NEAR_CACHE_EXECUTOR_NAME,new Runnable(){
+      executionService.execute(NEAR_CACHE_EXECUTOR_NAME,new Runnable(){
         public void run(){
           try {
             lastCleanup=Clock.currentTimeMillis();
             for (            Map.Entry<Data,NearCacheRecord> entry : cache.entrySet()) {
               if (entry.getValue().isExpired(maxIdleMillis,timeToLiveMillis)) {
-                final Data key=entry.getKey();
-                final NearCacheRecord record=cache.remove(key);
+                Data key=entry.getKey();
+                NearCacheRecord record=cache.remove(key);
                 if (record != null) {
                   updateSizeEstimator(-calculateCost(record));
                 }

@@ -1,24 +1,21 @@
 {
   fireTtlCleanup();
-  if (evictionPolicy == EvictionPolicy.NONE && cache.size() >= maxSize) {
+  if (evictionPolicy == NONE && cache.size() >= maxSize) {
     return;
   }
-  if (evictionPolicy != EvictionPolicy.NONE && cache.size() >= maxSize) {
+  if (evictionPolicy != NONE && cache.size() >= maxSize) {
     fireEvictCache();
   }
-  Object value=null;
-  if (object != null) {
-    SerializationService serializationService=context.getSerializationService();
-    if (inMemoryFormat == InMemoryFormat.BINARY) {
-      value=serializationService.toData(object);
-    }
- else     if (inMemoryFormat == InMemoryFormat.OBJECT) {
-      value=serializationService.toObject(object);
-    }
- else {
-      throw new IllegalArgumentException();
-    }
+  Object candidate;
+  if (value == null) {
+    candidate=NULL_OBJECT;
   }
-  value=value == null ? NULL_OBJECT : value;
-  cache.put(key,new NearCacheRecord(key,value));
+ else   if (inMemoryFormat == InMemoryFormat.OBJECT) {
+    candidate=serializationService.toObject(value);
+  }
+ else {
+    candidate=serializationService.toData(value);
+  }
+  NearCacheRecord record=new NearCacheRecord(key,candidate);
+  cache.put(key,record);
 }

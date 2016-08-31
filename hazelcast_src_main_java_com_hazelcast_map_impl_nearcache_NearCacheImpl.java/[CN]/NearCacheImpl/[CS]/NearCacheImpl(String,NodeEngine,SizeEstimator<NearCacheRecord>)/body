@@ -1,19 +1,20 @@
 {
-  this.nodeEngine=nodeEngine;
+  this.cache=new ConcurrentHashMap<Data,NearCacheRecord>();
+  this.mapName=mapName;
+  this.executionService=nodeEngine.getExecutionService();
+  this.serializationService=nodeEngine.getSerializationService();
+  this.nearCacheSizeEstimator=nearCacheSizeEstimator;
   Config config=nodeEngine.getConfig();
   NearCacheConfig nearCacheConfig=config.findMapConfig(mapName).getNearCacheConfig();
+  this.inMemoryFormat=nearCacheConfig.getInMemoryFormat();
   this.maxSize=nearCacheConfig.getMaxSize() <= 0 ? Integer.MAX_VALUE : nearCacheConfig.getMaxSize();
   this.maxIdleMillis=TimeUnit.SECONDS.toMillis(nearCacheConfig.getMaxIdleSeconds());
-  this.inMemoryFormat=nearCacheConfig.getInMemoryFormat();
   this.timeToLiveMillis=TimeUnit.SECONDS.toMillis(nearCacheConfig.getTimeToLiveSeconds());
+  this.invalidateOnChange=nearCacheConfig.isInvalidateOnChange();
   this.evictionPolicy=EvictionPolicy.valueOf(nearCacheConfig.getEvictionPolicy());
-  this.selectedComparator=NearCacheRecord.getComparator(evictionPolicy);
-  this.cache=new ConcurrentHashMap<Data,NearCacheRecord>();
   this.canCleanUp=new AtomicBoolean(true);
   this.canEvict=new AtomicBoolean(true);
-  this.nearCacheStats=new NearCacheStatsImpl();
+  this.stats=new NearCacheStatsImpl();
+  this.selectedComparator=NearCacheRecord.getComparator(evictionPolicy);
   this.lastCleanup=Clock.currentTimeMillis();
-  this.serializationService=nodeEngine.getSerializationService();
-  this.invalidateOnChange=nearCacheConfig.isInvalidateOnChange();
-  this.mapName=mapName;
 }
