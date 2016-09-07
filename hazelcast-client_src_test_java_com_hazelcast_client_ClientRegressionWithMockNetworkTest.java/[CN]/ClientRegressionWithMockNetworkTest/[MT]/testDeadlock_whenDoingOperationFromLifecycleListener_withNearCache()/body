@@ -1,13 +1,13 @@
 {
+  String mapName=randomMapName();
+  EvictionConfig evictionConfig=new EvictionConfig().setMaximumSizePolicy(ENTRY_COUNT).setSize(1);
+  NearCacheConfig nearCacheConfig=new NearCacheConfig().setName(mapName).setEvictionConfig(evictionConfig);
+  ClientConfig clientConfig=new ClientConfig().addNearCacheConfig(nearCacheConfig).setExecutorPoolSize(1);
   HazelcastInstance instance=hazelcastFactory.newHazelcastInstance();
-  final ClientConfig clientConfig=new ClientConfig();
-  final NearCacheConfig nearCacheConfig=new NearCacheConfig();
-  nearCacheConfig.setMaxSize(1);
-  clientConfig.addNearCacheConfig(nearCacheConfig);
-  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig.setExecutorPoolSize(1));
+  HazelcastInstance client=hazelcastFactory.newHazelcastClient(clientConfig);
   hazelcastFactory.newHazelcastInstance();
   final CountDownLatch latch=new CountDownLatch(1);
-  final IMap<Object,Object> map=client.getMap(randomMapName());
+  final IMap<Object,Object> map=client.getMap(mapName);
   client.getLifecycleService().addLifecycleListener(new LifecycleListener(){
     @Override public void stateChanged(    LifecycleEvent event){
       if (event.getState() == LifecycleState.CLIENT_DISCONNECTED) {
