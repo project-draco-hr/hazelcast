@@ -1,11 +1,12 @@
 {
   if (nearCacheInitialized.compareAndSet(false,true)) {
-    final NearCacheConfig nearCacheConfig=getContext().getClientConfig().getNearCacheConfig(name);
+    NearCacheConfig nearCacheConfig=getContext().getClientConfig().getNearCacheConfig(name);
     if (nearCacheConfig == null) {
       return;
     }
-    ClientHeapNearCache<Object> nearCache=new ClientHeapNearCache<Object>(name,getContext(),nearCacheConfig);
-    this.nearCache=nearCache;
+    EvictionConfigAccessor.initDefaultMaxSize(nearCacheConfig.getEvictionConfig());
+    NearCacheContext nearCacheContext=new NearCacheContext(getContext().getSerializationService(),new ClientNearCacheExecutor(getContext().getExecutionService()));
+    this.nearCache=new DefaultNearCache<Data,Object>(name,nearCacheConfig,nearCacheContext);
     if (nearCache.isInvalidatedOnChange()) {
       addNearCacheInvalidateListener();
     }
