@@ -1,0 +1,15 @@
+{
+  int expectedEvictions=getExpectedEvictionCount(size);
+  populateMap(map,size + 1);
+  populateNearCache(map,size);
+  NearCacheStats statsBeforeEviction=getNearCacheStats(map);
+  map.get(size);
+  waitForNearCacheEvictions(map,expectedEvictions);
+  int expectedOwnedEntryCount=size + 1 - expectedEvictions;
+  NearCacheStats stats=getNearCacheStats(map);
+  assertEquals("got the wrong ownedEntryCount",expectedOwnedEntryCount,stats.getOwnedEntryCount());
+  assertEquals("got the wrong eviction count",expectedEvictions,stats.getEvictions());
+  assertEquals("got the wrong expiration count",0,stats.getExpirations());
+  assertEquals("we expect the same hits",statsBeforeEviction.getHits(),stats.getHits());
+  assertEquals("we expect the same misses",statsBeforeEviction.getMisses(),stats.getMisses());
+}

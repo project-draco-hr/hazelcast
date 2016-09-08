@@ -1,6 +1,5 @@
 {
   int mapSize=1000;
-  int expectedNearCacheHits=1000;
   String mapName="testGetAsyncWithNearCacheIssue1863";
   Config config=getConfig();
   NearCacheConfig nearCacheConfig=newNearCacheConfig();
@@ -10,13 +9,11 @@
   HazelcastInstance hz=hazelcastInstanceFactory.newHazelcastInstance(config);
   hazelcastInstanceFactory.newHazelcastInstance(config);
   IMap<Integer,Integer> map=hz.getMap(mapName);
+  populateNearCache(map,mapSize);
   for (int i=0; i < mapSize; i++) {
-    map.get(i);
+    Future<Integer> future=map.getAsync(i);
+    assertNull(future.get());
   }
-  for (int i=0; i < mapSize; i++) {
-    final Future<Integer> async=map.getAsync(i);
-    assertNull(async.get());
-  }
-  NearCacheStats stats=getNearCacheStats(map);
-  assertEquals(format("Near Cache hits should be %d but were %d",expectedNearCacheHits,stats.getHits()),expectedNearCacheHits,stats.getHits());
+  long hits=getNearCacheStats(map).getHits();
+  assertEquals(format("Near Cache hits should be %d but were %d",mapSize,hits),mapSize,hits);
 }
