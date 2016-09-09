@@ -15,14 +15,6 @@
   if (serializerConfigs != null) {
     for (    SerializerConfig serializerConfig : serializerConfigs) {
       Serializer serializer=serializerConfig.getImplementation();
-      if (serializer == null) {
-        try {
-          serializer=ClassLoaderUtil.newInstance(classLoader,serializerConfig.getClassName());
-        }
- catch (        Exception e) {
-          throw new HazelcastSerializationException(e);
-        }
-      }
       Class serializationType=serializerConfig.getTypeClass();
       if (serializationType == null) {
         try {
@@ -31,6 +23,9 @@
  catch (        ClassNotFoundException e) {
           throw new HazelcastSerializationException(e);
         }
+      }
+      if (serializer == null) {
+        serializer=createSerializerInstance(serializerConfig,serializationType);
       }
       register(serializationType,serializer);
     }
