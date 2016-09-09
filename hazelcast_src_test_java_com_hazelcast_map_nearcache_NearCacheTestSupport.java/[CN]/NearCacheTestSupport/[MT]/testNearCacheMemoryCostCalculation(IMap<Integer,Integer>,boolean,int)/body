@@ -1,0 +1,25 @@
+{
+  populateMap(map,MAX_CACHE_SIZE);
+  final CountDownLatch countDownLatch=new CountDownLatch(threadCount);
+  Runnable task=new Runnable(){
+    @Override public void run(){
+      populateNearCache(map,MAX_CACHE_SIZE);
+      countDownLatch.countDown();
+    }
+  }
+;
+  ExecutorService executorService=newFixedThreadPool(threadCount);
+  for (int i=0; i < threadCount; i++) {
+    executorService.execute(task);
+  }
+  assertOpenEventually(countDownLatch);
+  assertTrue("The Near Cache is filled, there should be some owned entry memory costs",getNearCacheStats(map).getOwnedEntryMemoryCost() > 0);
+  if (isMember && !getBuildInfo().isEnterprise()) {
+    assertTrue("The Near Cache is filled, there should be some heap costs",map.getLocalMapStats().getHeapCost() > 0);
+  }
+  for (int i=0; i < MAX_CACHE_SIZE; i++) {
+    map.remove(i);
+  }
+  assertEquals("The Near Cache is empty, there should be no owned entry memory costs",0,getNearCacheStats(map).getOwnedEntryMemoryCost());
+  assertEquals("The Near Cache is empty, there should be no heap costs",0,map.getLocalMapStats().getHeapCost());
+}
