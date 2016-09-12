@@ -1,0 +1,22 @@
+{
+  int size=1000;
+  final String mapName=randomMapName();
+  Config config=createNearCachedMapConfig(mapName);
+  config.setProperty(GroupProperty.PARTITION_COUNT.getName(),"1");
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory();
+  final HazelcastInstance instance1=factory.newHazelcastInstance(config);
+  final HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  final HazelcastInstance instance3=factory.newHazelcastInstance(config);
+  IMap<Integer,Integer> map=instance1.getMap(mapName);
+  populateMap(map,size);
+  populateNearCache(map,size);
+  map.clear();
+  assertTrueEventually(new AssertTask(){
+    @Override public void run(){
+      assertEquals(0,getNearCacheSize(instance1.getMap(mapName)));
+      assertEquals(0,getNearCacheSize(instance2.getMap(mapName)));
+      assertEquals(0,getNearCacheSize(instance3.getMap(mapName)));
+    }
+  }
+);
+}
