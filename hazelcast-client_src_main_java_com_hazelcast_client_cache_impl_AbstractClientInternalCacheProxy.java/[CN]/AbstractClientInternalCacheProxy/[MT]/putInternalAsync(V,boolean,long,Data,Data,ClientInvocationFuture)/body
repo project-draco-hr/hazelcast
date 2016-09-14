@@ -1,8 +1,8 @@
 {
-  OneShotExecutionCallback oneShotExecutionCallback=null;
+  OneShotExecutionCallback<V> oneShotExecutionCallback=null;
   if (nearCache != null || statisticsEnabled) {
-    oneShotExecutionCallback=new OneShotExecutionCallback(){
-      @Override protected void onResponseInternal(      Object responseData){
+    oneShotExecutionCallback=new OneShotExecutionCallback<V>(){
+      @Override protected void onResponseInternal(      V responseData){
         if (nearCache != null) {
           if (cacheOnUpdate) {
             storeInNearCache(keyData,valueData,value);
@@ -20,13 +20,11 @@
     }
 ;
   }
-  ClientDelegatingFuture delegatingFuture;
-  if (oneShotExecutionCallback != null) {
-    delegatingFuture=new CallbackAwareClientDelegatingFuture(future,clientContext.getSerializationService(),PUT_RESPONSE_DECODER,oneShotExecutionCallback);
-    delegatingFuture.andThen(oneShotExecutionCallback);
+  SerializationService serializationService=clientContext.getSerializationService();
+  if (oneShotExecutionCallback == null) {
+    return new ClientDelegatingFuture<V>(future,serializationService,PUT_RESPONSE_DECODER);
   }
- else {
-    delegatingFuture=new ClientDelegatingFuture(future,clientContext.getSerializationService(),PUT_RESPONSE_DECODER);
-  }
+  ClientDelegatingFuture<V> delegatingFuture=new CallbackAwareClientDelegatingFuture<V>(future,serializationService,PUT_RESPONSE_DECODER,oneShotExecutionCallback);
+  delegatingFuture.andThen(oneShotExecutionCallback);
   return delegatingFuture;
 }
