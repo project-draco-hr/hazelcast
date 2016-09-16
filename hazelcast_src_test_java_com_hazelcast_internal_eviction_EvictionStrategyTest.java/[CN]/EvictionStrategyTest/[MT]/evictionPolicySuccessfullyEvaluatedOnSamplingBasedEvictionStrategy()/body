@@ -21,7 +21,7 @@
     }
   }
 ;
-  EvictionStrategy evictionStrategy=EvictionStrategyProvider.getEvictionStrategy(evictionConfig);
+  EvictionStrategy<K,V,S> evictionStrategy=getEvictionStrategy(evictionConfig);
   CacheRecordHashMap cacheRecordMap=new CacheRecordHashMap(serializationService,1000,cacheContext);
   CacheObjectRecord expectedEvictedRecord=null;
   Data expectedData=null;
@@ -36,7 +36,7 @@
   }
   assertNotNull(expectedEvictedRecord);
   assertNotNull(expectedData);
-  final SimpleEvictionCandidate evictionCandidate=new SimpleEvictionCandidate(expectedData,expectedEvictedRecord);
+  final SimpleEvictionCandidate evictionCandidate=new SimpleEvictionCandidate((K)expectedData,(V)expectedEvictedRecord);
   EvictionPolicyEvaluator evictionPolicyEvaluator=new EvictionPolicyEvaluator(){
     @Override public Iterable<SimpleEvictionCandidate> evaluate(    Iterable evictionCandidates){
       return Collections.singleton(evictionCandidate);
@@ -49,7 +49,7 @@
   assertEquals(RECORD_COUNT,cacheRecordMap.size());
   assertTrue(cacheRecordMap.containsKey(expectedData));
   assertTrue(cacheRecordMap.containsValue(expectedEvictedRecord));
-  int evictedCount=evictionStrategy.evict(cacheRecordMap,evictionPolicyEvaluator,EvictionChecker.EVICT_ALWAYS,EvictionListener.NO_LISTENER);
+  int evictedCount=evictionStrategy.evict((S)cacheRecordMap,evictionPolicyEvaluator,EVICT_ALWAYS,NO_LISTENER);
   assertEquals(EXPECTED_EVICTED_COUNT,evictedCount);
   assertEquals(RECORD_COUNT - EXPECTED_EVICTED_COUNT,cacheRecordMap.size());
   assertFalse(cacheRecordMap.containsKey(expectedData));
