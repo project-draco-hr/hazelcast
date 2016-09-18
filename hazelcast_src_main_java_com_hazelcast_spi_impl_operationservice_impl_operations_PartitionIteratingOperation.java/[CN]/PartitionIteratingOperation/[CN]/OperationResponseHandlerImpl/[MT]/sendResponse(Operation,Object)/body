@@ -1,0 +1,16 @@
+{
+  if (response instanceof NormalResponse) {
+    response=((NormalResponse)response).getValue();
+  }
+ else   if (response == null) {
+    response=NULL;
+  }
+  if (!responseArray.compareAndSet(op.getPartitionId(),null,response)) {
+    getLogger().warning("Duplicate response for " + op + " second response ["+ response+ "]"+ "first response ["+ responseArray.get(op.getPartitionId())+ "]");
+    return;
+  }
+  if (pendingOperations.decrementAndGet() == 0) {
+    getOperationServiceImpl().onCompletionAsyncOperation(PartitionIteratingOperation.this);
+    sendResponse();
+  }
+}
