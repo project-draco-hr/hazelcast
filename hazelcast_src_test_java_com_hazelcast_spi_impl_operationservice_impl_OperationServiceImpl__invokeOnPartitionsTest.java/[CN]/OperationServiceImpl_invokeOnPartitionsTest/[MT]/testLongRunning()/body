@@ -1,0 +1,14 @@
+{
+  Config config=new Config().setProperty(OPERATION_CALL_TIMEOUT_MILLIS.getName(),"2000").setProperty(PARTITION_COUNT.getName(),"" + 100);
+  TestHazelcastInstanceFactory hzFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance hz1=hzFactory.newHazelcastInstance(config);
+  HazelcastInstance hz2=hzFactory.newHazelcastInstance(config);
+  warmUpPartitions(hz1,hz2);
+  OperationServiceImpl opService=getOperationServiceImpl(hz1);
+  Map<Integer,Object> result=opService.invokeOnAllPartitions(null,new SlowOperationFactoryImpl());
+  assertEquals(100,result.size());
+  for (  Map.Entry<Integer,Object> entry : result.entrySet()) {
+    int partitionId=entry.getKey();
+    assertEquals(partitionId * 2,entry.getValue());
+  }
+}

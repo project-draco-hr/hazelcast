@@ -3,15 +3,12 @@
   NodeEngine nodeEngine=getNodeEngine();
   int[] operationFactoryPartitions=factory.getPartitions();
   partitions=operationFactoryPartitions == null ? partitions : operationFactoryPartitions;
-  Object[] responses=new Object[partitions.length];
-  for (int i=0; i < partitions.length; i++) {
-    ResponseQueue responseQueue=new ResponseQueue();
-    responses[i]=responseQueue;
-    int partition=partitions[i];
-    Operation operation=factory.createPartitionOperation(partition);
-    operation.setNodeEngine(nodeEngine).setPartitionId(partition).setReplicaIndex(getReplicaIndex()).setOperationResponseHandler(responseQueue).setServiceName(getServiceName()).setService(getService()).setCallerUuid(extractCallerUuid());
-    OperationAccessor.setCallerAddress(operation,getCallerAddress());
-    nodeEngine.getOperationService().execute(operation);
+  OperationResponseHandler responseHandler=new OperationResponseHandlerImpl(partitions);
+  OperationService operationService=nodeEngine.getOperationService();
+  Object service=getServiceName() == null ? null : getService();
+  for (  int partitionId : partitions) {
+    Operation op=factory.createPartitionOperation(partitionId).setNodeEngine(nodeEngine).setPartitionId(partitionId).setReplicaIndex(getReplicaIndex()).setOperationResponseHandler(responseHandler).setServiceName(getServiceName()).setService(service).setCallerUuid(extractCallerUuid());
+    OperationAccessor.setCallerAddress(op,getCallerAddress());
+    operationService.execute(op);
   }
-  return responses;
 }

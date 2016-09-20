@@ -1,13 +1,11 @@
 {
   NodeEngine nodeEngine=getNodeEngine();
-  Object[] responses=new Object[partitions.length];
-  for (int i=0; i < partitions.length; i++) {
-    ResponseQueue responseQueue=new ResponseQueue();
-    responses[i]=responseQueue;
-    Operation operation=operationFactory.createOperation();
-    operation.setNodeEngine(nodeEngine).setPartitionId(partitions[i]).setReplicaIndex(getReplicaIndex()).setOperationResponseHandler(responseQueue).setServiceName(getServiceName()).setService(getService()).setCallerUuid(extractCallerUuid());
+  OperationResponseHandler responseHandler=new OperationResponseHandlerImpl(partitions);
+  OperationService operationService=nodeEngine.getOperationService();
+  Object service=getServiceName() == null ? null : getService();
+  for (  int partitionId : partitions) {
+    Operation operation=operationFactory.createOperation().setNodeEngine(nodeEngine).setPartitionId(partitionId).setReplicaIndex(getReplicaIndex()).setOperationResponseHandler(responseHandler).setServiceName(getServiceName()).setService(service).setCallerUuid(extractCallerUuid());
     OperationAccessor.setCallerAddress(operation,getCallerAddress());
-    nodeEngine.getOperationService().execute(operation);
+    operationService.execute(operation);
   }
-  return responses;
 }
