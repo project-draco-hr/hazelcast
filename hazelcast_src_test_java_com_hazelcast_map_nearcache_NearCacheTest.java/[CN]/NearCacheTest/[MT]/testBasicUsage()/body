@@ -1,11 +1,11 @@
 {
   int clusterSize=3;
   int mapSize=5000;
-  String mapName="testBasicUsage";
+  final String mapName="testBasicUsage";
   Config config=getConfig();
   config.getMapConfig(mapName).setNearCacheConfig(newNearCacheConfig().setInvalidateOnChange(true));
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(clusterSize);
-  HazelcastInstance[] instances=factory.newInstances(config);
+  final HazelcastInstance[] instances=factory.newInstances(config);
   IMap<Integer,Integer> map=instances[0].getMap(mapName);
   populateMap(map,mapSize);
   for (  HazelcastInstance instance : instances) {
@@ -28,9 +28,14 @@
     assertTrue("Near Cache size should be > 0 but was " + nearCacheSize,nearCacheSize > 0);
   }
   map.clear();
-  for (  HazelcastInstance instance : instances) {
-    NearCache nearCache=getNearCache(mapName,instance);
-    int size=nearCache.size();
-    assertEquals("Near Cache size should be 0 but was " + size,0,size);
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (      HazelcastInstance instance : instances) {
+        NearCache nearCache=getNearCache(mapName,instance);
+        int size=nearCache.size();
+        assertEquals("Near Cache size should be 0 but was " + size,0,size);
+      }
+    }
   }
+);
 }

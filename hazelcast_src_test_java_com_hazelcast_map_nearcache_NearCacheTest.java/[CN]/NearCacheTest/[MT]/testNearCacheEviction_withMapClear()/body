@@ -1,5 +1,5 @@
 {
-  int size=10;
+  final int size=10;
   String mapName="testNearCacheEvictionWithMapClear";
   NearCacheConfig nearCacheConfig=newNearCacheConfig();
   nearCacheConfig.setInvalidateOnChange(true);
@@ -8,16 +8,21 @@
   TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
   HazelcastInstance hazelcastInstance1=factory.newHazelcastInstance(config);
   HazelcastInstance hazelcastInstance2=factory.newHazelcastInstance(config);
-  IMap<Integer,Integer> map1=hazelcastInstance1.getMap(mapName);
-  IMap<Integer,Integer> map2=hazelcastInstance2.getMap(mapName);
+  final IMap<Integer,Integer> map1=hazelcastInstance1.getMap(mapName);
+  final IMap<Integer,Integer> map2=hazelcastInstance2.getMap(mapName);
   populateMap(map1,size);
   populateNearCache(map1,size);
   populateNearCache(map2,size);
   map1.clear();
-  for (int i=0; i < size; i++) {
-    assertNull(map1.get(i));
-    assertNull(map2.get(i));
+  assertTrueEventually(new AssertTask(){
+    @Override public void run() throws Exception {
+      for (int i=0; i < size; i++) {
+        assertNull(map1.get(i));
+        assertNull(map2.get(i));
+      }
+      assertEquals(0,getNearCacheStats(map1).getEvictions());
+      assertEquals(0,getNearCacheStats(map2).getEvictions());
+    }
   }
-  assertEquals(0,getNearCacheStats(map1).getEvictions());
-  assertEquals(0,getNearCacheStats(map2).getEvictions());
+);
 }

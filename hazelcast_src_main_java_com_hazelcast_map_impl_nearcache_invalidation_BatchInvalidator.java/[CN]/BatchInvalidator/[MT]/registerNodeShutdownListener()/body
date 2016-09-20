@@ -1,0 +1,15 @@
+{
+  HazelcastInstance node=nodeEngine.getHazelcastInstance();
+  LifecycleService lifecycleService=node.getLifecycleService();
+  return lifecycleService.addLifecycleListener(new LifecycleListener(){
+    @Override public void stateChanged(    LifecycleEvent event){
+      if (event.getState() == LifecycleEvent.LifecycleState.SHUTTING_DOWN) {
+        Set<Map.Entry<String,InvalidationQueue>> entries=invalidationQueues.entrySet();
+        for (        Map.Entry<String,InvalidationQueue> entry : entries) {
+          invalidate(entry.getValue(),false,entry.getKey());
+        }
+      }
+    }
+  }
+);
+}
