@@ -1,11 +1,11 @@
 {
   final WaitNotifyKey key=op.getWaitKey();
-  final Queue<ParkedOperation> q=ConcurrencyUtil.getOrPutIfAbsent(mapWaitingOps,key,waitQueueConstructor);
+  final Queue<ParkedOperation> parkQueue=getOrPutIfAbsent(parkQueueMap,key,parkQueueConstructor);
   long timeout=op.getWaitTimeout();
-  ParkedOperation waitingOp=new ParkedOperation(q,op);
-  waitingOp.setNodeEngine(nodeEngine);
-  q.offer(waitingOp);
+  ParkedOperation parkedOperation=new ParkedOperation(parkQueue,op);
+  parkedOperation.setNodeEngine(nodeEngine);
+  parkQueue.offer(parkedOperation);
   if (timeout > -1 && timeout < TIMEOUT_UPPER_BOUND) {
-    delayQueue.offer(waitingOp);
+    delayQueue.offer(parkedOperation);
   }
 }

@@ -3,22 +3,23 @@
     return;
   }
   int partitionId=migrationInfo.getPartitionId();
-  for (  Queue<ParkedOperation> q : mapWaitingOps.values()) {
-    Iterator<ParkedOperation> it=q.iterator();
+  for (  Queue<ParkedOperation> parkQueue : parkQueueMap.values()) {
+    Iterator<ParkedOperation> it=parkQueue.iterator();
     while (it.hasNext()) {
       if (Thread.interrupted()) {
         return;
       }
-      ParkedOperation waitingOp=it.next();
-      if (waitingOp.isValid()) {
-        Operation op=waitingOp.getOperation();
-        if (partitionId == op.getPartitionId()) {
-          waitingOp.setValid(false);
-          PartitionMigratingException pme=new PartitionMigratingException(thisAddress,partitionId,op.getClass().getName(),op.getServiceName());
-          OperationResponseHandler responseHandler=op.getOperationResponseHandler();
-          responseHandler.sendResponse(op,pme);
-          it.remove();
-        }
+      ParkedOperation parkedOperation=it.next();
+      if (!parkedOperation.isValid()) {
+        continue;
+      }
+      Operation op=parkedOperation.getOperation();
+      if (partitionId == op.getPartitionId()) {
+        parkedOperation.setValid(false);
+        PartitionMigratingException pme=new PartitionMigratingException(thisAddress,partitionId,op.getClass().getName(),op.getServiceName());
+        OperationResponseHandler responseHandler=op.getOperationResponseHandler();
+        responseHandler.sendResponse(op,pme);
+        it.remove();
       }
     }
   }

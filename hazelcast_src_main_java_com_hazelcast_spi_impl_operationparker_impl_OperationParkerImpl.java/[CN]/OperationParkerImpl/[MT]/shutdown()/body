@@ -4,22 +4,23 @@
   expirationService.shutdown();
   final Object response=new HazelcastInstanceNotActiveException();
   final Address thisAddress=nodeEngine.getThisAddress();
-  for (  Queue<ParkedOperation> q : mapWaitingOps.values()) {
-    for (    ParkedOperation waitingOp : q) {
-      if (waitingOp.isValid()) {
-        final Operation op=waitingOp.getOperation();
-        if (thisAddress.equals(op.getCallerAddress())) {
-          try {
-            OperationResponseHandler responseHandler=op.getOperationResponseHandler();
-            responseHandler.sendResponse(op,response);
-          }
- catch (          Exception e) {
-            logger.finest("While sending HazelcastInstanceNotActiveException response...",e);
-          }
+  for (  Queue<ParkedOperation> parkQueue : parkQueueMap.values()) {
+    for (    ParkedOperation parkedOperation : parkQueue) {
+      if (!parkedOperation.isValid()) {
+        continue;
+      }
+      Operation op=parkedOperation.getOperation();
+      if (thisAddress.equals(op.getCallerAddress())) {
+        try {
+          OperationResponseHandler responseHandler=op.getOperationResponseHandler();
+          responseHandler.sendResponse(op,response);
+        }
+ catch (        Exception e) {
+          logger.finest("While sending HazelcastInstanceNotActiveException response...",e);
         }
       }
     }
-    q.clear();
+    parkQueue.clear();
   }
-  mapWaitingOps.clear();
+  parkQueueMap.clear();
 }
