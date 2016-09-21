@@ -1,0 +1,16 @@
+{
+  int k=4;
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(k + 1);
+  HazelcastInstance instance=nodeFactory.newHazelcastInstance();
+  String name="testFailure";
+  CardinalityEstimator estimator=instance.getCardinalityEstimator(name);
+  estimator.add(1L);
+  for (int i=0; i < k; i++) {
+    HazelcastInstance newInstance=nodeFactory.newHazelcastInstance();
+    CardinalityEstimator newEstimator=newInstance.getCardinalityEstimator(name);
+    assertEquals((long)1 + i,newEstimator.estimate());
+    newEstimator.add(String.valueOf(i + 1));
+    instance.shutdown();
+    instance=newInstance;
+  }
+}

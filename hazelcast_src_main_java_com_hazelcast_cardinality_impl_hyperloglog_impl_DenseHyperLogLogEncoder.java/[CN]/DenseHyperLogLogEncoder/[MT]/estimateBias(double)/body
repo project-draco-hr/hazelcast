@@ -1,0 +1,25 @@
+{
+  int i=0;
+  double[] rawEstimates=RAW_ESTIMATE_DATA[p - 4];
+  double closestToZero=Math.abs(e - rawEstimates[0]);
+  NavigableMap<Double,Integer> distances=new TreeMap<Double,Integer>();
+  for (  double est : rawEstimates) {
+    double distance=e - est;
+    distances.put(distance,i++);
+    if (Math.abs(distance) < closestToZero) {
+      closestToZero=distance;
+    }
+  }
+  int kNN=6;
+  double sum=0;
+  Iterator<Map.Entry<Double,Integer>> firstX=distances.descendingMap().tailMap(closestToZero).entrySet().iterator();
+  Iterator<Map.Entry<Double,Integer>> lastX=distances.tailMap(closestToZero).entrySet().iterator();
+  int kNNLeft=kNN;
+  while (kNNLeft-- > kNN / 2 && firstX.hasNext()) {
+    sum+=BIAS_DATA[p - 4][firstX.next().getValue()];
+  }
+  while (kNNLeft-- >= 0 && lastX.hasNext()) {
+    sum+=BIAS_DATA[p - 4][lastX.next().getValue()];
+  }
+  return (long)(sum / kNN);
+}
