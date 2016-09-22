@@ -1,0 +1,13 @@
+{
+  TestHazelcastInstanceFactory nodeFactory=createHazelcastInstanceFactory(2);
+  HazelcastInstance fullMember=nodeFactory.newHazelcastInstance();
+  HazelcastInstance liteMember=nodeFactory.newHazelcastInstance(new Config().setLiteMember(true));
+  assertClusterSizeEventually(2,fullMember);
+  IMap<Integer,Integer> map=fullMember.getMap(randomMapName());
+  DeserializationCountingPredicate predicate=new DeserializationCountingPredicate();
+  for (int i=0; i < 5000; i++) {
+    map.put(i,i);
+  }
+  map.values(predicate);
+  assertEquals(0,predicate.serilizationCount());
+}
