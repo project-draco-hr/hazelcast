@@ -2,10 +2,10 @@
   long waitTime=FIRST_WAIT_TIME;
   while (waitTime > 0) {
     long begin=System.currentTimeMillis();
-    ParkedOperation waitingOp=(ParkedOperation)delayQueue.poll(waitTime,TimeUnit.MILLISECONDS);
-    if (waitingOp != null) {
-      if (waitingOp.isValid()) {
-        invalidate(waitingOp);
+    ParkedOperation parkedOperation=(ParkedOperation)delayQueue.poll(waitTime,MILLISECONDS);
+    if (parkedOperation != null) {
+      if (parkedOperation.isValid()) {
+        invalidate(parkedOperation);
       }
     }
     long end=System.currentTimeMillis();
@@ -14,13 +14,13 @@
       waitTime=FIRST_WAIT_TIME;
     }
   }
-  for (  Queue<ParkedOperation> q : mapWaitingOps.values()) {
-    for (    ParkedOperation waitingOp : q) {
+  for (  Queue<ParkedOperation> parkQueue : parkQueueMap.values()) {
+    for (    ParkedOperation parkedOperation : parkQueue) {
       if (Thread.interrupted()) {
         return true;
       }
-      if (waitingOp.isValid() && waitingOp.needsInvalidation()) {
-        invalidate(waitingOp);
+      if (parkedOperation.isValid() && parkedOperation.needsInvalidation()) {
+        invalidate(parkedOperation);
       }
     }
   }
