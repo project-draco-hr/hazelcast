@@ -1,0 +1,18 @@
+{
+  Config config=new Config();
+  config.setProperty(SYS_PROP_EXPIRATION_TASK_PERIOD_SECONDS,"1");
+  HazelcastInstance node=createHazelcastInstance(config);
+  final AtomicInteger expirationCounter=new AtomicInteger();
+  IMap map=node.getMap("test");
+  map.addEntryListener(new EntryExpiredListener(){
+    @Override public void entryExpired(    EntryEvent event){
+      expirationCounter.incrementAndGet();
+    }
+  }
+,true);
+  map.put(1,1,3,TimeUnit.SECONDS);
+  node.getCluster().changeClusterState(PASSIVE);
+  sleepSeconds(3);
+  int expirationCount=expirationCounter.get();
+  assertEquals(format("Expecting no expiration but found:%d",expirationCount),0,expirationCount);
+}
