@@ -1,0 +1,13 @@
+{
+  HazelcastInstance hz=createHazelcastInstance();
+  NodeEngineImpl nodeEngine=getNode(hz).nodeEngine;
+  OperationParkerImpl operationParker=(OperationParkerImpl)nodeEngine.getOperationParker();
+  Address thisAddress=nodeEngine.getThisAddress();
+  DummyBlockingOperation blockingOperation=new DummyBlockingOperation(new WaitNotifyKeyImpl());
+  setCallId(blockingOperation,100);
+  operationParker.park(blockingOperation);
+  LiveOperations liveOperations=new LiveOperations(thisAddress);
+  operationParker.populate(liveOperations);
+  assertEquals(singleton(thisAddress),liveOperations.addresses());
+  assertArrayEquals(new long[]{100},liveOperations.callIds(thisAddress));
+}

@@ -1,0 +1,17 @@
+{
+  TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  HazelcastInstance local=factory.newHazelcastInstance();
+  HazelcastInstance remote=factory.newHazelcastInstance();
+  NodeEngineImpl nodeEngine=getNode(local).nodeEngine;
+  OperationParkerImpl operationParker=(OperationParkerImpl)nodeEngine.getOperationParker();
+  Address thisAddress=getNode(local).nodeEngine.getThisAddress();
+  Address thatAddress=getNode(remote).nodeEngine.getThisAddress();
+  DummyBlockingOperation blockingOperation=new DummyBlockingOperation(new WaitNotifyKeyImpl());
+  setCallerAddress(blockingOperation,thatAddress);
+  setCallId(blockingOperation,100);
+  operationParker.park(blockingOperation);
+  LiveOperations liveOperations=new LiveOperations(thisAddress);
+  operationParker.populate(liveOperations);
+  assertEquals(singleton(thatAddress),liveOperations.addresses());
+  assertArrayEquals(new long[]{100},liveOperations.callIds(thatAddress));
+}
