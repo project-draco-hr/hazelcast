@@ -9,6 +9,10 @@
     heapCost+=getRecordStoreHeapCost(mapName,container);
   }
   MapContainer mapContainer=mapServiceContext.getMapContainer(mapName);
-  heapCost+=mapContainer.getNearCacheSizeEstimator().getSize();
-  return heapCost;
+  if (!mapContainer.getMapConfig().isNearCacheEnabled()) {
+    return heapCost;
+  }
+  NearCache nearCache=mapServiceContext.getNearCacheProvider().getOrCreateNearCache(mapName);
+  NearCacheStats nearCacheStats=nearCache.getNearCacheStats();
+  return heapCost + nearCacheStats.getOwnedEntryMemoryCost();
 }
