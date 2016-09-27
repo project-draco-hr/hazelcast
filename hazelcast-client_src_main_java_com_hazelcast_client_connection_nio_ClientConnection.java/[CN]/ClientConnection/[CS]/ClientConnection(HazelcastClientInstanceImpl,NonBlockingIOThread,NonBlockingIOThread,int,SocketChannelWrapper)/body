@@ -5,14 +5,14 @@
   this.lifecycleService=client.getLifecycleService();
   this.socketChannelWrapper=socketChannelWrapper;
   this.connectionId=connectionId;
-  LoggingService clientLoggingService=client.getLoggingService();
-  this.logger=clientLoggingService.getLogger(ClientConnection.class);
+  LoggingService loggingService=client.getLoggingService();
+  this.logger=loggingService.getLogger(ClientConnection.class);
   boolean directBuffer=client.getProperties().getBoolean(GroupProperty.SOCKET_CLIENT_BUFFER_DIRECT);
-  this.readHandler=new ClientReadHandler(this,in,socket.getReceiveBufferSize(),directBuffer,clientLoggingService);
-  this.writeHandler=new ClientWriteHandler(this,out,socket.getSendBufferSize(),directBuffer,clientLoggingService);
+  this.reader=new ClientNonBlockingSocketReader(this,in,socket.getReceiveBufferSize(),directBuffer,loggingService);
+  this.writer=new ClientNonBlockingSocketWriter(this,out,socket.getSendBufferSize(),directBuffer,loggingService);
   MetricsRegistryImpl metricsRegistry=client.getMetricsRegistry();
   String connectionName="tcp.connection[" + socket.getLocalSocketAddress() + " -> "+ socket.getRemoteSocketAddress()+ "]";
   metricsRegistry.scanAndRegister(this,connectionName);
-  metricsRegistry.scanAndRegister(readHandler,connectionName + ".in");
-  metricsRegistry.scanAndRegister(writeHandler,connectionName + ".out");
+  metricsRegistry.scanAndRegister(reader,connectionName + ".in");
+  metricsRegistry.scanAndRegister(writer,connectionName + ".out");
 }
