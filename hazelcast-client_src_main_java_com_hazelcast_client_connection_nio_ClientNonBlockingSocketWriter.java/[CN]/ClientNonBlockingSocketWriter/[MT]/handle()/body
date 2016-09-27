@@ -1,17 +1,14 @@
 {
   eventCount.inc();
-  lastHandle=Clock.currentTimeMillis();
+  lastWriteTime=Clock.currentTimeMillis();
   if (!connection.isAlive()) {
     return;
   }
-  if (lastMessage == null) {
-    lastMessage=poll();
+  if (currentMessage == null) {
+    currentMessage=poll();
   }
-  if (lastMessage == null && buffer.position() == 0) {
-    ready=true;
-    return;
+  if (currentMessage != null || buffer.position() > 0) {
+    writeBuffer();
   }
-  writeBuffer();
-  ready=false;
-  registerWrite();
+  unschedule();
 }
