@@ -1,0 +1,28 @@
+{
+  double stdError=(1.04 / Math.sqrt(1 << precision)) * 100;
+  double maxError=Math.ceil(stdError + 3.0);
+  IntHashSet actualCount=new IntHashSet(runLength,-1);
+  Random random=new Random();
+  Histogram histogram=new Histogram(5);
+  ByteBuffer bb=ByteBuffer.allocate(4);
+  int sampleStep=100;
+  long expected;
+  long actual;
+  for (int i=1; i <= runLength; i++) {
+    int toCount=random.nextInt();
+    actualCount.add(toCount);
+    bb.clear();
+    bb.putInt(toCount);
+    hyperLogLog.add(HashUtil.MurmurHash3_x64_64(bb.array(),0,bb.array().length));
+    if (i % sampleStep == 0) {
+      expected=actualCount.size();
+      actual=hyperLogLog.estimate();
+      double errorPct=((actual * 100.0) / expected) - 100;
+      histogram.recordValue(Math.abs((long)(errorPct * 100)));
+    }
+  }
+  double errorPerc99=histogram.getValueAtPercentile(99) / 100.0;
+  if (errorPerc99 > maxError) {
+    fail("For P=" + precision + ", Expected max error="+ maxError+ "%. "+ "Actual error: "+ errorPerc99+ "%.");
+  }
+}
