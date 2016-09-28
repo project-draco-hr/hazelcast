@@ -5,22 +5,19 @@
   InternalOperationService operationService=nodeEngine.getOperationService();
   operationService.invokeOnPartition(new SleepingOperation(Long.MAX_VALUE).setPartitionId(0));
   sleepSeconds(1);
-  final int numberOfInvocations=100;
-  Future[] futures=new Future[numberOfInvocations];
-  for (int i=0; i < numberOfInvocations; i++) {
-    Future<Object> future=operationService.createInvocationBuilder(null,new RetryingOperation(),0).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
-    futures[i]=future;
+  Future[] futures=new Future[NUMBER_OF_INVOCATIONS];
+  for (int i=0; i < NUMBER_OF_INVOCATIONS; i++) {
+    futures[i]=operationService.createInvocationBuilder(null,new RetryingOperation(),0).setTryCount(Integer.MAX_VALUE).setCallTimeout(Long.MAX_VALUE).invoke();
   }
   hz.getLifecycleService().terminate();
-  for (int k=0; k < numberOfInvocations; k++) {
-    Future future=futures[k];
+  for (  Future future : futures) {
     try {
       future.get(2,TimeUnit.MINUTES);
     }
  catch (    ExecutionException ignored) {
     }
 catch (    TimeoutException e) {
-      Assert.fail(e.getMessage());
+      fail(e.getMessage());
     }
   }
 }
