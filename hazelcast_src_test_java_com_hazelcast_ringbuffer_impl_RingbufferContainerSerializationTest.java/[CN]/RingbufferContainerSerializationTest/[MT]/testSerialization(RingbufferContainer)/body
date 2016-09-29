@@ -1,20 +1,25 @@
 {
   RingbufferContainer clone=clone(original);
-  assertEquals(original.headSequence,clone.headSequence);
-  assertEquals(original.tailSequence,clone.tailSequence);
-  assertEquals(original.capacity,clone.capacity);
-  assertEquals(original.ttlMs,clone.ttlMs);
-  assertArrayEquals(original.ringItems,clone.ringItems);
+  assertEquals(original.headSequence(),clone.headSequence());
+  assertEquals(original.tailSequence(),clone.tailSequence());
+  assertEquals(original.getCapacity(),clone.getCapacity());
+  if (original.getExpirationPolicy() != null) {
+    assertNotNull(clone.getExpirationPolicy());
+    assertEquals(original.getExpirationPolicy().getTtlMs(),clone.getExpirationPolicy().getTtlMs());
+  }
+  final ArrayRingbuffer originalRingbuffer=(ArrayRingbuffer)original.getRingbuffer();
+  final ArrayRingbuffer cloneRingbuffer=(ArrayRingbuffer)original.getRingbuffer();
+  assertArrayEquals(originalRingbuffer.ringItems,cloneRingbuffer.ringItems);
   if (original.getConfig().getTimeToLiveSeconds() == 0) {
-    assertNull(clone.ringExpirationMs);
+    assertNull(clone.getExpirationPolicy());
     return;
   }
-  assertNotNull(clone.ringExpirationMs);
-  assertEquals(original.ringExpirationMs.length,clone.ringExpirationMs.length);
-  for (long seq=original.headSequence; seq <= original.tailSequence; seq++) {
-    int index=original.toIndex(seq);
-    long originalExpiration=original.ringExpirationMs[index];
-    long actualExpiration=clone.ringExpirationMs[index];
+  assertNotNull(clone.getExpirationPolicy());
+  assertEquals(original.getExpirationPolicy().ringExpirationMs.length,clone.getExpirationPolicy().ringExpirationMs.length);
+  for (long seq=original.headSequence(); seq <= original.tailSequence(); seq++) {
+    int index=original.getExpirationPolicy().toIndex(seq);
+    long originalExpiration=original.getExpirationPolicy().ringExpirationMs[index];
+    long actualExpiration=clone.getExpirationPolicy().ringExpirationMs[index];
     double difference=actualExpiration - originalExpiration;
     assertTrue("difference was:" + difference,difference > 0.50 * CLOCK_DIFFERENCE_MS);
     assertTrue("difference was:" + difference,difference < 1.50 * CLOCK_DIFFERENCE_MS);

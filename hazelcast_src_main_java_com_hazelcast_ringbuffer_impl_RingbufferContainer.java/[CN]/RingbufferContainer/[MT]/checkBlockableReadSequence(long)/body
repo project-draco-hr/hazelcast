@@ -1,8 +1,10 @@
 {
+  final long tailSequence=ringbuffer.tailSequence();
   if (readSequence > tailSequence + 1) {
     throw new IllegalArgumentException("sequence:" + readSequence + " is too large. The current tailSequence is:"+ tailSequence);
   }
-  if (readSequence < headSequence) {
-    throw new StaleSequenceException("sequence:" + readSequence + " is too small. The current headSequence is:"+ headSequence+ " tailSequence is:"+ tailSequence,headSequence);
+  final long headSequence=ringbuffer.headSequence();
+  if (readSequence < headSequence && !store.isEnabled()) {
+    throw new StaleSequenceException("sequence:" + readSequence + " is too small and data store is disabled. "+ "The current headSequence is:"+ headSequence+ " tailSequence is:"+ tailSequence,headSequence);
   }
 }

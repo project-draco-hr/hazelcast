@@ -1,26 +1,27 @@
 {
-  tailSequence=in.readLong();
-  headSequence=in.readLong();
-  capacity=in.readInt();
-  ttlMs=in.readLong();
+  final long tailSequence=in.readLong();
+  final long headSequence=in.readLong();
+  final int capacity=in.readInt();
+  final long ttlMs=in.readLong();
   inMemoryFormat=values()[in.readInt()];
-  ringItems=new Object[capacity];
-  boolean ttlEnabled=isTTLEnabled();
+  ringbuffer=new ArrayRingbuffer(capacity);
+  ringbuffer.setTailSequence(tailSequence);
+  ringbuffer.setHeadSequence(headSequence);
+  boolean ttlEnabled=ttlMs != TTL_DISABLED;
   if (ttlEnabled) {
-    ringExpirationMs=new long[capacity];
+    this.expirationPolicy=new RingbufferExpirationPolicy(capacity,ttlMs);
   }
   long now=System.currentTimeMillis();
   for (long seq=headSequence; seq <= tailSequence; seq++) {
-    int index=toIndex(seq);
     if (inMemoryFormat == BINARY) {
-      ringItems[index]=in.readData();
+      ringbuffer.set(seq,in.readData());
     }
  else {
-      ringItems[index]=in.readObject();
+      ringbuffer.set(seq,in.readObject());
     }
     if (ttlEnabled) {
       long delta=in.readLong();
-      ringExpirationMs[index]=delta + now;
+      expirationPolicy.setExpirationAt(seq,delta + now);
     }
   }
 }
