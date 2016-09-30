@@ -1,9 +1,11 @@
 {
   ClientContext context=getContext();
   NearCacheConfig nearCacheConfig=context.getClientConfig().getNearCacheConfig(name);
+  EvictionConfigAccessor.initDefaultMaxSize(nearCacheConfig.getEvictionConfig());
+  NearCacheContext nearCacheContext=new NearCacheContext(context.getSerializationService(),new ClientNearCacheExecutor(context.getExecutionService()));
+  NearCache<Data,Object> clientNearCache=new DefaultNearCache<Data,Object>(name,nearCacheConfig,nearCacheContext);
   int partitionCount=context.getPartitionService().getPartitionCount();
-  ClientHeapNearCache<Data> clientHeapNearCache=new ClientHeapNearCache<Data>(name,getContext(),nearCacheConfig);
-  nearCache=wrapAsStaleReadPreventerNearCache(clientHeapNearCache,partitionCount);
+  nearCache=wrapAsStaleReadPreventerNearCache(clientNearCache,partitionCount);
   keyStateMarker=getKeyStateMarker();
   invalidateOnChange=nearCache.isInvalidatedOnChange();
   if (invalidateOnChange) {
