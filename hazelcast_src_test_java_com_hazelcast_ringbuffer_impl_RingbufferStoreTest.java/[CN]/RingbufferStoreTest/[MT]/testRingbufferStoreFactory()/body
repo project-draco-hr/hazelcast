@@ -1,0 +1,13 @@
+{
+  final String ringbufferName=randomString();
+  final SimpleRingbufferStoreFactory rbStoreFactory=new SimpleRingbufferStoreFactory();
+  final RingbufferStoreConfig rbStoreConfig=new RingbufferStoreConfig().setEnabled(true).setFactoryImplementation(rbStoreFactory);
+  final Config config=getConfig(ringbufferName,DEFAULT_CAPACITY,OBJECT,rbStoreConfig);
+  final HazelcastInstance instance=createHazelcastInstance(config);
+  final Ringbuffer<Object> ringbuffer=instance.getRingbuffer(ringbufferName);
+  ringbuffer.add(1);
+  assertEquals(1,rbStoreFactory.stores.size());
+  final TestRingbufferStore ringbufferStore=(TestRingbufferStore)rbStoreFactory.stores.get(ringbufferName);
+  int size=ringbufferStore.store.size();
+  assertEquals("Ring buffer store size should be 1 but found " + size,1,size);
+}

@@ -1,0 +1,21 @@
+{
+  final int numItems=2000;
+  final TestRingbufferStore<Integer> rbStore=new TestRingbufferStore<Integer>(2000,0,2000);
+  final RingbufferStoreConfig rbStoreConfig=new RingbufferStoreConfig().setEnabled(true).setStoreImplementation(rbStore);
+  final Config config=getConfig("testRingbufferStore",DEFAULT_CAPACITY,OBJECT,rbStoreConfig);
+  final TestHazelcastInstanceFactory factory=createHazelcastInstanceFactory(2);
+  final HazelcastInstance instance=factory.newHazelcastInstance(config);
+  final Ringbuffer<Object> ringbuffer=instance.getRingbuffer("testRingbufferStore");
+  for (int i=0; i < numItems; i++) {
+    ringbuffer.add(i);
+  }
+  instance.shutdown();
+  final HazelcastInstance instance2=factory.newHazelcastInstance(config);
+  final Ringbuffer<Object> ringbuffer2=instance2.getRingbuffer("testRingbufferStore");
+  assertEquals(0,ringbuffer2.size());
+  assertEquals(numItems,rbStore.store.size());
+  for (int i=0; i < numItems; i++) {
+    assertEquals(i,ringbuffer2.readOne(i));
+  }
+  rbStore.assertAwait(3);
+}

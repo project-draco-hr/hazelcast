@@ -1,21 +1,20 @@
 {
-  out.writeLong(tailSequence);
-  out.writeLong(headSequence);
-  out.writeInt(capacity);
-  out.writeLong(ttlMs);
+  boolean ttlEnabled=expirationPolicy != null;
+  out.writeLong(ringbuffer.tailSequence());
+  out.writeLong(ringbuffer.headSequence());
+  out.writeInt((int)ringbuffer.getCapacity());
+  out.writeLong(ttlEnabled ? expirationPolicy.getTtlMs() : 0);
   out.writeInt(inMemoryFormat.ordinal());
-  boolean ttlEnabled=isTTLEnabled();
   long now=System.currentTimeMillis();
-  for (long seq=headSequence; seq <= tailSequence; seq++) {
-    int index=toIndex(seq);
+  for (long seq=ringbuffer.headSequence(); seq <= ringbuffer.tailSequence(); seq++) {
     if (inMemoryFormat == BINARY) {
-      out.writeData((Data)ringItems[index]);
+      out.writeData((Data)ringbuffer.read(seq));
     }
  else {
-      out.writeObject(ringItems[index]);
+      out.writeObject(ringbuffer.read(seq));
     }
     if (ttlEnabled) {
-      long deltaMs=ringExpirationMs[index] - now;
+      long deltaMs=expirationPolicy.getExpirationAt(seq) - now;
       out.writeLong(deltaMs);
     }
   }

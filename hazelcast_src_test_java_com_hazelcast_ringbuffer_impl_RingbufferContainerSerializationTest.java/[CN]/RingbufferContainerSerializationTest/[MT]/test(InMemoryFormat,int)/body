@@ -1,17 +1,18 @@
 {
-  RingbufferConfig config=new RingbufferConfig("foobar").setCapacity(3).setAsyncBackupCount(2).setBackupCount(2).setInMemoryFormat(inMemoryFormat).setTimeToLiveSeconds(ttlSeconds);
-  RingbufferContainer ringbuffer=new RingbufferContainer(config,serializationService);
-  testSerialization(ringbuffer);
+  final RingbufferConfig config=new RingbufferConfig("foobar").setCapacity(3).setAsyncBackupCount(2).setBackupCount(2).setInMemoryFormat(inMemoryFormat).setTimeToLiveSeconds(ttlSeconds);
+  final RingbufferContainer rbContainer=new RingbufferContainer(config.getName(),config,nodeEngine.getSerializationService(),nodeEngine.getConfigClassLoader());
+  testSerialization(rbContainer);
   for (int k=0; k < config.getCapacity() * 2; k++) {
-    ringbuffer.add(toData("old"));
-    testSerialization(ringbuffer);
+    rbContainer.add(toData("old"));
+    testSerialization(rbContainer);
   }
+  final ArrayRingbuffer ringbuffer=(ArrayRingbuffer)rbContainer.getRingbuffer();
   for (int k=0; k < config.getCapacity() / 2; k++) {
     ringbuffer.ringItems[k]=null;
     if (ttlSeconds != 0) {
-      ringbuffer.ringExpirationMs[k]=0;
+      rbContainer.getExpirationPolicy().ringExpirationMs[k]=0;
     }
-    ringbuffer.headSequence++;
-    testSerialization(ringbuffer);
+    ringbuffer.setHeadSequence(ringbuffer.headSequence() + 1);
+    testSerialization(rbContainer);
   }
 }
