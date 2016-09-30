@@ -1,14 +1,8 @@
 {
   logger.info("TcpIpConnectionManager configured with Non Blocking IO-threading model: " + inputThreads.length + " input threads and "+ outputThreads.length+ " output threads");
   logger.log(getSelectorMode() != SelectorMode.SELECT ? INFO : FINE,"IO threads selector mode is " + getSelectorMode());
-  NonBlockingIOThreadOutOfMemoryHandler oomeHandler=new NonBlockingIOThreadOutOfMemoryHandler(){
-    @Override public void handle(    OutOfMemoryError error){
-      ioService.onOutOfMemory(error);
-    }
-  }
-;
   for (int i=0; i < inputThreads.length; i++) {
-    NonBlockingIOThread thread=new NonBlockingIOThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "in-" + i,ioService.getLogger(NonBlockingIOThread.class.getName()),oomeHandler,selectorMode);
+    NonBlockingIOThread thread=new NonBlockingIOThread(hazelcastThreadGroup.getInternalThreadGroup(),hazelcastThreadGroup.getThreadPoolNamePrefix("IO") + "in-" + i,loggingService.getLogger(NonBlockingIOThread.class),oomeHandler,selectorMode);
     thread.id=i;
     thread.setSelectorWorkaroundTest(selectorWorkaroundTest);
     inputThreads[i]=thread;
@@ -16,7 +10,7 @@
     thread.start();
   }
   for (int i=0; i < outputThreads.length; i++) {
-    NonBlockingIOThread thread=new NonBlockingIOThread(ioService.getThreadGroup(),ioService.getThreadPrefix() + "out-" + i,ioService.getLogger(NonBlockingIOThread.class.getName()),oomeHandler,selectorMode);
+    NonBlockingIOThread thread=new NonBlockingIOThread(hazelcastThreadGroup.getInternalThreadGroup(),hazelcastThreadGroup.getThreadPoolNamePrefix("IO") + "out-" + i,loggingService.getLogger(NonBlockingIOThread.class),oomeHandler,selectorMode);
     thread.id=i;
     thread.setSelectorWorkaroundTest(selectorWorkaroundTest);
     outputThreads[i]=thread;
