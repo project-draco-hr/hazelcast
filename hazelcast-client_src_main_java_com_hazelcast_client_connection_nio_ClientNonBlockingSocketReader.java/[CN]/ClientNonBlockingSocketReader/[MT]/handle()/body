@@ -1,7 +1,7 @@
 {
   eventCount.inc();
   lastReadTime=Clock.currentTimeMillis();
-  int readBytes=socketChannel.read(buffer);
+  int readBytes=socketChannel.read(inputBuffer);
   if (readBytes <= 0) {
     if (readBytes == -1) {
       throw new EOFException("Remote socket closed!");
@@ -9,12 +9,12 @@
     return;
   }
   bytesRead.inc(readBytes);
-  buffer.flip();
-  messagesRead.inc(builder.onData(buffer));
-  if (buffer.hasRemaining()) {
-    buffer.compact();
+  inputBuffer.flip();
+  readHandler.onRead(inputBuffer);
+  if (inputBuffer.hasRemaining()) {
+    inputBuffer.compact();
   }
  else {
-    buffer.clear();
+    inputBuffer.clear();
   }
 }
