@@ -11,7 +11,7 @@
     expectedClientMessages.add(expectedClientMessage);
     framedClientMessages.add(ClientMessageSplitter.getSubFrames(FRAME_SIZE,expectedClientMessage));
   }
-  ClientMessageBuilder clientMessageBuilder=new ClientMessageBuilder(new ClientMessageBuilder.MessageHandler(){
+  ClientMessageReadHandler clientMessageReadHandler=new ClientMessageReadHandler(readCounter,new ClientMessageReadHandler.MessageHandler(){
     @Override public void handleMessage(    ClientMessage message){
       int correlationId=(int)message.getCorrelationId();
       message.addFlag(ClientMessage.BEGIN_AND_END_FLAGS);
@@ -28,7 +28,7 @@
         break;
       }
       ClientMessage subFrame=clientMessageFrames.get(currentFrameIndex[i]);
-      clientMessageBuilder.onData(ByteBuffer.wrap(subFrame.buffer().byteArray(),0,subFrame.getFrameLength()));
+      clientMessageReadHandler.onRead(ByteBuffer.wrap(subFrame.buffer().byteArray(),0,subFrame.getFrameLength()));
       currentFrameIndex[i]++;
     }
   }
